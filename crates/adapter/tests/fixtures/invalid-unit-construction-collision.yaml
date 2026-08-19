@@ -1,0 +1,15 @@
+sides:
+  blue:
+    formations:
+      - type: marksman
+        x: 140
+        y: -100
+      - type: defensive_wall
+        x: 140
+        y: -105
+
+  red:
+    formations:
+      - type: marksman
+        x: 0
+        y: -50

@@ -1,0 +1,12 @@
+sides:
+  blue:
+    formations:
+      - type: sledgehammer
+        x: 285
+        y: -60
+
+  red:
+    formations:
+      - type: marksman
+        x: 0
+        y: -50
