@@ -1,0 +1,14 @@
+sides:
+  blue:
+    formations:
+      # The front edge is y=-10, legal only in the standard 300 m-deep region.
+      - type: crawler
+        x: -5
+        y: -20
+        equipment: 13030007
+
+  red:
+    formations:
+      - type: crawler
+        x: 5
+        y: -20

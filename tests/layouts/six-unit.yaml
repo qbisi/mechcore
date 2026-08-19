@@ -1,0 +1,81 @@
+sides:
+  blue:
+    techs:
+      units: [10213, 10202]
+
+    research_center:
+      strength_level: 2
+      attack_level: 2
+      defense_level: 1
+
+    formations:
+      - type: sledgehammer
+        x: -55
+        y: -60
+      - type: sledgehammer
+        x: 55
+        y: -60
+      - type: crawler
+        x: -55
+        y: -100
+      - type: crawler
+        x: 55
+        y: -100
+      - type: marksman
+        x: -90
+        y: -140
+      - type: marksman
+        x: 0
+        y: -140
+      - type: marksman
+        x: 90
+        y: -140
+
+    battle_skills:
+      - type: missile_strike
+        positions:
+          - {x: 55, y: 60}
+
+  red:
+    techs:
+      officers: [30602]
+      units: [10209, 10206, 10215]
+
+    energy_tower:
+      strength_level: 1
+      range_enhancement: true
+      movement_enhancement: true
+
+    formations:
+      - type: fang
+        x: -55
+        y: -60
+      - type: fang
+        x: 55
+        y: -60
+      - type: wasp
+        x: -60
+        y: -95
+        level: 2
+        rotated: true
+      - type: wasp
+        x: 60
+        y: -95
+        level: 2
+        rotated: true
+      - type: arclight
+        x: -90
+        y: -140
+      - type: arclight
+        x: 0
+        y: -140
+      - type: arclight
+        x: 90
+        y: -140
+
+    battle_skills:
+      - type: mobile_beacon
+        positions:
+          - {x: -55, y: -60}
+          - {x: -105, y: -90}
+          - {x: -105, y: 20}

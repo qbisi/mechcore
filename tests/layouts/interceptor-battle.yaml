@@ -1,0 +1,18 @@
+sides:
+  blue:
+    formations:
+      - type: interceptor
+        x: 5
+        y: -85
+      - type: stormcaller
+        x: 5
+        y: -120
+
+  red:
+    formations:
+      - type: interceptor
+        x: 5
+        y: -85
+      - type: stormcaller
+        x: 5
+        y: -120
