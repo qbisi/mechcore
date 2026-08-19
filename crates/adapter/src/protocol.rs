@@ -73,6 +73,7 @@ impl<T: Serialize> Response<T> {
 pub const CAPABILITIES: &[&str] = &[
     "status",
     "start_test",
+    "apply_layout",
     "toggle_fight",
     "speed_up",
     "quit_match",
@@ -121,12 +122,13 @@ mod tests {
 
     #[test]
     fn all_capabilities_have_dispatcher_arms() {
-        assert_eq!(CAPABILITIES.len(), 6);
+        assert_eq!(CAPABILITIES.len(), 7);
         assert_eq!(
             CAPABILITIES,
             [
                 "status",
                 "start_test",
+                "apply_layout",
                 "toggle_fight",
                 "speed_up",
                 "quit_match",
