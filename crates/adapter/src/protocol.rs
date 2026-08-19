@@ -70,7 +70,14 @@ impl<T: Serialize> Response<T> {
     }
 }
 
-pub const CAPABILITIES: &[&str] = &["status"];
+pub const CAPABILITIES: &[&str] = &[
+    "status",
+    "start_test",
+    "toggle_fight",
+    "speed_up",
+    "quit_match",
+    "quit_game",
+];
 
 #[cfg(test)]
 mod tests {
@@ -110,5 +117,28 @@ mod tests {
                 "capabilities": ["status"],
             })
         );
+    }
+
+    #[test]
+    fn all_capabilities_have_dispatcher_arms() {
+        assert_eq!(CAPABILITIES.len(), 6);
+        assert_eq!(
+            CAPABILITIES,
+            [
+                "status",
+                "start_test",
+                "toggle_fight",
+                "speed_up",
+                "quit_match",
+                "quit_game",
+            ]
+        );
+        let dispatcher = include_str!("operations.rs");
+        for capability in CAPABILITIES {
+            assert!(
+                dispatcher.contains(&format!("\"{capability}\" =>")),
+                "missing dispatcher arm for {capability}"
+            );
+        }
     }
 }
