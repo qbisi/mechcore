@@ -16,13 +16,13 @@ import yaml
 
 
 PROTOCOL = "mechcore.adapter.v1"
+MAX_ACTIVATION_ROUND = 15
+REPOSITORY = Path(__file__).resolve().parent.parent
 GAME_EXECUTABLE = Path(
     "/Users/qbisi/Library/Application Support/Steam/steamapps/common/Mechabellum/"
     "Mechabellum.app/Contents/MacOS/Mechabellum"
 )
-ADAPTER_DYLIB = Path(
-    "/Users/qbisi/mechcore-v2/target/release/libmechcore_adapter.dylib"
-)
+ADAPTER_DYLIB = REPOSITORY / "target/release/libmechcore_adapter.dylib"
 ADAPTER_SOCKET = Path("/tmp/mechcore-v2-smoke.sock")
 
 
@@ -266,9 +266,11 @@ def load_layout(path: Path) -> dict[str, Any]:
     if (
         not isinstance(activation_round, int)
         or isinstance(activation_round, bool)
-        or activation_round <= 0
+        or not 1 <= activation_round <= MAX_ACTIVATION_ROUND
     ):
-        raise SmokeFailure("layout round must be a positive integer")
+        raise SmokeFailure(
+            f"layout round must be within 1..={MAX_ACTIVATION_ROUND}"
+        )
     return value
 
 

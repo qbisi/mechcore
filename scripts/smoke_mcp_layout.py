@@ -30,6 +30,7 @@ EXPECTED_TOOLS = {
 }
 TRANSITION_TIMEOUT = 60.0
 BATTLE_TIMEOUT = 60.0
+MAX_ACTIVATION_ROUND = 15
 REPOSITORY = Path(__file__).resolve().parent.parent
 MECHCORE = REPOSITORY / "target/release/mechcore"
 
@@ -217,9 +218,11 @@ def load_layout(path: Path) -> dict[str, Any]:
     if (
         not isinstance(activation_round, int)
         or isinstance(activation_round, bool)
-        or activation_round <= 0
+        or not 1 <= activation_round <= MAX_ACTIVATION_ROUND
     ):
-        raise SmokeFailure("layout round must be a positive integer")
+        raise SmokeFailure(
+            f"layout round must be within 1..={MAX_ACTIVATION_ROUND}"
+        )
     return layout
 
 
