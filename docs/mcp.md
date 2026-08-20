@@ -21,18 +21,13 @@ Run the MCP server:
 mechcore mcp
 ```
 
-The subcommand accepts no additional arguments. `MECHCORE_ADAPTER` is its only
-runtime configuration variable and may name an alternative adapter dylib:
-
-```sh
-MECHCORE_ADAPTER=/absolute/path/libmechcore_adapter.dylib mechcore mcp
-```
-
-When the variable is absent, the default is
-`libmechcore_adapter.dylib` beside the running `mechcore` executable. A normal
-release build therefore resolves both artifacts inside `target/release`
-without embedding the repository path. `start_game` uses the default macOS
-Steam installation of Mechabellum.
+The subcommand accepts no additional arguments or project-specific environment
+variables. It loads `libmechcore_adapter.dylib` beside the running `mechcore`
+executable, so a normal release build resolves both artifacts inside
+`target/release` without embedding the repository path. The project-level Codex
+configuration starts the server through `direnv` and `cargo`, so it also does
+not depend on the checkout path. `start_game` resolves the default macOS Steam
+installation of Mechabellum beneath the current user's home directory.
 
 ## Status stream
 

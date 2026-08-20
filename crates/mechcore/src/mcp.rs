@@ -31,9 +31,8 @@ use tokio::{
     time::{Instant, sleep, timeout_at},
 };
 
-const ADAPTER_ENV: &str = "MECHCORE_ADAPTER";
 const STATUS_URI: &str = "mechcore://status";
-const GAME_EXECUTABLE: &str = "/Users/qbisi/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
+const GAME_EXECUTABLE_RELATIVE: &str = "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
 const STATUS_INTERVAL: Duration = Duration::from_millis(100);
 const ADAPTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(60);
@@ -59,14 +58,11 @@ struct Shared {
 
 impl Shared {
     fn new() -> Result<Arc<Self>, String> {
-        let adapter_path = match env::var_os(ADAPTER_ENV) {
-            Some(path) => PathBuf::from(path),
-            None => env::current_exe()
-                .map_err(|error| format!("cannot resolve current executable: {error}"))?
-                .parent()
-                .ok_or_else(|| "current executable has no parent directory".to_owned())?
-                .join("libmechcore_adapter.dylib"),
-        };
+        let adapter_path = env::current_exe()
+            .map_err(|error| format!("cannot resolve current executable: {error}"))?
+            .parent()
+            .ok_or_else(|| "current executable has no parent directory".to_owned())?
+            .join("libmechcore_adapter.dylib");
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|error| format!("system clock precedes Unix epoch: {error}"))?
@@ -190,7 +186,7 @@ impl Shared {
             return Err("an MCP-owned game process is already running".into());
         }
         let adapter_path = canonical_file(&self.adapter_path, "adapter")?;
-        let game_path = canonical_file(Path::new(GAME_EXECUTABLE), "game executable")?;
+        let game_path = canonical_file(&default_game_executable()?, "game executable")?;
         let mut command = Command::new(game_path);
         command
             .env("DYLD_INSERT_LIBRARIES", adapter_path)
@@ -680,6 +676,17 @@ fn canonical_file(path: &Path, label: &str) -> Result<PathBuf, String> {
     Ok(canonical)
 }
 
+fn default_game_executable() -> Result<PathBuf, String> {
+    let home = env::var_os("HOME")
+        .filter(|home| !home.is_empty())
+        .ok_or_else(|| "HOME is not set; cannot locate Mechabellum".to_owned())?;
+    Ok(game_executable(Path::new(&home)))
+}
+
+fn game_executable(home: &Path) -> PathBuf {
+    home.join(GAME_EXECUTABLE_RELATIVE)
+}
+
 fn is_status(value: &Value, expected: &str) -> bool {
     value.get("status").and_then(Value::as_str) == Some(expected)
 }
@@ -736,10 +743,7 @@ mod tests {
     }
 
     #[test]
-    fn default_adapter_is_a_release_sibling() {
-        if env::var_os(ADAPTER_ENV).is_some() {
-            return;
-        }
+    fn adapter_is_a_release_sibling() {
         let shared = Shared::new().unwrap();
         assert_eq!(
             shared
@@ -752,6 +756,12 @@ mod tests {
             shared.adapter_path.parent(),
             env::current_exe().unwrap().parent()
         );
+    }
+
+    #[test]
+    fn game_executable_is_relative_to_the_current_user_home() {
+        let home = Path::new("test-home");
+        assert_eq!(game_executable(home), home.join(GAME_EXECUTABLE_RELATIVE));
     }
 
     #[test]

@@ -18,8 +18,8 @@ import yaml
 PROTOCOL = "mechcore.adapter.v1"
 MAX_ACTIVATION_ROUND = 15
 REPOSITORY = Path(__file__).resolve().parent.parent
-GAME_EXECUTABLE = Path(
-    "/Users/qbisi/Library/Application Support/Steam/steamapps/common/Mechabellum/"
+GAME_EXECUTABLE = Path.home() / (
+    "Library/Application Support/Steam/steamapps/common/Mechabellum/"
     "Mechabellum.app/Contents/MacOS/Mechabellum"
 )
 ADAPTER_DYLIB = REPOSITORY / "target/release/libmechcore_adapter.dylib"
