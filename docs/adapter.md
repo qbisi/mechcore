@@ -50,31 +50,38 @@ Success and failure responses preserve that identifier:
 
 The hello capability list is authoritative. Operations not present in that
 list are rejected even if private implementation helpers still exist inside
-the dylib. Every request is parsed on the socket thread, then its game work is
-synchronously executed on Unity's main dispatch queue. A failed or disconnected
-mutation must not be automatically retried.
+the dylib. Every request is parsed on the socket thread. Individual native
+actions execute synchronously on Unity's main dispatch queue; the socket thread
+coordinates the multiple short actions and status samples required by a
+multi-round `apply_layout`. A failed or disconnected mutation must not be
+automatically retried.
 
-The adapter returns after the native call or readback completes. Cross-scene
-readiness belongs to `mechcore mcp`, which observes the status stream before
-returning from lifecycle tools.
+The adapter returns after the native call or readback completes. `apply_layout`
+also waits until the requested activation-round deployment is stable. Other
+cross-scene readiness belongs to `mechcore mcp`, which observes the status
+stream before returning from lifecycle tools.
 
 ## Operations
 
 ### apply_layout
 
-Input is the complete layout object defined by [layout.md](layout.md), with
-top-level `sides.blue` and `sides.red` fields.
+Input is the complete layout object defined by [layout.md](layout.md), with a
+top-level activation `round` and `sides.blue` and `sides.red` fields.
 
 Typical output:
 
 ```json
-{"applied":true,"formation_count":12,"sides":{"blue":{},"red":{}}}
+{"applied":true,"round":3,"formation_count":12,"skipped_rounds":[1,2],"stages":[{"stage":"prepare"},{"stage":"pre_activation"},{"stage":"activation"}]}
 ```
 
-The operation is valid only during first-round Training Ground deployment. It
-compiles and validates the complete layout, clears initial formations, applies
-both sides through native actions, and requires authoritative readback before
-returning.
+The operation begins only during first-round Training Ground deployment. It
+compiles and validates the complete layout before mutation, clears both sides,
+and lets earlier empty rounds end naturally. Non-travelling ambush units are
+placed in the round immediately before activation; only that round uses the
+private Training Ground finish-fight action if battle begins. Every remaining
+formation and modifier is applied in the activation round. The operation
+returns only after authoritative readback and stable activation-round
+deployment status.
 
 ### quit_game
 

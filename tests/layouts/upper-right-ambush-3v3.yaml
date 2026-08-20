@@ -1,0 +1,32 @@
+round: 3
+
+sides:
+  blue:
+    formations:
+      - type: crawler
+        x: 310
+        y: 285
+        travelling: true
+      - type: phantom_ray
+        x: 330
+        y: 285
+        travelling: false
+      - type: typhoon
+        x: 350
+        y: 290
+        travelling: false
+
+  red:
+    formations:
+      - type: typhoon
+        x: -250
+        y: -290
+        rotated: true
+      - type: phantom_ray
+        x: -270
+        y: -285
+        rotated: true
+      - type: crawler
+        x: -290
+        y: -285
+        rotated: true

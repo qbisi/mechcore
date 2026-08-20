@@ -262,6 +262,13 @@ def load_layout(path: Path) -> dict[str, Any]:
         raise SmokeFailure(f"cannot load layout {path}: {error}") from error
     if not isinstance(value, dict):
         raise SmokeFailure(f"layout root must be an object: {path}")
+    activation_round = value.get("round")
+    if (
+        not isinstance(activation_round, int)
+        or isinstance(activation_round, bool)
+        or activation_round <= 0
+    ):
+        raise SmokeFailure("layout round must be a positive integer")
     return value
 
 
@@ -322,6 +329,7 @@ def shutdown_game(
 
 def run(args: argparse.Namespace) -> None:
     layout = load_layout(args.layout)
+    activation_round = layout["round"]
     process = launch_game()
     client: AdapterClient | None = None
     try:
@@ -356,16 +364,30 @@ def run(args: argparse.Namespace) -> None:
         applied = client.request("apply_layout", layout, args.transition_timeout)
         if applied.get("applied") is not True:
             raise SmokeFailure(f"layout was not confirmed: {applied}")
+        if applied.get("round") != activation_round:
+            raise SmokeFailure(f"layout activated in an unexpected round: {applied}")
         print(f"ok: applied layout from {args.layout}")
+
+        poll_status(
+            client,
+            "activation-round deployment",
+            args.transition_timeout,
+            {
+                "status": "training_ground",
+                "round_count": activation_round,
+                "deploying": True,
+                "fighting": False,
+            },
+        )
 
         client.request("toggle_fight", {})
         poll_status(
             client,
-            "round-one fight",
+            "activation-round fight",
             args.transition_timeout,
             {
                 "status": "training_ground",
-                "round_count": 1,
+                "round_count": activation_round,
                 "deploying": False,
                 "fighting": True,
             },
@@ -376,11 +398,11 @@ def run(args: argparse.Namespace) -> None:
         print(f"ok: speed-up requested: {json.dumps(speed_up)}")
         poll_status(
             client,
-            "round-two deployment after the fight",
+            "deployment after the activation fight",
             args.battle_timeout,
             {
                 "status": "training_ground",
-                "round_count": 2,
+                "round_count": activation_round + 1,
                 "deploying": True,
                 "fighting": False,
             },

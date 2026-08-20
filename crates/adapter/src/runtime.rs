@@ -11,10 +11,13 @@ use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const SOCKET_ENV: &str = "MECHCORE_ADAPTER_SOCKET";
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
+const LAYOUT_SERIES_TIMEOUT: Duration = Duration::from_secs(55);
+const LAYOUT_STATUS_INTERVAL: Duration = Duration::from_millis(50);
+const LAYOUT_DEPLOYMENT_STABLE_SAMPLES: usize = 3;
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -100,7 +103,15 @@ impl Runtime {
 struct MainInvocation {
     runtime: *mut Runtime,
     request: *const Request,
+    action: MainAction,
     response: Option<Response<Value>>,
+}
+
+#[derive(Clone, Copy)]
+enum MainAction {
+    Public,
+    Internal,
+    Layout(operations::LayoutExecutionStage),
 }
 
 struct RuntimeLoadInvocation {
@@ -123,7 +134,11 @@ extern "C" fn invoke_on_main(context: *mut c_void) {
     // synchronous callback duration.
     let runtime = unsafe { &mut *invocation.runtime };
     let request = unsafe { &*invocation.request };
-    invocation.response = Some(operations::execute(runtime, request));
+    invocation.response = Some(match invocation.action {
+        MainAction::Public => operations::execute(runtime, request),
+        MainAction::Internal => operations::execute_internal(runtime, request),
+        MainAction::Layout(stage) => operations::execute_layout_stage(runtime, request, stage),
+    });
 }
 
 #[cfg(target_os = "macos")]
@@ -133,9 +148,30 @@ unsafe extern "C" {
 }
 
 fn execute_on_main(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    execute_action_on_main(runtime, request, MainAction::Public)
+}
+
+fn execute_internal_on_main(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    execute_action_on_main(runtime, request, MainAction::Internal)
+}
+
+fn execute_layout_stage_on_main(
+    runtime: &mut Runtime,
+    request: &Request,
+    stage: operations::LayoutExecutionStage,
+) -> Response<Value> {
+    execute_action_on_main(runtime, request, MainAction::Layout(stage))
+}
+
+fn execute_action_on_main(
+    runtime: &mut Runtime,
+    request: &Request,
+    action: MainAction,
+) -> Response<Value> {
     let mut invocation = MainInvocation {
         runtime,
         request,
+        action,
         response: None,
     };
     #[cfg(target_os = "macos")]
@@ -306,9 +342,184 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 continue;
             }
         };
-        let response = execute_on_main(runtime, &request);
+        let response = if request.operation == "apply_layout" {
+            execute_layout_series(runtime, &request)
+        } else {
+            execute_on_main(runtime, &request)
+        };
         write_json_line(&mut stream, &response)?;
     }
+}
+
+fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let deadline = Instant::now() + LAYOUT_SERIES_TIMEOUT;
+    let prepare =
+        execute_layout_stage_on_main(runtime, request, operations::LayoutExecutionStage::Prepare);
+    let prepare = match successful_result(prepare) {
+        Ok(result) => result,
+        Err(response) => return response,
+    };
+    let Some(target_round) = prepare.get("target_round").and_then(Value::as_i64) else {
+        return Response::failure(
+            request.id,
+            "invalid_adapter_response",
+            "prepare layout stage omitted target_round",
+        );
+    };
+    let Some(formation_count) = prepare.get("formation_count").and_then(Value::as_u64) else {
+        return Response::failure(
+            request.id,
+            "invalid_adapter_response",
+            "prepare layout stage omitted formation_count",
+        );
+    };
+
+    let mut current_round = 1_i64;
+    let mut skipped_rounds = Vec::new();
+    let mut stages = vec![prepare];
+    while current_round < target_round {
+        let is_pre_activation = is_pre_activation_round(current_round, target_round);
+        if is_pre_activation {
+            let pre_activation = execute_layout_stage_on_main(
+                runtime,
+                request,
+                operations::LayoutExecutionStage::PreActivation,
+            );
+            match successful_result(pre_activation) {
+                Ok(result) => stages.push(result),
+                Err(response) => return response,
+            }
+        }
+        if let Err(response) =
+            advance_layout_round(runtime, request, current_round, is_pre_activation, deadline)
+        {
+            return response;
+        }
+        skipped_rounds.push(current_round);
+        current_round += 1;
+    }
+
+    let activation = execute_layout_stage_on_main(
+        runtime,
+        request,
+        operations::LayoutExecutionStage::Activation,
+    );
+    match successful_result(activation) {
+        Ok(result) => stages.push(result),
+        Err(response) => return response,
+    }
+    Response::success(
+        request.id,
+        serde_json::json!({
+            "applied": true,
+            "round": target_round,
+            "formation_count": formation_count,
+            "skipped_rounds": skipped_rounds,
+            "stages": stages,
+        }),
+    )
+}
+
+const fn is_pre_activation_round(current_round: i64, target_round: i64) -> bool {
+    target_round > 2 && current_round + 1 == target_round
+}
+
+fn successful_result(response: Response<Value>) -> Result<Value, Response<Value>> {
+    if response.ok {
+        Ok(response.result.unwrap_or(Value::Null))
+    } else {
+        Err(response)
+    }
+}
+
+fn advance_layout_round(
+    runtime: &mut Runtime,
+    request: &Request,
+    round: i64,
+    finish_if_fighting: bool,
+    deadline: Instant,
+) -> Result<(), Response<Value>> {
+    let toggle = Request {
+        id: request.id,
+        operation: "toggle_fight".into(),
+        arguments: Value::Null,
+    };
+    successful_result(execute_internal_on_main(runtime, &toggle))?;
+
+    if finish_if_fighting {
+        let transition = wait_layout_status(
+            runtime,
+            request.id,
+            deadline,
+            &format!("round {round} fight start"),
+            1,
+            |status| {
+                is_training_state(status, round, false, true)
+                    || is_training_state(status, round + 1, true, false)
+            },
+        )?;
+        if is_training_state(&transition, round, false, true) {
+            let finish = Request {
+                id: request.id,
+                operation: "finish_preparation_fight".into(),
+                arguments: serde_json::json!({"expected_round": round}),
+            };
+            successful_result(execute_internal_on_main(runtime, &finish))?;
+        }
+    }
+
+    wait_layout_status(
+        runtime,
+        request.id,
+        deadline,
+        &format!("round {} deployment", round + 1),
+        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+        |status| is_training_state(status, round + 1, true, false),
+    )?;
+    Ok(())
+}
+
+fn wait_layout_status(
+    runtime: &mut Runtime,
+    request_id: u64,
+    deadline: Instant,
+    description: &str,
+    stable_samples: usize,
+    predicate: impl Fn(&Value) -> bool,
+) -> Result<Value, Response<Value>> {
+    let status_request = Request {
+        id: request_id,
+        operation: "status".into(),
+        arguments: Value::Null,
+    };
+    let mut stable = 0;
+    let mut last = Value::Null;
+    loop {
+        if Instant::now() >= deadline {
+            return Err(Response::failure(
+                request_id,
+                "operation_timeout",
+                format!("timed out waiting for {description}; last status: {last}"),
+            ));
+        }
+        last = successful_result(execute_internal_on_main(runtime, &status_request))?;
+        if predicate(&last) {
+            stable += 1;
+            if stable >= stable_samples {
+                return Ok(last);
+            }
+        } else {
+            stable = 0;
+        }
+        thread::sleep(LAYOUT_STATUS_INTERVAL);
+    }
+}
+
+fn is_training_state(status: &Value, round: i64, deploying: bool, fighting: bool) -> bool {
+    status.get("status").and_then(Value::as_str) == Some("training_ground")
+        && status.get("round_count").and_then(Value::as_i64) == Some(round)
+        && status.get("deploying").and_then(Value::as_bool) == Some(deploying)
+        && status.get("fighting").and_then(Value::as_bool) == Some(fighting)
 }
 
 fn write_json_line(stream: &mut UnixStream, value: &impl serde::Serialize) -> io::Result<()> {
@@ -363,5 +574,19 @@ mod tests {
         drop(client);
         drop(listener);
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn only_the_round_before_activation_uses_pre_activation_actions() {
+        assert!(!is_pre_activation_round(1, 1));
+        assert!(!is_pre_activation_round(1, 2));
+        for target in 3..=6 {
+            for current in 1..target {
+                assert_eq!(
+                    is_pre_activation_round(current, target),
+                    current == target - 1
+                );
+            }
+        }
     }
 }

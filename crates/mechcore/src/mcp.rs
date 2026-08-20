@@ -41,6 +41,7 @@ const TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct ApplyLayoutParameters {
+    round: i32,
     sides: Value,
 }
 
@@ -259,16 +260,26 @@ impl Shared {
     async fn apply_layout(&self, layout: Value) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_training_deployment(1).await?;
+        let activation_round = layout
+            .get("round")
+            .and_then(Value::as_i64)
+            .filter(|round| *round > 0)
+            .ok_or_else(|| "layout round must be a positive integer".to_owned())?;
         let result = self.adapter_request("apply_layout", layout).await?;
         if result.get("applied").and_then(Value::as_bool) != Some(true) {
             return Err(format!(
                 "adapter did not confirm layout application: {result}"
             ));
         }
-        let status = self.refresh_status().await?;
-        if !is_training_state(&status, 1, true, false) {
+        if result.get("round").and_then(Value::as_i64) != Some(activation_round) {
             return Err(format!(
-                "layout completed outside round-one deployment: {status}"
+                "adapter completed layout for an unexpected round: {result}"
+            ));
+        }
+        let status = self.refresh_status().await?;
+        if !is_training_state(&status, activation_round, true, false) {
+            return Err(format!(
+                "layout completed outside activation-round deployment: {status}"
             ));
         }
         Ok(json!({"operation": result, "status": status}))
@@ -444,14 +455,14 @@ impl MechcoreMcp {
         Ok(tool_result(self.shared.start_test().await))
     }
 
-    #[tool(description = "Apply a complete layout during round-one deployment")]
+    #[tool(description = "Apply a staged layout and advance to its activation-round deployment")]
     async fn apply_layout(
         &self,
         Parameters(parameters): Parameters<ApplyLayoutParameters>,
     ) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(
             self.shared
-                .apply_layout(json!({"sides": parameters.sides}))
+                .apply_layout(json!({"round": parameters.round, "sides": parameters.sides}))
                 .await,
         ))
     }
@@ -740,5 +751,16 @@ mod tests {
         assert!(is_training_deployment(&deployment));
         assert!(is_training_state(&deployment, 1, true, false));
         assert!(!is_training_state(&deployment, 2, true, false));
+    }
+
+    #[test]
+    fn apply_layout_parameters_require_an_activation_round() {
+        assert!(serde_json::from_value::<ApplyLayoutParameters>(json!({"sides": {}})).is_err());
+        let parameters = serde_json::from_value::<ApplyLayoutParameters>(json!({
+            "round": 3,
+            "sides": {"blue": {}, "red": {}}
+        }))
+        .unwrap();
+        assert_eq!(parameters.round, 3);
     }
 }

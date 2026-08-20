@@ -1,6 +1,7 @@
 use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
 use crate::layout::{
-    self, BattleSkill, EnergyTower, NativeFormation, Placement, ResearchCenter, SidePlan, Techs,
+    self, BattleSkill, EnergyTower, NativeFormation, Placement, PlacementStage, ResearchCenter,
+    SidePlan, Techs,
 };
 use crate::protocol::{CAPABILITIES, GameStatus, Request, Response};
 use crate::runtime::Runtime;
@@ -33,6 +34,13 @@ const RANGE_ENHANCEMENT_SKILL: i32 = 5;
 const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LayoutExecutionStage {
+    Prepare,
+    PreActivation,
+    Activation,
+}
+
 pub fn execute(runtime: &mut Runtime, request: &Request) -> Response<Value> {
     if !CAPABILITIES.contains(&request.operation.as_str()) {
         return Response::failure(
@@ -41,22 +49,41 @@ pub fn execute(runtime: &mut Runtime, request: &Request) -> Response<Value> {
             format!("unknown operation {}", request.operation),
         );
     }
-    match execute_inner(runtime, request) {
-        Ok(result) => Response::success(request.id, result),
+    operation_response(request.id, execute_inner(runtime, request))
+}
+
+pub(crate) fn execute_internal(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    operation_response(request.id, execute_inner(runtime, request))
+}
+
+pub(crate) fn execute_layout_stage(
+    runtime: &mut Runtime,
+    request: &Request,
+    stage: LayoutExecutionStage,
+) -> Response<Value> {
+    operation_response(
+        request.id,
+        apply_layout_stage(runtime, &request.arguments, stage),
+    )
+}
+
+fn operation_response(id: u64, result: Result<Value, OperationError>) -> Response<Value> {
+    match result {
+        Ok(result) => Response::success(id, result),
         Err(OperationError::InvalidArguments(message)) => {
-            Response::failure(request.id, "invalid_arguments", message)
+            Response::failure(id, "invalid_arguments", message)
         }
         Err(OperationError::InvalidState(message)) => {
-            Response::failure(request.id, "invalid_game_state", message)
+            Response::failure(id, "invalid_game_state", message)
         }
         Err(OperationError::Rejected(message)) => {
-            Response::failure(request.id, "game_rejected_operation", message)
+            Response::failure(id, "game_rejected_operation", message)
         }
         Err(OperationError::Il2Cpp(error)) => {
-            Response::failure(request.id, "il2cpp_error", error.to_string())
+            Response::failure(id, "il2cpp_error", error.to_string())
         }
         Err(OperationError::Il2CppContext(message)) => {
-            Response::failure(request.id, "il2cpp_error", message)
+            Response::failure(id, "il2cpp_error", message)
         }
     }
 }
@@ -118,7 +145,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         "check_unit_placement" => move_unit(runtime, &request.arguments, false),
         "move_unit" => move_unit(runtime, &request.arguments, true),
         "add_unit" => add_unit(runtime, &request.arguments),
-        "apply_layout" => apply_layout(runtime, &request.arguments),
+        "apply_layout" => Err(OperationError::InvalidState(
+            "apply_layout requires the runtime round-series coordinator".into(),
+        )),
         "unit_status" => unit_status(runtime, &request.arguments),
         "remove_unit" => remove_unit(runtime, &request.arguments),
         "clear_both_sides" => clear_both_sides(runtime),
@@ -710,20 +739,44 @@ fn add_unit(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationErro
     }
 }
 
-fn apply_layout(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    require_layout_deployment(runtime)?;
+fn apply_layout_stage(
+    runtime: &Runtime,
+    arguments: &Value,
+    stage: LayoutExecutionStage,
+) -> Result<Value, OperationError> {
     let plan = layout::compile(arguments).map_err(OperationError::InvalidArguments)?;
-    let formation_count = plan.formation_count();
-    validate_layout_catalog(runtime, &plan)?;
-    validate_layout_positions(&plan)?;
-    clear_both_sides(runtime)?;
+    if stage == LayoutExecutionStage::PreActivation && plan.round <= 2 {
+        return Err(OperationError::InvalidState(format!(
+            "pre-activation deployment is not part of activation round {}",
+            plan.round
+        )));
+    }
+    let expected_round = match stage {
+        LayoutExecutionStage::Prepare => 1,
+        LayoutExecutionStage::PreActivation => plan.round - 1,
+        LayoutExecutionStage::Activation => plan.round,
+    };
+    require_layout_deployment(runtime, expected_round)?;
+
+    if stage == LayoutExecutionStage::Prepare {
+        validate_layout_catalog(runtime, &plan)?;
+        validate_layout_positions(&plan)?;
+        let cleared = clear_both_sides(runtime)?;
+        return Ok(json!({
+            "stage": "prepare",
+            "round": expected_round,
+            "target_round": plan.round,
+            "formation_count": plan.formation_count(),
+            "cleared": cleared,
+        }));
+    }
 
     let current = require_match(runtime)?;
-    let blue = apply_side_layout(runtime, current, &plan.blue, false)?;
+    let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
     runtime
         .api
         .invoke_void(current, "SwitchToNextPlayer", &mut [])?;
-    let red_result = apply_side_layout(runtime, current, &plan.red, true);
+    let red_result = apply_side_layout_stage(runtime, current, &plan.red, true, stage);
     let restore_result = runtime
         .api
         .invoke_void(current, "SwitchToNextPlayer", &mut []);
@@ -731,8 +784,14 @@ fn apply_layout(runtime: &Runtime, arguments: &Value) -> Result<Value, Operation
     restore_result?;
 
     Ok(json!({
-        "applied": true,
-        "formation_count": formation_count,
+        "stage": match stage {
+            LayoutExecutionStage::Prepare => "prepare",
+            LayoutExecutionStage::PreActivation => "pre_activation",
+            LayoutExecutionStage::Activation => "activation",
+        },
+        "round": expected_round,
+        "target_round": plan.round,
+        "formation_count": plan.formation_count(),
         "sides": {
             "blue": blue,
             "red": red
@@ -908,17 +967,17 @@ fn validate_equipment_catalog(
     )))
 }
 
-fn require_layout_deployment(runtime: &Runtime) -> Result<(), OperationError> {
+fn require_layout_deployment(runtime: &Runtime, expected_round: i32) -> Result<(), OperationError> {
     let state = status(runtime);
     let ready = state.get("status").and_then(Value::as_str) == Some("training_ground")
-        && state.get("round_count").and_then(Value::as_i64) == Some(1)
+        && state.get("round_count").and_then(Value::as_i64) == Some(i64::from(expected_round))
         && state.get("deploying").and_then(Value::as_bool) == Some(true)
         && state.get("fighting").and_then(Value::as_bool) == Some(false);
     if ready {
         Ok(())
     } else {
         Err(OperationError::InvalidState(format!(
-            "layout requires fresh round-one Training Ground deployment; current state: {state}"
+            "layout stage requires Training Ground round {expected_round} deployment; current state: {state}"
         )))
     }
 }
@@ -939,29 +998,50 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     Ok(())
 }
 
-fn apply_side_layout(
+fn apply_side_layout_stage(
     runtime: &Runtime,
     current: *mut Object,
     side: &SidePlan,
     rotate_to_world: bool,
+    stage: LayoutExecutionStage,
 ) -> Result<Value, OperationError> {
-    let formations = apply_formations(runtime, current, &side.formations, rotate_to_world)?;
-    let techs = apply_techs(runtime, current, &side.techs)?;
-    let research_center = apply_research_center(runtime, &side.research_center)?;
-    let energy_tower = apply_energy_tower(runtime, &side.energy_tower)?;
-    let battle_skills = apply_battle_skills(runtime, &side.battle_skills, rotate_to_world)?;
+    let placement_stage = match stage {
+        LayoutExecutionStage::Prepare => {
+            return Err(OperationError::InvalidState(
+                "prepare stage cannot apply side layout state".into(),
+            ));
+        }
+        LayoutExecutionStage::PreActivation => PlacementStage::PreActivation,
+        LayoutExecutionStage::Activation => PlacementStage::Activation,
+    };
+    let formations = apply_formations(
+        runtime,
+        current,
+        &side.formations,
+        rotate_to_world,
+        placement_stage,
+    )?;
+    let result = match stage {
+        LayoutExecutionStage::Prepare => unreachable!("prepare returned before side application"),
+        LayoutExecutionStage::PreActivation => json!({"formations": formations}),
+        LayoutExecutionStage::Activation => json!({
+            "techs": apply_techs(runtime, current, &side.techs)?,
+            "research_center": apply_research_center(runtime, &side.research_center)?,
+            "energy_tower": apply_energy_tower(runtime, &side.energy_tower)?,
+            "formations": formations,
+            "battle_skills": apply_battle_skills(
+                runtime,
+                &side.battle_skills,
+                rotate_to_world,
+            )?,
+        }),
+    };
     if runtime.current_match() != current {
         return Err(OperationError::InvalidState(
             "active match changed while applying side layout".into(),
         ));
     }
-    Ok(json!({
-        "techs": techs,
-        "research_center": research_center,
-        "energy_tower": energy_tower,
-        "formations": formations,
-        "battle_skills": battle_skills
-    }))
+    Ok(result)
 }
 
 fn apply_battle_skills(
@@ -1548,9 +1628,11 @@ fn apply_formations(
     current: *mut Object,
     placements: &[Placement],
     rotate_to_world: bool,
+    stage: PlacementStage,
 ) -> Result<Vec<Value>, OperationError> {
     placements
         .iter()
+        .filter(|placement| placement.stage == stage)
         .map(|placement| apply_formation(runtime, placement, rotate_to_world))
         .collect::<Result<Vec<Value>, OperationError>>()
         .map_err(|error| {
@@ -3231,6 +3313,7 @@ mod tests {
     #[test]
     fn layout_positions_are_rotated_for_red_only() {
         let plan = layout::compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "marksman", "x": 20, "y": -50
@@ -3255,6 +3338,7 @@ mod tests {
     #[test]
     fn battle_skill_positions_use_the_same_side_local_rotation() {
         let plan = layout::compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {
                     "formations": [{"type": "marksman", "x": 0, "y": -50}],
@@ -3306,6 +3390,8 @@ mod tests {
             level: Some(1),
             rotated: false,
             equipment: None,
+            travelling: false,
+            stage: layout::PlacementStage::Activation,
         };
         let Err(error) = layout_world_position(&placement, true) else {
             panic!("red coordinate rotation unexpectedly succeeded")

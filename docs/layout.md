@@ -6,9 +6,9 @@
 Training Ground scene. It describes game state, not the actions used to create
 that state.
 
-The layout contains only single-round battle settings. In particular,
-it does not contain `reactor_core`, `supply`, a target round, game startup
-parameters, capture settings, or exit behavior.
+The top-level `round` selects the deployment round in which the complete layout
+becomes active. The document does not contain `reactor_core`, `supply`, game
+startup parameters, capture settings, or exit behavior.
 
 ## Document shape
 
@@ -16,6 +16,8 @@ A layout contains exactly two player sides, `blue` and `red`. Persistent Officer
 and unit-technology state is grouped under each side's `techs` object.
 
 ```yaml
+round: 3
+
 sides:
   blue:
     techs:
@@ -37,6 +39,11 @@ sides:
         x: 0
         y: -50
         equipment: 13030001
+
+      - type: arclight
+        x: -310
+        y: 20
+        travelling: true
 
       - type: defensive_wall
         x: 140
@@ -76,6 +83,26 @@ sides:
 YAML field order has no semantic meaning. Examples and generated files should
 nevertheless use the order above.
 
+## Activation round
+
+`round` is a required positive integer. It names the Training Ground round
+whose deployment phase is returned by a successful `apply_layout` call. Earlier
+rounds are setup rounds owned by the adapter; callers do not submit or observe
+separate partial layouts.
+
+The native ambush zones become available from round 2. The layout rules are:
+
+- round 1 cannot contain an ambush-zone unit;
+- round 2 cannot contain an ambush-zone unit with `travelling: false`;
+- round 3 and later accept both travelling and non-travelling ambush units.
+
+These rules follow from native placement timing. An ambush unit first deployed
+in the activation round has travelling state. A requested non-travelling ambush
+unit must instead be deployed in the immediately preceding round and carried
+through that round's battle. For activation round 2, the preceding round is
+round 1, where ambush deployment is still locked; this is why such a layout is
+illegal until activation round 3.
+
 ## Coordinate system
 
 Every position is expressed in the owning side's fixed local coordinate
@@ -86,6 +113,12 @@ coordinates:
 - `+y` always points from the owning side toward its opponent;
 - `+x` always points to the owning side's right;
 - the owning side's main deployment half therefore uses negative `y`.
+
+The local main deployment rectangle is `x=[-300,300], y=[-310,-10]`. Ordinary
+units may additionally use either local ambush rectangle:
+
+- left: `x=[-360,-300], y=[10,310]`;
+- right: `x=[300,360], y=[10,310]`.
 
 The adapter compiles layout positions to the game's unified world coordinates
 before invoking native operations:
@@ -120,6 +153,7 @@ when omitted:
 - A unit formation's `level` defaults to `1`.
 - A unit formation's `rotated` defaults to `false`.
 - A unit formation's `equipment` defaults to no equipment.
+- A unit formation's `travelling` defaults to `false`.
 
 Unknown fields must be rejected. Numeric IDs outside formation definitions must
 be positive integers unless the field explicitly defines `0` as a baseline
@@ -252,7 +286,8 @@ final level. A transient building-manager index never appears in the layout.
 For the reference game data, `range_enhancement: true` activates Energy Tower
 skill `5`, while `movement_enhancement: true` activates skill `6`. The IDs are
 adapter details. Unlike `strength_level`, these two effects are cleared at the
-next deployment and may be activated again in each round.
+next deployment and may be activated again in each round. The staged executor
+applies the complete Energy Tower state in the activation round.
 
 ### `formations`
 
@@ -262,7 +297,7 @@ uses one semantic `type` instead of exposing a catalog category and numeric ID:
 ```yaml
 - type: marksman
   x: 0
-  y: 0
+  y: -50
 ```
 
 - `type` is the lower `snake_case` form of the unit, construction, shield,
@@ -278,11 +313,14 @@ return `construction_index`, but those transient values are not layout state.
 
 The layout compiler resolves every unit, construction, and interceptor
 deployment footprint and rejects positive-area overlap before any game
-mutation. Exact edge contact is legal. For units, `rotated: true` exchanges
-footprint width and height. Collision checks use compiled world positions, so
-units, constructions, and interceptors share one collision space within a side
-and across `blue` and `red` after the red-side 180-degree transform. Shields
-and missiles do not participate in formation collision checks.
+mutation. Exact edge contact is legal. In a main deployment region,
+`rotated: true` exchanges a unit's footprint width and height. The left/right
+ambush regions have a native quarter-turn orientation, which exchanges the
+effective world footprint once more. Collision checks use this region-aware
+footprint and compiled world positions, so units, constructions, and
+interceptors share one collision space within a side and across `blue` and
+`red` after the red-side 180-degree transform. Shields and missiles do not
+participate in formation collision checks.
 
 For units, constructions, and interceptors, all four footprint vertices must
 lie on the native `10 x 10` deployment grid. The compiler enforces the
@@ -291,17 +329,24 @@ equivalent center congruence independently for each footprint dimension:
 - `size ≡ 0 (mod 20)` requires `center ≡ 0 (mod 10)`;
 - `size ≡ 10 (mod 20)` requires `center ≡ 5 (mod 10)`.
 
-Consequently:
+Consequently, in a main deployment region:
 
 - a `20 x 20` footprint uses `x ≡ 0`, `y ≡ 0 (mod 10)`;
 - a `30 x 30` footprint uses `x ≡ 5`, `y ≡ 5 (mod 10)`;
 - an unrotated `50 x 20` footprint uses `x ≡ 5`, `y ≡ 0 (mod 10)`;
 - a rotated `20 x 50` footprint uses `x ≡ 0`, `y ≡ 5 (mod 10)`.
 
-Because `apply_layout` is restricted to a fresh standard-depth Training Ground
-round one, every complete footprint must fit inside the owning side's local
-main deployment boundary `x=[-300,300]`, `y=[-310,-10]`. A center inside that
-rectangle is insufficient when any footprint edge crosses it.
+For an ambush-zone unit these effective width/height examples are exchanged by
+the region orientation. For example, a base `50 x 20` Crawler with
+`rotated: true` uses an effective `50 x 20` ambush footprint and therefore
+requires `x ≡ 5`, `y ≡ 0 (mod 10)`.
+
+Every construction and interceptor footprint must fit inside the owning side's
+local main deployment boundary `x=[-300,300], y=[-310,-10]`. An ordinary unit
+whose center has `y < 10` follows the same rule. An ordinary unit whose center
+has `y >= 10` must fit completely inside one of the two ambush rectangles
+defined above. A center inside a legal rectangle is insufficient when any
+footprint edge crosses it.
 
 Shields and missiles use their native contraption target regions instead of
 the formation footprint rules above. Neither has a modulo-10 requirement or a
@@ -376,15 +421,22 @@ that do not belong to the selected type.
   x: 0
   y: -50
   equipment: 13030001
+  travelling: false
 ```
 
 The adapter resolves `type` to a native `CardData.ID`; neither that ID nor the
 runtime formation index is public layout state. `level` is the optional
 displayed level, defaults to `1`, and must be in `1..=9`. `rotated` is an
-optional boolean, defaults to `false`, and declares the exact orientation.
+optional boolean, defaults to `false`, and declares the native unit-orientation
+flag; the owning map region's facing still contributes to its world footprint.
 `equipment` is an optional positive native `EquipmentData.ID`. A unit has at
 most one equipment slot, so this field is singular rather than an array.
-Constructions and contraptions must not declare `equipment`.
+`travelling` is an optional boolean and defaults to `false`. It has semantic
+effect only for an ambush-zone unit: `true` requires that the unit be first
+deployed during the activation round, while `false` requires deployment in the
+immediately preceding round. `travelling: true` is invalid outside the ambush
+zones. Constructions and contraptions must not declare `equipment` or
+`travelling`.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
@@ -403,10 +455,10 @@ ownership readback. Available IDs and effects are listed in the
   y: -105
 ```
 
-A construction accepts no `level`, `rotated`, or `equipment` field because the
-current native release action takes none of these values. The executor resolves
-its English type to the native `ConstructionData`, performs the placement check,
-releases it once, and verifies its type and exact position.
+A construction accepts no `level`, `rotated`, `equipment`, or `travelling`
+field because the current native release action takes none of these values. The
+executor resolves its English type to the native `ConstructionData`, performs
+the placement check, releases it once, and verifies its type and exact position.
 
 #### Contraption
 
@@ -417,10 +469,11 @@ releases it once, and verifies its type and exact position.
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
-contraption kind. A contraption accepts no `level`, `rotated`, or `equipment`
-field, and none of these three types requires an extra position. The executor
-performs the native placement check, releases the contraption once, and verifies
-its type and exact position through authoritative recorder readback.
+contraption kind. A contraption accepts no `level`, `rotated`, `equipment`, or
+`travelling` field, and none of these three types requires an extra position.
+The executor performs the native placement check, releases the contraption once,
+and verifies its type and exact position through authoritative recorder
+readback.
 
 ### `battle_skills`
 
@@ -494,7 +547,8 @@ ordered positions through authoritative readback.
 
 Applying a layout is fail-closed:
 
-1. The game must be in a fresh deterministic Training Ground deployment.
+1. The game must be in a fresh deterministic round-one Training Ground
+   deployment, and `round` must satisfy the ambush/travelling rules above.
 2. Both sides must exist and the adapter must be able to select each side
    explicitly.
 3. Types, type-specific fields, side-local coordinates, static battle-skill
@@ -508,8 +562,9 @@ Applying a layout is fail-closed:
    or readback mismatch stops the application. Formation failures identify the
    declared `type`, `x`, and `y`; battle-skill failures identify the declared
    `type` and ordered `positions`. Mutations are never retried automatically.
-7. Success means that both sides match all state defined in this document; an
-   accepted native action alone is insufficient.
+7. Success means that the game is in the requested activation-round deployment
+   and both sides match all state defined in this document; an accepted native
+   action alone is insufficient.
 
 The layout is a complete desired-state description, not a patch. Implementations
 must start from a fresh match or prove that undeclared state is at its
@@ -535,26 +590,34 @@ materialize `techs.officers`.
 
 The `apply_layout` operation accepts the layout object as its complete
 `arguments` value. Its current implementation supports units with optional
-equipment, the four ordinary
-opening constructions, all three contraptions, both fixed-tower strengthening
-levels, Research Center attack/defense levels, and Energy Tower range/movement
-enhancements, Officers, active unit technologies, and every position-targeted
-`battle_skills` type in the build-2227 index. The compiler applies this state as
-one fail-closed adapter request:
+equipment and travelling state, the four ordinary opening constructions, all
+three contraptions, both fixed-tower strengthening levels, Research Center
+attack/defense levels, Energy Tower range/movement enhancements, Officers,
+active unit technologies, and every position-targeted `battle_skills` type in
+the build-2227 index. The compiler applies this state as one fail-closed adapter
+request:
 
 1. require round-one Training Ground deployment;
 2. compile the complete layout and resolve every Officer, unit technology,
    formation, fixed tower, required blueprint, Energy Tower skill, and battle
    skill through each side's runtime catalog before mutation;
-3. clear both sides;
-4. apply `blue` formations, Officers, and unit technologies in document order,
-   then apply its Research Center, Energy Tower, and battle-skill state; each
-   battle skill is provisioned, checked with its authoritative runtime position
-   count and target-region validator, released once, and read back with its
-   exact ordered world positions;
-5. switch to `red`, rotate each local position 180 degrees into native world
-   coordinates, repeat the complete side application and verification, then
-   restore `blue` as the selected side.
+3. clear both sides in round 1 without placing combat formations;
+4. start each earlier empty round and wait for the game to advance it naturally,
+   polling authoritative status until the next deployment is stable;
+5. in the round immediately before activation, deploy ambush units whose
+   requested activation state is `travelling: false`; if that round enters
+   battle, finish it immediately with the private Training Ground process-state
+   action;
+6. in the activation round, apply every remaining unit and construction,
+   Officers, unit technologies, Research Center and Energy Tower state, shields,
+   missiles, interceptors, and battle skills, then return while the game is
+   still deploying.
+
+Every stage applies `blue`, switches to `red` and rotates its side-local
+positions 180 degrees, then restores `blue` as the selected side. Each battle
+skill is provisioned, checked with its authoritative runtime position count and
+target-region validator, released once, and read back with its exact ordered
+world positions.
 
 The compiler accepts omitted fields and explicit baseline values described in
 this document, except that `formations` is mandatory and non-empty on both
@@ -562,9 +625,10 @@ sides. It rejects tower levels outside `0..=2`, unknown formation footprints,
 formation collisions where applicable, and contraptions outside their target
 regions. Unsupported state is never silently ignored.
 
-The compiler owns the total formation count. A successful `apply_layout`
-response includes that value as `formation_count`; callers do not recount the
-input or returned arrays to establish completeness.
+The compiler owns the activation round and total formation count. A successful
+`apply_layout` response includes them as `round` and `formation_count`, plus the
+completed `stages` and `skipped_rounds`; callers do not recount the input or
+returned arrays to establish completeness.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is

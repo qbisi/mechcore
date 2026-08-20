@@ -66,9 +66,10 @@ The MCP server exposes exactly eight tools.
 ### apply_layout
 
 Input is the layout object from [layout.md](layout.md), not a path and not a
-nested `layout` wrapper. The call requires first-round deployment and returns
-only after the adapter's complete native action/readback transaction succeeds
-and deployment state is reconfirmed.
+nested `layout` wrapper. Its required top-level `round` selects the activation
+round. The call requires first-round deployment and returns only after all setup
+rounds have been skipped, the adapter's staged native actions/readbacks succeed,
+and that activation round reports `deploying=true` and `fighting=false`.
 
 ### quit_game
 

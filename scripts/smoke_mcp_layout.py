@@ -213,6 +213,13 @@ def load_layout(path: Path) -> dict[str, Any]:
         raise SmokeFailure(f"cannot load layout {path}: {error}") from error
     if not isinstance(layout, dict):
         raise SmokeFailure("layout root must be an object")
+    activation_round = layout.get("round")
+    if (
+        not isinstance(activation_round, int)
+        or isinstance(activation_round, bool)
+        or activation_round <= 0
+    ):
+        raise SmokeFailure("layout round must be a positive integer")
     return layout
 
 
@@ -231,6 +238,7 @@ def require_status(status: dict[str, Any], expected: dict[str, Any], label: str)
 
 def run(layout_path: Path) -> None:
     layout = load_layout(layout_path)
+    activation_round = layout["round"]
     client = McpClient()
     failure: BaseException | None = None
     try:
@@ -269,11 +277,27 @@ def run(layout_path: Path) -> None:
         operation = applied.get("operation")
         if not isinstance(operation, dict) or operation.get("applied") is not True:
             raise SmokeFailure(f"apply_layout was not confirmed: {applied}")
+        if operation.get("round") != activation_round:
+            raise SmokeFailure(f"layout activated in an unexpected round: {applied}")
+        require_status(
+            status_from_tool(applied, "apply_layout"),
+            {
+                "status": "training_ground",
+                "round_count": activation_round,
+                "deploying": True,
+                "fighting": False,
+            },
+            "apply_layout",
+        )
         print(f"ok: applied {layout_path}")
         fighting = client.call_tool("toggle_fight", {})
         require_status(
             status_from_tool(fighting, "toggle_fight"),
-            {"status": "training_ground", "round_count": 1, "fighting": True},
+            {
+                "status": "training_ground",
+                "round_count": activation_round,
+                "fighting": True,
+            },
             "toggle_fight",
         )
         sped_up = client.call_tool("speed_up", {})
@@ -281,7 +305,12 @@ def run(layout_path: Path) -> None:
             raise SmokeFailure(f"speed_up was not confirmed: {sped_up}")
         print("ok: speed_up")
         client.wait_stream_status(
-            {"status": "training_ground", "round_count": 2, "deploying": True, "fighting": False},
+            {
+                "status": "training_ground",
+                "round_count": activation_round + 1,
+                "deploying": True,
+                "fighting": False,
+            },
             BATTLE_TIMEOUT,
         )
         menu = client.call_tool("quit_match", {})

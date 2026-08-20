@@ -4,6 +4,7 @@ use serde_json::Value;
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Layout {
+    round: i32,
     sides: Sides,
 }
 
@@ -62,6 +63,7 @@ struct Formation {
     level: Option<i32>,
     rotated: Option<bool>,
     equipment: Option<i32>,
+    travelling: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,6 +79,12 @@ pub(crate) enum NativeFormation {
     Unit(i32),
     Construction(i32),
     Contraption(i32),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum PlacementStage {
+    PreActivation,
+    Activation,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -101,6 +109,8 @@ pub(crate) struct Placement {
     pub(crate) level: Option<i32>,
     pub(crate) rotated: bool,
     pub(crate) equipment: Option<i32>,
+    pub(crate) travelling: bool,
+    pub(crate) stage: PlacementStage,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -114,6 +124,7 @@ pub(crate) struct SidePlan {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Plan {
+    pub(crate) round: i32,
     pub(crate) blue: SidePlan,
     pub(crate) red: SidePlan,
 }
@@ -122,6 +133,12 @@ const DEPLOYMENT_MIN_X: i64 = -300;
 const DEPLOYMENT_MAX_X: i64 = 300;
 const DEPLOYMENT_MIN_Y: i64 = -310;
 const DEPLOYMENT_MAX_Y: i64 = -10;
+const AMBUSH_LEFT_MIN_X: i64 = -360;
+const AMBUSH_LEFT_MAX_X: i64 = -300;
+const AMBUSH_RIGHT_MIN_X: i64 = 300;
+const AMBUSH_RIGHT_MAX_X: i64 = 360;
+const AMBUSH_MIN_Y: i64 = 10;
+const AMBUSH_MAX_Y: i64 = 310;
 const SHIELD_RADIUS: i64 = 70;
 const BATTLEFIELD_MIN_X: i64 = -400;
 const BATTLEFIELD_MAX_X: i64 = 400;
@@ -164,15 +181,22 @@ impl Plan {
 pub(crate) fn compile(value: &Value) -> Result<Plan, String> {
     let layout: Layout = serde_json::from_value(value.clone())
         .map_err(|error| format!("invalid layout: {error}"))?;
-    let blue = compile_side("blue", layout.sides.blue)?;
-    let red = compile_side("red", layout.sides.red)?;
+    if layout.round <= 0 {
+        return Err("layout round must be a positive integer".into());
+    }
+    let blue = compile_side("blue", layout.sides.blue, layout.round)?;
+    let red = compile_side("red", layout.sides.red, layout.round)?;
     validate_formation_footprints("blue", &blue.formations)?;
     validate_formation_footprints("red", &red.formations)?;
     validate_formation_collisions(&blue.formations, &red.formations)?;
-    Ok(Plan { blue, red })
+    Ok(Plan {
+        round: layout.round,
+        blue,
+        red,
+    })
 }
 
-fn compile_side(side_name: &str, side: Side) -> Result<SidePlan, String> {
+fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, String> {
     validate_techs(side_name, &side.techs)?;
     validate_side_modifiers(side_name, &side)?;
     let Side {
@@ -182,7 +206,7 @@ fn compile_side(side_name: &str, side: Side) -> Result<SidePlan, String> {
         formations,
         battle_skills,
     } = side;
-    let formations = compile_formations(side_name, formations)?;
+    let formations = compile_formations(side_name, formations, round)?;
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     Ok(SidePlan {
         techs,
@@ -193,9 +217,11 @@ fn compile_side(side_name: &str, side: Side) -> Result<SidePlan, String> {
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn compile_formations(
     side_name: &str,
     definitions: Vec<Formation>,
+    round: i32,
 ) -> Result<Vec<Placement>, String> {
     let placements = definitions
         .into_iter()
@@ -207,6 +233,7 @@ fn compile_formations(
                 level,
                 rotated,
                 equipment,
+                travelling,
             } = formation;
             let position = Position { x, y };
             let native = resolve_type(&type_name).ok_or_else(|| {
@@ -219,6 +246,7 @@ fn compile_formations(
                 NativeFormation::Unit(unit_id) => {
                     let level = level.unwrap_or(1);
                     let rotated = rotated.unwrap_or(false);
+                    let travelling = travelling.unwrap_or(false);
                     if !(1..=9).contains(&level) {
                         return Err(format!(
                             "side {side_name} formation type {type_name:?} at ({}, {}) level must be 1..=9",
@@ -231,6 +259,13 @@ fn compile_formations(
                             position.x, position.y
                         ));
                     }
+                    let stage = unit_placement_stage(
+                        side_name,
+                        &type_name,
+                        position,
+                        travelling,
+                        round,
+                    )?;
                     Ok(Placement {
                         type_name,
                         native: NativeFormation::Unit(unit_id),
@@ -238,6 +273,8 @@ fn compile_formations(
                         level: Some(level),
                         rotated,
                         equipment,
+                        travelling,
+                        stage,
                     })
                 }
                 NativeFormation::Construction(id) => {
@@ -248,6 +285,7 @@ fn compile_formations(
                         level,
                         rotated,
                         equipment,
+                        travelling,
                     )?;
                     Ok(Placement {
                         type_name,
@@ -256,6 +294,8 @@ fn compile_formations(
                         level: None,
                         rotated: false,
                         equipment: None,
+                        travelling: false,
+                        stage: PlacementStage::Activation,
                     })
                 }
                 NativeFormation::Contraption(id) => {
@@ -266,6 +306,7 @@ fn compile_formations(
                         level,
                         rotated,
                         equipment,
+                        travelling,
                     )?;
                     Ok(Placement {
                         type_name,
@@ -274,6 +315,8 @@ fn compile_formations(
                         level: None,
                         rotated: false,
                         equipment: None,
+                        travelling: false,
+                        stage: PlacementStage::Activation,
                     })
                 }
             }
@@ -564,13 +607,45 @@ fn validate_formation_footprints(side_name: &str, placements: &[Placement]) -> R
                 placement.type_name, placement.position.x, placement.position.y,
             ));
         }
-        if min_x < DEPLOYMENT_MIN_X
-            || max_x > DEPLOYMENT_MAX_X
-            || min_y < DEPLOYMENT_MIN_Y
-            || max_y > DEPLOYMENT_MAX_Y
-        {
+        if is_ambush_unit(placement) {
+            let inside_left = rectangle_within(
+                min_x,
+                max_x,
+                min_y,
+                max_y,
+                AMBUSH_LEFT_MIN_X,
+                AMBUSH_LEFT_MAX_X,
+                AMBUSH_MIN_Y,
+                AMBUSH_MAX_Y,
+            );
+            let inside_right = rectangle_within(
+                min_x,
+                max_x,
+                min_y,
+                max_y,
+                AMBUSH_RIGHT_MIN_X,
+                AMBUSH_RIGHT_MAX_X,
+                AMBUSH_MIN_Y,
+                AMBUSH_MAX_Y,
+            );
+            if !inside_left && !inside_right {
+                return Err(format!(
+                    "side {side_name} formation type {:?} at ({}, {}) footprint {width}x{height} must fit completely inside one ambush zone: left x=[{AMBUSH_LEFT_MIN_X},{AMBUSH_LEFT_MAX_X}] or right x=[{AMBUSH_RIGHT_MIN_X},{AMBUSH_RIGHT_MAX_X}], y=[{AMBUSH_MIN_Y},{AMBUSH_MAX_Y}]",
+                    placement.type_name, placement.position.x, placement.position.y
+                ));
+            }
+        } else if !rectangle_within(
+            min_x,
+            max_x,
+            min_y,
+            max_y,
+            DEPLOYMENT_MIN_X,
+            DEPLOYMENT_MAX_X,
+            DEPLOYMENT_MIN_Y,
+            DEPLOYMENT_MAX_Y,
+        ) {
             return Err(format!(
-                "side {side_name} formation type {:?} at ({}, {}) footprint {width}x{height} exceeds round-one deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
+                "side {side_name} formation type {:?} at ({}, {}) footprint {width}x{height} exceeds the main deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
                 placement.type_name, placement.position.x, placement.position.y
             ));
         }
@@ -614,6 +689,20 @@ fn position_within(position: Position, min_x: i64, max_x: i64, min_y: i64, max_y
     let x = i64::from(position.x);
     let y = i64::from(position.y);
     (min_x..=max_x).contains(&x) && (min_y..=max_y).contains(&y)
+}
+
+#[allow(clippy::too_many_arguments)]
+const fn rectangle_within(
+    min_x: i64,
+    max_x: i64,
+    min_y: i64,
+    max_y: i64,
+    bound_min_x: i64,
+    bound_max_x: i64,
+    bound_min_y: i64,
+    bound_max_y: i64,
+) -> bool {
+    min_x >= bound_min_x && max_x <= bound_max_x && min_y >= bound_min_y && max_y <= bound_max_y
 }
 
 fn grid_center_remainder(extent: i64) -> Option<i64> {
@@ -689,12 +778,19 @@ fn missing_footprint(side_name: &str, placement: &Placement) -> String {
     )
 }
 
-const fn formation_footprint(placement: &Placement) -> Option<(i64, i64)> {
+fn formation_footprint(placement: &Placement) -> Option<(i64, i64)> {
     match placement.native {
-        NativeFormation::Unit(id) => unit_footprint(id, placement.rotated),
+        NativeFormation::Unit(id) => {
+            unit_footprint(id, placement.rotated ^ is_ambush_unit(placement))
+        }
         NativeFormation::Construction(id) => construction_footprint(id),
         NativeFormation::Contraption(id) => contraption_footprint(id),
     }
+}
+
+fn is_ambush_unit(placement: &Placement) -> bool {
+    matches!(placement.native, NativeFormation::Unit(_))
+        && i64::from(placement.position.y) >= AMBUSH_MIN_Y
 }
 
 const fn unit_footprint(unit_id: i32, rotated: bool) -> Option<(i64, i64)> {
@@ -731,6 +827,42 @@ const fn contraption_footprint(contraption_id: i32) -> Option<(i64, i64)> {
     }
 }
 
+fn unit_placement_stage(
+    side_name: &str,
+    type_name: &str,
+    position: Position,
+    travelling: bool,
+    round: i32,
+) -> Result<PlacementStage, String> {
+    let in_ambush = i64::from(position.y) >= AMBUSH_MIN_Y;
+    if travelling && !in_ambush {
+        return Err(format!(
+            "side {side_name} formation type {type_name:?} at ({}, {}) sets travelling=true outside the ambush zones",
+            position.x, position.y
+        ));
+    }
+    if !in_ambush {
+        return Ok(PlacementStage::Activation);
+    }
+    if round == 1 {
+        return Err(format!(
+            "side {side_name} formation type {type_name:?} at ({}, {}) cannot occupy an ambush zone in activation round 1",
+            position.x, position.y
+        ));
+    }
+    if round == 2 && !travelling {
+        return Err(format!(
+            "side {side_name} formation type {type_name:?} at ({}, {}) must set travelling=true in activation round 2",
+            position.x, position.y
+        ));
+    }
+    Ok(if travelling {
+        PlacementStage::Activation
+    } else {
+        PlacementStage::PreActivation
+    })
+}
+
 fn reject_unit_fields(
     side_name: &str,
     type_name: &str,
@@ -738,10 +870,11 @@ fn reject_unit_fields(
     level: Option<i32>,
     rotated: Option<bool>,
     equipment: Option<i32>,
+    travelling: Option<bool>,
 ) -> Result<(), String> {
-    if level.is_some() || rotated.is_some() || equipment.is_some() {
+    if level.is_some() || rotated.is_some() || equipment.is_some() || travelling.is_some() {
         Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) does not accept level, rotated, or equipment",
+            "side {side_name} formation type {type_name:?} at ({}, {}) does not accept level, rotated, equipment, or travelling",
             position.x, position.y
         ))
     } else {
@@ -1014,6 +1147,7 @@ mod tests {
 
     fn layout_with_blue_battle_skill(type_name: &str, positions: impl serde::Serialize) -> Value {
         json!({
+            "round": 1,
             "sides": {
                 "blue": {
                     "formations": [{"type": "marksman", "x": 0, "y": -50}],
@@ -1027,8 +1161,184 @@ mod tests {
     }
 
     #[test]
+    fn requires_a_positive_activation_round() {
+        let missing = compile(&json!({
+            "sides": {
+                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(missing.contains("missing field `round`"));
+
+        let invalid = compile(&json!({
+            "round": 0,
+            "sides": {
+                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert_eq!(invalid, "layout round must be a positive integer");
+    }
+
+    #[test]
+    fn compiles_formations_into_pre_activation_and_activation_stages() {
+        let plan = compile(&json!({
+            "round": 3,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "marksman", "x": 0, "y": -50},
+                    {"type": "marksman", "x": -310, "y": 20},
+                    {"type": "arclight", "x": 310, "y": 20, "travelling": true},
+                    {"type": "interceptor", "x": 5, "y": -85}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(plan.round, 3);
+        assert_eq!(plan.blue.formations[0].stage, PlacementStage::Activation);
+        assert_eq!(plan.blue.formations[1].stage, PlacementStage::PreActivation);
+        assert!(!plan.blue.formations[1].travelling);
+        assert_eq!(plan.blue.formations[2].stage, PlacementStage::Activation);
+        assert!(plan.blue.formations[2].travelling);
+        assert_eq!(plan.blue.formations[3].stage, PlacementStage::Activation);
+    }
+
+    #[test]
+    fn enforces_activation_round_rules_for_ambush_units() {
+        let layout = |round, travelling| {
+            json!({
+                "round": round,
+                "sides": {
+                    "blue": {"formations": [
+                        {"type": "marksman", "x": -310, "y": 20, "travelling": travelling}
+                    ]},
+                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                }
+            })
+        };
+
+        assert!(
+            compile(&layout(1, false))
+                .unwrap_err()
+                .contains("activation round 1")
+        );
+        assert!(
+            compile(&layout(1, true))
+                .unwrap_err()
+                .contains("activation round 1")
+        );
+        assert!(
+            compile(&layout(2, false))
+                .unwrap_err()
+                .contains("must set travelling=true")
+        );
+        let omitted = compile(&json!({
+            "round": 2,
+            "sides": {
+                "blue": {"formations": [{"type": "marksman", "x": -310, "y": 20}]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(omitted.contains("must set travelling=true"));
+        assert_eq!(
+            compile(&layout(2, true)).unwrap().blue.formations[0].stage,
+            PlacementStage::Activation
+        );
+        assert_eq!(
+            compile(&layout(3, false)).unwrap().blue.formations[0].stage,
+            PlacementStage::PreActivation
+        );
+    }
+
+    #[test]
+    fn travelling_is_unit_only_and_requires_an_ambush_position() {
+        let main_error = compile(&json!({
+            "round": 3,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "marksman", "x": 0, "y": -50, "travelling": true}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(main_error.contains("travelling=true outside the ambush zones"));
+
+        let construction_error = compile(&json!({
+            "round": 3,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "defensive_wall", "x": 0, "y": -55, "travelling": false},
+                    {"type": "marksman", "x": 100, "y": -50}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(construction_error.contains("does not accept"));
+        assert!(construction_error.contains("travelling"));
+    }
+
+    #[test]
+    fn ambush_unit_footprint_must_fit_one_flank_region() {
+        let error = compile(&json!({
+            "round": 3,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "marksman", "x": -300, "y": 20, "travelling": true}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(error.contains("must fit completely inside one ambush zone"));
+    }
+
+    #[test]
+    fn ambush_region_orientation_changes_the_effective_unit_footprint() {
+        let plan = compile(&json!({
+            "round": 3,
+            "sides": {
+                "blue": {"formations": [
+                    {
+                        "type": "crawler", "x": 325, "y": 60,
+                        "rotated": true, "travelling": true
+                    }
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap();
+        assert_eq!(
+            formation_footprint(&plan.blue.formations[0]),
+            Some((50, 20))
+        );
+
+        let error = compile(&json!({
+            "round": 3,
+            "sides": {
+                "blue": {"formations": [
+                    {
+                        "type": "crawler", "x": 310, "y": 65,
+                        "rotated": true, "travelling": true
+                    }
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(error.contains("footprint 50x20 requires center x≡5, y≡0"));
+    }
+
+    #[test]
     fn compiles_unit_defaults_for_both_sides() {
         let plan = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "marksman",
@@ -1054,6 +1364,7 @@ mod tests {
     #[test]
     fn compiles_one_equipment_for_a_unit() {
         let plan = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "marksman", "x": 0, "y": -50,
@@ -1073,6 +1384,7 @@ mod tests {
     #[test]
     fn rejects_equipment_for_non_unit_formations() {
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [
                     {"type": "defensive_wall", "x": 0, "y": -55,
@@ -1088,13 +1400,14 @@ mod tests {
 
         assert_eq!(
             error,
-            "side blue formation type \"defensive_wall\" at (0, -55) does not accept level, rotated, or equipment"
+            "side blue formation type \"defensive_wall\" at (0, -55) does not accept level, rotated, equipment, or travelling"
         );
     }
 
     #[test]
     fn rejects_nonpositive_equipment_id() {
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "marksman", "x": 0, "y": -50, "equipment": 0
@@ -1115,6 +1428,7 @@ mod tests {
     #[test]
     fn validates_tech_ids() {
         let valid = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {
                     "techs": {"officers": [30602], "units": [10202]},
@@ -1130,6 +1444,7 @@ mod tests {
         assert_eq!(valid.blue.techs.units, [10202]);
 
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"techs": {"units": [10202, 10202]}, "formations": [{
                     "type": "marksman", "x": 0, "y": -50
@@ -1143,6 +1458,7 @@ mod tests {
         assert_eq!(error, "side blue techs.units contains duplicate ID 10202");
 
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"techs": {"officers": [0]}, "formations": [{
                     "type": "marksman", "x": 0, "y": -50
@@ -1162,6 +1478,7 @@ mod tests {
     #[test]
     fn rejects_tower_levels_outside_the_runtime_catalog() {
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {
                     "research_center": {"attack_level": 3},
@@ -1179,6 +1496,7 @@ mod tests {
     #[test]
     fn rejects_fields_invalid_for_the_formation_type() {
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "defensive_wall",
@@ -1190,12 +1508,13 @@ mod tests {
             }
         }))
         .unwrap_err();
-        assert!(error.contains("does not accept level, rotated, or equipment"));
+        assert!(error.contains("does not accept level, rotated, equipment, or travelling"));
     }
 
     #[test]
     fn requires_nonempty_formations_for_both_sides() {
         let missing = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {},
                 "red": {"formations": [{
@@ -1207,6 +1526,7 @@ mod tests {
         assert!(missing.contains("missing field `formations`"));
 
         let empty = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": []},
                 "red": {"formations": [{
@@ -1222,6 +1542,7 @@ mod tests {
     fn rejects_positive_area_unit_overlap_but_allows_edge_contact() {
         let layout = |second_x| {
             json!({
+                "round": 1,
                 "sides": {
                     "blue": {"formations": [
                         {"type": "marksman", "x": 0, "y": -50},
@@ -1249,7 +1570,7 @@ mod tests {
         let error = compile(&value).unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"sledgehammer\" at (285, -60) footprint 50x20 exceeds round-one deployment boundary x=[-300,300], y=[-310,-10]"
+            "side blue formation type \"sledgehammer\" at (285, -60) footprint 50x20 exceeds the main deployment boundary x=[-300,300], y=[-310,-10]"
         );
     }
 
@@ -1280,6 +1601,7 @@ mod tests {
     #[test]
     fn rejects_center_that_does_not_match_its_footprint_grid_class() {
         let error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "marksman", "x": 5, "y": -50
@@ -1347,6 +1669,7 @@ mod tests {
     fn compiles_interceptor_and_reuses_formation_collision_validation() {
         let layout = |interceptor_y| {
             json!({
+                "round": 1,
                 "sides": {
                     "blue": {"formations": [
                         {"type": "marksman", "x": 0, "y": -100},
@@ -1377,6 +1700,7 @@ mod tests {
     #[test]
     fn shield_and_missile_skip_grid_and_collision_validation() {
         let plan = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [
                     {"type": "marksman", "x": 0, "y": -100},
@@ -1409,6 +1733,7 @@ mod tests {
     fn shield_requires_its_complete_edge_inside_the_own_side() {
         let layout = |x, y| {
             json!({
+                "round": 1,
                 "sides": {
                     "blue": {"formations": [
                         {"type": "marksman", "x": 0, "y": -150},
@@ -1434,6 +1759,7 @@ mod tests {
     fn missile_requires_only_its_center_inside_the_own_side() {
         let layout = |x, y| {
             json!({
+                "round": 1,
                 "sides": {
                     "blue": {"formations": [
                         {"type": "marksman", "x": 0, "y": -150},
@@ -1458,6 +1784,7 @@ mod tests {
     #[test]
     fn compiles_all_four_construction_types_in_document_order() {
         let plan = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {"formations": [
                     {"type": "rapid_fire_turret", "x": 140, "y": -60},
@@ -1493,6 +1820,7 @@ mod tests {
     #[test]
     fn compiles_position_targeted_battle_skills_in_document_order() {
         let plan = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {
                     "formations": [{"type": "marksman", "x": 0, "y": -50}],
@@ -1680,6 +2008,7 @@ mod tests {
         .unwrap();
 
         let red_error = compile(&json!({
+            "round": 1,
             "sides": {
                 "blue": {
                     "formations": [{"type": "marksman", "x": 0, "y": -50}]
@@ -1717,6 +2046,7 @@ mod tests {
     fn rejects_unknown_duplicate_and_wrong_length_battle_skills() {
         let layout = |battle_skills| {
             json!({
+                "round": 1,
                 "sides": {
                     "blue": {
                         "formations": [{"type": "marksman", "x": 0, "y": -50}],
