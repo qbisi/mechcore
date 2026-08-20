@@ -85,10 +85,11 @@ nevertheless use the order above.
 
 ## Activation round
 
-`round` is a required positive integer. It names the Training Ground round
+`round` is a required integer in `1..=15`. It names the Training Ground round
 whose deployment phase is returned by a successful `apply_layout` call. Earlier
 rounds are setup rounds owned by the adapter; callers do not submit or observe
-separate partial layouts.
+separate partial layouts. These empty setup rounds are advanced quickly, so the
+adapter's 55-second total layout timeout also covers round 15.
 
 The native ambush zones become available from round 2. The layout rules are:
 

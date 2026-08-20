@@ -66,7 +66,8 @@ stream before returning from lifecycle tools.
 ### apply_layout
 
 Input is the complete layout object defined by [layout.md](layout.md), with a
-top-level activation `round` and `sides.blue` and `sides.red` fields.
+top-level activation `round` in `1..=15` and `sides.blue` and `sides.red`
+fields.
 
 Typical output:
 
