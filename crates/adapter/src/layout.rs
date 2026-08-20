@@ -1,3 +1,4 @@
+use mechcore_protocol::MAX_ACTIVATION_ROUND;
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -82,6 +83,12 @@ pub(crate) enum NativeFormation {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FormationSpec {
+    native: NativeFormation,
+    footprint: Option<(i64, i64)>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum PlacementStage {
     PreActivation,
     Activation,
@@ -105,6 +112,7 @@ pub(crate) struct BattleSkill {
 pub(crate) struct Placement {
     pub(crate) type_name: String,
     pub(crate) native: NativeFormation,
+    pub(crate) footprint: Option<(i64, i64)>,
     pub(crate) position: Position,
     pub(crate) level: Option<i32>,
     pub(crate) rotated: bool,
@@ -181,8 +189,10 @@ impl Plan {
 pub(crate) fn compile(value: &Value) -> Result<Plan, String> {
     let layout: Layout = serde_json::from_value(value.clone())
         .map_err(|error| format!("invalid layout: {error}"))?;
-    if layout.round <= 0 {
-        return Err("layout round must be a positive integer".into());
+    if !(1..=MAX_ACTIVATION_ROUND).contains(&layout.round) {
+        return Err(format!(
+            "layout round must be within 1..={MAX_ACTIVATION_ROUND}"
+        ));
     }
     let blue = compile_side("blue", layout.sides.blue, layout.round)?;
     let red = compile_side("red", layout.sides.red, layout.round)?;
@@ -236,13 +246,13 @@ fn compile_formations(
                 travelling,
             } = formation;
             let position = Position { x, y };
-            let native = resolve_type(&type_name).ok_or_else(|| {
+            let spec = resolve_type(&type_name).ok_or_else(|| {
                 format!(
                     "side {side_name} formation type {type_name:?} at ({}, {}) is unknown",
                     position.x, position.y
                 )
             })?;
-            match native {
+            match spec.native {
                 NativeFormation::Unit(unit_id) => {
                     let level = level.unwrap_or(1);
                     let rotated = rotated.unwrap_or(false);
@@ -269,6 +279,7 @@ fn compile_formations(
                     Ok(Placement {
                         type_name,
                         native: NativeFormation::Unit(unit_id),
+                        footprint: spec.footprint,
                         position,
                         level: Some(level),
                         rotated,
@@ -290,6 +301,7 @@ fn compile_formations(
                     Ok(Placement {
                         type_name,
                         native: NativeFormation::Construction(id),
+                        footprint: spec.footprint,
                         position,
                         level: None,
                         rotated: false,
@@ -311,6 +323,7 @@ fn compile_formations(
                     Ok(Placement {
                         type_name,
                         native: NativeFormation::Contraption(id),
+                        footprint: spec.footprint,
                         position,
                         level: None,
                         rotated: false,
@@ -779,52 +792,21 @@ fn missing_footprint(side_name: &str, placement: &Placement) -> String {
 }
 
 fn formation_footprint(placement: &Placement) -> Option<(i64, i64)> {
-    match placement.native {
-        NativeFormation::Unit(id) => {
-            unit_footprint(id, placement.rotated ^ is_ambush_unit(placement))
-        }
-        NativeFormation::Construction(id) => construction_footprint(id),
-        NativeFormation::Contraption(id) => contraption_footprint(id),
-    }
+    let (width, height) = placement.footprint?;
+    Some(
+        if matches!(placement.native, NativeFormation::Unit(_))
+            && (placement.rotated ^ is_ambush_unit(placement))
+        {
+            (height, width)
+        } else {
+            (width, height)
+        },
+    )
 }
 
 fn is_ambush_unit(placement: &Placement) -> bool {
     matches!(placement.native, NativeFormation::Unit(_))
         && i64::from(placement.position.y) >= AMBUSH_MIN_Y
-}
-
-const fn unit_footprint(unit_id: i32, rotated: bool) -> Option<(i64, i64)> {
-    let (width, height) = match unit_id {
-        2 | 15 | 31 => (20, 20),
-        5 | 14 | 18 | 19 | 21 | 24 | 26 => (30, 30),
-        16 | 22 | 28 | 30 => (40, 20),
-        1 | 3 | 4 | 23 | 27 => (40, 40),
-        6 | 7 | 8 | 9 | 10 | 12 | 13 | 20 | 25 => (50, 20),
-        11 => (50, 50),
-        17 | 29 | 2002 => (70, 70),
-        _ => return None,
-    };
-    Some(if rotated {
-        (height, width)
-    } else {
-        (width, height)
-    })
-}
-
-const fn construction_footprint(construction_id: i32) -> Option<(i64, i64)> {
-    match construction_id {
-        1 => Some((60, 10)),
-        2 | 3 => Some((20, 20)),
-        4 => Some((50, 10)),
-        _ => None,
-    }
-}
-
-const fn contraption_footprint(contraption_id: i32) -> Option<(i64, i64)> {
-    match contraption_id {
-        30001 => Some((30, 30)),
-        _ => None,
-    }
 }
 
 fn unit_placement_stage(
@@ -882,47 +864,62 @@ fn reject_unit_fields(
     }
 }
 
-const fn resolve_type(type_name: &str) -> Option<NativeFormation> {
+const fn formation_spec(native: NativeFormation, footprint: Option<(i64, i64)>) -> FormationSpec {
+    FormationSpec { native, footprint }
+}
+
+const fn unit_spec(id: i32, width: i64, height: i64) -> FormationSpec {
+    formation_spec(NativeFormation::Unit(id), Some((width, height)))
+}
+
+const fn construction_spec(id: i32, width: i64, height: i64) -> FormationSpec {
+    formation_spec(NativeFormation::Construction(id), Some((width, height)))
+}
+
+const fn resolve_type(type_name: &str) -> Option<FormationSpec> {
     match type_name.as_bytes() {
-        b"fortress" => Some(NativeFormation::Unit(1)),
-        b"marksman" => Some(NativeFormation::Unit(2)),
-        b"vulcan" => Some(NativeFormation::Unit(3)),
-        b"melting_point" => Some(NativeFormation::Unit(4)),
-        b"rhino" => Some(NativeFormation::Unit(5)),
-        b"wasp" => Some(NativeFormation::Unit(6)),
-        b"mustang" => Some(NativeFormation::Unit(7)),
-        b"steel_ball" => Some(NativeFormation::Unit(8)),
-        b"fang" => Some(NativeFormation::Unit(9)),
-        b"crawler" => Some(NativeFormation::Unit(10)),
-        b"overlord" => Some(NativeFormation::Unit(11)),
-        b"stormcaller" => Some(NativeFormation::Unit(12)),
-        b"sledgehammer" => Some(NativeFormation::Unit(13)),
-        b"hacker" => Some(NativeFormation::Unit(14)),
-        b"arclight" => Some(NativeFormation::Unit(15)),
-        b"phoenix" => Some(NativeFormation::Unit(16)),
-        b"war_factory" => Some(NativeFormation::Unit(17)),
-        b"wraith" => Some(NativeFormation::Unit(18)),
-        b"scorpion" => Some(NativeFormation::Unit(19)),
-        b"fire_badger" => Some(NativeFormation::Unit(20)),
-        b"sabertooth" => Some(NativeFormation::Unit(21)),
-        b"typhoon" => Some(NativeFormation::Unit(22)),
-        b"sandworm" => Some(NativeFormation::Unit(23)),
-        b"tarantula" => Some(NativeFormation::Unit(24)),
-        b"phantom_ray" => Some(NativeFormation::Unit(25)),
-        b"farseer" => Some(NativeFormation::Unit(26)),
-        b"raiden" => Some(NativeFormation::Unit(27)),
-        b"hound" => Some(NativeFormation::Unit(28)),
-        b"abyss" => Some(NativeFormation::Unit(29)),
-        b"void_eye" => Some(NativeFormation::Unit(30)),
-        b"vortex" => Some(NativeFormation::Unit(31)),
-        b"mountain" => Some(NativeFormation::Unit(2002)),
-        b"defensive_wall" => Some(NativeFormation::Construction(1)),
-        b"anti_armor_turret" => Some(NativeFormation::Construction(2)),
-        b"rapid_fire_turret" => Some(NativeFormation::Construction(3)),
-        b"magnetic_barrier" => Some(NativeFormation::Construction(4)),
-        b"shield" => Some(NativeFormation::Contraption(10001)),
-        b"missile" => Some(NativeFormation::Contraption(20001)),
-        b"interceptor" => Some(NativeFormation::Contraption(30001)),
+        b"fortress" => Some(unit_spec(1, 40, 40)),
+        b"marksman" => Some(unit_spec(2, 20, 20)),
+        b"vulcan" => Some(unit_spec(3, 40, 40)),
+        b"melting_point" => Some(unit_spec(4, 40, 40)),
+        b"rhino" => Some(unit_spec(5, 30, 30)),
+        b"wasp" => Some(unit_spec(6, 50, 20)),
+        b"mustang" => Some(unit_spec(7, 50, 20)),
+        b"steel_ball" => Some(unit_spec(8, 50, 20)),
+        b"fang" => Some(unit_spec(9, 50, 20)),
+        b"crawler" => Some(unit_spec(10, 50, 20)),
+        b"overlord" => Some(unit_spec(11, 50, 50)),
+        b"stormcaller" => Some(unit_spec(12, 50, 20)),
+        b"sledgehammer" => Some(unit_spec(13, 50, 20)),
+        b"hacker" => Some(unit_spec(14, 30, 30)),
+        b"arclight" => Some(unit_spec(15, 20, 20)),
+        b"phoenix" => Some(unit_spec(16, 40, 20)),
+        b"war_factory" => Some(unit_spec(17, 70, 70)),
+        b"wraith" => Some(unit_spec(18, 30, 30)),
+        b"scorpion" => Some(unit_spec(19, 30, 30)),
+        b"fire_badger" => Some(unit_spec(20, 50, 20)),
+        b"sabertooth" => Some(unit_spec(21, 30, 30)),
+        b"typhoon" => Some(unit_spec(22, 40, 20)),
+        b"sandworm" => Some(unit_spec(23, 40, 40)),
+        b"tarantula" => Some(unit_spec(24, 30, 30)),
+        b"phantom_ray" => Some(unit_spec(25, 50, 20)),
+        b"farseer" => Some(unit_spec(26, 30, 30)),
+        b"raiden" => Some(unit_spec(27, 40, 40)),
+        b"hound" => Some(unit_spec(28, 40, 20)),
+        b"abyss" => Some(unit_spec(29, 70, 70)),
+        b"void_eye" => Some(unit_spec(30, 40, 20)),
+        b"vortex" => Some(unit_spec(31, 20, 20)),
+        b"mountain" => Some(unit_spec(2002, 70, 70)),
+        b"defensive_wall" => Some(construction_spec(1, 60, 10)),
+        b"anti_armor_turret" => Some(construction_spec(2, 20, 20)),
+        b"rapid_fire_turret" => Some(construction_spec(3, 20, 20)),
+        b"magnetic_barrier" => Some(construction_spec(4, 50, 10)),
+        b"shield" => Some(formation_spec(NativeFormation::Contraption(10001), None)),
+        b"missile" => Some(formation_spec(NativeFormation::Contraption(20001), None)),
+        b"interceptor" => Some(formation_spec(
+            NativeFormation::Contraption(30001),
+            Some((30, 30)),
+        )),
         _ => None,
     }
 }
@@ -1161,7 +1158,7 @@ mod tests {
     }
 
     #[test]
-    fn requires_a_positive_activation_round() {
+    fn requires_a_bounded_activation_round() {
         let missing = compile(&json!({
             "sides": {
                 "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
@@ -1179,7 +1176,17 @@ mod tests {
             }
         }))
         .unwrap_err();
-        assert_eq!(invalid, "layout round must be a positive integer");
+        assert_eq!(invalid, "layout round must be within 1..=15");
+
+        let invalid = compile(&json!({
+            "round": 16,
+            "sides": {
+                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap_err();
+        assert_eq!(invalid, "layout round must be within 1..=15");
     }
 
     #[test]
@@ -1629,40 +1636,78 @@ mod tests {
     }
 
     #[test]
-    fn footprint_interface_covers_all_public_units_and_rotation() {
-        let groups: &[(&[i32], (i64, i64))] = &[
-            (&[2, 15, 31], (20, 20)),
-            (&[5, 14, 18, 19, 21, 24, 26], (30, 30)),
-            (&[16, 22, 28, 30], (40, 20)),
-            (&[1, 3, 4, 23, 27], (40, 40)),
-            (&[6, 7, 8, 9, 10, 12, 13, 20, 25], (50, 20)),
-            (&[11], (50, 50)),
-            (&[17, 29, 2002], (70, 70)),
+    fn formation_specs_cover_all_public_unit_footprints() {
+        let groups: &[(&[&str], (i64, i64))] = &[
+            (&["marksman", "arclight", "vortex"], (20, 20)),
+            (
+                &[
+                    "rhino",
+                    "hacker",
+                    "wraith",
+                    "scorpion",
+                    "sabertooth",
+                    "tarantula",
+                    "farseer",
+                ],
+                (30, 30),
+            ),
+            (&["phoenix", "typhoon", "hound", "void_eye"], (40, 20)),
+            (
+                &["fortress", "vulcan", "melting_point", "sandworm", "raiden"],
+                (40, 40),
+            ),
+            (
+                &[
+                    "wasp",
+                    "mustang",
+                    "steel_ball",
+                    "fang",
+                    "crawler",
+                    "stormcaller",
+                    "sledgehammer",
+                    "fire_badger",
+                    "phantom_ray",
+                ],
+                (50, 20),
+            ),
+            (&["overlord"], (50, 50)),
+            (&["war_factory", "abyss", "mountain"], (70, 70)),
         ];
-        for &(unit_ids, (width, height)) in groups {
-            for &unit_id in unit_ids {
-                assert_eq!(unit_footprint(unit_id, false), Some((width, height)));
-                assert_eq!(unit_footprint(unit_id, true), Some((height, width)));
+        for &(type_names, footprint) in groups {
+            for &type_name in type_names {
+                let spec = resolve_type(type_name).unwrap();
+                assert!(matches!(spec.native, NativeFormation::Unit(_)));
+                assert_eq!(spec.footprint, Some(footprint));
             }
         }
-        assert_eq!(groups.iter().map(|(ids, _)| ids.len()).sum::<usize>(), 32);
-        assert_eq!(unit_footprint(32, false), None);
+        assert_eq!(
+            groups.iter().map(|(names, _)| names.len()).sum::<usize>(),
+            32
+        );
     }
 
     #[test]
-    fn footprint_interface_covers_the_four_constructions() {
-        assert_eq!(construction_footprint(1), Some((60, 10)));
-        assert_eq!(construction_footprint(2), Some((20, 20)));
-        assert_eq!(construction_footprint(3), Some((20, 20)));
-        assert_eq!(construction_footprint(4), Some((50, 10)));
-        assert_eq!(construction_footprint(5), None);
+    fn formation_specs_cover_the_four_constructions() {
+        for (type_name, footprint) in [
+            ("defensive_wall", (60, 10)),
+            ("anti_armor_turret", (20, 20)),
+            ("rapid_fire_turret", (20, 20)),
+            ("magnetic_barrier", (50, 10)),
+        ] {
+            let spec = resolve_type(type_name).unwrap();
+            assert!(matches!(spec.native, NativeFormation::Construction(_)));
+            assert_eq!(spec.footprint, Some(footprint));
+        }
     }
 
     #[test]
-    fn footprint_interface_covers_the_interceptor() {
-        assert_eq!(contraption_footprint(30001), Some((30, 30)));
-        assert_eq!(contraption_footprint(10001), None);
-        assert_eq!(contraption_footprint(20001), None);
+    fn formation_specs_cover_contraption_footprints() {
+        assert_eq!(
+            resolve_type("interceptor").unwrap().footprint,
+            Some((30, 30))
+        );
+        assert_eq!(resolve_type("shield").unwrap().footprint, None);
+        assert_eq!(resolve_type("missile").unwrap().footprint, None);
     }
 
     #[test]
@@ -2100,7 +2145,10 @@ mod tests {
             ("interceptor", NativeFormation::Contraption(30001)),
         ];
         for (type_name, native) in expected {
-            assert_eq!(resolve_type(type_name), Some(native));
+            assert_eq!(
+                resolve_type(type_name).map(|spec| spec.native),
+                Some(native)
+            );
         }
         assert_eq!(resolve_type("unit"), None);
     }

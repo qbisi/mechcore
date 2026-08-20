@@ -1,4 +1,5 @@
 use crate::adapter;
+use mechcore_protocol::{MAX_ACTIVATION_ROUND, Operation};
 use rmcp::{
     ErrorData, RoleServer, ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -41,6 +42,7 @@ const TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct ApplyLayoutParameters {
+    #[schemars(range(min = 1, max = 15))]
     round: i32,
     sides: Value,
 }
@@ -95,7 +97,17 @@ impl Shared {
         }
     }
 
-    async fn adapter_request(&self, operation: &str, arguments: Value) -> Result<Value, String> {
+    async fn record_exit(&self, code: i32) {
+        *self.adapter.lock().await = None;
+        *self.last_exit_code.lock().await = Some(code);
+        self.publish(json!({"status": "game_off"}));
+    }
+
+    async fn adapter_request(
+        &self,
+        operation: Operation,
+        arguments: Value,
+    ) -> Result<Value, String> {
         let mut adapter = self.adapter.lock().await;
         let client = adapter
             .as_mut()
@@ -127,7 +139,7 @@ impl Shared {
     }
 
     async fn refresh_status(&self) -> Result<Value, String> {
-        let status = self.adapter_request("status", json!({})).await?;
+        let status = self.adapter_request(Operation::Status, json!({})).await?;
         self.publish(status.clone());
         Ok(status)
     }
@@ -167,9 +179,7 @@ impl Shared {
         };
         let code = status.code().unwrap_or(-1);
         *child = None;
-        *self.adapter.lock().await = None;
-        *self.last_exit_code.lock().await = Some(code);
-        self.publish(json!({"status": "game_off"}));
+        self.record_exit(code).await;
         Ok(Some(code))
     }
 
@@ -246,7 +256,9 @@ impl Shared {
     async fn start_test(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
-        let result = self.adapter_request("start_test", json!({})).await?;
+        let result = self
+            .adapter_request(Operation::StartTest, json!({}))
+            .await?;
         let status = self
             .wait_status(
                 "round-one deployment after start_test",
@@ -263,9 +275,9 @@ impl Shared {
         let activation_round = layout
             .get("round")
             .and_then(Value::as_i64)
-            .filter(|round| *round > 0)
-            .ok_or_else(|| "layout round must be a positive integer".to_owned())?;
-        let result = self.adapter_request("apply_layout", layout).await?;
+            .filter(|round| (1..=i64::from(MAX_ACTIVATION_ROUND)).contains(round))
+            .ok_or_else(|| format!("layout round must be within 1..={MAX_ACTIVATION_ROUND}"))?;
+        let result = self.adapter_request(Operation::ApplyLayout, layout).await?;
         if result.get("applied").and_then(Value::as_bool) != Some(true) {
             return Err(format!(
                 "adapter did not confirm layout application: {result}"
@@ -297,7 +309,9 @@ impl Shared {
             .get("round_count")
             .and_then(Value::as_i64)
             .ok_or_else(|| "Training Ground status omitted round_count".to_owned())?;
-        let result = self.adapter_request("toggle_fight", json!({})).await?;
+        let result = self
+            .adapter_request(Operation::ToggleFight, json!({}))
+            .await?;
         let status = self
             .wait_status(
                 "fight transition after toggle_fight",
@@ -325,7 +339,7 @@ impl Shared {
                 "speed_up requires an active Training Ground fight: {status}"
             ));
         }
-        let result = self.adapter_request("speed_up", json!({})).await?;
+        let result = self.adapter_request(Operation::SpeedUp, json!({})).await?;
         if result.get("requested").and_then(Value::as_bool) != Some(true) {
             return Err(format!("adapter did not confirm speed_up: {result}"));
         }
@@ -341,7 +355,9 @@ impl Shared {
         ) {
             return Err(format!("quit_match requires an active match: {status}"));
         }
-        let result = self.adapter_request("quit_match", json!({})).await?;
+        let result = self
+            .adapter_request(Operation::QuitMatch, json!({}))
+            .await?;
         let status = self
             .wait_status("main menu after quit_match", TRANSITION_TIMEOUT, |value| {
                 is_status(value, "main_menu")
@@ -353,7 +369,7 @@ impl Shared {
     async fn quit_game(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
-        let result = self.adapter_request("quit_game", json!({})).await?;
+        let result = self.adapter_request(Operation::QuitGame, json!({})).await?;
         let status = self
             .wait_status(
                 "game process exit after quit_game",
@@ -412,9 +428,7 @@ impl Shared {
             .map_err(|error| format!("cannot wait for owned game process: {error}"))?;
         let code = status.code().unwrap_or(-1);
         *child = None;
-        *self.adapter.lock().await = None;
-        *self.last_exit_code.lock().await = Some(code);
-        self.publish(json!({"status": "game_off"}));
+        self.record_exit(code).await;
         Ok(())
     }
 }
@@ -627,7 +641,7 @@ async fn monitor(shared: Arc<Shared>) {
             Ok(None) => {
                 let connected = shared.adapter.lock().await.is_some();
                 if connected {
-                    match shared.adapter_request("status", json!({})).await {
+                    match shared.adapter_request(Operation::Status, json!({})).await {
                         Ok(status) => shared.publish(status),
                         Err(_) => shared.publish(json!({"status": "unknown"})),
                     }

@@ -305,6 +305,7 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 name = "mechcore"
 version = "0.1.0"
 dependencies = [
+ "mechcore-protocol",
  "rmcp",
  "schemars",
  "serde",
@@ -317,9 +318,18 @@ name = "mechcore-adapter"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "mechcore-protocol",
  "serde",
  "serde_json",
  "serde_yaml",
+]
+
+[[package]]
+name = "mechcore-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

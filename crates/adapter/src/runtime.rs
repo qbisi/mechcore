@@ -1,6 +1,7 @@
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
+use crate::layout::{self, Plan};
 use crate::operations;
-use crate::protocol::{CAPABILITIES, Hello, Request, Response};
+use mechcore_protocol::{Hello, Operation, Request, Response};
 use serde_json::Value;
 use std::env;
 use std::ffi::c_void;
@@ -103,6 +104,8 @@ impl Runtime {
 struct MainInvocation {
     runtime: *mut Runtime,
     request: *const Request,
+    request_id: u64,
+    layout: *const Plan,
     action: MainAction,
     response: Option<Response<Value>>,
 }
@@ -110,7 +113,7 @@ struct MainInvocation {
 #[derive(Clone, Copy)]
 enum MainAction {
     Public,
-    Internal,
+    Internal(operations::InternalOperation),
     Layout(operations::LayoutExecutionStage),
 }
 
@@ -130,14 +133,24 @@ extern "C" fn invoke_on_main(context: *mut c_void) {
     // SAFETY: dispatch_sync_f invokes this callback before returning, while the
     // stack-owned invocation, runtime and request remain alive.
     let invocation = unsafe { &mut *context.cast::<MainInvocation>() };
-    // SAFETY: pointers are supplied by execute_on_main and remain valid for the
-    // synchronous callback duration.
+    // SAFETY: pointers are supplied by execute_action_on_main and remain valid
+    // for the synchronous callback duration of the action that uses them.
     let runtime = unsafe { &mut *invocation.runtime };
-    let request = unsafe { &*invocation.request };
     invocation.response = Some(match invocation.action {
-        MainAction::Public => operations::execute(runtime, request),
-        MainAction::Internal => operations::execute_internal(runtime, request),
-        MainAction::Layout(stage) => operations::execute_layout_stage(runtime, request, stage),
+        MainAction::Public => {
+            // SAFETY: public actions always carry their live wire request.
+            let request = unsafe { &*invocation.request };
+            operations::execute(runtime, request)
+        }
+        MainAction::Internal(operation) => {
+            operations::execute_internal(runtime, invocation.request_id, operation)
+        }
+        MainAction::Layout(stage) => {
+            // SAFETY: layout actions are dispatched synchronously while the plan
+            // passed by execute_layout_stage_on_main remains alive.
+            let plan = unsafe { &*invocation.layout };
+            operations::execute_layout_stage(runtime, invocation.request_id, plan, stage)
+        }
     });
 }
 
@@ -148,29 +161,50 @@ unsafe extern "C" {
 }
 
 fn execute_on_main(runtime: &mut Runtime, request: &Request) -> Response<Value> {
-    execute_action_on_main(runtime, request, MainAction::Public)
+    execute_action_on_main(runtime, Some(request), request.id, None, MainAction::Public)
 }
 
-fn execute_internal_on_main(runtime: &mut Runtime, request: &Request) -> Response<Value> {
-    execute_action_on_main(runtime, request, MainAction::Internal)
+fn execute_internal_on_main(
+    runtime: &mut Runtime,
+    request_id: u64,
+    operation: operations::InternalOperation,
+) -> Response<Value> {
+    execute_action_on_main(
+        runtime,
+        None,
+        request_id,
+        None,
+        MainAction::Internal(operation),
+    )
 }
 
 fn execute_layout_stage_on_main(
     runtime: &mut Runtime,
-    request: &Request,
+    request_id: u64,
+    plan: &Plan,
     stage: operations::LayoutExecutionStage,
 ) -> Response<Value> {
-    execute_action_on_main(runtime, request, MainAction::Layout(stage))
+    execute_action_on_main(
+        runtime,
+        None,
+        request_id,
+        Some(plan),
+        MainAction::Layout(stage),
+    )
 }
 
 fn execute_action_on_main(
     runtime: &mut Runtime,
-    request: &Request,
+    request: Option<&Request>,
+    request_id: u64,
+    layout: Option<&Plan>,
     action: MainAction,
 ) -> Response<Value> {
     let mut invocation = MainInvocation {
         runtime,
-        request,
+        request: request.map_or(std::ptr::null(), std::ptr::from_ref),
+        request_id,
+        layout: layout.map_or(std::ptr::null(), std::ptr::from_ref),
         action,
         response: None,
     };
@@ -191,7 +225,7 @@ fn execute_action_on_main(
 
     invocation.response.unwrap_or_else(|| {
         Response::failure(
-            request.id,
+            request_id,
             "main_thread_dispatch_failed",
             "main-thread callback returned no response",
         )
@@ -311,11 +345,7 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
     verify_peer(&stream)?;
     stream.set_read_timeout(Some(Duration::from_secs(30)))?;
     stream.set_write_timeout(Some(Duration::from_secs(30)))?;
-    let hello = Hello {
-        kind: "hello",
-        protocol: crate::protocol::PROTOCOL,
-        capabilities: CAPABILITIES,
-    };
+    let hello = Hello::current();
     write_json_line(&mut stream, &hello)?;
     let mut reader = BufReader::new(stream.try_clone()?);
     loop {
@@ -342,7 +372,7 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 continue;
             }
         };
-        let response = if request.operation == "apply_layout" {
+        let response = if request.operation == Operation::ApplyLayout {
             execute_layout_series(runtime, &request)
         } else {
             execute_on_main(runtime, &request)
@@ -352,29 +382,25 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
 }
 
 fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let plan = match layout::compile(&request.arguments) {
+        Ok(plan) => plan,
+        Err(error) => return Response::failure(request.id, "invalid_arguments", error),
+    };
     let deadline = Instant::now() + LAYOUT_SERIES_TIMEOUT;
-    let prepare =
-        execute_layout_stage_on_main(runtime, request, operations::LayoutExecutionStage::Prepare);
+    let prepare = execute_layout_stage_on_main(
+        runtime,
+        request.id,
+        &plan,
+        operations::LayoutExecutionStage::Prepare,
+    );
     let prepare = match successful_result(prepare) {
         Ok(result) => result,
         Err(response) => return response,
     };
-    let Some(target_round) = prepare.get("target_round").and_then(Value::as_i64) else {
-        return Response::failure(
-            request.id,
-            "invalid_adapter_response",
-            "prepare layout stage omitted target_round",
-        );
-    };
-    let Some(formation_count) = prepare.get("formation_count").and_then(Value::as_u64) else {
-        return Response::failure(
-            request.id,
-            "invalid_adapter_response",
-            "prepare layout stage omitted formation_count",
-        );
-    };
+    let target_round = plan.round;
+    let formation_count = plan.formation_count();
 
-    let mut current_round = 1_i64;
+    let mut current_round = 1_i32;
     let mut skipped_rounds = Vec::new();
     let mut stages = vec![prepare];
     while current_round < target_round {
@@ -382,7 +408,8 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
         if is_pre_activation {
             let pre_activation = execute_layout_stage_on_main(
                 runtime,
-                request,
+                request.id,
+                &plan,
                 operations::LayoutExecutionStage::PreActivation,
             );
             match successful_result(pre_activation) {
@@ -390,9 +417,13 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
                 Err(response) => return response,
             }
         }
-        if let Err(response) =
-            advance_layout_round(runtime, request, current_round, is_pre_activation, deadline)
-        {
+        if let Err(response) = advance_layout_round(
+            runtime,
+            request.id,
+            current_round,
+            is_pre_activation,
+            deadline,
+        ) {
             return response;
         }
         skipped_rounds.push(current_round);
@@ -401,7 +432,8 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
 
     let activation = execute_layout_stage_on_main(
         runtime,
-        request,
+        request.id,
+        &plan,
         operations::LayoutExecutionStage::Activation,
     );
     match successful_result(activation) {
@@ -420,7 +452,7 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
     )
 }
 
-const fn is_pre_activation_round(current_round: i64, target_round: i64) -> bool {
+const fn is_pre_activation_round(current_round: i32, target_round: i32) -> bool {
     target_round > 2 && current_round + 1 == target_round
 }
 
@@ -434,22 +466,21 @@ fn successful_result(response: Response<Value>) -> Result<Value, Response<Value>
 
 fn advance_layout_round(
     runtime: &mut Runtime,
-    request: &Request,
-    round: i64,
+    request_id: u64,
+    round: i32,
     finish_if_fighting: bool,
     deadline: Instant,
 ) -> Result<(), Response<Value>> {
-    let toggle = Request {
-        id: request.id,
-        operation: "toggle_fight".into(),
-        arguments: Value::Null,
-    };
-    successful_result(execute_internal_on_main(runtime, &toggle))?;
+    successful_result(execute_internal_on_main(
+        runtime,
+        request_id,
+        operations::InternalOperation::ToggleFight,
+    ))?;
 
     if finish_if_fighting {
         let transition = wait_layout_status(
             runtime,
-            request.id,
+            request_id,
             deadline,
             &format!("round {round} fight start"),
             1,
@@ -459,18 +490,17 @@ fn advance_layout_round(
             },
         )?;
         if is_training_state(&transition, round, false, true) {
-            let finish = Request {
-                id: request.id,
-                operation: "finish_preparation_fight".into(),
-                arguments: serde_json::json!({"expected_round": round}),
-            };
-            successful_result(execute_internal_on_main(runtime, &finish))?;
+            successful_result(execute_internal_on_main(
+                runtime,
+                request_id,
+                operations::InternalOperation::FinishPreparation(round),
+            ))?;
         }
     }
 
     wait_layout_status(
         runtime,
-        request.id,
+        request_id,
         deadline,
         &format!("round {} deployment", round + 1),
         LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
@@ -487,11 +517,6 @@ fn wait_layout_status(
     stable_samples: usize,
     predicate: impl Fn(&Value) -> bool,
 ) -> Result<Value, Response<Value>> {
-    let status_request = Request {
-        id: request_id,
-        operation: "status".into(),
-        arguments: Value::Null,
-    };
     let mut stable = 0;
     let mut last = Value::Null;
     loop {
@@ -502,7 +527,11 @@ fn wait_layout_status(
                 format!("timed out waiting for {description}; last status: {last}"),
             ));
         }
-        last = successful_result(execute_internal_on_main(runtime, &status_request))?;
+        last = successful_result(execute_internal_on_main(
+            runtime,
+            request_id,
+            operations::InternalOperation::Status,
+        ))?;
         if predicate(&last) {
             stable += 1;
             if stable >= stable_samples {
@@ -515,9 +544,9 @@ fn wait_layout_status(
     }
 }
 
-fn is_training_state(status: &Value, round: i64, deploying: bool, fighting: bool) -> bool {
+fn is_training_state(status: &Value, round: i32, deploying: bool, fighting: bool) -> bool {
     status.get("status").and_then(Value::as_str) == Some("training_ground")
-        && status.get("round_count").and_then(Value::as_i64) == Some(round)
+        && status.get("round_count").and_then(Value::as_i64) == Some(i64::from(round))
         && status.get("deploying").and_then(Value::as_bool) == Some(deploying)
         && status.get("fighting").and_then(Value::as_bool) == Some(fighting)
 }

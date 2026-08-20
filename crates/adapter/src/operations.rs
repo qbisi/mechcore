@@ -3,16 +3,23 @@ use crate::layout::{
     self, BattleSkill, EnergyTower, NativeFormation, Placement, PlacementStage, ResearchCenter,
     SidePlan, Techs,
 };
-use crate::protocol::{CAPABILITIES, GameStatus, Request, Response};
 use crate::runtime::Runtime;
+use mechcore_protocol::{GameStatus, Operation, Request, Response};
 use serde_json::{Value, json};
-use std::path::Path;
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct MapVector {
     x: i32,
     y: i32,
+}
+
+#[derive(Debug)]
+struct UnitReadback {
+    id: i32,
+    level: i32,
+    position: MapVector,
+    rotated: bool,
 }
 
 struct ContraptionReleaseBaseline {
@@ -41,30 +48,37 @@ pub(crate) enum LayoutExecutionStage {
     Activation,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum InternalOperation {
+    Status,
+    ToggleFight,
+    FinishPreparation(i32),
+}
+
 pub fn execute(runtime: &mut Runtime, request: &Request) -> Response<Value> {
-    if !CAPABILITIES.contains(&request.operation.as_str()) {
-        return Response::failure(
-            request.id,
-            "invalid_arguments",
-            format!("unknown operation {}", request.operation),
-        );
-    }
     operation_response(request.id, execute_inner(runtime, request))
 }
 
-pub(crate) fn execute_internal(runtime: &mut Runtime, request: &Request) -> Response<Value> {
-    operation_response(request.id, execute_inner(runtime, request))
+pub(crate) fn execute_internal(
+    runtime: &mut Runtime,
+    request_id: u64,
+    operation: InternalOperation,
+) -> Response<Value> {
+    let result = match operation {
+        InternalOperation::Status => Ok(status(runtime)),
+        InternalOperation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
+        InternalOperation::FinishPreparation(round) => finish_preparation(runtime, round),
+    };
+    operation_response(request_id, result)
 }
 
 pub(crate) fn execute_layout_stage(
     runtime: &mut Runtime,
-    request: &Request,
+    request_id: u64,
+    plan: &layout::Plan,
     stage: LayoutExecutionStage,
 ) -> Response<Value> {
-    operation_response(
-        request.id,
-        apply_layout_stage(runtime, &request.arguments, stage),
-    )
+    operation_response(request_id, apply_layout_stage(runtime, plan, stage))
 }
 
 fn operation_response(id: u64, result: Result<Value, OperationError>) -> Response<Value> {
@@ -130,74 +144,16 @@ impl From<Il2CppError> for OperationError {
 }
 
 fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, OperationError> {
-    match request.operation.as_str() {
-        "status" => Ok(status(runtime)),
-        "start_test" => start_test(runtime),
-        "finish_preparation_fight" => finish_preparation(runtime, &request.arguments),
-        "toggle_fight" => invoke_match_void(runtime, "ChangeProcessState"),
-        "speed_up" => speed_up(runtime),
-        "switch_player" => invoke_match_void(runtime, "SwitchToNextPlayer"),
-        "quit_match" => quit_match(runtime),
-        "quit_game" => quit_game(runtime),
-        "choose_reinforcement" => choose_reinforcement(runtime, &request.arguments),
-        "choose_opening" => choose_opening(runtime, &request.arguments),
-        "unlock_unit" => unlock_unit(runtime, &request.arguments),
-        "check_unit_placement" => move_unit(runtime, &request.arguments, false),
-        "move_unit" => move_unit(runtime, &request.arguments, true),
-        "add_unit" => add_unit(runtime, &request.arguments),
-        "apply_layout" => Err(OperationError::InvalidState(
+    match request.operation {
+        Operation::Status => Ok(status(runtime)),
+        Operation::StartTest => start_test(runtime),
+        Operation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
+        Operation::SpeedUp => speed_up(runtime),
+        Operation::QuitMatch => quit_match(runtime),
+        Operation::QuitGame => quit_game(runtime),
+        Operation::ApplyLayout => Err(OperationError::InvalidState(
             "apply_layout requires the runtime round-series coordinator".into(),
         )),
-        "unit_status" => unit_status(runtime, &request.arguments),
-        "remove_unit" => remove_unit(runtime, &request.arguments),
-        "clear_both_sides" => clear_both_sides(runtime),
-        "set_both_reactor_core" => set_both_player_data(runtime, &request.arguments, 0),
-        "set_both_supply" => set_both_player_data(runtime, &request.arguments, 6),
-        "upgrade_unit" => upgrade_unit(runtime, &request.arguments),
-        "strengthen_tower" => strengthen_tower(runtime, &request.arguments),
-        "add_commander_skill" => add_test_inventory(
-            runtime,
-            &request.arguments,
-            "commander_skill_id",
-            "MAD_AddCommanderSkill",
-        ),
-        "add_equipment" => add_test_inventory(
-            runtime,
-            &request.arguments,
-            "equipment_id",
-            "MAD_AddEquipment",
-        ),
-        "check_energy_tower_skill" => energy_tower_skill(runtime, &request.arguments, false),
-        "activate_energy_tower_skill" => energy_tower_skill(runtime, &request.arguments, true),
-        "check_equipment" => equipment(runtime, &request.arguments, false),
-        "use_equipment" => equipment(runtime, &request.arguments, true),
-        "check_contraption_placement" => contraption(runtime, &request.arguments, false),
-        "release_contraption" => contraption(runtime, &request.arguments, true),
-        "research_blueprint" => research_blueprint(runtime, &request.arguments),
-        "check_construction_placement" => construction(runtime, &request.arguments, false),
-        "release_construction" => construction(runtime, &request.arguments, true),
-        "check_battle_skill" => battle_skill(runtime, &request.arguments, false),
-        "release_battle_skill" => battle_skill(runtime, &request.arguments, true),
-        "add_technology" => change_technology(runtime, &request.arguments, "MAD_AddTechnology"),
-        "remove_technology" => {
-            change_technology(runtime, &request.arguments, "MAD_RemoveTechnology")
-        }
-        "activate_technology" => {
-            change_technology(runtime, &request.arguments, "MAD_ActiveTechnology")
-        }
-        "deactivate_technology" => {
-            change_technology(runtime, &request.arguments, "MAD_DeactiveTechnology")
-        }
-        "replay_quick_deploy" => replay_quick_deploy(runtime, &request.arguments),
-        "training_ground_seed_bundle" => training_ground_seed_bundle(runtime),
-        "replay_open" => replay_open(runtime, &request.arguments),
-        "replay_goto" => replay_goto(runtime, &request.arguments),
-        "tower_strengthen_catalog" => tower_strengthen_catalog(runtime),
-        "technology_catalog" => technology_catalog(runtime, &request.arguments),
-        _ => Err(OperationError::InvalidArguments(format!(
-            "unknown operation {}",
-            request.operation
-        ))),
     }
 }
 
@@ -391,8 +347,7 @@ fn invoke_match_void(runtime: &Runtime, method: &str) -> Result<Value, Operation
     Ok(json!({"performed": true}))
 }
 
-fn finish_preparation(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let expected_round = required_i32(arguments, "expected_round")?;
+fn finish_preparation(runtime: &Runtime, expected_round: i32) -> Result<Value, OperationError> {
     if expected_round <= 0 {
         return Err(OperationError::InvalidArguments(
             "expected_round must be positive".into(),
@@ -548,81 +503,12 @@ fn new_player_test_action(
     Ok(action)
 }
 
-fn choose_reinforcement(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut index = required_i32(arguments, "index")?;
-    let current = require_match(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let manager = runtime
-        .api
-        .invoke(controller, "GetReinforcementManager", &mut [])?;
-    let items = runtime.api.invoke(manager, "GetReinforceItems", &mut [])?;
-    let mut item_index = index;
-    let item = runtime
-        .api
-        .invoke(items, "get_Item", &mut [argument(&mut item_index)])?;
-    let mut id = runtime.api.invoke_value::<i32>(item, "GetID", &mut [])?;
-    let action = core_action(runtime.api, "PAD_ChooseReinforceItem")?;
-    runtime
-        .api
-        .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
-    runtime
-        .api
-        .invoke_void(action, "set_Index", &mut [argument(&mut index)])?;
-    perform_sync(runtime.api, controller, action)?;
-    Ok(json!({"selected": true, "index": index, "id": id}))
-}
-
-fn choose_opening(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut index = required_i32(arguments, "index")?;
-    let current = require_match(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let opening_controller = runtime
-        .api
-        .invoke(current, "GetBattleOpeningController", &mut [])?;
-    let opening = runtime.api.invoke(
-        opening_controller,
-        "GetOpeningData",
-        &mut [object_argument(controller), argument(&mut index)],
-    )?;
-    let team = runtime.api.invoke(opening, "GetAdvanceTeam", &mut [])?;
-    let mut id = runtime.api.invoke_value::<i32>(team, "get_ID", &mut [])?;
-    let action = core_action(runtime.api, "PAD_ChooseAdvanceTeam")?;
-    runtime
-        .api
-        .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
-    runtime
-        .api
-        .invoke_void(action, "set_Index", &mut [argument(&mut index)])?;
-    perform_sync(runtime.api, controller, action)?;
-    Ok(json!({"selected": true, "index": index, "id": id}))
-}
-
-fn unlock_unit(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut unit_id = positive_i32(arguments, "unit_id")?;
-    let current = require_match(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let shop = runtime.api.invoke(controller, "GetShopManager", &mut [])?;
-    let check =
-        runtime
-            .api
-            .invoke_value::<i32>(shop, "CanUnlockUnit", &mut [argument(&mut unit_id)])?;
-    if check != 0 {
-        return Err(OperationError::Rejected(format!(
-            "CanUnlockUnit returned {check}"
-        )));
-    }
-    let action = core_action(runtime.api, "PAD_UnlockUnit")?;
-    runtime
-        .api
-        .invoke_void(action, "set_UID", &mut [argument(&mut unit_id)])?;
-    perform_sync(runtime.api, controller, action)?;
-    Ok(json!({"unlocked": true, "unit_id": unit_id}))
-}
-
-fn move_unit(runtime: &Runtime, arguments: &Value, mutate: bool) -> Result<Value, OperationError> {
-    let mut unit_index = required_i32(arguments, "unit_index")?;
-    let mut position = map_vector(arguments, "position")?;
-    let mut rotate = required_bool(arguments, "rotate")?;
+fn move_unit(
+    runtime: &Runtime,
+    mut unit_index: i32,
+    mut position: MapVector,
+    mut rotate: bool,
+) -> Result<(), OperationError> {
     let current = require_match(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime.api.invoke(controller, "GetUnitManager", &mut [])?;
@@ -648,16 +534,8 @@ fn move_unit(runtime: &Runtime, arguments: &Value, mutate: bool) -> Result<Value
             argument(&mut rotate),
         ],
     )?;
-    let check_result = check_action(runtime.api, controller, action)?;
-    if mutate {
-        perform_sync(runtime.api, controller, action)?;
-    }
-    Ok(json!({
-        "legal": true,
-        "performed": mutate,
-        "check_result": check_result,
-        "unit_index": unit_index
-    }))
+    check_action(runtime.api, controller, action)?;
+    perform_sync(runtime.api, controller, action)
 }
 
 fn create_unit(
@@ -718,33 +596,24 @@ fn create_unit(
     Ok(unit_index)
 }
 
-fn add_unit(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let unit_id = positive_i32(arguments, "unit_id")?;
-    let level = optional_i32(arguments, "displayed_level").unwrap_or(1);
-    let position = map_vector(arguments, "position")?;
-    let rotate = required_bool(arguments, "rotate")?;
+fn add_unit(
+    runtime: &Runtime,
+    unit_id: i32,
+    level: i32,
+    position: MapVector,
+    rotate: bool,
+) -> Result<i32, OperationError> {
     let current = require_match(runtime)?;
     let index = create_unit(runtime, current, unit_id, level)?;
-    let move_arguments = json!({
-        "unit_index": index,
-        "position": {"x": position.x, "y": position.y},
-        "rotate": rotate
-    });
-    match move_unit(runtime, &move_arguments, true) {
-        Ok(mut result) => {
-            result["added"] = Value::Bool(true);
-            Ok(result)
-        }
-        Err(error) => Err(error),
-    }
+    move_unit(runtime, index, position, rotate)?;
+    Ok(index)
 }
 
 fn apply_layout_stage(
     runtime: &Runtime,
-    arguments: &Value,
+    plan: &layout::Plan,
     stage: LayoutExecutionStage,
 ) -> Result<Value, OperationError> {
-    let plan = layout::compile(arguments).map_err(OperationError::InvalidArguments)?;
     if stage == LayoutExecutionStage::PreActivation && plan.round <= 2 {
         return Err(OperationError::InvalidState(format!(
             "pre-activation deployment is not part of activation round {}",
@@ -759,8 +628,8 @@ fn apply_layout_stage(
     require_layout_deployment(runtime, expected_round)?;
 
     if stage == LayoutExecutionStage::Prepare {
-        validate_layout_catalog(runtime, &plan)?;
-        validate_layout_positions(&plan)?;
+        validate_layout_catalog(runtime, plan)?;
+        validate_layout_positions(plan)?;
         let cleared = clear_both_sides(runtime)?;
         return Ok(json!({
             "stage": "prepare",
@@ -773,15 +642,9 @@ fn apply_layout_stage(
 
     let current = require_match(runtime)?;
     let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
-    runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut [])?;
-    let red_result = apply_side_layout_stage(runtime, current, &plan.red, true, stage);
-    let restore_result = runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut []);
-    let red = red_result?;
-    restore_result?;
+    let red = with_other_player(runtime, current, || {
+        apply_side_layout_stage(runtime, current, &plan.red, true, stage)
+    })?;
 
     Ok(json!({
         "stage": match stage {
@@ -802,16 +665,26 @@ fn apply_layout_stage(
 fn validate_layout_catalog(runtime: &Runtime, plan: &layout::Plan) -> Result<(), OperationError> {
     let current = require_match(runtime)?;
     validate_side_layout_catalog(runtime, &plan.blue)?;
+    with_other_player(runtime, current, || {
+        validate_side_layout_catalog(runtime, &plan.red)
+    })
+}
+
+fn with_other_player<T>(
+    runtime: &Runtime,
+    current: *mut Object,
+    operation: impl FnOnce() -> Result<T, OperationError>,
+) -> Result<T, OperationError> {
     runtime
         .api
         .invoke_void(current, "SwitchToNextPlayer", &mut [])?;
-    let red_result = validate_side_layout_catalog(runtime, &plan.red);
-    let restore_result = runtime
+    let result = operation();
+    let restore = runtime
         .api
         .invoke_void(current, "SwitchToNextPlayer", &mut []);
-    red_result?;
-    restore_result?;
-    Ok(())
+    let value = result?;
+    restore?;
+    Ok(value)
 }
 
 fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<(), OperationError> {
@@ -1062,7 +935,7 @@ fn apply_battle_skill(
     rotate_to_world: bool,
 ) -> Result<Value, OperationError> {
     let context = describe_battle_skill(desired);
-    let world_positions = battle_skill_world_positions(desired, rotate_to_world)?;
+    let mut world_positions = battle_skill_world_positions(desired, rotate_to_world)?;
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -1086,13 +959,8 @@ fn apply_battle_skill(
         )));
     }
 
-    add_test_inventory(
-        runtime,
-        &json!({"commander_skill_id": desired.commander_skill_id}),
-        "commander_skill_id",
-        "MAD_AddCommanderSkill",
-    )
-    .map_err(|error| error.context(&format!("provision {context}")))?;
+    add_test_inventory(runtime, desired.commander_skill_id, "MAD_AddCommanderSkill")
+        .map_err(|error| error.context(&format!("provision {context}")))?;
 
     let provisioned =
         runtime
@@ -1126,26 +994,8 @@ fn apply_battle_skill(
         )));
     }
 
-    let position_arguments = world_positions
-        .iter()
-        .map(|position| json!({"x": position.x, "y": position.y}))
-        .collect::<Vec<_>>();
-    let released = battle_skill(
-        runtime,
-        &json!({
-            "commander_skill_id": desired.commander_skill_id,
-            "target_kind": "none",
-            "target_index": -1,
-            "positions": position_arguments
-        }),
-        true,
-    )
-    .map_err(|error| error.context(&format!("release {context}")))?;
-    if released.get("performed").and_then(Value::as_bool) != Some(true) {
-        return Err(OperationError::Rejected(format!(
-            "{context} release did not report completion"
-        )));
-    }
+    release_battle_skill(runtime, desired.commander_skill_id, &mut world_positions)
+        .map_err(|error| error.context(&format!("release {context}")))?;
 
     let skill_after =
         runtime
@@ -1281,23 +1131,16 @@ fn apply_techs(
                 "unit technology ID {technology_id} already exists before layout application"
             )));
         }
-        change_technology(
-            runtime,
-            &json!({"unit_id": unit_id, "technology_id": technology_id}),
-            "MAD_AddTechnology",
-        )
-        .map_err(|error| error.context(&format!("add unit technology ID {technology_id}")))?;
+        change_technology(runtime, unit_id, technology_id, "MAD_AddTechnology")
+            .map_err(|error| error.context(&format!("add unit technology ID {technology_id}")))?;
         if read_unit_technology(runtime, controller, unit_id, technology_id)?.is_none() {
             return Err(OperationError::Rejected(format!(
                 "unit technology ID {technology_id} was not present after add"
             )));
         }
-        change_technology(
-            runtime,
-            &json!({"unit_id": unit_id, "technology_id": technology_id}),
-            "MAD_ActiveTechnology",
-        )
-        .map_err(|error| error.context(&format!("activate unit technology ID {technology_id}")))?;
+        change_technology(runtime, unit_id, technology_id, "MAD_ActiveTechnology").map_err(
+            |error| error.context(&format!("activate unit technology ID {technology_id}")),
+        )?;
         if read_unit_technology(runtime, controller, unit_id, technology_id)? != Some(true) {
             return Err(OperationError::Rejected(format!(
                 "unit technology ID {technology_id} did not become active"
@@ -1359,16 +1202,14 @@ fn apply_research_center(
     let blueprint_ids = research_blueprint_ids(desired)?;
     let mut actions = Vec::with_capacity(blueprint_ids.len());
     for &id in &blueprint_ids {
-        let result = research_blueprint(runtime, &json!({"blueprint_id": id}))
+        let (active, researching) = research_blueprint(runtime, id)
             .map_err(|error| error.context("apply research_center enhancement"))?;
-        if result.get("active").and_then(Value::as_bool) != Some(true)
-            || result.get("researching").and_then(Value::as_bool) != Some(false)
-        {
+        if !active || researching {
             return Err(OperationError::Rejected(format!(
-                "research_center blueprint {id} did not become active immediately: {result}"
+                "research_center blueprint {id} did not become active immediately"
             )));
         }
-        actions.push(result);
+        actions.push(json!({"blueprint_id": id, "active": true}));
     }
     for id in [4, 401, 5, 501] {
         if !blueprint_ids.contains(&id) && blueprint_is_active_or_researching(runtime, id)? {
@@ -1418,16 +1259,13 @@ fn apply_tower_strength(
     target_level: i32,
     kind: &str,
 ) -> Result<(), OperationError> {
-    let result = strengthen_tower(
-        runtime,
-        &json!({"manager_index": manager_index, "target_level": target_level}),
-    )
-    .map_err(|error| error.context(&format!("strengthen {kind}")))?;
-    if result.get("level").and_then(Value::as_i64) == Some(i64::from(target_level)) {
+    let level = strengthen_tower(runtime, manager_index, target_level)
+        .map_err(|error| error.context(&format!("strengthen {kind}")))?;
+    if level == target_level {
         Ok(())
     } else {
         Err(OperationError::Rejected(format!(
-            "{kind} strength readback did not match target {target_level}: {result}"
+            "{kind} strength readback {level} did not match target {target_level}"
         )))
     }
 }
@@ -1448,7 +1286,7 @@ fn apply_energy_tower_enhancement(
                 "energy_tower {name} was already active"
             )));
         }
-        energy_tower_skill(runtime, &json!({"skill_id": skill_id}), true)
+        activate_energy_tower_skill(runtime, skill_id)
             .map_err(|error| error.context(&format!("activate energy_tower {name}")))?;
     } else if before {
         return Err(OperationError::Rejected(format!(
@@ -1684,39 +1522,20 @@ fn apply_unit_formation(
             describe_placement(placement)
         ))
     })?;
-    let result = add_unit(
-        runtime,
-        &json!({
-            "unit_id": unit_id,
-            "displayed_level": level,
-            "position": {"x": world_position.x, "y": world_position.y},
-            "rotate": placement.rotated
-        }),
-    )
-    .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
-    let unit_index = result_i32(&result, "unit_index", placement)?;
-    let readback = unit_status(runtime, &json!({"unit_index": unit_index}))
+    let unit_index = add_unit(runtime, unit_id, level, world_position, placement.rotated)
+        .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
+    let readback = unit_status(runtime, unit_index)
         .map_err(|error| error.context(&format!("read {}", describe_placement(placement))))?;
     verify_unit_readback(placement, unit_id, level, world_position, &readback)?;
     if let Some(equipment_id) = placement.equipment {
-        add_test_inventory(
-            runtime,
-            &json!({"equipment_id": equipment_id}),
-            "equipment_id",
-            "MAD_AddEquipment",
-        )
-        .map_err(|error| {
+        add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
             error.context(&format!(
                 "add equipment for {}",
                 describe_placement(placement)
             ))
         })?;
-        equipment(
-            runtime,
-            &json!({"equipment_id": equipment_id, "unit_index": unit_index}),
-            true,
-        )
-        .map_err(|error| error.context(&format!("equip {}", describe_placement(placement))))?;
+        equip_unit(runtime, equipment_id, unit_index)
+            .map_err(|error| error.context(&format!("equip {}", describe_placement(placement))))?;
     }
     Ok(json!({
         "type": placement.type_name,
@@ -1735,16 +1554,8 @@ fn apply_construction_formation(
     construction_id: i32,
     world_position: MapVector,
 ) -> Result<Value, OperationError> {
-    let result = construction(
-        runtime,
-        &json!({
-            "construction_id": construction_id,
-            "position": {"x": world_position.x, "y": world_position.y}
-        }),
-        true,
-    )
-    .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
-    let construction_index = result_i32(&result, "construction_index", placement)?;
+    let construction_index = construction(runtime, construction_id, world_position)
+        .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
     Ok(json!({
         "type": placement.type_name,
         "construction_index": construction_index,
@@ -1759,37 +1570,14 @@ fn apply_contraption_formation(
     contraption_id: i32,
     world_position: MapVector,
 ) -> Result<Value, OperationError> {
-    let result = contraption(
-        runtime,
-        &json!({
-            "contraption_id": contraption_id,
-            "position": {"x": world_position.x, "y": world_position.y}
-        }),
-        true,
-    )
-    .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
-    let contraption_index = result_i32(&result, "contraption_index", placement)?;
+    let contraption_index = contraption(runtime, contraption_id, world_position, None)
+        .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
     Ok(json!({
         "type": placement.type_name,
         "contraption_index": contraption_index,
         "x": placement.position.x,
         "y": placement.position.y
     }))
-}
-
-fn result_i32(result: &Value, name: &str, placement: &Placement) -> Result<i32, OperationError> {
-    let value = result.get(name).and_then(Value::as_i64).ok_or_else(|| {
-        OperationError::Rejected(format!(
-            "{} placement returned no {name}",
-            describe_placement(placement)
-        ))
-    })?;
-    i32::try_from(value).map_err(|_| {
-        OperationError::Rejected(format!(
-            "{} returned {name} outside i32 range",
-            describe_placement(placement)
-        ))
-    })
 }
 
 fn layout_world_position(
@@ -1845,20 +1633,17 @@ fn verify_unit_readback(
     unit_id: i32,
     level: i32,
     world_position: MapVector,
-    readback: &Value,
+    readback: &UnitReadback,
 ) -> Result<(), OperationError> {
-    let matches = readback.get("unit_id").and_then(Value::as_i64) == Some(i64::from(unit_id))
-        && readback.get("level").and_then(Value::as_i64) == Some(i64::from(level - 1))
-        && readback.pointer("/position/x").and_then(Value::as_i64)
-            == Some(i64::from(world_position.x))
-        && readback.pointer("/position/y").and_then(Value::as_i64)
-            == Some(i64::from(world_position.y))
-        && readback.get("rotated").and_then(Value::as_bool) == Some(placement.rotated);
+    let matches = readback.id == unit_id
+        && readback.level == level - 1
+        && readback.position == world_position
+        && readback.rotated == placement.rotated;
     if matches {
         Ok(())
     } else {
         Err(OperationError::Rejected(format!(
-            "{} readback mismatch: {readback}",
+            "{} readback mismatch: {readback:?}",
             describe_placement(placement)
         )))
     }
@@ -1886,11 +1671,10 @@ fn describe_battle_skill(skill: &BattleSkill) -> String {
 
 fn change_technology(
     runtime: &Runtime,
-    arguments: &Value,
+    mut unit_id: i32,
+    mut technology_id: i32,
     class_name: &str,
-) -> Result<Value, OperationError> {
-    let mut unit_id = positive_i32(arguments, "unit_id")?;
-    let mut technology_id = positive_i32(arguments, "technology_id")?;
+) -> Result<(), OperationError> {
     let current = require_match(runtime)?;
     let controller = player_controller(runtime, current)?;
     let action = new_player_test_action(runtime.api, class_name, controller)?;
@@ -1900,8 +1684,7 @@ fn change_technology(
     runtime
         .api
         .invoke_void(action, "set_TechID", &mut [argument(&mut technology_id)])?;
-    perform_test(runtime.api, current, action)?;
-    Ok(json!({"changed": true, "unit_id": unit_id, "technology_id": technology_id}))
+    perform_test(runtime.api, current, action)
 }
 
 fn find_unit(
@@ -1924,19 +1707,12 @@ fn find_unit(
     Ok((manager, unit))
 }
 
-fn unit_status(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut unit_index = required_i32(arguments, "unit_index")?;
+fn unit_status(runtime: &Runtime, mut unit_index: i32) -> Result<UnitReadback, OperationError> {
     let current = require_match(runtime)?;
     let controller = player_controller(runtime, current)?;
     let (_manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
     let id = runtime.api.invoke_value::<i32>(unit, "GetID", &mut [])?;
     let level = runtime.api.invoke_value::<i32>(unit, "GetLevel", &mut [])?;
-    let round_count = runtime
-        .api
-        .invoke_value::<i32>(unit, "GetRoundCount", &mut [])?;
-    let old = runtime
-        .api
-        .invoke_value::<bool>(unit, "IsOldUnit", &mut [])?;
     let element = runtime.api.invoke(unit, "GetMapElement", &mut [])?;
     let position = runtime
         .api
@@ -1944,57 +1720,18 @@ fn unit_status(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationE
     let rotated = runtime
         .api
         .invoke_value::<bool>(element, "IsRotate", &mut [])?;
-    Ok(json!({
-        "unit_index": unit_index,
-        "unit_id": id,
-        "level": level,
-        "round_count": round_count,
-        "is_old_unit": old,
-        "position": {"x": position.x, "y": position.y},
-        "rotated": rotated
-    }))
-}
-
-fn remove_unit(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut unit_index = required_i32(arguments, "unit_index")?;
-    let current = require_match(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let (manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
-    let mut id = runtime.api.invoke_value::<i32>(unit, "GetID", &mut [])?;
-    let action = new_player_test_action(runtime.api, "MAD_RemoveUnit", controller)?;
-    runtime
-        .api
-        .invoke_void(action, "set_IDX", &mut [argument(&mut unit_index)])?;
-    runtime
-        .api
-        .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
-    perform_test(runtime.api, current, action)?;
-    let mut after: *mut Object = std::ptr::null_mut();
-    let found_after = runtime.api.invoke_value::<bool>(
-        manager,
-        "TryGetUnit",
-        &mut [argument(&mut unit_index), argument(&mut after)],
-    )?;
-    if found_after {
-        return Err(OperationError::Rejected(
-            "unit remained after remove action".into(),
-        ));
-    }
-    Ok(json!({"removed": true, "unit_index": unit_index, "unit_id": id}))
+    Ok(UnitReadback {
+        id,
+        level,
+        position,
+        rotated,
+    })
 }
 
 fn clear_both_sides(runtime: &Runtime) -> Result<Value, OperationError> {
     let current = require_match(runtime)?;
     clear_current_side(runtime, current)?;
-    runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut [])?;
-    let second = clear_current_side(runtime, current);
-    let restore = runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut []);
-    second?;
-    restore?;
+    with_other_player(runtime, current, || clear_current_side(runtime, current))?;
     Ok(json!({"cleared": true, "both_sides": true}))
 }
 
@@ -2047,111 +1784,6 @@ fn clear_current_side(runtime: &Runtime, current: *mut Object) -> Result<(), Ope
     Ok(())
 }
 
-fn set_both_player_data(
-    runtime: &Runtime,
-    arguments: &Value,
-    data_type: i32,
-) -> Result<Value, OperationError> {
-    let value = positive_i32(arguments, "value")?;
-    let current = require_match(runtime)?;
-    let first = set_current_player_data(runtime, current, value, data_type)?;
-    runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut [])?;
-    let second_result = set_current_player_data(runtime, current, value, data_type);
-    let restore_result = runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut []);
-    let second = second_result?;
-    restore_result?;
-    if first == second {
-        return Err(OperationError::Rejected(
-            "player switch did not change player identity".into(),
-        ));
-    }
-    Ok(json!({"changed": true, "value": value, "players": [first, second]}))
-}
-
-fn set_current_player_data(
-    runtime: &Runtime,
-    current: *mut Object,
-    value: i32,
-    data_type: i32,
-) -> Result<i32, OperationError> {
-    let controller = player_controller(runtime, current)?;
-    let player = runtime.api.invoke(controller, "GetPlayer", &mut [])?;
-    let player_index = runtime
-        .api
-        .invoke_value::<i32>(player, "GetRoomIndex", &mut [])?;
-    let getter = if data_type == 0 {
-        "GetReactorCore"
-    } else {
-        "GetSupply"
-    };
-    let before = runtime.api.invoke_value::<i32>(player, getter, &mut [])?;
-    if before != value {
-        let action = new_player_test_action(runtime.api, "MAD_ChangePlayerData", controller)?;
-        let mut data_type = data_type;
-        let mut value = value;
-        let mut float_value = 0.0_f32;
-        runtime
-            .api
-            .invoke_void(action, "set_DataType", &mut [argument(&mut data_type)])?;
-        runtime
-            .api
-            .invoke_void(action, "set_DataInt", &mut [argument(&mut value)])?;
-        runtime
-            .api
-            .invoke_void(action, "set_DataFloat", &mut [argument(&mut float_value)])?;
-        perform_test(runtime.api, current, action)?;
-    }
-    let after = runtime.api.invoke_value::<i32>(player, getter, &mut [])?;
-    if after != value {
-        return Err(OperationError::Rejected(format!(
-            "{getter} readback did not match"
-        )));
-    }
-    Ok(player_index)
-}
-
-fn upgrade_unit(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut unit_index = required_i32(arguments, "unit_index")?;
-    let target_level = required_i32(arguments, "target_level")?;
-    if !(2..=9).contains(&target_level) {
-        return Err(OperationError::InvalidArguments(
-            "target_level must be 2..=9".into(),
-        ));
-    }
-    let current = require_match(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let (_manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
-    let mut unit_id = runtime.api.invoke_value::<i32>(unit, "GetID", &mut [])?;
-    let before = runtime.api.invoke_value::<i32>(unit, "GetLevel", &mut [])?;
-    if target_level != before + 2 {
-        return Err(OperationError::InvalidArguments(format!(
-            "target_level must equal internal level {before} plus two"
-        )));
-    }
-    let action = core_action(runtime.api, "PAD_UpgradeUnit")?;
-    runtime
-        .api
-        .invoke_void(action, "set_UIDX", &mut [argument(&mut unit_index)])?;
-    runtime
-        .api
-        .invoke_void(action, "set_UID", &mut [argument(&mut unit_id)])?;
-    check_action(runtime.api, controller, action)?;
-    perform_sync(runtime.api, controller, action)?;
-    let after = runtime.api.invoke_value::<i32>(unit, "GetLevel", &mut [])?;
-    if after != target_level {
-        return Err(OperationError::Rejected(
-            "upgrade readback did not match target".into(),
-        ));
-    }
-    Ok(
-        json!({"upgraded": true, "unit_index": unit_index, "before_level": before, "after_level": after}),
-    )
-}
-
 fn require_training_deploying(runtime: &Runtime) -> Result<*mut Object, OperationError> {
     let current = require_match(runtime)?;
     let test = runtime
@@ -2178,9 +1810,11 @@ fn require_training_deploying(runtime: &Runtime) -> Result<*mut Object, Operatio
     }
 }
 
-fn strengthen_tower(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut manager_index = required_i32(arguments, "manager_index")?;
-    let target_level = required_i32(arguments, "target_level")?;
+fn strengthen_tower(
+    runtime: &Runtime,
+    mut manager_index: i32,
+    target_level: i32,
+) -> Result<i32, OperationError> {
     if !(0..=2).contains(&target_level) {
         return Err(OperationError::InvalidArguments(
             "target_level must be 0..=2".into(),
@@ -2227,7 +1861,7 @@ fn strengthen_tower(runtime: &Runtime, arguments: &Value) -> Result<Value, Opera
             "tower strengthen readback did not match target".into(),
         ));
     }
-    Ok(json!({"strengthened": true, "manager_index": manager_index, "level": current_level}))
+    Ok(current_level)
 }
 
 fn tower_strengthen_level(api: Api, tower: *mut Object) -> Result<i32, OperationError> {
@@ -2241,27 +1875,19 @@ fn tower_strengthen_level(api: Api, tower: *mut Object) -> Result<i32, Operation
 
 fn add_test_inventory(
     runtime: &Runtime,
-    arguments: &Value,
-    id_name: &str,
+    mut id: i32,
     class_name: &str,
-) -> Result<Value, OperationError> {
-    let mut id = positive_i32(arguments, id_name)?;
+) -> Result<(), OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let action = new_player_test_action(runtime.api, class_name, controller)?;
     runtime
         .api
         .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
-    perform_test(runtime.api, current, action)?;
-    Ok(json!({"added": true, id_name: id}))
+    perform_test(runtime.api, current, action)
 }
 
-fn energy_tower_skill(
-    runtime: &Runtime,
-    arguments: &Value,
-    mutate: bool,
-) -> Result<Value, OperationError> {
-    let mut id = positive_i32(arguments, "skill_id")?;
+fn activate_energy_tower_skill(runtime: &Runtime, mut id: i32) -> Result<(), OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -2287,24 +1913,24 @@ fn energy_tower_skill(
     runtime
         .api
         .invoke_void(action, "set_SkillID", &mut [argument(&mut id)])?;
-    let check = check_action(runtime.api, controller, action)?;
-    if mutate {
-        perform_sync(runtime.api, controller, action)?;
-        let after = runtime
-            .api
-            .invoke_value::<bool>(skill, "IsActive", &mut [])?;
-        if !after {
-            return Err(OperationError::Rejected(
-                "energy tower skill did not become active".into(),
-            ));
-        }
+    check_action(runtime.api, controller, action)?;
+    perform_sync(runtime.api, controller, action)?;
+    let after = runtime
+        .api
+        .invoke_value::<bool>(skill, "IsActive", &mut [])?;
+    if !after {
+        return Err(OperationError::Rejected(
+            "energy tower skill did not become active".into(),
+        ));
     }
-    Ok(json!({"legal": true, "performed": mutate, "skill_id": id, "check_result": check}))
+    Ok(())
 }
 
-fn equipment(runtime: &Runtime, arguments: &Value, mutate: bool) -> Result<Value, OperationError> {
-    let mut equipment_id = positive_i32(arguments, "equipment_id")?;
-    let mut unit_index = required_i32(arguments, "unit_index")?;
+fn equip_unit(
+    runtime: &Runtime,
+    mut equipment_id: i32,
+    mut unit_index: i32,
+) -> Result<(), OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let (_unit_manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
@@ -2340,37 +1966,28 @@ fn equipment(runtime: &Runtime, arguments: &Value, mutate: bool) -> Result<Value
     runtime
         .api
         .invoke_void(action, "set_UnitIndex", &mut [argument(&mut unit_index)])?;
-    let check = check_action(runtime.api, controller, action)?;
-    if mutate {
-        perform_sync(runtime.api, controller, action)?;
-        let has = runtime
-            .api
-            .invoke_value::<bool>(unit, "HasEquipment", &mut [])?;
-        let after = runtime.api.invoke(unit, "GetEquipment", &mut [])?;
-        if !has || after != equipment {
-            return Err(OperationError::Rejected(
-                "equipment ownership readback did not match".into(),
-            ));
-        }
+    check_action(runtime.api, controller, action)?;
+    perform_sync(runtime.api, controller, action)?;
+    let has = runtime
+        .api
+        .invoke_value::<bool>(unit, "HasEquipment", &mut [])?;
+    let after = runtime.api.invoke(unit, "GetEquipment", &mut [])?;
+    if !has || after != equipment {
+        return Err(OperationError::Rejected(
+            "equipment ownership readback did not match".into(),
+        ));
     }
-    Ok(
-        json!({"legal": true, "performed": mutate, "equipment_id": equipment_id, "unit_index": unit_index, "check_result": check}),
-    )
+    Ok(())
 }
 
 fn contraption(
     runtime: &Runtime,
-    arguments: &Value,
-    mutate: bool,
-) -> Result<Value, OperationError> {
-    let mut id = positive_i32(arguments, "contraption_id")?;
-    let mut position = map_vector(arguments, "position")?;
-    let has_extra = arguments.get("extra_position").is_some();
-    let mut extra = if has_extra {
-        map_vector(arguments, "extra_position")?
-    } else {
-        MapVector::default()
-    };
+    mut id: i32,
+    mut position: MapVector,
+    extra: Option<MapVector>,
+) -> Result<i32, OperationError> {
+    let has_extra = extra.is_some();
+    let mut extra = extra.unwrap_or_default();
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -2439,20 +2056,9 @@ fn contraption(
     runtime
         .api
         .invoke_void(action, "set_ExtraPosition", &mut [argument(&mut extra)])?;
-    let check = check_action(runtime.api, controller, action)?;
-    let mut contraption_index = None;
-    if mutate {
-        perform_sync(runtime.api, controller, action)?;
-        contraption_index = Some(verify_contraption_readback(runtime, &baseline)?);
-    }
-    Ok(json!({
-        "legal": true,
-        "performed": mutate,
-        "contraption_id": id,
-        "contraption_index": contraption_index,
-        "position": {"x": position.x, "y": position.y},
-        "check_result": check
-    }))
+    check_action(runtime.api, controller, action)?;
+    perform_sync(runtime.api, controller, action)?;
+    verify_contraption_readback(runtime, &baseline)
 }
 
 fn contraption_release_baseline(
@@ -2565,8 +2171,7 @@ fn verify_contraption_readback(
     }
 }
 
-fn research_blueprint(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut id = positive_i32(arguments, "blueprint_id")?;
+fn research_blueprint(runtime: &Runtime, mut id: i32) -> Result<(bool, bool), OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -2610,16 +2215,14 @@ fn research_blueprint(runtime: &Runtime, arguments: &Value) -> Result<Value, Ope
             "blueprint state did not change".into(),
         ));
     }
-    Ok(json!({"performed": true, "blueprint_id": id, "active": active, "researching": researching}))
+    Ok((active, researching))
 }
 
 fn construction(
     runtime: &Runtime,
-    arguments: &Value,
-    mutate: bool,
-) -> Result<Value, OperationError> {
-    let mut id = positive_i32(arguments, "construction_id")?;
-    let mut position = map_vector(arguments, "position")?;
+    mut id: i32,
+    mut position: MapVector,
+) -> Result<i32, OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -2696,29 +2299,20 @@ fn construction(
             "construction action did not preserve its type and position".into(),
         ));
     }
-    let check = check_action(runtime.api, controller, action)?;
+    check_action(runtime.api, controller, action)?;
     let construction_index = runtime
         .api
         .invoke_value::<i32>(action, "get_IDX", &mut [])?;
-    if mutate {
-        perform_sync(runtime.api, controller, action)?;
-        verify_construction_readback(
-            runtime,
-            manager,
-            id,
-            construction_index,
-            position,
-            before_count,
-        )?;
-    }
-    Ok(json!({
-        "legal": true,
-        "performed": mutate,
-        "construction_id": id,
-        "construction_index": construction_index,
-        "position": {"x": position.x, "y": position.y},
-        "check_result": check
-    }))
+    perform_sync(runtime.api, controller, action)?;
+    verify_construction_readback(
+        runtime,
+        manager,
+        id,
+        construction_index,
+        position,
+        before_count,
+    )?;
+    Ok(construction_index)
 }
 
 fn verify_construction_readback(
@@ -2777,36 +2371,16 @@ fn verify_construction_readback(
     }
 }
 
-#[allow(clippy::too_many_lines)]
-fn battle_skill(
+fn release_battle_skill(
     runtime: &Runtime,
-    arguments: &Value,
-    mutate: bool,
-) -> Result<Value, OperationError> {
-    let mut id = positive_i32(arguments, "commander_skill_id")?;
-    let target_kind = arguments
-        .get("target_kind")
-        .and_then(Value::as_str)
-        .ok_or_else(|| OperationError::InvalidArguments("missing target_kind".into()))?;
-    if !matches!(target_kind, "none" | "unit" | "construction") {
-        return Err(OperationError::InvalidArguments(
-            "target_kind is invalid".into(),
-        ));
-    }
-    let mut target_index = required_i32(arguments, "target_index")?;
-    let positions_value = arguments
-        .get("positions")
-        .and_then(Value::as_array)
-        .ok_or_else(|| OperationError::InvalidArguments("missing positions array".into()))?;
-    if positions_value.is_empty() || positions_value.len() > 64 {
+    mut id: i32,
+    positions: &mut [MapVector],
+) -> Result<(), OperationError> {
+    if positions.is_empty() || positions.len() > 64 {
         return Err(OperationError::InvalidArguments(
             "positions must contain 1..=64 entries".into(),
         ));
     }
-    let mut positions = positions_value
-        .iter()
-        .map(|value| map_vector(&json!({"position": value}), "position"))
-        .collect::<Result<Vec<_>, _>>()?;
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -2834,90 +2408,28 @@ fn battle_skill(
             "positions length does not match skill".into(),
         ));
     }
-    let target = match target_kind {
-        "unit" => {
-            let unit_manager = runtime.api.invoke(controller, "GetUnitManager", &mut [])?;
-            let mut target: *mut Object = std::ptr::null_mut();
-            let found = runtime.api.invoke_value::<bool>(
-                unit_manager,
-                "TryGetUnit",
-                &mut [argument(&mut target_index), argument(&mut target)],
-            )?;
-            if !found {
-                return Err(OperationError::InvalidArguments(
-                    "target unit was not found".into(),
-                ));
-            }
-            target
-        }
-        "construction" => {
-            let construction_manager =
-                runtime
-                    .api
-                    .invoke(controller, "GetConstructionManager", &mut [])?;
-            let mut target: *mut Object = std::ptr::null_mut();
-            let found = runtime.api.invoke_value::<bool>(
-                construction_manager,
-                "TryGetConstructionElement",
-                &mut [argument(&mut target_index), argument(&mut target)],
-            )?;
-            if !found {
-                return Err(OperationError::InvalidArguments(
-                    "target construction was not found".into(),
-                ));
-            }
-            target
-        }
-        _ => std::ptr::null_mut(),
-    };
-
-    if target_kind == "none" {
-        for position in &mut positions {
-            let result = runtime.api.invoke_value::<i32>(
-                manager,
-                "CanReleaseCommanderSkill",
-                &mut [object_argument(skill), argument(position)],
-            )?;
-            if result != 0 {
-                return Err(OperationError::Rejected(format!(
-                    "skill position rejected with {result}"
-                )));
-            }
-        }
-    } else {
+    for position in positions.iter_mut() {
         let result = runtime.api.invoke_value::<i32>(
             manager,
             "CanReleaseCommanderSkill",
-            &mut [
-                object_argument(skill),
-                argument(&mut positions[0]),
-                object_argument(target),
-            ],
+            &mut [object_argument(skill), argument(position)],
         )?;
         if result != 0 {
             return Err(OperationError::Rejected(format!(
-                "skill target rejected with {result}"
+                "skill position rejected with {result}"
             )));
         }
     }
 
     let action = core_action(runtime.api, "PAD_ReleaseCommanderSkill")?;
     let action_positions = runtime.api.invoke(action, "get_Positions", &mut [])?;
-    for position in &mut positions {
+    for position in positions {
         runtime
             .api
             .invoke_void(action_positions, "Add", &mut [argument(position)])?;
     }
-    let mut unit_index = if target_kind == "unit" {
-        target_index
-    } else {
-        -1
-    };
-    let mut construction_index = if target_kind == "construction" {
-        target_index
-    } else {
-        -1
-    };
+    let mut unit_index = -1;
+    let mut construction_index = -1;
     runtime
         .api
         .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
@@ -2934,11 +2446,8 @@ fn battle_skill(
         "set_ConstructionIndex",
         &mut [argument(&mut construction_index)],
     )?;
-    let check = check_action(runtime.api, controller, action)?;
-    if mutate {
-        perform_sync(runtime.api, controller, action)?;
-    }
-    Ok(json!({"legal": true, "performed": mutate, "commander_skill_id": id, "check_result": check}))
+    check_action(runtime.api, controller, action)?;
+    perform_sync(runtime.api, controller, action)
 }
 
 fn list_count(api: Api, list: *mut Object) -> Result<i32, OperationError> {
@@ -2960,145 +2469,6 @@ fn list_item(api: Api, list: *mut Object, index: i32) -> Result<*mut Object, Ope
     Ok(api.invoke(list, "get_Item", &mut [argument(&mut index)])?)
 }
 
-fn replay_record(runtime: &Runtime, current: *mut Object) -> Result<*mut Object, OperationError> {
-    let modules = runtime.api.invoke(current, "GetModules", &mut [])?;
-    for index in 0..list_count(runtime.api, modules)? {
-        let module = list_item(runtime.api, modules, index)?;
-        if runtime.api.object_class_name(module) == "ReplaySystem" {
-            let recorder = runtime.api.invoke(module, "GetBattleRecorder", &mut [])?;
-            let record = runtime.api.invoke(recorder, "GetCurrentRecord", &mut [])?;
-            if !record.is_null() {
-                return Ok(record);
-            }
-        }
-    }
-    Err(OperationError::InvalidState(
-        "training-ground replay record is unavailable".into(),
-    ))
-}
-
-fn training_ground_seed_bundle(runtime: &Runtime) -> Result<Value, OperationError> {
-    let current = require_training_deploying(runtime)?;
-    let record = replay_record(runtime, current)?;
-    let round_count = runtime
-        .api
-        .invoke_value::<i32>(record, "GetRoundCount", &mut [])?;
-    let player_count = runtime
-        .api
-        .invoke_value::<i32>(record, "GetPlayerRecordCount", &mut [])?;
-    if round_count <= 0 || player_count != 2 {
-        return Err(OperationError::InvalidState(
-            "training record is incomplete".into(),
-        ));
-    }
-    let info = runtime.api.invoke(record, "get_BattleInfo", &mut [])?;
-    let system_seed = runtime
-        .api
-        .invoke_value::<i32>(info, "get_SystemSeed", &mut [])?;
-    let mut seeds = [0_i32; 2];
-    for (index, seed) in seeds.iter_mut().enumerate() {
-        let mut player_index = i32::try_from(index).expect("two player indexes fit i32");
-        let found = runtime.api.invoke_value::<bool>(
-            record,
-            "TryGetPlayerSeed",
-            &mut [argument(&mut player_index), argument(seed)],
-        )?;
-        if !found {
-            return Err(OperationError::InvalidState(format!(
-                "player seed {index} is unavailable"
-            )));
-        }
-    }
-    Ok(json!({
-        "system_seed": system_seed,
-        "player_seeds": seeds,
-        "round_count": round_count
-    }))
-}
-
-fn replay_open(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    if !runtime.current_match().is_null() {
-        return Err(OperationError::InvalidState(
-            "a match is already active".into(),
-        ));
-    }
-    if arguments
-        .as_object()
-        .is_none_or(|object| object.len() != 1 || !object.contains_key("path"))
-    {
-        return Err(OperationError::InvalidArguments(
-            "replay_open requires only path".into(),
-        ));
-    }
-    let path = required_path(arguments, "path")?;
-    let utility = runtime
-        .api
-        .class("GRCore.dll", "GameRiver", "MatchUtility")?;
-    let path_text = path
-        .to_str()
-        .ok_or_else(|| OperationError::InvalidArguments("path must be UTF-8".into()))?;
-    let managed_path = runtime.api.string(path_text)?;
-    let replay =
-        runtime
-            .api
-            .invoke_static(utility, "LoadReplay", &mut [object_argument(managed_path)])?;
-    if replay.is_null() {
-        return Err(OperationError::Rejected("LoadReplay returned null".into()));
-    }
-    let command_class =
-        runtime
-            .api
-            .class("GRClient.dll", "GameRiver.Client", "PlayReplayCommand")?;
-    let command = runtime.api.new_object(command_class)?;
-    let mut start_round = -1_i32;
-    runtime.api.invoke_void(
-        command,
-        "Execute",
-        &mut [object_argument(replay), argument(&mut start_round)],
-    )?;
-    Ok(json!({"opened": true}))
-}
-
-fn replay_goto(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let mut round = positive_i32(arguments, "round")?;
-    let current = require_match(runtime)?;
-    if classify_replay(runtime.api, current) != Some(true) {
-        return Err(OperationError::InvalidState(
-            "active match is not a replay".into(),
-        ));
-    }
-    let match_class = runtime
-        .api
-        .class("GRClient.dll", "GameRiver.Client", "MatchClient")?;
-    let setting = runtime
-        .api
-        .invoke_static(match_class, "get_BattleSetting", &mut [])?;
-    let record = runtime.api.invoke(setting, "GetBattleRecord", &mut [])?;
-    let available = runtime.api.invoke_value::<bool>(
-        record,
-        "IsAvaliableRound",
-        &mut [argument(&mut round)],
-    )?;
-    if !available {
-        return Err(OperationError::Rejected(
-            "requested round is unavailable".into(),
-        ));
-    }
-    let command_class =
-        runtime
-            .api
-            .class("GRClient.dll", "GameRiver.Client", "ReplayMatchGotoCommand")?;
-    let command = runtime.api.new_object(command_class)?;
-    runtime.api.invoke_void(command, ".ctor", &mut [])?;
-    let kind = runtime.api.string("round")?;
-    runtime.api.invoke_void(
-        command,
-        "Execute",
-        &mut [object_argument(kind), argument(&mut round)],
-    )?;
-    Ok(json!({"performed": true, "round": round}))
-}
-
 fn config_instance(runtime: &Runtime) -> Result<*mut Object, OperationError> {
     let config_class = runtime.api.class("GRCore.dll", "GameRiver", "Config")?;
     let singleton = runtime
@@ -3117,164 +2487,6 @@ fn config_instance(runtime: &Runtime) -> Result<*mut Object, OperationError> {
     }
 }
 
-fn tower_strengthen_catalog(runtime: &Runtime) -> Result<Value, OperationError> {
-    require_training_deploying(runtime)?;
-    let config = config_instance(runtime)?;
-    let items = runtime
-        .api
-        .invoke(config, "GetTowerStrengthenDatas", &mut [])?;
-    let mut result = Vec::new();
-    for index in 0..list_count(runtime.api, items)? {
-        let item = list_item(runtime.api, items, index)?;
-        result.push(json!({
-            "level": runtime.api.invoke_value::<i32>(item, "GetLevel", &mut [])?,
-            "supply": runtime.api.invoke_value::<i32>(item, "GetSupply", &mut [])?
-        }));
-    }
-    Ok(json!({"items": result}))
-}
-
-fn technology_catalog(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let unit_id = positive_i32(arguments, "unit_id")?;
-    let current = require_match(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let manager = runtime.api.invoke(controller, "GetUnitManager", &mut [])?;
-    let units = runtime.api.invoke(manager, "GetUnits", &mut [])?;
-    let mut unit_data = std::ptr::null_mut();
-    for index in 0..list_count(runtime.api, units)? {
-        let unit = list_item(runtime.api, units, index)?;
-        if runtime.api.invoke_value::<i32>(unit, "GetID", &mut [])? == unit_id {
-            unit_data = runtime.api.invoke(unit, "GetUnitData", &mut [])?;
-            break;
-        }
-    }
-    if unit_data.is_null() {
-        return Err(OperationError::InvalidArguments(
-            "requested unit must be deployed".into(),
-        ));
-    }
-    let available = runtime.api.invoke(unit_data, "GetTechnologies", &mut [])?;
-    let fight = runtime.current_fight();
-    if fight.is_null() {
-        return Err(OperationError::InvalidState(
-            "fight controller is unavailable".into(),
-        ));
-    }
-    let setting = runtime.api.invoke(fight, "GetFightSetting", &mut [])?;
-    let mut technologies = Vec::new();
-    for index in 0..list_count(runtime.api, available)? {
-        let boxed = list_item(runtime.api, available, index)?;
-        let mut id = runtime.api.unbox::<i32>(boxed, "technology id")?;
-        let data = runtime
-            .api
-            .invoke(setting, "GetTechnologyByID", &mut [argument(&mut id)])?;
-        if data.is_null() {
-            technologies.push(json!({"technology_id": id, "available": false}));
-            continue;
-        }
-        technologies.push(json!({
-            "technology_id": id,
-            "available": true,
-            "runtime_type": runtime.api.object_class_name(data),
-            "supply": runtime.api.invoke_value::<i32>(data, "get_Supply", &mut [])?,
-            "previous_technology_id": runtime.api.invoke_value::<i32>(data, "get_PreviousTechID", &mut [])?,
-            "active_level_internal": runtime.api.invoke_value::<i32>(data, "get_ActiveLevel", &mut [])?,
-            "unlock_cost": runtime.api.invoke_value::<i32>(data, "get_UnlockCost", &mut [])?,
-            "target_skill_id": runtime.api.invoke_value::<i32>(data, "GetTargetSkillID", &mut [])?
-        }));
-    }
-    Ok(json!({"unit_id": unit_id, "technologies": technologies}))
-}
-
-fn required_path(arguments: &Value, name: &str) -> Result<std::path::PathBuf, OperationError> {
-    let raw = arguments
-        .get(name)
-        .and_then(Value::as_str)
-        .ok_or_else(|| OperationError::InvalidArguments(format!("missing path {name}")))?;
-    let path = Path::new(raw);
-    if !path.is_absolute() || raw.contains('\0') {
-        return Err(OperationError::InvalidArguments(format!(
-            "{name} must be an absolute path"
-        )));
-    }
-    Ok(path.to_path_buf())
-}
-
-fn replay_quick_deploy(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let enabled = required_bool(arguments, "enabled")?;
-    let current = require_match(runtime)?;
-    if classify_replay(runtime.api, current) != Some(true) {
-        return Err(OperationError::InvalidState(
-            "active match is not a replay".into(),
-        ));
-    }
-    let mut real_time = !enabled;
-    let mut step_time = if enabled { 0.0_f32 } else { -1.0_f32 };
-    runtime.api.invoke_void(
-        current,
-        "SetReplayTime",
-        &mut [argument(&mut real_time), argument(&mut step_time)],
-    )?;
-    let after_real_time = runtime
-        .api
-        .invoke_value::<bool>(current, "get_IsRealTime", &mut [])?;
-    let after_step = runtime
-        .api
-        .invoke_value::<f32>(current, "get_StepTime", &mut [])?;
-    #[allow(clippy::float_cmp)]
-    let timing_matches = after_real_time == real_time && after_step == step_time;
-    if !timing_matches {
-        return Err(OperationError::Rejected(
-            "replay timing readback did not match".into(),
-        ));
-    }
-    Ok(json!({"enabled": enabled, "is_real_time": after_real_time, "step_time": after_step}))
-}
-
-fn required_i32(arguments: &Value, name: &str) -> Result<i32, OperationError> {
-    let value = arguments
-        .get(name)
-        .and_then(Value::as_i64)
-        .ok_or_else(|| OperationError::InvalidArguments(format!("missing integer {name}")))?;
-    i32::try_from(value)
-        .map_err(|_| OperationError::InvalidArguments(format!("{name} is outside i32 range")))
-}
-
-fn positive_i32(arguments: &Value, name: &str) -> Result<i32, OperationError> {
-    let value = required_i32(arguments, name)?;
-    if value > 0 {
-        Ok(value)
-    } else {
-        Err(OperationError::InvalidArguments(format!(
-            "{name} must be positive"
-        )))
-    }
-}
-
-fn optional_i32(arguments: &Value, name: &str) -> Option<i32> {
-    arguments
-        .get(name)
-        .and_then(Value::as_i64)
-        .and_then(|value| i32::try_from(value).ok())
-}
-
-fn required_bool(arguments: &Value, name: &str) -> Result<bool, OperationError> {
-    arguments
-        .get(name)
-        .and_then(Value::as_bool)
-        .ok_or_else(|| OperationError::InvalidArguments(format!("missing boolean {name}")))
-}
-
-fn map_vector(arguments: &Value, name: &str) -> Result<MapVector, OperationError> {
-    let value = arguments
-        .get(name)
-        .ok_or_else(|| OperationError::InvalidArguments(format!("missing object {name}")))?;
-    Ok(MapVector {
-        x: required_i32(value, "x")?,
-        y: required_i32(value, "y")?,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3285,13 +2497,6 @@ mod tests {
         assert!(is_main_menu_scene("Main Scene"));
         assert!(!is_main_menu_scene("Loading"));
         assert!(!is_main_menu_scene(""));
-    }
-
-    #[test]
-    fn parses_map_vector() {
-        let value = json!({"position": {"x": 12, "y": -3}});
-        let position = map_vector(&value, "position").unwrap();
-        assert_eq!((position.x, position.y), (12, -3));
     }
 
     #[test]
@@ -3383,6 +2588,7 @@ mod tests {
         let placement = Placement {
             type_name: "marksman".into(),
             native: NativeFormation::Unit(2),
+            footprint: Some((20, 20)),
             position: layout::Position {
                 x: i32::MIN,
                 y: -50,

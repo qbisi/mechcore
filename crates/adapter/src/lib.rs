@@ -6,7 +6,6 @@
 mod il2cpp;
 mod layout;
 mod operations;
-mod protocol;
 mod runtime;
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -22,8 +21,11 @@ extern "C" fn initialize() {
     // The worker waits for runtime exports, then resolves metadata and executes
     // requests on Unity's already-attached main thread.
     let _ = catch_unwind(AssertUnwindSafe(|| {
-        let _ = thread::Builder::new()
+        if let Err(error) = thread::Builder::new()
             .name("mechcore-adapter".into())
-            .spawn(runtime::worker);
+            .spawn(runtime::worker)
+        {
+            eprintln!("cannot start mechcore adapter worker: {error}");
+        }
     }));
 }

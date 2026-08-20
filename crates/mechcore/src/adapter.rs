@@ -1,42 +1,11 @@
+use mechcore_protocol::{Hello, Operation, PROTOCOL, Request, Response};
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use std::path::Path;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixStream, unix::OwnedWriteHalf};
 
-pub const PROTOCOL: &str = "mechcore.adapter.v1";
-pub const CAPABILITIES: &[&str] = &[
-    "status",
-    "start_test",
-    "apply_layout",
-    "toggle_fight",
-    "speed_up",
-    "quit_match",
-    "quit_game",
-];
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
-
-#[derive(Deserialize)]
-struct Hello {
-    kind: String,
-    protocol: String,
-    capabilities: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct Response {
-    kind: String,
-    id: u64,
-    ok: bool,
-    result: Option<Value>,
-    error: Option<ErrorBody>,
-}
-
-#[derive(Deserialize)]
-struct ErrorBody {
-    code: String,
-    message: String,
-}
 
 pub struct Client {
     reader: BufReader<tokio::net::unix::OwnedReadHalf>,
@@ -99,10 +68,11 @@ impl Client {
                 hello.protocol
             ));
         }
-        let advertised: Vec<_> = hello.capabilities.iter().map(String::as_str).collect();
-        if advertised != CAPABILITIES {
+        if hello.capabilities != Operation::ALL {
             return Err(format!(
-                "adapter capability mismatch: expected {CAPABILITIES:?}, got {advertised:?}"
+                "adapter capability mismatch: expected {:?}, got {:?}",
+                Operation::ALL,
+                hello.capabilities
             ));
         }
         Ok(client)
@@ -110,7 +80,7 @@ impl Client {
 
     pub async fn request(
         &mut self,
-        operation: &str,
+        operation: Operation,
         arguments: Value,
     ) -> Result<Value, RequestError> {
         let id = self.next_id;
@@ -118,11 +88,11 @@ impl Client {
             .next_id
             .checked_add(1)
             .ok_or_else(|| RequestError::local("adapter request identifier overflowed"))?;
-        let mut encoded = serde_json::to_vec(&json!({
-            "id": id,
-            "operation": operation,
-            "arguments": arguments,
-        }))
+        let mut encoded = serde_json::to_vec(&Request {
+            id,
+            operation,
+            arguments,
+        })
         .map_err(|error| RequestError::local(format!("cannot encode adapter request: {error}")))?;
         if encoded.len() + 1 > MAX_MESSAGE_BYTES {
             return Err(RequestError::local("adapter request exceeds 1 MiB"));
@@ -135,7 +105,7 @@ impl Client {
             RequestError::fatal(format!("cannot flush adapter request: {error}"))
         })?;
 
-        let response: Response = self.read_line().await.map_err(RequestError::fatal)?;
+        let response: Response<Value> = self.read_line().await.map_err(RequestError::fatal)?;
         if response.kind != "response" || response.id != id {
             return Err(RequestError::fatal(format!(
                 "adapter response mismatch: expected response {id}, got {} {}",

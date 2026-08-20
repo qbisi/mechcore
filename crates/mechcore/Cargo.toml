@@ -6,6 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+mechcore-protocol = { path = "../protocol" }
 rmcp = { version = "0.16", default-features = false, features = ["macros", "server", "transport-io"] }
 schemars = "1"
 serde = { version = "1", features = ["derive"] }
