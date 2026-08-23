@@ -1,18 +1,18 @@
 use std::collections::BTreeMap;
 
 use mechcore_mcfr::{
-    Domain, DurableContext, Event, EventKind, Hashes, MCFR_SCHEMA_VERSION, McfrWriter, MotionState,
-    ObjectKind, ObjectRef, Pose, ProjectileState, Rational, TransitionEvents, UnitState, Vec3,
-    Visibility, WorldSnapshot,
+    Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityAllocator,
+    IdentityContract, MCFR_SCHEMA_VERSION, McfrWriter, MotionState, NumericConvention, ObjectKind,
+    ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState,
+    Vec3, Visibility, WorldSnapshot,
 };
 use serde::Serialize;
-use serde_json::{Value, json};
 
 use crate::{
     Error, Result,
     layout::{CompiledLayout, Placement},
     random::GrRandom,
-    rules::{AttackType, TargetDomain, UnitConfig, UnitConfigs, UnitDomain},
+    rules::{TargetDomain, UnitConfig, UnitConfigs, UnitDomain},
 };
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
@@ -20,13 +20,11 @@ const TIME_UNITS_PER_SECOND: u64 = 2_000;
 const LOGIC_TICK_TIME_UNITS: u64 = 100;
 const FIGHT_TIME_SECONDS: u64 = 120;
 const FORMATION_JITTER_RANGE_TENTHS: i32 = 8;
-const RNG_ALGORITHM: &str = "plugin_cs_xoshiro256ss_v1";
 const REFERENCE_GAME_BUILD: &str = "1.11.1.2.2227";
 
 #[derive(Debug, Clone, Copy)]
 struct PendingRelease {
     step: u64,
-    cycle: u64,
     target: u64,
 }
 
@@ -43,7 +41,6 @@ struct Actor {
     life: i64,
     motion: MotionState,
     next_attack_step: u64,
-    cycle: u64,
     pending: Option<PendingRelease>,
     attack_random: GrRandom,
 }
@@ -93,7 +90,6 @@ impl Actor {
             life: max_life,
             motion: MotionState::Idle,
             next_attack_step: 0,
-            cycle: 0,
             pending: None,
             attack_random,
         }
@@ -113,22 +109,21 @@ impl Actor {
             team_id: self.placement.team,
             formation_id: self.placement.formation_id,
             unit_type_id: self.rules.unit_type_id,
-            parent_unit_id: None,
             domain: match self.rules.domain {
                 UnitDomain::Ground => Domain::Ground,
                 UnitDomain::Air => Domain::Air,
             },
             position: point(self.x, self.y),
             body_rotation: self.body_rotation,
-            aim_pose: Some(Pose {
+            aim_pose: Pose {
                 position: point(self.x, self.y),
                 rotation: self.aim_rotation,
-            }),
+            },
             velocity: point(self.velocity_x, self.velocity_y),
             motion_state: if self.alive() {
                 self.motion
             } else {
-                MotionState::Disabled
+                MotionState::Stopped
             },
             collision_radius: self.rules.collision_radius(),
             life: self.life,
@@ -136,8 +131,13 @@ impl Actor {
             alive: self.alive(),
             active: self.alive(),
             targetable: self.alive(),
-            visibility: Visibility::Visible,
-            personal_shield: None,
+            visibility: Visibility::Normal,
+            personal_shield: PersonalShieldState {
+                active: false,
+                enabled: false,
+                energy: 0,
+                max_energy: 0,
+            },
         }
     }
 }
@@ -148,7 +148,6 @@ struct Projectile {
     team: u32,
     owner: u64,
     target: u64,
-    type_id: u32,
     x: i64,
     y: i64,
     cached_target_x: i64,
@@ -156,8 +155,6 @@ struct Projectile {
     cached_target_radius: i64,
     speed: i64,
     damage: i64,
-    attack_type: AttackType,
-    effect_radius: i64,
 }
 
 impl Projectile {
@@ -166,30 +163,23 @@ impl Projectile {
     }
 
     fn snapshot(&self) -> ProjectileState {
-        let (velocity_x, velocity_y) = velocity_towards(
-            self.x,
-            self.y,
-            self.cached_target_x,
-            self.cached_target_y,
-            self.speed,
-        );
         ProjectileState {
             projectile_id: self.id,
             team_id: self.team,
             owner: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
-            source: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
-            projectile_type_id: self.type_id,
             position: point(self.x, self.y),
-            orientation: Some(direction_mdeg(
+            orientation: direction_mdeg(
                 self.cached_target_x - self.x,
                 self.cached_target_y - self.y,
-            )),
-            velocity: Some(point(velocity_x, velocity_y)),
+            ),
             target: Some(ObjectRef::new(ObjectKind::Unit, self.target)),
             cached_target_position: point(self.cached_target_x, self.cached_target_y),
             cached_target_radius: self.cached_target_radius,
-            active: true,
-            life: None,
+            released: true,
+            life: Gauge {
+                current: 0,
+                maximum: 0,
+            },
         }
     }
 }
@@ -222,7 +212,7 @@ pub struct SimulationResult {
 struct Simulation {
     actors: BTreeMap<u64, Actor>,
     projectiles: Vec<Projectile>,
-    next_projectile_id: u64,
+    identities: IdentityAllocator,
 }
 
 impl Simulation {
@@ -243,7 +233,7 @@ impl Simulation {
         Ok(Self {
             actors,
             projectiles: Vec::new(),
-            next_projectile_id: 1,
+            identities: IdentityAllocator::new(),
         })
     }
 
@@ -262,10 +252,6 @@ impl Simulation {
             self.step_actor(actor_id, step, &mut events)?;
         }
         self.step_projectiles(&mut events)?;
-        for (event_seq, event) in events.iter_mut().enumerate() {
-            event.event_seq = u32::try_from(event_seq)
-                .map_err(|_| Error::new("one simulation step emitted too many events"))?;
-        }
         Ok(TransitionEvents { events })
     }
 
@@ -279,7 +265,7 @@ impl Simulation {
             actor.pending = None;
             actor.velocity_x = 0;
             actor.velocity_y = 0;
-            actor.motion = MotionState::Disabled;
+            actor.motion = MotionState::Stopped;
             return Ok(());
         }
         if self.actors[&actor_id]
@@ -336,7 +322,6 @@ impl Simulation {
                 actor.aim_rotation = actor.body_rotation;
             }
             if actor.pending.is_none() && step >= actor.next_attack_step {
-                actor.cycle = actor.cycle.saturating_add(1);
                 let interval_steps = positive_time_units_to_steps(
                     actor.rules.attack.interval_time_units(),
                     LOGIC_TICK_TIME_UNITS,
@@ -365,16 +350,8 @@ impl Simulation {
                         actor.rules.attack.release_delay_time_units(),
                         LOGIC_TICK_TIME_UNITS,
                     )),
-                    cycle: actor.cycle,
                     target: target_id,
                 });
-                events.push(event(
-                    EventKind::ActionStarted,
-                    Some(actor.object_ref()),
-                    None,
-                    Some(ObjectRef::new(ObjectKind::Unit, target_id)),
-                    json!({"action": "main_attack", "cycle": actor.cycle}),
-                ));
                 if actor.pending.is_some_and(|pending| pending.step == step) {
                     self.release(actor_id, events)?;
                 }
@@ -410,11 +387,7 @@ impl Simulation {
         let target_x = target.x;
         let target_y = target.y;
         let target_radius = target.rules.collision_radius();
-        let projectile_id = self.next_projectile_id;
-        self.next_projectile_id = self
-            .next_projectile_id
-            .checked_add(1)
-            .ok_or_else(|| Error::new("projectile identity overflow"))?;
+        let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
         let owner = self
             .actors
             .get_mut(&actor_id)
@@ -425,7 +398,6 @@ impl Simulation {
             team: owner.placement.team,
             owner: actor_id,
             target: pending.target,
-            type_id: owner.rules.unit_type_id,
             x: owner.x,
             y: owner.y,
             cached_target_x: target_x,
@@ -433,28 +405,13 @@ impl Simulation {
             cached_target_radius: target_radius,
             speed: owner.rules.attack.projectile_speed(),
             damage: owner.rules.attack.damage,
-            attack_type: owner.rules.attack.attack_type,
-            effect_radius: owner.rules.attack.effect_radius(),
         };
         let projectile_ref = projectile.object_ref();
         events.push(event(
-            EventKind::ActionReleased,
-            Some(owner.object_ref()),
-            None,
-            Some(ObjectRef::new(ObjectKind::Unit, pending.target)),
-            json!({"action": "main_attack", "cycle": pending.cycle}),
-        ));
-        events.push(event(
-            EventKind::ProjectileReleased,
             Some(projectile_ref),
             Some(owner.object_ref()),
             Some(ObjectRef::new(ObjectKind::Unit, pending.target)),
-            json!({
-                "projectile_type_id": projectile.type_id,
-                "attack_type": projectile.attack_type,
-                "damage": projectile.damage,
-                "effect_radius": projectile.effect_radius
-            }),
+            EventPayload::ProjectileReleased,
         ));
         self.projectiles.push(projectile);
         Ok(())
@@ -503,53 +460,35 @@ impl Simulation {
         let projectile_ref = projectile.object_ref();
         let owner_ref = ObjectRef::new(ObjectKind::Unit, projectile.owner);
         let target_ref = ObjectRef::new(ObjectKind::Unit, projectile.target);
-        events.push(event(
-            EventKind::ProjectileImpacted,
-            Some(projectile_ref),
-            Some(owner_ref),
-            Some(target_ref),
-            json!({"position": point(projectile.x, projectile.y)}),
-        ));
         let target = self
             .actors
             .get_mut(&projectile.target)
             .ok_or_else(|| Error::new("projectile target is absent"))?;
         if target.alive() {
-            let before = target.life;
             target.life = target.life.saturating_sub(projectile.damage).max(0);
-            let applied = before - target.life;
             events.push(event(
-                EventKind::Damage,
-                Some(target_ref),
+                None,
                 Some(projectile_ref),
                 Some(target_ref),
-                json!({
-                    "requested": projectile.damage,
-                    "applied": applied,
-                    "life_before": before,
-                    "life_after": target.life
-                }),
+                EventPayload::Damage {
+                    amount: projectile.damage,
+                },
             ));
             if target.life == 0 {
-                target.motion = MotionState::Disabled;
+                target.motion = MotionState::Stopped;
                 target.velocity_x = 0;
                 target.velocity_y = 0;
                 target.pending = None;
-                events.push(event(
-                    EventKind::Death,
-                    Some(target_ref),
-                    Some(projectile_ref),
-                    Some(target_ref),
-                    json!({"reason": "damage"}),
-                ));
             }
         }
         events.push(event(
-            EventKind::ProjectileRemoved,
             Some(projectile_ref),
             Some(owner_ref),
-            None,
-            json!({"reason": "impact"}),
+            Some(target_ref),
+            EventPayload::ProjectileRemoved {
+                position: point(projectile.x, projectile.y),
+                intercepted: false,
+            },
         ));
         Ok(())
     }
@@ -596,21 +535,17 @@ pub(crate) fn run(
             numerator: LOGIC_TICK_TIME_UNITS / divisor,
             denominator: TIME_UNITS_PER_SECOND / divisor,
         },
-        numeric_convention: format!(
-            "space_units_per_meter={SPACE_UNITS_PER_METER},rotation=mdeg,time_units_per_second={TIME_UNITS_PER_SECOND}"
-        ),
-        rng_state: json!({
-            "algorithm": RNG_ALGORITHM,
-            "match_seed": seed,
-            "formation_seed": "wrapping_i32(match_seed + unit_index)",
-            "attack_interval_seed": "wrapping_i32((round + team_index) * 4444)"
-        }),
-        identity_contract: "blue_then_red_single_member_v1".into(),
-        update_order_contract: "units_by_unit_id_then_projectiles_by_creation_v1".into(),
-        durable_commands: vec![json!({"kind": "layout", "value": layout.normalized})],
+        numeric_convention: NumericConvention {
+            distance_units_per_meter: SPACE_UNITS_PER_METER.cast_unsigned(),
+            rotation_units_per_degree: 1_000,
+            time_units_per_second: TIME_UNITS_PER_SECOND,
+        },
+        combat_round: layout.round,
+        match_seed: seed,
+        identity_contract: IdentityContract::TeamYxSequentialV1,
     };
     let mut simulation = Simulation::new(layout, configs, seed)?;
-    let mut writer = McfrWriter::create(output, context, simulation.snapshot())?;
+    let mut writer = McfrWriter::create(output, &context, simulation.snapshot())?;
     let mut steps = 0;
     let max_steps = FIGHT_TIME_SECONDS
         .saturating_mul(TIME_UNITS_PER_SECOND)
@@ -621,7 +556,7 @@ pub(crate) fn run(
         }
         let events = simulation.step(steps)?;
         steps += 1;
-        writer.push_transition(events, simulation.snapshot())?;
+        writer.push_transition(&events, simulation.snapshot())?;
         if simulation.naturally_finished() {
             break "natural_module_drain";
         }
@@ -723,15 +658,12 @@ fn rotate_towards(current: i64, target: i64, maximum: i64) -> i64 {
 }
 
 fn event(
-    kind: EventKind,
     subject: Option<ObjectRef>,
     source: Option<ObjectRef>,
     target: Option<ObjectRef>,
-    payload: Value,
+    payload: EventPayload,
 ) -> Event {
     Event {
-        event_seq: 0,
-        kind,
         subject,
         source,
         target,
@@ -781,10 +713,6 @@ fn saturating_i128_to_i64(value: i128) -> i64 {
         Err(_) if value.is_negative() => i64::MIN,
         Err(_) => i64::MAX,
     }
-}
-
-fn velocity_towards(x: i64, y: i64, target_x: i64, target_y: i64, speed: i64) -> (i64, i64) {
-    displacement_towards(target_x - x, target_y - y, speed)
 }
 
 fn direction_mdeg(dx: i64, dy: i64) -> i64 {

@@ -3,6 +3,8 @@ use std::{fs, path::Path};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use mechcore_mcfr::{IdentityAllocator, ObjectKind};
+
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,7 +91,6 @@ pub(crate) struct Placement {
 pub(crate) struct CompiledLayout {
     pub(crate) round: u32,
     pub(crate) placements: [Placement; 2],
-    pub(crate) normalized: Value,
 }
 
 pub(crate) fn load(path: &Path) -> Result<CompiledLayout> {
@@ -109,18 +110,21 @@ fn compile(bytes: &[u8]) -> Result<CompiledLayout> {
     if !(1..=15).contains(&layout.round) {
         return Err(Error::new("layout round must be within 1..=15"));
     }
-    let blue = compile_side("blue", 0, &layout.sides.blue)?;
-    let red = compile_side("red", 1, &layout.sides.red)?;
-    let normalized = serde_json::to_value(&layout)
-        .map_err(|error| Error::new(format!("cannot normalize layout: {error}")))?;
+    let mut identities = IdentityAllocator::new();
+    let blue = compile_side("blue", 0, &layout.sides.blue, &mut identities)?;
+    let red = compile_side("red", 1, &layout.sides.red, &mut identities)?;
     Ok(CompiledLayout {
         round: layout.round,
         placements: [blue, red],
-        normalized,
     })
 }
 
-fn compile_side(name: &str, team: u32, side: &Side) -> Result<Placement> {
+fn compile_side(
+    name: &str,
+    team: u32,
+    side: &Side,
+    identities: &mut IdentityAllocator,
+) -> Result<Placement> {
     if !side.techs.officers.is_empty() || !side.techs.units.is_empty() {
         return Err(Error::new(format!(
             "side {name} technologies are outside the current baseline simulator slice"
@@ -172,10 +176,12 @@ fn compile_side(name: &str, team: u32, side: &Side) -> Result<Placement> {
     } else {
         (-local_x, -local_y, 180_000)
     };
+    let formation_id = identities.allocate_formation()?;
+    let unit_id = identities.allocate_object(ObjectKind::Unit)?.id;
     Ok(Placement {
         team,
-        unit_id: u64::from(team) + 1,
-        formation_id: u64::from(team) + 1,
+        unit_id,
+        formation_id,
         type_name: formation.type_name.clone(),
         world_x,
         world_y,
@@ -202,6 +208,8 @@ sides:
         assert_eq!(layout.placements[0].world_y, -50);
         assert_eq!(layout.placements[1].world_y, 50);
         assert_eq!(layout.placements[1].rotation, 180_000);
+        assert_eq!(layout.placements[0].unit_id, 1);
+        assert_eq!(layout.placements[1].unit_id, 2);
     }
 
     #[test]

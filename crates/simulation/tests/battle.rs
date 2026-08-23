@@ -28,13 +28,11 @@ fn marksman_vs_arclight_runs_to_a_verified_terminal_result() {
     );
     let event_kinds = (0..reader.transition_count())
         .flat_map(|transition| reader.events(transition).unwrap().events)
-        .map(|event| event.kind)
+        .map(|event| event.kind())
         .collect::<Vec<_>>();
-    assert!(event_kinds.contains(&EventKind::ActionStarted));
     assert!(event_kinds.contains(&EventKind::ProjectileReleased));
-    assert!(event_kinds.contains(&EventKind::ProjectileImpacted));
     assert!(event_kinds.contains(&EventKind::Damage));
-    assert!(event_kinds.contains(&EventKind::Death));
+    assert!(event_kinds.contains(&EventKind::ProjectileRemoved));
 }
 
 #[test]

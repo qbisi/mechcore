@@ -56,7 +56,7 @@ consume that same stream.
 
 ## Tools
 
-The MCP server exposes exactly eight tools.
+The MCP server exposes exactly nine tools.
 
 ### apply_layout
 
@@ -72,6 +72,16 @@ native actions/readbacks succeed, and that activation round reports
 Input is empty. The call requires `main_menu`, requests native application
 shutdown, and returns only after the MCP-owned process exits with code 0 and
 the streamed state becomes `game_off`.
+
+### record_battle
+
+Input is `{"output":"/absolute/path/battle.mcfr"}`. The path must be absolute, must use the
+`.mcfr` suffix, and must not already exist. The call requires completed Training Ground deployment.
+It owns the complete recording transaction: the adapter starts combat, MCP requests the wall-clock-only
+speed-up vote, and the call returns only after the adapter captures the fighting-to-over boundary,
+publishes the MCFR, and verifies its hashes. Callers do not issue `toggle_fight`, `speed_up`, or other
+Training Ground state controls while this tool is running. `quit_match` remains the separate owner of
+leaving the test after recording.
 
 ### quit_match
 
@@ -90,6 +100,10 @@ Input is empty. The call launches the default macOS game with the selected
 adapter, validates the adapter protocol and exact capability list, and returns
 only after `main_menu` is observed. Socket readiness uses bounded connection
 attempts; there is no fixed initialization sleep.
+
+`start_game` resolves the sibling adapter dylib on every game launch. Rebuilding or replacing that
+dylib therefore requires only exiting and starting the game again; the long-running MCP process does
+not need to restart as long as the adapter protocol capability surface is unchanged.
 
 ### start_test
 
@@ -117,5 +131,5 @@ scripts/smoke_mcp_layout.py tests/layouts/shield-missile-battle.yaml
 
 The script initializes MCP, verifies the exact tool and resource surfaces,
 subscribes to `mechcore://status`, starts the game and test, applies the YAML
-layout, starts and accelerates battle, waits for round-two deployment from
-resource notifications, then returns to the main menu and exits the game.
+layout, records and accelerates the battle through `record_battle`, verifies that
+the requested MCFR path was published, then returns to the main menu and exits the game.

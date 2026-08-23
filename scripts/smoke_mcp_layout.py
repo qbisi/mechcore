@@ -20,6 +20,7 @@ import yaml
 STATUS_URI = "mechcore://status"
 EXPECTED_TOOLS = {
     "apply_layout",
+    "record_battle",
     "quit_game",
     "quit_match",
     "speed_up",
@@ -29,7 +30,7 @@ EXPECTED_TOOLS = {
     "toggle_fight",
 }
 TRANSITION_TIMEOUT = 60.0
-BATTLE_TIMEOUT = 60.0
+BATTLE_TIMEOUT = 180.0
 MAX_ACTIVATION_ROUND = 15
 REPOSITORY = Path(__file__).resolve().parent.parent
 MECHCORE = REPOSITORY / "target/release/mechcore"
@@ -239,7 +240,7 @@ def require_status(status: dict[str, Any], expected: dict[str, Any], label: str)
     print(f"ok: {label}: {json.dumps(status, ensure_ascii=False)}")
 
 
-def run(layout_path: Path) -> None:
+def run(layout_path: Path, output: Path) -> None:
     layout = load_layout(layout_path)
     activation_round = layout["round"]
     client = McpClient()
@@ -293,28 +294,18 @@ def run(layout_path: Path) -> None:
             "apply_layout",
         )
         print(f"ok: applied {layout_path}")
-        fighting = client.call_tool("toggle_fight", {})
-        require_status(
-            status_from_tool(fighting, "toggle_fight"),
-            {
-                "status": "training_ground",
-                "round_count": activation_round,
-                "fighting": True,
-            },
-            "toggle_fight",
+        recorded = client.call_tool(
+            "record_battle", {"output": str(output.resolve())}, BATTLE_TIMEOUT
         )
-        sped_up = client.call_tool("speed_up", {})
-        if sped_up.get("operation", {}).get("requested") is not True:
-            raise SmokeFailure(f"speed_up was not confirmed: {sped_up}")
-        print("ok: speed_up")
-        client.wait_stream_status(
-            {
-                "status": "training_ground",
-                "round_count": activation_round + 1,
-                "deploying": True,
-                "fighting": False,
-            },
-            BATTLE_TIMEOUT,
+        recording = recorded.get("operation")
+        if not isinstance(recording, dict) or recording.get("recorded") is not True:
+            raise SmokeFailure(f"record_battle was not confirmed: {recorded}")
+        if not output.is_file():
+            raise SmokeFailure(f"record_battle did not publish {output}")
+        print(
+            "ok: recorded "
+            f"{output}: states={recording.get('state_count')} "
+            f"transitions={recording.get('transition_count')}"
         )
         menu = client.call_tool("quit_match", {})
         require_status(status_from_tool(menu, "quit_match"), {"status": "main_menu"}, "quit_match")
@@ -338,8 +329,14 @@ def main() -> int:
         description="Run a complete layout battle through `mechcore mcp`."
     )
     parser.add_argument("layout", type=Path)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path(f"/tmp/mechcore-mcp-smoke-{int(time.time_ns())}.mcfr"),
+    )
     try:
-        run(parser.parse_args().layout)
+        arguments = parser.parse_args()
+        run(arguments.layout, arguments.output)
     except (OSError, SmokeFailure, ValueError) as error:
         print(f"smoke failed: {error}", file=sys.stderr)
         return 1

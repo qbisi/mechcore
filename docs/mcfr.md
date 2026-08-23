@@ -6,8 +6,8 @@
 
 This document defines the baseline logical contents of `S` and `E` shared by
 native capture, simulation, comparison, and playback. Schema version 1 has a
-reference Rust implementation in `mechcore-mcfr`. Event-specific typed payload
-schemas and the final columnar projection of world objects remain open.
+reference Rust implementation in `mechcore-mcfr`. The final columnar
+projection of world objects remains open.
 
 ## Purpose
 
@@ -53,25 +53,70 @@ duration. The fighting-to-over boundary is stored once as top-level
 `terminal_step`. A source-native clock may be retained as non-canonical
 evidence, but it does not enter `S` or formal hashes.
 
+## Native observability constraint
+
+Every `S` field, every `E` event and payload value, and every future `I`
+channel and value MUST have a documented adapter path that observes the same
+fact directly from the native game at the applicable logic boundary or native
+operation. Schema admission is limited by native adapter observability: a
+simulator need or an offline analysis result does not by itself justify a
+recorded field, event, or instrumentation value.
+
+For `S`, direct observation means reading a native field, property, or method
+result at that snapshot boundary. For `E`, a native callback, delegate, method
+hook, argument, return value, or observation made inside the same native
+operation MUST positively establish that the event occurred and supply its
+semantics. For `I`, the profile MUST identify the corresponding native probe;
+simulation may emit the same channel for comparison, but may not introduce a
+simulation-only or post-processed value.
+
+Neighbouring snapshots and recorded fields may be compared to validate
+capture completeness, but their differences MUST NOT create a recorded state,
+event, or instrumentation value, or supply a missing cause, reason, outcome,
+classification, or payload value. A producer MUST NOT fill an unobserved value
+with external rules, producer-private state, a constant, a default, a
+heuristic, or an assumed lifecycle meaning.
+
+Lossless representation normalization is allowed: checked numeric widening,
+fixed unit conversion, exact native-enum mapping, source-neutral identity
+mapping, canonical ordering, and physical deduplication. Such normalization
+MUST NOT introduce a new game-semantic fact. Every admitted field, event kind,
+and instrumentation channel must retain native-source evidence in the adapter
+implementation or its capture audit. If a candidate fact has no direct native
+source, it is removed from the applicable schema/profile. Capture failure is
+not a substitute for a capturable schema, and inference is not a fallback.
+
 ## Durable deterministic context
 
-`D` contains every input required to reproduce the battle but not naturally
-expressed as a per-frame world snapshot. At minimum, it binds:
+`D` contains source-neutral battle inputs shared by capture and simulation but
+not naturally expressed as a per-frame world snapshot. It binds:
 
 - the MCFR schema version and its canonicalization rules;
 - the game build;
-- logic-step timing and numeric conventions;
-- the fighting-entry random seed bundle or equivalent RNG states;
-- stable identity and update-order contracts;
-- any external command that is allowed after fighting begins.
+- logic-step timing and integer numeric scales;
+- the one-based combat round and match seed;
+- the source-neutral identity contract.
 
-A displayed round seed is insufficient when random streams have already been
-consumed before `S(0)`. Reproduction must begin from the same effective RNG
-state.
+Schema version 1 admits no external command that changes logical combat after fighting begins. A
+Training Ground speed-up vote changes only wall-clock scheduling, not logic-step inputs or results;
+it is therefore orchestration metadata and is excluded from `D`, `S`, and `E`. The adapter
+must capture `S(0)` before the first combat update and before combat random
+streams are consumed. A mechanism that cannot be reconstructed from the typed
+round/seed fields and `S(0)` is outside this comparison contract until the
+schema gains a directly capturable, source-neutral typed field. Producer-private
+RNG JSON is not permitted in `D`.
 
-If combat is intended to be closed after `S(0)`, no unrecorded external action
-may affect it. Any permitted action becomes durable context rather than
-temporary research input.
+Unit and mechanism rules are external inputs selected by the simulation and
+are not embedded or fingerprinted in MCFR. Native capture therefore does not
+require a unit-config directory. A wrong external rule set is detected by the
+resulting `S/E` hash divergence rather than by a producer-specific context
+field.
+
+Combat is closed after `S(0)`: no external action may affect its logical evolution. Wall-clock-only
+speed-up may be requested while recording because capture is attached to logic updates, not render
+or wall-clock frames. A producer
+that cannot guarantee this boundary must not finalize a schema-version-1
+recording.
 
 ## Consumer levels
 
@@ -87,35 +132,48 @@ All consumers also read ordinary container metadata. Alignment and research
 bind their tracks to `D` through `scenario_hash`; the table lists only the
 timeline tracks each consumer must interpret.
 
-A minimal player may ignore `E`. A richer player may consume events for
-transient attack, impact, status, and lifecycle effects that do not survive in
-a tick-end snapshot.
+A minimal player may ignore `E`. A richer player may consume directly captured
+projectile release/removal and damage events for transient effects that do not
+survive in a tick-end snapshot.
 
 ## Unified world snapshots
 
 `S` is source-neutral. Native pointers, runtime object addresses, adapter
 bookkeeping, and simulator-private types do not enter it.
 
-The current candidate world boundary contains:
+The schema-version-1 world boundary contains only:
 
 - units;
 - projectiles;
 - buildings, including constructions and contraptions;
-- independent area shields;
-- dynamic terrain or persistent spatial regions;
 - persistent statuses.
 
 Team and formation are ownership and identity attributes on concrete world
 objects, not per-frame container entities. A unit is directly associated with
-its team and formation. Personal shields remain unit state; an area shield is
-independent because it has its own spatial boundary, energy, and lifecycle.
+its team and formation. Personal shields remain unit state. Independent area
+shields and dynamic terrain are not baseline entities until their complete
+required state can be enumerated and captured through direct native paths.
 
 Status is the shared representation for persistent buffs and debuffs,
 including technology-disable effects. Specialized `buffs` and
 `technology_disabled` fields are not maintained in parallel.
 
-The baseline snapshot admits a field only when it satisfies at least one of
-these rules:
+Schema version 1 uses `team_yx_sequential_v1` identities. Object IDs occupy
+independent namespaces for Unit, Projectile, Building, and Status; each
+namespace starts at one and has no gaps.
+Formation IDs use another one-based, gapless namespace. For initial Units,
+build 2227's evidenced order is team-controller order, then ascending unified
+world `y`, then ascending unified world `x` within each team. Equal Unit
+positions in one team are invalid; no synthetic tie-breaker is introduced.
+This coordinate rule deliberately avoids translating world coordinates into
+camera-relative labels such as “top-left”. Initial non-Unit objects retain
+their game registration order, while dynamically created objects use
+canonical event order. The public `IdentityAllocator` supplies the ordinals;
+the writer rejects gaps and validates initial Unit order when starting a
+recording.
+
+Subject to the native observability constraint, the baseline snapshot admits
+a field only when it satisfies at least one of these rules:
 
 1. it is persistent state needed to advance the next logic step;
 2. it is an authoritative result produced by the kernel;
@@ -133,16 +191,29 @@ of the logical snapshot.
 
 | World kind | Required logical state |
 | --- | --- |
-| Unit | `unit_id`, `team_id`, `formation_id`, `unit_type_id`, optional `parent_unit_id`, domain; position, body rotation, independently changing aim pose, velocity and motion state; collision radius; life, maximum life, alive, active, targetable and visibility state; personal-shield active/enabled state and current/maximum energy when present. |
-| Projectile | `projectile_id`, team, owner/source and projectile type; position and independently changing orientation or velocity; target object reference; cached target position and radius; active state and current/maximum projectile life when applicable. Immutable movement, targeting and damage rules belong to `D` or entity metadata. |
-| Building | `building_id`, team and formation when applicable, building type; position, rotation and collision boundary; life, maximum life, alive, active/available, targetable and collision-enabled state. |
-| Area shield | `shield_id`, team and owner/source; position, radius and height when applicable; current/maximum energy and active state. |
-| Dynamic terrain | `terrain_id`, team and source, terrain type; position and region shape or grid; active state and elapsed/remaining lifetime. Immutable effect rules belong to `D` or entity metadata. |
-| Status | `status_id`, status type, source and target; stack count; elapsed, remaining and maximum duration; active state; a periodic-effect clock when the status owns one. Immutable status rules belong to `D` or status metadata. |
+| Unit | `unit_id`, `team_id`, `formation_id`, `unit_type_id`, domain; position, body rotation, main-skill aim pose, current velocity and native MotionFSM state; collision radius; life, maximum life, alive, active, targetable and visibility; personal-shield active/enabled state and current/maximum energy. |
+| Projectile | `projectile_id`, team and owner; position and orientation; target object reference; native cached target position and radius; released flag and current/maximum projectile life. Projectile class, velocity, active state, impact outcome and removal reason are not inferred. |
+| Building | `building_id`, team and building type; position, rotation and native bounds width/height; life, maximum life, alive, destroyed, available, targetable and collision-enabled state. |
+| Status | `status_id`, native buff type, source and target; additive stack; raw `duration_time`, `max_duration_time`, `step_time`, and `step_time_config`; finished and frozen flags. These values are preserved as native counters rather than reinterpreted as elapsed or remaining time. |
 
-A component field is present only for world kinds that actually implement that
-component. Absence means the object does not have the component; `unknown` and
-`unsupported` must use distinct representations.
+The adapter source map for this baseline is normative:
+
+| World kind | Direct native source |
+| --- | --- |
+| Unit | Team ownership comes from `FightController.GetTeamControllers` and `FightTeamController.GetTeamIndex`; membership and formation come from `FightTeam.GetMeches` and `FightMech.GetMechTeam`; type/domain come from `GetMechID` and `IsFly`; body and aim transforms come from `GetFightTransform` and `GetMainSkill().GetMainTransform()`; velocity comes from `MotionController.GetCurrentVelocity`; motion comes from `MotionController.fsm.GetCurrentState`; radius, gauges and flags come from `GetRadius`, `GetLife`, `GetMaxLife`, `IsAlive`, `get_IsActive`, `IsValidTarget(0)`, and `GetVisibility`; personal-shield values come from `GetEnergyShieldController`. |
+| Projectile | Enumeration and team come from `ProjectileSystem.projectileControllers` and `ProjectileController.GetTeamController`; owner, target, transform, cached target data, released flag and life come directly from `FightProjectile.GetOwner`, `GetTarget`, `GetFightTransform`, `GetTargetInfo`, `IsRelease`, `GetLife`, and `GetMaxLife`. |
+| Building | Membership/team come from `FightTeam.GetTowers`; type/order, transform, bounds, life and flags come from `GetBuildingType`, `GetBuildingIndex`, `GetFightTransform`, `GetBoundsRect`, `GetLife`, `GetMaxLife`, `IsAlive`, `IsDestroyed`, `IsAvaliable`, `IsValidTarget(0)`, and `GetBuildingData().get_EnableCollision()`. |
+| Status | Enumeration comes from `FightMech.GetBuffManager` and `BuffManager.buffs`; type/source, stack and flags come from `Buff.GetBuffID`, `GetSource`, `GetAdditiveStack`, `IsFinish`, and `IsFreeze`; the four clocks are the native `Buff` fields with the same names. Target is the owning `FightMech` whose manager contains the Buff. |
+
+Runtime pointers are used only to map these native objects into source-neutral,
+one-based IDs; pointer values are never persisted.
+
+Visibility is the closed native-aligned enum `normal`, `disappear`, `stealth`,
+or `hide`. Motion state is an exact mapping of the native MotionFSM state
+classes `idle`, `move`, `attack`, and `stop`. A candidate field or enum case
+that cannot be mapped directly is excluded from this schema rather than filled
+with `unknown`, inferred, defaulted, or made a reason to reject an otherwise
+capturable battle.
 
 Target-search caches, controller clocks, solver buffers, and other disputed
 state do not enter this baseline merely because the old simulator stores them.
@@ -151,27 +222,24 @@ logic boundaries and are required to produce the next accepted `S/E` result.
 
 ## Normalized event log
 
-`E` is a typed, ordered battle log. It records a discrete fact only when its
-intra-step occurrence, cause, or order cannot be recovered reliably from
-adjacent snapshots. Each event belongs to transition `E(t)` and has a
-zero-based `event_seq` within that transition. The transition index and event
-sequence form its canonical order; redundant timestamps are not stored.
+`E` is a typed, ordered battle log of facts reported directly by native
+execution points. It is not a change log reconstructed from adjacent
+snapshots. Each event belongs to transition `E(t)`. Its array position is its
+canonical order within that transition; a redundant `event_seq` field and
+timestamps are not stored.
 
 The required baseline event families are:
 
 | Family | Required events and payload |
 | --- | --- |
-| Object lifecycle | Creation and removal of Unit, Projectile, Building, AreaShield and DynamicTerrain objects, including identity, type, ownership/source and removal reason. This preserves objects that are created and removed inside one logic step. |
-| Action | Attack or skill start and release, with acting object, action/skill identity and target when one is committed. Internal controller sub-phases are not baseline events. |
-| Projectile | Release, impact/interception and removal, with projectile, owner/source, target, impact position and outcome as applicable. |
-| Shield | Personal- or area-shield hit and deactivation, with source, shield/owner, requested and applied amount, and energy before/after. Mere containment tests are not baseline events. |
-| Status | Apply, refresh/extend and removal/expiry, with status identity/type, source, target, stack/duration change and reason. |
-| Dynamic terrain | Creation, region change, lifetime reset and removal, plus a typed terrain effect when it causes damage, healing or Status change. Internal overlap selection is not a baseline event. |
-| Combat result | Damage, healing and death, with provider/source, target, applied amount, and relevant life/shield before/after state. |
+| Projectile release | `ProjectileSystem.AddProjectile` supplies projectile identity, native owner and target. No projectile class is inferred from configuration or splash radius. |
+| Projectile removal | `ProjectileSystem.Destroy` supplies projectile identity, owner, target, current position, and the native `intercepted` argument. The schema does not infer impact outcome or a richer removal reason. |
+| Damage | The positive return value of `DamagePerformer.Perform` supplies `amount`; its native provider and target supply source and target identities. Life/shield deltas, healing and death are not synthesized as events. |
 
 Events must use the same source-neutral object identities as snapshots. Exact
-enum encoding and typed payload layout remain open, but producers may not add
-source-specific event kinds to the formal track.
+event kinds and payloads are the closed `EventPayload` enum implemented by
+`mechcore-mcfr`; unknown fields and source-specific event kinds are rejected.
+Array order preserves the order in which these hooked native operations occur.
 
 `S` remains authoritative. `E` explains the transition but does not provide a
 second conflicting source of persistent state.
@@ -179,7 +247,9 @@ second conflicting source of persistent state.
 ## Temporary research instrumentation
 
 `I` exists only to close an unresolved mechanism. It may contain temporary
-state samples, events, inputs, or native observations. Baseline examples are:
+native state samples, events, inputs, or intermediate observations that obey
+the same native observability constraint as `S` and `E`. Baseline examples,
+when backed by a direct native probe, are:
 
 - target candidate order, `nearest_actor`, `motion_target`, `attack_target`,
   and lock-target caches until their cross-step necessity is established;
@@ -196,7 +266,8 @@ state samples, events, inputs, or native observations. Baseline examples are:
 
 Research instrumentation must not expand the permanent MCFR schema by
 default. It should be emitted as a separate, explicitly profiled sidecar and
-excluded from formal result hashes.
+excluded from formal result hashes. Exclusion from formal hashes does not
+relax the native-source requirement.
 
 The reference API exposes `InstrumentationSink`. Adapter capture and simulation
 may submit a `step`, `channel`, `content_type`, and arbitrary byte payload to
@@ -204,7 +275,9 @@ the same interface. `InstrumentationWriter::record_json` provides canonical
 JSON as a convenience; `NoInstrumentation` disables collection without
 changing producer control flow. A sidecar binds to its formal recording by
 `scenario_hash`, and records its `profile` and `producer`. It has no formal
-state, event, or result hash.
+state, event, or result hash. The generic byte interface is a transport
+mechanism, not permission for unproven or derived channels; each profile must
+separately document its native probe and payload semantics.
 
 When research ends:
 
@@ -217,18 +290,20 @@ When research ends:
 ## Common production path
 
 Native capture and simulation must not maintain independent MCFR
-serialization implementations. Both paths should submit the same normalized
-records to one Rust canonicalizer and writer:
+serialization implementations. Both paths use the public data model and
+writer provided directly by the `mechcore-mcfr` crate:
 
 ```text
 game adapter capture ----\
-                          +--> Rust canonicalizer/writer --> .mcfr
+                          +--> mechcore-mcfr::McfrWriter --> .mcfr
 Rust simulation kernel --/
 ```
 
-The adapter owns native observation. The Rust writer owns identity
-normalization, ordering, validation, hashing, and physical serialization. This
-keeps HDF5 and comparison policy outside the injected adapter.
+`mechcore-mcfr` owns the logical record types, canonical ordering, validation,
+hashing, HDF5 serialization, and corresponding reader. The adapter may call
+the crate directly inside the game process; MCP may choose the output path and
+orchestrate the recording lifecycle, but it is not a required serialization
+intermediary.
 
 ## HDF5 container version 1
 
@@ -252,9 +327,8 @@ version 1 requires `state_count = transition_count + 1` and
 Each logical record is a schema-validated Rust value encoded as canonical
 UTF-8 JSON bytes. Records are concatenated in numeric datasets rather than
 stored as HDF5 variable-length JSON strings. This first layout supports
-streaming writes and random record reads while event payload schemas are still
-being closed. A later typed columnar projection requires a container-version
-change but must preserve the same logical hashes.
+streaming writes and random record reads. A later typed columnar projection
+requires a container-version change but must preserve the same logical hashes.
 
 An instrumentation sidecar uses the HDF5 format marker
 `mechcore.mcfr.instrumentation`. It stores steps, channels, content types,
@@ -277,9 +351,10 @@ event_hash    = BLAKE3("event-v1", canonical E(0)..canonical E(n-1))
 result_hash   = BLAKE3("result-v1", scenario_hash, state_hash, event_hash)
 ```
 
-`D` contains the schema version, RNG state, and durable commands, so the
-implemented `scenario_hash` is equivalent to the expanded requirements
-expression.
+`D` contains only typed fields: schema/build identity, timing and numeric
+scales, combat round, match seed, and identity contract. Producer-private JSON,
+configuration fingerprints, and source-specific commands do not enter the
+formal scenario hash.
 
 Two recordings are comparable only when their schema versions and
 `scenario_hash` values match.
@@ -296,17 +371,17 @@ the native/simulation correctness criterion. Source provenance is retained as
 metadata and excluded from `result_hash`.
 
 Canonical encoding recursively sorts object keys. World-object collections are
-sorted by source-neutral identity, dynamic-terrain grid cells by coordinate,
-and events by their required contiguous `event_seq`. Formal snapshot numbers
+sorted by source-neutral identity, while event arrays retain native operation
+order. Formal snapshot numbers
 are schema-defined integers; non-finite floating-point values cannot enter the
 canonical JSON representation.
 
 ## Validation boundary
 
-A finalized MCFR must fail validation when any required deterministic input is
-missing, frame coverage is discontinuous, object identity is ambiguous,
-references are unresolved, event ordering is invalid, or the stored tracks do
-not satisfy the declared schema version.
+MCFR validation covers container structure, canonical decoding, track lengths,
+hashes, and the initial canonical identity contract. It does not decide whether
+a gameplay state transition, reference, amount, gauge, or event sequence is
+logically legal; that belongs to a game-specific analyzer or simulator test.
 
 The following claims are intentionally separate:
 
@@ -320,13 +395,9 @@ The following claims are intentionally separate:
 
 The next revisions must decide, in order:
 
-1. typed payload schemas for each accepted event enum;
-2. promotion or rejection of each disputed `I` field through native evidence;
-3. source-neutral identity assignment for initial and dynamically created
-   objects;
-4. an explicit unknown/unsupported representation for fields that require it;
-5. the typed columnar HDF5 projection and compression profile;
-6. the player-facing read and interpolation contract.
+1. promotion or rejection of each disputed `I` field through native evidence;
+2. the typed columnar HDF5 projection and compression profile;
+3. the player-facing read and interpolation contract.
 
 These details must be derived jointly from native capture feasibility,
 deterministic-kernel requirements, and playback requirements rather than from

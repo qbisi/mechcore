@@ -1,7 +1,9 @@
+use crate::capture::{self, CaptureMessage};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
 use mechcore_protocol::{Hello, Operation, Request, Response};
+use serde::Deserialize;
 use serde_json::Value;
 use std::env;
 use std::ffi::c_void;
@@ -19,6 +21,14 @@ const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
 const LAYOUT_SERIES_TIMEOUT: Duration = Duration::from_secs(55);
 const LAYOUT_STATUS_INTERVAL: Duration = Duration::from_millis(50);
 const LAYOUT_DEPLOYMENT_STABLE_SAMPLES: usize = 3;
+const RECORDING_TIMEOUT: Duration = Duration::from_secs(175);
+const RECORDING_POLL_INTERVAL: Duration = Duration::from_millis(5);
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RecordBattleArguments {
+    output: PathBuf,
+}
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -119,14 +129,18 @@ enum MainAction {
 
 struct RuntimeLoadInvocation {
     api: Api,
-    result: Option<Result<Runtime, RuntimeError>>,
+    result: Option<Result<Box<Runtime>, RuntimeError>>,
 }
 
 extern "C" fn load_runtime_on_main(context: *mut c_void) {
     // SAFETY: dispatch_sync_f invokes this callback before returning, while the
     // stack-owned invocation remains alive.
     let invocation = unsafe { &mut *context.cast::<RuntimeLoadInvocation>() };
-    invocation.result = Some(Runtime::load(invocation.api));
+    invocation.result = Some(Runtime::load(invocation.api).map(|runtime| {
+        let mut runtime = Box::new(runtime);
+        capture::initialize(&mut runtime);
+        runtime
+    }));
 }
 
 extern "C" fn invoke_on_main(context: *mut c_void) {
@@ -232,7 +246,7 @@ fn execute_action_on_main(
     })
 }
 
-fn load_runtime_on_main_thread(api: Api) -> Result<Runtime, RuntimeError> {
+fn load_runtime_on_main_thread(api: Api) -> Result<Box<Runtime>, RuntimeError> {
     let mut invocation = RuntimeLoadInvocation { api, result: None };
     #[cfg(target_os = "macos")]
     {
@@ -250,7 +264,7 @@ fn load_runtime_on_main_thread(api: Api) -> Result<Runtime, RuntimeError> {
     #[cfg(not(target_os = "macos"))]
     {
         let _thread = api.attach()?;
-        invocation.result = Some(Runtime::load(api));
+        invocation.result = Some(Runtime::load(api).map(Box::new));
     }
 
     invocation.result.unwrap_or_else(|| {
@@ -372,12 +386,150 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 continue;
             }
         };
-        let response = if request.operation == Operation::ApplyLayout {
-            execute_layout_series(runtime, &request)
-        } else {
-            execute_on_main(runtime, &request)
+        let response = match request.operation {
+            Operation::ApplyLayout => execute_layout_series(runtime, &request),
+            Operation::RecordBattle => execute_recording_series(runtime, &request),
+            _ => execute_on_main(runtime, &request),
         };
         write_json_line(&mut stream, &response)?;
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let arguments: RecordBattleArguments = match serde_json::from_value(request.arguments.clone()) {
+        Ok(arguments) => arguments,
+        Err(error) => return Response::failure(request.id, "invalid_arguments", error.to_string()),
+    };
+    if !arguments.output.is_absolute() {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            "record_battle output must be absolute",
+        );
+    }
+    if arguments
+        .output
+        .extension()
+        .and_then(|value| value.to_str())
+        != Some("mcfr")
+    {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            "record_battle output must use the .mcfr extension",
+        );
+    }
+    if arguments.output.exists() {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            format!("refusing to overwrite {}", arguments.output.display()),
+        );
+    }
+    if let Err(response) = successful_result(execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::StartCapture,
+    )) {
+        return response;
+    }
+    let deadline = Instant::now() + RECORDING_TIMEOUT;
+    let mut writer = None;
+    loop {
+        if Instant::now() >= deadline {
+            capture::abort("recording timed out before fighting-to-over boundary");
+            return Response::failure(
+                request.id,
+                "operation_timeout",
+                "recording timed out before fighting-to-over boundary",
+            );
+        }
+        match capture::poll() {
+            Some(CaptureMessage::Initial { context, state }) => {
+                if writer.is_some() {
+                    capture::abort("capture emitted more than one initial snapshot");
+                    return Response::failure(
+                        request.id,
+                        "capture_failed",
+                        "capture emitted more than one initial snapshot",
+                    );
+                }
+                match mechcore_mcfr::McfrWriter::create(&arguments.output, &context, state) {
+                    Ok(created) => writer = Some(created),
+                    Err(error) => {
+                        capture::abort("MCFR writer rejected the initial snapshot");
+                        return Response::failure(request.id, "mcfr_error", error.to_string());
+                    }
+                }
+                if let Err(response) = successful_result(execute_internal_on_main(
+                    runtime,
+                    request.id,
+                    operations::InternalOperation::SpeedUp,
+                )) {
+                    capture::abort("speed-up vote failed after the initial snapshot");
+                    return response;
+                }
+            }
+            Some(CaptureMessage::Transition {
+                events,
+                state,
+                terminal,
+            }) => {
+                let Some(active) = writer.as_mut() else {
+                    capture::abort("capture transition preceded its initial snapshot");
+                    return Response::failure(
+                        request.id,
+                        "capture_failed",
+                        "capture transition preceded its initial snapshot",
+                    );
+                };
+                if let Err(error) = active.push_transition(&events, state) {
+                    capture::abort("MCFR writer rejected a captured transition");
+                    return Response::failure(request.id, "mcfr_error", error.to_string());
+                }
+                if terminal {
+                    let hashes = match writer.take().expect("writer checked above").finish() {
+                        Ok(hashes) => hashes,
+                        Err(error) => {
+                            return Response::failure(request.id, "mcfr_error", error.to_string());
+                        }
+                    };
+                    let verified = match mechcore_mcfr::McfrReader::open_verified(&arguments.output)
+                    {
+                        Ok(reader) => reader,
+                        Err(error) => {
+                            return Response::failure(
+                                request.id,
+                                "mcfr_verification_failed",
+                                error.to_string(),
+                            );
+                        }
+                    };
+                    if verified.hashes() != &hashes {
+                        return Response::failure(
+                            request.id,
+                            "mcfr_verification_failed",
+                            "published MCFR hashes changed during verification",
+                        );
+                    }
+                    return Response::success(
+                        request.id,
+                        serde_json::json!({
+                            "recorded": true,
+                            "output": arguments.output,
+                            "state_count": verified.state_count(),
+                            "transition_count": verified.transition_count(),
+                            "hashes": hashes,
+                        }),
+                    );
+                }
+            }
+            Some(CaptureMessage::Failure(error)) => {
+                return Response::failure(request.id, "capture_failed", error);
+            }
+            None => thread::sleep(RECORDING_POLL_INTERVAL),
+        }
     }
 }
 

@@ -3,6 +3,7 @@
 //! The `cdylib` is loaded into the game process. It exposes a Unix socket for
 //! MCP clients and executes validated operations on Unity's main thread.
 
+mod capture;
 mod il2cpp;
 mod layout;
 mod operations;

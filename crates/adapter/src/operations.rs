@@ -51,6 +51,8 @@ pub(crate) enum LayoutExecutionStage {
 #[derive(Clone, Copy)]
 pub(crate) enum InternalOperation {
     Status,
+    StartCapture,
+    SpeedUp,
     ToggleFight,
     FinishPreparation(i32),
 }
@@ -66,6 +68,10 @@ pub(crate) fn execute_internal(
 ) -> Response<Value> {
     let result = match operation {
         InternalOperation::Status => Ok(status(runtime)),
+        InternalOperation::StartCapture => crate::capture::start(runtime)
+            .map(|()| json!({"started": true}))
+            .map_err(OperationError::InvalidState),
+        InternalOperation::SpeedUp => speed_up(runtime),
         InternalOperation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
         InternalOperation::FinishPreparation(round) => finish_preparation(runtime, round),
     };
@@ -147,6 +153,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
     match request.operation {
         Operation::Status => Ok(status(runtime)),
         Operation::StartTest => start_test(runtime),
+        Operation::RecordBattle => Err(OperationError::InvalidState(
+            "record_battle requires the runtime capture coordinator".into(),
+        )),
         Operation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
         Operation::SpeedUp => speed_up(runtime),
         Operation::QuitMatch => quit_match(runtime),

@@ -46,6 +46,13 @@ struct ApplyLayoutParameters {
     sides: Value,
 }
 
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct RecordBattleParameters {
+    /// Absolute destination path for the new `.mcfr` file.
+    output: PathBuf,
+}
+
 struct Shared {
     adapter_path: PathBuf,
     socket_path: PathBuf,
@@ -108,12 +115,12 @@ impl Shared {
         let client = adapter
             .as_mut()
             .ok_or_else(|| "game adapter is not connected; call start_game first".to_owned())?;
-        match tokio::time::timeout(
-            ADAPTER_REQUEST_TIMEOUT,
-            client.request(operation, arguments),
-        )
-        .await
-        {
+        let request_timeout = if operation == Operation::RecordBattle {
+            Duration::from_secs(180)
+        } else {
+            ADAPTER_REQUEST_TIMEOUT
+        };
+        match tokio::time::timeout(request_timeout, client.request(operation, arguments)).await {
             Ok(Ok(value)) => Ok(value),
             Ok(Err(error)) => {
                 let fatal = error.is_fatal();
@@ -290,6 +297,36 @@ impl Shared {
                 "layout completed outside activation-round deployment: {status}"
             ));
         }
+        Ok(json!({"operation": result, "status": status}))
+    }
+
+    async fn record_battle(&self, output: PathBuf) -> Result<Value, String> {
+        let _operation = self.operation.lock().await;
+        let before = self.refresh_status().await?;
+        if !is_training_deployment(&before) {
+            return Err(format!(
+                "record_battle requires completed Training Ground deployment: {before}"
+            ));
+        }
+        if !output.is_absolute() {
+            return Err("record_battle output must be an absolute path".into());
+        }
+        if output.extension().and_then(|value| value.to_str()) != Some("mcfr") {
+            return Err("record_battle output must use the .mcfr extension".into());
+        }
+        if output.exists() {
+            return Err(format!(
+                "record_battle refuses to overwrite {}",
+                output.display()
+            ));
+        }
+        let result = self
+            .adapter_request(Operation::RecordBattle, json!({"output": output}))
+            .await?;
+        if result.get("recorded").and_then(Value::as_bool) != Some(true) {
+            return Err(format!("adapter did not confirm recording: {result}"));
+        }
+        let status = self.refresh_status().await?;
         Ok(json!({"operation": result, "status": status}))
     }
 
@@ -477,6 +514,18 @@ impl MechcoreMcp {
         ))
     }
 
+    #[tool(
+        description = "Record the deployed Training Ground battle to MCFR; starts combat, requests speed-up, and returns after the fighting-to-over boundary"
+    )]
+    async fn record_battle(
+        &self,
+        Parameters(parameters): Parameters<RecordBattleParameters>,
+    ) -> Result<CallToolResult, ErrorData> {
+        Ok(tool_result(
+            self.shared.record_battle(parameters.output).await,
+        ))
+    }
+
     #[tool(description = "Start the current Training Ground fight and wait for the transition")]
     async fn toggle_fight(&self) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(self.shared.toggle_fight().await))
@@ -508,7 +557,7 @@ impl ServerHandler for MechcoreMcp {
                 .enable_resources_subscribe()
                 .build(),
             instructions: Some(
-                "Use start_game, start_test, apply_layout, toggle_fight, speed_up, quit_match, and quit_game in lifecycle order. Subscribe to mechcore://status for state changes."
+                "Use start_game, start_test, apply_layout, record_battle, quit_match, and quit_game in lifecycle order. record_battle owns combat start and speed-up. Subscribe to mechcore://status for state changes."
                     .into(),
             ),
             server_info: Implementation {
@@ -733,6 +782,7 @@ mod tests {
                 "apply_layout",
                 "quit_game",
                 "quit_match",
+                "record_battle",
                 "speed_up",
                 "start_game",
                 "start_test",

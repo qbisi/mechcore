@@ -54,6 +54,7 @@ class AdapterClient:
             "status",
             "start_test",
             "apply_layout",
+            "record_battle",
             "toggle_fight",
             "speed_up",
             "quit_match",

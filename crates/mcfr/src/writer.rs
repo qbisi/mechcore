@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
 };
@@ -11,7 +10,7 @@ use crate::{
     DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TransitionEvents,
     WorldSnapshot,
     canonical::{self, CanonicalHasher},
-    model::{ObjectRef, validate_transition},
+    model::IdentityAllocator,
 };
 
 const BYTE_CHUNK: usize = 256 * 1024;
@@ -27,8 +26,6 @@ pub struct McfrWriter {
     event_offsets: H5Dataset,
     context_bytes: Vec<u8>,
     initial_state_bytes: Vec<u8>,
-    current: WorldSnapshot,
-    known: BTreeSet<ObjectRef>,
     state_hasher: CanonicalHasher,
     event_hasher: CanonicalHasher,
     state_end: u64,
@@ -46,7 +43,7 @@ impl McfrWriter {
     /// HDF5 container cannot be created and initialized.
     pub fn create(
         path: impl AsRef<Path>,
-        mut context: DurableContext,
+        context: &DurableContext,
         mut initial_state: WorldSnapshot,
     ) -> Result<Self> {
         let target = path.as_ref().to_path_buf();
@@ -59,10 +56,8 @@ impl McfrWriter {
         let parent = target.parent().unwrap_or_else(|| Path::new("."));
         fs::create_dir_all(parent)?;
         context.validate()?;
-        context.canonicalize();
         initial_state.canonicalize();
-        initial_state.validate(&BTreeSet::new())?;
-        let known = initial_state.object_keys()?;
+        IdentityAllocator::from_initial(&initial_state)?;
         let context_bytes = canonical::encode(&context)?;
         let initial_bytes = canonical::encode(&initial_state)?;
 
@@ -107,8 +102,6 @@ impl McfrWriter {
             event_offsets,
             context_bytes,
             initial_state_bytes: initial_bytes,
-            current: initial_state,
-            known,
             state_hasher,
             event_hasher: CanonicalHasher::new("event-v1"),
             state_end,
@@ -118,20 +111,17 @@ impl McfrWriter {
         })
     }
 
-    /// Appends one `E(t), S(t+1)` transition after validating its causal closure.
+    /// Appends one `E(t), S(t+1)` transition.
     ///
     /// # Errors
     ///
-    /// Returns an error if event sequencing, lifecycle evidence, references, or the next snapshot
-    /// are invalid, or if an HDF5 append fails.
+    /// Returns an error if canonical encoding or an HDF5 append fails.
     pub fn push_transition(
         &mut self,
-        mut events: TransitionEvents,
+        events: &TransitionEvents,
         mut next_state: WorldSnapshot,
     ) -> Result<()> {
-        events.canonicalize();
         next_state.canonicalize();
-        let known = validate_transition(&self.current, &events, &next_state, &self.known)?;
         let event_bytes = canonical::encode(&events)?;
         let state_bytes = canonical::encode(&next_state)?;
         self.poisoned = true;
@@ -143,8 +133,6 @@ impl McfrWriter {
         self.state_offsets.append(&[self.state_end])?;
         self.event_hasher.update(&event_bytes);
         self.state_hasher.update(&state_bytes);
-        self.current = next_state;
-        self.known = known;
         self.transition_count = self
             .transition_count
             .checked_add(1)

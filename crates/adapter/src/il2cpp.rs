@@ -49,6 +49,7 @@ type ClassGetParent = unsafe extern "C" fn(*mut Class) -> *mut Class;
 type ClassGetName = unsafe extern "C" fn(*mut Class) -> *const c_char;
 type ClassGetNamespace = unsafe extern "C" fn(*mut Class) -> *const c_char;
 type ClassGetFieldFromName = unsafe extern "C" fn(*mut Class, *const c_char) -> *mut FieldInfo;
+type FieldGetValue = unsafe extern "C" fn(*mut Object, *mut FieldInfo, *mut c_void);
 type FieldStaticGetValue = unsafe extern "C" fn(*mut FieldInfo, *mut c_void);
 type ClassGetMethodFromName =
     unsafe extern "C" fn(*mut Class, *const c_char, c_int) -> *const MethodInfo;
@@ -86,6 +87,7 @@ pub struct Api {
     class_get_name: ClassGetName,
     class_get_namespace: ClassGetNamespace,
     class_get_field_from_name: ClassGetFieldFromName,
+    field_get_value: FieldGetValue,
     field_static_get_value: FieldStaticGetValue,
     class_get_method_from_name: ClassGetMethodFromName,
     class_get_methods: ClassGetMethods,
@@ -189,6 +191,7 @@ impl Api {
             class_get_name: unsafe { symbol("class_get_name")? },
             class_get_namespace: unsafe { symbol("class_get_namespace")? },
             class_get_field_from_name: unsafe { symbol("class_get_field_from_name")? },
+            field_get_value: unsafe { symbol("field_get_value")? },
             field_static_get_value: unsafe { symbol("field_static_get_value")? },
             class_get_method_from_name: unsafe { symbol("class_get_method_from_name")? },
             class_get_methods: unsafe { symbol("class_get_methods")? },
@@ -350,6 +353,22 @@ impl Api {
         value
     }
 
+    pub fn field_value<T: Copy>(
+        self,
+        object: *mut Object,
+        field: *mut FieldInfo,
+    ) -> Result<T, Error> {
+        if object.is_null() || field.is_null() {
+            return Err(Error::NullResult("field value".into()));
+        }
+        let mut value = mem::MaybeUninit::<T>::uninit();
+        // SAFETY: object and field belong to the current runtime; the caller
+        // supplies the field's ABI-compatible value type.
+        unsafe { (self.field_get_value)(object, field, value.as_mut_ptr().cast()) };
+        // SAFETY: IL2CPP initialized the complete field value above.
+        Ok(unsafe { value.assume_init() })
+    }
+
     pub fn method(
         self,
         mut class: *mut Class,
@@ -372,6 +391,18 @@ impl Api {
             method: name.into(),
             argc,
         })
+    }
+
+    #[allow(clippy::unused_self)] // Kept on Api because it exposes IL2CPP MethodInfo layout.
+    pub fn method_pointer(self, method: *const MethodInfo) -> Result<*mut c_void, Error> {
+        if method.is_null() {
+            return Err(Error::NullResult("method pointer".into()));
+        }
+        // SAFETY: IL2CPP MethodInfo begins with the generated native method pointer.
+        let target = unsafe { method.cast::<*mut c_void>().read() };
+        (!target.is_null())
+            .then_some(target)
+            .ok_or_else(|| Error::NullResult("method pointer".into()))
     }
 
     pub fn method_with_parameter_types(

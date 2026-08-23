@@ -1,7 +1,8 @@
 use mechcore_mcfr::{
-    Domain, DurableContext, Event, EventKind, Hashes, InstrumentationReader, InstrumentationRecord,
-    InstrumentationSink, InstrumentationWriter, MCFR_SCHEMA_VERSION, McfrReader, McfrWriter,
-    MotionState, ObjectKind, ObjectRef, ProjectileState, Rational, TransitionEvents, UnitState,
+    Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityContract,
+    InstrumentationReader, InstrumentationRecord, InstrumentationSink, InstrumentationWriter,
+    MCFR_SCHEMA_VERSION, McfrReader, McfrWriter, MotionState, NumericConvention, ObjectKind,
+    ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState,
     Vec3, Visibility, WorldSnapshot,
 };
 use rust_hdf5::H5File;
@@ -11,12 +12,12 @@ use serde_json::json;
 fn writes_reads_and_verifies_state_and_event_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
-    let mut writer = McfrWriter::create(&path, context(), initial_state()).unwrap();
+    let mut writer = McfrWriter::create(&path, &context(), initial_state()).unwrap();
     writer
-        .push_transition(release_events(), projectile_state())
+        .push_transition(&release_events(), projectile_state())
         .unwrap();
     writer
-        .push_transition(impact_events(), final_state())
+        .push_transition(&impact_events(), final_state())
         .unwrap();
     let written = writer.finish().unwrap();
 
@@ -58,14 +59,43 @@ fn verification_rejects_a_tampered_hash() {
 }
 
 #[test]
-fn transition_requires_contiguous_events_and_lifecycle_evidence() {
+fn writer_does_not_validate_gameplay_transition_legality() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid.mcfr");
-    let mut writer = McfrWriter::create(&path, context(), initial_state()).unwrap();
-    let mut events = release_events();
-    events.events[0].event_seq = 1;
-    assert!(writer.push_transition(events, projectile_state()).is_err());
-    drop(writer);
+    let mut writer = McfrWriter::create(&path, &context(), initial_state()).unwrap();
+    let events = TransitionEvents {
+        events: vec![Event {
+            subject: None,
+            source: None,
+            target: Some(ObjectRef::new(ObjectKind::Unit, 999)),
+            payload: EventPayload::Damage { amount: -1 },
+        }],
+    };
+    writer.push_transition(&events, projectile_state()).unwrap();
+    writer.finish().unwrap();
+    assert!(McfrReader::open_verified(path).is_ok());
+}
+
+#[test]
+fn writer_rejects_noncanonical_initial_identities() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("invalid-identities.mcfr");
+    let mut state = initial_state();
+    state.units[1].unit_id = 3;
+    state.units[1].formation_id = 3;
+    assert!(McfrWriter::create(&path, &context(), state).is_err());
+    assert!(!path.exists());
+}
+
+#[test]
+fn writer_rejects_initial_unit_ids_outside_team_yx_order() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("invalid-unit-order.mcfr");
+    let mut state = initial_state();
+    state.units[1].team_id = 1;
+    state.units[0].position.x = 100;
+    state.units[1].position.x = 0;
+    assert!(McfrWriter::create(&path, &context(), state).is_err());
     assert!(!path.exists());
 }
 
@@ -105,12 +135,12 @@ fn instrumentation_sidecar_supports_json_and_binary_channels() {
 }
 
 fn write_battle(path: &std::path::Path, initial: WorldSnapshot) -> Hashes {
-    let mut writer = McfrWriter::create(path, context(), initial).unwrap();
+    let mut writer = McfrWriter::create(path, &context(), initial).unwrap();
     writer
-        .push_transition(release_events(), projectile_state())
+        .push_transition(&release_events(), projectile_state())
         .unwrap();
     writer
-        .push_transition(impact_events(), final_state())
+        .push_transition(&impact_events(), final_state())
         .unwrap();
     writer.finish().unwrap()
 }
@@ -123,11 +153,14 @@ fn context() -> DurableContext {
             numerator: 1,
             denominator: 10,
         },
-        numeric_convention: "world_q32_32".into(),
-        rng_state: json!({"team_1": [1, 2, 3], "team_2": [4, 5, 6]}),
-        identity_contract: "typed-session-u64-v1".into(),
-        update_order_contract: "ascending-stable-id-v1".into(),
-        durable_commands: vec![],
+        numeric_convention: NumericConvention {
+            distance_units_per_meter: 1_000,
+            rotation_units_per_degree: 1_000,
+            time_units_per_second: 10,
+        },
+        combat_round: 1,
+        match_seed: 42,
+        identity_contract: IdentityContract::TeamYxSequentialV1,
     }
 }
 
@@ -141,19 +174,19 @@ fn initial_state() -> WorldSnapshot {
 fn projectile_state() -> WorldSnapshot {
     let mut state = initial_state();
     state.projectiles.push(ProjectileState {
-        projectile_id: 10,
+        projectile_id: 1,
         team_id: 1,
         owner: Some(ObjectRef::new(ObjectKind::Unit, 1)),
-        source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
-        projectile_type_id: 7,
         position: Vec3 { x: 10, y: 0, z: 0 },
-        orientation: None,
-        velocity: Some(Vec3 { x: 10, y: 0, z: 0 }),
+        orientation: 0,
         target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
         cached_target_position: Vec3 { x: 100, y: 0, z: 0 },
         cached_target_radius: 5,
-        active: true,
-        life: None,
+        released: true,
+        life: Gauge {
+            current: 0,
+            maximum: 0,
+        },
     });
     state
 }
@@ -167,12 +200,10 @@ fn final_state() -> WorldSnapshot {
 fn release_events() -> TransitionEvents {
     TransitionEvents {
         events: vec![Event {
-            event_seq: 0,
-            kind: EventKind::ProjectileReleased,
-            subject: Some(ObjectRef::new(ObjectKind::Projectile, 10)),
+            subject: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
             source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
             target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-            payload: json!({"projectile_type_id": 7}),
+            payload: EventPayload::ProjectileReleased,
         }],
     }
 }
@@ -181,28 +212,19 @@ fn impact_events() -> TransitionEvents {
     TransitionEvents {
         events: vec![
             Event {
-                event_seq: 0,
-                kind: EventKind::ProjectileImpacted,
-                subject: Some(ObjectRef::new(ObjectKind::Projectile, 10)),
+                subject: None,
+                source: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
+                target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+                payload: EventPayload::Damage { amount: 25 },
+            },
+            Event {
+                subject: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
                 source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
                 target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-                payload: json!({"position": {"x": 100, "y": 0, "z": 0}}),
-            },
-            Event {
-                event_seq: 1,
-                kind: EventKind::Damage,
-                subject: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-                source: Some(ObjectRef::new(ObjectKind::Projectile, 10)),
-                target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-                payload: json!({"applied": 25, "life_before": 100, "life_after": 75}),
-            },
-            Event {
-                event_seq: 2,
-                kind: EventKind::ProjectileRemoved,
-                subject: Some(ObjectRef::new(ObjectKind::Projectile, 10)),
-                source: None,
-                target: None,
-                payload: json!({"reason": "impact"}),
+                payload: EventPayload::ProjectileRemoved {
+                    position: Vec3 { x: 100, y: 0, z: 0 },
+                    intercepted: false,
+                },
             },
         ],
     }
@@ -214,11 +236,13 @@ fn unit(id: u64, team: u32, x: i64, life: i64) -> UnitState {
         team_id: team,
         formation_id: id,
         unit_type_id: 1,
-        parent_unit_id: None,
         domain: Domain::Ground,
         position: Vec3 { x, y: 0, z: 0 },
         body_rotation: 0,
-        aim_pose: None,
+        aim_pose: Pose {
+            position: Vec3 { x, y: 0, z: 0 },
+            rotation: 0,
+        },
         velocity: Vec3 { x: 0, y: 0, z: 0 },
         motion_state: MotionState::Idle,
         collision_radius: 5,
@@ -227,7 +251,12 @@ fn unit(id: u64, team: u32, x: i64, life: i64) -> UnitState {
         alive: life > 0,
         active: true,
         targetable: life > 0,
-        visibility: Visibility::Visible,
-        personal_shield: None,
+        visibility: Visibility::Normal,
+        personal_shield: PersonalShieldState {
+            active: false,
+            enabled: false,
+            energy: 0,
+            max_energy: 0,
+        },
     }
 }

@@ -409,10 +409,12 @@ name = "mechcore-adapter"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "mechcore-mcfr",
  "mechcore-protocol",
  "serde",
  "serde_json",
  "serde_yaml",
+ "tempfile",
 ]
 
 [[package]]

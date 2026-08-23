@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, path::Path};
+use std::path::Path;
 
 use rust_hdf5::{H5Dataset, H5File};
 
@@ -6,7 +6,6 @@ use crate::{
     DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TransitionEvents,
     WorldSnapshot,
     canonical::{self, CanonicalHasher},
-    model::validate_transition,
 };
 
 pub struct McfrReader {
@@ -104,7 +103,7 @@ impl McfrReader {
         })
     }
 
-    /// Opens an MCFR and verifies the complete S/E transition chain and all formal hashes.
+    /// Opens an MCFR and verifies all formal hashes.
     ///
     /// # Errors
     ///
@@ -173,16 +172,15 @@ impl McfrReader {
         canonical::decode(&bytes, "event transition")
     }
 
-    /// Recomputes transition validity and the scenario, state, event, and result hashes.
+    /// Recomputes the scenario, state, event, and result hashes.
     ///
     /// # Errors
     ///
-    /// Returns an error for malformed or inconsistent records and [`Error::HashMismatch`] when a
-    /// stored formal hash differs from the recomputed value.
+    /// Returns an error for malformed records and [`Error::HashMismatch`] when a stored formal
+    /// hash differs from the recomputed value.
     pub fn verify(&self) -> Result<Hashes> {
         let context_bytes = canonical::encode(&self.context)?;
         let initial = self.state(0)?;
-        initial.validate(&BTreeSet::new())?;
         let initial_bytes = canonical::encode(&initial)?;
         let mut scenario_hasher = CanonicalHasher::new("scenario-v1");
         scenario_hasher.update(&context_bytes);
@@ -190,15 +188,11 @@ impl McfrReader {
         let mut state_hasher = CanonicalHasher::new("state-v1");
         state_hasher.update(&initial_bytes);
         let mut event_hasher = CanonicalHasher::new("event-v1");
-        let mut current = initial;
-        let mut known = current.object_keys()?;
         for transition in 0..self.header.transition_count {
             let events = self.events(transition)?;
             let next = self.state(transition + 1)?;
-            known = validate_transition(&current, &events, &next, &known)?;
             event_hasher.update(&canonical::encode(&events)?);
             state_hasher.update(&canonical::encode(&next)?);
-            current = next;
         }
         let scenario = scenario_hasher.finalize();
         let state = state_hasher.finalize();

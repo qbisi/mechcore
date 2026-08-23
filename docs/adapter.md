@@ -27,6 +27,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
     "status",
     "start_test",
     "apply_layout",
+    "record_battle",
     "toggle_fight",
     "speed_up",
     "quit_match",
@@ -57,7 +58,8 @@ multi-round `apply_layout`. A failed or disconnected mutation must not be
 automatically retried.
 
 The adapter returns after the native call or readback completes. `apply_layout`
-also waits until the requested activation-round deployment is stable. Other
+also waits until the requested activation-round deployment is stable.
+`record_battle` remains active through the complete logic-tick capture and atomic MCFR publication. Other
 cross-scene readiness belongs to `mechcore mcp`, which observes the status
 stream before returning from lifecycle tools.
 
@@ -97,6 +99,31 @@ Typical output:
 The operation invokes Unity application shutdown and is valid only at the main
 menu. The adapter confirms the request; the MCP layer additionally waits for
 the owned process to exit.
+
+### record_battle
+
+Input contains one absolute, non-existing destination with a `.mcfr` suffix:
+
+```json
+{"output":"/absolute/path/battle.mcfr"}
+```
+
+The operation is valid only after layout completion in Training Ground deployment. It arms native
+capture, starts combat, records `S(0)` before the first combat update, and captures every subsequent
+`FightController.Update` boundary through the unique fighting-to-over transition. The adapter calls
+`mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file with
+`McfrReader::open_verified`, and returns the state/transition counts and all formal hashes.
+
+Projectile release/removal and damage use narrow native hooks so objects created and removed inside
+one logic step remain in `E`. The release hook records the native projectile, owner and target; the
+removal hook additionally records position and the native `intercepted` argument; the damage hook
+records the positive `DamagePerformer.Perform` return value and its native provider and target.
+Events are never synthesized from adjacent snapshots.
+
+The current native snapshot closure directly reads units, projectiles, buildings, personal shields,
+and BuffManager statuses. Area shields and dynamic terrain are outside the baseline schema until a
+complete direct native capture path is implemented; their presence does not make an otherwise
+capturable recording fail. The same rule applies to future instrumentation channels.
 
 ### quit_match
 

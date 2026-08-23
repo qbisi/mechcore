@@ -10,6 +10,7 @@ pub enum Operation {
     Status,
     StartTest,
     ApplyLayout,
+    RecordBattle,
     ToggleFight,
     SpeedUp,
     QuitMatch,
@@ -17,10 +18,11 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Status,
         Self::StartTest,
         Self::ApplyLayout,
+        Self::RecordBattle,
         Self::ToggleFight,
         Self::SpeedUp,
         Self::QuitMatch,
@@ -33,6 +35,7 @@ impl Operation {
             Self::Status => "status",
             Self::StartTest => "start_test",
             Self::ApplyLayout => "apply_layout",
+            Self::RecordBattle => "record_battle",
             Self::ToggleFight => "toggle_fight",
             Self::SpeedUp => "speed_up",
             Self::QuitMatch => "quit_match",
@@ -137,6 +140,7 @@ mod tests {
                 "status",
                 "start_test",
                 "apply_layout",
+                "record_battle",
                 "toggle_fight",
                 "speed_up",
                 "quit_match",
@@ -175,6 +179,7 @@ mod tests {
                     "status",
                     "start_test",
                     "apply_layout",
+                    "record_battle",
                     "toggle_fight",
                     "speed_up",
                     "quit_match",

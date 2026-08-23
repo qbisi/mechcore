@@ -209,10 +209,6 @@ impl AttackConfig {
     pub(crate) fn projectile_speed(&self) -> i64 {
         quantize_i64(self.projectile_speed, SPACE_UNITS_PER_METER)
     }
-
-    pub(crate) fn effect_radius(&self) -> i64 {
-        quantize_i64(self.effect_radius, SPACE_UNITS_PER_METER)
-    }
 }
 
 fn validate_scaled(value: f64, scale: f64, field: &str, allow_zero: bool) -> Result<()> {
