@@ -49,7 +49,7 @@ fighting 到 over 的边界只在顶层保存为 `terminal_step`。来源原生�
 `D` 包含复现战斗所需、但不适合自然表达为逐帧世界快照的全部输入。它至少绑定：
 
 - MCFR schema 版本及其规定的规范化规则；
-- 游戏 build 和确定性规则 fingerprint；
+- 游戏 build；
 - 逻辑步时序和数值约定；
 - fighting 进入时的随机 seed bundle 或等价 RNG 状态；
 - 稳定身份与更新顺序契约；
@@ -237,8 +237,8 @@ event_hash    = BLAKE3("event-v1", canonical E(0)..canonical E(n-1))
 result_hash   = BLAKE3("result-v1", scenario_hash, state_hash, event_hash)
 ```
 
-`D` 已包含 schema version、规则 fingerprint、RNG 状态和 durable commands，因此实现的
-`scenario_hash` 与展开后的需求表达式等价。
+`D` 已包含 schema version、RNG 状态和 durable commands，因此实现的 `scenario_hash`
+与展开后的需求表达式等价。
 
 只有 schema 版本和 `scenario_hash` 均相同的两个录像才能比较。
 

@@ -119,7 +119,6 @@ fn context() -> DurableContext {
     DurableContext {
         schema_version: MCFR_SCHEMA_VERSION,
         game_build: "test-build".into(),
-        rules_fingerprint: "rules-v1".into(),
         logic_step: Rational {
             numerator: 1,
             denominator: 10,

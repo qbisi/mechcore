@@ -76,10 +76,6 @@ attack:
 mechcore sim layout.yaml --config config
 ```
 
-MCFR 的 `rules_fingerprint` 只哈希当前 layout 实际引用的单位配置，并按 `type_name` 规范
-排序；目录中无关单位不会改变场景 hash。相同 layout、单位配置和 seed 必须产生相同的
-S/E 语义哈希。
-
 模拟时钟、坐标单位、RNG 算法、参考游戏构建和更新顺序属于当前模拟内核的确定性元数据，
 由 MCFR 持久上下文记录，不属于单位配置，也不用于拒绝单位文件。
 

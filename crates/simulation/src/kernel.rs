@@ -588,17 +588,10 @@ pub(crate) fn run(
     seed_source: &'static str,
     output: &std::path::Path,
 ) -> Result<SimulationResult> {
-    let rules_fingerprint = configs.fingerprint_for(
-        layout
-            .placements
-            .iter()
-            .map(|placement| placement.type_name.as_str()),
-    )?;
     let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
     let context = DurableContext {
         schema_version: MCFR_SCHEMA_VERSION,
         game_build: REFERENCE_GAME_BUILD.to_owned(),
-        rules_fingerprint,
         logic_step: Rational {
             numerator: LOGIC_TICK_TIME_UNITS / divisor,
             denominator: TIME_UNITS_PER_SECOND / divisor,

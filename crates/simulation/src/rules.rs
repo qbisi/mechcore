@@ -88,21 +88,6 @@ impl UnitConfigs {
         self.units.get(type_name)
     }
 
-    pub(crate) fn fingerprint_for<'a>(
-        &self,
-        type_names: impl IntoIterator<Item = &'a str>,
-    ) -> Result<String> {
-        let mut selected = Vec::new();
-        for type_name in type_names.into_iter().collect::<BTreeSet<_>>() {
-            selected.push(self.get(type_name).ok_or_else(|| {
-                Error::new(format!("unit type {type_name:?} has no configuration"))
-            })?);
-        }
-        let canonical = serde_json::to_vec(&selected)
-            .map_err(|error| Error::new(format!("cannot normalize unit configs: {error}")))?;
-        Ok(blake3::hash(&canonical).to_hex().to_string())
-    }
-
     fn from_configs(configs: Vec<UnitConfig>) -> Result<Self> {
         if configs.is_empty() {
             return Err(Error::new("unit config directory contains no YAML files"));

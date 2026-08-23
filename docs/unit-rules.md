@@ -82,11 +82,6 @@ explicitly:
 mechcore sim layout.yaml --config config
 ```
 
-MCFR `rules_fingerprint` hashes only unit files referenced by the current
-layout, canonically ordered by `type_name`; unrelated files in the directory do
-not change the scenario hash. The same layout, unit configs and seed must
-produce identical S/E semantic hashes.
-
 Simulation timing, coordinate units, RNG algorithm, reference game build and
 update order are kernel metadata recorded in MCFR durable context. They are not
 unit configuration and do not reject a unit file.

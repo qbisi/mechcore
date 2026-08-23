@@ -49,7 +49,6 @@ impl Hashes {
 pub struct DurableContext {
     pub schema_version: u32,
     pub game_build: String,
-    pub rules_fingerprint: String,
     pub logic_step: Rational,
     pub numeric_convention: String,
     pub rng_state: Value,
@@ -74,7 +73,6 @@ impl DurableContext {
             )));
         }
         require_text(&self.game_build, "game_build")?;
-        require_text(&self.rules_fingerprint, "rules_fingerprint")?;
         require_text(&self.numeric_convention, "numeric_convention")?;
         require_text(&self.identity_contract, "identity_contract")?;
         require_text(&self.update_order_contract, "update_order_contract")?;

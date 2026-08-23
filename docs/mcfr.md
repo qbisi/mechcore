@@ -59,7 +59,7 @@ evidence, but it does not enter `S` or formal hashes.
 expressed as a per-frame world snapshot. At minimum, it binds:
 
 - the MCFR schema version and its canonicalization rules;
-- the game build and deterministic rules fingerprint;
+- the game build;
 - logic-step timing and numeric conventions;
 - the fighting-entry random seed bundle or equivalent RNG states;
 - stable identity and update-order contracts;
@@ -277,9 +277,9 @@ event_hash    = BLAKE3("event-v1", canonical E(0)..canonical E(n-1))
 result_hash   = BLAKE3("result-v1", scenario_hash, state_hash, event_hash)
 ```
 
-`D` contains the schema version, rules fingerprint, RNG state, and durable
-commands, so the implemented `scenario_hash` is equivalent to the expanded
-requirements expression.
+`D` contains the schema version, RNG state, and durable commands, so the
+implemented `scenario_hash` is equivalent to the expanded requirements
+expression.
 
 Two recordings are comparable only when their schema versions and
 `scenario_hash` values match.
