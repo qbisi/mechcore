@@ -1,0 +1,14 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: marksman
+        x: 0
+        y: -50
+
+  red:
+    formations:
+      - type: arclight
+        x: 0
+        y: -50

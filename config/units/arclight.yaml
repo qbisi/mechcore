@@ -1,0 +1,20 @@
+schema: mechcore.unit
+type_name: arclight
+unit_type_id: 15
+domain: ground
+max_life: 4813
+collision_radius: 9
+move_speed: 7
+rotate_speed: 80
+independent_aim: false
+
+attack:
+  attack_type: area_projectile
+  target_domain: ground
+  damage: 365
+  range: 95
+  interval: 0.9
+  interval_offset: 0.3
+  release_delay: 0
+  projectile_speed: 300
+  effect_radius: 7

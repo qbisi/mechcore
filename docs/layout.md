@@ -10,6 +10,17 @@ The top-level `round` selects the deployment round in which the complete layout
 becomes active. The document does not contain `reactor_core`, `supply`, game
 startup parameters, capture settings, or exit behavior.
 
+The same layout is also the input to the bounded deterministic simulator:
+
+```text
+mechcore sim layout.yaml [--seed <i32>] [--output battle.mcfr] [--config <directory>]
+```
+
+Unit combat values are resolved from the typed, one-file-per-unit
+[unit configuration contract](unit-rules.md), not stored in the layout. The current
+simulator closure is intentionally narrower than native layout application;
+unsupported formations or mechanisms are rejected before recording begins.
+
 ## Document shape
 
 A layout contains exactly two player sides, `blue` and `red`. Persistent Officer

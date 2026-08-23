@@ -1,0 +1,20 @@
+schema: mechcore.unit
+type_name: marksman
+unit_type_id: 2
+domain: ground
+max_life: 1622
+collision_radius: 8
+move_speed: 8
+rotate_speed: 70
+independent_aim: false
+
+attack:
+  attack_type: direct_projectile
+  target_domain: both
+  damage: 2329
+  range: 140
+  interval: 3.1
+  interval_offset: 0.6
+  release_delay: 0.6
+  projectile_speed: 500
+  effect_radius: 0

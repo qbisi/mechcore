@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/adapter", "crates/mcfr", "crates/mechcore", "crates/protocol"]
+members = [
+    "crates/adapter",
+    "crates/mcfr",
+    "crates/mechcore",
+    "crates/protocol",
+    "crates/simulation",
+]
 resolver = "2"
 
 [workspace.package]
