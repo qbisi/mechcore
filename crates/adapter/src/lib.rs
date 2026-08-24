@@ -8,6 +8,7 @@ mod il2cpp;
 mod layout;
 mod operations;
 mod runtime;
+mod video;
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::thread;

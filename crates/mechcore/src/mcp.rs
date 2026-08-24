@@ -51,6 +51,8 @@ struct ApplyLayoutParameters {
 struct RecordBattleParameters {
     /// Absolute destination path for the new `.mcfr` file.
     output: PathBuf,
+    /// Optional absolute destination for a logic-frame-aligned `QuickTime` MJPEG `.mov`.
+    video_output: Option<PathBuf>,
 }
 
 struct Shared {
@@ -300,7 +302,11 @@ impl Shared {
         Ok(json!({"operation": result, "status": status}))
     }
 
-    async fn record_battle(&self, output: PathBuf) -> Result<Value, String> {
+    async fn record_battle(
+        &self,
+        output: PathBuf,
+        video_output: Option<PathBuf>,
+    ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         let before = self.refresh_status().await?;
         if !is_training_deployment(&before) {
@@ -320,8 +326,28 @@ impl Shared {
                 output.display()
             ));
         }
+        if let Some(video_output) = &video_output {
+            if !video_output.is_absolute() {
+                return Err("record_battle video_output must be an absolute path".into());
+            }
+            if video_output.extension().and_then(|value| value.to_str()) != Some("mov") {
+                return Err("record_battle video_output must use the .mov extension".into());
+            }
+            if video_output == &output {
+                return Err("record_battle output and video_output must differ".into());
+            }
+            if video_output.exists() {
+                return Err(format!(
+                    "record_battle refuses to overwrite {}",
+                    video_output.display()
+                ));
+            }
+        }
         let result = self
-            .adapter_request(Operation::RecordBattle, json!({"output": output}))
+            .adapter_request(
+                Operation::RecordBattle,
+                json!({"output": output, "video_output": video_output}),
+            )
             .await?;
         if result.get("recorded").and_then(Value::as_bool) != Some(true) {
             return Err(format!("adapter did not confirm recording: {result}"));
@@ -522,7 +548,9 @@ impl MechcoreMcp {
         Parameters(parameters): Parameters<RecordBattleParameters>,
     ) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(
-            self.shared.record_battle(parameters.output).await,
+            self.shared
+                .record_battle(parameters.output, parameters.video_output)
+                .await,
         ))
     }
 

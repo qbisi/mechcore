@@ -240,7 +240,7 @@ def require_status(status: dict[str, Any], expected: dict[str, Any], label: str)
     print(f"ok: {label}: {json.dumps(status, ensure_ascii=False)}")
 
 
-def run(layout_path: Path, output: Path) -> None:
+def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
     layout = load_layout(layout_path)
     activation_round = layout["round"]
     client = McpClient()
@@ -294,14 +294,25 @@ def run(layout_path: Path, output: Path) -> None:
             "apply_layout",
         )
         print(f"ok: applied {layout_path}")
-        recorded = client.call_tool(
-            "record_battle", {"output": str(output.resolve())}, BATTLE_TIMEOUT
-        )
+        record_arguments = {"output": str(output.resolve())}
+        if video_output is not None:
+            record_arguments["video_output"] = str(video_output.resolve())
+        recorded = client.call_tool("record_battle", record_arguments, BATTLE_TIMEOUT)
         recording = recorded.get("operation")
         if not isinstance(recording, dict) or recording.get("recorded") is not True:
             raise SmokeFailure(f"record_battle was not confirmed: {recorded}")
         if not output.is_file():
             raise SmokeFailure(f"record_battle did not publish {output}")
+        if video_output is not None:
+            video = recording.get("video")
+            if not isinstance(video, dict):
+                raise SmokeFailure(f"record_battle omitted video metadata: {recording}")
+            if not video_output.is_file():
+                raise SmokeFailure(f"record_battle did not publish {video_output}")
+            if video.get("frame_count") != recording.get("tick_count"):
+                raise SmokeFailure(
+                    f"video/MCFR frame count mismatch: {video} versus {recording}"
+                )
         print(
             "ok: recorded "
             f"{output}: states={recording.get('state_count')} "
@@ -334,9 +345,14 @@ def main() -> int:
         type=Path,
         default=Path(f"/tmp/mechcore-mcp-smoke-{int(time.time_ns())}.mcfr"),
     )
+    parser.add_argument(
+        "--video-output",
+        type=Path,
+        help="also export logic-frame-aligned top-down video to this new .mov path",
+    )
     try:
         arguments = parser.parse_args()
-        run(arguments.layout, arguments.output)
+        run(arguments.layout, arguments.output, arguments.video_output)
     except (OSError, SmokeFailure, ValueError) as error:
         print(f"smoke failed: {error}", file=sys.stderr)
         return 1

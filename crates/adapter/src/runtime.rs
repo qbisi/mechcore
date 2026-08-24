@@ -28,6 +28,8 @@ const RECORDING_POLL_INTERVAL: Duration = Duration::from_millis(5);
 #[serde(deny_unknown_fields)]
 struct RecordBattleArguments {
     output: PathBuf,
+    #[serde(default)]
+    video_output: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -427,32 +429,102 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
             format!("refusing to overwrite {}", arguments.output.display()),
         );
     }
+    if let Some(video_output) = &arguments.video_output {
+        if !video_output.is_absolute() {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_battle video_output must be absolute",
+            );
+        }
+        if video_output.extension().and_then(|value| value.to_str()) != Some("mov") {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_battle video_output must use the .mov extension",
+            );
+        }
+        if video_output == &arguments.output {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_battle output and video_output must differ",
+            );
+        }
+        if video_output.exists() {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                format!("refusing to overwrite {}", video_output.display()),
+            );
+        }
+    }
     if let Err(response) = successful_result(execute_internal_on_main(
         runtime,
         request.id,
-        operations::InternalOperation::StartCapture,
+        operations::InternalOperation::StartCapture {
+            visual: arguments.video_output.is_some(),
+        },
     )) {
         return response;
     }
     let deadline = Instant::now() + RECORDING_TIMEOUT;
     let mut writer = None;
+    let mut video = None;
     loop {
         if Instant::now() >= deadline {
-            capture::abort("recording timed out before fighting-to-over boundary");
-            return Response::failure(
+            return recording_failure(
+                runtime,
                 request.id,
                 "operation_timeout",
-                "recording timed out before fighting-to-over boundary",
+                "recording timed out before fighting-to-over boundary".into(),
             );
         }
         match capture::poll() {
-            Some(CaptureMessage::Initial { context, state }) => {
+            Some(CaptureMessage::Initial {
+                context,
+                state,
+                frame,
+            }) => {
                 if writer.is_some() {
-                    capture::abort("capture emitted more than one initial snapshot");
-                    return Response::failure(
+                    return recording_failure(
+                        runtime,
                         request.id,
                         "capture_failed",
-                        "capture emitted more than one initial snapshot",
+                        "capture emitted more than one initial snapshot".into(),
+                    );
+                }
+                if let Some(video_output) = arguments.video_output.as_ref() {
+                    let Some(frame) = frame.as_deref() else {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "visual capture omitted the initial logic frame".into(),
+                        );
+                    };
+                    let mut created =
+                        match crate::video::MovWriter::create(video_output, context.logic_step) {
+                            Ok(created) => created,
+                            Err(error) => {
+                                return recording_failure(
+                                    runtime,
+                                    request.id,
+                                    "video_error",
+                                    error,
+                                );
+                            }
+                        };
+                    if let Err(error) = created.append_jpeg(frame) {
+                        return recording_failure(runtime, request.id, "video_error", error);
+                    }
+                    video = Some(created);
+                } else if frame.is_some() {
+                    return recording_failure(
+                        runtime,
+                        request.id,
+                        "capture_failed",
+                        "visual capture produced a frame without video_output".into(),
                     );
                 }
                 match mechcore_mcfr::McfrWriter::create(&arguments.output, &context).and_then(
@@ -466,8 +538,12 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                 ) {
                     Ok(created) => writer = Some(created),
                     Err(error) => {
-                        capture::abort("MCFR writer rejected the initial snapshot");
-                        return Response::failure(request.id, "mcfr_error", error.to_string());
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "mcfr_error",
+                            error.to_string(),
+                        );
                     }
                 }
                 if let Err(response) = successful_result(execute_internal_on_main(
@@ -476,6 +552,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                     operations::InternalOperation::SpeedUp,
                 )) {
                     capture::abort("speed-up vote failed after the initial snapshot");
+                    stop_capture_after_failure(runtime, request.id);
                     return response;
                 }
             }
@@ -483,23 +560,62 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                 events,
                 state,
                 terminal,
+                frame,
             }) => {
                 let Some(active) = writer.as_mut() else {
-                    capture::abort("capture transition preceded its initial snapshot");
-                    return Response::failure(
+                    return recording_failure(
+                        runtime,
                         request.id,
                         "capture_failed",
-                        "capture transition preceded its initial snapshot",
+                        "capture transition preceded its initial snapshot".into(),
                     );
                 };
                 if let Err(error) = active.append_tick(state, &events) {
-                    capture::abort("MCFR writer rejected a captured transition");
-                    return Response::failure(request.id, "mcfr_error", error.to_string());
+                    return recording_failure(runtime, request.id, "mcfr_error", error.to_string());
+                }
+                match (video.as_mut(), frame.as_deref()) {
+                    (Some(active), Some(frame)) => {
+                        if let Err(error) = active.append_jpeg(frame) {
+                            return recording_failure(runtime, request.id, "video_error", error);
+                        }
+                    }
+                    (Some(_), None) => {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "visual capture omitted a logic frame".into(),
+                        );
+                    }
+                    (None, Some(_)) => {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "visual capture produced a frame without video_output".into(),
+                        );
+                    }
+                    (None, None) => {}
                 }
                 if terminal {
+                    let video_summary = match video.take() {
+                        Some(video) => match video.finish() {
+                            Ok(summary) => Some(summary),
+                            Err(error) => {
+                                return recording_failure(
+                                    runtime,
+                                    request.id,
+                                    "video_error",
+                                    error,
+                                );
+                            }
+                        },
+                        None => None,
+                    };
                     let hashes = match writer.take().expect("writer checked above").finish() {
                         Ok(hashes) => hashes,
                         Err(error) => {
+                            remove_published(arguments.video_output.as_deref());
                             return Response::failure(request.id, "mcfr_error", error.to_string());
                         }
                     };
@@ -507,6 +623,8 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                     {
                         Ok(reader) => reader,
                         Err(error) => {
+                            remove_published(Some(&arguments.output));
+                            remove_published(arguments.video_output.as_deref());
                             return Response::failure(
                                 request.id,
                                 "mcfr_verification_failed",
@@ -515,12 +633,38 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         }
                     };
                     if verified.hashes() != &hashes {
+                        remove_published(Some(&arguments.output));
+                        remove_published(arguments.video_output.as_deref());
                         return Response::failure(
                             request.id,
                             "mcfr_verification_failed",
                             "published MCFR hashes changed during verification",
                         );
                     }
+                    if let Some(summary) = &video_summary {
+                        if summary.frame_count != verified.tick_count() {
+                            remove_published(Some(&arguments.output));
+                            remove_published(arguments.video_output.as_deref());
+                            return Response::failure(
+                                request.id,
+                                "video_verification_failed",
+                                format!(
+                                    "video frame count {} does not match MCFR tick count {}",
+                                    summary.frame_count,
+                                    verified.tick_count()
+                                ),
+                            );
+                        }
+                    }
+                    let video_result = video_summary.map(|summary| {
+                        serde_json::json!({
+                            "output": arguments.video_output,
+                            "format": "quicktime_mjpeg",
+                            "frame_count": summary.frame_count,
+                            "width": summary.width,
+                            "height": summary.height,
+                        })
+                    });
                     return Response::success(
                         request.id,
                         serde_json::json!({
@@ -529,15 +673,52 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             "tick_count": verified.tick_count(),
                             "terminal_tick": verified.terminal_tick(),
                             "hashes": hashes,
+                            "video": video_result,
                         }),
                     );
                 }
             }
             Some(CaptureMessage::Failure(error)) => {
-                return Response::failure(request.id, "capture_failed", error);
+                return recording_failure(runtime, request.id, "capture_failed", error);
             }
             None => thread::sleep(RECORDING_POLL_INTERVAL),
         }
+    }
+}
+
+fn recording_failure(
+    runtime: &mut Runtime,
+    request_id: u64,
+    code: &str,
+    message: String,
+) -> Response<Value> {
+    capture::abort(&message);
+    stop_capture_after_failure(runtime, request_id);
+    Response::failure(request_id, code, message)
+}
+
+fn stop_capture_after_failure(runtime: &mut Runtime, request_id: u64) {
+    let response = execute_internal_on_main(
+        runtime,
+        request_id,
+        operations::InternalOperation::StopCapture,
+    );
+    if !response.ok {
+        eprintln!(
+            "mechcore-adapter: failed to restore capture state: {:?}",
+            response.error
+        );
+    }
+}
+
+fn remove_published(path: Option<&Path>) {
+    if let Some(path) = path
+        && let Err(error) = fs::remove_file(path)
+    {
+        eprintln!(
+            "mechcore-adapter: cannot remove failed recording artifact {}: {error}",
+            path.display()
+        );
     }
 }
 

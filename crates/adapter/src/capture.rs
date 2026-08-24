@@ -1,7 +1,8 @@
 use crate::{
-    il2cpp::{Api, FieldInfo, MethodInfo, Object, argument},
+    il2cpp::{Api, FieldInfo, MethodInfo, Object, argument, object_argument},
     runtime::Runtime,
 };
+use jpeg_encoder::{ColorType, Encoder};
 use mechcore_mcfr::{
     BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, IdentityContract,
     MCFR_SCHEMA_VERSION, MotionState, NumericConvention, ObjectKind, ObjectRef,
@@ -53,8 +54,40 @@ struct FixedRect {
     size: FixedVec2,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct UnityVec3 {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct UnityRect {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+}
+
 #[derive(Clone)]
 pub(crate) enum CaptureMessage {
+    Initial {
+        context: DurableContext,
+        state: WorldSnapshot,
+        frame: Option<Vec<u8>>,
+    },
+    Transition {
+        events: TransitionEvents,
+        state: WorldSnapshot,
+        terminal: bool,
+        frame: Option<Vec<u8>>,
+    },
+    Failure(String),
+}
+
+enum PendingVisualMessage {
     Initial {
         context: DurableContext,
         state: WorldSnapshot,
@@ -64,7 +97,27 @@ pub(crate) enum CaptureMessage {
         state: WorldSnapshot,
         terminal: bool,
     },
-    Failure(String),
+}
+
+struct VisualCapture {
+    api: Api,
+    zoom_handle: u32,
+    transposer_handle: u32,
+    follow_target_handle: u32,
+    texture_handle: u32,
+    screen_class: usize,
+    set_resolution: usize,
+    destroy_immediate: usize,
+    width: u16,
+    height: u16,
+    original_screen_width: i32,
+    original_screen_height: i32,
+    original_fullscreen: bool,
+    zoom: usize,
+    follow_offset: usize,
+    original_zoom_distance: f32,
+    maximum_zoom_distance: f32,
+    original_follow_target_position: UnityVec3,
 }
 
 #[derive(Default)]
@@ -102,6 +155,9 @@ struct CaptureState {
     next_formation_id: u64,
     in_update: bool,
     traces: Vec<NativeTrace>,
+    visual: Option<VisualCapture>,
+    pending_visual: Option<PendingVisualMessage>,
+    terminal_match_delay: u8,
 }
 
 impl CaptureState {
@@ -121,6 +177,9 @@ impl CaptureState {
         self.next_formation_id = 1;
         self.in_update = false;
         self.traces.clear();
+        self.visual = None;
+        self.pending_visual = None;
+        self.terminal_match_delay = 0;
     }
 
     fn push(&mut self, message: CaptureMessage) -> Result<(), String> {
@@ -140,9 +199,519 @@ impl CaptureState {
     }
 }
 
+impl VisualCapture {
+    fn new(runtime: &Runtime) -> Result<Self, String> {
+        let api = runtime.api;
+        let screen_class = api
+            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Screen")
+            .map_err(|error| error.to_string())?;
+        let (original_screen_width, original_screen_height, original_fullscreen) =
+            screen_state(api, screen_class)?;
+        if original_screen_width <= 0 || original_screen_height <= 0 {
+            return Err("screen dimensions must be positive".into());
+        }
+        let set_resolution = api
+            .class_method_with_parameter_types(
+                screen_class,
+                "SetResolution",
+                &["System.Int32", "System.Int32", "System.Boolean"],
+            )
+            .map_err(|error| error.to_string())?;
+        let (
+            zoom_controller,
+            zoom,
+            transposer,
+            follow_offset,
+            original_zoom,
+            maximum_zoom,
+            follow_target,
+            original_follow_target_position,
+        ) = resolve_zoom_controller(runtime)?;
+        let object_class = api
+            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Object")
+            .map_err(|error| error.to_string())?;
+        let destroy_immediate = api
+            .method(object_class, "DestroyImmediate", 2)
+            .map_err(|error| error.to_string())? as usize;
+        let zoom_handle = api
+            .gc_handle(zoom_controller)
+            .map_err(|error| error.to_string())?;
+        let transposer_handle = match api.gc_handle(transposer) {
+            Ok(handle) => handle,
+            Err(error) => {
+                api.free_gc_handle(zoom_handle);
+                return Err(error.to_string());
+            }
+        };
+        let follow_target_handle = match api.gc_handle(follow_target) {
+            Ok(handle) => handle,
+            Err(error) => {
+                api.free_gc_handle(zoom_handle);
+                api.free_gc_handle(transposer_handle);
+                return Err(error.to_string());
+            }
+        };
+        let capture = Self {
+            api,
+            zoom_handle,
+            transposer_handle,
+            follow_target_handle,
+            texture_handle: 0,
+            screen_class: screen_class as usize,
+            set_resolution: set_resolution as usize,
+            destroy_immediate,
+            width: 0,
+            height: 0,
+            original_screen_width,
+            original_screen_height,
+            original_fullscreen,
+            zoom: zoom as usize,
+            follow_offset: follow_offset as usize,
+            original_zoom_distance: original_zoom,
+            maximum_zoom_distance: maximum_zoom,
+            original_follow_target_position,
+        };
+        let setup = capture
+            .set_screen_resolution(1280, 720, false)
+            .and_then(|()| capture.apply_overview());
+        if let Err(error) = setup {
+            return match capture.restore(true) {
+                Ok(()) => Err(error),
+                Err(restore) => Err(format!("{error}; cannot restore capture state: {restore}")),
+            };
+        }
+        Ok(capture)
+    }
+
+    fn apply_overview(&self) -> Result<(), String> {
+        let target = self
+            .api
+            .gc_handle_target(self.follow_target_handle)
+            .map_err(|error| error.to_string())?;
+        let mut centered = UnityVec3 {
+            x: 0.0,
+            y: self.original_follow_target_position.y,
+            z: 0.0,
+        };
+        self.api
+            .invoke_void(target, "set_position", &mut [argument(&mut centered)])
+            .map_err(|error| error.to_string())?;
+        self.zoom_by(1_000_000.0)?;
+        let distance = self.zoom_distance()?;
+        if distance + 0.05 < self.maximum_zoom_distance {
+            return Err(format!(
+                "native overview camera stopped at {distance:.3}, below maximum {:.3}",
+                self.maximum_zoom_distance
+            ));
+        }
+        Ok(())
+    }
+
+    fn frame(&mut self) -> Result<Vec<u8>, String> {
+        self.ensure_capture_texture()?;
+        let texture = self
+            .api
+            .gc_handle_target(self.texture_handle)
+            .map_err(|error| error.to_string())?;
+        let mut source = UnityRect {
+            x: 0.0,
+            y: 0.0,
+            width: f32::from(self.width),
+            height: f32::from(self.height),
+        };
+        let mut destination_x = 0_i32;
+        let mut destination_y = 0_i32;
+        let mut recalculate_mipmaps = false;
+        self.api
+            .invoke_void(
+                texture,
+                "ReadPixels",
+                &mut [
+                    argument(&mut source),
+                    argument(&mut destination_x),
+                    argument(&mut destination_y),
+                    argument(&mut recalculate_mipmaps),
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+        let mut update_mipmaps = false;
+        let mut make_no_longer_readable = false;
+        self.api
+            .invoke_void(
+                texture,
+                "Apply",
+                &mut [
+                    argument(&mut update_mipmaps),
+                    argument(&mut make_no_longer_readable),
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+        let raw = self
+            .api
+            .invoke(texture, "GetRawTextureData", &mut [])
+            .and_then(|bytes| self.api.byte_array(bytes))
+            .map_err(|error| error.to_string());
+        let width = self.width;
+        let height = self.height;
+        let raw = raw?;
+        let pixels = usize::from(width)
+            .checked_mul(usize::from(height))
+            .ok_or("captured image dimensions overflow")?;
+        let channels = raw
+            .len()
+            .checked_div(pixels)
+            .filter(|channels| pixels * channels == raw.len() && matches!(channels, 3 | 4))
+            .ok_or_else(|| {
+                format!(
+                    "unsupported captured texture layout: {} bytes for {width}x{height}",
+                    raw.len()
+                )
+            })?;
+        let row_bytes = usize::from(width) * channels;
+        let mut rgb = Vec::with_capacity(pixels * 3);
+        for row in raw.chunks_exact(row_bytes).rev() {
+            for pixel in row.chunks_exact(channels) {
+                rgb.extend_from_slice(&pixel[..3]);
+            }
+        }
+        let mut jpeg = Vec::new();
+        Encoder::new(&mut jpeg, 90)
+            .encode(&rgb, width, height, ColorType::Rgb)
+            .map_err(|error| format!("cannot encode captured JPEG: {error}"))?;
+        Ok(jpeg)
+    }
+
+    fn restore(mut self, restore_zoom: bool) -> Result<(), String> {
+        let texture_result = self.destroy_texture();
+        let zoom_result = if restore_zoom {
+            self.restore_zoom()
+        } else {
+            Ok(())
+        };
+        let target_result = if restore_zoom {
+            self.restore_follow_target()
+        } else {
+            Ok(())
+        };
+        let resolution_result = self.set_screen_resolution(
+            self.original_screen_width,
+            self.original_screen_height,
+            self.original_fullscreen,
+        );
+        self.api.free_gc_handle(self.zoom_handle);
+        self.api.free_gc_handle(self.transposer_handle);
+        self.api.free_gc_handle(self.follow_target_handle);
+        if self.texture_handle != 0 {
+            self.api.free_gc_handle(self.texture_handle);
+        }
+        self.texture_handle = 0;
+        let failures: Vec<_> = [
+            texture_result,
+            zoom_result,
+            target_result,
+            resolution_result,
+        ]
+        .into_iter()
+        .filter_map(Result::err)
+        .collect();
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(failures.join("; "))
+        }
+    }
+
+    fn destroy_texture(&self) -> Result<(), String> {
+        if self.texture_handle == 0 {
+            return Ok(());
+        }
+        let texture = self
+            .api
+            .gc_handle_target(self.texture_handle)
+            .map_err(|error| error.to_string())?;
+        let mut allow_destroying_assets = false;
+        self.api
+            .invoke_raw(
+                self.destroy_immediate as *const MethodInfo,
+                ptr::null_mut(),
+                &mut [
+                    object_argument(texture),
+                    argument(&mut allow_destroying_assets),
+                ],
+            )
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+
+    fn ensure_capture_texture(&mut self) -> Result<(), String> {
+        if self.texture_handle != 0 {
+            return Ok(());
+        }
+        let screen_class = self.screen_class as *mut crate::il2cpp::Class;
+        let width = self
+            .api
+            .invoke_static(screen_class, "get_width", &mut [])
+            .and_then(|value| self.api.unbox::<i32>(value, "Screen.width"))
+            .map_err(|error| error.to_string())?;
+        let height = self
+            .api
+            .invoke_static(screen_class, "get_height", &mut [])
+            .and_then(|value| self.api.unbox::<i32>(value, "Screen.height"))
+            .map_err(|error| error.to_string())?;
+        if (width, height) != (1280, 720) {
+            return Err(format!(
+                "capture resolution did not settle at 1280x720: {width}x{height}"
+            ));
+        }
+        let texture_class = self
+            .api
+            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Texture2D")
+            .map_err(|error| error.to_string())?;
+        let texture = create_capture_texture(self.api, texture_class, 1280, 720)?;
+        self.texture_handle = self
+            .api
+            .gc_handle(texture)
+            .map_err(|error| error.to_string())?;
+        self.width = 1280;
+        self.height = 720;
+        Ok(())
+    }
+
+    fn set_screen_resolution(
+        &self,
+        mut width: i32,
+        mut height: i32,
+        mut fullscreen: bool,
+    ) -> Result<(), String> {
+        self.api
+            .invoke_raw(
+                self.set_resolution as *const MethodInfo,
+                ptr::null_mut(),
+                &mut [
+                    argument(&mut width),
+                    argument(&mut height),
+                    argument(&mut fullscreen),
+                ],
+            )
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+
+    fn restore_zoom(&self) -> Result<(), String> {
+        for _ in 0..4 {
+            let before = self.zoom_distance()?;
+            let remaining = self.original_zoom_distance - before;
+            if remaining.abs() <= 0.05 {
+                return Ok(());
+            }
+            let mut probe = remaining.signum() * 10.0;
+            self.zoom_by(probe)?;
+            let mut after = self.zoom_distance()?;
+            let mut movement = after - before;
+            if movement.abs() <= 0.000_1 {
+                probe = -probe;
+                self.zoom_by(probe)?;
+                after = self.zoom_distance()?;
+                movement = after - before;
+            } else if movement.signum() != remaining.signum() {
+                probe = -probe;
+                self.zoom_by(2.0 * probe)?;
+                after = self.zoom_distance()?;
+                movement = after - before;
+            }
+            if movement.abs() <= 0.000_1 {
+                break;
+            }
+            self.zoom_by((self.original_zoom_distance - after) * probe / movement)?;
+        }
+        let restored = self.zoom_distance()?;
+        Err(format!(
+            "camera zoom restored to {restored:.3}, expected {:.3}",
+            self.original_zoom_distance
+        ))
+    }
+
+    fn restore_follow_target(&self) -> Result<(), String> {
+        let target = self
+            .api
+            .gc_handle_target(self.follow_target_handle)
+            .map_err(|error| error.to_string())?;
+        let mut position = self.original_follow_target_position;
+        self.api
+            .invoke_void(target, "set_position", &mut [argument(&mut position)])
+            .map_err(|error| error.to_string())
+    }
+
+    fn zoom_by(&self, mut direction: f32) -> Result<(), String> {
+        let controller = self
+            .api
+            .gc_handle_target(self.zoom_handle)
+            .map_err(|error| error.to_string())?;
+        let mut speed = 1.0_f32;
+        self.api
+            .invoke_raw(
+                self.zoom as *const MethodInfo,
+                controller.cast(),
+                &mut [argument(&mut direction), argument(&mut speed)],
+            )
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+
+    fn zoom_distance(&self) -> Result<f32, String> {
+        let transposer = self
+            .api
+            .gc_handle_target(self.transposer_handle)
+            .map_err(|error| error.to_string())?;
+        let offset = self
+            .api
+            .field_value::<UnityVec3>(transposer, self.follow_offset as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        Ok((offset.x * offset.x + offset.y * offset.y + offset.z * offset.z).sqrt())
+    }
+}
+
+#[allow(clippy::type_complexity)] // Keeps one private discovery path without another state type.
+fn resolve_zoom_controller(
+    runtime: &Runtime,
+) -> Result<
+    (
+        *mut Object,
+        *const MethodInfo,
+        *mut Object,
+        *mut FieldInfo,
+        f32,
+        f32,
+        *mut Object,
+        UnityVec3,
+    ),
+    String,
+> {
+    let api = runtime.api;
+    let owner = api
+        .class("GRClient.dll", "GameRiver.Client", "GROverAllManualCam")
+        .map_err(|error| error.to_string())?;
+    let this = api
+        .find_object_of_class(owner)
+        .map_err(|error| error.to_string())?;
+    let getter = api
+        .method(owner, "GetZoomCameraController", 0)
+        .map_err(|error| error.to_string())?;
+    let target_field = api
+        .field(owner, "manualVCamFollowTarget")
+        .map_err(|error| error.to_string())?;
+    let follow_target = api
+        .field_value::<*mut Object>(this, target_field)
+        .map_err(|error| error.to_string())?;
+    if follow_target.is_null() {
+        return Err("battle camera follow target is unavailable".into());
+    }
+    let original_follow_target_position = api
+        .invoke_value::<UnityVec3>(follow_target, "get_position", &mut [])
+        .map_err(|error| error.to_string())?;
+    let controller = api
+        .invoke_raw(getter, this.cast(), &mut [])
+        .map_err(|error| error.to_string())?;
+    if controller.is_null() {
+        return Err("battle zoom camera controller is unavailable".into());
+    }
+    let class = api
+        .object_class(controller)
+        .ok_or("battle zoom camera controller has no runtime class")?;
+    let zoom = api
+        .class_method_with_parameter_types(class, "Zoom", &["System.Single", "System.Single"])
+        .map_err(|error| error.to_string())?;
+    let maximum = api
+        .invoke_value::<f32>(controller, "GetMaxDis", &mut [])
+        .map_err(|error| error.to_string())?;
+    let transposer = api
+        .invoke(controller, "GetCinemachineTransposer", &mut [])
+        .map_err(|error| error.to_string())?;
+    if transposer.is_null() {
+        return Err("battle camera has no Cinemachine transposer".into());
+    }
+    let transposer_class = api
+        .object_class(transposer)
+        .ok_or("battle camera transposer has no runtime class")?;
+    let follow_offset = api
+        .field(transposer_class, "m_FollowOffset")
+        .map_err(|error| error.to_string())?;
+    let original = api
+        .field_value::<UnityVec3>(transposer, follow_offset)
+        .map_err(|error| error.to_string())?;
+    let original =
+        (original.x * original.x + original.y * original.y + original.z * original.z).sqrt();
+    Ok((
+        controller,
+        zoom,
+        transposer,
+        follow_offset,
+        original,
+        maximum,
+        follow_target,
+        original_follow_target_position,
+    ))
+}
+
+fn screen_state(api: Api, screen: *mut crate::il2cpp::Class) -> Result<(i32, i32, bool), String> {
+    let width = api
+        .invoke_static(screen, "get_width", &mut [])
+        .and_then(|value| api.unbox::<i32>(value, "Screen.width"))
+        .map_err(|error| error.to_string())?;
+    let height = api
+        .invoke_static(screen, "get_height", &mut [])
+        .and_then(|value| api.unbox::<i32>(value, "Screen.height"))
+        .map_err(|error| error.to_string())?;
+    let fullscreen = api
+        .invoke_static(screen, "get_fullScreen", &mut [])
+        .and_then(|value| api.unbox::<bool>(value, "Screen.fullScreen"))
+        .map_err(|error| error.to_string())?;
+    Ok((width, height, fullscreen))
+}
+
+fn create_capture_texture(
+    api: Api,
+    texture_class: *mut crate::il2cpp::Class,
+    width: u16,
+    height: u16,
+) -> Result<*mut Object, String> {
+    let texture = api
+        .allocate_object(texture_class)
+        .map_err(|error| error.to_string())?;
+    let constructor = api
+        .method_with_parameter_types(
+            texture,
+            ".ctor",
+            &[
+                "System.Int32",
+                "System.Int32",
+                "UnityEngine.TextureFormat",
+                "System.Boolean",
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+    let mut texture_width = i32::from(width);
+    let mut texture_height = i32::from(height);
+    let mut rgb24 = 3_i32;
+    let mut mip_chain = false;
+    api.invoke_raw(
+        constructor,
+        texture.cast(),
+        &mut [
+            argument(&mut texture_width),
+            argument(&mut texture_height),
+            argument(&mut rgb24),
+            argument(&mut mip_chain),
+        ],
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(texture)
+}
+
 static CAPTURE: OnceLock<Mutex<CaptureState>> = OnceLock::new();
 static RUNTIME: AtomicPtr<Runtime> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_MATCH_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_DAMAGE_PERFORM: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -198,6 +767,12 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .map_err(|error| error.to_string())?;
         let update = api
             .method(fight, "Update", 0)
+            .map_err(|error| error.to_string())?;
+        let match_client = api
+            .class("GRClient.dll", "GameRiver.Client", "MatchClient")
+            .map_err(|error| error.to_string())?;
+        let match_update = api
+            .method(match_client, "Update", 0)
             .map_err(|error| error.to_string())?;
         let projectile_system = api
             .class("GRFight.dll", "GameRiver.Fight", "ProjectileSystem")
@@ -260,6 +835,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_projectile_destroy_hook(api, projectile_destroy)?;
         install_damage_perform_hook(api, damage_perform)?;
         install_update_hook(api, update)?;
+        install_match_update_hook(api, match_update)?;
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             projectile_controllers: projectile_controllers as usize,
@@ -277,7 +853,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
     }
 }
 
-pub(crate) fn start(runtime: &Runtime) -> Result<(), String> {
+pub(crate) fn start(runtime: &Runtime, visual: bool) -> Result<(), String> {
     let mut state = capture_state()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -302,21 +878,42 @@ pub(crate) fn start(runtime: &Runtime) -> Result<(), String> {
     if !deploying || fighting {
         return Err("recording requires Training Ground deployment before fighting".into());
     }
+    let current_match = runtime.current_match();
+    if current_match.is_null() {
+        return Err("active match disappeared before recording started".into());
+    }
     state.reset_session();
+    if visual {
+        state.visual = Some(VisualCapture::new(runtime)?);
+    }
     state.armed = true;
     drop(state);
 
-    let current_match = runtime.current_match();
-    if current_match.is_null() {
-        abort("active match disappeared before recording started");
-        return Err("active match disappeared before recording started".into());
-    }
     if let Err(error) = runtime
         .api
         .invoke_void(current_match, "ChangeProcessState", &mut [])
     {
-        abort(&format!("cannot start fight: {error}"));
-        return Err(format!("cannot start fight: {error}"));
+        let message = format!("cannot start fight: {error}");
+        abort(&message);
+        if let Err(restore_error) = stop() {
+            return Err(format!("{message}; cannot restore camera: {restore_error}"));
+        }
+        return Err(message);
+    }
+    Ok(())
+}
+
+pub(crate) fn stop() -> Result<(), String> {
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    state.armed = false;
+    state.pending_visual = None;
+    state.traces.clear();
+    let visual = state.visual.take();
+    drop(state);
+    if let Some(visual) = visual {
+        visual.restore(true)?;
     }
     Ok(())
 }
@@ -337,6 +934,7 @@ pub(crate) fn abort(reason: &str) {
 }
 
 type UpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type MatchUpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type ProjectileAddFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
 type ProjectileDestroyFn = unsafe extern "C" fn(*mut Object, *mut Object, bool, *const MethodInfo);
 type DamagePerformFn = unsafe extern "C" fn(
@@ -354,10 +952,20 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
     }
     // SAFETY: install_update_hook stores the trampoline for this exact method ABI.
     let original: UpdateFn = unsafe { std::mem::transmute(original) };
+    let runtime = RUNTIME.load(Ordering::Acquire);
     {
         let mut state = capture_state()
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if state.armed
+            && state.visual.is_some()
+            && state.pending_visual.is_some()
+            && !pending_visual_is_terminal(&state)
+        {
+            if let Err(error) = flush_visual_frame(&mut state) {
+                state.fail(error);
+            }
+        }
         state.in_update = state.armed;
         state.traces.clear();
     }
@@ -365,7 +973,6 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
     unsafe { original(controller, method) };
 
     let _ = catch_unwind(AssertUnwindSafe(|| {
-        let runtime = RUNTIME.load(Ordering::Acquire);
         if runtime.is_null() {
             return;
         }
@@ -394,23 +1001,45 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 let initial = snapshot(runtime, &mut state, true)?;
                 let context = durable_context(runtime)?;
                 state.initialized = true;
-                state.push(CaptureMessage::Initial {
-                    context,
-                    state: initial,
-                })?;
+                if let Some(visual) = state.visual.as_ref() {
+                    visual.apply_overview()?;
+                    state.pending_visual = Some(PendingVisualMessage::Initial {
+                        context,
+                        state: initial,
+                    });
+                } else {
+                    state.push(CaptureMessage::Initial {
+                        context,
+                        state: initial,
+                        frame: None,
+                    })?;
+                }
                 return Ok(());
             }
             let next = snapshot(runtime, &mut state, false)?;
             let traces = std::mem::take(&mut state.traces);
             let events = transition_events(&traces, &state);
             let terminal = !fighting;
-            state.push(CaptureMessage::Transition {
-                events,
-                state: next,
-                terminal,
-            })?;
-            if terminal {
-                state.armed = false;
+            if let Some(visual) = state.visual.as_ref() {
+                visual.apply_overview()?;
+                state.pending_visual = Some(PendingVisualMessage::Transition {
+                    events,
+                    state: next,
+                    terminal,
+                });
+                if terminal {
+                    state.terminal_match_delay = 1;
+                }
+            } else {
+                state.push(CaptureMessage::Transition {
+                    events,
+                    state: next,
+                    terminal,
+                    frame: None,
+                })?;
+                if terminal {
+                    state.armed = false;
+                }
             }
             Ok::<(), String>(())
         })();
@@ -418,6 +1047,84 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             state.fail(error);
         }
     }));
+}
+
+unsafe extern "C" fn match_update_hook(current: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_MATCH_UPDATE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: install_match_update_hook stores the trampoline for this exact method ABI.
+    let original: MatchUpdateFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: current and MethodInfo are forwarded unchanged from IL2CPP.
+    unsafe { original(current, method) };
+
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || state.visual.is_none() || !pending_visual_is_terminal(&state) {
+            return;
+        }
+        if state.terminal_match_delay > 0 {
+            state.terminal_match_delay -= 1;
+            return;
+        }
+        if let Err(error) = flush_visual_frame(&mut state) {
+            state.fail(error);
+        }
+    }));
+}
+
+fn pending_visual_is_terminal(state: &CaptureState) -> bool {
+    matches!(
+        state.pending_visual,
+        Some(PendingVisualMessage::Transition { terminal: true, .. })
+    )
+}
+
+fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
+    let frame = state
+        .visual
+        .as_mut()
+        .ok_or("visual capture disappeared before its pending logic frame")?
+        .frame()?;
+    let pending = state
+        .pending_visual
+        .take()
+        .ok_or("visual capture has no pending logic frame")?;
+    let terminal = matches!(
+        pending,
+        PendingVisualMessage::Transition { terminal: true, .. }
+    );
+    if terminal {
+        state.armed = false;
+        state
+            .visual
+            .take()
+            .ok_or("visual capture disappeared before camera restoration")?
+            .restore(false)?;
+    }
+    match pending {
+        PendingVisualMessage::Initial {
+            context,
+            state: world,
+        } => state.push(CaptureMessage::Initial {
+            context,
+            state: world,
+            frame: Some(frame),
+        }),
+        PendingVisualMessage::Transition {
+            events,
+            state: world,
+            terminal,
+        } => state.push(CaptureMessage::Transition {
+            events,
+            state: world,
+            terminal,
+            frame: Some(frame),
+        }),
+    }
 }
 
 unsafe extern "C" fn projectile_add_hook(
@@ -1272,6 +1979,22 @@ fn install_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String
         update_hook as *const c_void,
         &ORIGINAL_UPDATE,
         "FightController.Update",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_match_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
+        0xaa,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        match_update_hook as *const c_void,
+        &ORIGINAL_MATCH_UPDATE,
+        "MatchClient.Update",
     )
 }
 

@@ -48,6 +48,7 @@ type ClassFromName = unsafe extern "C" fn(*const Image, *const c_char, *const c_
 type ClassGetParent = unsafe extern "C" fn(*mut Class) -> *mut Class;
 type ClassGetName = unsafe extern "C" fn(*mut Class) -> *const c_char;
 type ClassGetNamespace = unsafe extern "C" fn(*mut Class) -> *const c_char;
+type ClassGetType = unsafe extern "C" fn(*mut Class) -> *const Type;
 type ClassGetFieldFromName = unsafe extern "C" fn(*mut Class, *const c_char) -> *mut FieldInfo;
 type FieldGetValue = unsafe extern "C" fn(*mut Object, *mut FieldInfo, *mut c_void);
 type FieldStaticGetValue = unsafe extern "C" fn(*mut FieldInfo, *mut c_void);
@@ -58,6 +59,7 @@ type MethodGetName = unsafe extern "C" fn(*const MethodInfo) -> *const c_char;
 type MethodGetParamCount = unsafe extern "C" fn(*const MethodInfo) -> u32;
 type MethodGetParam = unsafe extern "C" fn(*const MethodInfo, u32) -> *const Type;
 type TypeGetName = unsafe extern "C" fn(*const Type) -> *mut c_char;
+type TypeGetObject = unsafe extern "C" fn(*const Type) -> *mut Object;
 type Free = unsafe extern "C" fn(*mut c_void);
 type RuntimeInvoke = unsafe extern "C" fn(
     *const MethodInfo,
@@ -68,6 +70,11 @@ type RuntimeInvoke = unsafe extern "C" fn(
 type ObjectNew = unsafe extern "C" fn(*const Class) -> *mut Object;
 type ObjectUnbox = unsafe extern "C" fn(*mut Object) -> *mut c_void;
 type ObjectGetClass = unsafe extern "C" fn(*mut Object) -> *mut Class;
+type ArrayLength = unsafe extern "C" fn(*mut Object) -> usize;
+type ArrayObjectHeaderSize = unsafe extern "C" fn() -> usize;
+type GcHandleNew = unsafe extern "C" fn(*mut Object, bool) -> u32;
+type GcHandleGetTarget = unsafe extern "C" fn(u32) -> *mut Object;
+type GcHandleFree = unsafe extern "C" fn(u32);
 type StringNew = unsafe extern "C" fn(*const c_char) -> *mut StringObject;
 type StringChars = unsafe extern "C" fn(*mut StringObject) -> *const u16;
 type StringLength = unsafe extern "C" fn(*mut StringObject) -> i32;
@@ -86,6 +93,7 @@ pub struct Api {
     class_get_parent: ClassGetParent,
     class_get_name: ClassGetName,
     class_get_namespace: ClassGetNamespace,
+    class_get_type: ClassGetType,
     class_get_field_from_name: ClassGetFieldFromName,
     field_get_value: FieldGetValue,
     field_static_get_value: FieldStaticGetValue,
@@ -95,11 +103,17 @@ pub struct Api {
     method_get_param_count: MethodGetParamCount,
     method_get_param: MethodGetParam,
     type_get_name: TypeGetName,
+    type_get_object: TypeGetObject,
     free: Free,
     runtime_invoke: RuntimeInvoke,
     object_new: ObjectNew,
     object_unbox: ObjectUnbox,
     object_get_class: ObjectGetClass,
+    array_length: ArrayLength,
+    array_object_header_size: ArrayObjectHeaderSize,
+    gchandle_new: GcHandleNew,
+    gchandle_get_target: GcHandleGetTarget,
+    gchandle_free: GcHandleFree,
     string_new: StringNew,
     string_chars: StringChars,
     string_length: StringLength,
@@ -190,6 +204,7 @@ impl Api {
             class_get_parent: unsafe { symbol("class_get_parent")? },
             class_get_name: unsafe { symbol("class_get_name")? },
             class_get_namespace: unsafe { symbol("class_get_namespace")? },
+            class_get_type: unsafe { symbol("class_get_type")? },
             class_get_field_from_name: unsafe { symbol("class_get_field_from_name")? },
             field_get_value: unsafe { symbol("field_get_value")? },
             field_static_get_value: unsafe { symbol("field_static_get_value")? },
@@ -199,11 +214,17 @@ impl Api {
             method_get_param_count: unsafe { symbol("method_get_param_count")? },
             method_get_param: unsafe { symbol("method_get_param")? },
             type_get_name: unsafe { symbol("type_get_name")? },
+            type_get_object: unsafe { symbol("type_get_object")? },
             free: unsafe { symbol("free")? },
             runtime_invoke: unsafe { symbol("runtime_invoke")? },
             object_new: unsafe { symbol("object_new")? },
             object_unbox: unsafe { symbol("object_unbox")? },
             object_get_class: unsafe { symbol("object_get_class")? },
+            array_length: unsafe { symbol("array_length")? },
+            array_object_header_size: unsafe { symbol("array_object_header_size")? },
+            gchandle_new: unsafe { symbol("gchandle_new")? },
+            gchandle_get_target: unsafe { symbol("gchandle_get_target")? },
+            gchandle_free: unsafe { symbol("gchandle_free")? },
             string_new: unsafe { symbol("string_new")? },
             string_chars: unsafe { symbol("string_chars")? },
             string_length: unsafe { symbol("string_length")? },
@@ -331,6 +352,58 @@ impl Api {
             .map_or_else(|| "<null>".into(), |class| self.class_name(class))
     }
 
+    pub fn byte_array(self, array: *mut Object) -> Result<Vec<u8>, Error> {
+        if array.is_null() {
+            return Err(Error::NullResult("byte array".into()));
+        }
+        // SAFETY: array is a managed array returned by IL2CPP.
+        let length = unsafe { (self.array_length)(array) };
+        if length > 64 * 1024 * 1024 {
+            return Err(Error::InvalidValue(format!(
+                "managed byte array exceeds 64 MiB: {length}"
+            )));
+        }
+        // SAFETY: the runtime reports the byte offset from the object to the
+        // first array element for this ABI.
+        let offset = unsafe { (self.array_object_header_size)() };
+        if !(std::mem::size_of::<usize>() * 3..=256).contains(&offset) {
+            return Err(Error::InvalidValue(format!(
+                "invalid managed array header size {offset}"
+            )));
+        }
+        // SAFETY: byte arrays contain exactly length contiguous u8 elements
+        // after the runtime-reported header.
+        let bytes = unsafe { std::slice::from_raw_parts(array.cast::<u8>().add(offset), length) };
+        Ok(bytes.to_vec())
+    }
+
+    pub fn gc_handle(self, object: *mut Object) -> Result<u32, Error> {
+        if object.is_null() {
+            return Err(Error::NullResult("GC handle target".into()));
+        }
+        // SAFETY: object belongs to the current runtime; a non-pinned strong
+        // handle keeps it alive without exposing its storage address contract.
+        let handle = unsafe { (self.gchandle_new)(object, false) };
+        (handle != 0)
+            .then_some(handle)
+            .ok_or_else(|| Error::NullResult("gchandle_new".into()))
+    }
+
+    pub fn gc_handle_target(self, handle: u32) -> Result<*mut Object, Error> {
+        // SAFETY: callers pass a live handle created by gc_handle.
+        let object = unsafe { (self.gchandle_get_target)(handle) };
+        (!object.is_null())
+            .then_some(object)
+            .ok_or_else(|| Error::NullResult("gchandle_get_target".into()))
+    }
+
+    pub fn free_gc_handle(self, handle: u32) {
+        if handle != 0 {
+            // SAFETY: callers free each owned handle at most once.
+            unsafe { (self.gchandle_free)(handle) };
+        }
+    }
+
     pub fn field(self, class: *mut Class, name: &str) -> Result<*mut FieldInfo, Error> {
         let name_c = CString::new(name).map_err(|_| Error::InvalidCString)?;
         let mut current = class;
@@ -405,15 +478,48 @@ impl Api {
             .ok_or_else(|| Error::NullResult("method pointer".into()))
     }
 
+    pub fn find_object_of_class(self, class: *mut Class) -> Result<*mut Object, Error> {
+        // SAFETY: class belongs to the current runtime.
+        let runtime_type = unsafe { (self.class_get_type)(class) };
+        if runtime_type.is_null() {
+            return Err(Error::NullResult("class_get_type".into()));
+        }
+        // SAFETY: runtime_type is owned by IL2CPP.
+        let type_object = unsafe { (self.type_get_object)(runtime_type) };
+        if type_object.is_null() {
+            return Err(Error::NullResult("type_get_object".into()));
+        }
+        let object_class = self.class("UnityEngine.CoreModule.dll", "UnityEngine", "Object")?;
+        let finder = self.class_method_with_parameter_types(
+            object_class,
+            "FindObjectOfType",
+            &["System.Type"],
+        )?;
+        let found =
+            self.invoke_raw(finder, ptr::null_mut(), &mut [object_argument(type_object)])?;
+        (!found.is_null()).then_some(found).ok_or_else(|| {
+            Error::NullResult(format!("FindObjectOfType({})", self.class_name(class)))
+        })
+    }
+
     pub fn method_with_parameter_types(
         self,
         object: *mut Object,
         name: &str,
         parameter_types: &[&str],
     ) -> Result<*const MethodInfo, Error> {
-        let mut class = self
+        let class = self
             .object_class(object)
             .ok_or_else(|| Error::NullResult(name.into()))?;
+        self.class_method_with_parameter_types(class, name, parameter_types)
+    }
+
+    pub fn class_method_with_parameter_types(
+        self,
+        mut class: *mut Class,
+        name: &str,
+        parameter_types: &[&str],
+    ) -> Result<*const MethodInfo, Error> {
         let original = self.class_name(class);
         while !class.is_null() {
             let mut iterator = ptr::null_mut();
@@ -558,13 +664,17 @@ impl Api {
     }
 
     pub fn new_object(self, class: *mut Class) -> Result<*mut Object, Error> {
-        // SAFETY: class is a runtime class from the current domain.
-        let object = unsafe { (self.object_new)(class) };
-        let object = (!object.is_null())
-            .then_some(object)
-            .ok_or_else(|| Error::NullResult("object_new".into()))?;
+        let object = self.allocate_object(class)?;
         self.invoke_void(object, ".ctor", &mut [])?;
         Ok(object)
+    }
+
+    pub fn allocate_object(self, class: *mut Class) -> Result<*mut Object, Error> {
+        // SAFETY: class is a runtime class from the current domain.
+        let object = unsafe { (self.object_new)(class) };
+        (!object.is_null())
+            .then_some(object)
+            .ok_or_else(|| Error::NullResult("object_new".into()))
     }
 
     pub fn string(self, value: &str) -> Result<*mut StringObject, Error> {
