@@ -1,37 +1,36 @@
 schema: mechcore.unit
-type_name: arclight
-unit_type_id: 15
+type_name: fang
+unit_type_id: 9
 
 formation:
-  members: 1
-  slot_size: 20
-  footprint: {width: 20, depth: 20}
+  members: 18
+  slot_size: 8
+  footprint: {width: 50, depth: 20}
 
 domain: ground
-max_life: 4813
-collision_radius: 9
-move_speed: 7
-rotate_speed: 80
-has_body: true
-independent_aim: false
+max_life: 117
+collision_radius: 2
+move_speed: 6
+rotate_speed: 120
+has_body: false
 
 attack:
-  base_damage: 365
+  base_damage: 63
   min_range: 0
-  range: 95
+  range: 75
   attack_half_angle: 20
-  targets: {ground: true, air: false}
+  targets: {ground: true, air: true}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 0.9
-    interval_offset: 0.3
+    interval: 1.5
+    interval_offset: 0.4
     initial_cooldown: 0
-    prepare: 0
+    prepare: 0.1
     attack_point: 0
     backswing: 0
     cooling: 0
-  splash_radius: 7
+  splash_radius: 0
   weapons:
     mode: normal
     count: 1
@@ -40,7 +39,7 @@ attack:
     type: projectile
     count: 1
     release_interval: 0
-    speed: 300
+    speed: 280
     target_offset_radius: 0
     evenly_allocate_targets: false
     extra_search_range: 0

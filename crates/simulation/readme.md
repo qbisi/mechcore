@@ -150,15 +150,20 @@ layout 必须以一个已完整闭合的父 layout 为基础，只改变一个�
 
 优先级固定如下：
 
-1. **P0：无科技单单位基线**。`round: 1`，每队一个 level-1、未旋转、无装备、非
-   travelling 的 Unit；Officer、单位科技、Research Center、Energy Tower 和
-   `battle_skills` 均保持基线。先对已有 config 的 Unit 完成逐字段数值证据审计。
-2. **P1：单位类型与基础运动/攻击**。每次引入一个 Unit `type`，先做镜像同型场景，
-   再与一个已闭合参考单位交叉；通过位置变化依次触发静止射程内、直线接敌、斜向
-   接敌、射程边界、转向、不同 target domain 和投射物/范围伤害分支。
-3. **P2：多 Formation 交互**。在已闭合单单位机制上增加第二个 Formation，研究队内
-   更新顺序、目标选择、范围伤害、同 tick 事件顺序、随机流消费和身份分配。不得用
-   多单位场景反向拟合尚未闭合的单单位基础数值。
+1. **P0：全部普通非超巨型 Formation Unit 基线**。`round: 1`，从每队一个 level-1、
+   未旋转、无装备、非 travelling 的 Formation 开始；Officer、单位科技、Research Center、
+   Energy Tower 和 `battle_skills` 均保持基线。每队一个 Formation 是最小起点而不是
+   场景上限：目标失效与重获、范围目标选择、攻击方向切换或本 Unit 的原生 Formation
+   成员生成需要额外对象时，必须加入关闭相应 obligation 所需的最少基线 Formation，
+   仍计入 P0。按冻结的 coverage manifest 逐 Unit 闭合完整 Formation 生成、其原生接敌
+   与基础攻击路径、结果和配置证据。
+2. **P1：已闭合单位的基础边界扩展**。在 P0 的已闭合 Unit 上，通过位置变化依次
+   触发静止射程内、直线接敌、斜向接敌、射程边界、额外转向、不同 target domain
+   和已经存在但 P0 最小 layout 未经过的攻击路径边界。
+3. **P2：额外多 Formation 交互**。P0 已经为单位自身的基础攻击路径加入必要的最少
+   Formation；P2 只在这些 obligation 之外增加 Formation，研究组合性的队内更新顺序、
+   目标选择、范围伤害、同 tick 事件顺序、随机流消费和身份分配。不得把 P0 必需的
+   多目标分支推迟到 P2，也不得用多单位场景反向拟合尚未闭合的单单位基础数值。
 4. **P3：Unit 可选字段**。依次改变 `level`、`rotated`、`round`/ambush 位置与
    `travelling`、`equipment`；每次只启用一个非基线值，并为离散边界建立最小区分性
    layout。
@@ -175,6 +180,58 @@ layout 必须以一个已完整闭合的父 layout 为基础，只改变一个�
 新增 Unit config 必须一单位一 YAML，并先追溯其基础生命、移动、旋转、碰撞、攻击类型、
 目标域、伤害、射程、间隔、释放延迟和投射物字段的原生来源。当前阶段不因科技需求提前
 扩展 Unit 公共描述。
+
+### P0 coverage manifest 门禁
+
+P0 不是“找到一个能够闭合的无科技 layout”，而是目标 build 中全部普通、可部署、
+非 `UnitType.Huge` Formation Unit 的有限覆盖任务。开始逐 layout 研究前，调度 Agent
+必须建立并冻结 coverage manifest。单位集合必须同时由目标 build 的原生
+`ConfigDataContainer`、原生 `UnitType` 判定和 Adapter 可部署目录证明，不能从现有
+Simulator config、名称或占地尺寸反推。
+
+Manifest 为每个 Unit 固定以下公共 obligation：
+
+1. 完整 Formation 的生成、成员数量、成员身份和初始快照；不得把多成员 Formation
+   缩减为一个代表单位；
+2. 目标获取、目标失效后的重新索敌，以及该 Unit 实际需要的移动、转向和进入原生交战条件；
+3. 完成一次原生基础攻击路径；
+4. 该路径产生的伤害或其它原生基础效果、相关死亡和战斗结束；
+5. 本 Unit config 中每个字段的目标版本代码或序列化数据来源；
+6. 所有实际经过分支的逐 tick hash 全等和独立审查结论。
+
+基础攻击 obligation 必须由目标 build 的原生技能类型和分支生成。投射物单位验证其
+实际单发/多发、飞行和命中路径；射线、控制束和直接效果单位只验证其实际路径。近战
+Unit 的最小 layout 不得从已满足攻击条件的位置开始，而必须从目标 build 所定义的原生
+交战判定范围外开始，并实际经过有效目标下的追击、非零转向、首次进入交战边界、移动到
+攻击的状态转换、无投射物伤害，以及连续攻击直至相关死亡和战斗结束。攻击准备、攻击点、
+生效、后摇和冷却必须作为独立 obligation；配置与代码使某阶段为零且不可进入时，经独立
+审查后标记该阶段 `not_applicable`，不得把五个阶段合并成一个无法判定的 timing obligation。
+若代码证明交战边界是距离或技能范围而非物理碰撞，就只称为“近战交战边界”；
+不得因 `isMeleeAttack=true` 字段或单位名称预设“碰撞触发攻击”。
+
+攻击路径、武器拓扑与效果拓扑是三个正交门禁。带范围效果的 Unit 除完成其原生投射物
+或直接效果路径外，还必须验证原生作用中心、范围内目标选择、范围外排除和确定性目标
+顺序；只命中一个主目标不能关闭范围效果 obligation。
+目标死亡/失效后的重新索敌与活目标周期切换是两项独立 obligation。目标版本代码表明，
+死亡或失效目标会绕过 `quick_switch_target` 比较直接重获；该字段必须在旧目标仍存活、
+周期搜索选出不同目标的分支验证。值为 `false` 时该次 attackability 检查失败并按当前
+技能状态退出 Prepare 或结束 Attack；只有 `coolingTime > 0` 的 Attack Finish 才进入
+CoolingState，不能把“禁止活目标快速切换”解释为“死亡后先冷却再换目标”。
+
+每个 path-specific obligation 必须在 Unit 条目下单独记录状态。不得用一个聚合的
+`open`/`closed` 覆盖整条攻击路径；未列出 resolution 的 obligation 默认为 `open`。
+某项只有在反编译证据证明该 Unit 不可能经过时，才可由独立审查标记为
+`not_applicable`；未实现、未触发或 MCFR 不可见都不是 `not_applicable`。
+
+“最少合法 layout”只允许一个 layout 同时关闭它真实经过的多个 obligation，不允许
+删减 obligation，也不允许以“基线每队一个 Formation”为理由把需要额外目标的
+obligation 标记为 `not_applicable` 或推迟到 P2。每个 layout 仍是独立闭合单元和独立提交。只有 manifest 中全部 Unit
+的全部 obligation 都为 `closed` 或经独立审查确认的 `not_applicable`，P0 才完成；队列
+为空、一个参考对局闭合或一种攻击路径闭合均不构成完成。
+
+P0 campaign 的 `game_build`、MCFR schema 和完整 config snapshot 必须在首个正式 case
+前冻结。任一项改变都会使 campaign 内既有 case 失效并要求重新采集、模拟和审查。
+冻结前取得的旧 case 只能作为候选机制证据，不能直接计入 manifest 的最终完成状态。
 
 ### 本地状态、产物与恢复
 
@@ -193,7 +250,8 @@ work/research/
     evidence/
 ```
 
-`pipeline.yaml` 只需维护 `current`、`queue`、`closed` 和 `blocked`。每个 case 至少记录
+`pipeline.yaml` 维护 campaign/coverage manifest 指针、当前冻结状态、`current`、
+`queue`、`closed` 和 `blocked`。每个 case 至少记录
 `id`、父 case、build、layout 路径/hash、seed、唯一变化字段、状态、首个分歧和下一动作；
 前置验证 case 还要记录 `verification_for` 及待验证的 tick/字段预测。
 允许的状态为 `queued`、`running`、`output_aligned`、`closed`、`rejected`、
@@ -229,23 +287,29 @@ work/research/
 | 攻击间隔随机流 | `FightTeam.RefreshRandomData` 为每队建立 `GRRandom`，seed 为 `(round + teamIndex) * 4444`；当前单成员场景消费结果已对齐 | 多成员、多个技能的队内刷新顺序 |
 | 攻击调度 | `RefreshAttackInterval` 的逻辑步换算、至少一 tick 下界，以及首次进入 Attack 后下一次更新才可释放 | 其它技能状态机分支 |
 | 基础方向 | 不存在额外的 `aim_tolerance: 20` 转向死区；当前场景部署方向已对齐 | `Normalize -> Angle -> RawAcos` 全方向和边界舍入 |
+| Normal 目标评分与开战前索敌 | build2259 在可见、全旋转、未分裂四叉树且唯一最优的当前普通地面目标集合中，以 Q32 边缘距离、最小射程严格排除、角度因子、射程外惩罚和严格最小分数选择目标；`FightPrepareState` 在 S(0) 前完成首次索敌并同步初始朝向 | 分裂四叉树、同分候选、建筑胜出、移动候选重插入和其它 selector mode |
 | 普通投射物 | `Init/Update/Move` 的 Q32.32 移动、活动时 `released=false`、默认 rotation 和实际 transform 移除位置；build2259 长弓/弧光普通单投射物在 `isLockTarget=true`、目标存活且移动、`randomTargetRange=0`/offset=0 分支逐 tick 刷新目标 root Q32 位置 | 非锁定、目标死亡、非零随机 offset、拦截及其它投射物类型 |
-| 伤害与死亡 | `ReduceLife` 的实际扣血量、Projectile provider、伤害/移除同 tick 顺序，以及退出战斗后的即时 Idle | 多目标范围伤害和其它 provider |
+| 伤害与死亡 | `ReduceLife` 将实际扣血裁剪为 `min(currentLife, incomingDamage)`；Adapter 的 Damage hook 直接记录原生 performer 返回值。除已闭合的 Projectile provider 外，build2259 犀牛主技能 5001 在 level-1、无科技/装备/动态 buff/护盾干预的当前单目标直接效果中，经 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty` 得到 nominal 3560，末击按剩余生命裁剪 | 多目标范围伤害、修正链、护盾和其它 provider/目标域 |
 | 个人护盾基线 | 无护盾单位的 `EnergyShieldController.enabled=true` 初始状态 | 实际护盾激活、吸收和销毁生命周期 |
 | 普通首发延迟 | 当前 P0 普通首发分支分别将 `prepareTime` 与 `attackPoint` 除以逻辑步并截断；长弓为 10+2 tick，弧光为 0+0 tick | 重复攻击、grouped/loading、后摇及其它阶段调整；不得推广为两字段相加的通式 |
+| 普通同步直接攻击后摇 | build2259 犀牛普通直接攻击在 effect tick 进入 9-tick backswing；wait controller 每 tick 先递增再以 `counter >= duration` 完成，因此第九次 wait update 所在 tick 仍不能重新发起攻击，下一 tick 才重新进入 `TryPerformAttack` | 前摇中目标失效、第三方击杀、快速换目标及其它 controller |
+| 普通同步直接击杀后的死亡目标重获 | build2259 犀牛由自身同步直接攻击击杀当前目标后，在该次 after-wait 结束前保留死亡目标并保持 Idle；已闭合录像的公开边界为 tick 223 击杀、224–232 保留、233 清除、234 已有新目标并重新进入 Move | 新目标私有引用在 tick 233 或 234 的精确写入点不可由 S/E 观察；第三方击杀、活目标周期切换及其它技能状态仍未覆盖 |
 | 主技能瞄准命令 | build2259 长弓、弧光在 `isHaveBody=true` 的普通主技能攻击转向分支中，将同一次 `CalculateTargetDirection` 生成的同一 direction 局部值分别传给 mech body 与主武器，因此 `independent_aim=false`；mech body 不是 MCFR unit root | 无 mech body、其它 weapon mode、特殊技能及独立方向源 |
+| 一对一直接击杀的终局顺序 | build2259 中 `FightCoreSystem.TeamUpdate` 在更新本队单位前缓存 alive count；较早 Team 的同步直接击杀可被较晚 Team 在同 tick 重建为零，随后 `TryDstroyTower` 销毁建筑。塔死亡晚于该 tick 的 `DeadEffectSystem.Update`，因此还需一个 drain tick；战斗已满足 finish gate 时不再执行后续 RVO | 多成员/多 Group、召唤、重生、Construction、护盾、同 tick 混合伤害和任意 drain 长度 |
 
-build `1.11.1.3.2259` 已闭合的 level-1、无科技、无装备、无动态 buff 基础配置：
+下表是旧 Marksman/Arclight 参考场景已闭合的 level-1、无科技、无装备、无动态 buff
+字段证据；它们不计入当前 23 Unit campaign 的 manifest completion：
 
-| Unit | life | radius | move | rotate | damage | range | interval | interval offset | release delay | projectile speed | splash |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Marksman | 1622 | 8 | 8 | 70 | 2329 | 140 | 3.1 | 0.6 | 0.6 | 500 | 0 |
-| Arclight | 4813 | 9 | 7 | 80 | 365 | 95 | 0.9 | 0.3 | 0 | 300 | 7 |
+| Unit | life | radius | move | rotate | damage | range | interval | offset | prepare | attack point | backswing | cooling | projectile speed | splash |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Marksman | 1622 | 8 | 8 | 70 | 2329 | 140 | 3.1 | 0.6 | 0.5 | 0.1 | 0 | 0.2 | 500 | 0 |
+| Arclight | 4813 | 9 | 7 | 80 | 365 | 95 | 0.9 | 0.3 | 0 | 0 | 0 | 0 | 300 | 7 |
 
 其中时间小数是目标 build Q32.32 原始字段的 YAML 表示；原生逻辑按字段分别换算为
 tick。Marksman 的目标域为 ground+air，Arclight 为 ground；两者均为 ground Unit、
-`isLockTarget=true`、`randomTargetRange=0`。`attack_type` 是 Simulator 对普通投射物及
-零/非零 splash 的保守投影，不是游戏原生枚举。
+`lock_target=true`、`quick_switch_target=true`、`target_offset_radius=0`；两者均为
+Normal 拓扑的单投射物路径。零/非零 `splash_radius` 只表示效果拓扑，不是游戏原生
+攻击类型枚举。
 
 ## 研究日志
 

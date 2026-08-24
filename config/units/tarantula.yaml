@@ -1,37 +1,37 @@
 schema: mechcore.unit
-type_name: arclight
-unit_type_id: 15
+type_name: tarantula
+unit_type_id: 24
 
 formation:
   members: 1
-  slot_size: 20
-  footprint: {width: 20, depth: 20}
+  slot_size: 30
+  footprint: {width: 30, depth: 30}
 
 domain: ground
-max_life: 4813
-collision_radius: 9
-move_speed: 7
+max_life: 14773
+collision_radius: 12
+move_speed: 8
 rotate_speed: 80
 has_body: true
 independent_aim: false
 
 attack:
-  base_damage: 365
+  base_damage: 496
   min_range: 0
-  range: 95
-  attack_half_angle: 20
+  range: 80
+  attack_half_angle: 15
   targets: {ground: true, air: false}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 0.9
-    interval_offset: 0.3
+    interval: 0.6
+    interval_offset: 0.05
     initial_cooldown: 0
     prepare: 0
     attack_point: 0
     backswing: 0
     cooling: 0
-  splash_radius: 7
+  splash_radius: 5
   weapons:
     mode: normal
     count: 1
@@ -40,7 +40,7 @@ attack:
     type: projectile
     count: 1
     release_interval: 0
-    speed: 300
+    speed: 420
     target_offset_radius: 0
     evenly_allocate_targets: false
     extra_search_range: 0

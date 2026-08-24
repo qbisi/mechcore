@@ -1,0 +1,40 @@
+schema: mechcore.unit
+type_name: crawler
+unit_type_id: 10
+
+formation:
+  members: 24
+  slot_size: 6
+  footprint: {width: 50, depth: 20}
+
+domain: ground
+max_life: 263
+collision_radius: 2
+move_speed: 16
+rotate_speed: 120
+has_body: false
+
+attack:
+  base_damage: 79
+  min_range: 0
+  range: 6
+  attack_half_angle: 20
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: false
+  timing:
+    interval: 0.6
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0.2
+    backswing: 0.4
+    cooling: 0
+  splash_radius: 0
+  weapons:
+    mode: normal
+    count: 1
+    per_skill: 1
+  path:
+    type: direct
+    melee: true

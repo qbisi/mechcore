@@ -1,37 +1,36 @@
 schema: mechcore.unit
-type_name: arclight
-unit_type_id: 15
+type_name: hound
+unit_type_id: 28
 
 formation:
-  members: 1
-  slot_size: 20
-  footprint: {width: 20, depth: 20}
+  members: 5
+  slot_size: 13
+  footprint: {width: 40, depth: 20}
 
 domain: ground
-max_life: 4813
-collision_radius: 9
-move_speed: 7
-rotate_speed: 80
-has_body: true
-independent_aim: false
+max_life: 879
+collision_radius: 4
+move_speed: 10
+rotate_speed: 120
+has_body: false
 
 attack:
-  base_damage: 365
+  base_damage: 246
   min_range: 0
-  range: 95
+  range: 70
   attack_half_angle: 20
   targets: {ground: true, air: false}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 0.9
+    interval: 2.4
     interval_offset: 0.3
     initial_cooldown: 0
     prepare: 0
     attack_point: 0
-    backswing: 0
+    backswing: 0.8
     cooling: 0
-  splash_radius: 7
+  splash_radius: 6
   weapons:
     mode: normal
     count: 1

@@ -75,8 +75,8 @@ pub fn simulate_layout_with_config(
 ) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
     let output_path = output_path.as_ref();
-    let layout = layout::load(layout_path)?;
     let config = rules::SimulationConfig::load(config_directory)?;
+    let layout = layout::load(layout_path, &config.units)?;
     let (seed, source) = match seed {
         Some(seed) => (seed, "external"),
         None => (generate_seed(layout_path)?, "generated"),

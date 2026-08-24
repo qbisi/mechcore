@@ -1,37 +1,37 @@
 schema: mechcore.unit
-type_name: arclight
-unit_type_id: 15
+type_name: sledgehammer
+unit_type_id: 13
 
 formation:
-  members: 1
-  slot_size: 20
-  footprint: {width: 20, depth: 20}
+  members: 5
+  slot_size: 10
+  footprint: {width: 50, depth: 20}
 
 domain: ground
-max_life: 4813
-collision_radius: 9
+max_life: 3478
+collision_radius: 4
 move_speed: 7
-rotate_speed: 80
+rotate_speed: 50
 has_body: true
 independent_aim: false
 
 attack:
-  base_damage: 365
+  base_damage: 608
   min_range: 0
   range: 95
-  attack_half_angle: 20
+  attack_half_angle: 15
   targets: {ground: true, air: false}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 0.9
-    interval_offset: 0.3
+    interval: 4.5
+    interval_offset: 0.6
     initial_cooldown: 0
     prepare: 0
     attack_point: 0
     backswing: 0
     cooling: 0
-  splash_radius: 7
+  splash_radius: 5
   weapons:
     mode: normal
     count: 1

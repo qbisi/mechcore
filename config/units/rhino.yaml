@@ -1,0 +1,40 @@
+schema: mechcore.unit
+type_name: rhino
+unit_type_id: 5
+
+formation:
+  members: 1
+  slot_size: 30
+  footprint: {width: 30, depth: 30}
+
+domain: ground
+max_life: 19297
+collision_radius: 11
+move_speed: 16
+rotate_speed: 100
+has_body: false
+
+attack:
+  base_damage: 3560
+  min_range: 0
+  range: 6
+  attack_half_angle: 40
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: false
+  timing:
+    interval: 0.9
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0.4
+    backswing: 0.45
+    cooling: 0
+  splash_radius: 6
+  weapons:
+    mode: normal
+    count: 2
+    per_skill: 2
+  path:
+    type: direct
+    melee: true

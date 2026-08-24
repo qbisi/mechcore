@@ -375,8 +375,9 @@ requires its complete edge to be strictly inside the same own-side region. For
 integer layout coordinates, its center must therefore lie in
 `x=[-229,229], y=[-239,-81]`.
 
-The footprint provider covers all 32 public ordinary units from the build-2227
-spatial catalog, the four ordinary opening constructions, and the interceptor:
+The footprint provider covers all 32 public ordinary units validated against
+the build `1.11.1.3.2259` card catalog, the four ordinary opening constructions,
+and the interceptor:
 
 - `arclight`, `marksman`, and `vortex`: `20 x 20`;
 - `farseer`, `hacker`, `rhino`, `sabertooth`, `scorpion`, `tarantula`, and

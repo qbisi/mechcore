@@ -1,37 +1,36 @@
 schema: mechcore.unit
-type_name: arclight
-unit_type_id: 15
+type_name: phoenix
+unit_type_id: 16
 
 formation:
-  members: 1
+  members: 2
   slot_size: 20
-  footprint: {width: 20, depth: 20}
+  footprint: {width: 40, depth: 20}
 
-domain: ground
-max_life: 4813
-collision_radius: 9
-move_speed: 7
+domain: air
+max_life: 1491
+collision_radius: 8
+move_speed: 16
 rotate_speed: 80
-has_body: true
-independent_aim: false
+has_body: false
 
 attack:
-  base_damage: 365
+  base_damage: 2814
   min_range: 0
-  range: 95
+  range: 120
   attack_half_angle: 20
-  targets: {ground: true, air: false}
+  targets: {ground: true, air: true}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 0.9
-    interval_offset: 0.3
+    interval: 3.4
+    interval_offset: 0.8
     initial_cooldown: 0
-    prepare: 0
+    prepare: 1
     attack_point: 0
     backswing: 0
     cooling: 0
-  splash_radius: 7
+  splash_radius: 0
   weapons:
     mode: normal
     count: 1
@@ -40,7 +39,7 @@ attack:
     type: projectile
     count: 1
     release_interval: 0
-    speed: 300
+    speed: 400
     target_offset_radius: 0
     evenly_allocate_targets: false
     extra_search_range: 0

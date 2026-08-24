@@ -4,15 +4,16 @@
 
 ## Scope
 
-`mechcore.unit` describes the baseline values of exactly one unit. Each unit
-has one YAML file named `<type_name>.yaml`. A unit file does not contain the
-simulation clock, coordinate precision, RNG contract, layout, technologies,
-statuses, equipment, or research-specific diagnostics.
+`mechcore.unit` describes the baseline data of exactly one Formation Unit. Each
+unit has one YAML file named `<type_name>.yaml`. The configuration does not
+contain the simulation clock, numeric precision, RNG implementation, layout,
+technologies, statuses, equipment, or research-only diagnostics.
 
-The current files are:
-
-- [`marksman.yaml`](../config/units/marksman.yaml)
-- [`arclight.yaml`](../config/units/arclight.yaml)
+The files under [`config/units`](../config/units) cover the 23 ordinary,
+non-Huge Formation Units in the current P0 build. Unknown fields are rejected;
+`type_name` and `unit_type_id` must each be unique within one configuration
+root. Unit files carry neither a schema version nor a game-build field. The
+top-level `config.yaml` carries `game_build`, without version matching.
 
 ## File shape
 
@@ -20,77 +21,139 @@ The current files are:
 schema: mechcore.unit
 type_name: marksman
 unit_type_id: 2
+
+formation:
+  members: 1
+  slot_size: 20
+  footprint: {width: 20, depth: 20}
+
 domain: ground
 max_life: 1622
 collision_radius: 8
 move_speed: 8
 rotate_speed: 70
+has_body: true
 independent_aim: false
 
 attack:
-  attack_type: direct_projectile
-  target_domain: both
-  damage: 2329
+  base_damage: 2329
+  min_range: 0
   range: 140
-  interval: 3.1
-  interval_offset: 0.6
-  release_delay: 0.6
-  projectile_speed: 500
-  effect_radius: 0
+  attack_half_angle: 20
+  targets: {ground: true, air: true}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 3.1
+    interval_offset: 0.6
+    initial_cooldown: 0
+    prepare: 0.5
+    attack_point: 0.1
+    backswing: 0
+    cooling: 0.2
+  splash_radius: 0
+  weapons:
+    mode: normal
+    count: 1
+    per_skill: 1
+  path:
+    type: projectile
+    count: 1
+    release_interval: 0.2
+    speed: 500
+    target_offset_radius: 0
+    evenly_allocate_targets: false
+    extra_search_range: 0
+    pre_flight_height: 0
+    simulated_motion: false
+    interceptible: false
+    max_life: 0
 ```
-
-Unknown fields are rejected. `type_name` and `unit_type_id` must each be unique
-within a directory. Unit files carry neither a schema version nor a game-build
-version, and loading performs no version-match check.
 
 ## Conservative common fields
 
 | Field | Meaning |
 | --- | --- |
-| `type_name`, `unit_type_id` | Layout name and stable MCFR type ID. |
-| `domain` | The unit is `ground` or `air`. |
-| `max_life` | Baseline maximum life. |
-| `collision_radius` | Movement, range and projectile-impact boundary in m. |
-| `move_speed`, `rotate_speed` | Movement and body rotation speed in m/s and deg/s. |
-| `independent_aim` | During normal main-skill attack rotation, whether the main weapon can receive an aim-direction command generated independently of the unit mech body's attack-direction command. The mech body is not the MCFR unit root. |
-| `attack_type` | Currently `direct_projectile` or `area_projectile`. |
-| `target_domain` | The attack accepts `ground`, `air` or `both`. |
-| `damage`, `range` | Baseline damage and attack range in m. |
-| `interval`, `interval_offset` | Attack interval and deterministic random offset in s. |
-| `release_delay` | Total action-start to projectile-release delay in s. |
-| `projectile_speed`, `effect_radius` | Projectile speed and effect radius in m/s and m; direct projectiles require zero radius. |
+| `type_name`, `unit_type_id` | Layout name and stable MCFR unit type ID. |
+| `formation.members` | Number of native members created for one Formation. |
+| `formation.slot_size` | Native member-grid slot size used to derive row and column counts. |
+| `formation.footprint` | Native card base width and depth used to generate member positions. |
+| `domain` | Whether the unit is `ground` or `air`. |
+| `max_life` | Unmodified level-1 maximum life per member. |
+| `collision_radius` | Native member radius used by movement, range and hit tests. |
+| `move_speed`, `rotate_speed` | Member movement and body rotation speed. |
+| `has_body` | Whether native `MechData` exposes a separate mech body. |
+| `independent_aim` | Whether the main weapon receives an aim direction generated independently of the mech body direction. In the current P0 catalog it is present exactly for units with a mech body; omission means not applicable, not `false`. |
+| `base_damage` | Unmodified level-1 mech base damage before path-specific attack-count multipliers. |
+| `min_range`, `range`, `attack_half_angle` | Native engagement distance bounds and effective main-skill half-angle. |
+| `targets`, `lock_target` | Native ground/air target acceptance and projectile/skill target locking. |
+| `quick_switch_target` | Whether a periodic search may replace a still-alive attack target without first leaving the active attack state. Dead or invalid target replacement follows a separate native branch. |
+| `timing.*` | Native attack interval, random offset, initial cooldown, prepare, attack point, backswing and cooling phases. |
+| `splash_radius` | Native base effect radius; zero means no area effect. |
 
-The schema does not pre-abstract card dimensions, slots, flat damage reduction,
-or separate backswing/cooling phases that this scene does not consume. A field
-is added only after a mechanism is shown to participate in a state transition.
+Formation rows and columns are derived from `members`, `slot_size`, and
+`footprint`; jitter constants, member RNG, update order, and identity allocation
+are kernel mechanisms. They are not duplicated in unit YAML. The Adapter assigns initial unit identities after
+sorting by team, world `z`, then world `x`; native member creation order is not
+the MCFR identity order.
 
-Configuration boundaries use metres, seconds and degrees. Loading requires
-spatial values to quantize exactly to 1 mm, time values to 0.0005 s, and
-rotation speed to 0.001 deg/s. A value outside that precision is rejected.
+`independent_aim` remains meaningful for units with a mech body. For bodyless
+units there is no body direction to compare against, so the field must be
+absent. In the current P0 data every applicable value is `false`; this does not
+create a default for future units or weapon modes.
 
-Arclight therefore stores `interval: 0.9`. The old kernel's `1799` was the
-lossy projection of a Q32 fixed-point `0.8999999999... s` value onto a
-2,000-units-per-second clock, not the unit's design-level interval. Nearest
-rounding to the 0.05 s logic step maps both representations to 18 steps.
+## Weapon topology and attack path
 
-## Loading and determinism
+Weapon scheduling is orthogonal to the effect path:
 
-The embedded configuration is used by default. An external configuration root
-may be selected explicitly:
+- `weapons.mode` is `normal`, `group`, or `standalone`.
+- `count` is the completed native weapon count and `per_skill` controls how
+  many weapons build one `FightSkill`.
+- `fusillade` and `allow_same_target` are required only for `group`; no default
+  may substitute for missing native data.
+- `rotation_speed` is present only when the native skill supplies a weapon
+  rotation speed distinct from the member body; Wraith stores `90` while its
+  body-level `rotate_speed` is `120`.
+
+The `path` tagged union has four variants:
+
+- `projectile`: count, release interval, movement and target-offset data,
+  interception flag, and projectile life;
+- `direct`: direct effect with an explicit `melee` branch selector;
+- `laser`: attack-count damage multipliers;
+- `control_beam`: warmup attack count and warmup damage multiplier.
+
+Single versus multi-projectile behavior comes from `path.count`; melee versus
+non-melee direct behavior comes from `path.melee`; Group/Fusillade remains in
+weapon topology. Combination-shaped types such as `grouped_projectile` are not
+part of the configuration schema.
+
+## Units and numeric boundary
+
+Configuration values use metres, seconds, and degrees without unit suffixes.
+Spatial values must quantize to 1 mm, time values to 0.0005 s, and angle values
+to 0.001 degree. Dimensionless laser/control multipliers must be positive and
+finite. The native Q32 representation and operation order remain kernel-owned.
+
+Arclight therefore stores `interval: 0.9`. The earlier `1799` value was a lossy
+projection of the native Q32 value onto 2,000 internal time units per second;
+it was not the design-level interval. Timing phases stay separate because the
+native state machine quantizes and consumes them separately.
+
+## Loading and current kernel boundary
+
+The embedded configuration is used by default. An external root is selected
+with:
 
 ```text
 mechcore sim layout.yaml --config config
 ```
 
-The configuration root contains `game_build` in `config.yaml`, build-specific
-Training Ground static-world rows in `training_ground.yaml`, and unit files
-under `units/`. `game_build` is copied to MCFR durable context; it is not a
-schema version and does not trigger version matching. Simulation timing,
-coordinate units, RNG algorithm and update order remain kernel-owned.
-
-## Current kernel boundary
-
-`mechcore sim` currently accepts one level-one, single-member projectile unit
-per side. Technologies, equipment, tower modifiers, battle skills and rotated
-formations are rejected. The schema describes common unit values; it does not
-claim native parity for arbitrary units or field combinations.
+The root contains `config.yaml`, `training_ground.yaml`, and `units/*.yaml`.
+The schema can load all current P0 unit paths, but the Simulator must reject a
+unit until its Formation generation and native attack path are implemented.
+At present the executable kernel accepts only the exact embedded behavior
+configs for Marksman and Arclight, the pair covered by the existing native
+per-tick baseline. A renamed config with the same behavior remains valid, but
+an unclosed unit or any behavior-field change fails closed. Loading a config is
+not a claim of native simulation parity.

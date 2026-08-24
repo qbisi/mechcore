@@ -1,31 +1,30 @@
 schema: mechcore.unit
-type_name: arclight
-unit_type_id: 15
+type_name: fire_badger
+unit_type_id: 20
 
 formation:
-  members: 1
-  slot_size: 20
-  footprint: {width: 20, depth: 20}
+  members: 3
+  slot_size: 15
+  footprint: {width: 50, depth: 20}
 
 domain: ground
-max_life: 4813
-collision_radius: 9
-move_speed: 7
+max_life: 4222
+collision_radius: 6
+move_speed: 9
 rotate_speed: 80
-has_body: true
-independent_aim: false
+has_body: false
 
 attack:
-  base_damage: 365
+  base_damage: 27
   min_range: 0
-  range: 95
-  attack_half_angle: 20
+  range: 75
+  attack_half_angle: 15
   targets: {ground: true, air: false}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 0.9
-    interval_offset: 0.3
+    interval: 0.1
+    interval_offset: 0
     initial_cooldown: 0
     prepare: 0
     attack_point: 0
@@ -40,11 +39,11 @@ attack:
     type: projectile
     count: 1
     release_interval: 0
-    speed: 300
+    speed: 400
     target_offset_radius: 0
     evenly_allocate_targets: false
     extra_search_range: 0
     pre_flight_height: 0
-    simulated_motion: false
+    simulated_motion: true
     interceptible: false
     max_life: 0

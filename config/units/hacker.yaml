@@ -1,0 +1,42 @@
+schema: mechcore.unit
+type_name: hacker
+unit_type_id: 14
+
+formation:
+  members: 1
+  slot_size: 20
+  footprint: {width: 30, depth: 30}
+
+domain: ground
+max_life: 3249
+collision_radius: 11
+move_speed: 8
+rotate_speed: 50
+has_body: true
+independent_aim: false
+
+attack:
+  base_damage: 600
+  min_range: 0
+  range: 110
+  attack_half_angle: 30
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: false
+  timing:
+    interval: 0.3
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0.3
+    attack_point: 0.2
+    backswing: 0
+    cooling: 0.1
+  splash_radius: 0
+  weapons:
+    mode: normal
+    count: 1
+    per_skill: 1
+  path:
+    type: control_beam
+    warmup_attack_count: 2
+    warmup_damage_multiplier: 0.001

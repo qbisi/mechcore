@@ -1,0 +1,42 @@
+schema: mechcore.unit
+type_name: vortex
+unit_type_id: 31
+
+formation:
+  members: 1
+  slot_size: 20
+  footprint: {width: 20, depth: 20}
+
+domain: ground
+max_life: 7425
+collision_radius: 9
+move_speed: 8
+rotate_speed: 80
+has_body: false
+
+attack:
+  base_damage: 1309
+  min_range: 0
+  range: 85
+  attack_half_angle: 60
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 1.5
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 0
+  weapons:
+    mode: group
+    count: 1
+    per_skill: 1
+    fusillade: true
+    allow_same_target: false
+  path:
+    type: direct
+    melee: false

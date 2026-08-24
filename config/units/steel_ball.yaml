@@ -1,0 +1,40 @@
+schema: mechcore.unit
+type_name: steel_ball
+unit_type_id: 8
+
+formation:
+  members: 4
+  slot_size: 12
+  footprint: {width: 50, depth: 20}
+
+domain: ground
+max_life: 4571
+collision_radius: 6
+move_speed: 16
+rotate_speed: 120
+has_body: false
+
+attack:
+  base_damage: 55
+  min_range: 0
+  range: 45
+  attack_half_angle: 20
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: false
+  timing:
+    interval: 0.2
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0.4
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 0
+  weapons:
+    mode: normal
+    count: 2
+    per_skill: 2
+  path:
+    type: laser
+    damage_multipliers: [0.0399999998, 0.062213219, 0.14939072216, 0.31796517293, 0.57870310592, 0.93999999994, 1.40886107902, 1.99135817192, 2.69288527733, 3.51831789548, 4.47211988783, 5.55841903831, 6.78106268053, 8.14365997096, 9.64961484727, 11.30215227953, 13.10433955374, 15.0591037944, 17.16924658022, 19.43745627883, 21.86631855764, 24.45832542703, 27.21588307829, 30.14131872868, 33.23688663729, 36.5047734254, 39.94710280397, 43.56593979755, 47.36329453462]

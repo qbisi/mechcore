@@ -1,0 +1,49 @@
+schema: mechcore.unit
+type_name: phantom_ray
+unit_type_id: 25
+
+formation:
+  members: 3
+  slot_size: 15
+  footprint: {width: 50, depth: 20}
+
+domain: air
+max_life: 3412
+collision_radius: 8
+move_speed: 16
+rotate_speed: 100
+has_body: false
+
+attack:
+  base_damage: 1087
+  min_range: 0
+  range: 65
+  attack_half_angle: 20
+  targets: {ground: true, air: true}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 3
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0.2
+    backswing: 0
+    cooling: 0.8
+  splash_radius: 3
+  weapons:
+    mode: normal
+    count: 1
+    per_skill: 1
+  path:
+    type: projectile
+    count: 2
+    release_interval: 0.3
+    speed: 170
+    target_offset_radius: 2
+    evenly_allocate_targets: false
+    extra_search_range: 0
+    pre_flight_height: 0
+    simulated_motion: false
+    interceptible: true
+    max_life: 48600

@@ -1,50 +1,50 @@
 schema: mechcore.unit
-type_name: marksman
-unit_type_id: 2
+type_name: farseer
+unit_type_id: 26
 
 formation:
   members: 1
-  slot_size: 20
-  footprint: {width: 20, depth: 20}
+  slot_size: 30
+  footprint: {width: 30, depth: 30}
 
 domain: ground
-max_life: 1622
-collision_radius: 8
-move_speed: 8
-rotate_speed: 70
+max_life: 11991
+collision_radius: 11
+move_speed: 16
+rotate_speed: 60
 has_body: true
 independent_aim: false
 
 attack:
-  base_damage: 2329
+  base_damage: 1348
   min_range: 0
-  range: 140
-  attack_half_angle: 20
+  range: 125
+  attack_half_angle: 60
   targets: {ground: true, air: true}
   lock_target: true
   quick_switch_target: true
   timing:
-    interval: 3.1
-    interval_offset: 0.6
+    interval: 2
+    interval_offset: 0
     initial_cooldown: 0
-    prepare: 0.5
-    attack_point: 0.1
+    prepare: 0
+    attack_point: 0
     backswing: 0
-    cooling: 0.2
-  splash_radius: 0
+    cooling: 0
+  splash_radius: 8
   weapons:
     mode: normal
     count: 1
     per_skill: 1
   path:
     type: projectile
-    count: 1
+    count: 2
     release_interval: 0.2
-    speed: 500
-    target_offset_radius: 0
+    speed: 140
+    target_offset_radius: 5
     evenly_allocate_targets: false
     extra_search_range: 0
-    pre_flight_height: 0
+    pre_flight_height: 60
     simulated_motion: false
-    interceptible: false
-    max_life: 0
+    interceptible: true
+    max_life: 126360

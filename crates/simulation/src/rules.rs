@@ -8,30 +8,73 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 2] = [
+const DEFAULT_UNITS: [&str; 23] = [
     include_str!("../../../config/units/marksman.yaml"),
+    include_str!("../../../config/units/rhino.yaml"),
+    include_str!("../../../config/units/wasp.yaml"),
+    include_str!("../../../config/units/mustang.yaml"),
+    include_str!("../../../config/units/steel_ball.yaml"),
+    include_str!("../../../config/units/fang.yaml"),
+    include_str!("../../../config/units/crawler.yaml"),
+    include_str!("../../../config/units/stormcaller.yaml"),
+    include_str!("../../../config/units/sledgehammer.yaml"),
+    include_str!("../../../config/units/hacker.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
+    include_str!("../../../config/units/phoenix.yaml"),
+    include_str!("../../../config/units/wraith.yaml"),
+    include_str!("../../../config/units/scorpion.yaml"),
+    include_str!("../../../config/units/fire_badger.yaml"),
+    include_str!("../../../config/units/sabertooth.yaml"),
+    include_str!("../../../config/units/typhoon.yaml"),
+    include_str!("../../../config/units/tarantula.yaml"),
+    include_str!("../../../config/units/phantom_ray.yaml"),
+    include_str!("../../../config/units/farseer.yaml"),
+    include_str!("../../../config/units/hound.yaml"),
+    include_str!("../../../config/units/void_eye.yaml"),
+    include_str!("../../../config/units/vortex.yaml"),
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
+const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 3] = [
+    include_str!("../../../config/units/marksman.yaml"),
+    include_str!("../../../config/units/arclight.yaml"),
+    include_str!("../../../config/units/rhino.yaml"),
+];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
 const TIME_UNITS_PER_SECOND: f64 = 2_000.0;
 const MILLIDEGREES_PER_DEGREE: f64 = 1_000.0;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct UnitConfig {
     schema: String,
     pub(crate) type_name: String,
     pub(crate) unit_type_id: u32,
+    pub(crate) formation: FormationConfig,
     pub(crate) domain: UnitDomain,
     pub(crate) max_life: i64,
     pub(crate) collision_radius: f64,
     pub(crate) move_speed: f64,
     pub(crate) rotate_speed: f64,
-    pub(crate) independent_aim: bool,
+    pub(crate) has_body: bool,
+    pub(crate) independent_aim: Option<bool>,
     pub(crate) attack: AttackConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct FormationConfig {
+    pub(crate) members: u32,
+    pub(crate) slot_size: f64,
+    pub(crate) footprint: FormationFootprint,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct FormationFootprint {
+    pub(crate) width: f64,
+    pub(crate) depth: f64,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -41,33 +84,85 @@ pub(crate) enum UnitDomain {
     Air,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct AttackConfig {
-    pub(crate) attack_type: AttackType,
-    pub(crate) target_domain: TargetDomain,
-    pub(crate) damage: i64,
+    pub(crate) base_damage: i64,
+    pub(crate) min_range: f64,
     pub(crate) range: f64,
+    pub(crate) attack_half_angle: f64,
+    pub(crate) targets: AttackTargets,
+    pub(crate) lock_target: bool,
+    pub(crate) quick_switch_target: bool,
+    pub(crate) timing: AttackTiming,
+    pub(crate) splash_radius: f64,
+    pub(crate) weapons: WeaponTopology,
+    pub(crate) path: AttackPath,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct AttackTargets {
+    pub(crate) ground: bool,
+    pub(crate) air: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct AttackTiming {
     pub(crate) interval: f64,
     pub(crate) interval_offset: f64,
-    pub(crate) release_delay: f64,
-    pub(crate) projectile_speed: f64,
-    pub(crate) effect_radius: f64,
+    pub(crate) initial_cooldown: f64,
+    pub(crate) prepare: f64,
+    pub(crate) attack_point: f64,
+    pub(crate) backswing: f64,
+    pub(crate) cooling: f64,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum AttackType {
-    DirectProjectile,
-    AreaProjectile,
+pub(crate) enum WeaponMode {
+    Normal,
+    Group,
+    Standalone,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum TargetDomain {
-    Ground,
-    Air,
-    Both,
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct WeaponTopology {
+    pub(crate) mode: WeaponMode,
+    pub(crate) count: u32,
+    pub(crate) per_skill: u32,
+    pub(crate) fusillade: Option<bool>,
+    pub(crate) allow_same_target: Option<bool>,
+    pub(crate) rotation_speed: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub(crate) enum AttackPath {
+    Projectile {
+        count: u32,
+        release_interval: f64,
+        speed: f64,
+        target_offset_radius: f64,
+        evenly_allocate_targets: bool,
+        extra_search_range: f64,
+        pre_flight_height: f64,
+        simulated_motion: bool,
+        interceptible: bool,
+        max_life: i64,
+    },
+    Direct {
+        melee: bool,
+    },
+    Laser {
+        damage_multipliers: Vec<f64>,
+    },
+    ControlBeam {
+        warmup_attack_count: u32,
+        warmup_damage_multiplier: f64,
+    },
 }
 
 pub(crate) struct UnitConfigs {
@@ -236,7 +331,8 @@ impl UnitConfig {
         if self.type_name.trim().is_empty()
             || self.unit_type_id == 0
             || self.max_life <= 0
-            || self.attack.damage <= 0
+            || self.formation.members == 0
+            || self.attack.base_damage <= 0
         {
             return Err(Error::new(format!(
                 "unit config for {:?} contains invalid values",
@@ -256,50 +352,88 @@ impl UnitConfig {
             "rotate_speed",
             true,
         )?;
-        validate_scaled(self.attack.range, SPACE_UNITS_PER_METER, "range", true)?;
         validate_scaled(
-            self.attack.interval,
-            TIME_UNITS_PER_SECOND,
-            "interval",
+            self.formation.slot_size,
+            SPACE_UNITS_PER_METER,
+            "formation.slot_size",
+            false,
+        )?;
+        let _ = self.formation_slot_size_meters()?;
+        validate_scaled(
+            self.formation.footprint.width,
+            SPACE_UNITS_PER_METER,
+            "formation.footprint.width",
             false,
         )?;
         validate_scaled(
-            self.attack.interval_offset,
-            TIME_UNITS_PER_SECOND,
-            "interval_offset",
-            true,
-        )?;
-        validate_scaled(
-            self.attack.release_delay,
-            TIME_UNITS_PER_SECOND,
-            "release_delay",
-            true,
-        )?;
-        validate_scaled(
-            self.attack.projectile_speed,
+            self.formation.footprint.depth,
             SPACE_UNITS_PER_METER,
-            "projectile_speed",
+            "formation.footprint.depth",
             false,
         )?;
-        validate_scaled(
-            self.attack.effect_radius,
-            SPACE_UNITS_PER_METER,
-            "effect_radius",
-            true,
-        )?;
-        match self.attack.attack_type {
-            AttackType::DirectProjectile if self.attack.effect_radius != 0.0 => Err(Error::new(
-                "direct_projectile requires effect_radius to be zero",
-            )),
-            AttackType::AreaProjectile if self.attack.effect_radius == 0.0 => Err(Error::new(
-                "area_projectile requires a positive effect_radius",
-            )),
-            _ => Ok(()),
+        if !self.has_body && self.independent_aim.is_some() {
+            return Err(Error::new(
+                "independent_aim is not applicable when the unit has no mech body",
+            ));
         }
+        self.attack.validate()
+    }
+
+    pub(crate) fn ensure_current_kernel_support(&self) -> Result<()> {
+        let reference = CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS
+            .iter()
+            .map(|text| parse(text.as_bytes(), "embedded closed unit config"))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .find(|config| config.unit_type_id == self.unit_type_id)
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "unit {:?} is not in the current kernel's supported behavior set",
+                    self.type_name
+                ))
+            })?;
+        let mut normalized = self.clone();
+        normalized.type_name.clone_from(&reference.type_name);
+        if normalized != reference {
+            return Err(Error::new(format!(
+                "unit {:?} differs from the behavior config supported by the current kernel",
+                self.type_name
+            )));
+        }
+        Ok(())
     }
 
     pub(crate) fn collision_radius(&self) -> i64 {
         quantize_i64(self.collision_radius, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) fn formation_footprint_meters(&self) -> Result<(i64, i64)> {
+        fn whole_meters(value: f64, field: &str) -> Result<i64> {
+            let raw = quantize_i64(value, SPACE_UNITS_PER_METER);
+            let scale = SPACE_UNITS_PER_METER as i64;
+            if raw.rem_euclid(scale) != 0 {
+                return Err(Error::new(format!(
+                    "unit config field {field} must use whole meters for layout placement"
+                )));
+            }
+            Ok(raw / scale)
+        }
+
+        Ok((
+            whole_meters(self.formation.footprint.width, "formation.footprint.width")?,
+            whole_meters(self.formation.footprint.depth, "formation.footprint.depth")?,
+        ))
+    }
+
+    pub(crate) fn formation_slot_size_meters(&self) -> Result<i64> {
+        let raw = quantize_i64(self.formation.slot_size, SPACE_UNITS_PER_METER);
+        let scale = SPACE_UNITS_PER_METER as i64;
+        if raw.rem_euclid(scale) != 0 {
+            return Err(Error::new(
+                "unit config field formation.slot_size must use whole meters for member generation",
+            ));
+        }
+        Ok(raw / scale)
     }
 
     pub(crate) fn move_speed(&self) -> i64 {
@@ -312,24 +446,200 @@ impl UnitConfig {
 }
 
 impl AttackConfig {
+    fn validate(&self) -> Result<()> {
+        if !self.targets.ground && !self.targets.air {
+            return Err(Error::new("attack must target ground, air, or both"));
+        }
+        validate_scaled(self.min_range, SPACE_UNITS_PER_METER, "min_range", true)?;
+        validate_scaled(self.range, SPACE_UNITS_PER_METER, "range", true)?;
+        if self.min_range > self.range {
+            return Err(Error::new("attack min_range must not exceed range"));
+        }
+        validate_scaled(
+            self.attack_half_angle,
+            MILLIDEGREES_PER_DEGREE,
+            "attack_half_angle",
+            true,
+        )?;
+        if self.attack_half_angle > 360.0 {
+            return Err(Error::new("attack_half_angle must not exceed 360 degrees"));
+        }
+        validate_scaled(
+            self.timing.interval,
+            TIME_UNITS_PER_SECOND,
+            "timing.interval",
+            false,
+        )?;
+        validate_scaled(
+            self.timing.interval_offset,
+            TIME_UNITS_PER_SECOND,
+            "timing.interval_offset",
+            true,
+        )?;
+        for (value, field) in [
+            (self.timing.initial_cooldown, "timing.initial_cooldown"),
+            (self.timing.prepare, "timing.prepare"),
+            (self.timing.attack_point, "timing.attack_point"),
+            (self.timing.backswing, "timing.backswing"),
+            (self.timing.cooling, "timing.cooling"),
+        ] {
+            validate_scaled(value, TIME_UNITS_PER_SECOND, field, true)?;
+        }
+        validate_scaled(
+            self.splash_radius,
+            SPACE_UNITS_PER_METER,
+            "splash_radius",
+            true,
+        )?;
+        self.weapons.validate()?;
+        match &self.path {
+            AttackPath::Projectile {
+                count,
+                release_interval,
+                speed,
+                target_offset_radius,
+                extra_search_range,
+                pre_flight_height,
+                interceptible,
+                max_life,
+                ..
+            } => {
+                if *count == 0 || *max_life < 0 || (*interceptible && *max_life == 0) {
+                    return Err(Error::new(
+                        "projectile path requires a count and valid projectile life",
+                    ));
+                }
+                validate_scaled(
+                    *release_interval,
+                    TIME_UNITS_PER_SECOND,
+                    "path.release_interval",
+                    true,
+                )?;
+                validate_scaled(*speed, SPACE_UNITS_PER_METER, "path.speed", false)?;
+                validate_scaled(
+                    *target_offset_radius,
+                    SPACE_UNITS_PER_METER,
+                    "path.target_offset_radius",
+                    true,
+                )?;
+                validate_scaled(
+                    *extra_search_range,
+                    SPACE_UNITS_PER_METER,
+                    "path.extra_search_range",
+                    true,
+                )?;
+                validate_scaled(
+                    *pre_flight_height,
+                    SPACE_UNITS_PER_METER,
+                    "path.pre_flight_height",
+                    true,
+                )
+            }
+            AttackPath::Direct { .. } => Ok(()),
+            AttackPath::Laser { damage_multipliers } => {
+                if damage_multipliers.is_empty()
+                    || damage_multipliers
+                        .iter()
+                        .any(|value| !value.is_finite() || *value <= 0.0)
+                {
+                    return Err(Error::new(
+                        "laser path requires positive finite damage multipliers",
+                    ));
+                }
+                Ok(())
+            }
+            AttackPath::ControlBeam {
+                warmup_attack_count,
+                warmup_damage_multiplier,
+            } => {
+                if *warmup_attack_count == 0
+                    || !warmup_damage_multiplier.is_finite()
+                    || *warmup_damage_multiplier <= 0.0
+                {
+                    return Err(Error::new(
+                        "control beam path requires a positive warmup definition",
+                    ));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    pub(crate) fn min_range(&self) -> i64 {
+        quantize_i64(self.min_range, SPACE_UNITS_PER_METER)
+    }
+
     pub(crate) fn range(&self) -> i64 {
         quantize_i64(self.range, SPACE_UNITS_PER_METER)
     }
 
+    pub(crate) fn attack_half_angle_mdeg(&self) -> i64 {
+        quantize_i64(self.attack_half_angle, MILLIDEGREES_PER_DEGREE)
+    }
+
+    pub(crate) fn splash_radius(&self) -> i64 {
+        quantize_i64(self.splash_radius, SPACE_UNITS_PER_METER)
+    }
+
     pub(crate) fn interval_time_units(&self) -> u64 {
-        quantize_u64(self.interval, TIME_UNITS_PER_SECOND)
+        quantize_u64(self.timing.interval, TIME_UNITS_PER_SECOND)
     }
 
     pub(crate) fn interval_offset_time_units(&self) -> u64 {
-        quantize_u64(self.interval_offset, TIME_UNITS_PER_SECOND)
+        quantize_u64(self.timing.interval_offset, TIME_UNITS_PER_SECOND)
     }
 
-    pub(crate) fn release_delay_time_units(&self) -> u64 {
-        quantize_u64(self.release_delay, TIME_UNITS_PER_SECOND)
+    pub(crate) fn prepare_time_units(&self) -> u64 {
+        quantize_u64(self.timing.prepare, TIME_UNITS_PER_SECOND)
+    }
+
+    pub(crate) fn attack_point_time_units(&self) -> u64 {
+        quantize_u64(self.timing.attack_point, TIME_UNITS_PER_SECOND)
+    }
+
+    pub(crate) fn backswing_time_units(&self) -> u64 {
+        quantize_u64(self.timing.backswing, TIME_UNITS_PER_SECOND)
     }
 
     pub(crate) fn projectile_speed(&self) -> i64 {
-        quantize_i64(self.projectile_speed, SPACE_UNITS_PER_METER)
+        let AttackPath::Projectile { speed, .. } = self.path else {
+            unreachable!("the current kernel validates the projectile path")
+        };
+        quantize_i64(speed, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) const fn accepts(&self, domain: UnitDomain) -> bool {
+        match domain {
+            UnitDomain::Ground => self.targets.ground,
+            UnitDomain::Air => self.targets.air,
+        }
+    }
+}
+
+impl WeaponTopology {
+    fn validate(&self) -> Result<()> {
+        if self.count == 0 || self.per_skill == 0 || self.per_skill > self.count {
+            return Err(Error::new("weapon topology contains invalid counts"));
+        }
+        let group_fields_are_complete =
+            self.fusillade.is_some() && self.allow_same_target.is_some();
+        let has_any_group_field = self.fusillade.is_some() || self.allow_same_target.is_some();
+        if (self.mode == WeaponMode::Group && !group_fields_are_complete)
+            || (self.mode != WeaponMode::Group && has_any_group_field)
+        {
+            return Err(Error::new(
+                "group weapon topology requires fusillade and allow_same_target only for group mode",
+            ));
+        }
+        if let Some(rotation_speed) = self.rotation_speed {
+            validate_scaled(
+                rotation_speed,
+                MILLIDEGREES_PER_DEGREE,
+                "weapons.rotation_speed",
+                false,
+            )?;
+        }
+        Ok(())
     }
 }
 
@@ -432,15 +742,97 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load(None).unwrap();
         assert_eq!(config.game_build, "1.11.1.3.2259");
+        assert_eq!(config.units.units.len(), 23);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);
         assert_eq!(arclight.attack.interval_time_units(), 1_800);
         assert_eq!(arclight.attack.interval_offset_time_units(), 600);
-        assert!(!arclight.independent_aim);
-        assert!(!config.units.get("marksman").unwrap().independent_aim);
+        assert_eq!(arclight.independent_aim, Some(false));
+        assert_eq!(
+            config.units.get("marksman").unwrap().independent_aim,
+            Some(false)
+        );
         assert_eq!(config.training_ground.buildings.len(), 4);
         assert_eq!(config.training_ground.buildings[0].x(), -140_000);
         assert_eq!(config.training_ground.buildings[0].radius(), 10_000);
+    }
+
+    #[test]
+    fn formation_slot_size_is_required_whole_meter_data() {
+        let source = include_str!("../../../config/units/marksman.yaml");
+        let missing = source.replace("  slot_size: 20\n", "");
+        assert!(parse(missing.as_bytes(), "missing slot size").is_err());
+
+        let fractional = source.replace("  slot_size: 20\n", "  slot_size: 20.5\n");
+        let config = parse(fractional.as_bytes(), "fractional slot size").unwrap();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn p0_configs_preserve_path_and_topology_discriminants() {
+        let config = SimulationConfig::load(None).unwrap();
+        let rhino = config.units.get("rhino").unwrap();
+        assert_eq!(rhino.formation.members, 1);
+        assert_eq!(rhino.formation_slot_size_meters().unwrap(), 30);
+        assert!(!rhino.has_body);
+        assert_eq!(rhino.independent_aim, None);
+        assert!(matches!(
+            rhino.attack.path,
+            AttackPath::Direct { melee: true }
+        ));
+
+        let wraith = config.units.get("wraith").unwrap();
+        assert_eq!(wraith.attack.weapons.mode, WeaponMode::Group);
+        assert_eq!(wraith.attack.weapons.count, 4);
+        assert_eq!(wraith.attack.weapons.fusillade, Some(false));
+        assert_eq!(wraith.attack.weapons.allow_same_target, Some(true));
+        assert_eq!(wraith.attack.weapons.rotation_speed, Some(90.0));
+        assert!(matches!(
+            wraith.attack.path,
+            AttackPath::Projectile { count: 1, .. }
+        ));
+
+        let vortex = config.units.get("vortex").unwrap();
+        assert_eq!(vortex.attack.weapons.mode, WeaponMode::Group);
+        assert_eq!(vortex.attack.weapons.fusillade, Some(true));
+        assert_eq!(vortex.attack.weapons.allow_same_target, Some(false));
+        assert!(matches!(
+            vortex.attack.path,
+            AttackPath::Direct { melee: false }
+        ));
+
+        let crawler = config.units.get("crawler").unwrap();
+        assert_eq!(crawler.formation.members, 24);
+        assert_eq!(crawler.formation_slot_size_meters().unwrap(), 6);
+    }
+
+    #[test]
+    fn current_kernel_support_follows_the_explicit_config_set() {
+        let config = SimulationConfig::load(None).unwrap();
+        for (type_name, rules) in &config.units.units {
+            let is_supported = matches!(type_name.as_str(), "marksman" | "arclight" | "rhino");
+            assert_eq!(
+                rules.ensure_current_kernel_support().is_ok(),
+                is_supported,
+                "{type_name} support must follow the explicit behavior set"
+            );
+        }
+
+        let mut changed_marksman = config.units.get("marksman").unwrap().clone();
+        changed_marksman.attack.splash_radius = 1.0;
+        assert!(changed_marksman.ensure_current_kernel_support().is_err());
+    }
+
+    #[test]
+    fn group_fields_are_all_or_nothing_and_group_only() {
+        let config = SimulationConfig::load(None).unwrap();
+        let mut partial_group = config.units.get("wraith").unwrap().clone();
+        partial_group.attack.weapons.allow_same_target = None;
+        assert!(partial_group.validate().is_err());
+
+        let mut group_field_on_normal = config.units.get("marksman").unwrap().clone();
+        group_field_on_normal.attack.weapons.fusillade = Some(false);
+        assert!(group_field_on_normal.validate().is_err());
     }
 }
