@@ -541,7 +541,7 @@ impl MechcoreMcp {
     }
 
     #[tool(
-        description = "Record the deployed Training Ground battle to MCFR; starts combat, requests speed-up, and returns after the fighting-to-over boundary"
+        description = "Record the deployed Training Ground battle to MCFR; starts combat, uses render-synchronized pacing for optional video, and returns after the fighting-to-over boundary"
     )]
     async fn record_battle(
         &self,
@@ -585,7 +585,7 @@ impl ServerHandler for MechcoreMcp {
                 .enable_resources_subscribe()
                 .build(),
             instructions: Some(
-                "Use start_game, start_test, apply_layout, record_battle, quit_match, and quit_game in lifecycle order. record_battle owns combat start and speed-up. Subscribe to mechcore://status for state changes."
+                "Use start_game, start_test, apply_layout, record_battle, quit_match, and quit_game in lifecycle order. record_battle owns combat start and capture pacing. Subscribe to mechcore://status for state changes."
                     .into(),
             ),
             server_info: Implementation {

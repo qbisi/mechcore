@@ -546,11 +546,13 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         );
                     }
                 }
-                if let Err(response) = successful_result(execute_internal_on_main(
-                    runtime,
-                    request.id,
-                    operations::InternalOperation::SpeedUp,
-                )) {
+                if arguments.video_output.is_none()
+                    && let Err(response) = successful_result(execute_internal_on_main(
+                        runtime,
+                        request.id,
+                        operations::InternalOperation::SpeedUp,
+                    ))
+                {
                     capture::abort("speed-up vote failed after the initial snapshot");
                     stop_capture_after_failure(runtime, request.id);
                     return response;

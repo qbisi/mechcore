@@ -123,14 +123,17 @@ work occurs. With it enabled, the adapter uses the deterministic `calibration_to
 Cinemachine and mouse/keyboard pan, orbit, and zoom controllers are suspended; the main camera is
 fixed at world `(0,1070,-1070)`, rotated to `(45,0,0)`, and given a perspective field of view of
 `20` degrees. It points at the battlefield origin along equal Y and Z offsets. The render is fixed at
-1280x720; the distance and field of view preserve approximately the previous 1.5x center-plane scale
+2560x1600; the distance and field of view preserve approximately the previous 1.5x center-plane scale
 while using native perspective rendering so tower shadow decals do not become opaque black quads. A
-completed render is captured at the following logic-update boundary, so every screenshot corresponds
-to the pending MCFR snapshot rather than to the state being advanced.
+visual recording temporarily sets `Application.targetFrameRate` to 20 and does not request native
+speed-up. A main-camera post-render hook releases the next `FightController.Update`; pixel readback at
+that following update therefore captures a completed render of the pending MCFR snapshot rather than
+the state being advanced.
 The normal screen-space UI is included. The terminal snapshot is not returned until its completed
 render has also been captured. Frames are JPEG-encoded and written as a QuickTime Motion JPEG stream
 whose sample duration equals `D.logic_step`; frame count must equal MCFR tick count. Screen and camera
-controller state are restored after terminal capture or failure, and partial media remains unpublished.
+controller state and the original target frame rate are restored after terminal capture or failure,
+and partial media remains unpublished.
 The result reports `view`, `projection`, camera position/rotation, and field of view alongside the media
 dimensions so a renderer can reconstruct the same world-to-screen calibration.
 

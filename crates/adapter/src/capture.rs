@@ -25,6 +25,9 @@ const Q32_ONE: i128 = 1_i128 << 32;
 const DISTANCE_UNITS_PER_METER: u64 = 1_000;
 const ROTATION_UNITS_PER_DEGREE: u64 = 1_000;
 const TIME_UNITS_PER_SECOND: u64 = 2_000;
+const CAPTURE_WIDTH: u16 = 2_560;
+const CAPTURE_HEIGHT: u16 = 1_600;
+const CAPTURE_FRAME_RATE: i32 = 20;
 pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
 pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 1_070.0;
 pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
@@ -112,6 +115,7 @@ struct VisualCapture {
     original_controlled_enabled: [bool; 4],
     texture_handle: u32,
     screen_class: usize,
+    application_class: usize,
     set_resolution: usize,
     destroy_immediate: usize,
     width: u16,
@@ -119,6 +123,7 @@ struct VisualCapture {
     original_screen_width: i32,
     original_screen_height: i32,
     original_fullscreen: bool,
+    original_target_frame_rate: i32,
     original_camera_position: UnityVec3,
     original_camera_euler_angles: UnityVec3,
     original_camera_orthographic: bool,
@@ -144,6 +149,7 @@ struct Metadata {
 }
 
 #[derive(Default)]
+#[allow(clippy::struct_excessive_bools)] // The booleans mirror independent native hook boundaries.
 struct CaptureState {
     availability: Option<String>,
     metadata: Metadata,
@@ -164,7 +170,7 @@ struct CaptureState {
     traces: Vec<NativeTrace>,
     visual: Option<VisualCapture>,
     pending_visual: Option<PendingVisualMessage>,
-    terminal_match_delay: u8,
+    render_completed: bool,
 }
 
 impl CaptureState {
@@ -186,7 +192,7 @@ impl CaptureState {
         self.traces.clear();
         self.visual = None;
         self.pending_visual = None;
-        self.terminal_match_delay = 0;
+        self.render_completed = false;
     }
 
     fn push(&mut self, message: CaptureMessage) -> Result<(), String> {
@@ -207,10 +213,18 @@ impl CaptureState {
 }
 
 impl VisualCapture {
+    #[allow(clippy::too_many_lines)]
     fn new(runtime: &Runtime) -> Result<Self, String> {
         let api = runtime.api;
         let screen_class = api
             .class("UnityEngine.CoreModule.dll", "UnityEngine", "Screen")
+            .map_err(|error| error.to_string())?;
+        let application_class = api
+            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Application")
+            .map_err(|error| error.to_string())?;
+        let original_target_frame_rate = api
+            .invoke_static(application_class, "get_targetFrameRate", &mut [])
+            .and_then(|value| api.unbox::<i32>(value, "Application.targetFrameRate"))
             .map_err(|error| error.to_string())?;
         let (original_screen_width, original_screen_height, original_fullscreen) =
             screen_state(api, screen_class)?;
@@ -285,6 +299,7 @@ impl VisualCapture {
             original_controlled_enabled,
             texture_handle: 0,
             screen_class: screen_class as usize,
+            application_class: application_class as usize,
             set_resolution: set_resolution as usize,
             destroy_immediate,
             width: 0,
@@ -292,6 +307,7 @@ impl VisualCapture {
             original_screen_width,
             original_screen_height,
             original_fullscreen,
+            original_target_frame_rate,
             original_camera_position,
             original_camera_euler_angles,
             original_camera_orthographic,
@@ -310,7 +326,14 @@ impl VisualCapture {
     }
 
     fn configure(&self) -> Result<(), String> {
-        self.set_screen_resolution(1280, 720, false)
+        self.set_target_frame_rate(CAPTURE_FRAME_RATE)
+            .and_then(|()| {
+                self.set_screen_resolution(
+                    i32::from(CAPTURE_WIDTH),
+                    i32::from(CAPTURE_HEIGHT),
+                    false,
+                )
+            })
             .and_then(|()| self.apply_calibration())
     }
 
@@ -462,6 +485,7 @@ impl VisualCapture {
             self.original_screen_height,
             self.original_fullscreen,
         );
+        let frame_rate_result = self.set_target_frame_rate(self.original_target_frame_rate);
         self.api.free_gc_handle(self.camera_handle);
         self.api.free_gc_handle(self.camera_transform_handle);
         for handle in self.controlled_handles {
@@ -471,10 +495,15 @@ impl VisualCapture {
             self.api.free_gc_handle(self.texture_handle);
         }
         self.texture_handle = 0;
-        let failures: Vec<_> = [texture_result, camera_result, resolution_result]
-            .into_iter()
-            .filter_map(Result::err)
-            .collect();
+        let failures: Vec<_> = [
+            texture_result,
+            camera_result,
+            resolution_result,
+            frame_rate_result,
+        ]
+        .into_iter()
+        .filter_map(Result::err)
+        .collect();
         if failures.is_empty() {
             Ok(())
         } else {
@@ -519,22 +548,23 @@ impl VisualCapture {
             .invoke_static(screen_class, "get_height", &mut [])
             .and_then(|value| self.api.unbox::<i32>(value, "Screen.height"))
             .map_err(|error| error.to_string())?;
-        if (width, height) != (1280, 720) {
+        if (width, height) != (i32::from(CAPTURE_WIDTH), i32::from(CAPTURE_HEIGHT)) {
             return Err(format!(
-                "capture resolution did not settle at 1280x720: {width}x{height}"
+                "capture resolution did not settle at {CAPTURE_WIDTH}x{CAPTURE_HEIGHT}: {width}x{height}"
             ));
         }
         let texture_class = self
             .api
             .class("UnityEngine.CoreModule.dll", "UnityEngine", "Texture2D")
             .map_err(|error| error.to_string())?;
-        let texture = create_capture_texture(self.api, texture_class, 1280, 720)?;
+        let texture =
+            create_capture_texture(self.api, texture_class, CAPTURE_WIDTH, CAPTURE_HEIGHT)?;
         self.texture_handle = self
             .api
             .gc_handle(texture)
             .map_err(|error| error.to_string())?;
-        self.width = 1280;
-        self.height = 720;
+        self.width = CAPTURE_WIDTH;
+        self.height = CAPTURE_HEIGHT;
         Ok(())
     }
 
@@ -553,6 +583,17 @@ impl VisualCapture {
                     argument(&mut height),
                     argument(&mut fullscreen),
                 ],
+            )
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+
+    fn set_target_frame_rate(&self, mut frame_rate: i32) -> Result<(), String> {
+        self.api
+            .invoke_static(
+                self.application_class as *mut crate::il2cpp::Class,
+                "set_targetFrameRate",
+                &mut [argument(&mut frame_rate)],
             )
             .map(|_| ())
             .map_err(|error| error.to_string())
@@ -744,6 +785,7 @@ static CAPTURE: OnceLock<Mutex<CaptureState>> = OnceLock::new();
 static RUNTIME: AtomicPtr<Runtime> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_MATCH_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_POST_RENDER: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_DAMAGE_PERFORM: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -787,6 +829,7 @@ pub(crate) fn initialize(runtime: &mut Runtime) {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
     #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
     return Err("logic-tick recording is supported only by the macOS aarch64 adapter".into());
@@ -805,6 +848,12 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .map_err(|error| error.to_string())?;
         let match_update = api
             .method(match_client, "Update", 0)
+            .map_err(|error| error.to_string())?;
+        let camera = api
+            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Camera")
+            .map_err(|error| error.to_string())?;
+        let post_render = api
+            .method(camera, "FireOnPostRender", 1)
             .map_err(|error| error.to_string())?;
         let projectile_system = api
             .class("GRFight.dll", "GameRiver.Fight", "ProjectileSystem")
@@ -868,6 +917,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_damage_perform_hook(api, damage_perform)?;
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
+        install_post_render_hook(api, post_render)?;
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             projectile_controllers: projectile_controllers as usize,
@@ -967,6 +1017,7 @@ pub(crate) fn abort(reason: &str) {
 
 type UpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type MatchUpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type PostRenderFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type ProjectileAddFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
 type ProjectileDestroyFn = unsafe extern "C" fn(*mut Object, *mut Object, bool, *const MethodInfo);
 type DamagePerformFn = unsafe extern "C" fn(
@@ -977,6 +1028,7 @@ type DamagePerformFn = unsafe extern "C" fn(
     *const MethodInfo,
 ) -> i32;
 
+#[allow(clippy::too_many_lines)]
 unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodInfo) {
     let original = ORIGINAL_UPDATE.load(Ordering::Acquire);
     if original.is_null() {
@@ -985,21 +1037,30 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
     // SAFETY: install_update_hook stores the trampoline for this exact method ABI.
     let original: UpdateFn = unsafe { std::mem::transmute(original) };
     let runtime = RUNTIME.load(Ordering::Acquire);
+    let mut skip_update = false;
     {
         let mut state = capture_state()
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if state.armed
-            && state.visual.is_some()
-            && state.pending_visual.is_some()
-            && !pending_visual_is_terminal(&state)
-        {
-            if let Err(error) = flush_visual_frame(&mut state) {
-                state.fail(error);
+        // Keep the pending logic state on screen until the main camera renders it.
+        // Pixel readback happens on the following update so screen-space UI is complete.
+        if state.armed && state.visual.is_some() && state.pending_visual.is_some() {
+            if state.render_completed {
+                state.render_completed = false;
+                if let Err(error) = flush_visual_frame(&mut state) {
+                    state.fail(error);
+                }
+            } else {
+                skip_update = true;
             }
         }
-        state.in_update = state.armed;
-        state.traces.clear();
+        if !skip_update {
+            state.in_update = state.armed;
+            state.traces.clear();
+        }
+    }
+    if skip_update {
+        return;
     }
     // SAFETY: controller and MethodInfo are forwarded unchanged from IL2CPP.
     unsafe { original(controller, method) };
@@ -1035,6 +1096,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 state.initialized = true;
                 if let Some(visual) = state.visual.as_ref() {
                     visual.apply_calibration()?;
+                    state.render_completed = false;
                     state.pending_visual = Some(PendingVisualMessage::Initial {
                         context,
                         state: initial,
@@ -1054,14 +1116,12 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             let terminal = !fighting;
             if let Some(visual) = state.visual.as_ref() {
                 visual.apply_calibration()?;
+                state.render_completed = false;
                 state.pending_visual = Some(PendingVisualMessage::Transition {
                     events,
                     state: next,
                     terminal,
                 });
-                if terminal {
-                    state.terminal_match_delay = 1;
-                }
             } else {
                 state.push(CaptureMessage::Transition {
                     events,
@@ -1095,15 +1155,44 @@ unsafe extern "C" fn match_update_hook(current: *mut Object, method: *const Meth
         let mut state = capture_state()
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if !state.armed || state.visual.is_none() || !pending_visual_is_terminal(&state) {
+        if !state.armed
+            || state.visual.is_none()
+            || !pending_visual_is_terminal(&state)
+            || !state.render_completed
+        {
             return;
         }
-        if state.terminal_match_delay > 0 {
-            state.terminal_match_delay -= 1;
-            return;
-        }
+        state.render_completed = false;
         if let Err(error) = flush_visual_frame(&mut state) {
             state.fail(error);
+        }
+    }));
+}
+
+unsafe extern "C" fn post_render_hook(camera: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_POST_RENDER.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: install_post_render_hook stores the trampoline for this exact method ABI.
+    let original: PostRenderFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: camera and MethodInfo are forwarded unchanged from IL2CPP.
+    unsafe { original(camera, method) };
+
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || state.pending_visual.is_none() {
+            return;
+        }
+        let Some(visual) = state.visual.as_ref() else {
+            return;
+        };
+        match visual.api.gc_handle_target(visual.camera_handle) {
+            Ok(capture_camera) if capture_camera == camera => state.render_completed = true,
+            Ok(_) => {}
+            Err(error) => state.fail(error.to_string()),
         }
     }));
 }
@@ -2027,6 +2116,22 @@ fn install_match_update_hook(api: Api, method: *const MethodInfo) -> Result<(), 
         match_update_hook as *const c_void,
         &ORIGINAL_MATCH_UPDATE,
         "MatchClient.Update",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_post_render_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00,
+        0x91,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        post_render_hook as *const c_void,
+        &ORIGINAL_POST_RENDER,
+        "Camera.FireOnPostRender",
     )
 }
 

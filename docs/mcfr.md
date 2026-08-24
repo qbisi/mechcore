@@ -131,9 +131,9 @@ require a unit-config directory. A wrong external rule set is detected by the
 resulting `S/E` hash divergence rather than by a producer-specific context
 field.
 
-Combat is closed after `S(0)`: no external action may affect its logical evolution. Wall-clock-only
-speed-up may be requested while recording because capture is attached to logic updates, not render
-or wall-clock frames. A producer
+Combat is closed after `S(0)`: no external action may affect its logical evolution. MCFR-only capture
+may request wall-clock-only speed-up because it is attached to logic updates, not render or wall-clock
+frames; a visual sidecar may instead throttle logic advancement to completed render boundaries. A producer
 that cannot guarantee this boundary must not finalize a schema-version-2
 recording.
 

@@ -80,16 +80,18 @@ Input is `{"output":"/absolute/path/battle.mcfr"}`. The path must be absolute, m
 `"video_output":"/absolute/path/battle.mov"` enables a QuickTime Motion JPEG sidecar. It is
 disabled by default; its path must be absolute, new, distinct from `output`, and use `.mov`.
 The call requires completed Training Ground deployment.
-It owns the complete recording transaction: the adapter starts combat, MCP requests the wall-clock-only
-speed-up vote, and the call returns only after the adapter captures the fighting-to-over boundary,
-publishes the MCFR, and verifies its hashes. When video is enabled, `calibration_topdown` suspends the
+It owns the complete recording transaction: the adapter starts combat, requests the wall-clock-only
+speed-up vote for MCFR-only capture, and returns only after the adapter captures the fighting-to-over
+boundary, publishes the MCFR, and verifies its hashes. Video capture disables speed-up, temporarily
+sets the Unity target frame rate to 20 fps, and uses a main-camera post-render barrier. When video is
+enabled, `calibration_topdown` suspends the
 native camera input/Cinemachine controllers and fixes the main camera at world `(0,1070,-1070)`,
-45-degree rotation `(45,0,0)`, perspective field of view `20` degrees, and 1280x720 output. The equal
+45-degree rotation `(45,0,0)`, perspective field of view `20` degrees, and 2560x1600 output. The equal
 Y/Z offsets aim at the battlefield origin and preserve approximately the previous 1.5x center-plane
 scale. Perspective rendering avoids the opaque black tower-shadow quads produced by the native decal
 shader under an orthographic camera, while the disabled controllers prevent external mouse drift. One
-rendered screen frame, including the normal game UI, is captured for each MCFR snapshot at the next
-logic-update boundary; this includes `S(0)` and the rendered terminal snapshot. The MOV uses the MCFR
+completed screen frame, including the normal game UI, is captured for each MCFR snapshot before the
+next logic update may advance; this includes `S(0)` and the rendered terminal snapshot. The MOV uses the MCFR
 logic step as its sample duration, and publication fails unless its frame count exactly matches the
 MCFR tick count.
 Callers do not issue `toggle_fight`, `speed_up`, or other Training Ground state controls while this
