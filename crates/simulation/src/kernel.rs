@@ -216,6 +216,27 @@ impl Simulation {
                 Actor::new(placement.clone(), rules.clone(), seed),
             );
         }
+        if actors.len() == 2 {
+            let mut pair = actors.iter();
+            let (&first_id, first) = pair.next().expect("two actors contain a first actor");
+            let (&second_id, second) = pair.next().expect("two actors contain a second actor");
+            if first.placement.team != second.placement.team
+                && accepts_target(first.rules.attack.target_domain, second.rules.domain)
+                && accepts_target(second.rules.attack.target_domain, first.rules.domain)
+            {
+                let first_rotation = direction_mdeg(second.x - first.x, second.z - first.z);
+                let second_rotation = direction_mdeg(first.x - second.x, first.z - second.z);
+                for (actor_id, rotation) in
+                    [(first_id, first_rotation), (second_id, second_rotation)]
+                {
+                    let actor = actors
+                        .get_mut(&actor_id)
+                        .expect("initial actor identity is stable");
+                    actor.body_rotation = rotation;
+                    actor.aim_rotation = rotation;
+                }
+            }
+        }
         let mut team_random = BTreeMap::new();
         for actor in actors.values() {
             let random = team_random.entry(actor.placement.team).or_insert_with(|| {
@@ -397,7 +418,13 @@ impl Simulation {
             }
             return Ok(());
         }
+        let entered_move = actor.motion != MotionState::Moving;
         actor.motion = MotionState::Moving;
+        if entered_move {
+            actor.velocity_x = 0;
+            actor.velocity_z = 0;
+            return Ok(());
+        }
         let max_displacement = scale_per_tick(
             actor.rules.move_speed(),
             LOGIC_TICK_TIME_UNITS,
@@ -997,5 +1024,6 @@ mod tests {
     fn native_fastest_angle_quantizes_small_jitter_to_forward() {
         assert_eq!(direction_mdeg(-600, 99_200), 0);
         assert_eq!(direction_mdeg(600, -99_200), 180_000);
+        assert_eq!(direction_mdeg(1_000, 151_400), 853);
     }
 }
