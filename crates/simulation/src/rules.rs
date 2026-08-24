@@ -13,6 +13,7 @@ const DEFAULT_UNITS: [&str; 2] = [
     include_str!("../../../config/units/arclight.yaml"),
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
+const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
 const TIME_UNITS_PER_SECOND: f64 = 2_000.0;
@@ -76,6 +77,7 @@ pub(crate) struct UnitConfigs {
 pub(crate) struct SimulationConfig {
     pub(crate) game_build: String,
     pub(crate) units: UnitConfigs,
+    pub(crate) training_ground: TrainingGroundConfig,
 }
 
 #[derive(Deserialize)]
@@ -84,31 +86,111 @@ struct TopLevelConfig {
     game_build: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct TrainingGroundConfig {
+    schema: String,
+    pub(crate) buildings: Vec<BuildingConfig>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct BuildingConfig {
+    pub(crate) team_id: u32,
+    pub(crate) building_type_id: u32,
+    pub(crate) position: BuildingPosition,
+    pub(crate) life: i64,
+    radius: f64,
+    pub(crate) collision_enabled: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct BuildingPosition {
+    x: f64,
+    z: f64,
+}
+
 impl SimulationConfig {
     pub(crate) fn load(directory: Option<&Path>) -> Result<Self> {
-        let (top_level, unit_directory) = match directory {
+        let (top_level, unit_directory, training_ground) = match directory {
             Some(directory) => {
                 let path = directory.join("config.yaml");
                 let bytes = fs::read(&path).map_err(|error| {
                     Error::new(format!("failed to read {}: {error}", path.display()))
                 })?;
+                let training_ground_path = directory.join("training_ground.yaml");
+                let training_ground_bytes = fs::read(&training_ground_path).map_err(|error| {
+                    Error::new(format!(
+                        "failed to read {}: {error}",
+                        training_ground_path.display()
+                    ))
+                })?;
                 (
                     parse_top_level(&bytes, &path.display().to_string())?,
                     Some(directory.join("units")),
+                    parse_training_ground(
+                        &training_ground_bytes,
+                        &training_ground_path.display().to_string(),
+                    )?,
                 )
             }
             None => (
                 parse_top_level(DEFAULT_CONFIG.as_bytes(), "embedded config")?,
                 None,
+                parse_training_ground(
+                    DEFAULT_TRAINING_GROUND.as_bytes(),
+                    "embedded training-ground config",
+                )?,
             ),
         };
         if top_level.game_build.trim().is_empty() {
             return Err(Error::new("top-level config game_build must not be empty"));
         }
+        training_ground.validate()?;
         Ok(Self {
             game_build: top_level.game_build,
             units: UnitConfigs::load(unit_directory.as_deref())?,
+            training_ground,
         })
+    }
+}
+
+impl TrainingGroundConfig {
+    fn validate(&self) -> Result<()> {
+        if self.schema != "mechcore.training_ground" {
+            return Err(Error::new("unsupported training-ground config type"));
+        }
+        if self.buildings.is_empty() {
+            return Err(Error::new(
+                "training-ground config must contain native building rows",
+            ));
+        }
+        for building in &self.buildings {
+            if building.team_id > 1 || building.building_type_id == 0 || building.life <= 0 {
+                return Err(Error::new(
+                    "training-ground building contains invalid identities or life",
+                ));
+            }
+            validate_signed_scaled(building.position.x, SPACE_UNITS_PER_METER, "position.x")?;
+            validate_signed_scaled(building.position.z, SPACE_UNITS_PER_METER, "position.z")?;
+            validate_scaled(building.radius, SPACE_UNITS_PER_METER, "radius", false)?;
+        }
+        Ok(())
+    }
+}
+
+impl BuildingConfig {
+    pub(crate) fn x(&self) -> i64 {
+        quantize_i64(self.position.x, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) fn z(&self) -> i64 {
+        quantize_i64(self.position.z, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) fn radius(&self) -> i64 {
+        quantize_i64(self.radius, SPACE_UNITS_PER_METER)
     }
 }
 
@@ -266,6 +348,19 @@ fn validate_scaled(value: f64, scale: f64, field: &str, allow_zero: bool) -> Res
     Ok(())
 }
 
+fn validate_signed_scaled(value: f64, scale: f64, field: &str) -> Result<()> {
+    let scaled = value * scale;
+    if !value.is_finite()
+        || scaled.abs() > 9_000_000_000_000_000.0
+        || (scaled - scaled.round()).abs() > 1.0e-9
+    {
+        return Err(Error::new(format!(
+            "training-ground config field {field} cannot be represented exactly by the kernel"
+        )));
+    }
+    Ok(())
+}
+
 #[allow(clippy::cast_possible_truncation)]
 fn quantize_i64(value: f64, scale: f64) -> i64 {
     (value * scale).round() as i64
@@ -324,6 +419,11 @@ fn parse_top_level(bytes: &[u8], source: &str) -> Result<TopLevelConfig> {
         .map_err(|error| Error::new(format!("invalid top-level config {source}: {error}")))
 }
 
+fn parse_training_ground(bytes: &[u8], source: &str) -> Result<TrainingGroundConfig> {
+    serde_yaml::from_slice(bytes)
+        .map_err(|error| Error::new(format!("invalid training-ground config {source}: {error}")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -339,5 +439,8 @@ mod tests {
         assert_eq!(arclight.attack.interval_offset_time_units(), 600);
         assert!(!arclight.independent_aim);
         assert!(!config.units.get("marksman").unwrap().independent_aim);
+        assert_eq!(config.training_ground.buildings.len(), 4);
+        assert_eq!(config.training_ground.buildings[0].x(), -140_000);
+        assert_eq!(config.training_ground.buildings[0].radius(), 10_000);
     }
 }

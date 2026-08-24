@@ -76,9 +76,10 @@ attack:
 mechcore sim layout.yaml --config config
 ```
 
-配置根目录的 `config.yaml` 只包含 `game_build`，单位文件位于 `units/`。
-`game_build` 仅复制到 MCFR 持久上下文；它不是 schema 版本，也不触发版本匹配。
-模拟时钟、坐标单位、RNG 算法和更新顺序仍由内核维护。
+配置根目录的 `config.yaml` 只包含 `game_build`，`training_ground.yaml` 保存该 build
+试验场的静态世界行，单位文件位于 `units/`。`game_build` 仅复制到 MCFR 持久上下文；
+它不是 schema 版本，也不触发版本匹配。模拟时钟、坐标单位、RNG 算法和更新顺序仍由
+内核维护。
 
 ## 当前内核边界
 

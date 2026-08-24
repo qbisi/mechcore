@@ -82,9 +82,10 @@ may be selected explicitly:
 mechcore sim layout.yaml --config config
 ```
 
-The configuration root contains only `game_build` in `config.yaml` and unit
-files under `units/`. `game_build` is copied to MCFR durable context; it is not
-a schema version and does not trigger version matching. Simulation timing,
+The configuration root contains `game_build` in `config.yaml`, build-specific
+Training Ground static-world rows in `training_ground.yaml`, and unit files
+under `units/`. `game_build` is copied to MCFR durable context; it is not a
+schema version and does not trigger version matching. Simulation timing,
 coordinate units, RNG algorithm and update order remain kernel-owned.
 
 ## Current kernel boundary

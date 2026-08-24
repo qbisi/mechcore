@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use mechcore_mcfr::{
-    Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityAllocator,
+    BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityAllocator,
     IdentityContract, MCFR_SCHEMA_VERSION, McfrWriter, MotionState, NumericConvention, ObjectKind,
     ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState,
     Vec3, Visibility, WorldSnapshot,
@@ -12,7 +12,9 @@ use crate::{
     Error, Result,
     layout::{CompiledLayout, Placement},
     random::GrRandom,
-    rules::{SimulationConfig, TargetDomain, UnitConfig, UnitConfigs, UnitDomain},
+    rules::{
+        SimulationConfig, TargetDomain, TrainingGroundConfig, UnitConfig, UnitConfigs, UnitDomain,
+    },
 };
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
@@ -190,11 +192,17 @@ struct Simulation {
     actors: BTreeMap<u64, Actor>,
     team_random: BTreeMap<u32, GrRandom>,
     projectiles: Vec<Projectile>,
+    buildings: Vec<BuildingState>,
     identities: IdentityAllocator,
 }
 
 impl Simulation {
-    fn new(layout: &CompiledLayout, configs: &UnitConfigs, seed: i32) -> Result<Self> {
+    fn new(
+        layout: &CompiledLayout,
+        configs: &UnitConfigs,
+        training_ground: &TrainingGroundConfig,
+        seed: i32,
+    ) -> Result<Self> {
         let mut actors = BTreeMap::new();
         for placement in &layout.placements {
             let rules = configs.get(placement.type_name.as_str()).ok_or_else(|| {
@@ -227,10 +235,38 @@ impl Simulation {
                     random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
             }
         }
+        let buildings = training_ground
+            .buildings
+            .iter()
+            .enumerate()
+            .map(|(index, building)| {
+                let building_id = u64::try_from(index)
+                    .map_err(|_| Error::new("training-ground building index overflow"))?
+                    .saturating_add(1);
+                let radius = building.radius();
+                Ok(BuildingState {
+                    building_id,
+                    team_id: building.team_id,
+                    building_type_id: building.building_type_id,
+                    position: point(building.x(), building.z()),
+                    rotation: 0,
+                    bounds_width: radius.saturating_mul(2),
+                    bounds_height: radius.saturating_mul(2),
+                    life: building.life,
+                    max_life: building.life,
+                    alive: building.life > 0,
+                    destroyed: false,
+                    available: true,
+                    targetable: building.life > 0,
+                    collision_enabled: building.collision_enabled,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
         Ok(Self {
             actors,
             team_random,
             projectiles: Vec::new(),
+            buildings,
             identities: IdentityAllocator::new(),
         })
     }
@@ -239,6 +275,7 @@ impl Simulation {
         WorldSnapshot {
             units: self.actors.values().map(Actor::snapshot).collect(),
             projectiles: self.projectiles.iter().map(Projectile::snapshot).collect(),
+            buildings: self.buildings.clone(),
             ..WorldSnapshot::default()
         }
     }
@@ -555,7 +592,7 @@ pub(crate) fn run(
         match_seed: seed,
         identity_contract: IdentityContract::TeamZxSequentialV1,
     };
-    let mut simulation = Simulation::new(layout, &config.units, seed)?;
+    let mut simulation = Simulation::new(layout, &config.units, &config.training_ground, seed)?;
     let mut writer = McfrWriter::create(output, &context)?;
     writer.append_tick(
         simulation.snapshot(),

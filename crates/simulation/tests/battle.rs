@@ -38,6 +38,23 @@ fn marksman_vs_arclight_runs_to_a_verified_terminal_result() {
 }
 
 #[test]
+fn marksman_vs_arclight_matches_the_build_2259_native_recording() {
+    let directory = tempfile::tempdir().unwrap();
+    let output = directory.path().join("battle.mcfr");
+    let result = simulate_layout(fixture(), &output, Some(1_787_551_408)).unwrap();
+    assert_eq!(
+        result.hashes.scenario_hash,
+        "af4c7c7410377edb84ec3106ad2fe2427864e313d42092351e217462c025efee"
+    );
+    assert_eq!(
+        result.hashes.result_hash,
+        "6dc45a4ef0bd5b469f727790555ff6bd47c38cadb1e0d0aebf97b260c5059fc5"
+    );
+    let reader = McfrReader::open_verified(output).unwrap();
+    assert_eq!(reader.tick_count(), 92);
+}
+
+#[test]
 fn the_same_layout_and_seed_have_identical_semantic_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let first = simulate_layout(fixture(), directory.path().join("first.mcfr"), Some(-19)).unwrap();
@@ -77,6 +94,11 @@ fn unit_names_are_config_data_not_kernel_branches() {
     fs::copy(
         repository.join("config/config.yaml"),
         config_root.join("config.yaml"),
+    )
+    .unwrap();
+    fs::copy(
+        repository.join("config/training_ground.yaml"),
+        config_root.join("training_ground.yaml"),
     )
     .unwrap();
     for (source, renamed) in [("marksman", "unit_a"), ("arclight", "unit_b")] {

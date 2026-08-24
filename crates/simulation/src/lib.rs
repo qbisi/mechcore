@@ -60,8 +60,8 @@ pub fn simulate_layout(
 }
 
 /// Simulates a layout with either the embedded defaults or an external
-/// config root containing `config.yaml` and one YAML file per unit type under
-/// `units/`.
+/// config root containing `config.yaml`, `training_ground.yaml`, and one YAML
+/// file per unit type under `units/`.
 ///
 /// # Errors
 ///
