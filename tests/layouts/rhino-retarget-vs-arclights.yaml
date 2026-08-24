@@ -1,0 +1,17 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: rhino
+        x: -285
+        y: -105
+
+  red:
+    formations:
+      - type: arclight
+        x: 290
+        y: -100
+      - type: arclight
+        x: 190
+        y: -100

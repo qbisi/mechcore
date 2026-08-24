@@ -1,10 +1,44 @@
 use std::{fs, path::PathBuf};
 
-use mechcore_mcfr::{EventKind, McfrReader};
+use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
 use mechcore_simulation::{simulate_layout, simulate_layout_with_config};
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
+}
+
+fn rhino_fixture() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/rhino-vs-arclight.yaml")
+}
+
+fn rhino_retarget_fixture() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/layouts/rhino-retarget-vs-arclights.yaml")
+}
+
+#[test]
+fn public_simulation_rejects_unclosed_multi_member_behavior_before_creating_an_mcfr() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("crawler.yaml");
+    let output = directory.path().join("battle.mcfr");
+    fs::write(
+        &layout,
+        r"
+round: 1
+sides:
+  blue:
+    formations: [{type: crawler, x: 5, y: -50}]
+  red:
+    formations: [{type: arclight, x: 0, y: -50}]
+",
+    )
+    .unwrap();
+
+    let error = simulate_layout(&layout, &output, Some(1_787_601_811))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("not in the current kernel's supported behavior set"));
+    assert!(!output.exists());
 }
 
 #[test]
@@ -52,6 +86,132 @@ fn marksman_vs_arclight_matches_the_build_2259_native_recording() {
     );
     let reader = McfrReader::open_verified(output).unwrap();
     assert_eq!(reader.tick_count(), 92);
+    assert!(
+        reader
+            .state(reader.terminal_tick())
+            .unwrap()
+            .buildings
+            .iter()
+            .all(|building| building.life == 3_400 && building.alive && building.targetable)
+    );
+}
+
+#[test]
+fn rhino_vs_arclight_matches_the_build_2259_native_recording() {
+    let directory = tempfile::tempdir().unwrap();
+    let output = directory.path().join("battle.mcfr");
+    let result = simulate_layout(rhino_fixture(), &output, Some(1_787_591_883)).unwrap();
+    assert_eq!(result.winner, Some("blue"));
+    assert_eq!(result.steps, 235);
+    assert_eq!(
+        result.hashes.scenario_hash,
+        "c16a57a90f13f9ac4791bd25c3a35d2926b943643f83fc87ca38fc73b5fd08c2"
+    );
+    assert_eq!(
+        result.hashes.result_hash,
+        "0709395104ff9c229874e5d4216f04da5062694f780d49f07f7be6be60d68a4e"
+    );
+
+    let reader = McfrReader::open_verified(output).unwrap();
+    assert_eq!(reader.tick_count(), 236);
+    let direct_damage = (0..reader.tick_count())
+        .flat_map(|tick| reader.events(tick).unwrap().events)
+        .filter_map(|event| match event.payload {
+            EventPayload::Damage { amount } if event.source.is_none() => {
+                Some((event.target.unwrap().id, amount))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(direct_damage, [(2, 3_560), (2, 1_253)]);
+
+    let terminal = reader.state(reader.terminal_tick()).unwrap();
+    assert!(
+        terminal
+            .buildings
+            .iter()
+            .filter(|building| building.team_id == 1)
+            .all(|building| building.life == 0 && !building.alive && !building.targetable)
+    );
+}
+
+#[test]
+fn rhino_retarget_matches_the_build_2259_native_recording() {
+    let directory = tempfile::tempdir().unwrap();
+    let output = directory.path().join("battle.mcfr");
+    let result = simulate_layout(rhino_retarget_fixture(), &output, Some(1_787_601_811)).unwrap();
+    assert_eq!(result.winner, Some("blue"));
+    assert_eq!(result.steps, 337);
+    assert_eq!(
+        result.hashes.scenario_hash,
+        "9e7c8f5e5e7a3c3cbaaa8352f03dba1d6fc62493b2da1ff1356c27f771943fcf"
+    );
+    assert_eq!(
+        result.hashes.result_hash,
+        "02302cb6f2d780fc507e45747e3669d11b30947159592602a69072c2e22303d4"
+    );
+
+    let reader = McfrReader::open_verified(output).unwrap();
+    assert_eq!(reader.tick_count(), 338);
+    let initial = reader.state(0).unwrap();
+    assert_eq!(
+        initial
+            .units
+            .iter()
+            .map(|unit| (
+                unit.unit_id,
+                unit.team_id,
+                unit.position.x,
+                unit.position.z,
+                unit.body_rotation,
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (1, 0, -284_400, -104_900, 358_219),
+            (2, 1, -189_500, 99_300, 204_939),
+            (3, 1, -290_600, 99_900, 178_219),
+        ]
+    );
+
+    let rhino_motion = |tick| {
+        reader
+            .state(tick)
+            .unwrap()
+            .units
+            .into_iter()
+            .find(|unit| unit.unit_id == 1)
+            .unwrap()
+            .motion_state
+    };
+    assert_eq!(rhino_motion(223), mechcore_mcfr::MotionState::Idle);
+    assert_eq!(rhino_motion(233), mechcore_mcfr::MotionState::Idle);
+    assert_eq!(rhino_motion(234), mechcore_mcfr::MotionState::Moving);
+    assert_eq!(rhino_motion(309), mechcore_mcfr::MotionState::Attacking);
+
+    let direct_damage = (0..reader.tick_count())
+        .flat_map(|tick| {
+            reader
+                .events(tick)
+                .unwrap()
+                .events
+                .into_iter()
+                .filter_map(move |event| match event.payload {
+                    EventPayload::Damage { amount } if event.source.is_none() => {
+                        Some((tick, event.target.unwrap().id, amount))
+                    }
+                    _ => None,
+                })
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        direct_damage,
+        [
+            (205, 3, 3_560),
+            (223, 3, 1_253),
+            (318, 2, 3_560),
+            (336, 2, 1_253)
+        ]
+    );
 }
 
 #[test]
