@@ -50,7 +50,7 @@ attack:
 | `max_life` | 基础最大生命。 |
 | `collision_radius` | 运动、射程和投射物命中边界，单位 m。 |
 | `move_speed`、`rotate_speed` | 移动和主体转向速度，单位分别为 m/s、deg/s。 |
-| `independent_aim` | 武器瞄准是否独立于主体朝向。 |
+| `independent_aim` | 在普通主技能的攻击转向过程中，主武器是否可以接收独立于单位 mech body 攻击方向指令生成的瞄准方向指令；mech body 不是 MCFR 单位根节点。 |
 | `attack_type` | 当前为 `direct_projectile` 或 `area_projectile`。 |
 | `target_domain` | 可攻击 `ground`、`air` 或 `both`。 |
 | `damage`、`range` | 单次基础伤害和攻击范围；单位分别为无量纲和 m。 |

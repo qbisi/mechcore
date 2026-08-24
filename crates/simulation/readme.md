@@ -229,9 +229,23 @@ work/research/
 | 攻击间隔随机流 | `FightTeam.RefreshRandomData` 为每队建立 `GRRandom`，seed 为 `(round + teamIndex) * 4444`；当前单成员场景消费结果已对齐 | 多成员、多个技能的队内刷新顺序 |
 | 攻击调度 | `RefreshAttackInterval` 的逻辑步换算、至少一 tick 下界，以及首次进入 Attack 后下一次更新才可释放 | 其它技能状态机分支 |
 | 基础方向 | 不存在额外的 `aim_tolerance: 20` 转向死区；当前场景部署方向已对齐 | `Normalize -> Angle -> RawAcos` 全方向和边界舍入 |
-| 普通投射物 | `Init/Update/Move` 的 Q32.32 移动、活动时 `released=false`、默认 rotation 和实际 transform 移除位置 | `IsLockTarget`、拦截及其它投射物类型 |
+| 普通投射物 | `Init/Update/Move` 的 Q32.32 移动、活动时 `released=false`、默认 rotation 和实际 transform 移除位置；build2259 长弓/弧光普通单投射物在 `isLockTarget=true`、目标存活且移动、`randomTargetRange=0`/offset=0 分支逐 tick 刷新目标 root Q32 位置 | 非锁定、目标死亡、非零随机 offset、拦截及其它投射物类型 |
 | 伤害与死亡 | `ReduceLife` 的实际扣血量、Projectile provider、伤害/移除同 tick 顺序，以及退出战斗后的即时 Idle | 多目标范围伤害和其它 provider |
 | 个人护盾基线 | 无护盾单位的 `EnergyShieldController.enabled=true` 初始状态 | 实际护盾激活、吸收和销毁生命周期 |
+| 普通首发延迟 | 当前 P0 普通首发分支分别将 `prepareTime` 与 `attackPoint` 除以逻辑步并截断；长弓为 10+2 tick，弧光为 0+0 tick | 重复攻击、grouped/loading、后摇及其它阶段调整；不得推广为两字段相加的通式 |
+| 主技能瞄准命令 | build2259 长弓、弧光在 `isHaveBody=true` 的普通主技能攻击转向分支中，将同一次 `CalculateTargetDirection` 生成的同一 direction 局部值分别传给 mech body 与主武器，因此 `independent_aim=false`；mech body 不是 MCFR unit root | 无 mech body、其它 weapon mode、特殊技能及独立方向源 |
+
+build `1.11.1.3.2259` 已闭合的 level-1、无科技、无装备、无动态 buff 基础配置：
+
+| Unit | life | radius | move | rotate | damage | range | interval | interval offset | release delay | projectile speed | splash |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Marksman | 1622 | 8 | 8 | 70 | 2329 | 140 | 3.1 | 0.6 | 0.6 | 500 | 0 |
+| Arclight | 4813 | 9 | 7 | 80 | 365 | 95 | 0.9 | 0.3 | 0 | 300 | 7 |
+
+其中时间小数是目标 build Q32.32 原始字段的 YAML 表示；原生逻辑按字段分别换算为
+tick。Marksman 的目标域为 ground+air，Arclight 为 ground；两者均为 ground Unit、
+`isLockTarget=true`、`randomTargetRange=0`。`attack_type` 是 Simulator 对普通投射物及
+零/非零 splash 的保守投影，不是游戏原生枚举。
 
 ## 研究日志
 

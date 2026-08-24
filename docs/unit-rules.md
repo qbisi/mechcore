@@ -52,7 +52,7 @@ version, and loading performs no version-match check.
 | `max_life` | Baseline maximum life. |
 | `collision_radius` | Movement, range and projectile-impact boundary in m. |
 | `move_speed`, `rotate_speed` | Movement and body rotation speed in m/s and deg/s. |
-| `independent_aim` | Whether weapon aim is independent of body orientation. |
+| `independent_aim` | During normal main-skill attack rotation, whether the main weapon can receive an aim-direction command generated independently of the unit mech body's attack-direction command. The mech body is not the MCFR unit root. |
 | `attack_type` | Currently `direct_projectile` or `area_projectile`. |
 | `target_domain` | The attack accepts `ground`, `air` or `both`. |
 | `damage`, `range` | Baseline damage and attack range in m. |
