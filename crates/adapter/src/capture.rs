@@ -27,7 +27,7 @@ const ROTATION_UNITS_PER_DEGREE: u64 = 1_000;
 const TIME_UNITS_PER_SECOND: u64 = 2_000;
 pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
 pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 500.0;
-pub(crate) const CALIBRATION_ORTHOGRAPHIC_SIZE: f32 = 400.0;
+pub(crate) const CALIBRATION_ORTHOGRAPHIC_SIZE: f32 = 800.0 / 3.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
