@@ -83,7 +83,7 @@ pub(crate) struct Placement {
     pub(crate) formation_id: u64,
     pub(crate) type_name: String,
     pub(crate) world_x: i64,
-    pub(crate) world_y: i64,
+    pub(crate) world_z: i64,
     pub(crate) rotation: i64,
 }
 
@@ -170,11 +170,11 @@ fn compile_side(
         )));
     }
     let local_x = i64::from(formation.x);
-    let local_y = i64::from(formation.y);
-    let (world_x, world_y, rotation) = if team == 0 {
-        (local_x, local_y, 0)
+    let local_z = i64::from(formation.y);
+    let (world_x, world_z, rotation) = if team == 0 {
+        (local_x, local_z, 0)
     } else {
-        (-local_x, -local_y, 180_000)
+        (-local_x, -local_z, 180_000)
     };
     let formation_id = identities.allocate_formation()?;
     let unit_id = identities.allocate_object(ObjectKind::Unit)?.id;
@@ -184,7 +184,7 @@ fn compile_side(
         formation_id,
         type_name: formation.type_name.clone(),
         world_x,
-        world_y,
+        world_z,
         rotation,
     })
 }
@@ -205,8 +205,8 @@ sides:
     #[test]
     fn compiles_side_local_positions_into_one_world() {
         let layout = compile(LAYOUT.as_bytes()).unwrap();
-        assert_eq!(layout.placements[0].world_y, -50);
-        assert_eq!(layout.placements[1].world_y, 50);
+        assert_eq!(layout.placements[0].world_z, -50);
+        assert_eq!(layout.placements[1].world_z, 50);
         assert_eq!(layout.placements[1].rotation, 180_000);
         assert_eq!(layout.placements[0].unit_id, 1);
         assert_eq!(layout.placements[1].unit_id, 2);

@@ -119,13 +119,13 @@ fn writer_rejects_noncanonical_initial_identities() {
 }
 
 #[test]
-fn writer_rejects_initial_unit_ids_outside_team_yx_order() {
+fn writer_rejects_initial_unit_ids_outside_team_zx_order() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-unit-order.mcfr");
     let mut state = initial_state();
     state.units[1].team_id = 1;
-    state.units[0].position.x = 100;
-    state.units[1].position.x = 0;
+    state.units[0].position.z = 100;
+    state.units[1].position.z = 0;
     let mut writer = McfrWriter::create(&path, &context()).unwrap();
     assert!(writer.append_tick(state, &empty_events()).is_err());
     assert!(!path.exists());
@@ -197,7 +197,7 @@ fn context() -> DurableContext {
         },
         combat_round: 1,
         match_seed: 42,
-        identity_contract: IdentityContract::TeamYxSequentialV1,
+        identity_contract: IdentityContract::TeamZxSequentialV1,
     }
 }
 

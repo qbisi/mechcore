@@ -56,6 +56,22 @@ duration. The fighting-to-over boundary is stored once as top-level
 `terminal_tick`. A source-native clock may be retained as non-canonical
 evidence, but it does not enter `S` or formal hashes.
 
+## Coordinate system
+
+MCFR uses the game's Unity world-axis semantics consistently across adapter
+capture, simulation, comparison, and playback:
+
+- `x/z` form the battlefield plane;
+- `y` is vertical height;
+- every `Vec3` is ordered as `(x, y, z)` and never reinterprets `y` as a second
+  horizontal layout coordinate.
+
+After the owning-side transform, two-dimensional layout `x` maps to MCFR world
+`x`, while layout `y` maps to MCFR world `z`. Layout retains its native
+two-component `(x, y)` schema; the adapter and simulator perform this
+normalization only when constructing the unified world model. Camera-relative
+directions do not alter these world-axis meanings.
+
 ## Native observability constraint
 
 Every `S` field, every `E` event and payload value, and every future `I`
@@ -161,12 +177,12 @@ Status is the shared representation for persistent buffs and debuffs,
 including technology-disable effects. Specialized `buffs` and
 `technology_disabled` fields are not maintained in parallel.
 
-Schema version 2 uses `team_yx_sequential_v1` identities. Object IDs occupy
+Schema version 2 uses `team_zx_sequential_v1` identities. Object IDs occupy
 independent namespaces for Unit, Projectile, Building, and Status; each
 namespace starts at one and has no gaps.
 Formation IDs use another one-based, gapless namespace. For initial Units,
 build 2227's evidenced order is team-controller order, then ascending unified
-world `y`, then ascending unified world `x` within each team. Equal Unit
+world `z`, then ascending unified world `x` within each team. Equal Unit
 positions in one team are invalid; no synthetic tie-breaker is introduced.
 This coordinate rule deliberately avoids translating world coordinates into
 camera-relative labels such as “top-left”. Initial non-Unit objects retain

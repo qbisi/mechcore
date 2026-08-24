@@ -614,7 +614,7 @@ fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
         },
         combat_round: u32::try_from(round).map_err(|_| "combat round overflow".to_owned())?,
         match_seed,
-        identity_contract: IdentityContract::TeamYxSequentialV1,
+        identity_contract: IdentityContract::TeamZxSequentialV1,
     })
 }
 
@@ -698,7 +698,7 @@ fn snapshot(
     raw_units.sort_by_key(|unit| {
         (
             unit.state.team_id,
-            unit.state.position.y,
+            unit.state.position.z,
             unit.state.position.x,
             unit.pointer,
         )
@@ -707,7 +707,7 @@ fn snapshot(
         for pair in raw_units.windows(2) {
             if pair[0].state.team_id == pair[1].state.team_id
                 && pair[0].state.position.x == pair[1].state.position.x
-                && pair[0].state.position.y == pair[1].state.position.y
+                && pair[0].state.position.z == pair[1].state.position.z
             {
                 return Err("two initial same-team units have equal world coordinates".into());
             }
@@ -1550,7 +1550,7 @@ mod tests {
             },
             combat_round: 1,
             match_seed: 0,
-            identity_contract: IdentityContract::TeamYxSequentialV1,
+            identity_contract: IdentityContract::TeamZxSequentialV1,
         };
         let mut writer = mechcore_mcfr::McfrWriter::create(&path, &context).unwrap();
         writer

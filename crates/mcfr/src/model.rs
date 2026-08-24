@@ -106,7 +106,7 @@ impl NumericConvention {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IdentityContract {
-    TeamYxSequentialV1,
+    TeamZxSequentialV1,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -391,7 +391,7 @@ pub struct UnitState {
 
 /// Compares initial units in build-2227 `FightTeam.PrepareActors` order.
 ///
-/// Teams are visited first; members within one team use ascending world `y`, then ascending
+/// Teams are visited first; members within one team use ascending world `z`, then ascending
 /// world `x`. Equal positions within one team are not ordered by a synthetic tie-breaker.
 #[must_use]
 pub fn compare_initial_unit_order(
@@ -402,7 +402,7 @@ pub fn compare_initial_unit_order(
 ) -> Ordering {
     left_team
         .cmp(&right_team)
-        .then_with(|| left_position.y.cmp(&right_position.y))
+        .then_with(|| left_position.z.cmp(&right_position.z))
         .then_with(|| left_position.x.cmp(&right_position.x))
 }
 
@@ -416,7 +416,7 @@ fn validate_initial_unit_order(snapshot: &WorldSnapshot) -> Result<()> {
         );
         if ordering != Ordering::Less {
             return Err(Error::invalid(
-                "initial unit identities must follow ascending team, world y, then world x",
+                "initial unit identities must follow ascending team, world z, then world x",
             ));
         }
     }

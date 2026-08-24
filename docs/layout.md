@@ -117,8 +117,10 @@ illegal until activation round 3.
 
 ## Coordinate system
 
-Every position is expressed in the owning side's fixed local coordinate
-system, not in native world coordinates and not in movable screen or camera
+Layout uses a self-contained two-dimensional `(x, y)` deployment coordinate
+system. These names follow the game's native two-component deployment API;
+layout `y` is not the Unity world height axis. Every position is expressed in
+the owning side's fixed local frame, not in movable screen or camera
 coordinates:
 
 - the battlefield center is `(0, 0)`;
@@ -132,13 +134,18 @@ units may additionally use either local ambush rectangle:
 - left: `x=[-360,-300], y=[10,310]`;
 - right: `x=[300,360], y=[10,310]`.
 
-The adapter compiles layout positions to the game's unified world coordinates
-before invoking native operations:
+The adapter compiles side-local positions to the native two-dimensional
+deployment coordinates before invoking layout operations:
 
 ```text
-blue: world(x, y) = local( x,  y)
-red:  world(x, y) = local(-x, -y)
+blue: native(x, y) = local( x,  y)
+red:  native(x, y) = local(-x, -y)
 ```
+
+When a layout enters MCFR or the simulation kernel, its second coordinate is
+normalized to the Unity world battlefield axis: `layout.x -> world.x` and
+`layout.y -> world.z`; Unity/MCFR world `y` remains vertical height. This
+mapping is outside the layout schema and does not rename its fields.
 
 The same transform applies independently to every coordinate in
 `battle_skills.positions`. A 180-degree transform does not change a formation's

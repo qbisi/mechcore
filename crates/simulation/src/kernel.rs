@@ -34,9 +34,9 @@ struct Actor {
     placement: Placement,
     rules: UnitConfig,
     x: i64,
-    y: i64,
+    z: i64,
     velocity_x: i64,
-    velocity_y: i64,
+    velocity_z: i64,
     body_rotation: i64,
     aim_rotation: i64,
     life: i64,
@@ -51,7 +51,7 @@ impl Actor {
         let jitter_unit = SPACE_UNITS_PER_METER / 10;
         let jitter_x =
             i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS)) * jitter_unit;
-        let jitter_y =
+        let jitter_z =
             i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS)) * jitter_unit;
         let direction = if placement.team == 0 { 1 } else { -1 };
         let max_life = rules.max_life;
@@ -60,16 +60,16 @@ impl Actor {
                 .world_x
                 .saturating_mul(SPACE_UNITS_PER_METER)
                 .saturating_add(jitter_x * direction),
-            y: placement
-                .world_y
+            z: placement
+                .world_z
                 .saturating_mul(SPACE_UNITS_PER_METER)
-                .saturating_add(jitter_y * direction),
+                .saturating_add(jitter_z * direction),
             body_rotation: placement.rotation,
             aim_rotation: placement.rotation,
             placement,
             rules,
             velocity_x: 0,
-            velocity_y: 0,
+            velocity_z: 0,
             life: max_life,
             motion: MotionState::Idle,
             next_attack_step: 0,
@@ -95,13 +95,13 @@ impl Actor {
                 UnitDomain::Ground => Domain::Ground,
                 UnitDomain::Air => Domain::Air,
             },
-            position: point(self.x, self.y),
+            position: point(self.x, self.z),
             body_rotation: self.body_rotation,
             aim_pose: Pose {
-                position: point(self.x, self.y),
+                position: point(self.x, self.z),
                 rotation: self.aim_rotation,
             },
-            velocity: point(self.velocity_x, self.velocity_y),
+            velocity: point(self.velocity_x, self.velocity_z),
             motion_state: self.motion,
             collision_radius: self.rules.collision_radius(),
             life: self.life,
@@ -127,11 +127,11 @@ struct Projectile {
     owner: u64,
     target: u64,
     x: i64,
-    y: i64,
+    z: i64,
     x_q32: i64,
-    y_q32: i64,
+    z_q32: i64,
     cached_target_x: i64,
-    cached_target_y: i64,
+    cached_target_z: i64,
     cached_target_radius: i64,
     speed: i64,
     damage: i64,
@@ -147,10 +147,10 @@ impl Projectile {
             projectile_id: self.id,
             team_id: self.team,
             owner: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
-            position: point(self.x, self.y),
+            position: point(self.x, self.z),
             orientation: 0,
             target: Some(ObjectRef::new(ObjectKind::Unit, self.target)),
-            cached_target_position: point(self.cached_target_x, self.cached_target_y),
+            cached_target_position: point(self.cached_target_x, self.cached_target_z),
             cached_target_radius: self.cached_target_radius,
             released: false,
             life: Gauge {
@@ -254,7 +254,7 @@ impl Simulation {
             for actor in self.actors.values_mut() {
                 actor.motion = MotionState::Idle;
                 actor.velocity_x = 0;
-                actor.velocity_y = 0;
+                actor.velocity_z = 0;
             }
         }
         Ok(TransitionEvents { events })
@@ -269,7 +269,7 @@ impl Simulation {
                 .expect("actor identity is stable");
             actor.pending = None;
             actor.velocity_x = 0;
-            actor.velocity_y = 0;
+            actor.velocity_z = 0;
             actor.motion = MotionState::Idle;
             return Ok(());
         }
@@ -295,22 +295,22 @@ impl Simulation {
                 .expect("actor identity is stable");
             actor.motion = MotionState::Idle;
             actor.velocity_x = 0;
-            actor.velocity_y = 0;
+            actor.velocity_z = 0;
             return Ok(());
         };
         let target = &self.actors[&target_id];
         let target_x = target.x;
-        let target_y = target.y;
+        let target_z = target.z;
         let target_radius = target.rules.collision_radius();
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let dx = target_x - actor.x;
-        let dy = target_y - actor.y;
-        let target_rotation = direction_mdeg(dx, dy);
+        let dz = target_z - actor.z;
+        let target_rotation = direction_mdeg(dx, dz);
         actor.aim_rotation = target_rotation;
-        let center_distance = magnitude(dx, dy);
+        let center_distance = magnitude(dx, dz);
         let edge_distance = center_distance
             .saturating_sub(actor.rules.collision_radius())
             .saturating_sub(target_radius);
@@ -318,7 +318,7 @@ impl Simulation {
             let entered_attack = actor.motion != MotionState::Attacking;
             actor.motion = MotionState::Attacking;
             actor.velocity_x = 0;
-            actor.velocity_y = 0;
+            actor.velocity_z = 0;
             if !actor.rules.independent_aim {
                 actor.body_rotation = rotate_towards(
                     actor.body_rotation,
@@ -368,14 +368,14 @@ impl Simulation {
         );
         let required = edge_distance.saturating_sub(actor.rules.attack.range());
         let displacement = max_displacement.min(required);
-        let (move_x, move_y) = displacement_towards(dx, dy, displacement);
+        let (move_x, move_z) = displacement_towards(dx, dz, displacement);
         actor.x = actor.x.saturating_add(move_x);
-        actor.y = actor.y.saturating_add(move_y);
+        actor.z = actor.z.saturating_add(move_z);
         actor.velocity_x = scale_per_second(move_x, LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
-        actor.velocity_y = scale_per_second(move_y, LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
+        actor.velocity_z = scale_per_second(move_z, LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
         actor.body_rotation = rotate_towards(
             actor.body_rotation,
-            direction_mdeg(move_x, move_y),
+            direction_mdeg(move_x, move_z),
             rotation_per_tick(actor),
         );
         Ok(())
@@ -387,7 +387,7 @@ impl Simulation {
             .ok_or_else(|| Error::new("attack release has no pending action"))?;
         let target = &self.actors[&pending.target];
         let target_x = target.x;
-        let target_y = target.y;
+        let target_z = target.z;
         let target_radius = target.rules.collision_radius();
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
         let owner = self
@@ -401,11 +401,11 @@ impl Simulation {
             owner: actor_id,
             target: pending.target,
             x: owner.x,
-            y: owner.y,
+            z: owner.z,
             x_q32: space_to_q32(owner.x),
-            y_q32: space_to_q32(owner.y),
+            z_q32: space_to_q32(owner.z),
             cached_target_x: target_x,
-            cached_target_y: target_y,
+            cached_target_z: target_z,
             cached_target_radius: target_radius,
             speed: owner.rules.attack.projectile_speed(),
             damage: owner.rules.attack.damage,
@@ -431,14 +431,14 @@ impl Simulation {
                 .filter(|actor| actor.alive())
             {
                 projectile.cached_target_x = target.x;
-                projectile.cached_target_y = target.y;
+                projectile.cached_target_z = target.z;
                 projectile.cached_target_radius = target.rules.collision_radius();
             }
             let target_x_q32 = space_to_q32(projectile.cached_target_x);
-            let target_y_q32 = space_to_q32(projectile.cached_target_y);
+            let target_z_q32 = space_to_q32(projectile.cached_target_z);
             let dx_q32 = target_x_q32.saturating_sub(projectile.x_q32);
-            let dy_q32 = target_y_q32.saturating_sub(projectile.y_q32);
-            let distance_q32 = native_q32_magnitude(dx_q32, dy_q32);
+            let dz_q32 = target_z_q32.saturating_sub(projectile.z_q32);
+            let distance_q32 = native_q32_magnitude(dx_q32, dz_q32);
             if distance_q32 < space_to_q32(projectile.cached_target_radius) {
                 self.impact(&projectile, events)?;
             } else {
@@ -453,12 +453,12 @@ impl Simulation {
                     projectile.x_q32 = projectile
                         .x_q32
                         .saturating_add(q32_mul(q32_mul(dx_q32, reciprocal), move_q32));
-                    projectile.y_q32 = projectile
-                        .y_q32
-                        .saturating_add(q32_mul(q32_mul(dy_q32, reciprocal), move_q32));
+                    projectile.z_q32 = projectile
+                        .z_q32
+                        .saturating_add(q32_mul(q32_mul(dz_q32, reciprocal), move_q32));
                 }
                 projectile.x = q32_to_space_rounded(projectile.x_q32);
-                projectile.y = q32_to_space_rounded(projectile.y_q32);
+                projectile.z = q32_to_space_rounded(projectile.z_q32);
                 retained.push(projectile);
             }
         }
@@ -488,7 +488,7 @@ impl Simulation {
             if target.life == 0 {
                 target.motion = MotionState::Idle;
                 target.velocity_x = 0;
-                target.velocity_y = 0;
+                target.velocity_z = 0;
                 target.pending = None;
             }
         }
@@ -497,7 +497,7 @@ impl Simulation {
             Some(owner_ref),
             Some(target_ref),
             EventPayload::ProjectileRemoved {
-                position: point(projectile.x, projectile.y),
+                position: point(projectile.x, projectile.z),
                 intercepted: false,
             },
         ));
@@ -553,7 +553,7 @@ pub(crate) fn run(
         },
         combat_round: layout.round,
         match_seed: seed,
-        identity_contract: IdentityContract::TeamYxSequentialV1,
+        identity_contract: IdentityContract::TeamZxSequentialV1,
     };
     let mut simulation = Simulation::new(layout, &config.units, seed)?;
     let mut writer = McfrWriter::create(output, &context)?;
@@ -692,8 +692,8 @@ const fn point(x: i64, z: i64) -> Vec3 {
     Vec3 { x, y: 0, z }
 }
 
-fn magnitude(x: i64, y: i64) -> i64 {
-    integer_sqrt(i128::from(x) * i128::from(x) + i128::from(y) * i128::from(y))
+fn magnitude(x: i64, z: i64) -> i64 {
+    integer_sqrt(i128::from(x) * i128::from(x) + i128::from(z) * i128::from(z))
 }
 
 fn space_to_q32(value: i64) -> i64 {
@@ -740,8 +740,8 @@ fn q32_div(numerator: i64, denominator: i64) -> i64 {
     }
 }
 
-fn native_q32_magnitude(x: i64, y: i64) -> i64 {
-    fpcs_sqrt_fastest(q32_mul(x, x).saturating_add(q32_mul(y, y)))
+fn native_q32_magnitude(x: i64, z: i64) -> i64 {
+    fpcs_sqrt_fastest(q32_mul(x, x).saturating_add(q32_mul(z, z)))
 }
 
 fn fpcs_sqrt_fastest(value: i64) -> i64 {
@@ -901,14 +901,14 @@ fn integer_sqrt(value: i128) -> i64 {
     i64::try_from(low).unwrap_or(i64::MAX)
 }
 
-fn displacement_towards(dx: i64, dy: i64, length: i64) -> (i64, i64) {
-    let magnitude = magnitude(dx, dy);
+fn displacement_towards(dx: i64, dz: i64, length: i64) -> (i64, i64) {
+    let magnitude = magnitude(dx, dz);
     if magnitude == 0 || length == 0 {
         return (0, 0);
     }
     let x = i128::from(dx) * i128::from(length) / i128::from(magnitude);
-    let y = i128::from(dy) * i128::from(length) / i128::from(magnitude);
-    (saturating_i128_to_i64(x), saturating_i128_to_i64(y))
+    let z = i128::from(dz) * i128::from(length) / i128::from(magnitude);
+    (saturating_i128_to_i64(x), saturating_i128_to_i64(z))
 }
 
 fn saturating_i128_to_i64(value: i128) -> i64 {
@@ -919,17 +919,17 @@ fn saturating_i128_to_i64(value: i128) -> i64 {
     }
 }
 
-fn direction_mdeg(dx: i64, dy: i64) -> i64 {
-    if dx == 0 && dy == 0 {
+fn direction_mdeg(dx: i64, dz: i64) -> i64 {
+    if dx == 0 && dz == 0 {
         return 0;
     }
     let x = space_to_q32(dx);
-    let y = space_to_q32(dy);
-    let magnitude = native_q32_magnitude(x, y);
+    let z = space_to_q32(dz);
+    let magnitude = native_q32_magnitude(x, z);
     if magnitude <= 0 {
         return 0;
     }
-    let cosine = q32_div(y, magnitude).clamp(-Q32_ONE, Q32_ONE);
+    let cosine = q32_div(z, magnitude).clamp(-Q32_ONE, Q32_ONE);
     let radians = fpcs_acos_fastest(cosine);
     let degrees = q32_mul(radians, 0x0039_4BB8_34C8);
     let degrees = if x < 0 {

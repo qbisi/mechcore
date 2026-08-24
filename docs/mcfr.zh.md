@@ -47,6 +47,18 @@ MCFR = D + T(0)..T(n)
 fighting 到 over 的边界只在顶层保存为 `terminal_tick`。来源原生时钟可以作为非规范
 证据保留，但不进入 `S` 或正式哈希。
 
+## 坐标系
+
+MCFR 在 Adapter 采集、simulation、比较和播放中统一采用游戏的 Unity 世界轴语义：
+
+- `x/z` 构成战场平面；
+- `y` 表示垂直高度；
+- 每个 `Vec3` 均按 `(x, y, z)` 排列，绝不把 `y` 重新解释为 layout 的第二个水平坐标。
+
+二维 layout 经过所属方变换后，layout `x` 映射到 MCFR 世界 `x`，layout `y` 映射到
+MCFR 世界 `z`。Layout 保留原生二维 `(x, y)` schema；Adapter 和 simulation 只在构造
+统一世界模型时执行该规范化。相机视角和屏幕方位不改变这些世界轴定义。
+
 ## 原生可观测性硬约束
 
 每个 `S` 字段、每个 `E` 事件及其 payload 值，以及将来的每个 `I` channel 和数值，
@@ -129,11 +141,11 @@ Team 和 Formation 是具体世界对象的归属与身份属性，不是逐帧�
 Status 是持久 buff 和 debuff 的统一表达，也包括禁用科技的效果。不再并行维护专用
 的 `buffs` 和 `technology_disabled` 字段。
 
-Schema version 2 使用 `team_yx_sequential_v1` 身份。Unit、Projectile、Building 和
+Schema version 2 使用 `team_zx_sequential_v1` 身份。Unit、Projectile、Building 和
 Status 各自拥有独立 ID 命名空间，每个空间都从 1
 开始且不留空洞；Formation 使用另一套从 1 开始的连续命名空间。对于初始 Unit，
 build 2227 已有证据支持的顺序是：先按 team-controller 顺序，再在每个 team 内按统一
-世界坐标 `y` 升序、`x` 升序。同队 Unit 坐标相同属于非法，不引入虚构 tie-breaker。
+世界坐标 `z` 升序、`x` 升序。同队 Unit 坐标相同属于非法，不引入虚构 tie-breaker。
 该规则只描述坐标，不将其翻译为受相机影响的“左上”等方位。初始非 Unit 对象保留
 其游戏注册顺序，战斗中动态创建的对象按规范事件顺序分配。公共 `IdentityAllocator`
 提供连续 ordinal；写入器在开始录像时拒绝空洞并校验初始 Unit 顺序。
