@@ -23,6 +23,7 @@ const LOGIC_TICK_TIME_UNITS: u64 = 100;
 const FIGHT_TIME_SECONDS: u64 = 120;
 const FORMATION_JITTER_RANGE_TENTHS: i32 = 8;
 const Q32_ONE: i64 = 1_i64 << 32;
+const C0_1_RAW: i64 = 0x1999_9999;
 const NATIVE_LOGIC_DELTA_Q32: i64 = 0x0CCC_CCCC;
 
 #[derive(Debug, Clone, Copy)]
@@ -37,8 +38,19 @@ struct Actor {
     rules: UnitConfig,
     x: i64,
     z: i64,
-    velocity_x: i64,
-    velocity_z: i64,
+    x_q32: i64,
+    z_q32: i64,
+    current_velocity_x_q32: i64,
+    current_velocity_z_q32: i64,
+    next_target_x_q32: i64,
+    next_target_z_q32: i64,
+    next_speed_q32: i64,
+    solver_target_x_q32: i64,
+    solver_target_z_q32: i64,
+    solver_speed_q32: i64,
+    published_target_x_q32: i64,
+    published_target_z_q32: i64,
+    published_speed_q32: i64,
     body_rotation: i64,
     aim_rotation: i64,
     life: i64,
@@ -50,28 +62,40 @@ struct Actor {
 impl Actor {
     fn new(placement: Placement, rules: UnitConfig, seed: i32) -> Self {
         let mut layout_random = GrRandom::new(u64::from(seed.cast_unsigned()));
-        let jitter_unit = SPACE_UNITS_PER_METER / 10;
-        let jitter_x =
-            i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS)) * jitter_unit;
-        let jitter_z =
-            i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS)) * jitter_unit;
+        let jitter_x_tenths = i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS));
+        let jitter_z_tenths = i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS));
         let direction = if placement.team == 0 { 1 } else { -1 };
         let max_life = rules.max_life;
+        let x_q32 = placement
+            .world_x
+            .saturating_mul(Q32_ONE)
+            .saturating_add(jitter_x_tenths.saturating_mul(C0_1_RAW) * direction);
+        let z_q32 = placement
+            .world_z
+            .saturating_mul(Q32_ONE)
+            .saturating_add(jitter_z_tenths.saturating_mul(C0_1_RAW) * direction);
+        let x = q32_to_space_rounded(x_q32);
+        let z = q32_to_space_rounded(z_q32);
         Self {
-            x: placement
-                .world_x
-                .saturating_mul(SPACE_UNITS_PER_METER)
-                .saturating_add(jitter_x * direction),
-            z: placement
-                .world_z
-                .saturating_mul(SPACE_UNITS_PER_METER)
-                .saturating_add(jitter_z * direction),
+            x,
+            z,
+            x_q32,
+            z_q32,
             body_rotation: placement.rotation,
             aim_rotation: placement.rotation,
             placement,
             rules,
-            velocity_x: 0,
-            velocity_z: 0,
+            current_velocity_x_q32: 0,
+            current_velocity_z_q32: 0,
+            next_target_x_q32: x_q32,
+            next_target_z_q32: z_q32,
+            next_speed_q32: 0,
+            solver_target_x_q32: x_q32,
+            solver_target_z_q32: z_q32,
+            solver_speed_q32: 0,
+            published_target_x_q32: x_q32,
+            published_target_z_q32: z_q32,
+            published_speed_q32: 0,
             life: max_life,
             motion: MotionState::Idle,
             next_attack_step: 0,
@@ -103,7 +127,10 @@ impl Actor {
                 position: point(self.x, self.z),
                 rotation: self.aim_rotation,
             },
-            velocity: point(self.velocity_x, self.velocity_z),
+            velocity: point(
+                q32_to_space_rounded(self.current_velocity_x_q32),
+                q32_to_space_rounded(self.current_velocity_z_q32),
+            ),
             motion_state: self.motion,
             collision_radius: self.rules.collision_radius(),
             life: self.life,
@@ -134,6 +161,8 @@ struct Projectile {
     z_q32: i64,
     cached_target_x: i64,
     cached_target_z: i64,
+    cached_target_x_q32: i64,
+    cached_target_z_q32: i64,
     cached_target_radius: i64,
     speed: i64,
     damage: i64,
@@ -194,6 +223,7 @@ struct Simulation {
     projectiles: Vec<Projectile>,
     buildings: Vec<BuildingState>,
     identities: IdentityAllocator,
+    rvo_counter: u8,
 }
 
 impl Simulation {
@@ -289,6 +319,7 @@ impl Simulation {
             projectiles: Vec::new(),
             buildings,
             identities: IdentityAllocator::new(),
+            rvo_counter: 0,
         })
     }
 
@@ -306,13 +337,13 @@ impl Simulation {
         let actor_ids = self.actors.keys().copied().collect::<Vec<_>>();
         for actor_id in actor_ids {
             self.step_actor(actor_id, step, &mut events)?;
+            self.step_actor_rvo_position(actor_id);
         }
         self.step_projectiles(&mut events)?;
+        self.step_rvo();
         if self.naturally_finished() {
             for actor in self.actors.values_mut() {
                 actor.motion = MotionState::Idle;
-                actor.velocity_x = 0;
-                actor.velocity_z = 0;
             }
         }
         Ok(TransitionEvents { events })
@@ -326,8 +357,6 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.pending = None;
-            actor.velocity_x = 0;
-            actor.velocity_z = 0;
             actor.motion = MotionState::Idle;
             return Ok(());
         }
@@ -352,13 +381,13 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.motion = MotionState::Idle;
-            actor.velocity_x = 0;
-            actor.velocity_z = 0;
             return Ok(());
         };
         let target = &self.actors[&target_id];
         let target_x = target.x;
         let target_z = target.z;
+        let target_x_q32 = target.x_q32;
+        let target_z_q32 = target.z_q32;
         let target_radius = target.rules.collision_radius();
         let actor = self
             .actors
@@ -366,24 +395,36 @@ impl Simulation {
             .expect("actor identity is stable");
         let dx = target_x - actor.x;
         let dz = target_z - actor.z;
-        let target_rotation = direction_mdeg(dx, dz);
-        actor.aim_rotation = target_rotation;
+        let target_rotation = direction_mdeg_q32_raw(
+            target_x_q32.saturating_sub(actor.x_q32),
+            target_z_q32.saturating_sub(actor.z_q32),
+        );
         let center_distance = magnitude(dx, dz);
         let edge_distance = center_distance
             .saturating_sub(actor.rules.collision_radius())
             .saturating_sub(target_radius);
         if edge_distance <= actor.rules.attack.range() {
+            let previous_motion = actor.motion;
             let entered_attack = actor.motion != MotionState::Attacking;
             actor.motion = MotionState::Attacking;
-            actor.velocity_x = 0;
-            actor.velocity_z = 0;
-            if !actor.rules.independent_aim {
+            if previous_motion == MotionState::Moving {
+                actor.next_target_x_q32 = actor.x_q32;
+                actor.next_target_z_q32 = actor.z_q32;
+                actor.next_speed_q32 = 0;
+            }
+            if entered_attack {
+                return Ok(());
+            }
+            actor.aim_rotation = target_rotation;
+            if actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0 {
                 actor.body_rotation = rotate_towards(
                     actor.body_rotation,
-                    target_rotation,
+                    direction_mdeg_q32_raw(
+                        actor.current_velocity_x_q32,
+                        actor.current_velocity_z_q32,
+                    ),
                     rotation_per_tick(actor),
                 );
-                actor.aim_rotation = actor.body_rotation;
             }
             if !entered_attack && actor.pending.is_none() && step >= actor.next_attack_step {
                 let interval_steps =
@@ -418,31 +459,69 @@ impl Simulation {
             }
             return Ok(());
         }
-        let entered_move = actor.motion != MotionState::Moving;
+        actor.aim_rotation = target_rotation;
+        let entered_move = actor.motion == MotionState::Idle;
         actor.motion = MotionState::Moving;
         if entered_move {
-            actor.velocity_x = 0;
-            actor.velocity_z = 0;
             return Ok(());
         }
-        let max_displacement = scale_per_tick(
-            actor.rules.move_speed(),
-            LOGIC_TICK_TIME_UNITS,
-            TIME_UNITS_PER_SECOND,
-        );
-        let required = edge_distance.saturating_sub(actor.rules.attack.range());
-        let displacement = max_displacement.min(required);
-        let (move_x, move_z) = displacement_towards(dx, dz, displacement);
-        actor.x = actor.x.saturating_add(move_x);
-        actor.z = actor.z.saturating_add(move_z);
-        actor.velocity_x = scale_per_second(move_x, LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
-        actor.velocity_z = scale_per_second(move_z, LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
-        actor.body_rotation = rotate_towards(
-            actor.body_rotation,
-            direction_mdeg(move_x, move_z),
-            rotation_per_tick(actor),
-        );
+        actor.next_target_x_q32 = target_x_q32;
+        actor.next_target_z_q32 = target_z_q32;
+        actor.next_speed_q32 = space_to_q32(actor.rules.move_speed());
+        if actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0 {
+            actor.body_rotation = rotate_towards(
+                actor.body_rotation,
+                direction_mdeg_q32_raw(actor.current_velocity_x_q32, actor.current_velocity_z_q32),
+                rotation_per_tick(actor),
+            );
+        }
         Ok(())
+    }
+
+    fn step_actor_rvo_position(&mut self, actor_id: u64) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if !actor.alive() || actor.motion == MotionState::Idle || actor.published_speed_q32 == 0 {
+            return;
+        }
+        let maximum_delta_q32 = q32_mul(actor.published_speed_q32, NATIVE_LOGIC_DELTA_Q32);
+        let (movement_x_q32, movement_z_q32) = clamp_magnitude_q32_raw(
+            actor.published_target_x_q32.saturating_sub(actor.x_q32),
+            actor.published_target_z_q32.saturating_sub(actor.z_q32),
+            maximum_delta_q32,
+        );
+        actor.x_q32 = actor.x_q32.saturating_add(movement_x_q32);
+        actor.z_q32 = actor.z_q32.saturating_add(movement_z_q32);
+        actor.x = q32_to_space_rounded(actor.x_q32);
+        actor.z = q32_to_space_rounded(actor.z_q32);
+    }
+
+    fn step_rvo(&mut self) {
+        self.rvo_counter += 1;
+        if self.rvo_counter < 4 {
+            return;
+        }
+        self.rvo_counter = 0;
+        for actor in self
+            .actors
+            .values_mut()
+            .filter(|actor| actor.alive() && actor.motion != MotionState::Idle)
+        {
+            actor.published_target_x_q32 = actor.solver_target_x_q32;
+            actor.published_target_z_q32 = actor.solver_target_z_q32;
+            actor.published_speed_q32 = actor.solver_speed_q32;
+            (actor.current_velocity_x_q32, actor.current_velocity_z_q32) =
+                normalized_velocity_q32_raw(
+                    actor.published_target_x_q32.saturating_sub(actor.x_q32),
+                    actor.published_target_z_q32.saturating_sub(actor.z_q32),
+                    actor.published_speed_q32,
+                );
+            actor.solver_target_x_q32 = actor.next_target_x_q32;
+            actor.solver_target_z_q32 = actor.next_target_z_q32;
+            actor.solver_speed_q32 = actor.next_speed_q32;
+        }
     }
 
     fn release(&mut self, actor_id: u64, events: &mut Vec<Event>) -> Result<()> {
@@ -452,6 +531,8 @@ impl Simulation {
         let target = &self.actors[&pending.target];
         let target_x = target.x;
         let target_z = target.z;
+        let target_x_q32 = target.x_q32;
+        let target_z_q32 = target.z_q32;
         let target_radius = target.rules.collision_radius();
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
         let owner = self
@@ -466,10 +547,12 @@ impl Simulation {
             target: pending.target,
             x: owner.x,
             z: owner.z,
-            x_q32: space_to_q32(owner.x),
-            z_q32: space_to_q32(owner.z),
+            x_q32: owner.x_q32,
+            z_q32: owner.z_q32,
             cached_target_x: target_x,
             cached_target_z: target_z,
+            cached_target_x_q32: target_x_q32,
+            cached_target_z_q32: target_z_q32,
             cached_target_radius: target_radius,
             speed: owner.rules.attack.projectile_speed(),
             damage: owner.rules.attack.damage,
@@ -496,12 +579,16 @@ impl Simulation {
             {
                 projectile.cached_target_x = target.x;
                 projectile.cached_target_z = target.z;
+                projectile.cached_target_x_q32 = target.x_q32;
+                projectile.cached_target_z_q32 = target.z_q32;
                 projectile.cached_target_radius = target.rules.collision_radius();
             }
-            let target_x_q32 = space_to_q32(projectile.cached_target_x);
-            let target_z_q32 = space_to_q32(projectile.cached_target_z);
-            let dx_q32 = target_x_q32.saturating_sub(projectile.x_q32);
-            let dz_q32 = target_z_q32.saturating_sub(projectile.z_q32);
+            let dx_q32 = projectile
+                .cached_target_x_q32
+                .saturating_sub(projectile.x_q32);
+            let dz_q32 = projectile
+                .cached_target_z_q32
+                .saturating_sub(projectile.z_q32);
             let distance_q32 = native_q32_magnitude(dx_q32, dz_q32);
             if distance_q32 < space_to_q32(projectile.cached_target_radius) {
                 self.impact(&projectile, events)?;
@@ -551,8 +638,6 @@ impl Simulation {
             ));
             if target.life == 0 {
                 target.motion = MotionState::Idle;
-                target.velocity_x = 0;
-                target.velocity_z = 0;
                 target.pending = None;
             }
         }
@@ -696,20 +781,6 @@ fn native_time_units_to_steps(time_units: u64) -> u64 {
         >> 32
 }
 
-fn scale_per_tick(value_per_second: i64, tick_time_units: u64, time_units_per_second: u64) -> i64 {
-    saturating_i128_to_i64(
-        i128::from(value_per_second) * i128::from(tick_time_units)
-            / i128::from(time_units_per_second),
-    )
-}
-
-fn scale_per_second(value_per_tick: i64, tick_time_units: u64, time_units_per_second: u64) -> i64 {
-    saturating_i128_to_i64(
-        i128::from(value_per_tick) * i128::from(time_units_per_second)
-            / i128::from(tick_time_units),
-    )
-}
-
 fn team_name(team: u32) -> &'static str {
     if team == 0 { "blue" } else { "red" }
 }
@@ -806,6 +877,35 @@ fn q32_div(numerator: i64, denominator: i64) -> i64 {
 
 fn native_q32_magnitude(x: i64, z: i64) -> i64 {
     fpcs_sqrt_fastest(q32_mul(x, x).saturating_add(q32_mul(z, z)))
+}
+
+fn normalized_velocity_q32_raw(dx: i64, dz: i64, speed: i64) -> (i64, i64) {
+    let magnitude = native_q32_magnitude(dx, dz);
+    if magnitude <= 0 {
+        return (0, 0);
+    }
+
+    let inverse_magnitude = q32_div(Q32_ONE, magnitude);
+    (
+        q32_mul(q32_mul(dx, inverse_magnitude), speed),
+        q32_mul(q32_mul(dz, inverse_magnitude), speed),
+    )
+}
+
+fn clamp_magnitude_q32_raw(dx: i64, dz: i64, maximum: i64) -> (i64, i64) {
+    let magnitude = native_q32_magnitude(dx, dz);
+    if magnitude <= maximum {
+        return (dx, dz);
+    }
+    if magnitude <= 0 || maximum <= 0 {
+        return (0, 0);
+    }
+
+    let inverse_magnitude = q32_div(Q32_ONE, magnitude);
+    (
+        q32_mul(q32_mul(dx, inverse_magnitude), maximum),
+        q32_mul(q32_mul(dz, inverse_magnitude), maximum),
+    )
 }
 
 fn fpcs_sqrt_fastest(value: i64) -> i64 {
@@ -965,38 +1065,22 @@ fn integer_sqrt(value: i128) -> i64 {
     i64::try_from(low).unwrap_or(i64::MAX)
 }
 
-fn displacement_towards(dx: i64, dz: i64, length: i64) -> (i64, i64) {
-    let magnitude = magnitude(dx, dz);
-    if magnitude == 0 || length == 0 {
-        return (0, 0);
-    }
-    let x = i128::from(dx) * i128::from(length) / i128::from(magnitude);
-    let z = i128::from(dz) * i128::from(length) / i128::from(magnitude);
-    (saturating_i128_to_i64(x), saturating_i128_to_i64(z))
-}
-
-fn saturating_i128_to_i64(value: i128) -> i64 {
-    match i64::try_from(value) {
-        Ok(value) => value,
-        Err(_) if value.is_negative() => i64::MIN,
-        Err(_) => i64::MAX,
-    }
-}
-
 fn direction_mdeg(dx: i64, dz: i64) -> i64 {
+    direction_mdeg_q32_raw(space_to_q32(dx), space_to_q32(dz))
+}
+
+fn direction_mdeg_q32_raw(dx: i64, dz: i64) -> i64 {
     if dx == 0 && dz == 0 {
         return 0;
     }
-    let x = space_to_q32(dx);
-    let z = space_to_q32(dz);
-    let magnitude = native_q32_magnitude(x, z);
+    let magnitude = native_q32_magnitude(dx, dz);
     if magnitude <= 0 {
         return 0;
     }
-    let cosine = q32_div(z, magnitude).clamp(-Q32_ONE, Q32_ONE);
+    let cosine = q32_div(dz, magnitude).clamp(-Q32_ONE, Q32_ONE);
     let radians = fpcs_acos_fastest(cosine);
     let degrees = q32_mul(radians, 0x0039_4BB8_34C8);
-    let degrees = if x < 0 {
+    let degrees = if dx < 0 {
         (360_i64 << 32).saturating_sub(degrees)
     } else {
         degrees
@@ -1014,6 +1098,11 @@ fn direction_mdeg(dx: i64, dz: i64) -> i64 {
 mod tests {
     use super::*;
 
+    fn visible_velocity(actor: &Actor) -> (i64, i64) {
+        let velocity = actor.snapshot().velocity;
+        (velocity.x, velocity.z)
+    }
+
     #[test]
     fn native_delta_distinguishes_1799_from_1800_time_units() {
         assert_eq!(native_time_units_to_steps(1_799), 17);
@@ -1025,5 +1114,580 @@ mod tests {
         assert_eq!(direction_mdeg(-600, 99_200), 0);
         assert_eq!(direction_mdeg(600, -99_200), 180_000);
         assert_eq!(direction_mdeg(1_000, 151_400), 853);
+    }
+
+    #[test]
+    fn raw_q32_velocity_preserves_arclight_target_angle_precision() {
+        assert_eq!(
+            direction_mdeg_q32_raw(-198_556_428, -30_061_443_202),
+            180_812
+        );
+        assert_eq!(direction_mdeg(-46, -6_999), 180_811);
+    }
+
+    #[test]
+    fn q32_normalized_velocity_matches_frozen_arclight_delta() {
+        let speed = space_to_q32(7_000);
+        let reconstructed =
+            normalized_velocity_q32_raw(space_to_q32(-1_000), space_to_q32(-151_400), speed);
+        assert_eq!(reconstructed, (-198_556_428, -30_061_443_202));
+        assert_eq!(
+            (
+                q32_to_space_rounded(reconstructed.0),
+                q32_to_space_rounded(reconstructed.1),
+            ),
+            (-46, -6_999)
+        );
+
+        let c0_1 = 0x1999_9999;
+        let native_raw = normalized_velocity_q32_raw(-10 * c0_1, -150 * Q32_ONE - 14 * c0_1, speed);
+        assert_eq!(native_raw, reconstructed);
+    }
+
+    #[test]
+    fn q32_clamp_magnitude_stops_at_a_near_target_point() {
+        let dx = space_to_q32(100);
+        let dz = space_to_q32(-50);
+        let speed = space_to_q32(7_123);
+        let maximum = q32_mul(speed, NATIVE_LOGIC_DELTA_Q32);
+
+        assert!(native_q32_magnitude(dx, dz) < maximum);
+        assert_eq!(clamp_magnitude_q32_raw(dx, dz, maximum), (dx, dz));
+
+        let far_dx = space_to_q32(1_000);
+        let far_dz = space_to_q32(-10_000);
+        let magnitude = native_q32_magnitude(far_dx, far_dz);
+        let reciprocal = q32_div(Q32_ONE, magnitude);
+        let native_order = (
+            q32_mul(q32_mul(far_dx, reciprocal), maximum),
+            q32_mul(q32_mul(far_dz, reciprocal), maximum),
+        );
+        let old_grouping = (
+            q32_mul(
+                q32_mul(q32_mul(far_dx, reciprocal), speed),
+                NATIVE_LOGIC_DELTA_Q32,
+            ),
+            q32_mul(
+                q32_mul(q32_mul(far_dz, reciprocal), speed),
+                NATIVE_LOGIC_DELTA_Q32,
+            ),
+        );
+        assert_ne!(native_order, old_grouping);
+        assert_eq!(
+            clamp_magnitude_q32_raw(far_dx, far_dz, maximum),
+            native_order
+        );
+    }
+
+    #[test]
+    fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+        let actor = simulation.actors.get_mut(&1).unwrap();
+        actor.current_velocity_x_q32 = -198_556_428;
+        actor.current_velocity_z_q32 = -30_061_443_202;
+
+        assert_eq!(visible_velocity(actor), (-46, -6_999));
+    }
+
+    #[test]
+    fn deployment_raw_alone_still_rounds_tick_twenty_two_up() {
+        let initial_z_q32 = 100 * Q32_ONE + 7 * C0_1_RAW;
+        let fixed_delta_z_q32 = q32_mul(-30_061_443_202, NATIVE_LOGIC_DELTA_Q32);
+        let deploy_only_z_q32 = initial_z_q32 + 14 * fixed_delta_z_q32;
+
+        assert_eq!(initial_z_q32, 432_503_206_703);
+        assert_eq!(deploy_only_z_q32, 411_460_196_533);
+        assert_eq!(q32_to_space_rounded(deploy_only_z_q32), 95_801);
+    }
+
+    #[test]
+    fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+
+        assert_eq!(
+            (
+                simulation.actors[&1].x_q32,
+                simulation.actors[&1].z_q32,
+                simulation.actors[&2].x_q32,
+                simulation.actors[&2].z_q32,
+            ),
+            (
+                -2_147_483_645,
+                -217_754_841_903,
+                2_147_483_645,
+                432_503_206_703,
+            )
+        );
+
+        for step in 0..22 {
+            simulation.step(step).unwrap();
+        }
+
+        let arclight = &simulation.actors[&2];
+        assert_eq!(arclight.z_q32, 411_459_840_709);
+        assert_eq!(arclight.z, 95_800);
+    }
+
+    #[test]
+    fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+        let initial = simulation.actors[&2].clone();
+
+        for tick in 1..=9 {
+            simulation.step(tick - 1).unwrap();
+            let arclight = &simulation.actors[&2];
+            if tick <= 7 {
+                assert_eq!((arclight.x, arclight.z), (initial.x, initial.z));
+                assert_eq!(arclight.body_rotation, initial.body_rotation);
+                assert_eq!(visible_velocity(arclight), (0, 0));
+            } else if tick == 8 {
+                assert_eq!((arclight.x, arclight.z), (initial.x, initial.z));
+                assert_eq!(arclight.body_rotation, initial.body_rotation);
+                assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                assert_eq!(
+                    (
+                        arclight.current_velocity_x_q32,
+                        arclight.current_velocity_z_q32,
+                    ),
+                    (-198_556_428, -30_061_443_202)
+                );
+            } else {
+                assert_eq!((arclight.x, arclight.z), (498, 100_350));
+                assert_eq!(
+                    (arclight.x_q32, arclight.z_q32),
+                    (2_137_555_823, 431_000_134_548)
+                );
+                assert_ne!(arclight.body_rotation, initial.body_rotation);
+            }
+        }
+    }
+
+    #[test]
+    fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_position() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+
+        for step in 0..4 {
+            simulation.step(step).unwrap();
+        }
+        let arclight = &simulation.actors[&2];
+        let previous_boundary_candidate = normalized_velocity_q32_raw(
+            arclight.solver_target_x_q32.saturating_sub(arclight.x_q32),
+            arclight.solver_target_z_q32.saturating_sub(arclight.z_q32),
+            arclight.solver_speed_q32,
+        );
+        let arclight = simulation.actors.get_mut(&2).unwrap();
+        arclight.x_q32 = arclight.x_q32.saturating_add(10 * Q32_ONE);
+        arclight.x = q32_to_space_rounded(arclight.x_q32);
+
+        for step in 4..8 {
+            simulation.step(step).unwrap();
+        }
+        let arclight = &simulation.actors[&2];
+        let recalculated = normalized_velocity_q32_raw(
+            arclight
+                .published_target_x_q32
+                .saturating_sub(arclight.x_q32),
+            arclight
+                .published_target_z_q32
+                .saturating_sub(arclight.z_q32),
+            arclight.published_speed_q32,
+        );
+
+        assert_eq!(
+            (
+                arclight.current_velocity_x_q32,
+                arclight.current_velocity_z_q32,
+            ),
+            recalculated
+        );
+        assert_ne!(previous_boundary_candidate, recalculated);
+    }
+
+    #[test]
+    fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+        let mut tick_121_raw_position = None;
+        let mut tick_121_body_rotation = None;
+
+        for tick in 1..=128 {
+            simulation.step(tick - 1).unwrap();
+            let arclight = &simulation.actors[&2];
+            match tick {
+                120 => {
+                    assert_eq!(arclight.z, 61_500);
+                    assert_eq!(arclight.motion, MotionState::Moving);
+                }
+                121 => {
+                    assert_eq!(arclight.z, 61_150);
+                    assert_eq!(arclight.motion, MotionState::Moving);
+                    assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                    tick_121_raw_position = Some((arclight.x_q32, arclight.z_q32));
+                    tick_121_body_rotation = Some(arclight.body_rotation);
+                }
+                122 => {
+                    assert_eq!(arclight.z, 60_800);
+                    assert_eq!(arclight.motion, MotionState::Attacking);
+                    assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                    assert_eq!(
+                        (arclight.next_target_x_q32, arclight.next_target_z_q32),
+                        tick_121_raw_position.unwrap()
+                    );
+                    assert_eq!(arclight.next_speed_q32, 0);
+                    assert_eq!(arclight.body_rotation, tick_121_body_rotation.unwrap());
+                    assert!(arclight.pending.is_none());
+                }
+                123..=127 => {
+                    let expected_z = 60_800 - i64::try_from(tick - 122).unwrap() * 350;
+                    assert_eq!(arclight.z, expected_z);
+                    assert_eq!(arclight.motion, MotionState::Attacking);
+                    assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                    if tick == 124 {
+                        assert_eq!(arclight.published_speed_q32, space_to_q32(7_000));
+                        assert_eq!(arclight.solver_speed_q32, 0);
+                    }
+                }
+                128 => {
+                    assert_eq!(arclight.z, 58_700);
+                    assert_eq!(arclight.motion, MotionState::Attacking);
+                    assert_eq!(visible_velocity(arclight), (0, 0));
+                    assert_eq!(arclight.published_speed_q32, 0);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn tick_fifteen_aim_uses_raw_q32_positions() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+
+        for step in 0..14 {
+            simulation.step(step).unwrap();
+        }
+
+        let marksman = &simulation.actors[&1];
+        let arclight = &simulation.actors[&2];
+        let raw_dx = arclight.x_q32.saturating_sub(marksman.x_q32);
+        let raw_dz = arclight.z_q32.saturating_sub(marksman.z_q32);
+        assert_eq!((raw_dx, raw_dz), (4_235_400_048, 641_239_568_913));
+        assert_eq!(direction_mdeg_q32_raw(raw_dx, raw_dz), 798);
+        assert_eq!(direction_mdeg_q32_raw(-raw_dx, -raw_dz), 180_798);
+
+        let mm_dx = arclight.x - marksman.x;
+        let mm_dz = arclight.z - marksman.z;
+        assert_eq!((mm_dx, mm_dz), (986, 149_300));
+        assert_eq!(direction_mdeg(mm_dx, mm_dz), 797);
+        assert_eq!(direction_mdeg(-mm_dx, -mm_dz), 180_797);
+
+        simulation.step(14).unwrap();
+        assert_eq!(simulation.actors[&1].aim_rotation, 798);
+        assert_eq!(simulation.actors[&2].aim_rotation, 180_798);
+    }
+
+    #[test]
+    fn projectile_raw_target_cache_preserves_rounding_sequence() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: 100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+        let mut millimeter_path = None;
+        let mut raw_x = Vec::new();
+        let mut millimeter_x = Vec::new();
+
+        for tick in 1..=18 {
+            simulation.step(tick - 1).unwrap();
+            if tick < 14 {
+                continue;
+            }
+
+            let projectile = &simulation.projectiles[0];
+            let owner = &simulation.actors[&projectile.owner];
+            let target = &simulation.actors[&projectile.target];
+            let (x_q32, z_q32) = millimeter_path
+                .get_or_insert_with(|| (space_to_q32(owner.x), space_to_q32(owner.z)));
+            let dx_q32 = space_to_q32(target.x).saturating_sub(*x_q32);
+            let dz_q32 = space_to_q32(target.z).saturating_sub(*z_q32);
+            let distance_q32 = native_q32_magnitude(dx_q32, dz_q32);
+            let step_q32 = q32_mul(space_to_q32(projectile.speed), NATIVE_LOGIC_DELTA_Q32);
+            let move_q32 = step_q32.min(distance_q32);
+            let reciprocal = q32_div(Q32_ONE, distance_q32);
+            *x_q32 = x_q32.saturating_add(q32_mul(q32_mul(dx_q32, reciprocal), move_q32));
+            *z_q32 = z_q32.saturating_add(q32_mul(q32_mul(dz_q32, reciprocal), move_q32));
+
+            raw_x.push(projectile.x);
+            millimeter_x.push(q32_to_space_rounded(*x_q32));
+        }
+
+        assert_eq!(raw_x, [-335, -170, -5, 160, 326]);
+        assert_eq!(millimeter_x, [-335, -170, -4, 161, 326]);
+    }
+
+    #[test]
+    fn stopped_attacker_tracks_target_with_aim_without_rotating_root_body() {
+        let layout = CompiledLayout {
+            round: 1,
+            placements: [
+                Placement {
+                    team: 0,
+                    unit_id: 1,
+                    formation_id: 1,
+                    type_name: "marksman".to_owned(),
+                    world_x: 0,
+                    world_z: -50,
+                    rotation: 0,
+                },
+                Placement {
+                    team: 1,
+                    unit_id: 2,
+                    formation_id: 2,
+                    type_name: "arclight".to_owned(),
+                    world_x: 0,
+                    world_z: -100,
+                    rotation: 180_000,
+                },
+            ],
+        };
+        let config = SimulationConfig::load(None).unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_555_163,
+        )
+        .unwrap();
+        let marksman = simulation.actors.get_mut(&1).unwrap();
+        assert!(!marksman.rules.independent_aim);
+        marksman.motion = MotionState::Attacking;
+        marksman.next_attack_step = u64::MAX;
+
+        simulation.step_actor(1, 0, &mut Vec::new()).unwrap();
+        let root_body = simulation.actors[&1].body_rotation;
+        let initial_aim = simulation.actors[&1].aim_rotation;
+
+        let target = simulation.actors.get_mut(&2).unwrap();
+        target.x += 10_000;
+        target.x_q32 = space_to_q32(target.x);
+        let expected_aim = direction_mdeg_q32_raw(
+            simulation.actors[&2]
+                .x_q32
+                .saturating_sub(simulation.actors[&1].x_q32),
+            simulation.actors[&2]
+                .z_q32
+                .saturating_sub(simulation.actors[&1].z_q32),
+        );
+        simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
+        let marksman = &simulation.actors[&1];
+
+        assert_eq!(marksman.motion, MotionState::Attacking);
+        assert_eq!(marksman.body_rotation, root_body);
+        assert_ne!(marksman.aim_rotation, initial_aim);
+        assert_eq!(marksman.aim_rotation, expected_aim);
     }
 }
