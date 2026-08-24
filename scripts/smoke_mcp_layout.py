@@ -313,6 +313,8 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
                 raise SmokeFailure(
                     f"video/MCFR frame count mismatch: {video} versus {recording}"
                 )
+            if video.get("view") != "calibration_topdown":
+                raise SmokeFailure(f"unexpected video view metadata: {video}")
         print(
             "ok: recorded "
             f"{output}: states={recording.get('state_count')} "
@@ -348,7 +350,7 @@ def main() -> int:
     parser.add_argument(
         "--video-output",
         type=Path,
-        help="also export logic-frame-aligned top-down video to this new .mov path",
+        help="also export logic-frame-aligned calibration_topdown video to this new .mov path",
     )
     try:
         arguments = parser.parse_args()

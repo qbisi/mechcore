@@ -25,6 +25,9 @@ const Q32_ONE: i128 = 1_i128 << 32;
 const DISTANCE_UNITS_PER_METER: u64 = 1_000;
 const ROTATION_UNITS_PER_DEGREE: u64 = 1_000;
 const TIME_UNITS_PER_SECOND: u64 = 2_000;
+pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
+pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 500.0;
+pub(crate) const CALIBRATION_ORTHOGRAPHIC_SIZE: f32 = 400.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -101,9 +104,10 @@ enum PendingVisualMessage {
 
 struct VisualCapture {
     api: Api,
-    zoom_handle: u32,
-    transposer_handle: u32,
-    follow_target_handle: u32,
+    camera_handle: u32,
+    camera_transform_handle: u32,
+    controlled_handles: [u32; 4],
+    original_controlled_enabled: [bool; 4],
     texture_handle: u32,
     screen_class: usize,
     set_resolution: usize,
@@ -113,11 +117,11 @@ struct VisualCapture {
     original_screen_width: i32,
     original_screen_height: i32,
     original_fullscreen: bool,
-    zoom: usize,
-    follow_offset: usize,
-    original_zoom_distance: f32,
-    maximum_zoom_distance: f32,
-    original_follow_target_position: UnityVec3,
+    original_camera_position: UnityVec3,
+    original_camera_euler_angles: UnityVec3,
+    original_camera_orthographic: bool,
+    original_camera_orthographic_size: f32,
+    original_camera_far_clip_plane: f32,
 }
 
 #[derive(Default)]
@@ -217,45 +221,62 @@ impl VisualCapture {
                 &["System.Int32", "System.Int32", "System.Boolean"],
             )
             .map_err(|error| error.to_string())?;
-        let (
-            zoom_controller,
+        let camera_class = api
+            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Camera")
+            .map_err(|error| error.to_string())?;
+        let camera = api
+            .invoke_static(camera_class, "get_main", &mut [])
+            .map_err(|error| error.to_string())?;
+        if camera.is_null() {
+            return Err("Unity main camera is unavailable".into());
+        }
+        let camera_transform = api
+            .invoke(camera, "get_transform", &mut [])
+            .map_err(|error| error.to_string())?;
+        if camera_transform.is_null() {
+            return Err("Unity main camera transform is unavailable".into());
+        }
+        let original_camera_position = api
+            .invoke_value::<UnityVec3>(camera_transform, "get_position", &mut [])
+            .map_err(|error| error.to_string())?;
+        let original_camera_euler_angles = api
+            .invoke_value::<UnityVec3>(camera_transform, "get_eulerAngles", &mut [])
+            .map_err(|error| error.to_string())?;
+        let original_camera_orthographic = api
+            .invoke_value::<bool>(camera, "get_orthographic", &mut [])
+            .map_err(|error| error.to_string())?;
+        let original_camera_orthographic_size = api
+            .invoke_value::<f32>(camera, "get_orthographicSize", &mut [])
+            .map_err(|error| error.to_string())?;
+        let original_camera_far_clip_plane = api
+            .invoke_value::<f32>(camera, "get_farClipPlane", &mut [])
+            .map_err(|error| error.to_string())?;
+        let (controlled, original_controlled_enabled) = controlled_camera_behaviours(api)?;
+        let destroy_immediate = destroy_immediate_method(api)? as usize;
+        let [
+            camera_handle,
+            camera_transform_handle,
+            brain,
+            horizontal,
+            orbit,
             zoom,
-            transposer,
-            follow_offset,
-            original_zoom,
-            maximum_zoom,
-            follow_target,
-            original_follow_target_position,
-        ) = resolve_zoom_controller(runtime)?;
-        let object_class = api
-            .class("UnityEngine.CoreModule.dll", "UnityEngine", "Object")
-            .map_err(|error| error.to_string())?;
-        let destroy_immediate = api
-            .method(object_class, "DestroyImmediate", 2)
-            .map_err(|error| error.to_string())? as usize;
-        let zoom_handle = api
-            .gc_handle(zoom_controller)
-            .map_err(|error| error.to_string())?;
-        let transposer_handle = match api.gc_handle(transposer) {
-            Ok(handle) => handle,
-            Err(error) => {
-                api.free_gc_handle(zoom_handle);
-                return Err(error.to_string());
-            }
-        };
-        let follow_target_handle = match api.gc_handle(follow_target) {
-            Ok(handle) => handle,
-            Err(error) => {
-                api.free_gc_handle(zoom_handle);
-                api.free_gc_handle(transposer_handle);
-                return Err(error.to_string());
-            }
-        };
+        ] = gc_handles(
+            api,
+            [
+                camera,
+                camera_transform,
+                controlled[0],
+                controlled[1],
+                controlled[2],
+                controlled[3],
+            ],
+        )?;
         let capture = Self {
             api,
-            zoom_handle,
-            transposer_handle,
-            follow_target_handle,
+            camera_handle,
+            camera_transform_handle,
+            controlled_handles: [brain, horizontal, orbit, zoom],
+            original_controlled_enabled,
             texture_handle: 0,
             screen_class: screen_class as usize,
             set_resolution: set_resolution as usize,
@@ -265,15 +286,15 @@ impl VisualCapture {
             original_screen_width,
             original_screen_height,
             original_fullscreen,
-            zoom: zoom as usize,
-            follow_offset: follow_offset as usize,
-            original_zoom_distance: original_zoom,
-            maximum_zoom_distance: maximum_zoom,
-            original_follow_target_position,
+            original_camera_position,
+            original_camera_euler_angles,
+            original_camera_orthographic,
+            original_camera_orthographic_size,
+            original_camera_far_clip_plane,
         };
         let setup = capture
             .set_screen_resolution(1280, 720, false)
-            .and_then(|()| capture.apply_overview());
+            .and_then(|()| capture.apply_calibration_topdown());
         if let Err(error) = setup {
             return match capture.restore(true) {
                 Ok(()) => Err(error),
@@ -283,28 +304,66 @@ impl VisualCapture {
         Ok(capture)
     }
 
-    fn apply_overview(&self) -> Result<(), String> {
-        let target = self
+    fn apply_calibration_topdown(&self) -> Result<(), String> {
+        let mut disabled = false;
+        for handle in self.controlled_handles {
+            let controller = self
+                .api
+                .gc_handle_target(handle)
+                .map_err(|error| error.to_string())?;
+            self.api
+                .invoke_void(controller, "set_enabled", &mut [argument(&mut disabled)])
+                .map_err(|error| error.to_string())?;
+        }
+        let camera = self
             .api
-            .gc_handle_target(self.follow_target_handle)
+            .gc_handle_target(self.camera_handle)
             .map_err(|error| error.to_string())?;
-        let mut centered = UnityVec3 {
+        let transform = self
+            .api
+            .gc_handle_target(self.camera_transform_handle)
+            .map_err(|error| error.to_string())?;
+        let mut position = UnityVec3 {
             x: 0.0,
-            y: self.original_follow_target_position.y,
+            y: CALIBRATION_CAMERA_HEIGHT,
             z: 0.0,
         };
+        let mut rotation = UnityVec3 {
+            x: 90.0,
+            y: 0.0,
+            z: 0.0,
+        };
+        let mut orthographic = true;
+        let mut orthographic_size = CALIBRATION_ORTHOGRAPHIC_SIZE;
+        let mut far_clip_plane = 2_000.0_f32;
         self.api
-            .invoke_void(target, "set_position", &mut [argument(&mut centered)])
-            .map_err(|error| error.to_string())?;
-        self.zoom_by(1_000_000.0)?;
-        let distance = self.zoom_distance()?;
-        if distance + 0.05 < self.maximum_zoom_distance {
-            return Err(format!(
-                "native overview camera stopped at {distance:.3}, below maximum {:.3}",
-                self.maximum_zoom_distance
-            ));
-        }
-        Ok(())
+            .invoke_void(transform, "set_position", &mut [argument(&mut position)])
+            .and_then(|()| {
+                self.api
+                    .invoke_void(transform, "set_eulerAngles", &mut [argument(&mut rotation)])
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_orthographic",
+                    &mut [argument(&mut orthographic)],
+                )
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_orthographicSize",
+                    &mut [argument(&mut orthographic_size)],
+                )
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_farClipPlane",
+                    &mut [argument(&mut far_clip_plane)],
+                )
+            })
+            .map_err(|error| error.to_string())
     }
 
     fn frame(&mut self) -> Result<Vec<u8>, String> {
@@ -381,15 +440,10 @@ impl VisualCapture {
         Ok(jpeg)
     }
 
-    fn restore(mut self, restore_zoom: bool) -> Result<(), String> {
+    fn restore(mut self, restore_camera: bool) -> Result<(), String> {
         let texture_result = self.destroy_texture();
-        let zoom_result = if restore_zoom {
-            self.restore_zoom()
-        } else {
-            Ok(())
-        };
-        let target_result = if restore_zoom {
-            self.restore_follow_target()
+        let camera_result = if restore_camera {
+            self.restore_camera_and_controls()
         } else {
             Ok(())
         };
@@ -398,22 +452,19 @@ impl VisualCapture {
             self.original_screen_height,
             self.original_fullscreen,
         );
-        self.api.free_gc_handle(self.zoom_handle);
-        self.api.free_gc_handle(self.transposer_handle);
-        self.api.free_gc_handle(self.follow_target_handle);
+        self.api.free_gc_handle(self.camera_handle);
+        self.api.free_gc_handle(self.camera_transform_handle);
+        for handle in self.controlled_handles {
+            self.api.free_gc_handle(handle);
+        }
         if self.texture_handle != 0 {
             self.api.free_gc_handle(self.texture_handle);
         }
         self.texture_handle = 0;
-        let failures: Vec<_> = [
-            texture_result,
-            zoom_result,
-            target_result,
-            resolution_result,
-        ]
-        .into_iter()
-        .filter_map(Result::err)
-        .collect();
+        let failures: Vec<_> = [texture_result, camera_result, resolution_result]
+            .into_iter()
+            .filter_map(Result::err)
+            .collect();
         if failures.is_empty() {
             Ok(())
         } else {
@@ -497,160 +548,123 @@ impl VisualCapture {
             .map_err(|error| error.to_string())
     }
 
-    fn restore_zoom(&self) -> Result<(), String> {
-        for _ in 0..4 {
-            let before = self.zoom_distance()?;
-            let remaining = self.original_zoom_distance - before;
-            if remaining.abs() <= 0.05 {
-                return Ok(());
-            }
-            let mut probe = remaining.signum() * 10.0;
-            self.zoom_by(probe)?;
-            let mut after = self.zoom_distance()?;
-            let mut movement = after - before;
-            if movement.abs() <= 0.000_1 {
-                probe = -probe;
-                self.zoom_by(probe)?;
-                after = self.zoom_distance()?;
-                movement = after - before;
-            } else if movement.signum() != remaining.signum() {
-                probe = -probe;
-                self.zoom_by(2.0 * probe)?;
-                after = self.zoom_distance()?;
-                movement = after - before;
-            }
-            if movement.abs() <= 0.000_1 {
-                break;
-            }
-            self.zoom_by((self.original_zoom_distance - after) * probe / movement)?;
+    fn restore_camera_and_controls(&self) -> Result<(), String> {
+        let camera = self
+            .api
+            .gc_handle_target(self.camera_handle)
+            .map_err(|error| error.to_string())?;
+        let transform = self
+            .api
+            .gc_handle_target(self.camera_transform_handle)
+            .map_err(|error| error.to_string())?;
+        let mut position = self.original_camera_position;
+        let mut rotation = self.original_camera_euler_angles;
+        let mut orthographic = self.original_camera_orthographic;
+        let mut orthographic_size = self.original_camera_orthographic_size;
+        let mut far_clip_plane = self.original_camera_far_clip_plane;
+        self.api
+            .invoke_void(transform, "set_position", &mut [argument(&mut position)])
+            .and_then(|()| {
+                self.api
+                    .invoke_void(transform, "set_eulerAngles", &mut [argument(&mut rotation)])
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_orthographic",
+                    &mut [argument(&mut orthographic)],
+                )
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_orthographicSize",
+                    &mut [argument(&mut orthographic_size)],
+                )
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_farClipPlane",
+                    &mut [argument(&mut far_clip_plane)],
+                )
+            })
+            .map_err(|error| error.to_string())?;
+        for (index, handle) in self.controlled_handles.iter().copied().enumerate() {
+            let controller = self
+                .api
+                .gc_handle_target(handle)
+                .map_err(|error| error.to_string())?;
+            let mut enabled = self.original_controlled_enabled[index];
+            self.api
+                .invoke_void(controller, "set_enabled", &mut [argument(&mut enabled)])
+                .map_err(|error| error.to_string())?;
         }
-        let restored = self.zoom_distance()?;
-        Err(format!(
-            "camera zoom restored to {restored:.3}, expected {:.3}",
-            self.original_zoom_distance
-        ))
-    }
-
-    fn restore_follow_target(&self) -> Result<(), String> {
-        let target = self
-            .api
-            .gc_handle_target(self.follow_target_handle)
-            .map_err(|error| error.to_string())?;
-        let mut position = self.original_follow_target_position;
-        self.api
-            .invoke_void(target, "set_position", &mut [argument(&mut position)])
-            .map_err(|error| error.to_string())
-    }
-
-    fn zoom_by(&self, mut direction: f32) -> Result<(), String> {
-        let controller = self
-            .api
-            .gc_handle_target(self.zoom_handle)
-            .map_err(|error| error.to_string())?;
-        let mut speed = 1.0_f32;
-        self.api
-            .invoke_raw(
-                self.zoom as *const MethodInfo,
-                controller.cast(),
-                &mut [argument(&mut direction), argument(&mut speed)],
-            )
-            .map(|_| ())
-            .map_err(|error| error.to_string())
-    }
-
-    fn zoom_distance(&self) -> Result<f32, String> {
-        let transposer = self
-            .api
-            .gc_handle_target(self.transposer_handle)
-            .map_err(|error| error.to_string())?;
-        let offset = self
-            .api
-            .field_value::<UnityVec3>(transposer, self.follow_offset as *mut FieldInfo)
-            .map_err(|error| error.to_string())?;
-        Ok((offset.x * offset.x + offset.y * offset.y + offset.z * offset.z).sqrt())
+        Ok(())
     }
 }
 
-#[allow(clippy::type_complexity)] // Keeps one private discovery path without another state type.
-fn resolve_zoom_controller(
-    runtime: &Runtime,
-) -> Result<
-    (
-        *mut Object,
-        *const MethodInfo,
-        *mut Object,
-        *mut FieldInfo,
-        f32,
-        f32,
-        *mut Object,
-        UnityVec3,
-    ),
-    String,
-> {
-    let api = runtime.api;
-    let owner = api
+fn controlled_camera_behaviours(api: Api) -> Result<([*mut Object; 4], [bool; 4]), String> {
+    let manual_camera_class = api
         .class("GRClient.dll", "GameRiver.Client", "GROverAllManualCam")
         .map_err(|error| error.to_string())?;
-    let this = api
-        .find_object_of_class(owner)
+    let manual_camera = api
+        .find_object_of_class(manual_camera_class)
         .map_err(|error| error.to_string())?;
-    let getter = api
-        .method(owner, "GetZoomCameraController", 0)
+    let horizontal = api
+        .invoke(
+            manual_camera,
+            "GetHorizontalCameraMovementController",
+            &mut [],
+        )
         .map_err(|error| error.to_string())?;
-    let target_field = api
-        .field(owner, "manualVCamFollowTarget")
+    let orbit = api
+        .invoke(manual_camera, "GetOrbitCameraController", &mut [])
         .map_err(|error| error.to_string())?;
-    let follow_target = api
-        .field_value::<*mut Object>(this, target_field)
-        .map_err(|error| error.to_string())?;
-    if follow_target.is_null() {
-        return Err("battle camera follow target is unavailable".into());
-    }
-    let original_follow_target_position = api
-        .invoke_value::<UnityVec3>(follow_target, "get_position", &mut [])
-        .map_err(|error| error.to_string())?;
-    let controller = api
-        .invoke_raw(getter, this.cast(), &mut [])
-        .map_err(|error| error.to_string())?;
-    if controller.is_null() {
-        return Err("battle zoom camera controller is unavailable".into());
-    }
-    let class = api
-        .object_class(controller)
-        .ok_or("battle zoom camera controller has no runtime class")?;
     let zoom = api
-        .class_method_with_parameter_types(class, "Zoom", &["System.Single", "System.Single"])
+        .invoke(manual_camera, "GetZoomCameraController", &mut [])
         .map_err(|error| error.to_string())?;
-    let maximum = api
-        .invoke_value::<f32>(controller, "GetMaxDis", &mut [])
+    let brain_class = api
+        .class("Cinemachine.dll", "Cinemachine", "CinemachineBrain")
         .map_err(|error| error.to_string())?;
-    let transposer = api
-        .invoke(controller, "GetCinemachineTransposer", &mut [])
+    let brain = api
+        .find_object_of_class(brain_class)
         .map_err(|error| error.to_string())?;
-    if transposer.is_null() {
-        return Err("battle camera has no Cinemachine transposer".into());
+    let controlled = [brain, horizontal, orbit, zoom];
+    if controlled.iter().any(|object| object.is_null()) {
+        return Err("one or more native camera controllers are unavailable".into());
     }
-    let transposer_class = api
-        .object_class(transposer)
-        .ok_or("battle camera transposer has no runtime class")?;
-    let follow_offset = api
-        .field(transposer_class, "m_FollowOffset")
+    let mut enabled = [false; 4];
+    for (index, object) in controlled.iter().copied().enumerate() {
+        enabled[index] = api
+            .invoke_value::<bool>(object, "get_enabled", &mut [])
+            .map_err(|error| error.to_string())?;
+    }
+    Ok((controlled, enabled))
+}
+
+fn destroy_immediate_method(api: Api) -> Result<*const MethodInfo, String> {
+    let object = api
+        .class("UnityEngine.CoreModule.dll", "UnityEngine", "Object")
         .map_err(|error| error.to_string())?;
-    let original = api
-        .field_value::<UnityVec3>(transposer, follow_offset)
-        .map_err(|error| error.to_string())?;
-    let original =
-        (original.x * original.x + original.y * original.y + original.z * original.z).sqrt();
-    Ok((
-        controller,
-        zoom,
-        transposer,
-        follow_offset,
-        original,
-        maximum,
-        follow_target,
-        original_follow_target_position,
-    ))
+    api.method(object, "DestroyImmediate", 2)
+        .map_err(|error| error.to_string())
+}
+
+fn gc_handles<const N: usize>(api: Api, objects: [*mut Object; N]) -> Result<[u32; N], String> {
+    let mut handles = [0_u32; N];
+    for (index, object) in objects.into_iter().enumerate() {
+        match api.gc_handle(object) {
+            Ok(handle) => handles[index] = handle,
+            Err(error) => {
+                for handle in handles {
+                    api.free_gc_handle(handle);
+                }
+                return Err(error.to_string());
+            }
+        }
+    }
+    Ok(handles)
 }
 
 fn screen_state(api: Api, screen: *mut crate::il2cpp::Class) -> Result<(i32, i32, bool), String> {
@@ -1002,7 +1016,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 let context = durable_context(runtime)?;
                 state.initialized = true;
                 if let Some(visual) = state.visual.as_ref() {
-                    visual.apply_overview()?;
+                    visual.apply_calibration_topdown()?;
                     state.pending_visual = Some(PendingVisualMessage::Initial {
                         context,
                         state: initial,
@@ -1021,7 +1035,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             let events = transition_events(&traces, &state);
             let terminal = !fighting;
             if let Some(visual) = state.visual.as_ref() {
-                visual.apply_overview()?;
+                visual.apply_calibration_topdown()?;
                 state.pending_visual = Some(PendingVisualMessage::Transition {
                     events,
                     state: next,
@@ -1103,7 +1117,7 @@ fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
             .visual
             .take()
             .ok_or("visual capture disappeared before camera restoration")?
-            .restore(false)?;
+            .restore(true)?;
     }
     match pending {
         PendingVisualMessage::Initial {

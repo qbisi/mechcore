@@ -663,6 +663,11 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             "frame_count": summary.frame_count,
                             "width": summary.width,
                             "height": summary.height,
+                            "view": capture::CALIBRATION_VIEW,
+                            "projection": "orthographic",
+                            "camera_position": [0.0, capture::CALIBRATION_CAMERA_HEIGHT, 0.0],
+                            "camera_euler_degrees": [90.0, 0.0, 0.0],
+                            "orthographic_size": capture::CALIBRATION_ORTHOGRAPHIC_SIZE,
                         })
                     });
                     return Response::success(

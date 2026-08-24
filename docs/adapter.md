@@ -119,14 +119,18 @@ An optional `video_output` enables the logic-frame visual sidecar:
 
 The optional path must be absolute, non-existing, distinct from `output`, and use `.mov`. With no
 `video_output`, no screenshot metadata is resolved, the camera is untouched, and no visual encoding
-work occurs. With it enabled, the adapter centers the native overview camera, moves it to its own
-maximum top-down distance, and temporarily fixes the render size at 1280x720. A completed render is
-captured at the following logic-update boundary, so every screenshot corresponds to the pending MCFR
-snapshot rather than to the state being advanced. The normal screen-space UI is included. The
-terminal snapshot is not returned until its completed render has also been captured. Frames are
-JPEG-encoded and written as a QuickTime Motion JPEG stream whose sample duration equals
-`D.logic_step`; frame count must equal MCFR tick count. Screen state and any still-live camera state
-are restored on failure, and partial media remains unpublished.
+work occurs. With it enabled, the adapter uses the deterministic `calibration_topdown` view: native
+Cinemachine and mouse/keyboard pan, orbit, and zoom controllers are suspended; the main camera is
+fixed at world `(0,500,0)`, rotated to `(90,0,0)`, and made orthographic with size `400`. The render is
+fixed at 1280x720, covering the complete `x=-400..400`, `z=-350..350` battlefield without
+perspective distortion. A completed render is captured at the following logic-update boundary, so
+every screenshot corresponds to the pending MCFR snapshot rather than to the state being advanced.
+The normal screen-space UI is included. The terminal snapshot is not returned until its completed
+render has also been captured. Frames are JPEG-encoded and written as a QuickTime Motion JPEG stream
+whose sample duration equals `D.logic_step`; frame count must equal MCFR tick count. Screen and camera
+controller state are restored after terminal capture or failure, and partial media remains unpublished.
+The result reports `view`, `projection`, camera position/rotation, and orthographic size alongside the
+media dimensions so a renderer can reconstruct the same world-to-screen calibration.
 
 The operation is valid only after layout completion in Training Ground deployment. It arms native
 capture, starts combat, records `S(0)` before the first combat update, and captures every subsequent
