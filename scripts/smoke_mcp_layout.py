@@ -315,6 +315,15 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
                 )
             if video.get("view") != "calibration_topdown":
                 raise SmokeFailure(f"unexpected video view metadata: {video}")
+            expected_calibration = {
+                "projection": "perspective",
+                "camera_position": [0.0, 1070.0, -1070.0],
+                "camera_euler_degrees": [45.0, 0.0, 0.0],
+                "field_of_view_degrees": 20.0,
+            }
+            for key, expected in expected_calibration.items():
+                if video.get(key) != expected:
+                    raise SmokeFailure(f"unexpected video {key}: {video}")
         print(
             "ok: recorded "
             f"{output}: states={recording.get('state_count')} "

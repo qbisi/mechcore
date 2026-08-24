@@ -26,8 +26,10 @@ const DISTANCE_UNITS_PER_METER: u64 = 1_000;
 const ROTATION_UNITS_PER_DEGREE: u64 = 1_000;
 const TIME_UNITS_PER_SECOND: u64 = 2_000;
 pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
-pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 500.0;
-pub(crate) const CALIBRATION_ORTHOGRAPHIC_SIZE: f32 = 800.0 / 3.0;
+pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 1_070.0;
+pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
+pub(crate) const CALIBRATION_CAMERA_PITCH_DEGREES: f32 = 45.0;
+pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -121,6 +123,7 @@ struct VisualCapture {
     original_camera_euler_angles: UnityVec3,
     original_camera_orthographic: bool,
     original_camera_orthographic_size: f32,
+    original_camera_field_of_view: f32,
     original_camera_far_clip_plane: f32,
 }
 
@@ -248,6 +251,9 @@ impl VisualCapture {
         let original_camera_orthographic_size = api
             .invoke_value::<f32>(camera, "get_orthographicSize", &mut [])
             .map_err(|error| error.to_string())?;
+        let original_camera_field_of_view = api
+            .invoke_value::<f32>(camera, "get_fieldOfView", &mut [])
+            .map_err(|error| error.to_string())?;
         let original_camera_far_clip_plane = api
             .invoke_value::<f32>(camera, "get_farClipPlane", &mut [])
             .map_err(|error| error.to_string())?;
@@ -290,11 +296,10 @@ impl VisualCapture {
             original_camera_euler_angles,
             original_camera_orthographic,
             original_camera_orthographic_size,
+            original_camera_field_of_view,
             original_camera_far_clip_plane,
         };
-        let setup = capture
-            .set_screen_resolution(1280, 720, false)
-            .and_then(|()| capture.apply_calibration_topdown());
+        let setup = capture.configure();
         if let Err(error) = setup {
             return match capture.restore(true) {
                 Ok(()) => Err(error),
@@ -304,7 +309,12 @@ impl VisualCapture {
         Ok(capture)
     }
 
-    fn apply_calibration_topdown(&self) -> Result<(), String> {
+    fn configure(&self) -> Result<(), String> {
+        self.set_screen_resolution(1280, 720, false)
+            .and_then(|()| self.apply_calibration())
+    }
+
+    fn apply_calibration(&self) -> Result<(), String> {
         let mut disabled = false;
         for handle in self.controlled_handles {
             let controller = self
@@ -326,16 +336,16 @@ impl VisualCapture {
         let mut position = UnityVec3 {
             x: 0.0,
             y: CALIBRATION_CAMERA_HEIGHT,
-            z: 0.0,
+            z: CALIBRATION_CAMERA_Z,
         };
         let mut rotation = UnityVec3 {
-            x: 90.0,
+            x: CALIBRATION_CAMERA_PITCH_DEGREES,
             y: 0.0,
             z: 0.0,
         };
-        let mut orthographic = true;
-        let mut orthographic_size = CALIBRATION_ORTHOGRAPHIC_SIZE;
-        let mut far_clip_plane = 2_000.0_f32;
+        let mut orthographic = false;
+        let mut field_of_view = CALIBRATION_FIELD_OF_VIEW_DEGREES;
+        let mut far_clip_plane = 4_000.0_f32;
         self.api
             .invoke_void(transform, "set_position", &mut [argument(&mut position)])
             .and_then(|()| {
@@ -352,8 +362,8 @@ impl VisualCapture {
             .and_then(|()| {
                 self.api.invoke_void(
                     camera,
-                    "set_orthographicSize",
-                    &mut [argument(&mut orthographic_size)],
+                    "set_fieldOfView",
+                    &mut [argument(&mut field_of_view)],
                 )
             })
             .and_then(|()| {
@@ -561,6 +571,7 @@ impl VisualCapture {
         let mut rotation = self.original_camera_euler_angles;
         let mut orthographic = self.original_camera_orthographic;
         let mut orthographic_size = self.original_camera_orthographic_size;
+        let mut field_of_view = self.original_camera_field_of_view;
         let mut far_clip_plane = self.original_camera_far_clip_plane;
         self.api
             .invoke_void(transform, "set_position", &mut [argument(&mut position)])
@@ -580,6 +591,13 @@ impl VisualCapture {
                     camera,
                     "set_orthographicSize",
                     &mut [argument(&mut orthographic_size)],
+                )
+            })
+            .and_then(|()| {
+                self.api.invoke_void(
+                    camera,
+                    "set_fieldOfView",
+                    &mut [argument(&mut field_of_view)],
                 )
             })
             .and_then(|()| {
@@ -1016,7 +1034,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 let context = durable_context(runtime)?;
                 state.initialized = true;
                 if let Some(visual) = state.visual.as_ref() {
-                    visual.apply_calibration_topdown()?;
+                    visual.apply_calibration()?;
                     state.pending_visual = Some(PendingVisualMessage::Initial {
                         context,
                         state: initial,
@@ -1035,7 +1053,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             let events = transition_events(&traces, &state);
             let terminal = !fighting;
             if let Some(visual) = state.visual.as_ref() {
-                visual.apply_calibration_topdown()?;
+                visual.apply_calibration()?;
                 state.pending_visual = Some(PendingVisualMessage::Transition {
                     events,
                     state: next,

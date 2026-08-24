@@ -83,13 +83,15 @@ The call requires completed Training Ground deployment.
 It owns the complete recording transaction: the adapter starts combat, MCP requests the wall-clock-only
 speed-up vote, and the call returns only after the adapter captures the fighting-to-over boundary,
 publishes the MCFR, and verifies its hashes. When video is enabled, `calibration_topdown` suspends the
-native camera input/Cinemachine controllers and fixes the main camera at world `(0,500,0)`, exact
-90-degree rotation `(90,0,0)`, orthographic size `800/3` (about `266.67`), and 1280x720 output. This
-magnifies both image dimensions by 1.5 relative to the original full-field calibration, cropping the
-far battlefield ends without introducing perspective distortion or external mouse drift. One rendered
-screen frame, including the normal game UI, is captured for each MCFR snapshot at the next logic-update
-boundary; this includes `S(0)` and the rendered terminal snapshot. The MOV uses the MCFR logic step as
-its sample duration, and publication fails unless its frame count exactly matches the MCFR tick count.
+native camera input/Cinemachine controllers and fixes the main camera at world `(0,1070,-1070)`,
+45-degree rotation `(45,0,0)`, perspective field of view `20` degrees, and 1280x720 output. The equal
+Y/Z offsets aim at the battlefield origin and preserve approximately the previous 1.5x center-plane
+scale. Perspective rendering avoids the opaque black tower-shadow quads produced by the native decal
+shader under an orthographic camera, while the disabled controllers prevent external mouse drift. One
+rendered screen frame, including the normal game UI, is captured for each MCFR snapshot at the next
+logic-update boundary; this includes `S(0)` and the rendered terminal snapshot. The MOV uses the MCFR
+logic step as its sample duration, and publication fails unless its frame count exactly matches the
+MCFR tick count.
 Callers do not issue `toggle_fight`, `speed_up`, or other Training Ground state controls while this
 tool is running. `quit_match` remains the separate owner of leaving the test after recording.
 The returned video metadata identifies `view: "calibration_topdown"` and includes the fixed projection
