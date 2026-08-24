@@ -53,7 +53,7 @@ attack:
 | `independent_aim` | 武器瞄准是否独立于主体朝向。 |
 | `attack_type` | 当前为 `direct_projectile` 或 `area_projectile`。 |
 | `target_domain` | 可攻击 `ground`、`air` 或 `both`。 |
-| `damage`、`range` | 单次基础伤害和攻击范围；范围单位 m。 |
+| `damage`、`range` | 单次基础伤害和攻击范围；单位分别为无量纲和 m。 |
 | `interval`、`interval_offset` | 基础攻击间隔和确定性随机偏移，单位 s。 |
 | `release_delay` | 动作开始至投射物释放总延迟，单位 s。 |
 | `projectile_speed`、`effect_radius` | 投射物速度和作用半径，单位分别为 m/s、m；直射投射物半径必须为零。 |
@@ -70,14 +70,15 @@ attack:
 
 ## 加载与确定性
 
-默认读取内置单位文件。也可以指定一个单位配置目录：
+默认读取内置配置。也可以指定一个外部配置根目录：
 
 ```text
 mechcore sim layout.yaml --config config
 ```
 
-模拟时钟、坐标单位、RNG 算法、参考游戏构建和更新顺序属于当前模拟内核的确定性元数据，
-由 MCFR 持久上下文记录，不属于单位配置，也不用于拒绝单位文件。
+配置根目录的 `config.yaml` 只包含 `game_build`，单位文件位于 `units/`。
+`game_build` 仅复制到 MCFR 持久上下文；它不是 schema 版本，也不触发版本匹配。
+模拟时钟、坐标单位、RNG 算法和更新顺序仍由内核维护。
 
 ## 当前内核边界
 

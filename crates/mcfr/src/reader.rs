@@ -1,38 +1,30 @@
 use std::path::Path;
 
-use rust_hdf5::{H5Dataset, H5File};
+use rust_hdf5::H5File;
 
 use crate::{
-    DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TransitionEvents,
-    WorldSnapshot,
+    DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TickSlice,
+    TransitionEvents, WorldSnapshot,
     canonical::{self, CanonicalHasher},
+    storage::StorageReader,
 };
 
 pub struct McfrReader {
-    _file: H5File,
+    file: H5File,
     context: DurableContext,
-    header: Header,
-    state_offsets: Vec<u64>,
-    event_offsets: Vec<u64>,
-    state_data: H5Dataset,
-    event_data: H5Dataset,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Header {
-    state_count: u64,
-    transition_count: u64,
-    terminal_step: u64,
+    tick_count: u64,
+    terminal_tick: u64,
     hashes: Hashes,
+    storage: StorageReader,
 }
 
 impl McfrReader {
-    /// Opens an MCFR and validates its container structure and canonical encodings.
+    /// Opens an MCFR and validates its HDF5 structure and metadata.
     ///
     /// # Errors
     ///
-    /// Returns an error for I/O or HDF5 failures, unsupported versions, malformed metadata, or
-    /// invalid track layout.
+    /// Returns an error for I/O failures, unsupported versions, malformed metadata, or invalid
+    /// column and offset shapes.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let file = H5File::open(path)?;
         expect_attr(&file, "format", MCFR_FORMAT)?;
@@ -43,23 +35,15 @@ impl McfrReader {
             )));
         }
         let schema_version = parse_u32_attr(&file, "schema_version")?;
-        let state_count = parse_u64_attr(&file, "state_count")?;
-        let transition_count = parse_u64_attr(&file, "transition_count")?;
-        let terminal_step = parse_u64_attr(&file, "terminal_step")?;
-        if state_count == 0 || state_count != transition_count + 1 {
+        let tick_count = parse_u64_attr(&file, "tick_count")?;
+        let terminal_tick = parse_u64_attr(&file, "terminal_tick")?;
+        if tick_count == 0 || terminal_tick != tick_count - 1 {
             return Err(Error::invalid(
-                "MCFR must contain exactly one more state than transitions",
-            ));
-        }
-        if terminal_step != transition_count {
-            return Err(Error::invalid(
-                "terminal_step must identify the final state boundary",
+                "MCFR must contain tick zero and terminal_tick must be the final tick",
             ));
         }
         let hashes = Hashes {
             scenario_hash: file.attr_string("scenario_hash")?,
-            state_hash: file.attr_string("state_hash")?,
-            event_hash: file.attr_string("event_hash")?,
             result_hash: file.attr_string("result_hash")?,
         };
         hashes.validate_encoding()?;
@@ -71,43 +55,26 @@ impl McfrReader {
                 "schema_version attribute differs from durable context",
             ));
         }
-        let state_data = file.dataset("states/data")?;
-        let event_data = file.dataset("events/data")?;
-        let state_offsets = file.dataset("states/offsets")?.read_raw::<u64>()?;
-        let event_offsets = file.dataset("events/offsets")?.read_raw::<u64>()?;
-        validate_offsets(
-            &state_offsets,
-            state_count + 1,
-            state_data.total_elements(),
-            "state",
-        )?;
-        validate_offsets(
-            &event_offsets,
-            transition_count + 1,
-            event_data.total_elements(),
-            "event",
-        )?;
-        Ok(Self {
-            _file: file,
+        let storage = StorageReader::open(&file, tick_count)?;
+        let reader = Self {
+            file,
             context,
-            header: Header {
-                state_count,
-                transition_count,
-                terminal_step,
-                hashes,
-            },
-            state_offsets,
-            event_offsets,
-            state_data,
-            event_data,
-        })
+            tick_count,
+            terminal_tick,
+            hashes,
+            storage,
+        };
+        if !reader.events(0)?.events.is_empty() {
+            return Err(Error::invalid("tick zero must have an empty event batch"));
+        }
+        Ok(reader)
     }
 
-    /// Opens an MCFR and verifies all formal hashes.
+    /// Opens an MCFR and verifies every tick hash and the global result hash.
     ///
     /// # Errors
     ///
-    /// Returns any error from [`Self::open`] or [`Self::verify`].
+    /// Returns any structural error from [`Self::open`] or a hash verification error.
     pub fn open_verified(path: impl AsRef<Path>) -> Result<Self> {
         let reader = Self::open(path)?;
         reader.verify()?;
@@ -121,144 +88,139 @@ impl McfrReader {
 
     #[must_use]
     pub const fn hashes(&self) -> &Hashes {
-        &self.header.hashes
+        &self.hashes
     }
 
     #[must_use]
-    pub const fn state_count(&self) -> u64 {
-        self.header.state_count
+    pub const fn tick_count(&self) -> u64 {
+        self.tick_count
     }
 
     #[must_use]
-    pub const fn transition_count(&self) -> u64 {
-        self.header.transition_count
+    pub const fn terminal_tick(&self) -> u64 {
+        self.terminal_tick
     }
 
-    #[must_use]
-    pub const fn terminal_step(&self) -> u64 {
-        self.header.terminal_step
-    }
-
-    /// Reads a canonical state snapshot by step boundary.
+    /// Returns one tick hash as canonical lowercase hexadecimal.
     ///
     /// # Errors
     ///
-    /// Returns an error when the index is out of range or the stored record is malformed.
-    pub fn state(&self, step: u64) -> Result<WorldSnapshot> {
-        let bytes = read_record(&self.state_data, &self.state_offsets, step, "state")?;
-        let state: WorldSnapshot = canonical::decode(&bytes, "state")?;
+    /// Returns an error when `tick` is out of range.
+    pub fn tick_hash(&self, tick: u64) -> Result<String> {
+        Ok(canonical::hex(&self.storage.tick_hash(tick)?))
+    }
+
+    /// Reads one authoritative snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `tick` is out of range or a stored value is malformed.
+    pub fn state(&self, tick: u64) -> Result<WorldSnapshot> {
+        let state = self.storage.state(&self.file, tick)?;
         let mut normalized = state.clone();
         normalized.canonicalize();
         if normalized != state {
             return Err(Error::invalid(format!(
-                "state {step} object collections are not in canonical order"
+                "state {tick} object collections are not in canonical order"
             )));
         }
         Ok(state)
     }
 
-    /// Reads one canonical event batch by transition index.
+    /// Reads the native event batch associated with one tick. Events at tick
+    /// `t > 0` occurred while advancing from `S(t-1)` to `S(t)`.
     ///
     /// # Errors
     ///
-    /// Returns an error when the index is out of range or the stored record is malformed.
-    pub fn events(&self, transition: u64) -> Result<TransitionEvents> {
-        let bytes = read_record(
-            &self.event_data,
-            &self.event_offsets,
-            transition,
-            "event transition",
-        )?;
-        canonical::decode(&bytes, "event transition")
+    /// Returns an error when `tick` is out of range or a stored value is malformed.
+    pub fn events(&self, tick: u64) -> Result<TransitionEvents> {
+        self.storage.events(&self.file, tick)
     }
 
-    /// Recomputes the scenario, state, event, and result hashes.
+    /// Reads the state, events, and hash for one logical tick.
     ///
     /// # Errors
     ///
-    /// Returns an error for malformed records and [`Error::HashMismatch`] when a stored formal
-    /// hash differs from the recomputed value.
+    /// Returns an error when `tick` is out of range or its data is malformed.
+    pub fn tick(&self, tick: u64) -> Result<TickSlice> {
+        Ok(TickSlice {
+            tick,
+            state: self.state(tick)?,
+            events: self.events(tick)?,
+            tick_hash: self.tick_hash(tick)?,
+        })
+    }
+
+    /// Returns the first unequal tick hash. A prefix-only length difference
+    /// diverges at the first missing tick.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the recordings have different durable contexts or an index cannot
+    /// be represented.
+    pub fn first_divergence(&self, other: &Self) -> Result<Option<u64>> {
+        if self.hashes.scenario_hash != other.hashes.scenario_hash {
+            return Err(Error::invalid(
+                "cannot compare first divergence for different durable contexts",
+            ));
+        }
+        for (index, (left, right)) in self
+            .storage
+            .tick_hashes()
+            .iter()
+            .zip(other.storage.tick_hashes())
+            .enumerate()
+        {
+            if left != right {
+                return Ok(Some(
+                    u64::try_from(index).map_err(|_| Error::invalid("tick index overflow"))?,
+                ));
+            }
+        }
+        if self.tick_count == other.tick_count {
+            Ok(None)
+        } else {
+            Ok(Some(self.tick_count.min(other.tick_count)))
+        }
+    }
+
+    /// Recomputes all independent tick hashes and the aggregate result hash.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for malformed tick data or when any stored hash differs from canonical
+    /// logical content.
     pub fn verify(&self) -> Result<Hashes> {
         let context_bytes = canonical::encode(&self.context)?;
-        let initial = self.state(0)?;
-        let initial_bytes = canonical::encode(&initial)?;
-        let mut scenario_hasher = CanonicalHasher::new("scenario-v1");
+        let mut scenario_hasher = CanonicalHasher::new("scenario-v2");
         scenario_hasher.update(&context_bytes);
-        scenario_hasher.update(&initial_bytes);
-        let mut state_hasher = CanonicalHasher::new("state-v1");
-        state_hasher.update(&initial_bytes);
-        let mut event_hasher = CanonicalHasher::new("event-v1");
-        for transition in 0..self.header.transition_count {
-            let events = self.events(transition)?;
-            let next = self.state(transition + 1)?;
-            event_hasher.update(&canonical::encode(&events)?);
-            state_hasher.update(&canonical::encode(&next)?);
-        }
+        scenario_hasher.update(&canonical::encode(&self.state(0)?)?);
         let scenario = scenario_hasher.finalize();
-        let state = state_hasher.finalize();
-        let event = event_hasher.finalize();
-        let result = canonical::result_hash(&scenario, &state, &event);
-        let actual = Hashes::from_raw(scenario, state, event, result);
         compare_hash(
             "scenario_hash",
-            &self.header.hashes.scenario_hash,
-            &actual.scenario_hash,
+            &self.hashes.scenario_hash,
+            &canonical::hex(&scenario),
         )?;
-        compare_hash(
-            "state_hash",
-            &self.header.hashes.state_hash,
-            &actual.state_hash,
-        )?;
-        compare_hash(
-            "event_hash",
-            &self.header.hashes.event_hash,
-            &actual.event_hash,
-        )?;
-        compare_hash(
-            "result_hash",
-            &self.header.hashes.result_hash,
-            &actual.result_hash,
-        )?;
+        let mut tick_hashes = Vec::with_capacity(
+            usize::try_from(self.tick_count).map_err(|_| Error::invalid("tick count overflow"))?,
+        );
+        for tick in 0..self.tick_count {
+            let state_bytes = canonical::encode(&self.state(tick)?)?;
+            let event_bytes = canonical::encode(&self.events(tick)?)?;
+            let actual = canonical::tick_hash(tick, &state_bytes, &event_bytes);
+            let expected = self.storage.tick_hash(tick)?;
+            compare_hash(
+                "tick_hash",
+                &canonical::hex(&expected),
+                &canonical::hex(&actual),
+            )?;
+            tick_hashes.push(actual);
+        }
+        let result = canonical::result_hash(&scenario, &tick_hashes);
+        let actual = Hashes::from_raw(scenario, result);
+        compare_hash("result_hash", &self.hashes.result_hash, &actual.result_hash)?;
         Ok(actual)
     }
-}
-
-fn read_record(dataset: &H5Dataset, offsets: &[u64], index: u64, label: &str) -> Result<Vec<u8>> {
-    let index =
-        usize::try_from(index).map_err(|_| Error::invalid(format!("{label} index overflow")))?;
-    let end_index = index
-        .checked_add(1)
-        .ok_or_else(|| Error::invalid(format!("{label} index overflow")))?;
-    let (&start, &end) = offsets
-        .get(index)
-        .zip(offsets.get(end_index))
-        .ok_or_else(|| Error::invalid(format!("{label} index {index} is out of range")))?;
-    let length = usize::try_from(end - start)
-        .map_err(|_| Error::invalid(format!("{label} length overflow")))?;
-    let start =
-        usize::try_from(start).map_err(|_| Error::invalid(format!("{label} offset overflow")))?;
-    Ok(dataset.read_slice::<u8>(&[start], &[length])?)
-}
-
-fn validate_offsets(offsets: &[u64], expected: u64, data_len: usize, label: &str) -> Result<()> {
-    if offsets.len() != usize::try_from(expected).unwrap_or(usize::MAX)
-        || offsets.first() != Some(&0)
-    {
-        return Err(Error::invalid(format!(
-            "{label} offsets have an invalid shape"
-        )));
-    }
-    if offsets.windows(2).any(|pair| pair[0] > pair[1]) {
-        return Err(Error::invalid(format!("{label} offsets are not monotonic")));
-    }
-    let data_len = u64::try_from(data_len)
-        .map_err(|_| Error::invalid(format!("{label} data is too large")))?;
-    if offsets.last() != Some(&data_len) {
-        return Err(Error::invalid(format!(
-            "{label} offsets do not cover the dataset"
-        )));
-    }
-    Ok(())
 }
 
 fn expect_attr(file: &H5File, name: &str, expected: &str) -> Result<()> {

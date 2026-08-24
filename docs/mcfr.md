@@ -5,9 +5,9 @@
 ## Status
 
 This document defines the baseline logical contents of `S` and `E` shared by
-native capture, simulation, comparison, and playback. Schema version 1 has a
-reference Rust implementation in `mechcore-mcfr`. The final columnar
-projection of world objects remains open.
+native capture, simulation, comparison, and playback. Schema version 2 and its
+typed columnar HDF5 projection have a Rust reference implementation in
+`mechcore-mcfr`.
 
 ## Purpose
 
@@ -30,15 +30,18 @@ recruitment, settlement, or other cross-round state.
 The logical transition contract is:
 
 ```text
-D + S(0) -> S(1..n) + E(0..n-1)
+T(0) = { S(0), E(0) = [] }
+T(t) = { S(t), E(t) } for t >= 1
+S(t-1) --E(t)--> S(t)
+MCFR = D + T(0)..T(n)
 ```
 
 where:
 
 - `D` is the durable deterministic context;
 - `S(t)` is the authoritative world snapshot at one logic boundary;
-- `E(t)` is the ordered event log for the transition from `S(t)` to
-  `S(t+1)`;
+- `E(0)` is empty and `E(t)` for `t >= 1` is the ordered native event log
+  observed while advancing from `S(t-1)` to `S(t)`;
 - `I(t)` is optional, temporary research instrumentation and is not part of
   the formal deterministic contract.
 
@@ -50,7 +53,7 @@ Snapshots are the contiguous sequence `S(0)..S(n)`. The sequence ordinal is
 the zero-based logic step, so a separate `frame_index`, `logic_tick`, or
 per-frame `time_seconds` field is not stored. `D` defines the fixed logic-step
 duration. The fighting-to-over boundary is stored once as top-level
-`terminal_step`. A source-native clock may be retained as non-canonical
+`terminal_tick`. A source-native clock may be retained as non-canonical
 evidence, but it does not enter `S` or formal hashes.
 
 ## Native observability constraint
@@ -97,7 +100,7 @@ not naturally expressed as a per-frame world snapshot. It binds:
 - the one-based combat round and match seed;
 - the source-neutral identity contract.
 
-Schema version 1 admits no external command that changes logical combat after fighting begins. A
+Schema version 2 admits no external command that changes logical combat after fighting begins. A
 Training Ground speed-up vote changes only wall-clock scheduling, not logic-step inputs or results;
 it is therefore orchestration metadata and is excluded from `D`, `S`, and `E`. The adapter
 must capture `S(0)` before the first combat update and before combat random
@@ -115,7 +118,7 @@ field.
 Combat is closed after `S(0)`: no external action may affect its logical evolution. Wall-clock-only
 speed-up may be requested while recording because capture is attached to logic updates, not render
 or wall-clock frames. A producer
-that cannot guarantee this boundary must not finalize a schema-version-1
+that cannot guarantee this boundary must not finalize a schema-version-2
 recording.
 
 ## Consumer levels
@@ -141,7 +144,7 @@ survive in a tick-end snapshot.
 `S` is source-neutral. Native pointers, runtime object addresses, adapter
 bookkeeping, and simulator-private types do not enter it.
 
-The schema-version-1 world boundary contains only:
+The schema-version-2 world boundary contains only:
 
 - units;
 - projectiles;
@@ -158,7 +161,7 @@ Status is the shared representation for persistent buffs and debuffs,
 including technology-disable effects. Specialized `buffs` and
 `technology_disabled` fields are not maintained in parallel.
 
-Schema version 1 uses `team_yx_sequential_v1` identities. Object IDs occupy
+Schema version 2 uses `team_yx_sequential_v1` identities. Object IDs occupy
 independent namespaces for Unit, Projectile, Building, and Status; each
 namespace starts at one and has no gaps.
 Formation IDs use another one-based, gapless namespace. For initial Units,
@@ -224,8 +227,8 @@ logic boundaries and are required to produce the next accepted `S/E` result.
 
 `E` is a typed, ordered battle log of facts reported directly by native
 execution points. It is not a change log reconstructed from adjacent
-snapshots. Each event belongs to transition `E(t)`. Its array position is its
-canonical order within that transition; a redundant `event_seq` field and
+snapshots. Each event belongs to the destination tick `E(t)`. Its array position
+is its canonical order while advancing from `S(t-1)` to `S(t)`; a redundant `event_seq` field and
 timestamps are not stored.
 
 The required baseline event families are:
@@ -305,7 +308,7 @@ the crate directly inside the game process; MCP may choose the output path and
 orchestrate the recording lifecycle, but it is not a required serialization
 intermediary.
 
-## HDF5 container version 1
+## HDF5 container version 2
 
 The `.mcfr` file is HDF5. The writer creates a temporary sibling and publishes
 the final path without overwriting an existing file only after all datasets,
@@ -314,21 +317,24 @@ metadata, and hashes have been finalized.
 | Path | HDF5 type | Meaning |
 | --- | --- | --- |
 | `/context/data` | contiguous `u8` | One canonical `D` record. |
-| `/states/data` | chunked, deflate-compressed `u8` | Concatenated canonical `S(0)..S(n)` records. |
-| `/states/offsets` | append-only `u64` | Record boundaries, including initial zero. |
-| `/events/data` | chunked, deflate-compressed `u8` | Concatenated canonical `E(0)..E(n-1)` records. |
-| `/events/offsets` | append-only `u64` | Transition boundaries, including initial zero. |
+| `/ticks/{unit,projectile,building,status,event}_offsets` | chunked `u64` | Ragged row boundaries for every tick, including initial zero. |
+| `/ticks/hash` | chunked `u8 [tick,32]` | Raw independent BLAKE3 hash for every logical tick. |
+| `/states/{units,projectiles,buildings,statuses}/<field>` | chunked typed columns | All directly observed snapshot fields, concatenated across ticks. Three-component vectors use `[row,3]`. |
+| `/events/<field>` | chunked typed columns | Ordered typed event discriminants, references, and payload columns concatenated across ticks. |
 
-Root attributes contain the format and container/schema versions, state and
-transition counts, `terminal_step`, and the four canonical hashes. Container
-version 1 requires `state_count = transition_count + 1` and
-`terminal_step = transition_count`.
+Root attributes contain the format and container/schema versions, `tick_count`,
+`terminal_tick`, `scenario_hash`, and `result_hash`. Container version 2
+requires `tick_count >= 1`, `terminal_tick = tick_count - 1`, one extra offset
+per ragged track, and `E(0) = []`.
 
-Each logical record is a schema-validated Rust value encoded as canonical
-UTF-8 JSON bytes. Records are concatenated in numeric datasets rather than
-stored as HDF5 variable-length JSON strings. This first layout supports
-streaming writes and random record reads. A later typed columnar projection
-requires a container-version change but must preserve the same logical hashes.
+The logical API is array-of-structures by tick, while the physical HDF5 layout
+is structure-of-arrays by field. Each offset pair selects one tick's rows; no
+group-per-tick, HDF5 variable-length value, or per-tick JSON blob is used.
+Numeric columns use multi-row chunks with shuffle plus deflate level 1. Boolean
+state flags are losslessly bit-packed. Event payload columns are shared by the
+closed event union; cells unused by an event discriminant are zero and have no
+logical meaning. This layout supports streaming append, selective field reads,
+and direct random access to one comparison tick without state deltas.
 
 An instrumentation sidecar uses the HDF5 format marker
 `mechcore.mcfr.instrumentation`. It stores steps, channels, content types,
@@ -341,14 +347,13 @@ Correctness is defined over canonical logical content, not raw HDF5 file
 bytes. HDF5 library versions, metadata order, chunk layout, compression, and
 source provenance may change physical bytes without changing battle content.
 
-Schema version 1 uses BLAKE3 with domain separation and a little-endian `u64`
+Schema version 2 uses BLAKE3 with domain separation and a little-endian `u64`
 length before every canonical record. The formal hash model is:
 
 ```text
-scenario_hash = BLAKE3("scenario-v1", canonical D, canonical S(0))
-state_hash    = BLAKE3("state-v1", canonical S(0)..canonical S(n))
-event_hash    = BLAKE3("event-v1", canonical E(0)..canonical E(n-1))
-result_hash   = BLAKE3("result-v1", scenario_hash, state_hash, event_hash)
+scenario_hash = BLAKE3("scenario-v2", canonical D, canonical S(0))
+tick_hash(t)  = BLAKE3("tick-v2", little_endian_u64(t), canonical S(t), canonical E(t))
+result_hash   = BLAKE3("result-v2", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
 ```
 
 `D` contains only typed fields: schema/build identity, timing and numeric
@@ -359,10 +364,10 @@ formal scenario hash.
 Two recordings are comparable only when their schema versions and
 `scenario_hash` values match.
 
-- equal `state_hash` means the authoritative baseline state evolution is
-  equal;
-- equal `state_hash` but unequal `event_hash` means the same snapshots were
-  reached through a different recorded mechanism sequence;
+- the first unequal `tick_hash(t)` is the first divergent logical tick and its
+  `S(t)/E(t)` can be read directly for diagnosis;
+- tick hashes are independent rather than chained, so equality at a later tick
+  can expose re-convergence after an earlier divergence;
 - equal `result_hash` means the two producers agree within the accepted `S/E`
   contract for that scenario.
 
@@ -396,8 +401,7 @@ The following claims are intentionally separate:
 The next revisions must decide, in order:
 
 1. promotion or rejection of each disputed `I` field through native evidence;
-2. the typed columnar HDF5 projection and compression profile;
-3. the player-facing read and interpolation contract.
+2. the player-facing read and interpolation contract.
 
 These details must be derived jointly from native capture feasibility,
 deterministic-kernel requirements, and playback requirements rather than from

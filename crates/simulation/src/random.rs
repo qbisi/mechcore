@@ -1,4 +1,4 @@
-//! Build-2227 `GRRandom`: `PluginCS` xoshiro256** plus its integer projection.
+//! Build-2259 `GRRandom` type 1: `RanState` xoshiro256** plus its integer projection.
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GrRandom {
@@ -52,7 +52,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn matches_the_old_kernel_attack_stream() {
+    fn matches_the_native_ran_state_attack_stream() {
         let mut random = GrRandom::new(4_444);
         let actual = (0..12).map(|_| random.next_in_range(6)).collect::<Vec<_>>();
         assert_eq!(actual, [5, -1, 5, 4, 0, -2, -4, 1, 0, 3, 4, -4]);

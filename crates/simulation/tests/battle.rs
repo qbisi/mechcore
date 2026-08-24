@@ -12,6 +12,7 @@ fn marksman_vs_arclight_runs_to_a_verified_terminal_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
     let result = simulate_layout(fixture(), &output, Some(7)).unwrap();
+    assert_eq!(result.game_build, "1.11.1.3.2259");
     assert_eq!(result.seed, 7);
     assert_eq!(result.seed_source, "external");
     assert_eq!(result.end_reason, "natural_module_drain");
@@ -19,15 +20,16 @@ fn marksman_vs_arclight_runs_to_a_verified_terminal_result() {
     assert!(!result.draw);
 
     let reader = McfrReader::open_verified(&output).unwrap();
+    assert_eq!(reader.context().game_build, "1.11.1.3.2259");
     assert_eq!(reader.hashes(), &result.hashes);
-    assert_eq!(reader.terminal_step(), result.steps);
-    let final_state = reader.state(reader.terminal_step()).unwrap();
+    assert_eq!(reader.terminal_tick(), result.steps);
+    let final_state = reader.state(reader.terminal_tick()).unwrap();
     assert_eq!(
         final_state.units.iter().filter(|unit| unit.alive).count(),
         1
     );
-    let event_kinds = (0..reader.transition_count())
-        .flat_map(|transition| reader.events(transition).unwrap().events)
+    let event_kinds = (0..reader.tick_count())
+        .flat_map(|tick| reader.events(tick).unwrap().events)
         .map(|event| event.kind())
         .collect::<Vec<_>>();
     assert!(event_kinds.contains(&EventKind::ProjectileReleased));
@@ -72,6 +74,11 @@ fn unit_names_are_config_data_not_kernel_branches() {
     let config_root = directory.path().join("config");
     let units = config_root.join("units");
     fs::create_dir_all(&units).unwrap();
+    fs::copy(
+        repository.join("config/config.yaml"),
+        config_root.join("config.yaml"),
+    )
+    .unwrap();
     for (source, renamed) in [("marksman", "unit_a"), ("arclight", "unit_b")] {
         let mut config: serde_yaml::Value =
             serde_yaml::from_slice(&fs::read(source_units.join(format!("{source}.yaml"))).unwrap())
@@ -102,6 +109,5 @@ fn unit_names_are_config_data_not_kernel_branches() {
     .unwrap();
     assert_eq!(renamed.winner, baseline.winner);
     assert_eq!(renamed.steps, baseline.steps);
-    assert_eq!(renamed.hashes.state_hash, baseline.hashes.state_hash);
-    assert_eq!(renamed.hashes.event_hash, baseline.hashes.event_hash);
+    assert_eq!(renamed.hashes, baseline.hashes);
 }

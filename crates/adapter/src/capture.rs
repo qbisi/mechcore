@@ -161,7 +161,7 @@ enum NativeTrace {
         intercepted: bool,
     },
     Damage {
-        source: usize,
+        source: Option<ObjectRef>,
         target: usize,
         amount: i64,
     },
@@ -557,6 +557,7 @@ fn record_projectile_removal(controller: *mut Object, intercepted: bool) {
             position,
             intercepted,
         });
+        state.projectile_ids.remove(&pointer);
         Ok::<(), String>(())
     })();
     if let Err(error) = result {
@@ -571,8 +572,9 @@ fn record_damage(provider: *mut Object, target: *mut Object, result: i32) {
     if !state.armed || !state.in_update || result <= 0 {
         return;
     }
+    let source = object_ref_from_pointer(provider as usize, &state);
     state.traces.push(NativeTrace::Damage {
-        source: provider as usize,
+        source,
         target: target as usize,
         amount: i64::from(result),
     });
@@ -596,6 +598,8 @@ fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
         .invoke_static(application, "get_version", &mut [])
         .and_then(|value| runtime.api.string_to_rust(value.cast()))
         .map_err(|error| error.to_string())?;
+    let random = invoke_object(runtime.api, current_match, "GetRandom")?;
+    let match_seed = invoke_value::<i32>(runtime.api, random, "GetSeed")?;
     Ok(DurableContext {
         schema_version: MCFR_SCHEMA_VERSION,
         game_build: version,
@@ -609,9 +613,7 @@ fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
             time_units_per_second: TIME_UNITS_PER_SECOND,
         },
         combat_round: u32::try_from(round).map_err(|_| "combat round overflow".to_owned())?,
-        // start_test fixes SystemSeed to zero. Recording is intentionally limited
-        // to the MCP-owned Training Ground lifecycle.
-        match_seed: 0,
+        match_seed,
         identity_contract: IdentityContract::TeamYxSequentialV1,
     })
 }
@@ -1150,7 +1152,7 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
                 };
                 events.push(event(
                     None,
-                    object_ref_from_pointer(source, capture),
+                    source,
                     Some(target),
                     EventPayload::Damage { amount },
                 ));
@@ -1520,6 +1522,11 @@ mod tests {
                 owner: 11,
                 target: 22,
             },
+            NativeTrace::Damage {
+                source: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
+                target: 22,
+                amount: 10,
+            },
             NativeTrace::ProjectileRemoved {
                 projectile_id: 1,
                 owner: 11,
@@ -1545,18 +1552,32 @@ mod tests {
             match_seed: 0,
             identity_contract: IdentityContract::TeamYxSequentialV1,
         };
-        let mut writer = mechcore_mcfr::McfrWriter::create(&path, &context, state.clone()).unwrap();
-        writer.push_transition(&events, state).unwrap();
+        let mut writer = mechcore_mcfr::McfrWriter::create(&path, &context).unwrap();
+        writer
+            .append_tick(
+                state.clone(),
+                &mechcore_mcfr::TransitionEvents { events: Vec::new() },
+            )
+            .unwrap();
+        writer.append_tick(state, &events).unwrap();
         writer.finish().unwrap();
         let reader = mechcore_mcfr::McfrReader::open_verified(path).unwrap();
-        let events = reader.events(0).unwrap();
-        assert_eq!(events.events.len(), 2);
+        let events = reader.events(1).unwrap();
+        assert_eq!(events.events.len(), 3);
         assert!(matches!(
             events.events[0].payload,
             EventPayload::ProjectileReleased
         ));
+        assert_eq!(
+            events.events[1].source,
+            Some(ObjectRef::new(ObjectKind::Projectile, 1))
+        );
         assert!(matches!(
             events.events[1].payload,
+            EventPayload::Damage { amount: 10 }
+        ));
+        assert!(matches!(
+            events.events[2].payload,
             EventPayload::ProjectileRemoved { .. }
         ));
     }

@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rust_hdf5::{H5Dataset, H5File};
+use rust_hdf5::H5File;
 use tempfile::TempPath;
 
 use crate::{
@@ -11,41 +11,28 @@ use crate::{
     WorldSnapshot,
     canonical::{self, CanonicalHasher},
     model::IdentityAllocator,
+    storage,
 };
-
-const BYTE_CHUNK: usize = 256 * 1024;
-const OFFSET_CHUNK: usize = 4096;
 
 pub struct McfrWriter {
     target: PathBuf,
     temporary: TempPath,
     file: Option<H5File>,
-    state_data: H5Dataset,
-    state_offsets: H5Dataset,
-    event_data: H5Dataset,
-    event_offsets: H5Dataset,
     context_bytes: Vec<u8>,
-    initial_state_bytes: Vec<u8>,
-    state_hasher: CanonicalHasher,
-    event_hasher: CanonicalHasher,
-    state_end: u64,
-    event_end: u64,
-    transition_count: u64,
+    initial_state_bytes: Option<Vec<u8>>,
+    tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     poisoned: bool,
 }
 
 impl McfrWriter {
-    /// Starts an MCFR at `path` with durable context and the initial snapshot.
+    /// Starts an empty MCFR container. The first appended tick must be tick zero
+    /// and therefore carry an empty event batch.
     ///
     /// # Errors
     ///
-    /// Returns an error if the input is invalid, the target already exists, or the temporary
-    /// HDF5 container cannot be created and initialized.
-    pub fn create(
-        path: impl AsRef<Path>,
-        context: &DurableContext,
-        mut initial_state: WorldSnapshot,
-    ) -> Result<Self> {
+    /// Returns an error for invalid context, an existing target, or an HDF5 initialization
+    /// failure.
+    pub fn create(path: impl AsRef<Path>, context: &DurableContext) -> Result<Self> {
         let target = path.as_ref().to_path_buf();
         if target.exists() {
             return Err(Error::invalid(format!(
@@ -56,11 +43,7 @@ impl McfrWriter {
         let parent = target.parent().unwrap_or_else(|| Path::new("."));
         fs::create_dir_all(parent)?;
         context.validate()?;
-        initial_state.canonicalize();
-        IdentityAllocator::from_initial(&initial_state)?;
-        let context_bytes = canonical::encode(&context)?;
-        let initial_bytes = canonical::encode(&initial_state)?;
-
+        let context_bytes = canonical::encode(context)?;
         let temporary = tempfile::Builder::new()
             .prefix(".mcfr-")
             .suffix(".h5.part")
@@ -70,151 +53,106 @@ impl McfrWriter {
         file.set_attr_string("format", MCFR_FORMAT)?;
         file.set_attr_string("container_version", &MCFR_CONTAINER_VERSION.to_string())?;
         file.set_attr_string("schema_version", &context.schema_version.to_string())?;
-        let context_group = file.create_group("context")?;
-        let states_group = file.create_group("states")?;
-        let events_group = file.create_group("events")?;
-        context_group
+        file.create_group("context")?
             .new_dataset::<u8>()
             .shape([context_bytes.len()])
             .create("data")?
             .write_raw(&context_bytes)?;
-        let state_data = byte_dataset(&states_group, "data")?;
-        let state_offsets = offset_dataset(&states_group, "offsets")?;
-        let event_data = byte_dataset(&events_group, "data")?;
-        let event_offsets = offset_dataset(&events_group, "offsets")?;
-        state_offsets.append(&[0_u64])?;
-        event_offsets.append(&[0_u64])?;
-        state_data.append(&initial_bytes)?;
-        let state_end = u64::try_from(initial_bytes.len())
-            .map_err(|_| Error::invalid("initial state is too large"))?;
-        state_offsets.append(&[state_end])?;
-
-        let mut state_hasher = CanonicalHasher::new("state-v1");
-        state_hasher.update(&initial_bytes);
-
+        storage::create(&file)?;
         Ok(Self {
             target,
             temporary,
             file: Some(file),
-            state_data,
-            state_offsets,
-            event_data,
-            event_offsets,
             context_bytes,
-            initial_state_bytes: initial_bytes,
-            state_hasher,
-            event_hasher: CanonicalHasher::new("event-v1"),
-            state_end,
-            event_end: 0,
-            transition_count: 0,
+            initial_state_bytes: None,
+            tick_hashes: Vec::new(),
             poisoned: false,
         })
     }
 
-    /// Appends one `E(t), S(t+1)` transition.
+    /// Appends one end-of-logical-tick slice and returns its canonical hash.
     ///
     /// # Errors
     ///
-    /// Returns an error if canonical encoding or an HDF5 append fails.
-    pub fn push_transition(
+    /// Returns an error for an invalid tick-zero snapshot, canonical encoding failure, or partial
+    /// HDF5 append failure.
+    pub fn append_tick(
         &mut self,
+        mut state: WorldSnapshot,
         events: &TransitionEvents,
-        mut next_state: WorldSnapshot,
-    ) -> Result<()> {
-        next_state.canonicalize();
-        let event_bytes = canonical::encode(&events)?;
-        let state_bytes = canonical::encode(&next_state)?;
+    ) -> Result<String> {
+        let tick = u64::try_from(self.tick_hashes.len())
+            .map_err(|_| Error::invalid("tick count overflow"))?;
+        if tick == 0 && !events.events.is_empty() {
+            return Err(Error::invalid("tick zero must have an empty event batch"));
+        }
+        state.canonicalize();
+        state.object_keys()?;
+        if tick == 0 {
+            IdentityAllocator::from_initial(&state)?;
+        }
+        let state_bytes = canonical::encode(&state)?;
+        let event_bytes = canonical::encode(events)?;
+        let hash = canonical::tick_hash(tick, &state_bytes, &event_bytes);
         self.poisoned = true;
-        self.event_data.append(&event_bytes)?;
-        self.event_end = checked_end(self.event_end, event_bytes.len(), "event track")?;
-        self.event_offsets.append(&[self.event_end])?;
-        self.state_data.append(&state_bytes)?;
-        self.state_end = checked_end(self.state_end, state_bytes.len(), "state track")?;
-        self.state_offsets.append(&[self.state_end])?;
-        self.event_hasher.update(&event_bytes);
-        self.state_hasher.update(&state_bytes);
-        self.transition_count = self
-            .transition_count
-            .checked_add(1)
-            .ok_or_else(|| Error::invalid("transition count overflow"))?;
+        storage::append_tick(
+            self.file
+                .as_ref()
+                .ok_or_else(|| Error::invalid("writer file is unavailable"))?,
+            &state,
+            events,
+            &hash,
+        )?;
+        if tick == 0 {
+            self.initial_state_bytes = Some(state_bytes);
+        }
+        self.tick_hashes.push(hash);
         self.poisoned = false;
-        Ok(())
+        Ok(canonical::hex(&hash))
     }
 
-    /// Finalizes hashes and atomically publishes the completed container.
+    /// Finalizes the timeline hash and atomically publishes the container.
     ///
     /// # Errors
     ///
-    /// Returns an error after a partial append failure, if final HDF5 writes fail, or if the target
-    /// path appears before publication.
+    /// Returns an error when no tick was written, after a partial append failure, or if metadata
+    /// finalization and atomic publication fail.
     pub fn finish(mut self) -> Result<Hashes> {
         if self.poisoned {
             return Err(Error::invalid(
                 "cannot finish an MCFR after a partial write failure",
             ));
         }
-        let mut scenario_hasher = CanonicalHasher::new("scenario-v1");
+        if self.tick_hashes.is_empty() {
+            return Err(Error::invalid("an MCFR must contain tick zero"));
+        }
+        let mut scenario_hasher = CanonicalHasher::new("scenario-v2");
         scenario_hasher.update(&self.context_bytes);
-        scenario_hasher.update(&self.initial_state_bytes);
+        scenario_hasher.update(
+            self.initial_state_bytes
+                .as_deref()
+                .ok_or_else(|| Error::invalid("an MCFR must contain tick zero"))?,
+        );
         let scenario = scenario_hasher.finalize();
-        let state = std::mem::replace(
-            &mut self.state_hasher,
-            CanonicalHasher::new("consumed-state-hasher"),
-        )
-        .finalize();
-        let event = std::mem::replace(
-            &mut self.event_hasher,
-            CanonicalHasher::new("consumed-event-hasher"),
-        )
-        .finalize();
-        let result = canonical::result_hash(&scenario, &state, &event);
-        let hashes = Hashes::from_raw(scenario, state, event, result);
+        let result = canonical::result_hash(&scenario, &self.tick_hashes);
+        let hashes = Hashes::from_raw(scenario, result);
+        let tick_count = u64::try_from(self.tick_hashes.len())
+            .map_err(|_| Error::invalid("tick count overflow"))?;
         let file = self
             .file
             .as_ref()
             .ok_or_else(|| Error::invalid("writer file is unavailable"))?;
-        file.set_attr_string("state_count", &(self.transition_count + 1).to_string())?;
-        file.set_attr_string("transition_count", &self.transition_count.to_string())?;
-        file.set_attr_string("terminal_step", &self.transition_count.to_string())?;
+        file.set_attr_string("tick_count", &tick_count.to_string())?;
+        file.set_attr_string("terminal_tick", &(tick_count - 1).to_string())?;
         file.set_attr_string("scenario_hash", &hashes.scenario_hash)?;
-        file.set_attr_string("state_hash", &hashes.state_hash)?;
-        file.set_attr_string("event_hash", &hashes.event_hash)?;
         file.set_attr_string("result_hash", &hashes.result_hash)?;
-        let file = self
-            .file
+        self.file
             .take()
-            .ok_or_else(|| Error::invalid("writer file is unavailable"))?;
-        file.close()?;
+            .ok_or_else(|| Error::invalid("writer file is unavailable"))?
+            .close()?;
         self.temporary
             .persist_noclobber(&self.target)
             .map_err(|error| Error::Io(error.error))?;
         Ok(hashes)
     }
-}
-
-fn byte_dataset(group: &rust_hdf5::H5Group, name: &str) -> Result<H5Dataset> {
-    Ok(group
-        .new_dataset::<u8>()
-        .shape([0])
-        .chunk(&[BYTE_CHUNK])
-        .max_shape(&[None])
-        .deflate(6)
-        .create(name)?)
-}
-
-fn offset_dataset(group: &rust_hdf5::H5Group, name: &str) -> Result<H5Dataset> {
-    Ok(group
-        .new_dataset::<u64>()
-        .shape([0])
-        .chunk(&[OFFSET_CHUNK])
-        .max_shape(&[None])
-        .create(name)?)
-}
-
-fn checked_end(current: u64, added: usize, label: &str) -> Result<u64> {
-    current
-        .checked_add(
-            u64::try_from(added).map_err(|_| Error::invalid(format!("{label} is too large")))?,
-        )
-        .ok_or_else(|| Error::invalid(format!("{label} offset overflow")))
 }

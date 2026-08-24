@@ -60,7 +60,8 @@ pub fn simulate_layout(
 }
 
 /// Simulates a layout with either the embedded defaults or an external
-/// directory containing one YAML file per unit type.
+/// config root containing `config.yaml` and one YAML file per unit type under
+/// `units/`.
 ///
 /// # Errors
 ///
@@ -75,13 +76,12 @@ pub fn simulate_layout_with_config(
     let layout_path = layout_path.as_ref();
     let output_path = output_path.as_ref();
     let layout = layout::load(layout_path)?;
-    let unit_directory = config_directory.map(|directory| directory.join("units"));
-    let unit_configs = rules::UnitConfigs::load(unit_directory.as_deref())?;
+    let config = rules::SimulationConfig::load(config_directory)?;
     let (seed, source) = match seed {
         Some(seed) => (seed, "external"),
         None => (generate_seed(layout_path)?, "generated"),
     };
-    kernel::run(&layout, &unit_configs, seed, source, output_path)
+    kernel::run(&layout, &config, seed, source, output_path)
 }
 
 /// Returns the default sibling `.mcfr` output path for a layout.

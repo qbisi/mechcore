@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cmp::Ordering, collections::BTreeMap};
 
 use mechcore_mcfr::{
     Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityAllocator,
@@ -12,7 +12,7 @@ use crate::{
     Error, Result,
     layout::{CompiledLayout, Placement},
     random::GrRandom,
-    rules::{TargetDomain, UnitConfig, UnitConfigs, UnitDomain},
+    rules::{SimulationConfig, TargetDomain, UnitConfig, UnitConfigs, UnitDomain},
 };
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
@@ -20,7 +20,8 @@ const TIME_UNITS_PER_SECOND: u64 = 2_000;
 const LOGIC_TICK_TIME_UNITS: u64 = 100;
 const FIGHT_TIME_SECONDS: u64 = 120;
 const FORMATION_JITTER_RANGE_TENTHS: i32 = 8;
-const REFERENCE_GAME_BUILD: &str = "1.11.1.2.2227";
+const Q32_ONE: i64 = 1_i64 << 32;
+const NATIVE_LOGIC_DELTA_Q32: i64 = 0x0CCC_CCCC;
 
 #[derive(Debug, Clone, Copy)]
 struct PendingRelease {
@@ -42,11 +43,10 @@ struct Actor {
     motion: MotionState,
     next_attack_step: u64,
     pending: Option<PendingRelease>,
-    attack_random: GrRandom,
 }
 
 impl Actor {
-    fn new(placement: Placement, rules: UnitConfig, round: u32, seed: i32) -> Self {
+    fn new(placement: Placement, rules: UnitConfig, seed: i32) -> Self {
         let mut layout_random = GrRandom::new(u64::from(seed.cast_unsigned()));
         let jitter_unit = SPACE_UNITS_PER_METER / 10;
         let jitter_x =
@@ -54,23 +54,6 @@ impl Actor {
         let jitter_y =
             i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS)) * jitter_unit;
         let direction = if placement.team == 0 { 1 } else { -1 };
-        let mut attack_random = GrRandom::new(u64::from(
-            round
-                .cast_signed()
-                .wrapping_add(placement.team.cast_signed())
-                .wrapping_mul(4_444)
-                .cast_unsigned(),
-        ));
-        // `FightTeam.RefreshRandomData` consumes one initial interval sample
-        // for every member with a nonzero interval offset.
-        let interval_offset_steps = positive_time_units_to_steps(
-            rules.attack.interval_offset_time_units(),
-            LOGIC_TICK_TIME_UNITS,
-        );
-        if interval_offset_steps > 0 {
-            let _initial_sample = attack_random
-                .next_in_range(i32::try_from(interval_offset_steps).unwrap_or(i32::MAX));
-        }
         let max_life = rules.max_life;
         Self {
             x: placement
@@ -91,7 +74,6 @@ impl Actor {
             motion: MotionState::Idle,
             next_attack_step: 0,
             pending: None,
-            attack_random,
         }
     }
 
@@ -120,21 +102,17 @@ impl Actor {
                 rotation: self.aim_rotation,
             },
             velocity: point(self.velocity_x, self.velocity_y),
-            motion_state: if self.alive() {
-                self.motion
-            } else {
-                MotionState::Stopped
-            },
+            motion_state: self.motion,
             collision_radius: self.rules.collision_radius(),
             life: self.life,
             max_life: self.rules.max_life,
             alive: self.alive(),
-            active: self.alive(),
+            active: true,
             targetable: self.alive(),
             visibility: Visibility::Normal,
             personal_shield: PersonalShieldState {
                 active: false,
-                enabled: false,
+                enabled: true,
                 energy: 0,
                 max_energy: 0,
             },
@@ -150,6 +128,8 @@ struct Projectile {
     target: u64,
     x: i64,
     y: i64,
+    x_q32: i64,
+    y_q32: i64,
     cached_target_x: i64,
     cached_target_y: i64,
     cached_target_radius: i64,
@@ -168,17 +148,14 @@ impl Projectile {
             team_id: self.team,
             owner: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
             position: point(self.x, self.y),
-            orientation: direction_mdeg(
-                self.cached_target_x - self.x,
-                self.cached_target_y - self.y,
-            ),
+            orientation: 0,
             target: Some(ObjectRef::new(ObjectKind::Unit, self.target)),
             cached_target_position: point(self.cached_target_x, self.cached_target_y),
             cached_target_radius: self.cached_target_radius,
-            released: true,
+            released: false,
             life: Gauge {
-                current: 0,
-                maximum: 0,
+                current: 1,
+                maximum: 1,
             },
         }
     }
@@ -211,6 +188,7 @@ pub struct SimulationResult {
 
 struct Simulation {
     actors: BTreeMap<u64, Actor>,
+    team_random: BTreeMap<u32, GrRandom>,
     projectiles: Vec<Projectile>,
     identities: IdentityAllocator,
 }
@@ -227,11 +205,31 @@ impl Simulation {
             })?;
             actors.insert(
                 placement.unit_id,
-                Actor::new(placement.clone(), rules.clone(), layout.round, seed),
+                Actor::new(placement.clone(), rules.clone(), seed),
             );
+        }
+        let mut team_random = BTreeMap::new();
+        for actor in actors.values() {
+            let random = team_random.entry(actor.placement.team).or_insert_with(|| {
+                GrRandom::new(u64::from(
+                    layout
+                        .round
+                        .cast_signed()
+                        .wrapping_add(actor.placement.team.cast_signed())
+                        .wrapping_mul(4_444)
+                        .cast_unsigned(),
+                ))
+            });
+            let offset_steps =
+                native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
+            if offset_steps > 0 {
+                let _initial_sample =
+                    random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
+            }
         }
         Ok(Self {
             actors,
+            team_random,
             projectiles: Vec::new(),
             identities: IdentityAllocator::new(),
         })
@@ -252,6 +250,13 @@ impl Simulation {
             self.step_actor(actor_id, step, &mut events)?;
         }
         self.step_projectiles(&mut events)?;
+        if self.naturally_finished() {
+            for actor in self.actors.values_mut() {
+                actor.motion = MotionState::Idle;
+                actor.velocity_x = 0;
+                actor.velocity_y = 0;
+            }
+        }
         Ok(TransitionEvents { events })
     }
 
@@ -265,7 +270,7 @@ impl Simulation {
             actor.pending = None;
             actor.velocity_x = 0;
             actor.velocity_y = 0;
-            actor.motion = MotionState::Stopped;
+            actor.motion = MotionState::Idle;
             return Ok(());
         }
         if self.actors[&actor_id]
@@ -310,6 +315,7 @@ impl Simulation {
             .saturating_sub(actor.rules.collision_radius())
             .saturating_sub(target_radius);
         if edge_distance <= actor.rules.attack.range() {
+            let entered_attack = actor.motion != MotionState::Attacking;
             actor.motion = MotionState::Attacking;
             actor.velocity_x = 0;
             actor.velocity_y = 0;
@@ -321,21 +327,18 @@ impl Simulation {
                 );
                 actor.aim_rotation = actor.body_rotation;
             }
-            if actor.pending.is_none() && step >= actor.next_attack_step {
-                let interval_steps = positive_time_units_to_steps(
-                    actor.rules.attack.interval_time_units(),
-                    LOGIC_TICK_TIME_UNITS,
-                );
-                let offset_steps = positive_time_units_to_steps(
-                    actor.rules.attack.interval_offset_time_units(),
-                    LOGIC_TICK_TIME_UNITS,
-                );
+            if !entered_attack && actor.pending.is_none() && step >= actor.next_attack_step {
+                let interval_steps =
+                    native_time_units_to_steps(actor.rules.attack.interval_time_units());
+                let offset_steps =
+                    native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
                 let sample = if offset_steps == 0 {
                     0
                 } else {
                     i64::from(
-                        actor
-                            .attack_random
+                        self.team_random
+                            .get_mut(&actor.placement.team)
+                            .expect("every actor team owns one attack random stream")
                             .next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)),
                     )
                 };
@@ -346,9 +349,8 @@ impl Simulation {
                     .cast_unsigned();
                 actor.next_attack_step = step.saturating_add(sampled);
                 actor.pending = Some(PendingRelease {
-                    step: step.saturating_add(positive_time_units_to_steps(
+                    step: step.saturating_add(native_time_units_to_steps(
                         actor.rules.attack.release_delay_time_units(),
-                        LOGIC_TICK_TIME_UNITS,
                     )),
                     target: target_id,
                 });
@@ -400,6 +402,8 @@ impl Simulation {
             target: pending.target,
             x: owner.x,
             y: owner.y,
+            x_q32: space_to_q32(owner.x),
+            y_q32: space_to_q32(owner.y),
             cached_target_x: target_x,
             cached_target_y: target_y,
             cached_target_radius: target_radius,
@@ -417,6 +421,7 @@ impl Simulation {
         Ok(())
     }
 
+    #[allow(clippy::similar_names)] // Paired fixed-point x/z components are intentionally parallel.
     fn step_projectiles(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let mut retained = Vec::with_capacity(self.projectiles.len());
         for mut projectile in std::mem::take(&mut self.projectiles) {
@@ -429,26 +434,31 @@ impl Simulation {
                 projectile.cached_target_y = target.y;
                 projectile.cached_target_radius = target.rules.collision_radius();
             }
-            let dx = projectile.cached_target_x - projectile.x;
-            let dy = projectile.cached_target_y - projectile.y;
-            let distance = magnitude(dx, dy);
-            let displacement = scale_per_tick(
-                projectile.speed,
-                LOGIC_TICK_TIME_UNITS,
-                TIME_UNITS_PER_SECOND,
-            );
-            if distance.saturating_sub(projectile.cached_target_radius) <= displacement {
-                let travel = distance
-                    .saturating_sub(projectile.cached_target_radius)
-                    .max(0);
-                let (move_x, move_y) = displacement_towards(dx, dy, travel);
-                projectile.x = projectile.x.saturating_add(move_x);
-                projectile.y = projectile.y.saturating_add(move_y);
+            let target_x_q32 = space_to_q32(projectile.cached_target_x);
+            let target_y_q32 = space_to_q32(projectile.cached_target_y);
+            let dx_q32 = target_x_q32.saturating_sub(projectile.x_q32);
+            let dy_q32 = target_y_q32.saturating_sub(projectile.y_q32);
+            let distance_q32 = native_q32_magnitude(dx_q32, dy_q32);
+            if distance_q32 < space_to_q32(projectile.cached_target_radius) {
                 self.impact(&projectile, events)?;
             } else {
-                let (move_x, move_y) = displacement_towards(dx, dy, displacement);
-                projectile.x = projectile.x.saturating_add(move_x);
-                projectile.y = projectile.y.saturating_add(move_y);
+                let step_q32 = q32_mul(
+                    space_to_q32(projectile.speed),
+                    Q32_ONE.saturating_mul(LOGIC_TICK_TIME_UNITS.cast_signed())
+                        / TIME_UNITS_PER_SECOND.cast_signed(),
+                );
+                if distance_q32 > 0 {
+                    let move_q32 = step_q32.min(distance_q32);
+                    let reciprocal = q32_div(Q32_ONE, distance_q32);
+                    projectile.x_q32 = projectile
+                        .x_q32
+                        .saturating_add(q32_mul(q32_mul(dx_q32, reciprocal), move_q32));
+                    projectile.y_q32 = projectile
+                        .y_q32
+                        .saturating_add(q32_mul(q32_mul(dy_q32, reciprocal), move_q32));
+                }
+                projectile.x = q32_to_space_rounded(projectile.x_q32);
+                projectile.y = q32_to_space_rounded(projectile.y_q32);
                 retained.push(projectile);
             }
         }
@@ -465,17 +475,18 @@ impl Simulation {
             .get_mut(&projectile.target)
             .ok_or_else(|| Error::new("projectile target is absent"))?;
         if target.alive() {
+            let previous_life = target.life;
             target.life = target.life.saturating_sub(projectile.damage).max(0);
             events.push(event(
                 None,
                 Some(projectile_ref),
                 Some(target_ref),
                 EventPayload::Damage {
-                    amount: projectile.damage,
+                    amount: previous_life - target.life,
                 },
             ));
             if target.life == 0 {
-                target.motion = MotionState::Stopped;
+                target.motion = MotionState::Idle;
                 target.velocity_x = 0;
                 target.velocity_y = 0;
                 target.pending = None;
@@ -522,7 +533,7 @@ impl Simulation {
 
 pub(crate) fn run(
     layout: &CompiledLayout,
-    configs: &UnitConfigs,
+    config: &SimulationConfig,
     seed: i32,
     seed_source: &'static str,
     output: &std::path::Path,
@@ -530,7 +541,7 @@ pub(crate) fn run(
     let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
     let context = DurableContext {
         schema_version: MCFR_SCHEMA_VERSION,
-        game_build: REFERENCE_GAME_BUILD.to_owned(),
+        game_build: config.game_build.clone(),
         logic_step: Rational {
             numerator: LOGIC_TICK_TIME_UNITS / divisor,
             denominator: TIME_UNITS_PER_SECOND / divisor,
@@ -544,8 +555,12 @@ pub(crate) fn run(
         match_seed: seed,
         identity_contract: IdentityContract::TeamYxSequentialV1,
     };
-    let mut simulation = Simulation::new(layout, configs, seed)?;
-    let mut writer = McfrWriter::create(output, &context, simulation.snapshot())?;
+    let mut simulation = Simulation::new(layout, &config.units, seed)?;
+    let mut writer = McfrWriter::create(output, &context)?;
+    writer.append_tick(
+        simulation.snapshot(),
+        &TransitionEvents { events: Vec::new() },
+    )?;
     let mut steps = 0;
     let max_steps = FIGHT_TIME_SECONDS
         .saturating_mul(TIME_UNITS_PER_SECOND)
@@ -556,7 +571,7 @@ pub(crate) fn run(
         }
         let events = simulation.step(steps)?;
         steps += 1;
-        writer.push_transition(&events, simulation.snapshot())?;
+        writer.append_tick(simulation.snapshot(), &events)?;
         if simulation.naturally_finished() {
             break "natural_module_drain";
         }
@@ -571,7 +586,7 @@ pub(crate) fn run(
     let winner = simulation.winner().map(team_name);
     Ok(SimulationResult {
         schema: "mechcore.simulation-result.v1",
-        game_build: REFERENCE_GAME_BUILD.to_owned(),
+        game_build: config.game_build.clone(),
         seed,
         seed_source,
         output: output.display().to_string(),
@@ -607,12 +622,14 @@ const fn gcd(mut left: u64, mut right: u64) -> u64 {
     left
 }
 
-fn positive_time_units_to_steps(time_units: u64, tick_time_units: u64) -> u64 {
-    if time_units == 0 {
-        0
-    } else {
-        time_units.saturating_add(tick_time_units / 2) / tick_time_units
-    }
+fn native_time_units_to_steps(time_units: u64) -> u64 {
+    let raw_time =
+        i64::try_from((u128::from(time_units) << 32) / u128::from(TIME_UNITS_PER_SECOND))
+            .unwrap_or(i64::MAX);
+    q32_div(raw_time, NATIVE_LOGIC_DELTA_Q32)
+        .max(0)
+        .cast_unsigned()
+        >> 32
 }
 
 fn scale_per_tick(value_per_second: i64, tick_time_units: u64, time_units_per_second: u64) -> i64 {
@@ -671,12 +688,199 @@ fn event(
     }
 }
 
-const fn point(x: i64, y: i64) -> Vec3 {
-    Vec3 { x, y, z: 0 }
+const fn point(x: i64, z: i64) -> Vec3 {
+    Vec3 { x, y: 0, z }
 }
 
 fn magnitude(x: i64, y: i64) -> i64 {
     integer_sqrt(i128::from(x) * i128::from(x) + i128::from(y) * i128::from(y))
+}
+
+fn space_to_q32(value: i64) -> i64 {
+    i64::try_from(i128::from(value) * i128::from(Q32_ONE) / i128::from(SPACE_UNITS_PER_METER))
+        .unwrap_or(if value < 0 { i64::MIN } else { i64::MAX })
+}
+
+fn q32_to_space_rounded(value: i64) -> i64 {
+    let scaled = i128::from(value) * i128::from(SPACE_UNITS_PER_METER);
+    let rounded = if scaled >= 0 {
+        (scaled + i128::from(Q32_ONE / 2)) >> 32
+    } else {
+        -((-scaled + i128::from(Q32_ONE / 2)) >> 32)
+    };
+    i64::try_from(rounded).unwrap_or(if rounded < 0 { i64::MIN } else { i64::MAX })
+}
+
+fn q32_mul(left: i64, right: i64) -> i64 {
+    i64::try_from((i128::from(left) * i128::from(right)) >> 32).unwrap_or({
+        if (left < 0) == (right < 0) {
+            i64::MAX
+        } else {
+            i64::MIN
+        }
+    })
+}
+
+fn q32_div(numerator: i64, denominator: i64) -> i64 {
+    if denominator == 0 {
+        return if numerator < 0 { i64::MIN } else { i64::MAX };
+    }
+    let scaled = u128::from(numerator.unsigned_abs()) << 32;
+    let divisor = u128::from(denominator.unsigned_abs());
+    let quotient = scaled / divisor;
+    let remainder = scaled % divisor;
+    let rounded = quotient.saturating_add(u128::from(remainder.saturating_mul(2) >= divisor));
+    if (numerator < 0) == (denominator < 0) {
+        i64::try_from(rounded).unwrap_or(i64::MAX)
+    } else {
+        i64::try_from(rounded)
+            .ok()
+            .and_then(i64::checked_neg)
+            .unwrap_or(i64::MIN)
+    }
+}
+
+fn native_q32_magnitude(x: i64, y: i64) -> i64 {
+    fpcs_sqrt_fastest(q32_mul(x, x).saturating_add(q32_mul(y, y)))
+}
+
+fn fpcs_sqrt_fastest(value: i64) -> i64 {
+    if value <= 0 {
+        return 0;
+    }
+    let exponent = 31 - i32::try_from(value.leading_zeros()).unwrap_or(64);
+    let normalized = if exponent >= 0 {
+        value >> exponent
+    } else {
+        value.wrapping_shl(exponent.unsigned_abs())
+    };
+    let mut variable = (i64::from_ne_bytes(0xC000_0000_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(normalized.wrapping_shl(30)))
+        >> 32;
+    let coefficient = variable;
+    variable = variable.wrapping_mul(0x0664_5730);
+    variable =
+        (i64::from_ne_bytes(0xF90F_54C4_0000_0000_u64.to_ne_bytes()).wrapping_add(variable)) >> 32;
+    let coefficient = coefficient.wrapping_shl(2);
+    variable = variable.wrapping_mul(coefficient);
+    variable = (0x1FDA_0F0B_0000_0000_i64.wrapping_add(variable)) >> 32;
+    variable = coefficient.wrapping_mul(variable);
+    variable = (0x4000_0000_0000_0000_i64.wrapping_add(variable)) >> 32;
+    let odd_factor = if exponent & 1 == 0 {
+        Q32_ONE
+    } else {
+        0x0001_6A09_E664
+    };
+    let mut result = odd_factor.wrapping_mul(variable) >> 30;
+    result &= !3;
+    let half_exponent = exponent >> 1;
+    if half_exponent >= 0 {
+        result.wrapping_shl(half_exponent.cast_unsigned())
+    } else {
+        result >> half_exponent.unsigned_abs()
+    }
+}
+
+fn q32_exponent(value: i64) -> i32 {
+    debug_assert!(value > 0);
+    31 - i32::try_from(value.leading_zeros()).unwrap_or(64)
+}
+
+fn normalize_q32(value: i64, exponent: i32) -> i64 {
+    if exponent >= 0 {
+        value >> exponent
+    } else {
+        value.wrapping_shl(exponent.unsigned_abs())
+    }
+}
+
+fn fpcs_atan2_div_fastest(y: i64, x: i64) -> i32 {
+    debug_assert!(y >= 0 && x > 0 && y <= x);
+    let exponent = q32_exponent(x);
+    let normalized_y = normalize_q32(y, exponent);
+    let normalized_x = normalize_q32(x, exponent);
+    let mut variable = (i64::from_ne_bytes(0xC000_0000_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(normalized_x.wrapping_shl(30)))
+        >> 32;
+    variable = variable.wrapping_mul(0x279B_5BB0);
+    let coefficient = ((i64::from_ne_bytes(0xDD58_0FC7_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(variable))
+        >> 32)
+        .wrapping_mul(
+            ((i64::from_ne_bytes(0xC000_0000_0000_0000_u64.to_ne_bytes())
+                .wrapping_add(normalized_x.wrapping_shl(30)))
+                >> 32)
+                .wrapping_shl(2),
+        );
+    let polynomial = (0x37FD_4590_0000_0000_i64.wrapping_add(coefficient)) >> 32;
+    let argument = ((i64::from_ne_bytes(0xC000_0000_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(normalized_x.wrapping_shl(30)))
+        >> 32)
+        .wrapping_shl(2);
+    let polynomial = polynomial.wrapping_mul(argument);
+    let polynomial = (i64::from_ne_bytes(0xC0C3_D3BF_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(polynomial))
+        >> 32;
+    let polynomial = polynomial.wrapping_mul(argument);
+    let polynomial = (0x4000_0000_0000_0000_i64.wrapping_add(polynomial)) >> 32;
+    let y_quarter = normalized_y >> 2;
+    i32::try_from(polynomial.wrapping_mul(y_quarter) >> 30).unwrap_or(i32::MAX)
+}
+
+fn fpcs_atan_polynomial(divided: i32, sign_mask: i64) -> i64 {
+    let variable = i64::from(divided);
+    let mut polynomial = variable.wrapping_mul(0x2651_FC38);
+    polynomial = (i64::from_ne_bytes(0xE8C5_3128_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(polynomial))
+        >> 32;
+    let argument = variable.wrapping_shl(2);
+    polynomial = polynomial.wrapping_mul(argument);
+    polynomial = (i64::from_ne_bytes(0xFFE4_A871_0000_0000_u64.to_ne_bytes())
+        .wrapping_add(polynomial))
+        >> 32;
+    polynomial = polynomial.wrapping_mul(argument);
+    polynomial = (0x4005_9E04_0000_0000_i64.wrapping_add(polynomial)) >> 32;
+    polynomial = polynomial.wrapping_mul(argument) >> 30;
+    (polynomial & !3) ^ sign_mask
+}
+
+fn fpcs_atan2_fastest(y: i64, x: i64) -> i64 {
+    const PI_OVER_TWO: i64 = 0x1921_FB544;
+    const PI: i64 = 0x3243_F6A89;
+    if x == 0 {
+        return match y.cmp(&0) {
+            Ordering::Greater => PI_OVER_TWO,
+            Ordering::Less => -PI_OVER_TWO,
+            Ordering::Equal => 0,
+        };
+    }
+    let absolute_x = x.saturating_abs();
+    let absolute_y = y.saturating_abs();
+    let sign_mask = (x ^ y) >> 63;
+    if absolute_x < absolute_y {
+        let divided = fpcs_atan2_div_fastest(absolute_x, absolute_y);
+        let approximate = fpcs_atan_polynomial(divided, sign_mask);
+        if y > 0 {
+            PI_OVER_TWO.wrapping_sub(approximate)
+        } else {
+            (-PI_OVER_TWO).wrapping_sub(approximate)
+        }
+    } else {
+        let divided = fpcs_atan2_div_fastest(absolute_y, absolute_x);
+        let approximate = fpcs_atan_polynomial(divided, sign_mask);
+        if x > 0 {
+            approximate
+        } else if y >= 0 {
+            approximate.wrapping_add(PI)
+        } else {
+            approximate.wrapping_sub(PI)
+        }
+    }
+}
+
+fn fpcs_acos_fastest(value: i64) -> i64 {
+    let complement = q32_mul(Q32_ONE.saturating_sub(value), Q32_ONE.saturating_add(value));
+    fpcs_atan2_fastest(fpcs_sqrt_fastest(complement), value)
 }
 
 fn integer_sqrt(value: i128) -> i64 {
@@ -719,19 +923,27 @@ fn direction_mdeg(dx: i64, dy: i64) -> i64 {
     if dx == 0 && dy == 0 {
         return 0;
     }
-    let x = dx.unsigned_abs();
-    let y = dy.unsigned_abs();
-    let quadrant = if y >= x {
-        i64::try_from(x.saturating_mul(45_000) / y.max(1)).unwrap_or(45_000)
-    } else {
-        90_000 - i64::try_from(y.saturating_mul(45_000) / x.max(1)).unwrap_or(45_000)
-    };
-    match (dx >= 0, dy >= 0) {
-        (true, true) => quadrant,
-        (true, false) => 180_000 - quadrant,
-        (false, false) => 180_000 + quadrant,
-        (false, true) => 360_000 - quadrant,
+    let x = space_to_q32(dx);
+    let y = space_to_q32(dy);
+    let magnitude = native_q32_magnitude(x, y);
+    if magnitude <= 0 {
+        return 0;
     }
+    let cosine = q32_div(y, magnitude).clamp(-Q32_ONE, Q32_ONE);
+    let radians = fpcs_acos_fastest(cosine);
+    let degrees = q32_mul(radians, 0x0039_4BB8_34C8);
+    let degrees = if x < 0 {
+        (360_i64 << 32).saturating_sub(degrees)
+    } else {
+        degrees
+    };
+    let scaled = i128::from(degrees) * 1_000;
+    let rounded = if scaled >= 0 {
+        (scaled + i128::from(Q32_ONE / 2)) >> 32
+    } else {
+        -((-scaled + i128::from(Q32_ONE / 2)) >> 32)
+    };
+    i64::try_from(rounded).unwrap_or(if rounded < 0 { i64::MIN } else { i64::MAX }) % 360_000
 }
 
 #[cfg(test)]
@@ -739,14 +951,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn q32_rendered_and_si_arclight_intervals_reach_the_same_logic_step() {
-        assert_eq!(
-            positive_time_units_to_steps(1_799, LOGIC_TICK_TIME_UNITS),
-            18
-        );
-        assert_eq!(
-            positive_time_units_to_steps(1_800, LOGIC_TICK_TIME_UNITS),
-            18
-        );
+    fn native_delta_distinguishes_1799_from_1800_time_units() {
+        assert_eq!(native_time_units_to_steps(1_799), 17);
+        assert_eq!(native_time_units_to_steps(1_800), 18);
+    }
+
+    #[test]
+    fn native_fastest_angle_quantizes_small_jitter_to_forward() {
+        assert_eq!(direction_mdeg(-600, 99_200), 0);
+        assert_eq!(direction_mdeg(600, -99_200), 180_000);
     }
 }

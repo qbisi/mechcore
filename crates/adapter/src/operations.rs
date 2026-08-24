@@ -637,23 +637,51 @@ fn apply_layout_stage(
     require_layout_deployment(runtime, expected_round)?;
 
     if stage == LayoutExecutionStage::Prepare {
-        validate_layout_catalog(runtime, plan)?;
         validate_layout_positions(plan)?;
-        let cleared = clear_both_sides(runtime)?;
+        let current = require_match(runtime)?;
+        validate_side_layout_catalog(runtime, &plan.blue)?;
+        clear_current_side(runtime, current)?;
+        switch_player(runtime, current)?;
+        let red = (|| {
+            validate_side_layout_catalog(runtime, &plan.red)?;
+            clear_current_side(runtime, current)
+        })();
+        if let Err(error) = red {
+            return Err(restore_player_after_error(runtime, current, error));
+        }
         return Ok(json!({
             "stage": "prepare",
             "round": expected_round,
             "target_round": plan.round,
             "formation_count": plan.formation_count(),
-            "cleared": cleared,
+            "cleared": {"cleared": true, "both_sides": true},
         }));
     }
 
     let current = require_match(runtime)?;
-    let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
-    let red = with_other_player(runtime, current, || {
-        apply_side_layout_stage(runtime, current, &plan.red, true, stage)
-    })?;
+    let current_is_red = stage == LayoutExecutionStage::PreActivation || plan.round <= 2;
+    let (blue, red) = if current_is_red {
+        let red = match apply_side_layout_stage(runtime, current, &plan.red, true, stage) {
+            Ok(red) => red,
+            Err(error) => {
+                return Err(restore_player_after_error(runtime, current, error));
+            }
+        };
+        switch_player(runtime, current)?;
+        let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
+        (blue, red)
+    } else {
+        let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
+        switch_player(runtime, current)?;
+        let red = match apply_side_layout_stage(runtime, current, &plan.red, true, stage) {
+            Ok(red) => red,
+            Err(error) => {
+                return Err(restore_player_after_error(runtime, current, error));
+            }
+        };
+        switch_player(runtime, current)?;
+        (blue, red)
+    };
 
     Ok(json!({
         "stage": match stage {
@@ -671,29 +699,22 @@ fn apply_layout_stage(
     }))
 }
 
-fn validate_layout_catalog(runtime: &Runtime, plan: &layout::Plan) -> Result<(), OperationError> {
-    let current = require_match(runtime)?;
-    validate_side_layout_catalog(runtime, &plan.blue)?;
-    with_other_player(runtime, current, || {
-        validate_side_layout_catalog(runtime, &plan.red)
-    })
-}
-
-fn with_other_player<T>(
-    runtime: &Runtime,
-    current: *mut Object,
-    operation: impl FnOnce() -> Result<T, OperationError>,
-) -> Result<T, OperationError> {
+fn switch_player(runtime: &Runtime, current: *mut Object) -> Result<(), OperationError> {
     runtime
         .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut [])?;
-    let result = operation();
-    let restore = runtime
-        .api
-        .invoke_void(current, "SwitchToNextPlayer", &mut []);
-    let value = result?;
-    restore?;
-    Ok(value)
+        .invoke_void(current, "SwitchToNextPlayer", &mut [])
+        .map_err(OperationError::from)
+}
+
+fn restore_player_after_error(
+    runtime: &Runtime,
+    current: *mut Object,
+    error: OperationError,
+) -> OperationError {
+    match switch_player(runtime, current) {
+        Ok(()) => error,
+        Err(restore) => error.context(&format!("selected-side restore also failed: {restore}")),
+    }
 }
 
 fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<(), OperationError> {
@@ -1735,13 +1756,6 @@ fn unit_status(runtime: &Runtime, mut unit_index: i32) -> Result<UnitReadback, O
         position,
         rotated,
     })
-}
-
-fn clear_both_sides(runtime: &Runtime) -> Result<Value, OperationError> {
-    let current = require_match(runtime)?;
-    clear_current_side(runtime, current)?;
-    with_other_player(runtime, current, || clear_current_side(runtime, current))?;
-    Ok(json!({"cleared": true, "both_sides": true}))
 }
 
 fn clear_current_side(runtime: &Runtime, current: *mut Object) -> Result<(), OperationError> {

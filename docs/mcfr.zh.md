@@ -5,7 +5,7 @@
 ## 状态
 
 本文定义原生采集、模拟、比较和播放共同遵循的 `S`、`E` 基础逻辑内容。Schema
-version 1 已在 `mechcore-mcfr` 中提供 Rust 参考实现。世界对象最终的列式投影仍待确定。
+version 2 及其有类型列式 HDF5 投影已在 `mechcore-mcfr` 中提供 Rust 参考实现。
 
 ## 目的
 
@@ -25,14 +25,18 @@ MCFR 不描述部署经济、补给、反应堆核心状态、招募、结算或
 逻辑状态转换契约为：
 
 ```text
-D + S(0) -> S(1..n) + E(0..n-1)
+T(0) = { S(0), E(0) = [] }
+T(t) = { S(t), E(t) }，其中 t >= 1
+S(t-1) --E(t)--> S(t)
+MCFR = D + T(0)..T(n)
 ```
 
 其中：
 
 - `D` 是持久确定性上下文；
 - `S(t)` 是某一逻辑边界上的权威世界快照；
-- `E(t)` 是从 `S(t)` 转换到 `S(t+1)` 时产生的有序事件日志；
+- `E(0)` 为空；`t >= 1` 时，`E(t)` 是从 `S(t-1)` 推进到 `S(t)` 期间直接观测到的
+  有序原生事件日志；
 - `I(t)` 是可选的临时研究探针，不属于正式确定性契约。
 
 必须在第一次战斗逻辑更新之前的 fighting 进入边界采集 `S(0)`。完成的录像必须标明
@@ -40,7 +44,7 @@ D + S(0) -> S(1..n) + E(0..n-1)
 
 快照是连续序列 `S(0)..S(n)`。序列位置就是从零开始的逻辑步，因此不单独保存
 `frame_index`、`logic_tick` 或逐帧 `time_seconds`。`D` 规定固定逻辑步时长。
-fighting 到 over 的边界只在顶层保存为 `terminal_step`。来源原生时钟可以作为非规范
+fighting 到 over 的边界只在顶层保存为 `terminal_tick`。来源原生时钟可以作为非规范
 证据保留，但不进入 `S` 或正式哈希。
 
 ## 原生可观测性硬约束
@@ -75,7 +79,7 @@ fighting 到 over 的边界只在顶层保存为 `terminal_step`。来源原生�
 - 从一开始计数的战斗回合和 match seed；
 - 来源中立的身份契约。
 
-Schema version 1 不允许 fighting 开始后再输入改变战斗逻辑的外部命令。试验场加速投票
+Schema version 2 不允许 fighting 开始后再输入改变战斗逻辑的外部命令。试验场加速投票
 只改变墙钟调度，不改变逻辑步输入或战斗结果，因此属于编排信息，不进入 `D`、`S` 或
 `E`。Adapter 必须在第一次战斗
 更新以及战斗随机流消费之前采集 `S(0)`。无法仅从有类型的回合/seed 字段和 `S(0)`
@@ -88,7 +92,7 @@ fingerprint。因此原生采集不需要单位 config 目录；错误的外部�
 
 战斗在 `S(0)` 后对逻辑演化封闭，不允许任何外部动作再影响战斗结果。由于录像绑定逻辑
 更新而非渲染帧或墙钟帧，采集过程中可以请求仅改变墙钟速度的加速投票。无法保证该边界的生产者
-不得完成 schema-version-1 录像。
+不得完成 schema-version-2 录像。
 
 ## 消费层级
 
@@ -111,7 +115,7 @@ fingerprint。因此原生采集不需要单位 config 目录；错误的外部�
 `S` 与来源无关。原生指针、运行时对象地址、Adapter 记账信息以及模拟器私有类型均
 不得进入 `S`。
 
-Schema version 1 的世界边界只包含：
+Schema version 2 的世界边界只包含：
 
 - 单位；
 - 投射物；
@@ -125,7 +129,7 @@ Team 和 Formation 是具体世界对象的归属与身份属性，不是逐帧�
 Status 是持久 buff 和 debuff 的统一表达，也包括禁用科技的效果。不再并行维护专用
 的 `buffs` 和 `technology_disabled` 字段。
 
-Schema version 1 使用 `team_yx_sequential_v1` 身份。Unit、Projectile、Building 和
+Schema version 2 使用 `team_yx_sequential_v1` 身份。Unit、Projectile、Building 和
 Status 各自拥有独立 ID 命名空间，每个空间都从 1
 开始且不留空洞；Formation 使用另一套从 1 开始的连续命名空间。对于初始 Unit，
 build 2227 已有证据支持的顺序是：先按 team-controller 顺序，再在每个 team 内按统一
@@ -178,7 +182,8 @@ motion state 精确映射原生 MotionFSM 的 `idle`、`move`、`attack`、`stop
 ## 规范化事件日志
 
 `E` 是由原生执行点直接报告的有类型、有顺序战斗日志，不是根据相邻快照重建的变更
-日志。每个事件属于转换 `E(t)`；事件在数组中的位置就是该转换内的规范顺序，不再
+日志。每个事件属于目标 tick 的 `E(t)`；事件在数组中的位置就是从 `S(t-1)` 推进至
+`S(t)` 期间的规范顺序，不再
 重复保存 `event_seq` 或时间戳。
 
 必需的基础事件类别为：
@@ -243,7 +248,7 @@ Rust simulation kernel --/
 读取器。Adapter 可以在游戏进程内直接调用该 crate；MCP 可以选择输出路径并编排录像
 生命周期，但不是文件序列化的必要中间层。
 
-## HDF5 container version 1
+## HDF5 container version 2
 
 `.mcfr` 文件采用 HDF5。写入器先创建同目录临时文件；只有全部 dataset、元数据和哈希
 完成后，才在不覆盖已有文件的前提下发布最终路径。
@@ -251,19 +256,20 @@ Rust simulation kernel --/
 | 路径 | HDF5 类型 | 含义 |
 | --- | --- | --- |
 | `/context/data` | 连续 `u8` | 一条规范 `D` 记录。 |
-| `/states/data` | 分块、deflate 压缩的 `u8` | 依次连接的规范 `S(0)..S(n)`。 |
-| `/states/offsets` | append-only `u64` | 包含初始零的状态记录边界。 |
-| `/events/data` | 分块、deflate 压缩的 `u8` | 依次连接的规范 `E(0)..E(n-1)`。 |
-| `/events/offsets` | append-only `u64` | 包含初始零的转换记录边界。 |
+| `/ticks/{unit,projectile,building,status,event}_offsets` | 分块 `u64` | 各 tick 的变长行边界，包含初始零。 |
+| `/ticks/hash` | 分块 `u8 [tick,32]` | 每个逻辑 tick 的原始独立 BLAKE3 哈希。 |
+| `/states/{units,projectiles,buildings,statuses}/<field>` | 分块有类型列 | 跨 tick 连续保存所有直接观测的快照字段；三分量向量使用 `[row,3]`。 |
+| `/events/<field>` | 分块有类型列 | 跨 tick 连续保存有序事件类型、引用和 payload。 |
 
-根属性保存格式标识、container/schema 版本、状态与转换数量、`terminal_step` 和四类规范
-哈希。Container version 1 要求 `state_count = transition_count + 1`，并且
-`terminal_step = transition_count`。
+根属性保存格式标识、container/schema 版本、`tick_count`、`terminal_tick`、
+`scenario_hash` 和 `result_hash`。Container version 2 要求 `tick_count >= 1`、
+`terminal_tick = tick_count - 1`、每条变长轨道比 tick 多一个 offset，并要求 `E(0) = []`。
 
-每条逻辑记录都是经过 schema 验证的 Rust 值，并编码为规范 UTF-8 JSON 字节。记录在
-数值 dataset 中连续存放，而不是保存为 HDF5 变长 JSON 字符串。第一版布局支持流式
-写入和随机记录读取。未来有类型列式投影需要提升 container version，但必须保持相同
-的逻辑哈希。
+逻辑 API 按 tick 提供 AoS 形式，HDF5 物理布局则按字段采用 SoA。每对 offset 直接选择
+一个 tick 的行；不使用逐 tick group、HDF5 变长值或逐 tick JSON blob。数值列采用跨多行
+chunk，并使用 shuffle + deflate level 1。布尔状态标志做无损 bit-pack。封闭事件 union
+共享 payload 列；某事件类型未使用的 payload cell 固定为零且没有逻辑含义。该布局支持
+流式追加、按字段读取和直接随机访问某一比较 tick，当前不使用状态差分。
 
 I sidecar 使用 HDF5 格式标识 `mechcore.mcfr.instrumentation`，在 `/records` 下保存
 step、channel、content type、payload 字节和 payload offset，并通过根属性保存
@@ -274,14 +280,13 @@ step、channel、content type、payload 字节和 payload offset，并通过根�
 正确性定义在规范逻辑内容上，而不是 HDF5 文件的原始字节上。HDF5 库版本、元数据
 顺序、chunk 布局、压缩和来源 provenance 都可能改变物理字节而不改变战斗内容。
 
-Schema version 1 使用带 domain separation 的 BLAKE3，并在每条规范记录前加入一个
+Schema version 2 使用带 domain separation 的 BLAKE3，并在每条规范记录前加入一个
 little-endian `u64` 长度。正式哈希模型为：
 
 ```text
-scenario_hash = BLAKE3("scenario-v1", canonical D, canonical S(0))
-state_hash    = BLAKE3("state-v1", canonical S(0)..canonical S(n))
-event_hash    = BLAKE3("event-v1", canonical E(0)..canonical E(n-1))
-result_hash   = BLAKE3("result-v1", scenario_hash, state_hash, event_hash)
+scenario_hash = BLAKE3("scenario-v2", canonical D, canonical S(0))
+tick_hash(t)  = BLAKE3("tick-v2", little_endian_u64(t), canonical S(t), canonical E(t))
+result_hash   = BLAKE3("result-v2", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
 ```
 
 `D` 只包含有类型字段：schema/build 身份、时序和数值尺度、战斗回合、match seed 与
@@ -289,8 +294,9 @@ result_hash   = BLAKE3("result-v1", scenario_hash, state_hash, event_hash)
 
 只有 schema 版本和 `scenario_hash` 均相同的两个录像才能比较。
 
-- `state_hash` 相同，表示权威基础状态演化相同；
-- `state_hash` 相同但 `event_hash` 不同，表示相同快照由不同的已记录机制序列产生；
+- 首个不相等的 `tick_hash(t)` 就是首个发生分歧的逻辑 tick，可直接读取该 tick 的
+  `S(t)/E(t)` 诊断；
+- tick hash 彼此独立而非链式，因此较晚 tick 再次相等时可以识别分歧后的重新收敛；
 - `result_hash` 相同，表示两个生产者在该场景已接受的 `S/E` 契约范围内一致。
 
 整文件哈希可以另外用于保护传输完整性，但它不是原生/模拟正确性的判据。来源
@@ -319,8 +325,7 @@ MCFR 校验覆盖容器结构、规范解码、轨道长度、哈希以及初始
 后续修订必须依次确定：
 
 1. 通过原生证据决定每个存疑 `I` 字段应提升还是排除；
-2. 有类型列式 HDF5 投影和压缩 profile；
-3. 面向播放器的读取和插值契约。
+2. 面向播放器的读取和插值契约。
 
 这些细节必须由原生采集可行性、确定性内核需求和播放需求共同推导，不得以某个专题
 研究案例单独决定。

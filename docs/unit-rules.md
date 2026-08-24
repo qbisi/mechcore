@@ -55,7 +55,7 @@ version, and loading performs no version-match check.
 | `independent_aim` | Whether weapon aim is independent of body orientation. |
 | `attack_type` | Currently `direct_projectile` or `area_projectile`. |
 | `target_domain` | The attack accepts `ground`, `air` or `both`. |
-| `damage`, `range` | Baseline damage and attack range; range uses m. |
+| `damage`, `range` | Baseline damage and attack range in m. |
 | `interval`, `interval_offset` | Attack interval and deterministic random offset in s. |
 | `release_delay` | Total action-start to projectile-release delay in s. |
 | `projectile_speed`, `effect_radius` | Projectile speed and effect radius in m/s and m; direct projectiles require zero radius. |
@@ -75,16 +75,17 @@ rounding to the 0.05 s logic step maps both representations to 18 steps.
 
 ## Loading and determinism
 
-The embedded unit files are used by default. A directory may be selected
-explicitly:
+The embedded configuration is used by default. An external configuration root
+may be selected explicitly:
 
 ```text
 mechcore sim layout.yaml --config config
 ```
 
-Simulation timing, coordinate units, RNG algorithm, reference game build and
-update order are kernel metadata recorded in MCFR durable context. They are not
-unit configuration and do not reject a unit file.
+The configuration root contains only `game_build` in `config.yaml` and unit
+files under `units/`. `game_build` is copied to MCFR durable context; it is not
+a schema version and does not trigger version matching. Simulation timing,
+coordinate units, RNG algorithm and update order remain kernel-owned.
 
 ## Current kernel boundary
 

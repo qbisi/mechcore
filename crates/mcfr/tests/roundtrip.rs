@@ -1,10 +1,11 @@
 use mechcore_mcfr::{
-    Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityContract,
+    BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityContract,
     InstrumentationReader, InstrumentationRecord, InstrumentationSink, InstrumentationWriter,
     MCFR_SCHEMA_VERSION, McfrReader, McfrWriter, MotionState, NumericConvention, ObjectKind,
-    ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState,
-    Vec3, Visibility, WorldSnapshot,
+    ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, StatusState, TransitionEvents,
+    UnitState, Vec3, Visibility, WorldSnapshot,
 };
+
 use rust_hdf5::H5File;
 use serde_json::json;
 
@@ -12,24 +13,31 @@ use serde_json::json;
 fn writes_reads_and_verifies_state_and_event_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
-    let mut writer = McfrWriter::create(&path, &context(), initial_state()).unwrap();
+    let mut writer = McfrWriter::create(&path, &context()).unwrap();
     writer
-        .push_transition(&release_events(), projectile_state())
+        .append_tick(initial_state(), &empty_events())
         .unwrap();
     writer
-        .push_transition(&impact_events(), final_state())
+        .append_tick(projectile_state(), &release_events())
         .unwrap();
+    writer.append_tick(final_state(), &impact_events()).unwrap();
     let written = writer.finish().unwrap();
 
     let reader = McfrReader::open_verified(&path).unwrap();
-    assert_eq!(reader.state_count(), 3);
-    assert_eq!(reader.transition_count(), 2);
-    assert_eq!(reader.terminal_step(), 2);
+    assert_eq!(reader.tick_count(), 3);
+    assert_eq!(reader.terminal_tick(), 2);
     assert_eq!(reader.hashes(), &written);
     assert_eq!(reader.state(0).unwrap(), initial_state());
     assert_eq!(reader.state(1).unwrap(), projectile_state());
-    assert_eq!(reader.events(0).unwrap(), release_events());
-    assert_eq!(reader.events(1).unwrap(), impact_events());
+    assert_eq!(reader.events(0).unwrap(), empty_events());
+    assert_eq!(reader.events(1).unwrap(), release_events());
+    assert_eq!(reader.events(2).unwrap(), impact_events());
+    assert_eq!(reader.tick(1).unwrap().state, projectile_state());
+
+    let file = H5File::open(&path).unwrap();
+    assert_eq!(file.dataset("ticks/hash").unwrap().shape(), [3, 32]);
+    assert_eq!(file.dataset("states/units/position").unwrap().shape()[1], 3);
+    assert!(file.dataset("states/data").is_err());
 }
 
 #[test]
@@ -45,24 +53,46 @@ fn canonical_hashes_do_not_depend_on_input_collection_order() {
 }
 
 #[test]
+fn comparison_reports_the_first_divergent_tick() {
+    let directory = tempfile::tempdir().unwrap();
+    let left_path = directory.path().join("left.mcfr");
+    let right_path = directory.path().join("right.mcfr");
+    write_battle(&left_path, initial_state());
+    let mut changed = projectile_state();
+    changed.units[0].life -= 1;
+    write_battle_with_middle(&right_path, initial_state(), changed);
+    let left = McfrReader::open_verified(left_path).unwrap();
+    let right = McfrReader::open_verified(right_path).unwrap();
+    assert_eq!(left.first_divergence(&right).unwrap(), Some(1));
+    assert_ne!(left.tick_hash(1).unwrap(), right.tick_hash(1).unwrap());
+    assert_eq!(left.tick_hash(2).unwrap(), right.tick_hash(2).unwrap());
+}
+
+#[test]
 fn verification_rejects_a_tampered_hash() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("tampered.mcfr");
     write_battle(&path, initial_state());
     let file = H5File::open_rw(&path).unwrap();
-    file.set_attr_string("state_hash", &"0".repeat(64)).unwrap();
+    file.dataset_writer("ticks/hash")
+        .unwrap()
+        .write_slice(&[1, 0], &[1, 32], &[0_u8; 32])
+        .unwrap();
     file.close().unwrap();
 
     let reader = McfrReader::open(&path).unwrap();
     let error = reader.verify().unwrap_err();
-    assert!(error.to_string().starts_with("state_hash mismatch:"));
+    assert!(error.to_string().starts_with("tick_hash mismatch:"));
 }
 
 #[test]
 fn writer_does_not_validate_gameplay_transition_legality() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid.mcfr");
-    let mut writer = McfrWriter::create(&path, &context(), initial_state()).unwrap();
+    let mut writer = McfrWriter::create(&path, &context()).unwrap();
+    writer
+        .append_tick(initial_state(), &empty_events())
+        .unwrap();
     let events = TransitionEvents {
         events: vec![Event {
             subject: None,
@@ -71,7 +101,7 @@ fn writer_does_not_validate_gameplay_transition_legality() {
             payload: EventPayload::Damage { amount: -1 },
         }],
     };
-    writer.push_transition(&events, projectile_state()).unwrap();
+    writer.append_tick(projectile_state(), &events).unwrap();
     writer.finish().unwrap();
     assert!(McfrReader::open_verified(path).is_ok());
 }
@@ -83,7 +113,8 @@ fn writer_rejects_noncanonical_initial_identities() {
     let mut state = initial_state();
     state.units[1].unit_id = 3;
     state.units[1].formation_id = 3;
-    assert!(McfrWriter::create(&path, &context(), state).is_err());
+    let mut writer = McfrWriter::create(&path, &context()).unwrap();
+    assert!(writer.append_tick(state, &empty_events()).is_err());
     assert!(!path.exists());
 }
 
@@ -95,7 +126,8 @@ fn writer_rejects_initial_unit_ids_outside_team_yx_order() {
     state.units[1].team_id = 1;
     state.units[0].position.x = 100;
     state.units[1].position.x = 0;
-    assert!(McfrWriter::create(&path, &context(), state).is_err());
+    let mut writer = McfrWriter::create(&path, &context()).unwrap();
+    assert!(writer.append_tick(state, &empty_events()).is_err());
     assert!(!path.exists());
 }
 
@@ -135,13 +167,18 @@ fn instrumentation_sidecar_supports_json_and_binary_channels() {
 }
 
 fn write_battle(path: &std::path::Path, initial: WorldSnapshot) -> Hashes {
-    let mut writer = McfrWriter::create(path, &context(), initial).unwrap();
-    writer
-        .push_transition(&release_events(), projectile_state())
-        .unwrap();
-    writer
-        .push_transition(&impact_events(), final_state())
-        .unwrap();
+    write_battle_with_middle(path, initial, projectile_state())
+}
+
+fn write_battle_with_middle(
+    path: &std::path::Path,
+    initial: WorldSnapshot,
+    middle: WorldSnapshot,
+) -> Hashes {
+    let mut writer = McfrWriter::create(path, &context()).unwrap();
+    writer.append_tick(initial, &empty_events()).unwrap();
+    writer.append_tick(middle, &release_events()).unwrap();
+    writer.append_tick(final_state(), &impact_events()).unwrap();
     writer.finish().unwrap()
 }
 
@@ -167,8 +204,41 @@ fn context() -> DurableContext {
 fn initial_state() -> WorldSnapshot {
     WorldSnapshot {
         units: vec![unit(1, 1, 0, 100), unit(2, 2, 100, 100)],
+        buildings: vec![BuildingState {
+            building_id: 1,
+            team_id: 1,
+            building_type_id: 7,
+            position: Vec3 { x: -10, y: 4, z: 2 },
+            rotation: 90,
+            bounds_width: 12,
+            bounds_height: 8,
+            life: 50,
+            max_life: 60,
+            alive: true,
+            destroyed: false,
+            available: true,
+            targetable: false,
+            collision_enabled: true,
+        }],
+        statuses: vec![StatusState {
+            status_id: 1,
+            status_type_id: 9,
+            source: Some(ObjectRef::new(ObjectKind::Building, 1)),
+            target: ObjectRef::new(ObjectKind::Unit, 1),
+            additive_stack: 2,
+            duration_time: 17,
+            max_duration_time: 30,
+            step_time: 3,
+            step_time_config: 5,
+            finished: false,
+            frozen: true,
+        }],
         ..WorldSnapshot::default()
     }
+}
+
+fn empty_events() -> TransitionEvents {
+    TransitionEvents { events: Vec::new() }
 }
 
 fn projectile_state() -> WorldSnapshot {
@@ -236,7 +306,7 @@ fn unit(id: u64, team: u32, x: i64, life: i64) -> UnitState {
         team_id: team,
         formation_id: id,
         unit_type_id: 1,
-        domain: Domain::Ground,
+        domain: if id == 1 { Domain::Ground } else { Domain::Air },
         position: Vec3 { x, y: 0, z: 0 },
         body_rotation: 0,
         aim_pose: Pose {
@@ -244,19 +314,27 @@ fn unit(id: u64, team: u32, x: i64, life: i64) -> UnitState {
             rotation: 0,
         },
         velocity: Vec3 { x: 0, y: 0, z: 0 },
-        motion_state: MotionState::Idle,
+        motion_state: if id == 1 {
+            MotionState::Idle
+        } else {
+            MotionState::Attacking
+        },
         collision_radius: 5,
         life,
         max_life: 100,
         alive: life > 0,
         active: true,
         targetable: life > 0,
-        visibility: Visibility::Normal,
+        visibility: if id == 1 {
+            Visibility::Normal
+        } else {
+            Visibility::Stealth
+        },
         personal_shield: PersonalShieldState {
-            active: false,
-            enabled: false,
-            energy: 0,
-            max_energy: 0,
+            active: id == 1,
+            enabled: id == 1,
+            energy: if id == 1 { 20 } else { 0 },
+            max_energy: if id == 1 { 30 } else { 0 },
         },
     }
 }

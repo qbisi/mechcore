@@ -12,6 +12,7 @@ const DEFAULT_UNITS: [&str; 2] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
 ];
+const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
 const TIME_UNITS_PER_SECOND: f64 = 2_000.0;
@@ -70,6 +71,45 @@ pub(crate) enum TargetDomain {
 
 pub(crate) struct UnitConfigs {
     units: BTreeMap<String, UnitConfig>,
+}
+
+pub(crate) struct SimulationConfig {
+    pub(crate) game_build: String,
+    pub(crate) units: UnitConfigs,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TopLevelConfig {
+    game_build: String,
+}
+
+impl SimulationConfig {
+    pub(crate) fn load(directory: Option<&Path>) -> Result<Self> {
+        let (top_level, unit_directory) = match directory {
+            Some(directory) => {
+                let path = directory.join("config.yaml");
+                let bytes = fs::read(&path).map_err(|error| {
+                    Error::new(format!("failed to read {}: {error}", path.display()))
+                })?;
+                (
+                    parse_top_level(&bytes, &path.display().to_string())?,
+                    Some(directory.join("units")),
+                )
+            }
+            None => (
+                parse_top_level(DEFAULT_CONFIG.as_bytes(), "embedded config")?,
+                None,
+            ),
+        };
+        if top_level.game_build.trim().is_empty() {
+            return Err(Error::new("top-level config game_build must not be empty"));
+        }
+        Ok(Self {
+            game_build: top_level.game_build,
+            units: UnitConfigs::load(unit_directory.as_deref())?,
+        })
+    }
 }
 
 impl UnitConfigs {
@@ -279,19 +319,25 @@ fn parse(bytes: &[u8], source: &str) -> Result<UnitConfig> {
         .map_err(|error| Error::new(format!("invalid unit config {source}: {error}")))
 }
 
+fn parse_top_level(bytes: &[u8], source: &str) -> Result<TopLevelConfig> {
+    serde_yaml::from_slice(bytes)
+        .map_err(|error| Error::new(format!("invalid top-level config {source}: {error}")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn si_values_quantize_to_the_internal_integer_grid() {
-        let configs = UnitConfigs::load(None).unwrap();
-        let arclight = configs.get("arclight").unwrap();
+        let config = SimulationConfig::load(None).unwrap();
+        assert_eq!(config.game_build, "1.11.1.3.2259");
+        let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);
         assert_eq!(arclight.attack.interval_time_units(), 1_800);
         assert_eq!(arclight.attack.interval_offset_time_units(), 600);
         assert!(!arclight.independent_aim);
-        assert!(!configs.get("marksman").unwrap().independent_aim);
+        assert!(!config.units.get("marksman").unwrap().independent_aim);
     }
 }

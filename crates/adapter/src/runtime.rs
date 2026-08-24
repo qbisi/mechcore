@@ -455,7 +455,15 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         "capture emitted more than one initial snapshot",
                     );
                 }
-                match mechcore_mcfr::McfrWriter::create(&arguments.output, &context, state) {
+                match mechcore_mcfr::McfrWriter::create(&arguments.output, &context).and_then(
+                    |mut created| {
+                        created.append_tick(
+                            state,
+                            &mechcore_mcfr::TransitionEvents { events: Vec::new() },
+                        )?;
+                        Ok(created)
+                    },
+                ) {
                     Ok(created) => writer = Some(created),
                     Err(error) => {
                         capture::abort("MCFR writer rejected the initial snapshot");
@@ -484,7 +492,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         "capture transition preceded its initial snapshot",
                     );
                 };
-                if let Err(error) = active.push_transition(&events, state) {
+                if let Err(error) = active.append_tick(state, &events) {
                     capture::abort("MCFR writer rejected a captured transition");
                     return Response::failure(request.id, "mcfr_error", error.to_string());
                 }
@@ -518,8 +526,8 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         serde_json::json!({
                             "recorded": true,
                             "output": arguments.output,
-                            "state_count": verified.state_count(),
-                            "transition_count": verified.transition_count(),
+                            "tick_count": verified.tick_count(),
+                            "terminal_tick": verified.terminal_tick(),
                             "hashes": hashes,
                         }),
                     );

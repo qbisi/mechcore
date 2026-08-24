@@ -625,9 +625,12 @@ request:
    missiles, interceptors, and battle skills, then return while the game is
    still deploying.
 
-Every stage applies `blue`, switches to `red` and rotates its side-local
-positions 180 degrees, then restores `blue` as the selected side. Each battle
-skill is provisioned, checked with its authoritative runtime position count and
+The adapter keeps the selected side across layout stages instead of restoring
+it after every catalog or mutation pass. A stage applies the currently selected
+side, switches once for the other side, and the complete layout transaction
+restores `blue` only after activation is finished. Red side-local positions are
+still rotated 180 degrees into native world coordinates. Each battle skill is
+provisioned, checked with its authoritative runtime position count and
 target-region validator, released once, and read back with its exact ordered
 world positions.
 

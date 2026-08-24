@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::{Error, Result, canonical};
 
 pub const MCFR_FORMAT: &str = "mechcore.mcfr";
-pub const MCFR_SCHEMA_VERSION: u32 = 1;
-pub const MCFR_CONTAINER_VERSION: u32 = 1;
+pub const MCFR_SCHEMA_VERSION: u32 = 2;
+pub const MCFR_CONTAINER_VERSION: u32 = 2;
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 1;
 
@@ -14,33 +14,38 @@ pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 1;
 #[serde(deny_unknown_fields)]
 pub struct Hashes {
     pub scenario_hash: String,
-    pub state_hash: String,
-    pub event_hash: String,
     pub result_hash: String,
 }
 
 impl Hashes {
     pub(crate) fn from_raw(
         scenario: [u8; canonical::HASH_BYTES],
-        state: [u8; canonical::HASH_BYTES],
-        event: [u8; canonical::HASH_BYTES],
         result: [u8; canonical::HASH_BYTES],
     ) -> Self {
         Self {
             scenario_hash: canonical::hex(&scenario),
-            state_hash: canonical::hex(&state),
-            event_hash: canonical::hex(&event),
             result_hash: canonical::hex(&result),
         }
     }
 
     pub(crate) fn validate_encoding(&self) -> Result<()> {
         canonical::parse_hex(&self.scenario_hash, "scenario_hash")?;
-        canonical::parse_hex(&self.state_hash, "state_hash")?;
-        canonical::parse_hex(&self.event_hash, "event_hash")?;
         canonical::parse_hex(&self.result_hash, "result_hash")?;
         Ok(())
     }
+}
+
+/// One end-of-logical-tick comparison unit.
+///
+/// `events` are the native events observed while advancing from the preceding
+/// snapshot to this tick's `state`. Tick zero therefore has an empty event batch.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TickSlice {
+    pub tick: u64,
+    pub state: WorldSnapshot,
+    pub events: TransitionEvents,
+    pub tick_hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

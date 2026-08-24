@@ -10,6 +10,7 @@ mod error;
 mod instrumentation;
 mod model;
 mod reader;
+mod storage;
 mod writer;
 
 pub use error::{Error, Result};
