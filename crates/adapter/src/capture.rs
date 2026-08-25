@@ -41,6 +41,7 @@ pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
 pub(crate) enum CaptureInstrumentationProfile {
     TargetRefsV1,
     TargetRefsRvoV1,
+    SkillAttackableCheckerV1,
 }
 
 impl CaptureInstrumentationProfile {
@@ -48,6 +49,7 @@ impl CaptureInstrumentationProfile {
         match self {
             Self::TargetRefsV1 => "target_refs_v1",
             Self::TargetRefsRvoV1 => "target_refs_rvo_v1",
+            Self::SkillAttackableCheckerV1 => "skill_attackable_checker_v1",
         }
     }
 
@@ -55,15 +57,20 @@ impl CaptureInstrumentationProfile {
         match self {
             Self::TargetRefsV1 => "target_refs",
             Self::TargetRefsRvoV1 => "target_refs_rvo",
+            Self::SkillAttackableCheckerV1 => "skill_attackable_checker",
         }
     }
 
     const fn includes_target_refs(self) -> bool {
-        true
+        matches!(self, Self::TargetRefsV1 | Self::TargetRefsRvoV1)
     }
 
     const fn includes_rvo(self) -> bool {
         matches!(self, Self::TargetRefsRvoV1)
+    }
+
+    const fn includes_skill_attackable_checker(self) -> bool {
+        matches!(self, Self::SkillAttackableCheckerV1)
     }
 }
 
@@ -86,6 +93,56 @@ pub(crate) struct UnitTargetRefsObservation {
 pub(crate) enum CaptureInstrumentationObservation {
     TargetRefs(TargetRefsObservation),
     TargetRefsRvo(TargetRefsRvoObservation),
+    SkillAttackableChecker(SkillAttackableCheckerObservation),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub(crate) struct SkillAttackableCheckerObservation {
+    pub(crate) checker_calls: Vec<SkillAttackableCheckerCall>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(crate) struct SkillAttackableCheckerCall {
+    pub(crate) invocation_ordinal: u64,
+    pub(crate) native_logic_tick: u64,
+    pub(crate) source_actor: ObjectRef,
+    pub(crate) source_skill_id: i32,
+    pub(crate) is_attacking_check: bool,
+    pub(crate) previous_attack_target: Option<CheckerTargetObservation>,
+    pub(crate) post_attack_target_candidate: Option<CheckerTargetObservation>,
+    pub(crate) quick_switch_enabled: bool,
+    pub(crate) check_return: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(crate) struct CheckerTargetObservation {
+    pub(crate) target_ref: ObjectRef,
+    pub(crate) qualifying_status: CheckerQualifyingStatus,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub(crate) enum CheckerQualifyingStatus {
+    Unit {
+        alive: bool,
+        active_or_available: bool,
+        targetable: bool,
+    },
+    Building {
+        alive: bool,
+        active_or_available: bool,
+        targetable: bool,
+        destroyed: bool,
+    },
+}
+
+impl CheckerQualifyingStatus {
+    const fn kind(self) -> ObjectKind {
+        match self {
+            Self::Unit { .. } => ObjectKind::Unit,
+            Self::Building { .. } => ObjectKind::Building,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -363,6 +420,31 @@ struct Metadata {
     rvo_error: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RawCheckerTarget {
+    pointer: usize,
+    qualifying_status: CheckerQualifyingStatus,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct OpenCheckerCall {
+    invocation_ordinal: u64,
+    native_logic_tick: u64,
+    skill: usize,
+    source_actor: usize,
+    source_skill_id: i32,
+    is_attacking_check: bool,
+    previous_attack_target: Option<RawCheckerTarget>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct CompletedCheckerCall {
+    entry: OpenCheckerCall,
+    post_attack_target_candidate: Option<RawCheckerTarget>,
+    quick_switch_enabled: bool,
+    check_return: bool,
+}
+
 #[derive(Clone, Copy)]
 struct RvoMetadata {
     fight_actor_rvo_controller: usize,
@@ -484,8 +566,11 @@ struct CaptureState {
     next_status_id: u64,
     next_formation_id: u64,
     next_rvo_internal_agent_id: u64,
+    next_checker_invocation_ordinal: u64,
     in_update: bool,
     traces: Vec<NativeTrace>,
+    open_checker_calls: BTreeMap<u64, OpenCheckerCall>,
+    completed_checker_calls: Vec<CompletedCheckerCall>,
     rvo_neighbour_sets: Vec<NativeRvoNeighbourSet>,
     rvo_agent_sets: BTreeMap<u64, Vec<NativeRvoAgentState>>,
     rvo_vo_buffers: Vec<NativeRvoVoBuffer>,
@@ -520,8 +605,11 @@ impl CaptureState {
         self.next_status_id = 1;
         self.next_formation_id = 1;
         self.next_rvo_internal_agent_id = 0;
+        self.next_checker_invocation_ordinal = 0;
         self.in_update = false;
         self.traces.clear();
+        self.open_checker_calls.clear();
+        self.completed_checker_calls.clear();
         self.rvo_neighbour_sets.clear();
         self.rvo_agent_sets.clear();
         self.rvo_vo_buffers.clear();
@@ -1556,6 +1644,7 @@ pub(crate) fn start(
     if state.armed {
         return Err("a battle recording is already active".into());
     }
+    validate_checker_profile_start(instrumentation_profile)?;
     if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_target_refs)
         && (state.metadata.fight_mech_lock_target.is_none()
             || state.metadata.fight_skill_class.is_none()
@@ -1616,6 +1705,21 @@ pub(crate) fn start(
     Ok(())
 }
 
+fn validate_checker_profile_start(
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
+) -> Result<(), String> {
+    if instrumentation_profile
+        .is_some_and(CaptureInstrumentationProfile::includes_skill_attackable_checker)
+    {
+        Err(
+            "skill_attackable_checker_v1 is unsupported: build2259 Check prologue and a safe instruction-relocation contract require independent evidence"
+                .into(),
+        )
+    } else {
+        Ok(())
+    }
+}
+
 fn validate_rvo_profile_availability(
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
     metadata: &Metadata,
@@ -1643,13 +1747,28 @@ pub(crate) fn stop() -> Result<(), String> {
     state.pending_visual = None;
     state.traces.clear();
     clear_pending_rvo_state(&mut state);
+    let checker_error = reject_pending_checker_calls(&mut state, "explicit stop").err();
     reset_rvo_sentinels();
     let visual = state.visual.take();
     drop(state);
     if let Some(visual) = visual {
         visual.restore(true)?;
     }
-    Ok(())
+    checker_error.map_or(Ok(()), Err)
+}
+
+fn reject_pending_checker_calls(state: &mut CaptureState, boundary: &str) -> Result<(), String> {
+    if state.open_checker_calls.is_empty() && state.completed_checker_calls.is_empty() {
+        return Ok(());
+    }
+    let error = format!(
+        "checker probe {boundary} has {} open and {} undrained calls",
+        state.open_checker_calls.len(),
+        state.completed_checker_calls.len()
+    );
+    state.open_checker_calls.clear();
+    state.completed_checker_calls.clear();
+    Err(error)
 }
 
 fn clear_pending_rvo_state(state: &mut CaptureState) {
@@ -1707,6 +1826,94 @@ type RvoCalculateNeighboursFn = unsafe extern "C" fn(*mut Object, *const MethodI
 type RvoGenerateNeighbourVosFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
 type RvoGenerateOpponentVosFn =
     unsafe extern "C" fn(*mut Object, *mut Object, *mut Object, *const MethodInfo);
+
+#[cfg(test)]
+fn run_checker_wrapper_offline<Before, Original, After, Fail>(
+    active: bool,
+    receiver: usize,
+    is_attacking_check: bool,
+    method: usize,
+    mut before: Before,
+    mut original: Original,
+    mut after: After,
+    mut fail: Fail,
+) -> bool
+where
+    Before: FnMut() -> Result<u64, String>,
+    Original: FnMut(usize, bool, usize) -> bool,
+    After: FnMut(u64, bool) -> Result<(), String>,
+    Fail: FnMut(String),
+{
+    if !active {
+        return original(receiver, is_attacking_check, method);
+    }
+    let ordinal = match before() {
+        Ok(ordinal) => Some(ordinal),
+        Err(error) => {
+            fail(error);
+            None
+        }
+    };
+    let check_return = original(receiver, is_attacking_check, method);
+    if let Some(ordinal) = ordinal
+        && let Err(error) = after(ordinal, check_return)
+    {
+        fail(error);
+    }
+    check_return
+}
+
+#[cfg(test)]
+fn open_checker_call(
+    capture: &mut CaptureState,
+    mut entry: OpenCheckerCall,
+) -> Result<u64, String> {
+    let invocation_ordinal = capture.next_checker_invocation_ordinal;
+    capture.next_checker_invocation_ordinal = invocation_ordinal
+        .checked_add(1)
+        .ok_or_else(|| "checker invocation ordinal overflow".to_owned())?;
+    entry.invocation_ordinal = invocation_ordinal;
+    if capture
+        .open_checker_calls
+        .insert(invocation_ordinal, entry)
+        .is_some()
+    {
+        return Err(format!(
+            "checker invocation ordinal {invocation_ordinal} was opened twice"
+        ));
+    }
+    Ok(invocation_ordinal)
+}
+
+#[cfg(test)]
+fn complete_checker_call(
+    capture: &mut CaptureState,
+    invocation_ordinal: u64,
+    post_attack_target_candidate: Option<RawCheckerTarget>,
+    quick_switch_enabled: bool,
+    check_return: bool,
+) -> Result<(), String> {
+    let entry = capture
+        .open_checker_calls
+        .remove(&invocation_ordinal)
+        .ok_or_else(|| format!("checker invocation {invocation_ordinal} has no open entry"))?;
+    if capture
+        .completed_checker_calls
+        .iter()
+        .any(|call| call.entry.invocation_ordinal == invocation_ordinal)
+    {
+        return Err(format!(
+            "checker invocation {invocation_ordinal} completed twice"
+        ));
+    }
+    capture.completed_checker_calls.push(CompletedCheckerCall {
+        entry,
+        post_attack_target_candidate,
+        quick_switch_enabled,
+        check_return,
+    });
+    Ok(())
+}
 
 const RVO_HOOK_COUNT: usize = 7;
 
@@ -3270,7 +3477,7 @@ fn snapshot(
         buildings.push(building.state);
     }
     let instrumentation = match capture.instrumentation_profile {
-        Some(profile) => {
+        Some(profile) if profile.includes_target_refs() => {
             let mut observations = Vec::with_capacity(raw_target_refs.len());
             for (unit_id, refs) in raw_target_refs {
                 observations.push(UnitTargetRefsObservation {
@@ -3304,7 +3511,13 @@ fn snapshot(
                 Some(CaptureInstrumentationObservation::TargetRefs(target_refs))
             }
         }
+        Some(CaptureInstrumentationProfile::SkillAttackableCheckerV1) => {
+            Some(CaptureInstrumentationObservation::SkillAttackableChecker(
+                drain_skill_attackable_checker_calls(native_tick, capture)?,
+            ))
+        }
         None => None,
+        Some(_) => unreachable!("all capture instrumentation profiles are handled"),
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let mut seen_statuses = BTreeSet::new();
@@ -4132,6 +4345,159 @@ fn resolve_target_ref(
         .ok_or_else(|| format!("{field} references an actor absent from the MCFR world snapshot"))
 }
 
+fn drain_skill_attackable_checker_calls(
+    snapshot_native_tick: u64,
+    capture: &mut CaptureState,
+) -> Result<SkillAttackableCheckerObservation, String> {
+    if !capture.open_checker_calls.is_empty() {
+        capture.completed_checker_calls.clear();
+        return Err(format!(
+            "checker snapshot at native tick {snapshot_native_tick} has {} unreturned calls",
+            capture.open_checker_calls.len()
+        ));
+    }
+    if let Some(call) = capture
+        .completed_checker_calls
+        .iter()
+        .find(|call| call.entry.native_logic_tick != snapshot_native_tick)
+    {
+        let call_tick = call.entry.native_logic_tick;
+        let ordinal = call.entry.invocation_ordinal;
+        capture.completed_checker_calls.clear();
+        return Err(format!(
+            "checker invocation {ordinal} belongs to native tick {call_tick}, not snapshot tick {snapshot_native_tick}"
+        ));
+    }
+    let mut raw_calls = std::mem::take(&mut capture.completed_checker_calls);
+    raw_calls.sort_by_key(|call| call.entry.invocation_ordinal);
+    if let Some(pair) = raw_calls
+        .windows(2)
+        .find(|pair| pair[0].entry.invocation_ordinal == pair[1].entry.invocation_ordinal)
+    {
+        return Err(format!(
+            "checker invocation {} completed more than once",
+            pair[0].entry.invocation_ordinal
+        ));
+    }
+    let mut checker_calls = Vec::with_capacity(raw_calls.len());
+    for call in raw_calls {
+        let source_actor =
+            resolve_checker_actor_ref(call.entry.source_actor, "checker source actor", capture)?;
+        checker_calls.push(SkillAttackableCheckerCall {
+            invocation_ordinal: call.entry.invocation_ordinal,
+            native_logic_tick: call.entry.native_logic_tick,
+            source_actor,
+            source_skill_id: call.entry.source_skill_id,
+            is_attacking_check: call.entry.is_attacking_check,
+            previous_attack_target: resolve_checker_target(
+                call.entry.previous_attack_target,
+                "checker previous attack target",
+                capture,
+            )?,
+            post_attack_target_candidate: resolve_checker_target(
+                call.post_attack_target_candidate,
+                "checker post attack target candidate",
+                capture,
+            )?,
+            quick_switch_enabled: call.quick_switch_enabled,
+            check_return: call.check_return,
+        });
+    }
+    Ok(SkillAttackableCheckerObservation { checker_calls })
+}
+
+fn resolve_checker_actor_ref(
+    pointer: usize,
+    field: &str,
+    capture: &CaptureState,
+) -> Result<ObjectRef, String> {
+    let reference = object_ref_from_pointer(pointer, capture)
+        .ok_or_else(|| format!("{field} is absent from the MCFR world snapshot"))?;
+    if matches!(reference.kind, ObjectKind::Unit | ObjectKind::Building) {
+        Ok(reference)
+    } else {
+        Err(format!(
+            "{field} resolved to unsupported kind {:?}",
+            reference.kind
+        ))
+    }
+}
+
+fn resolve_checker_target(
+    target: Option<RawCheckerTarget>,
+    field: &str,
+    capture: &CaptureState,
+) -> Result<Option<CheckerTargetObservation>, String> {
+    let Some(target) = target else {
+        return Ok(None);
+    };
+    let target_ref = resolve_checker_actor_ref(target.pointer, field, capture)?;
+    if target_ref.kind != target.qualifying_status.kind() {
+        return Err(format!(
+            "{field} direct status kind {:?} disagrees with resolved ObjectRef kind {:?}",
+            target.qualifying_status.kind(),
+            target_ref.kind
+        ));
+    }
+    Ok(Some(CheckerTargetObservation {
+        target_ref,
+        qualifying_status: target.qualifying_status,
+    }))
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CheckerStatusCorroboration {
+    Consistent,
+    Disagreement {
+        direct: CheckerQualifyingStatus,
+        mcfr: CheckerQualifyingStatus,
+    },
+}
+
+#[cfg(test)]
+fn corroborate_checker_status(
+    target: &CheckerTargetObservation,
+    world: &WorldSnapshot,
+) -> Result<CheckerStatusCorroboration, String> {
+    let mcfr = match target.target_ref.kind {
+        ObjectKind::Unit => {
+            let unit = world
+                .units
+                .iter()
+                .find(|unit| unit.unit_id == target.target_ref.id)
+                .ok_or_else(|| "checker unit is absent from paired MCFR row".to_owned())?;
+            CheckerQualifyingStatus::Unit {
+                alive: unit.alive,
+                active_or_available: unit.active,
+                targetable: unit.targetable,
+            }
+        }
+        ObjectKind::Building => {
+            let building = world
+                .buildings
+                .iter()
+                .find(|building| building.building_id == target.target_ref.id)
+                .ok_or_else(|| "checker building is absent from paired MCFR row".to_owned())?;
+            CheckerQualifyingStatus::Building {
+                alive: building.alive,
+                active_or_available: building.available,
+                targetable: building.targetable,
+                destroyed: building.destroyed,
+            }
+        }
+        kind => return Err(format!("unsupported checker corroboration kind {kind:?}")),
+    };
+    Ok(if target.qualifying_status == mcfr {
+        CheckerStatusCorroboration::Consistent
+    } else {
+        CheckerStatusCorroboration::Disagreement {
+            direct: target.qualifying_status,
+            mcfr,
+        }
+    })
+}
+
 const fn event(
     subject: Option<ObjectRef>,
     source: Option<ObjectRef>,
@@ -4715,6 +5081,819 @@ mod tests {
                 max_energy: 0,
             },
         }
+    }
+
+    fn building(id: u64) -> BuildingState {
+        BuildingState {
+            building_id: id,
+            team_id: 1,
+            building_type_id: 1,
+            position: Vec3 { x: 0, y: 0, z: 0 },
+            rotation: 0,
+            bounds_width: 1_000,
+            bounds_height: 1_000,
+            life: 10,
+            max_life: 10,
+            alive: true,
+            destroyed: false,
+            available: true,
+            targetable: true,
+            collision_enabled: true,
+        }
+    }
+
+    fn raw_target(pointer: usize, kind: ObjectKind) -> RawCheckerTarget {
+        RawCheckerTarget {
+            pointer,
+            qualifying_status: match kind {
+                ObjectKind::Unit => CheckerQualifyingStatus::Unit {
+                    alive: true,
+                    active_or_available: true,
+                    targetable: true,
+                },
+                ObjectKind::Building => CheckerQualifyingStatus::Building {
+                    alive: true,
+                    active_or_available: true,
+                    targetable: true,
+                    destroyed: false,
+                },
+                _ => panic!("unsupported test kind"),
+            },
+        }
+    }
+
+    fn completed_checker_call(ordinal: u64, tick: u64) -> CompletedCheckerCall {
+        CompletedCheckerCall {
+            entry: OpenCheckerCall {
+                invocation_ordinal: ordinal,
+                native_logic_tick: tick,
+                skill: 700,
+                source_actor: 11,
+                source_skill_id: 5001,
+                is_attacking_check: ordinal % 2 == 0,
+                previous_attack_target: Some(raw_target(22, ObjectKind::Unit)),
+            },
+            post_attack_target_candidate: Some(raw_target(33, ObjectKind::Building)),
+            quick_switch_enabled: false,
+            check_return: false,
+        }
+    }
+
+    fn observe_test_target(
+        target: Option<RawCheckerTarget>,
+        boundary: &str,
+        events: &std::cell::RefCell<Vec<String>>,
+        fail_method: Option<&str>,
+    ) -> Result<Option<RawCheckerTarget>, String> {
+        let Some(target) = target else {
+            events.borrow_mut().push(format!("{boundary}:null"));
+            return Ok(None);
+        };
+        let methods: &[&str] = match target.qualifying_status {
+            CheckerQualifyingStatus::Unit { .. } => {
+                &["IsAlive", "get_IsActive", "IsValidTarget(0)"]
+            }
+            CheckerQualifyingStatus::Building { .. } => {
+                &["IsAlive", "IsAvaliable", "IsValidTarget(0)", "IsDestroyed"]
+            }
+        };
+        for method in methods {
+            events.borrow_mut().push(format!("{boundary}:{method}"));
+            if fail_method == Some(method) {
+                return Err(format!("forced {boundary} {method} failure"));
+            }
+        }
+        Ok(Some(target))
+    }
+
+    #[test]
+    fn checker_profile_is_private_mutually_selected_and_default_off() {
+        let profile = CaptureInstrumentationProfile::SkillAttackableCheckerV1;
+        assert_eq!(profile.as_str(), "skill_attackable_checker_v1");
+        assert_eq!(profile.channel(), "skill_attackable_checker");
+        assert!(profile.includes_skill_attackable_checker());
+        assert!(!profile.includes_target_refs());
+        assert!(!profile.includes_rvo());
+        assert_eq!(CaptureState::default().instrumentation_profile, None);
+        for inactive in [
+            None,
+            Some(CaptureInstrumentationProfile::TargetRefsV1),
+            Some(CaptureInstrumentationProfile::TargetRefsRvoV1),
+        ] {
+            assert!(validate_checker_profile_start(inactive).is_ok());
+        }
+        let error = validate_checker_profile_start(Some(profile)).unwrap_err();
+        assert!(error.contains("unsupported"));
+        assert!(error.contains("independent evidence"));
+    }
+
+    #[test]
+    fn checker_offline_wrapper_forwards_exact_abi_once_when_inactive_and_active() {
+        for expected_return in [false, true] {
+            let calls = Cell::new(0_u32);
+            let result = run_checker_wrapper_offline(
+                false,
+                0x11,
+                expected_return,
+                0x22,
+                || panic!("inactive wrapper performed an entry observation"),
+                |receiver, argument, method| {
+                    calls.set(calls.get() + 1);
+                    assert_eq!((receiver, argument, method), (0x11, expected_return, 0x22));
+                    expected_return
+                },
+                |_, _| panic!("inactive wrapper performed a return observation"),
+                |error| panic!("inactive wrapper failed: {error}"),
+            );
+            assert_eq!(result, expected_return);
+            assert_eq!(calls.get(), 1);
+
+            let order = std::cell::RefCell::new(Vec::new());
+            calls.set(0);
+            let result = run_checker_wrapper_offline(
+                true,
+                0x33,
+                !expected_return,
+                0x44,
+                || {
+                    order.borrow_mut().push("entry".to_owned());
+                    Ok(7)
+                },
+                |receiver, argument, method| {
+                    calls.set(calls.get() + 1);
+                    order.borrow_mut().push("original".to_owned());
+                    assert_eq!((receiver, argument, method), (0x33, !expected_return, 0x44));
+                    expected_return
+                },
+                |ordinal, check_return| {
+                    order.borrow_mut().push("return".to_owned());
+                    assert_eq!(ordinal, 7);
+                    assert_eq!(check_return, expected_return);
+                    Ok(())
+                },
+                |error| panic!("successful active wrapper failed: {error}"),
+            );
+            assert_eq!(result, expected_return);
+            assert_eq!(calls.get(), 1);
+            assert_eq!(&*order.borrow(), &["entry", "original", "return"]);
+        }
+    }
+
+    #[test]
+    fn checker_offline_entry_and_return_failures_preserve_original_result_and_fail_capture() {
+        for fail_at_return in [false, true] {
+            let capture = std::cell::RefCell::new(CaptureState {
+                armed: true,
+                ..CaptureState::default()
+            });
+            let original_calls = Cell::new(0_u32);
+            let result = run_checker_wrapper_offline(
+                true,
+                1,
+                true,
+                2,
+                || {
+                    if fail_at_return {
+                        Ok(9)
+                    } else {
+                        Err("forced entry observation failure".into())
+                    }
+                },
+                |receiver, argument, method| {
+                    original_calls.set(original_calls.get() + 1);
+                    assert_eq!((receiver, argument, method), (1, true, 2));
+                    true
+                },
+                |ordinal, check_return| {
+                    assert!(fail_at_return);
+                    assert_eq!((ordinal, check_return), (9, true));
+                    Err("forced normal-return observation failure".into())
+                },
+                |error| capture.borrow_mut().fail(error),
+            );
+            assert!(result);
+            assert_eq!(original_calls.get(), 1);
+            let capture = capture.borrow();
+            assert!(!capture.armed);
+            assert!(capture.completed_checker_calls.is_empty());
+            assert!(matches!(
+                capture.queue.back(),
+                Some(CaptureMessage::Failure(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn checker_offline_reads_a_before_original_and_b_then_quick_switch_after_return() {
+        let capture = std::cell::RefCell::new(CaptureState::default());
+        let events = std::cell::RefCell::new(Vec::new());
+        let previous = raw_target(22, ObjectKind::Unit);
+        let post = raw_target(33, ObjectKind::Building);
+        let result = run_checker_wrapper_offline(
+            true,
+            10,
+            true,
+            20,
+            || {
+                let previous = observe_test_target(Some(previous), "A", &events, None)?;
+                open_checker_call(
+                    &mut capture.borrow_mut(),
+                    OpenCheckerCall {
+                        invocation_ordinal: u64::MAX,
+                        native_logic_tick: 50,
+                        skill: 70,
+                        source_actor: 11,
+                        source_skill_id: 5001,
+                        is_attacking_check: true,
+                        previous_attack_target: previous,
+                    },
+                )
+            },
+            |receiver, argument, method| {
+                events.borrow_mut().push("original".to_owned());
+                assert_eq!((receiver, argument, method), (10, true, 20));
+                false
+            },
+            |ordinal, check_return| {
+                let post = observe_test_target(Some(post), "B", &events, None)?;
+                events.borrow_mut().push("quick-switch-getter".to_owned());
+                complete_checker_call(
+                    &mut capture.borrow_mut(),
+                    ordinal,
+                    post,
+                    false,
+                    check_return,
+                )
+            },
+            |error| panic!("successful boundary observation failed: {error}"),
+        );
+        assert!(!result);
+        assert_eq!(
+            &*events.borrow(),
+            &[
+                "A:IsAlive",
+                "A:get_IsActive",
+                "A:IsValidTarget(0)",
+                "original",
+                "B:IsAlive",
+                "B:IsAvaliable",
+                "B:IsValidTarget(0)",
+                "B:IsDestroyed",
+                "quick-switch-getter",
+            ]
+        );
+        let capture = capture.borrow();
+        assert!(capture.open_checker_calls.is_empty());
+        assert_eq!(capture.completed_checker_calls.len(), 1);
+        assert_eq!(capture.completed_checker_calls[0].entry.skill, 70);
+        assert!(!capture.completed_checker_calls[0].check_return);
+    }
+
+    #[test]
+    fn checker_offline_building_a_and_unit_b_use_their_exact_status_getters() {
+        let events = std::cell::RefCell::new(Vec::new());
+        let result = run_checker_wrapper_offline(
+            true,
+            1,
+            false,
+            2,
+            || {
+                let _ = observe_test_target(
+                    Some(raw_target(33, ObjectKind::Building)),
+                    "A",
+                    &events,
+                    None,
+                )?;
+                Ok(0)
+            },
+            |_, _, _| {
+                events.borrow_mut().push("original".to_owned());
+                false
+            },
+            |_, _| {
+                let _ = observe_test_target(
+                    Some(raw_target(22, ObjectKind::Unit)),
+                    "B",
+                    &events,
+                    None,
+                )?;
+                events.borrow_mut().push("quick-switch-getter".to_owned());
+                Ok(())
+            },
+            |error| panic!("building/unit boundary failed: {error}"),
+        );
+        assert!(!result);
+        assert_eq!(
+            &*events.borrow(),
+            &[
+                "A:IsAlive",
+                "A:IsAvaliable",
+                "A:IsValidTarget(0)",
+                "A:IsDestroyed",
+                "original",
+                "B:IsAlive",
+                "B:get_IsActive",
+                "B:IsValidTarget(0)",
+                "quick-switch-getter",
+            ]
+        );
+    }
+
+    #[test]
+    fn checker_offline_null_boundaries_read_no_status_and_getter_failures_fail_closed() {
+        let events = std::cell::RefCell::new(Vec::new());
+        let capture = std::cell::RefCell::new(CaptureState::default());
+        let result = run_checker_wrapper_offline(
+            true,
+            1,
+            false,
+            2,
+            || {
+                let previous = observe_test_target(None, "A", &events, None)?;
+                open_checker_call(
+                    &mut capture.borrow_mut(),
+                    OpenCheckerCall {
+                        invocation_ordinal: u64::MAX,
+                        native_logic_tick: 60,
+                        skill: 70,
+                        source_actor: 11,
+                        source_skill_id: 5001,
+                        is_attacking_check: false,
+                        previous_attack_target: previous,
+                    },
+                )
+            },
+            |_, _, _| {
+                events.borrow_mut().push("original".to_owned());
+                true
+            },
+            |ordinal, check_return| {
+                let post = observe_test_target(None, "B", &events, None)?;
+                events.borrow_mut().push("quick-switch-getter".to_owned());
+                complete_checker_call(
+                    &mut capture.borrow_mut(),
+                    ordinal,
+                    post,
+                    false,
+                    check_return,
+                )
+            },
+            |error| panic!("null-boundary observation failed: {error}"),
+        );
+        assert!(result);
+        assert_eq!(
+            &*events.borrow(),
+            &["A:null", "original", "B:null", "quick-switch-getter"]
+        );
+
+        for failure in ["IsAlive", "IsDestroyed", "quick-switch-getter"] {
+            let events = std::cell::RefCell::new(Vec::new());
+            let failures = std::cell::RefCell::new(Vec::new());
+            let result = run_checker_wrapper_offline(
+                true,
+                1,
+                true,
+                2,
+                || {
+                    let previous = observe_test_target(
+                        Some(raw_target(22, ObjectKind::Unit)),
+                        "A",
+                        &events,
+                        (failure == "IsAlive").then_some("IsAlive"),
+                    )?;
+                    open_checker_call(
+                        &mut CaptureState::default(),
+                        OpenCheckerCall {
+                            invocation_ordinal: u64::MAX,
+                            native_logic_tick: 1,
+                            skill: 1,
+                            source_actor: 1,
+                            source_skill_id: 5001,
+                            is_attacking_check: true,
+                            previous_attack_target: previous,
+                        },
+                    )
+                },
+                |_, _, _| {
+                    events.borrow_mut().push("original".to_owned());
+                    true
+                },
+                |_, _| {
+                    let _ = observe_test_target(
+                        Some(raw_target(33, ObjectKind::Building)),
+                        "B",
+                        &events,
+                        (failure == "IsDestroyed").then_some("IsDestroyed"),
+                    )?;
+                    events.borrow_mut().push("quick-switch-getter".to_owned());
+                    if failure == "quick-switch-getter" {
+                        Err("forced quick-switch getter failure".into())
+                    } else {
+                        Ok(())
+                    }
+                },
+                |error| failures.borrow_mut().push(error),
+            );
+            assert!(result);
+            assert_eq!(failures.borrow().len(), 1);
+            assert!(events.borrow().contains(&"original".to_owned()));
+            if failure == "IsAlive" {
+                assert!(!events.borrow().iter().any(|event| event.starts_with("B:")));
+            }
+        }
+    }
+
+    #[test]
+    fn checker_call_json_has_exact_nine_fields_and_kind_selected_status() {
+        let call = SkillAttackableCheckerCall {
+            invocation_ordinal: 4,
+            native_logic_tick: 90,
+            source_actor: ObjectRef::new(ObjectKind::Unit, 1),
+            source_skill_id: 5001,
+            is_attacking_check: true,
+            previous_attack_target: Some(CheckerTargetObservation {
+                target_ref: ObjectRef::new(ObjectKind::Building, 2),
+                qualifying_status: CheckerQualifyingStatus::Building {
+                    alive: true,
+                    active_or_available: true,
+                    targetable: true,
+                    destroyed: false,
+                },
+            }),
+            post_attack_target_candidate: Some(CheckerTargetObservation {
+                target_ref: ObjectRef::new(ObjectKind::Unit, 3),
+                qualifying_status: CheckerQualifyingStatus::Unit {
+                    alive: true,
+                    active_or_available: true,
+                    targetable: true,
+                },
+            }),
+            quick_switch_enabled: false,
+            check_return: false,
+        };
+        let value = serde_json::to_value(&call).unwrap();
+        let object = value.as_object().unwrap();
+        assert_eq!(object.len(), 9);
+        let keys: BTreeSet<_> = object.keys().map(String::as_str).collect();
+        assert_eq!(
+            keys,
+            BTreeSet::from([
+                "invocation_ordinal",
+                "native_logic_tick",
+                "source_actor",
+                "source_skill_id",
+                "is_attacking_check",
+                "previous_attack_target",
+                "post_attack_target_candidate",
+                "quick_switch_enabled",
+                "check_return",
+            ])
+        );
+        let previous = object["previous_attack_target"].as_object().unwrap();
+        assert_eq!(previous.len(), 2);
+        let building_status = previous["qualifying_status"].as_object().unwrap();
+        assert_eq!(building_status.len(), 4);
+        let post = object["post_attack_target_candidate"].as_object().unwrap();
+        let unit_status = post["qualifying_status"].as_object().unwrap();
+        assert_eq!(unit_status.len(), 3);
+        let json = serde_json::to_string(&call).unwrap();
+        for forbidden in ["post_lock_target", "pointer", "life", "qualifying_kind"] {
+            assert!(!json.contains(forbidden), "unexpected {forbidden}: {json}");
+        }
+    }
+
+    #[test]
+    fn checker_calls_drain_by_entry_ordinal_and_never_cross_ticks() {
+        let mut capture = CaptureState::default();
+        capture.unit_ids.insert(11, 1);
+        capture.unit_ids.insert(22, 2);
+        capture.building_ids.insert(33, 1);
+        capture.completed_checker_calls = vec![
+            completed_checker_call(2, 40),
+            completed_checker_call(0, 40),
+            completed_checker_call(1, 40),
+        ];
+        let tick_40 = drain_skill_attackable_checker_calls(40, &mut capture).unwrap();
+        assert_eq!(
+            tick_40
+                .checker_calls
+                .iter()
+                .map(|call| call.invocation_ordinal)
+                .collect::<Vec<_>>(),
+            vec![0, 1, 2]
+        );
+        assert!(capture.completed_checker_calls.is_empty());
+
+        capture.completed_checker_calls = vec![completed_checker_call(3, 41)];
+        let tick_41 = drain_skill_attackable_checker_calls(41, &mut capture).unwrap();
+        assert_eq!(tick_41.checker_calls[0].native_logic_tick, 41);
+        assert!(capture.completed_checker_calls.is_empty());
+        assert!(
+            drain_skill_attackable_checker_calls(42, &mut capture)
+                .unwrap()
+                .checker_calls
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn checker_nested_offline_wrappers_pair_by_local_token_and_reverse_return_order() {
+        let capture = std::cell::RefCell::new(CaptureState::default());
+        let events = std::cell::RefCell::new(Vec::new());
+        let outer_result = run_checker_wrapper_offline(
+            true,
+            100,
+            true,
+            200,
+            || {
+                events.borrow_mut().push("outer-entry".to_owned());
+                open_checker_call(
+                    &mut capture.borrow_mut(),
+                    completed_checker_call(u64::MAX, 70).entry,
+                )
+            },
+            |_, _, _| {
+                events.borrow_mut().push("outer-original-enter".to_owned());
+                let inner_result = run_checker_wrapper_offline(
+                    true,
+                    101,
+                    false,
+                    201,
+                    || {
+                        events.borrow_mut().push("inner-entry".to_owned());
+                        open_checker_call(
+                            &mut capture.borrow_mut(),
+                            completed_checker_call(u64::MAX, 70).entry,
+                        )
+                    },
+                    |receiver, argument, method| {
+                        events.borrow_mut().push("inner-original".to_owned());
+                        assert_eq!((receiver, argument, method), (101, false, 201));
+                        false
+                    },
+                    |ordinal, check_return| {
+                        events.borrow_mut().push("inner-return".to_owned());
+                        complete_checker_call(
+                            &mut capture.borrow_mut(),
+                            ordinal,
+                            Some(raw_target(33, ObjectKind::Building)),
+                            false,
+                            check_return,
+                        )
+                    },
+                    |error| panic!("inner wrapper failed: {error}"),
+                );
+                assert!(!inner_result);
+                events.borrow_mut().push("outer-original-exit".to_owned());
+                true
+            },
+            |ordinal, check_return| {
+                events.borrow_mut().push("outer-return".to_owned());
+                complete_checker_call(
+                    &mut capture.borrow_mut(),
+                    ordinal,
+                    Some(raw_target(33, ObjectKind::Building)),
+                    false,
+                    check_return,
+                )
+            },
+            |error| panic!("outer wrapper failed: {error}"),
+        );
+        assert!(outer_result);
+        assert_eq!(
+            &*events.borrow(),
+            &[
+                "outer-entry",
+                "outer-original-enter",
+                "inner-entry",
+                "inner-original",
+                "inner-return",
+                "outer-original-exit",
+                "outer-return",
+            ]
+        );
+        {
+            let capture = capture.borrow();
+            assert_eq!(
+                capture
+                    .completed_checker_calls
+                    .iter()
+                    .map(|call| call.entry.invocation_ordinal)
+                    .collect::<Vec<_>>(),
+                vec![1, 0]
+            );
+        }
+        let mut capture = capture.into_inner();
+        capture.unit_ids.insert(11, 1);
+        capture.unit_ids.insert(22, 2);
+        capture.building_ids.insert(33, 1);
+        let drained = drain_skill_attackable_checker_calls(70, &mut capture).unwrap();
+        assert_eq!(
+            drained
+                .checker_calls
+                .iter()
+                .map(|call| (call.invocation_ordinal, call.check_return))
+                .collect::<Vec<_>>(),
+            vec![(0, true), (1, false)]
+        );
+    }
+
+    #[test]
+    fn checker_tick_mismatch_and_duplicate_completion_fail_without_carry() {
+        let capture = std::cell::RefCell::new(CaptureState::default());
+        let native_result = run_checker_wrapper_offline(
+            true,
+            1,
+            true,
+            2,
+            || {
+                open_checker_call(
+                    &mut capture.borrow_mut(),
+                    completed_checker_call(u64::MAX, 7).entry,
+                )
+            },
+            |_, _, _| true,
+            |ordinal, check_return| {
+                complete_checker_call(
+                    &mut capture.borrow_mut(),
+                    ordinal,
+                    Some(raw_target(33, ObjectKind::Building)),
+                    false,
+                    check_return,
+                )
+            },
+            |error| panic!("tick-mismatch setup failed: {error}"),
+        );
+        assert!(native_result);
+        assert!(capture.borrow().completed_checker_calls[0].check_return);
+        let mut capture = capture.into_inner();
+        capture.unit_ids.insert(11, 1);
+        capture.unit_ids.insert(22, 2);
+        capture.building_ids.insert(33, 1);
+        assert!(drain_skill_attackable_checker_calls(8, &mut capture).is_err());
+        assert!(capture.completed_checker_calls.is_empty());
+        assert!(
+            drain_skill_attackable_checker_calls(9, &mut capture)
+                .unwrap()
+                .checker_calls
+                .is_empty()
+        );
+
+        capture.completed_checker_calls =
+            vec![completed_checker_call(1, 10), completed_checker_call(1, 10)];
+        assert!(drain_skill_attackable_checker_calls(10, &mut capture).is_err());
+        assert!(capture.completed_checker_calls.is_empty());
+    }
+
+    #[test]
+    fn checker_open_call_and_kind_mismatch_fail_closed_and_reset_clears_session() {
+        let mut capture = CaptureState::default();
+        let open = completed_checker_call(0, 12).entry;
+        capture.open_checker_calls.insert(0, open);
+        capture.completed_checker_calls = vec![completed_checker_call(1, 12)];
+        assert!(drain_skill_attackable_checker_calls(12, &mut capture).is_err());
+        assert!(capture.completed_checker_calls.is_empty());
+        capture.reset_session();
+        assert!(capture.open_checker_calls.is_empty());
+        assert!(capture.completed_checker_calls.is_empty());
+        assert_eq!(capture.next_checker_invocation_ordinal, 0);
+
+        capture.unit_ids.insert(11, 1);
+        capture.unit_ids.insert(22, 2);
+        capture.building_ids.insert(33, 1);
+        let mut call = completed_checker_call(0, 13);
+        call.post_attack_target_candidate = Some(raw_target(33, ObjectKind::Unit));
+        capture.completed_checker_calls.push(call);
+        assert!(drain_skill_attackable_checker_calls(13, &mut capture).is_err());
+        assert!(capture.completed_checker_calls.is_empty());
+    }
+
+    #[test]
+    fn checker_timeout_failed_close_and_explicit_stop_reject_unreturned_calls() {
+        for boundary in ["timeout", "failed-session close", "explicit stop"] {
+            let mut capture = CaptureState::default();
+            capture
+                .open_checker_calls
+                .insert(0, completed_checker_call(0, 80).entry);
+            capture.completed_checker_calls = vec![completed_checker_call(1, 80)];
+            let error = reject_pending_checker_calls(&mut capture, boundary).unwrap_err();
+            assert!(error.contains(boundary));
+            assert!(error.contains("1 open and 1 undrained"));
+            assert!(capture.open_checker_calls.is_empty());
+            assert!(capture.completed_checker_calls.is_empty());
+            capture.next_checker_invocation_ordinal = 9;
+            capture.reset_session();
+            assert_eq!(capture.next_checker_invocation_ordinal, 0);
+        }
+    }
+
+    #[test]
+    fn checker_mcfr_disagreement_retains_both_observations() {
+        let direct = CheckerTargetObservation {
+            target_ref: ObjectRef::new(ObjectKind::Unit, 1),
+            qualifying_status: CheckerQualifyingStatus::Unit {
+                alive: true,
+                active_or_available: true,
+                targetable: true,
+            },
+        };
+        let mut paired = unit(1, 0, 1);
+        paired.targetable = false;
+        let world = WorldSnapshot {
+            units: vec![paired],
+            buildings: vec![building(1)],
+            ..WorldSnapshot::default()
+        };
+        assert_eq!(
+            corroborate_checker_status(&direct, &world).unwrap(),
+            CheckerStatusCorroboration::Disagreement {
+                direct: direct.qualifying_status,
+                mcfr: CheckerQualifyingStatus::Unit {
+                    alive: true,
+                    active_or_available: true,
+                    targetable: false,
+                },
+            }
+        );
+        let building_direct = CheckerTargetObservation {
+            target_ref: ObjectRef::new(ObjectKind::Building, 1),
+            qualifying_status: CheckerQualifyingStatus::Building {
+                alive: true,
+                active_or_available: true,
+                targetable: true,
+                destroyed: false,
+            },
+        };
+        assert_eq!(
+            corroborate_checker_status(&building_direct, &world).unwrap(),
+            CheckerStatusCorroboration::Consistent
+        );
+    }
+
+    #[test]
+    fn checker_profile_reuses_one_generic_sidecar_row_per_mcfr_tick() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("checker.h5");
+        let profile = CaptureInstrumentationProfile::SkillAttackableCheckerV1;
+        let mut writer = mechcore_mcfr::InstrumentationWriter::create(
+            &path,
+            &"11".repeat(32),
+            profile.as_str(),
+            "adapter",
+        )
+        .unwrap();
+        for step in 0..2 {
+            writer
+                .record_json(
+                    step,
+                    profile.channel(),
+                    &SkillAttackableCheckerObservation::default(),
+                )
+                .unwrap();
+        }
+        writer.finish().unwrap();
+        let reader = mechcore_mcfr::InstrumentationReader::open(&path).unwrap();
+        assert_eq!(reader.scenario_hash(), "11".repeat(32));
+        assert_eq!(reader.profile(), "skill_attackable_checker_v1");
+        assert_eq!(reader.producer(), "adapter");
+        assert_eq!(reader.len(), 2);
+        for index in 0..2 {
+            let entry = reader.entry(index).unwrap();
+            assert_eq!(entry.step, index as u64);
+            assert_eq!(entry.channel, "skill_attackable_checker");
+            assert_eq!(entry.content_type, "application/json");
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&entry.payload).unwrap(),
+                serde_json::json!({"checker_calls": []})
+            );
+        }
+    }
+
+    #[test]
+    fn checker_profile_does_not_change_existing_instrumentation_payload_types() {
+        let target_refs = CaptureInstrumentationObservation::TargetRefs(TargetRefsObservation {
+            units: Vec::new(),
+        });
+        let target_refs_rvo =
+            CaptureInstrumentationObservation::TargetRefsRvo(TargetRefsRvoObservation {
+                target_refs: TargetRefsObservation { units: Vec::new() },
+                rvo_updates: Vec::new(),
+            });
+        let checker = CaptureInstrumentationObservation::SkillAttackableChecker(
+            SkillAttackableCheckerObservation::default(),
+        );
+        assert_eq!(
+            serde_json::to_value(target_refs).unwrap(),
+            serde_json::json!({"units": []})
+        );
+        assert_eq!(
+            serde_json::to_value(target_refs_rvo).unwrap(),
+            serde_json::json!({"target_refs": {"units": []}, "rvo_updates": []})
+        );
+        assert_eq!(
+            serde_json::to_value(checker).unwrap(),
+            serde_json::json!({"checker_calls": []})
+        );
     }
 
     #[test]
