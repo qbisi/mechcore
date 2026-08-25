@@ -16,23 +16,14 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{
-    env, fs,
-    os::unix::fs::FileTypeExt,
-    path::{Path, PathBuf},
-    process::Stdio,
-    sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::{
-    process::{Child, Command},
     sync::{Mutex, watch},
     task::JoinHandle,
     time::{Instant, sleep, timeout_at},
 };
 
 const STATUS_URI: &str = "mechcore://status";
-const GAME_EXECUTABLE_RELATIVE: &str = "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
 const STATUS_INTERVAL: Duration = Duration::from_millis(100);
 const ADAPTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(60);
@@ -67,11 +58,8 @@ struct RecordBattleInstrumentationParameters {
 }
 
 struct Shared {
-    adapter_path: PathBuf,
     socket_path: PathBuf,
     adapter: Mutex<Option<adapter::Client>>,
-    child: Mutex<Option<Child>>,
-    last_exit_code: Mutex<Option<i32>>,
     operation: Mutex<()>,
     last_applied_layout: Mutex<Option<Value>>,
     status: watch::Sender<Value>,
@@ -79,26 +67,11 @@ struct Shared {
 
 impl Shared {
     fn new() -> Result<Arc<Self>, String> {
-        let adapter_path = env::current_exe()
-            .map_err(|error| format!("cannot resolve current executable: {error}"))?
-            .parent()
-            .ok_or_else(|| "current executable has no parent directory".to_owned())?
-            .join("libmechcore_adapter.dylib");
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|error| format!("system clock precedes Unix epoch: {error}"))?
-            .as_nanos();
-        let socket_path = PathBuf::from(format!(
-            "/tmp/mechcore-mcp-{}-{nonce:x}.sock",
-            std::process::id()
-        ));
+        let socket_path = default_adapter_socket();
         let (status, _) = watch::channel(json!({"status": "game_off"}));
         Ok(Arc::new(Self {
-            adapter_path,
             socket_path,
             adapter: Mutex::new(None),
-            child: Mutex::new(None),
-            last_exit_code: Mutex::new(None),
             operation: Mutex::new(()),
             last_applied_layout: Mutex::new(None),
             status,
@@ -115,9 +88,8 @@ impl Shared {
         }
     }
 
-    async fn record_exit(&self, code: i32) {
+    async fn disconnect_adapter(&self) {
         *self.adapter.lock().await = None;
-        *self.last_exit_code.lock().await = Some(code);
         self.publish(json!({"status": "game_off"}));
     }
 
@@ -127,9 +99,9 @@ impl Shared {
         arguments: Value,
     ) -> Result<Value, String> {
         let mut adapter = self.adapter.lock().await;
-        let client = adapter
-            .as_mut()
-            .ok_or_else(|| "game adapter is not connected; call start_game first".to_owned())?;
+        let client = adapter.as_mut().ok_or_else(|| {
+            "game adapter is not connected; call connect_adapter first".to_owned()
+        })?;
         let request_timeout = if operation == Operation::RecordBattle {
             Duration::from_secs(180)
         } else {
@@ -184,91 +156,32 @@ impl Shared {
         }
     }
 
-    async fn reap_child(&self) -> Result<Option<i32>, String> {
-        let mut child = self.child.lock().await;
-        let Some(process) = child.as_mut() else {
-            return Ok(*self.last_exit_code.lock().await);
-        };
-        let Some(status) = process
-            .try_wait()
-            .map_err(|error| format!("cannot inspect game process: {error}"))?
-        else {
-            return Ok(None);
-        };
-        let code = status.code().unwrap_or(-1);
-        *child = None;
-        self.record_exit(code).await;
-        Ok(Some(code))
-    }
-
-    async fn start_game(&self) -> Result<Value, String> {
+    async fn connect_adapter(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
-        self.reap_child().await?;
-        if self.child.lock().await.is_some() {
-            return Err("an MCP-owned game process is already running".into());
+        if self.adapter.lock().await.is_some() {
+            return Err("game adapter is already connected".into());
         }
-        let adapter_path = canonical_file(&self.adapter_path, "adapter")?;
-        let game_path = canonical_file(&default_game_executable()?, "game executable")?;
-        let mut command = Command::new(game_path);
-        command
-            .env("DYLD_INSERT_LIBRARIES", adapter_path)
-            .env("MECHCORE_ADAPTER_SOCKET", &self.socket_path)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(true);
-        let child = command
-            .spawn()
-            .map_err(|error| format!("cannot launch Mechabellum: {error}"))?;
-        *self.last_exit_code.lock().await = None;
-        *self.child.lock().await = Some(child);
-        self.publish(json!({"status": "starting_game"}));
-
-        let readiness = async {
-            let deadline = Instant::now() + CONNECT_TIMEOUT;
-            loop {
-                if let Some(code) = self.reap_child().await? {
-                    return Err(format!(
-                        "game exited with code {code} before adapter readiness"
-                    ));
-                }
-                let attempt = tokio::time::timeout(
-                    Duration::from_secs(1),
-                    adapter::Client::connect(&self.socket_path),
-                )
-                .await;
-                if let Ok(Ok(client)) = attempt {
-                    *self.adapter.lock().await = Some(client);
-                    break;
-                }
-                if Instant::now() >= deadline {
-                    return Err(
-                        "timed out waiting for the adapter socket and hello handshake".into(),
-                    );
-                }
-                sleep(STATUS_INTERVAL).await;
+        let deadline = Instant::now() + CONNECT_TIMEOUT;
+        loop {
+            let attempt = tokio::time::timeout(
+                Duration::from_secs(1),
+                adapter::Client::connect(&self.socket_path),
+            )
+            .await;
+            if let Ok(Ok(client)) = attempt {
+                *self.adapter.lock().await = Some(client);
+                break;
             }
-
-            let status = self.refresh_status().await?;
-            if is_status(&status, "main_menu") {
-                Ok(status)
-            } else {
-                self.wait_status("main menu after start_game", CONNECT_TIMEOUT, |value| {
-                    is_status(value, "main_menu")
-                })
-                .await
+            if Instant::now() >= deadline {
+                return Err(format!(
+                    "timed out waiting for the Adapter at {}",
+                    self.socket_path.display()
+                ));
             }
+            sleep(STATUS_INTERVAL).await;
         }
-        .await;
-        match readiness {
-            Ok(status) => Ok(json!({"started": true, "status": status})),
-            Err(error) => match self.stop_owned_game().await {
-                Ok(()) => Err(error),
-                Err(stop_error) => Err(format!(
-                    "{error}; additionally failed to stop the owned game: {stop_error}"
-                )),
-            },
-        }
+        let status = self.refresh_status().await?;
+        Ok(json!({"connected": true, "status": status}))
     }
 
     async fn start_test(&self) -> Result<Value, String> {
@@ -492,22 +405,13 @@ impl Shared {
         let result = self.adapter_request(Operation::QuitGame, json!({})).await?;
         let status = self
             .wait_status(
-                "game process exit after quit_game",
+                "Adapter disconnect after quit_game",
                 TRANSITION_TIMEOUT,
                 |value| is_status(value, "game_off"),
             )
             .await?;
-        let exit_code = self
-            .last_exit_code
-            .lock()
-            .await
-            .ok_or_else(|| "game_off was observed without an owned process exit".to_owned())?;
-        if exit_code != 0 {
-            return Err(format!("game exited with code {exit_code}"));
-        }
         Ok(json!({
             "operation": result,
-            "exit_code": exit_code,
             "status": status,
         }))
     }
@@ -532,24 +436,6 @@ impl Shared {
                 "operation requires round-{expected_round} Training Ground deployment: {status}"
             ))
         }
-    }
-
-    async fn stop_owned_game(&self) -> Result<(), String> {
-        let mut child = self.child.lock().await;
-        let Some(process) = child.as_mut() else {
-            return Ok(());
-        };
-        process
-            .start_kill()
-            .map_err(|error| format!("cannot stop owned game process: {error}"))?;
-        let status = process
-            .wait()
-            .await
-            .map_err(|error| format!("cannot wait for owned game process: {error}"))?;
-        let code = status.code().unwrap_or(-1);
-        *child = None;
-        self.record_exit(code).await;
-        Ok(())
     }
 }
 
@@ -577,9 +463,9 @@ impl MechcoreMcp {
         Ok(tool_result(Ok(self.shared.current_status())))
     }
 
-    #[tool(description = "Launch Mechabellum with the adapter and wait for the main menu")]
-    async fn start_game(&self) -> Result<CallToolResult, ErrorData> {
-        Ok(tool_result(self.shared.start_game().await))
+    #[tool(description = "Connect to the Adapter in an externally launched Mechabellum process")]
+    async fn connect_adapter(&self) -> Result<CallToolResult, ErrorData> {
+        Ok(tool_result(self.shared.connect_adapter().await))
     }
 
     #[tool(
@@ -634,7 +520,9 @@ impl MechcoreMcp {
         Ok(tool_result(self.shared.quit_match().await))
     }
 
-    #[tool(description = "Quit the MCP-owned game from the main menu and wait for process exit")]
+    #[tool(
+        description = "Request game shutdown from the main menu and wait for Adapter disconnect"
+    )]
     async fn quit_game(&self) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(self.shared.quit_game().await))
     }
@@ -650,7 +538,7 @@ impl ServerHandler for MechcoreMcp {
                 .enable_resources_subscribe()
                 .build(),
             instructions: Some(
-                "Use start_game, start_test, apply_layout, record_battle, quit_match, and quit_game in lifecycle order. record_battle owns combat start and capture pacing. Subscribe to mechcore://status for state changes."
+                "Launch Mechabellum with the Adapter outside MCP, then use connect_adapter, start_test, apply_layout, record_battle, quit_match, and quit_game in lifecycle order. record_battle owns combat start and capture pacing. Subscribe to mechcore://status for state changes."
                     .into(),
             ),
             server_info: Implementation {
@@ -766,26 +654,19 @@ async fn run_async() -> Result<(), String> {
         .await
         .map_err(|error| format!("MCP service failed: {error}"));
     monitor.abort();
-    let stop_result = shared.stop_owned_game().await;
-    cleanup_socket(&shared.socket_path);
-    stop_result?;
     result.map(drop)
 }
 
 async fn monitor(shared: Arc<Shared>) {
     loop {
-        match shared.reap_child().await {
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                let connected = shared.adapter.lock().await.is_some();
-                if connected {
-                    match shared.adapter_request(Operation::Status, json!({})).await {
-                        Ok(status) => shared.publish(status),
-                        Err(_) => shared.publish(json!({"status": "unknown"})),
-                    }
+        let connected = shared.adapter.lock().await.is_some();
+        if connected {
+            match shared.adapter_request(Operation::Status, json!({})).await {
+                Ok(status) => shared.publish(status),
+                Err(_) => {
+                    shared.disconnect_adapter().await;
                 }
             }
-            Err(_) => shared.publish(json!({"status": "unknown"})),
         }
         sleep(STATUS_INTERVAL).await;
     }
@@ -809,24 +690,10 @@ fn validate_status_uri(uri: &str) -> Result<(), ErrorData> {
     }
 }
 
-fn canonical_file(path: &Path, label: &str) -> Result<PathBuf, String> {
-    let canonical = fs::canonicalize(path)
-        .map_err(|error| format!("cannot resolve {label} {}: {error}", path.display()))?;
-    if !canonical.is_file() {
-        return Err(format!("{label} is not a file: {}", canonical.display()));
-    }
-    Ok(canonical)
-}
-
-fn default_game_executable() -> Result<PathBuf, String> {
-    let home = env::var_os("HOME")
-        .filter(|home| !home.is_empty())
-        .ok_or_else(|| "HOME is not set; cannot locate Mechabellum".to_owned())?;
-    Ok(game_executable(Path::new(&home)))
-}
-
-fn game_executable(home: &Path) -> PathBuf {
-    home.join(GAME_EXECUTABLE_RELATIVE)
+fn default_adapter_socket() -> PathBuf {
+    // SAFETY: geteuid has no preconditions.
+    let uid = unsafe { libc::geteuid() };
+    PathBuf::from(format!("/tmp/mechcore-adapter-{uid}.sock"))
 }
 
 fn is_status(value: &Value, expected: &str) -> bool {
@@ -844,15 +711,6 @@ fn is_training_state(value: &Value, round: i64, deploying: bool, fighting: bool)
         && value.get("round_count").and_then(Value::as_i64) == Some(round)
         && value.get("deploying").and_then(Value::as_bool) == Some(deploying)
         && value.get("fighting").and_then(Value::as_bool) == Some(fighting)
-}
-
-fn cleanup_socket(path: &Path) {
-    if path
-        .symlink_metadata()
-        .is_ok_and(|metadata| metadata.file_type().is_socket())
-    {
-        let _ = fs::remove_file(path);
-    }
 }
 
 #[cfg(test)]
@@ -873,11 +731,11 @@ mod tests {
             names,
             [
                 "apply_layout",
+                "connect_adapter",
                 "quit_game",
                 "quit_match",
                 "record_battle",
                 "speed_up",
-                "start_game",
                 "start_test",
                 "status",
                 "toggle_fight",
@@ -886,25 +744,10 @@ mod tests {
     }
 
     #[test]
-    fn adapter_is_a_release_sibling() {
-        let shared = Shared::new().unwrap();
-        assert_eq!(
-            shared
-                .adapter_path
-                .file_name()
-                .and_then(|name| name.to_str()),
-            Some("libmechcore_adapter.dylib")
-        );
-        assert_eq!(
-            shared.adapter_path.parent(),
-            env::current_exe().unwrap().parent()
-        );
-    }
-
-    #[test]
-    fn game_executable_is_relative_to_the_current_user_home() {
-        let home = Path::new("test-home");
-        assert_eq!(game_executable(home), home.join(GAME_EXECUTABLE_RELATIVE));
+    fn default_socket_is_absolute_and_user_scoped() {
+        let path = default_adapter_socket();
+        assert!(path.is_absolute());
+        assert!(path.starts_with("/tmp"));
     }
 
     #[test]

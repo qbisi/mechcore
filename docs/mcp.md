@@ -3,9 +3,9 @@
 [TOC]
 
 `mechcore mcp` is a standard-input/standard-output MCP server and the sole
-client of the in-game adapter socket. It owns the game process that it starts,
-serializes all mutations, and never retries a mutation after an uncertain
-transport failure.
+client of the in-game Adapter socket. It does not load the Adapter, launch the
+game, or own the game process. It serializes all mutations and never retries a
+mutation after an uncertain transport failure.
 
 ## Invocation
 
@@ -22,12 +22,13 @@ mechcore mcp
 ```
 
 The subcommand accepts no additional arguments or project-specific environment
-variables. It loads `libmechcore_adapter.dylib` beside the running `mechcore`
-executable, so a normal release build resolves both artifacts inside
-`target/release` without embedding the repository path. The project-level Codex
-configuration starts the server through `direnv` and `cargo`, so it also does
-not depend on the checkout path. `start_game` resolves the default macOS Steam
-installation of Mechabellum beneath the current user's home directory.
+variables. The project-level Codex configuration starts the server through
+`direnv` and `cargo`, so it does not depend on the checkout path.
+
+The controlling Agent separately builds and loads the Adapter and launches the
+game as documented in [Adapter build and launch](adapter.md#build-and-launch).
+After launch, call `connect_adapter`; MCP connects to the Adapter's default
+user-scoped socket.
 
 ## Status stream
 
@@ -36,23 +37,17 @@ updates should subscribe to the standard MCP resource `mechcore://status` and
 read it whenever `notifications/resources/updated` arrives. Its content type is
 `application/json`.
 
-Before launch or after a confirmed process exit, the snapshot is:
+Before Adapter connection or after Adapter disconnection, the snapshot is:
 
 ```json
 {"status":"game_off"}
 ```
 
-During launch it may be:
-
-```json
-{"status":"starting_game"}
-```
-
-Once connected, adapter states are passed through unchanged. A running game
-whose adapter connection is lost is `unknown`. Because the adapter protocol is
-request/response only, one centralized MCP monitor samples adapter `status`
-and publishes only changed snapshots; lifecycle tools and resource subscribers
-consume that same stream.
+Once connected, Adapter states are passed through unchanged. Because MCP does
+not own the process, `game_off` means only that no Adapter connection exists;
+it is not an operating-system process observation. One centralized MCP monitor
+samples Adapter `status` and publishes only changed snapshots; lifecycle tools
+and resource subscribers consume that same stream.
 
 ## Tools
 
@@ -67,11 +62,20 @@ returns only after all setup rounds have been skipped, the adapter's staged
 native actions/readbacks succeed, and that activation round reports
 `deploying=true` and `fighting=false`.
 
+### connect_adapter
+
+Input is empty. The Agent must first launch Mechabellum with the Adapter by
+following [Adapter build and launch](adapter.md#build-and-launch). This call
+retries the default `/tmp/mechcore-adapter-<uid>.sock` for up to 60 seconds,
+validates the Adapter protocol and exact capability list, and returns the first
+native status snapshot. It neither starts nor terminates a process.
+
 ### quit_game
 
 Input is empty. The call requires `main_menu`, requests native application
-shutdown, and returns only after the MCP-owned process exits with code 0 and
-the streamed state becomes `game_off`.
+shutdown, and returns after the Adapter disconnects and the streamed state
+becomes `game_off`. MCP does not independently verify the operating-system exit
+code.
 
 ### record_battle
 
@@ -110,17 +114,6 @@ Input is empty. The call requires an active Training Ground fight and returns
 after the adapter confirms the native speed-up request. There is no native
 speed field in `status`, so successful execution is its completion condition.
 
-### start_game
-
-Input is empty. The call launches the default macOS game with the selected
-adapter, validates the adapter protocol and exact capability list, and returns
-only after `main_menu` is observed. Socket readiness uses bounded connection
-attempts; there is no fixed initialization sleep.
-
-`start_game` resolves the sibling adapter dylib on every game launch. Rebuilding or replacing that
-dylib therefore requires only exiting and starting the game again; the long-running MCP process does
-not need to restart as long as the adapter protocol capability surface is unchanged.
-
 ### start_test
 
 Input is empty. The call creates the fixed layout-test Training Ground and
@@ -145,7 +138,8 @@ After a release build, run:
 scripts/smoke_mcp_layout.py tests/layouts/shield-missile-battle.yaml
 ```
 
-The script initializes MCP, verifies the exact tool and resource surfaces,
-subscribes to `mechcore://status`, starts the game and test, applies the YAML
+The script launches the game with the Adapter outside MCP, initializes MCP,
+verifies the exact tool and resource surfaces, connects to the Adapter,
+subscribes to `mechcore://status`, starts the test, applies the YAML
 layout, records and accelerates the battle through `record_battle`, verifies that
 the requested MCFR path was published, then returns to the main menu and exits the game.

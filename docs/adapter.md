@@ -6,13 +6,44 @@
 artifact is `target/release/libmechcore_adapter.dylib`; the artifact name is
 not tied to a game version.
 
-The adapter creates a Unix domain socket and waits for one client. The MCP
-process assigns its private endpoint through `MECHCORE_ADAPTER_SOCKET` when it
-launches the game. When this internal variable is absent, the fallback is
+The adapter creates a Unix domain socket and waits for one client. When
+`MECHCORE_ADAPTER_SOCKET` is absent, the endpoint is
 `/tmp/mechcore-adapter-<uid>.sock`. A configured path must be absolute and no
 longer than 100 bytes. The adapter refuses to replace a non-socket or a socket
 owned by another user, creates the endpoint with mode `0600`, and admits only a
 peer with the same effective UID.
+
+## Build and launch
+
+Build the release Adapter from the repository root:
+
+```sh
+cargo build -p mechcore-adapter --release
+```
+
+The Adapter dylib is repository-relative:
+
+```text
+target/release/libmechcore_adapter.dylib
+```
+
+The default Steam game executable is home-relative:
+
+```text
+Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum
+```
+
+The controlling Agent, not MCP, resolves those two roots and launches the game
+outside the MCP sandbox:
+
+```sh
+DYLD_INSERT_LIBRARIES="$PWD/target/release/libmechcore_adapter.dylib" \
+  "$HOME/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum"
+```
+
+For the MCP workflow, leave `MECHCORE_ADAPTER_SOCKET` unset so both processes
+use `/tmp/mechcore-adapter-<uid>.sock`. A custom socket remains available to
+other Adapter clients, but MCP does not discover custom endpoints.
 
 ## Wire protocol
 
@@ -231,9 +262,3 @@ Typical output:
 The operation changes the Training Ground process state from deployment to
 battle. The MCP layer additionally observes the battle transition before
 returning.
-
-## Build
-
-```sh
-cargo build -p mechcore-adapter --release
-```
