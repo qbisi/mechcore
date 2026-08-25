@@ -264,7 +264,13 @@ def require_status(status: dict[str, Any], expected: dict[str, Any], label: str)
     print(f"ok: {label}: {json.dumps(status, ensure_ascii=False)}")
 
 
-def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
+def run(
+    layout_path: Path,
+    output: Path,
+    video_output: Path | None,
+    instrumentation_output: Path | None,
+    instrumentation_profile: str | None,
+) -> None:
     layout = load_layout(layout_path)
     activation_round = layout["round"]
     client = McpClient()
@@ -324,6 +330,11 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
         record_arguments = {"output": str(output.resolve())}
         if video_output is not None:
             record_arguments["video_output"] = str(video_output.resolve())
+        if instrumentation_output is not None and instrumentation_profile is not None:
+            record_arguments["instrumentation"] = {
+                "output": str(instrumentation_output.resolve()),
+                "profile": instrumentation_profile,
+            }
         recorded = client.call_tool("record_battle", record_arguments, BATTLE_TIMEOUT)
         recording = recorded.get("operation")
         if not isinstance(recording, dict) or recording.get("recorded") is not True:
@@ -353,6 +364,24 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
             for key, expected in expected_calibration.items():
                 if video.get(key) != expected:
                     raise SmokeFailure(f"unexpected video {key}: {video}")
+        if instrumentation_output is not None:
+            instrumentation = recording.get("instrumentation")
+            if not isinstance(instrumentation, dict):
+                raise SmokeFailure(
+                    f"record_battle omitted instrumentation metadata: {recording}"
+                )
+            if not instrumentation_output.is_file():
+                raise SmokeFailure(
+                    f"record_battle did not publish {instrumentation_output}"
+                )
+            if instrumentation.get("profile") != instrumentation_profile:
+                raise SmokeFailure(
+                    f"unexpected instrumentation profile: {instrumentation}"
+                )
+            if instrumentation.get("record_count") != recording.get("tick_count"):
+                raise SmokeFailure(
+                    f"instrumentation/MCFR tick count mismatch: {instrumentation} versus {recording}"
+                )
         print(
             "ok: recorded "
             f"{output}: states={recording.get('state_count')} "
@@ -372,6 +401,15 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
         failure = error
         raise
     finally:
+        if failure is not None and game is not None:
+            try:
+                client.call_tool("quit_match", {})
+            except BaseException:
+                pass
+            try:
+                client.call_tool("quit_game", {})
+            except BaseException:
+                pass
         if game is not None and game.poll() is None:
             game.terminate()
             try:
@@ -401,9 +439,30 @@ def main() -> int:
         type=Path,
         help="also export logic-frame-aligned calibration_topdown video to this new .mov path",
     )
+    parser.add_argument(
+        "--instrumentation-output",
+        type=Path,
+        help="also export a temporary Adapter-native HDF5 research sidecar",
+    )
+    parser.add_argument(
+        "--instrumentation-profile",
+        help="Adapter-defined temporary research profile",
+    )
     try:
         arguments = parser.parse_args()
-        run(arguments.layout, arguments.output, arguments.video_output)
+        if (arguments.instrumentation_output is None) != (
+            arguments.instrumentation_profile is None
+        ):
+            raise SmokeFailure(
+                "--instrumentation-output and --instrumentation-profile must be used together"
+            )
+        run(
+            arguments.layout,
+            arguments.output,
+            arguments.video_output,
+            arguments.instrumentation_output,
+            arguments.instrumentation_profile,
+        )
     except (OSError, SmokeFailure, ValueError) as error:
         print(f"smoke failed: {error}", file=sys.stderr)
         return 1
