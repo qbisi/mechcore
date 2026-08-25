@@ -13,6 +13,7 @@ collision_radius: 2
 move_speed: 16
 rotate_speed: 120
 has_body: false
+rvo: {outer_radius: 2, inner_radius: 1.5, size: xs, collider_priority: 3, priority: 0.002}
 
 attack:
   base_damage: 79

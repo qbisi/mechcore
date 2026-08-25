@@ -199,6 +199,13 @@ Manifest 为每个 Unit 固定以下公共 obligation：
 5. 本 Unit config 中每个字段的目标版本代码或序列化数据来源；
 6. 所有实际经过分支的逐 tick hash 全等和独立审查结论。
 
+凡目标版本中具有原生移动能力的 Unit，无论其攻击路径是近战、投射物、射线还是直接
+效果，至少一个计入完成度的 layout 必须从其原生交战判定阈值外开始。该 layout 必须
+分别记录并关闭：持有有效目标时的接近、首次攻击前的非零朝向变化、首次越过交战阈值，
+以及 Moving 到 Attacking 的状态转换。其它从射程内开始的 layout 可以验证攻击路径，
+但不能关闭这些运动学 obligation。只有目标 build 代码证明 Unit 没有可进入的移动路径
+时，才可经独立审查标记为 `not_applicable`。
+
 基础攻击 obligation 必须由目标 build 的原生技能类型和分支生成。投射物单位验证其
 实际单发/多发、飞行和命中路径；射线、控制束和直接效果单位只验证其实际路径。近战
 Unit 的最小 layout 不得从已满足攻击条件的位置开始，而必须从目标 build 所定义的原生
@@ -207,7 +214,25 @@ Unit 的最小 layout 不得从已满足攻击条件的位置开始，而必须�
 生效、后摇和冷却必须作为独立 obligation；配置与代码使某阶段为零且不可进入时，经独立
 审查后标记该阶段 `not_applicable`，不得把五个阶段合并成一个无法判定的 timing obligation。
 若代码证明交战边界是距离或技能范围而非物理碰撞，就只称为“近战交战边界”；
-不得因 `isMeleeAttack=true` 字段或单位名称预设“碰撞触发攻击”。
+不得因 `isMeleeAttack=true` 字段或单位名称预设“碰撞触发攻击”。近战 layout 的初始
+碰撞体还必须互不重叠且未接触，不能用初始贴身代替接近和交战边界转换。
+
+上述运动学 obligation 不能只由 manifest 中的人工 `closed` 标签通过。每项关闭必须
+绑定到固定原生 MCFR、文件 hash、源单位身份、Adapter/MCP 返回的原始 layout input、
+该 Unit config 的攻击范围和独立审查产物。校验器可以从 `S(0)` 及后续原生快照直接复验
+初始碰撞体分离、声明对象对的范围外几何、源单位实际位移、首次攻击前非零转角、声明
+对象对首次越过阈值，以及 `Moving -> Attacking` 的相邻状态迁移。距离边界使用整数平方
+比较，并为 MCFR 毫米量化保留拒绝歧义带；不得以浮点拟合或相邻状态差分生成新的 MCFR
+字段。
+
+`S/E` 没有记录 `FightMech.lockTarget`、`FightSkill.lockTarget` 或
+`FightSkill.attackTarget`，所以声明对象对的几何轨迹不能证明该对象就是当前原生目标，
+“场上只有一个存活单位”等候选唯一性也不能替代目标引用；候选池还可能包含 Building
+或 Construction。关闭 `target_acquisition`、`approach_with_valid_target`、
+`start_outside_native_engagement_threshold` 和 `first_engagement_transition_tick` 时，
+必须使用 Adapter 在同一逻辑 tick 直接读取这些原生字段的临时 `I` sidecar，并把 sidecar
+绑定到正式 MCFR `scenario_hash`。临时 `I` 不进入正式 result hash，研究结束后可删除其
+Adapter profile 实现。
 
 攻击路径、武器拓扑与效果拓扑是三个正交门禁。带范围效果的 Unit 除完成其原生投射物
 或直接效果路径外，还必须验证原生作用中心、范围内目标选择、范围外排除和确定性目标

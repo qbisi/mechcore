@@ -42,6 +42,7 @@ const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 3] = [
 ];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
+const Q32_UNITS_PER_ONE: f64 = 4_294_967_296.0;
 const TIME_UNITS_PER_SECOND: f64 = 2_000.0;
 const MILLIDEGREES_PER_DEGREE: f64 = 1_000.0;
 
@@ -59,7 +60,42 @@ pub(crate) struct UnitConfig {
     pub(crate) rotate_speed: f64,
     pub(crate) has_body: bool,
     pub(crate) independent_aim: Option<bool>,
+    pub(crate) rvo: RvoConfig,
     pub(crate) attack: AttackConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RvoConfig {
+    pub(crate) outer_radius: f64,
+    pub(crate) inner_radius: f64,
+    pub(crate) size: RvoSize,
+    pub(crate) collider_priority: i32,
+    pub(crate) priority: f64,
+}
+
+impl RvoConfig {
+    pub(crate) fn outer_radius(&self) -> i64 {
+        quantize_i64(self.outer_radius, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) fn inner_radius(&self) -> i64 {
+        quantize_i64(self.inner_radius, SPACE_UNITS_PER_METER)
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    pub(crate) fn priority_q32(&self) -> i64 {
+        (self.priority * Q32_UNITS_PER_ONE).trunc() as i64
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum RvoSize {
+    Xs,
+    S,
+    M,
+    L,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -374,6 +410,30 @@ impl UnitConfig {
         if !self.has_body && self.independent_aim.is_some() {
             return Err(Error::new(
                 "independent_aim is not applicable when the unit has no mech body",
+            ));
+        }
+        validate_scaled(
+            self.rvo.outer_radius,
+            SPACE_UNITS_PER_METER,
+            "rvo.outer_radius",
+            false,
+        )?;
+        validate_scaled(
+            self.rvo.inner_radius,
+            SPACE_UNITS_PER_METER,
+            "rvo.inner_radius",
+            false,
+        )?;
+        if self.rvo.inner_radius > self.rvo.outer_radius {
+            return Err(Error::new(
+                "rvo.inner_radius cannot exceed rvo.outer_radius",
+            ));
+        }
+        if !(1..=10).contains(&self.rvo.collider_priority)
+            || !(0.0..=1.0).contains(&self.rvo.priority)
+        {
+            return Err(Error::new(
+                "rvo collider_priority or priority is outside its native range",
             ));
         }
         self.attack.validate()
@@ -767,6 +827,63 @@ mod tests {
         let fractional = source.replace("  slot_size: 20\n", "  slot_size: 20.5\n");
         let config = parse(fractional.as_bytes(), "fractional slot size").unwrap();
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn rvo_profile_is_required_and_inner_radius_cannot_exceed_outer_radius() {
+        let source = include_str!("../../../config/units/marksman.yaml");
+        let missing = source.replace(
+            "rvo: {outer_radius: 8, inner_radius: 4, size: l, collider_priority: 6, priority: 0.006}\n",
+            "",
+        );
+        assert!(parse(missing.as_bytes(), "missing RVO profile").is_err());
+
+        let mut invalid = parse(source.as_bytes(), "invalid RVO radii").unwrap();
+        invalid.rvo.inner_radius = invalid.rvo.outer_radius + 0.5;
+        assert!(invalid.validate().is_err());
+
+        let mut invalid = parse(source.as_bytes(), "invalid RVO priority").unwrap();
+        invalid.rvo.collider_priority = 11;
+        assert!(invalid.validate().is_err());
+        invalid.rvo.collider_priority = 10;
+        invalid.rvo.priority = 1.000_001;
+        assert!(invalid.validate().is_err());
+    }
+
+    #[test]
+    fn readable_rvo_priorities_preserve_native_q32_values() {
+        let config = SimulationConfig::load(None).unwrap();
+        let expected = [
+            ("marksman", 25_769_803),
+            ("rhino", 4_294_967_296),
+            ("wasp", 17_179_869),
+            ("mustang", 8_589_934),
+            ("steel_ball", 21_474_836),
+            ("fang", 4_294_967),
+            ("crawler", 8_589_934),
+            ("stormcaller", 17_179_869),
+            ("sledgehammer", 858_993_459),
+            ("hacker", 30_064_771),
+            ("arclight", 2_147_483_648),
+            ("phoenix", 25_769_803),
+            ("wraith", 3_435_973),
+            ("scorpion", 34_359_738),
+            ("fire_badger", 1_717_986_918),
+            ("sabertooth", 1_288_490_188),
+            ("typhoon", 429_496_729),
+            ("tarantula", 2_147_483_648),
+            ("phantom_ray", 25_769_803),
+            ("farseer", 858_993_459),
+            ("hound", 21_474_836),
+            ("void_eye", 21_474_836),
+            ("vortex", 2_147_483_648),
+        ];
+        for (unit, priority_q32) in expected {
+            assert_eq!(
+                config.units.get(unit).unwrap().rvo.priority_q32(),
+                priority_q32
+            );
+        }
     }
 
     #[test]

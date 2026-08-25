@@ -14,6 +14,7 @@ move_speed: 8
 rotate_speed: 80
 has_body: true
 independent_aim: false
+rvo: {outer_radius: 10, inner_radius: 6, size: l, collider_priority: 7, priority: 0.5}
 
 attack:
   base_damage: 496
