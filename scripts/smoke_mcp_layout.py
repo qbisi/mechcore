@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -20,11 +21,11 @@ import yaml
 STATUS_URI = "mechcore://status"
 EXPECTED_TOOLS = {
     "apply_layout",
+    "connect_adapter",
     "record_battle",
     "quit_game",
     "quit_match",
     "speed_up",
-    "start_game",
     "start_test",
     "status",
     "toggle_fight",
@@ -34,6 +35,11 @@ BATTLE_TIMEOUT = 180.0
 MAX_ACTIVATION_ROUND = 15
 REPOSITORY = Path(__file__).resolve().parent.parent
 MECHCORE = REPOSITORY / "target/release/mechcore"
+ADAPTER = REPOSITORY / "target/release/libmechcore_adapter.dylib"
+GAME = (
+    Path.home()
+    / "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum"
+)
 
 
 class SmokeFailure(RuntimeError):
@@ -227,6 +233,24 @@ def load_layout(path: Path) -> dict[str, Any]:
     return layout
 
 
+def launch_game() -> subprocess.Popen[str]:
+    if not ADAPTER.is_file():
+        raise SmokeFailure(f"release Adapter is missing: {ADAPTER}")
+    if not GAME.is_file():
+        raise SmokeFailure(f"game executable is missing: {GAME}")
+    environment = os.environ.copy()
+    environment["DYLD_INSERT_LIBRARIES"] = str(ADAPTER)
+    environment.pop("MECHCORE_ADAPTER_SOCKET", None)
+    return subprocess.Popen(
+        [str(GAME)],
+        env=environment,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+
+
 def status_from_tool(result: dict[str, Any], name: str) -> dict[str, Any]:
     status = result.get("status")
     if not isinstance(status, dict):
@@ -244,6 +268,7 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
     layout = load_layout(layout_path)
     activation_round = layout["round"]
     client = McpClient()
+    game: subprocess.Popen[str] | None = None
     failure: BaseException | None = None
     try:
         initialized = client.request(
@@ -269,8 +294,10 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
             raise SmokeFailure(f"unexpected MCP resources: {sorted(uris)}")
         client.request("resources/subscribe", {"uri": STATUS_URI}, 10)
 
-        started = client.call_tool("start_game", {})
-        require_status(status_from_tool(started, "start_game"), {"status": "main_menu"}, "start_game")
+        game = launch_game()
+        connected = client.call_tool("connect_adapter", {})
+        status_from_tool(connected, "connect_adapter")
+        client.wait_stream_status({"status": "main_menu"}, TRANSITION_TIMEOUT)
         test = client.call_tool("start_test", {})
         require_status(
             status_from_tool(test, "start_test"),
@@ -335,12 +362,23 @@ def run(layout_path: Path, output: Path, video_output: Path | None) -> None:
         require_status(status_from_tool(menu, "quit_match"), {"status": "main_menu"}, "quit_match")
         stopped = client.call_tool("quit_game", {})
         require_status(status_from_tool(stopped, "quit_game"), {"status": "game_off"}, "quit_game")
-        if stopped.get("exit_code") != 0:
-            raise SmokeFailure(f"quit_game returned nonzero exit: {stopped}")
+        try:
+            returncode = game.wait(timeout=30)
+        except subprocess.TimeoutExpired as error:
+            raise SmokeFailure("game did not exit after quit_game") from error
+        if returncode != 0:
+            raise SmokeFailure(f"game exited with code {returncode}")
     except BaseException as error:
         failure = error
         raise
     finally:
+        if game is not None and game.poll() is None:
+            game.terminate()
+            try:
+                game.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                game.kill()
+                game.wait(timeout=10)
         try:
             client.close()
         except SmokeFailure:
