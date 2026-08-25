@@ -100,20 +100,20 @@ fn marksman_vs_arclight_matches_the_build_2259_native_recording() {
 fn rhino_vs_arclight_matches_the_build_2259_native_recording() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(rhino_fixture(), &output, Some(1_787_591_883)).unwrap();
+    let result = simulate_layout(rhino_fixture(), &output, Some(1_787_624_046)).unwrap();
     assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, 235);
+    assert_eq!(result.steps, 236);
     assert_eq!(
         result.hashes.scenario_hash,
-        "c16a57a90f13f9ac4791bd25c3a35d2926b943643f83fc87ca38fc73b5fd08c2"
+        "30000f5ae6d4d76102111300e3219dc22a3b8f2a7cd7c6e138d8a4d7a6180f4a"
     );
     assert_eq!(
         result.hashes.result_hash,
-        "0709395104ff9c229874e5d4216f04da5062694f780d49f07f7be6be60d68a4e"
+        "e464a399fd4b603fe63b5de4d0bbd9d06cdd39549d86be38c11094bfd886182a"
     );
 
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 236);
+    assert_eq!(reader.tick_count(), 237);
     let direct_damage = (0..reader.tick_count())
         .flat_map(|tick| reader.events(tick).unwrap().events)
         .filter_map(|event| match event.payload {
