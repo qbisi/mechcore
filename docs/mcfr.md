@@ -399,10 +399,14 @@ canonical JSON representation.
 
 ## Validation boundary
 
-MCFR validation covers container structure, canonical decoding, track lengths,
-hashes, and the initial canonical identity contract. It does not decide whether
-a gameplay state transition, reference, amount, gauge, or event sequence is
-logically legal; that belongs to a game-specific analyzer or simulator test.
+MCFR reader validation covers container structure, canonical decoding, track
+lengths, hash presence and encoding, and the initial canonical identity
+contract. The writer computes and persists independent tick hashes; comparison
+scans those hashes directly and reads `S/E` only at the first divergent tick.
+The reader does not rebuild every hash from the HDF5 tracks. It also does not
+decide whether a gameplay state transition, reference, amount, gauge, or event
+sequence is logically legal; that belongs to a game-specific analyzer or
+simulator test.
 
 The following claims are intentionally separate:
 

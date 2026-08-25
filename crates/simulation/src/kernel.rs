@@ -1403,11 +1403,9 @@ pub(crate) fn run(
         }
     };
     let hashes = writer.finish()?;
-    let verified = mechcore_mcfr::McfrReader::open_verified(output)?;
-    if verified.hashes() != &hashes {
-        return Err(Error::new(
-            "published MCFR hashes changed during verification",
-        ));
+    let published = mechcore_mcfr::McfrReader::open(output)?;
+    if published.hashes() != &hashes {
+        return Err(Error::new("published MCFR hashes changed after reopening"));
     }
     let winner = simulation.winner().map(team_name);
     Ok(SimulationResult {

@@ -10,7 +10,7 @@ use rust_hdf5::H5File;
 use serde_json::json;
 
 #[test]
-fn writes_reads_and_verifies_state_and_event_tracks() {
+fn writes_and_reads_state_and_event_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
     let mut writer = McfrWriter::create(&path, &context()).unwrap();
@@ -23,7 +23,7 @@ fn writes_reads_and_verifies_state_and_event_tracks() {
     writer.append_tick(final_state(), &impact_events()).unwrap();
     let written = writer.finish().unwrap();
 
-    let reader = McfrReader::open_verified(&path).unwrap();
+    let reader = McfrReader::open(&path).unwrap();
     assert_eq!(reader.tick_count(), 3);
     assert_eq!(reader.terminal_tick(), 2);
     assert_eq!(reader.hashes(), &written);
@@ -61,28 +61,11 @@ fn comparison_reports_the_first_divergent_tick() {
     let mut changed = projectile_state();
     changed.units[0].life -= 1;
     write_battle_with_middle(&right_path, initial_state(), changed);
-    let left = McfrReader::open_verified(left_path).unwrap();
-    let right = McfrReader::open_verified(right_path).unwrap();
+    let left = McfrReader::open(left_path).unwrap();
+    let right = McfrReader::open(right_path).unwrap();
     assert_eq!(left.first_divergence(&right).unwrap(), Some(1));
     assert_ne!(left.tick_hash(1).unwrap(), right.tick_hash(1).unwrap());
     assert_eq!(left.tick_hash(2).unwrap(), right.tick_hash(2).unwrap());
-}
-
-#[test]
-fn verification_rejects_a_tampered_hash() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("tampered.mcfr");
-    write_battle(&path, initial_state());
-    let file = H5File::open_rw(&path).unwrap();
-    file.dataset_writer("ticks/hash")
-        .unwrap()
-        .write_slice(&[1, 0], &[1, 32], &[0_u8; 32])
-        .unwrap();
-    file.close().unwrap();
-
-    let reader = McfrReader::open(&path).unwrap();
-    let error = reader.verify().unwrap_err();
-    assert!(error.to_string().starts_with("tick_hash mismatch:"));
 }
 
 #[test]
@@ -103,7 +86,7 @@ fn writer_does_not_validate_gameplay_transition_legality() {
     };
     writer.append_tick(projectile_state(), &events).unwrap();
     writer.finish().unwrap();
-    assert!(McfrReader::open_verified(path).is_ok());
+    assert!(McfrReader::open(path).is_ok());
 }
 
 #[test]

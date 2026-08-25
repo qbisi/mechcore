@@ -91,9 +91,9 @@ Agent 与审查 Agent 必须使用不同上下文分别工作；审查输入包�
    Adapter 接受外部 seed。
 3. **模拟输出**：执行 `mechcore sim layout.yaml --seed ... --config ...`，保存 Simulator
    MCFR 和结构化战斗结果。
-4. **规范对比**：先分别使用 `McfrReader::open_verified` 校验文件。若
+4. **规范对比**：结构化打开两个 MCFR，直接比较持久化的 tick hash。若
    `scenario_hash` 不同，先逐字段比较 `D` 与 `S(0)`，不得直接比较后续 tick。若相同，
-   使用 `first_divergence` 找到首个不同 tick，并分别比较该 tick 的 `S` 与有序 `E`。
+   使用 `first_divergence` 找到首个不同 tick，只读取并比较该 tick 的 `S` 与有序 `E`。
 5. **单一假设**：假设 Agent 只针对这个首个分歧提出一个机制或数值解释，并记录：
    反编译 selector/地址、调用链、关键分支或字段、原始数值、换算过程、预计改变的
    首个 tick/字段，以及能够排除的竞争解释。若当前 layout 无法产生区分性预测，必须

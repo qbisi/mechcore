@@ -2421,7 +2421,7 @@ mod tests {
             .unwrap();
         writer.append_tick(state, &events).unwrap();
         writer.finish().unwrap();
-        let reader = mechcore_mcfr::McfrReader::open_verified(path).unwrap();
+        let reader = mechcore_mcfr::McfrReader::open(path).unwrap();
         let events = reader.events(1).unwrap();
         assert_eq!(events.events.len(), 3);
         assert!(matches!(

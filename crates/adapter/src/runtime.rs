@@ -621,30 +621,29 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             return Response::failure(request.id, "mcfr_error", error.to_string());
                         }
                     };
-                    let verified = match mechcore_mcfr::McfrReader::open_verified(&arguments.output)
-                    {
+                    let published = match mechcore_mcfr::McfrReader::open(&arguments.output) {
                         Ok(reader) => reader,
                         Err(error) => {
                             remove_published(Some(&arguments.output));
                             remove_published(arguments.video_output.as_deref());
                             return Response::failure(
                                 request.id,
-                                "mcfr_verification_failed",
+                                "mcfr_reopen_failed",
                                 error.to_string(),
                             );
                         }
                     };
-                    if verified.hashes() != &hashes {
+                    if published.hashes() != &hashes {
                         remove_published(Some(&arguments.output));
                         remove_published(arguments.video_output.as_deref());
                         return Response::failure(
                             request.id,
-                            "mcfr_verification_failed",
-                            "published MCFR hashes changed during verification",
+                            "mcfr_reopen_failed",
+                            "published MCFR hashes changed after reopening",
                         );
                     }
                     if let Some(summary) = &video_summary {
-                        if summary.frame_count != verified.tick_count() {
+                        if summary.frame_count != published.tick_count() {
                             remove_published(Some(&arguments.output));
                             remove_published(arguments.video_output.as_deref());
                             return Response::failure(
@@ -653,7 +652,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                                 format!(
                                     "video frame count {} does not match MCFR tick count {}",
                                     summary.frame_count,
-                                    verified.tick_count()
+                                    published.tick_count()
                                 ),
                             );
                         }
@@ -685,8 +684,8 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         serde_json::json!({
                             "recorded": true,
                             "output": arguments.output,
-                            "tick_count": verified.tick_count(),
-                            "terminal_tick": verified.terminal_tick(),
+                            "tick_count": published.tick_count(),
+                            "terminal_tick": published.terminal_tick(),
                             "hashes": hashes,
                             "video": video_result,
                         }),

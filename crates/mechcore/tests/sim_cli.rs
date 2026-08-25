@@ -28,5 +28,5 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
     let report: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
     assert_eq!(report["seed"], 7);
     assert!(report["winner"].is_string());
-    McfrReader::open_verified(output).unwrap();
+    McfrReader::open(output).unwrap();
 }

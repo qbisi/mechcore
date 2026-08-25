@@ -42,7 +42,7 @@ impl From<mechcore_mcfr::Error> for Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-/// Simulates a supported layout and writes a verified MCFR recording.
+/// Simulates a supported layout and writes an MCFR recording.
 ///
 /// When `seed` is `None`, a seed is generated and returned in the report so
 /// the run can be reproduced with an explicit seed.
@@ -50,7 +50,7 @@ type Result<T> = std::result::Result<T, Error>;
 /// # Errors
 ///
 /// Returns an error for unsupported layout features, invalid files, an
-/// existing output, simulation failure, or MCFR write/verification failure.
+/// existing output, simulation failure, or MCFR write/reopen failure.
 pub fn simulate_layout(
     layout_path: impl AsRef<Path>,
     output_path: impl AsRef<Path>,

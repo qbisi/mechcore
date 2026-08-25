@@ -1,19 +1,27 @@
 use std::path::PathBuf;
 
-use mechcore_mcfr::McfrReader;
+use mechcore_mcfr::{McfrReader, TickSlice};
 use serde::Serialize;
 
 pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     let options = Options::parse(arguments)?;
-    let left = McfrReader::open_verified(&options.left).map_err(|error| error.to_string())?;
-    let right = McfrReader::open_verified(&options.right).map_err(|error| error.to_string())?;
-    let equal = left.hashes().result_hash == right.hashes().result_hash;
-    let first_divergence = if equal {
-        None
+    let left = McfrReader::open(&options.left).map_err(|error| error.to_string())?;
+    let right = McfrReader::open(&options.right).map_err(|error| error.to_string())?;
+    let first_divergence = left
+        .first_divergence(&right)
+        .map_err(|error| error.to_string())?;
+    if first_divergence.is_none() && left.hashes().result_hash != right.hashes().result_hash {
+        return Err("result hashes differ although every stored tick hash matches".into());
+    }
+    let divergent_ticks = if let Some(tick) = first_divergence {
+        Some(DivergentTicks {
+            left: read_tick(&left, tick)?,
+            right: read_tick(&right, tick)?,
+        })
     } else {
-        left.first_divergence(&right)
-            .map_err(|error| error.to_string())?
+        None
     };
+    let equal = first_divergence.is_none();
     let report = CompareReport {
         schema: "mechcore.mcfr-compare-result.v1",
         equal,
@@ -27,6 +35,7 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
             tick_count: right.tick_count(),
         },
         first_divergence,
+        divergent_ticks,
     };
     println!(
         "{}",
@@ -34,6 +43,16 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
             .map_err(|error| format!("cannot serialize comparison: {error}"))?
     );
     Ok(equal)
+}
+
+fn read_tick(reader: &McfrReader, tick: u64) -> Result<Option<TickSlice>, String> {
+    if tick >= reader.tick_count() {
+        return Ok(None);
+    }
+    reader
+        .tick(tick)
+        .map(Some)
+        .map_err(|error| error.to_string())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -71,12 +90,19 @@ struct CompareReport<'a> {
     left: RecordingSummary<'a>,
     right: RecordingSummary<'a>,
     first_divergence: Option<u64>,
+    divergent_ticks: Option<DivergentTicks>,
 }
 
 #[derive(Serialize)]
 struct RecordingSummary<'a> {
     result_hash: &'a str,
     tick_count: u64,
+}
+
+#[derive(Serialize)]
+struct DivergentTicks {
+    left: Option<TickSlice>,
+    right: Option<TickSlice>,
 }
 
 #[cfg(test)]

@@ -17,6 +17,7 @@ fn compare_reports_equal_result_hashes() {
     assert_eq!(report["schema"], "mechcore.mcfr-compare-result.v1");
     assert_eq!(report["equal"], true);
     assert!(report["first_divergence"].is_null());
+    assert!(report["divergent_ticks"].is_null());
     assert_eq!(
         report["left"]["result_hash"],
         report["right"]["result_hash"]
@@ -36,6 +37,16 @@ fn compare_reports_the_first_divergent_tick_and_fails() {
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["equal"], false);
     assert_eq!(report["first_divergence"], 1);
+    assert_eq!(report["divergent_ticks"]["left"]["tick"], 1);
+    assert_eq!(report["divergent_ticks"]["right"]["tick"], 1);
+    assert_ne!(
+        report["divergent_ticks"]["left"]["tick_hash"],
+        report["divergent_ticks"]["right"]["tick_hash"]
+    );
+    assert_ne!(
+        report["divergent_ticks"]["left"]["events"],
+        report["divergent_ticks"]["right"]["events"]
+    );
     assert_ne!(
         report["left"]["result_hash"],
         report["right"]["result_hash"]
@@ -56,6 +67,8 @@ fn compare_reports_the_first_missing_tick() {
     assert_eq!(report["first_divergence"], 2);
     assert_eq!(report["left"]["tick_count"], 2);
     assert_eq!(report["right"]["tick_count"], 3);
+    assert!(report["divergent_ticks"]["left"].is_null());
+    assert_eq!(report["divergent_ticks"]["right"]["tick"], 2);
 }
 
 #[test]

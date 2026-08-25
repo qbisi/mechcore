@@ -6,11 +6,6 @@ pub enum Error {
     Hdf5(rust_hdf5::Hdf5Error),
     Json(serde_json::Error),
     Invalid(String),
-    HashMismatch {
-        name: &'static str,
-        expected: String,
-        actual: String,
-    },
 }
 
 impl Error {
@@ -26,14 +21,6 @@ impl fmt::Display for Error {
             Self::Hdf5(error) => write!(formatter, "HDF5 error: {error}"),
             Self::Json(error) => write!(formatter, "JSON error: {error}"),
             Self::Invalid(message) => formatter.write_str(message),
-            Self::HashMismatch {
-                name,
-                expected,
-                actual,
-            } => write!(
-                formatter,
-                "{name} mismatch: stored {expected}, recomputed {actual}"
-            ),
         }
     }
 }

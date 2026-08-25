@@ -82,7 +82,7 @@ disabled by default; its path must be absolute, new, distinct from `output`, and
 The call requires completed Training Ground deployment.
 It owns the complete recording transaction: the adapter starts combat, requests the wall-clock-only
 speed-up vote for MCFR-only capture, and returns only after the adapter captures the fighting-to-over
-boundary, publishes the MCFR, and verifies its hashes. Video capture disables speed-up, temporarily
+boundary, publishes the MCFR, and reopens its structure. Video capture disables speed-up, temporarily
 sets the Unity target frame rate to 20 fps, and uses a main-camera post-render barrier. When video is
 enabled, `calibration_topdown` suspends the
 native camera input/Cinemachine controllers and fixes the main camera at world `(0,1070,-1070)`,

@@ -140,8 +140,8 @@ dimensions so a renderer can reconstruct the same world-to-screen calibration.
 The operation is valid only after layout completion in Training Ground deployment. It arms native
 capture, starts combat, records `S(0)` before the first combat update, and captures every subsequent
 `FightController.Update` boundary through the unique fighting-to-over transition. The adapter calls
-`mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file with
-`McfrReader::open_verified`, and returns the state/transition counts and all formal hashes.
+`mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file structurally, and returns
+the state/transition counts and all formal hashes.
 
 Projectile release/removal and damage use narrow native hooks so objects created and removed inside
 one logic step remain in `E`. The release hook records the native projectile, owner and target; the

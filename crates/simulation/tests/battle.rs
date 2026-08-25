@@ -42,7 +42,7 @@ sides:
 }
 
 #[test]
-fn marksman_vs_arclight_runs_to_a_verified_terminal_result() {
+fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
     let result = simulate_layout(fixture(), &output, Some(7)).unwrap();
@@ -53,7 +53,7 @@ fn marksman_vs_arclight_runs_to_a_verified_terminal_result() {
     assert!(result.winner.is_some());
     assert!(!result.draw);
 
-    let reader = McfrReader::open_verified(&output).unwrap();
+    let reader = McfrReader::open(&output).unwrap();
     assert_eq!(reader.context().game_build, "1.11.1.3.2259");
     assert_eq!(reader.hashes(), &result.hashes);
     assert_eq!(reader.terminal_tick(), result.steps);
@@ -84,7 +84,7 @@ fn marksman_vs_arclight_matches_the_build_2259_native_recording() {
         result.hashes.result_hash,
         "6dc45a4ef0bd5b469f727790555ff6bd47c38cadb1e0d0aebf97b260c5059fc5"
     );
-    let reader = McfrReader::open_verified(output).unwrap();
+    let reader = McfrReader::open(output).unwrap();
     assert_eq!(reader.tick_count(), 92);
     assert!(
         reader
@@ -112,7 +112,7 @@ fn rhino_vs_arclight_matches_the_build_2259_native_recording() {
         "0709395104ff9c229874e5d4216f04da5062694f780d49f07f7be6be60d68a4e"
     );
 
-    let reader = McfrReader::open_verified(output).unwrap();
+    let reader = McfrReader::open(output).unwrap();
     assert_eq!(reader.tick_count(), 236);
     let direct_damage = (0..reader.tick_count())
         .flat_map(|tick| reader.events(tick).unwrap().events)
@@ -151,7 +151,7 @@ fn rhino_retarget_matches_the_build_2259_native_recording() {
         "02302cb6f2d780fc507e45747e3669d11b30947159592602a69072c2e22303d4"
     );
 
-    let reader = McfrReader::open_verified(output).unwrap();
+    let reader = McfrReader::open(output).unwrap();
     assert_eq!(reader.tick_count(), 338);
     let initial = reader.state(0).unwrap();
     assert_eq!(

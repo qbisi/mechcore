@@ -4,9 +4,7 @@ use rust_hdf5::H5File;
 
 use crate::{
     DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TickSlice,
-    TransitionEvents, WorldSnapshot,
-    canonical::{self, CanonicalHasher},
-    storage::StorageReader,
+    TransitionEvents, WorldSnapshot, canonical, storage::StorageReader,
 };
 
 pub struct McfrReader {
@@ -67,17 +65,6 @@ impl McfrReader {
         if !reader.events(0)?.events.is_empty() {
             return Err(Error::invalid("tick zero must have an empty event batch"));
         }
-        Ok(reader)
-    }
-
-    /// Opens an MCFR and verifies every tick hash and the global result hash.
-    ///
-    /// # Errors
-    ///
-    /// Returns any structural error from [`Self::open`] or a hash verification error.
-    pub fn open_verified(path: impl AsRef<Path>) -> Result<Self> {
-        let reader = Self::open(path)?;
-        reader.verify()?;
         Ok(reader)
     }
 
@@ -183,44 +170,6 @@ impl McfrReader {
             Ok(Some(self.tick_count.min(other.tick_count)))
         }
     }
-
-    /// Recomputes all independent tick hashes and the aggregate result hash.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error for malformed tick data or when any stored hash differs from canonical
-    /// logical content.
-    pub fn verify(&self) -> Result<Hashes> {
-        let context_bytes = canonical::encode(&self.context)?;
-        let mut scenario_hasher = CanonicalHasher::new("scenario-v2");
-        scenario_hasher.update(&context_bytes);
-        scenario_hasher.update(&canonical::encode(&self.state(0)?)?);
-        let scenario = scenario_hasher.finalize();
-        compare_hash(
-            "scenario_hash",
-            &self.hashes.scenario_hash,
-            &canonical::hex(&scenario),
-        )?;
-        let mut tick_hashes = Vec::with_capacity(
-            usize::try_from(self.tick_count).map_err(|_| Error::invalid("tick count overflow"))?,
-        );
-        for tick in 0..self.tick_count {
-            let state_bytes = canonical::encode(&self.state(tick)?)?;
-            let event_bytes = canonical::encode(&self.events(tick)?)?;
-            let actual = canonical::tick_hash(tick, &state_bytes, &event_bytes);
-            let expected = self.storage.tick_hash(tick)?;
-            compare_hash(
-                "tick_hash",
-                &canonical::hex(&expected),
-                &canonical::hex(&actual),
-            )?;
-            tick_hashes.push(actual);
-        }
-        let result = canonical::result_hash(&scenario, &tick_hashes);
-        let actual = Hashes::from_raw(scenario, result);
-        compare_hash("result_hash", &self.hashes.result_hash, &actual.result_hash)?;
-        Ok(actual)
-    }
 }
 
 fn expect_attr(file: &H5File, name: &str, expected: &str) -> Result<()> {
@@ -243,15 +192,4 @@ fn parse_u64_attr(file: &H5File, name: &str) -> Result<u64> {
     file.attr_string(name)?
         .parse()
         .map_err(|_| Error::invalid(format!("attribute {name} is not a u64")))
-}
-
-fn compare_hash(name: &'static str, expected: &str, actual: &str) -> Result<()> {
-    if expected != actual {
-        return Err(Error::HashMismatch {
-            name,
-            expected: expected.to_owned(),
-            actual: actual.to_owned(),
-        });
-    }
-    Ok(())
 }
