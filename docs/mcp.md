@@ -49,6 +49,35 @@ it is not an operating-system process observation. One centralized MCP monitor
 samples Adapter `status` and publishes only changed snapshots; lifecycle tools
 and resource subscribers consume that same stream.
 
+## Capture lifecycle
+
+Every capture is a bounded Training Ground transaction inside a game session.
+The controlling Agent must execute calls in this order:
+
+```text
+session: launch game with Adapter outside MCP -> connect_adapter
+
+capture 1: start_test -> apply_layout -> record_battle -> main_menu
+capture 2: start_test -> apply_layout -> record_battle -> main_menu
+...
+
+session end: quit_game -> game_off
+```
+
+`record_battle` owns the per-capture cleanup boundary. After publishing and
+verifying the requested artifacts, it leaves the completed Training Ground and
+returns success only after `main_menu` is observed. Its structured result marks
+`cleanup.match_exited=true`, reports the final status, and identifies
+`start_test` and `quit_game` as the legal next session actions. It never quits
+the game: a process reused for another capture begins again with `start_test`,
+while only the final capture is followed by `quit_game`.
+
+If recording or cleanup fails, the error result reports whether recording was
+confirmed, the observed status, whether external process resolution is needed,
+and any required `quit_match` recovery. Mutations with unknown outcomes are not
+retry-safe. `quit_match` remains public for manual test/replay cleanup and for a
+reported recovery obligation; it is not part of the successful capture path.
+
 ## Tools
 
 The MCP server exposes exactly nine tools.
@@ -99,7 +128,10 @@ next logic update may advance; this includes `S(0)` and the rendered terminal sn
 logic step as its sample duration, and publication fails unless its frame count exactly matches the
 MCFR tick count.
 Callers do not issue `toggle_fight`, `speed_up`, or other Training Ground state controls while this
-tool is running. `quit_match` remains the separate owner of leaving the test after recording.
+tool is running. After artifact publication, MCP invokes the Adapter's match-exit operation and
+returns success only after `main_menu`; it never exits the game process. The result includes the
+cleanup outcome and legal next session actions. A partial failure is not retry-safe and identifies
+whether `quit_match` recovery or external process resolution remains required.
 The returned video metadata identifies `view: "calibration_topdown"` and includes the fixed projection
 and camera parameters needed to reproduce this calibration in another renderer.
 

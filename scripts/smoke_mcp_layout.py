@@ -339,6 +339,18 @@ def run(
         recording = recorded.get("operation")
         if not isinstance(recording, dict) or recording.get("recorded") is not True:
             raise SmokeFailure(f"record_battle was not confirmed: {recorded}")
+        cleanup = recorded.get("cleanup")
+        if (
+            not isinstance(cleanup, dict)
+            or cleanup.get("match_exited") is not True
+            or cleanup.get("game_reusable") is not True
+        ):
+            raise SmokeFailure(f"record_battle did not complete match cleanup: {recorded}")
+        require_status(
+            status_from_tool(recorded, "record_battle"),
+            {"status": "main_menu"},
+            "record_battle cleanup",
+        )
         if not output.is_file():
             raise SmokeFailure(f"record_battle did not publish {output}")
         if video_output is not None:
@@ -387,8 +399,6 @@ def run(
             f"{output}: states={recording.get('state_count')} "
             f"transitions={recording.get('transition_count')}"
         )
-        menu = client.call_tool("quit_match", {})
-        require_status(status_from_tool(menu, "quit_match"), {"status": "main_menu"}, "quit_match")
         stopped = client.call_tool("quit_game", {})
         require_status(status_from_tool(stopped, "quit_game"), {"status": "game_off"}, "quit_game")
         try:

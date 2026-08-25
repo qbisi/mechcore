@@ -16,7 +16,11 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 use tokio::{
     sync::{Mutex, watch},
     task::JoinHandle,
@@ -66,16 +70,16 @@ struct Shared {
 }
 
 impl Shared {
-    fn new() -> Result<Arc<Self>, String> {
+    fn new() -> Arc<Self> {
         let socket_path = default_adapter_socket();
         let (status, _) = watch::channel(json!({"status": "game_off"}));
-        Ok(Arc::new(Self {
+        Arc::new(Self {
             socket_path,
             adapter: Mutex::new(None),
             operation: Mutex::new(()),
             last_applied_layout: Mutex::new(None),
             status,
-        }))
+        })
     }
 
     fn current_status(&self) -> Value {
@@ -238,77 +242,26 @@ impl Shared {
         output: PathBuf,
         video_output: Option<PathBuf>,
         instrumentation: Option<RecordBattleInstrumentationParameters>,
-    ) -> Result<Value, String> {
+    ) -> Result<Value, Value> {
         let _operation = self.operation.lock().await;
-        let before = self.refresh_status().await?;
+        let before = self.refresh_status().await.map_err(tool_error)?;
         if !is_training_deployment(&before) {
-            return Err(format!(
+            return Err(tool_error(format!(
                 "record_battle requires completed Training Ground deployment: {before}"
-            ));
+            )));
         }
-        if !output.is_absolute() {
-            return Err("record_battle output must be an absolute path".into());
-        }
-        if output.extension().and_then(|value| value.to_str()) != Some("mcfr") {
-            return Err("record_battle output must use the .mcfr extension".into());
-        }
-        if output.exists() {
-            return Err(format!(
-                "record_battle refuses to overwrite {}",
-                output.display()
-            ));
-        }
-        if let Some(video_output) = &video_output {
-            if !video_output.is_absolute() {
-                return Err("record_battle video_output must be an absolute path".into());
-            }
-            if video_output.extension().and_then(|value| value.to_str()) != Some("mov") {
-                return Err("record_battle video_output must use the .mov extension".into());
-            }
-            if video_output == &output {
-                return Err("record_battle output and video_output must differ".into());
-            }
-            if video_output.exists() {
-                return Err(format!(
-                    "record_battle refuses to overwrite {}",
-                    video_output.display()
-                ));
-            }
-        }
-        if let Some(instrumentation) = &instrumentation {
-            if instrumentation.profile.trim().is_empty() || instrumentation.profile.contains('\0') {
-                return Err("record_battle instrumentation profile is invalid".into());
-            }
-            if !instrumentation.output.is_absolute() {
-                return Err("record_battle instrumentation output must be absolute".into());
-            }
-            if instrumentation
-                .output
-                .extension()
-                .and_then(|value| value.to_str())
-                != Some("h5")
-            {
-                return Err(
-                    "record_battle instrumentation output must use the .h5 extension".into(),
-                );
-            }
-            if instrumentation.output == output
-                || video_output.as_ref() == Some(&instrumentation.output)
-            {
-                return Err("record_battle output paths must differ".into());
-            }
-            if instrumentation.output.exists() {
-                return Err(format!(
-                    "record_battle refuses to overwrite {}",
-                    instrumentation.output.display()
-                ));
-            }
-        }
-        let layout_input =
-            self.last_applied_layout.lock().await.clone().ok_or(
-                "record_battle requires a successfully applied layout in this test session",
-            )?;
-        let result = self
+        validate_record_outputs(&output, video_output.as_deref(), instrumentation.as_ref())?;
+        let layout_input = self
+            .last_applied_layout
+            .lock()
+            .await
+            .clone()
+            .ok_or_else(|| {
+                tool_error(
+                    "record_battle requires a successfully applied layout in this test session",
+                )
+            })?;
+        let result = match self
             .adapter_request(
                 Operation::RecordBattle,
                 json!({
@@ -317,17 +270,80 @@ impl Shared {
                     "instrumentation": instrumentation,
                 }),
             )
-            .await?;
+            .await
+        {
+            Ok(result) => result,
+            Err(error) => {
+                *self.last_applied_layout.lock().await = None;
+                let cleanup = self.finish_recording_match().await;
+                return Err(record_battle_failure(
+                    &error,
+                    &Value::Null,
+                    &layout_input,
+                    cleanup,
+                    self.current_status(),
+                ));
+            }
+        };
         if result.get("recorded").and_then(Value::as_bool) != Some(true) {
-            return Err(format!("adapter did not confirm recording: {result}"));
+            *self.last_applied_layout.lock().await = None;
+            let cleanup = self.finish_recording_match().await;
+            let error = format!("adapter did not confirm recording: {result}");
+            return Err(record_battle_failure(
+                &error,
+                &result,
+                &layout_input,
+                cleanup,
+                self.current_status(),
+            ));
         }
         *self.last_applied_layout.lock().await = None;
-        let status = self.refresh_status().await?;
+        let cleanup = match self.finish_recording_match().await {
+            Ok(cleanup) => cleanup,
+            Err(error) => {
+                let message = format!(
+                    "record_battle published artifacts but could not return to main_menu: {error}"
+                );
+                return Err(record_battle_failure(
+                    &message,
+                    &result,
+                    &layout_input,
+                    Err(error),
+                    self.current_status(),
+                ));
+            }
+        };
+        let status = cleanup["status"].clone();
         Ok(json!({
             "operation": result,
             "layout_input": layout_input,
+            "cleanup": {
+                "match_exited": true,
+                "game_reusable": true,
+                "operation": cleanup["operation"].clone(),
+            },
             "status": status,
+            "next": {
+                "required": Value::Null,
+                "allowed": ["start_test", "quit_game"],
+            },
         }))
+    }
+
+    async fn finish_recording_match(&self) -> Result<Value, String> {
+        let status = self.refresh_status().await?;
+        if is_status(&status, "main_menu") {
+            return Ok(json!({"operation": Value::Null, "status": status}));
+        }
+        if !matches!(
+            status.get("status").and_then(Value::as_str),
+            Some("training_ground" | "replay")
+        ) {
+            return Err(format!(
+                "recording cleanup requires an active match or main_menu: {status}"
+            ));
+        }
+        self.leave_active_match().await
     }
 
     async fn toggle_fight(&self) -> Result<Value, String> {
@@ -388,6 +404,10 @@ impl Shared {
         ) {
             return Err(format!("quit_match requires an active match: {status}"));
         }
+        self.leave_active_match().await
+    }
+
+    async fn leave_active_match(&self) -> Result<Value, String> {
         let result = self
             .adapter_request(Operation::QuitMatch, json!({}))
             .await?;
@@ -488,13 +508,13 @@ impl MechcoreMcp {
     }
 
     #[tool(
-        description = "Record the deployed Training Ground battle to MCFR; starts combat, uses render-synchronized pacing for optional video, and returns after the fighting-to-over boundary"
+        description = "Record and verify the deployed Training Ground battle, then leave the completed match and return only from main_menu. Optional video uses render-synchronized pacing. This tool never quits the game; continuous captures reuse the main-menu process with start_test, while quit_game ends the session."
     )]
     async fn record_battle(
         &self,
         Parameters(parameters): Parameters<RecordBattleParameters>,
     ) -> Result<CallToolResult, ErrorData> {
-        Ok(tool_result(
+        Ok(record_tool_result(
             self.shared
                 .record_battle(
                     parameters.output,
@@ -538,7 +558,7 @@ impl ServerHandler for MechcoreMcp {
                 .enable_resources_subscribe()
                 .build(),
             instructions: Some(
-                "Launch Mechabellum with the Adapter outside MCP, then use connect_adapter, start_test, apply_layout, record_battle, quit_match, and quit_game in lifecycle order. record_battle owns combat start and capture pacing. Subscribe to mechcore://status for state changes."
+                "Launch Mechabellum with the Adapter outside MCP and call connect_adapter. Each capture uses start_test, apply_layout, then record_battle; a successful record_battle guarantees main_menu without quitting the game, so start_test may begin the next capture. Use quit_match only to leave a manually active test/replay or to recover a reported cleanup obligation, and use quit_game only when the capture session ends. Subscribe to mechcore://status for state changes."
                     .into(),
             ),
             server_info: Implementation {
@@ -643,7 +663,7 @@ pub fn run() -> Result<(), String> {
 }
 
 async fn run_async() -> Result<(), String> {
-    let shared = Shared::new()?;
+    let shared = Shared::new();
     let monitor = tokio::spawn(monitor(shared.clone()));
     let server = MechcoreMcp::new(shared.clone())
         .serve(stdio())
@@ -677,6 +697,162 @@ fn tool_result(result: Result<Value, String>) -> CallToolResult {
         Ok(value) => CallToolResult::structured(value),
         Err(error) => CallToolResult::structured_error(json!({"error": error})),
     }
+}
+
+fn record_tool_result(result: Result<Value, Value>) -> CallToolResult {
+    match result {
+        Ok(value) => CallToolResult::structured(value),
+        Err(error) => CallToolResult::structured_error(error),
+    }
+}
+
+fn tool_error(error: impl Into<String>) -> Value {
+    json!({"error": error.into()})
+}
+
+fn validate_record_outputs(
+    output: &Path,
+    video_output: Option<&Path>,
+    instrumentation: Option<&RecordBattleInstrumentationParameters>,
+) -> Result<(), Value> {
+    if !output.is_absolute() {
+        return Err(tool_error("record_battle output must be an absolute path"));
+    }
+    if output.extension().and_then(|value| value.to_str()) != Some("mcfr") {
+        return Err(tool_error(
+            "record_battle output must use the .mcfr extension",
+        ));
+    }
+    if output.exists() {
+        return Err(tool_error(format!(
+            "record_battle refuses to overwrite {}",
+            output.display()
+        )));
+    }
+    if let Some(video_output) = video_output {
+        if !video_output.is_absolute() {
+            return Err(tool_error(
+                "record_battle video_output must be an absolute path",
+            ));
+        }
+        if video_output.extension().and_then(|value| value.to_str()) != Some("mov") {
+            return Err(tool_error(
+                "record_battle video_output must use the .mov extension",
+            ));
+        }
+        if video_output == output {
+            return Err(tool_error(
+                "record_battle output and video_output must differ",
+            ));
+        }
+        if video_output.exists() {
+            return Err(tool_error(format!(
+                "record_battle refuses to overwrite {}",
+                video_output.display()
+            )));
+        }
+    }
+    if let Some(instrumentation) = instrumentation {
+        if instrumentation.profile.trim().is_empty() || instrumentation.profile.contains('\0') {
+            return Err(tool_error(
+                "record_battle instrumentation profile is invalid",
+            ));
+        }
+        if !instrumentation.output.is_absolute() {
+            return Err(tool_error(
+                "record_battle instrumentation output must be absolute",
+            ));
+        }
+        if instrumentation
+            .output
+            .extension()
+            .and_then(|value| value.to_str())
+            != Some("h5")
+        {
+            return Err(tool_error(
+                "record_battle instrumentation output must use the .h5 extension",
+            ));
+        }
+        if instrumentation.output == output
+            || video_output == Some(instrumentation.output.as_path())
+        {
+            return Err(tool_error("record_battle output paths must differ"));
+        }
+        if instrumentation.output.exists() {
+            return Err(tool_error(format!(
+                "record_battle refuses to overwrite {}",
+                instrumentation.output.display()
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn record_battle_failure(
+    error: &str,
+    operation: &Value,
+    layout_input: &Value,
+    cleanup: Result<Value, String>,
+    observed_status: Value,
+) -> Value {
+    let recorded = operation.get("recorded").cloned().unwrap_or(Value::Null);
+    let (cleanup, status, required, allowed, external_resolution_required) = match cleanup {
+        Ok(cleanup) => (
+            json!({
+                "match_exited": true,
+                "game_reusable": true,
+                "operation": cleanup["operation"].clone(),
+            }),
+            cleanup["status"].clone(),
+            Value::Null,
+            json!(["start_test", "quit_game"]),
+            false,
+        ),
+        Err(cleanup_error) => {
+            let at_main_menu = is_status(&observed_status, "main_menu");
+            let in_match = matches!(
+                observed_status.get("status").and_then(Value::as_str),
+                Some("training_ground" | "replay")
+            );
+            let required = if in_match {
+                json!("quit_match")
+            } else {
+                Value::Null
+            };
+            let allowed = if at_main_menu {
+                json!(["start_test", "quit_game"])
+            } else if in_match {
+                json!(["quit_match"])
+            } else {
+                json!(["status"])
+            };
+            (
+                json!({
+                    "match_exited": at_main_menu,
+                    "game_reusable": at_main_menu,
+                    "error": cleanup_error,
+                }),
+                observed_status,
+                required,
+                allowed,
+                !at_main_menu && !in_match,
+            )
+        }
+    };
+    json!({
+        "error": error,
+        "recorded": recorded,
+        "operation": operation,
+        "layout_input": layout_input,
+        "cleanup": cleanup,
+        "status": status,
+        "next": {
+            "required": required,
+            "allowed": allowed,
+            "external_resolution_required": external_resolution_required,
+        },
+        "retry_safe": false,
+    })
 }
 
 fn validate_status_uri(uri: &str) -> Result<(), ErrorData> {
@@ -719,7 +895,7 @@ mod tests {
 
     #[test]
     fn mcp_exposes_exact_tool_surface() {
-        let shared = Shared::new().unwrap();
+        let shared = Shared::new();
         let mut names: Vec<_> = MechcoreMcp::new(shared)
             .tool_router
             .list_all()
@@ -741,6 +917,37 @@ mod tests {
                 "toggle_fight",
             ]
         );
+    }
+
+    #[test]
+    fn record_battle_tool_declares_its_main_menu_postcondition() {
+        let shared = Shared::new();
+        let tool = MechcoreMcp::new(shared)
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == "record_battle")
+            .expect("record_battle tool exists");
+        let description = tool.description.expect("record_battle has a description");
+        assert!(description.contains("main_menu"));
+        assert!(description.contains("never quits the game"));
+        assert!(description.contains("continuous captures"));
+    }
+
+    #[test]
+    fn record_battle_failure_explains_required_match_cleanup() {
+        let failure = record_battle_failure(
+            "cleanup failed",
+            &json!({"recorded": true}),
+            &json!({"round": 1, "sides": {}}),
+            Err("native exit failed".into()),
+            json!({"status": "training_ground", "fighting": false}),
+        );
+        assert_eq!(failure["recorded"], true);
+        assert_eq!(failure["cleanup"]["match_exited"], false);
+        assert_eq!(failure["next"]["required"], "quit_match");
+        assert_eq!(failure["next"]["allowed"], json!(["quit_match"]));
+        assert_eq!(failure["retry_safe"], false);
     }
 
     #[test]
