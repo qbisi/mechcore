@@ -1,5 +1,5 @@
 use crate::{
-    il2cpp::{Api, FieldInfo, MethodInfo, Object, argument, object_argument},
+    il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, argument, object_argument},
     runtime::Runtime,
 };
 use jpeg_encoder::{ColorType, Encoder};
@@ -11,13 +11,14 @@ use mechcore_mcfr::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    cell::Cell,
     collections::{BTreeMap, BTreeSet, VecDeque},
     ffi::c_void,
     panic::{AssertUnwindSafe, catch_unwind},
     ptr,
     sync::{
         Mutex, OnceLock,
-        atomic::{AtomicPtr, Ordering},
+        atomic::{AtomicPtr, AtomicU64, Ordering},
     },
 };
 
@@ -39,13 +40,30 @@ pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
 #[serde(rename_all = "snake_case")]
 pub(crate) enum CaptureInstrumentationProfile {
     TargetRefsV1,
+    TargetRefsRvoV1,
 }
 
 impl CaptureInstrumentationProfile {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::TargetRefsV1 => "target_refs_v1",
+            Self::TargetRefsRvoV1 => "target_refs_rvo_v1",
         }
+    }
+
+    pub(crate) const fn channel(self) -> &'static str {
+        match self {
+            Self::TargetRefsV1 => "target_refs",
+            Self::TargetRefsRvoV1 => "target_refs_rvo",
+        }
+    }
+
+    const fn includes_target_refs(self) -> bool {
+        true
+    }
+
+    const fn includes_rvo(self) -> bool {
+        matches!(self, Self::TargetRefsRvoV1)
     }
 }
 
@@ -61,6 +79,137 @@ pub(crate) struct UnitTargetRefsObservation {
     pub(crate) normal_skill_fields_available: bool,
     pub(crate) skill_lock_target: Option<ObjectRef>,
     pub(crate) skill_attack_target: Option<ObjectRef>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+pub(crate) enum CaptureInstrumentationObservation {
+    TargetRefs(TargetRefsObservation),
+    TargetRefsRvo(TargetRefsRvoObservation),
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct TargetRefsRvoObservation {
+    pub(crate) target_refs: TargetRefsObservation,
+    pub(crate) rvo_updates: Vec<RvoUpdateObservation>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct RvoUpdateObservation {
+    pub(crate) update_ordinal: u64,
+    pub(crate) start_native_tick: u64,
+    pub(crate) publish_native_tick: u64,
+    pub(crate) double_buffering: bool,
+    pub(crate) symmetry_breaking_bias_raw: i64,
+    pub(crate) agents: Vec<RvoAgentObservation>,
+    pub(crate) neighbour_sets: Vec<RvoNeighbourSetObservation>,
+    pub(crate) vo_buffers: Vec<RvoVoBufferObservation>,
+    pub(crate) opponent_vos: Vec<RvoOpponentVoObservation>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct RvoAgentObservation {
+    pub(crate) ordinal: u32,
+    pub(crate) agent: RvoAgentRefObservation,
+    pub(crate) radius_inner_raw: i64,
+    pub(crate) size: i32,
+    pub(crate) radius_outer_raw: i64,
+    pub(crate) max_speed_raw: i64,
+    pub(crate) desired_speed_raw: i64,
+    pub(crate) agent_time_horizon_raw: i64,
+    pub(crate) priority_raw: i64,
+    pub(crate) published_calculated_speed_raw: i64,
+    pub(crate) current_velocity_x_raw: i64,
+    pub(crate) current_velocity_y_raw: i64,
+    pub(crate) desired_velocity_x_raw: i64,
+    pub(crate) desired_velocity_y_raw: i64,
+    pub(crate) desired_target_x_raw: i64,
+    pub(crate) desired_target_y_raw: i64,
+    pub(crate) calculated_target_x_raw: i64,
+    pub(crate) calculated_target_y_raw: i64,
+    pub(crate) locked: bool,
+    pub(crate) layer: i32,
+    pub(crate) collides_with: i32,
+    pub(crate) max_neighbours: i32,
+    pub(crate) main_layer: i32,
+    pub(crate) sync_main_layer: i32,
+    pub(crate) group: i32,
+    pub(crate) sync_group: i32,
+    pub(crate) ignore_same_group: bool,
+    pub(crate) sync_ignore_same_group: bool,
+    pub(crate) team_id: i32,
+    pub(crate) team_radius_raw: i64,
+    pub(crate) sync_team_id: i32,
+    pub(crate) sync_team_radius_raw: i64,
+    pub(crate) position_x_raw: i64,
+    pub(crate) position_y_raw: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct RvoNeighbourSetObservation {
+    pub(crate) source_call_ordinal: u64,
+    pub(crate) source: RvoAgentRefObservation,
+    pub(crate) neighbour_count: u32,
+    pub(crate) neighbours: Vec<RvoNeighbourObservation>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct RvoNeighbourObservation {
+    pub(crate) ordinal: u32,
+    pub(crate) target: RvoAgentRefObservation,
+    pub(crate) distance_sq_raw: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct RvoOpponentVoObservation {
+    pub(crate) update_ordinal: u64,
+    pub(crate) call_ordinal: u64,
+    pub(crate) source: RvoAgentRefObservation,
+    pub(crate) target: RvoAgentRefObservation,
+    pub(crate) vo_buffer_length_before: u32,
+    pub(crate) vo_buffer_length_after: u32,
+    pub(crate) appended_colliding: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct RvoVoBufferObservation {
+    pub(crate) call_ordinal: u64,
+    pub(crate) source: RvoAgentRefObservation,
+    pub(crate) vos: Vec<RvoVoObservation>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub(crate) struct RvoVoObservation {
+    pub(crate) line1_x_raw: i64,
+    pub(crate) line1_y_raw: i64,
+    pub(crate) line2_x_raw: i64,
+    pub(crate) line2_y_raw: i64,
+    pub(crate) dir1_x_raw: i64,
+    pub(crate) dir1_y_raw: i64,
+    pub(crate) dir2_x_raw: i64,
+    pub(crate) dir2_y_raw: i64,
+    pub(crate) cutoff_line_x_raw: i64,
+    pub(crate) cutoff_line_y_raw: i64,
+    pub(crate) cutoff_dir_x_raw: i64,
+    pub(crate) cutoff_dir_y_raw: i64,
+    pub(crate) circle_center_x_raw: i64,
+    pub(crate) circle_center_y_raw: i64,
+    pub(crate) colliding: bool,
+    pub(crate) radius_raw: i64,
+    pub(crate) weight_factor_raw: i64,
+    pub(crate) weight_bonus_raw: i64,
+    pub(crate) segment_start_x_raw: i64,
+    pub(crate) segment_start_y_raw: i64,
+    pub(crate) segment_end_x_raw: i64,
+    pub(crate) segment_end_y_raw: i64,
+    pub(crate) segment: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(untagged)]
+pub(crate) enum RvoAgentRefObservation {
+    Entity(ObjectRef),
+    Internal { internal_agent_ordinal: u64 },
 }
 
 #[repr(C)]
@@ -82,6 +231,33 @@ struct FixedVec3 {
     x: FixedPoint,
     y: FixedPoint,
     z: FixedPoint,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+struct FixedRvoTeam {
+    id: i32,
+    _padding: i32,
+    radius: FixedPoint,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+struct NativeRvoVo {
+    line1: FixedVec2,
+    line2: FixedVec2,
+    dir1: FixedVec2,
+    dir2: FixedVec2,
+    cutoff_line: FixedVec2,
+    cutoff_dir: FixedVec2,
+    circle_center: FixedVec2,
+    colliding: bool,
+    radius: FixedPoint,
+    weight_factor: FixedPoint,
+    weight_bonus: FixedPoint,
+    segment_start: FixedVec2,
+    segment_end: FixedVec2,
+    segment: bool,
 }
 
 #[repr(C)]
@@ -113,13 +289,13 @@ pub(crate) enum CaptureMessage {
     Initial {
         context: DurableContext,
         state: WorldSnapshot,
-        instrumentation: Option<TargetRefsObservation>,
+        instrumentation: Option<CaptureInstrumentationObservation>,
         frame: Option<Vec<u8>>,
     },
     Transition {
         events: TransitionEvents,
         state: WorldSnapshot,
-        instrumentation: Option<TargetRefsObservation>,
+        instrumentation: Option<CaptureInstrumentationObservation>,
         terminal: bool,
         frame: Option<Vec<u8>>,
     },
@@ -130,12 +306,12 @@ enum PendingVisualMessage {
     Initial {
         context: DurableContext,
         state: WorldSnapshot,
-        instrumentation: Option<TargetRefsObservation>,
+        instrumentation: Option<CaptureInstrumentationObservation>,
     },
     Transition {
         events: TransitionEvents,
         state: WorldSnapshot,
-        instrumentation: Option<TargetRefsObservation>,
+        instrumentation: Option<CaptureInstrumentationObservation>,
         terminal: bool,
     },
 }
@@ -183,6 +359,106 @@ struct Metadata {
     fight_skill_class: Option<usize>,
     fight_skill_lock_target: Option<usize>,
     fight_skill_attack_target: Option<usize>,
+    rvo: Option<RvoMetadata>,
+    rvo_error: Option<String>,
+}
+
+#[derive(Clone, Copy)]
+struct RvoMetadata {
+    fight_actor_rvo_controller: usize,
+    rvo_controller_agent: usize,
+    rvo_controller_owner: usize,
+    simulator_double_buffering: usize,
+    simulator_symmetry_breaking_bias: usize,
+    simulator_workers: usize,
+    simulator_agents: usize,
+    agent_radius_inner: usize,
+    agent_size: usize,
+    agent_radius_outer: usize,
+    agent_max_speed: usize,
+    agent_desired_speed: usize,
+    agent_time_horizon: usize,
+    agent_priority: usize,
+    agent_published_calculated_speed: usize,
+    agent_current_velocity: usize,
+    agent_desired_velocity: usize,
+    agent_desired_target: usize,
+    agent_calculated_target: usize,
+    agent_locked: usize,
+    agent_layer: usize,
+    agent_collides_with: usize,
+    agent_internal_max_neighbours: usize,
+    agent_position: usize,
+    agent_simulator: usize,
+    rvo_agent_class: usize,
+    rvo_agent_main_layer: usize,
+    rvo_agent_sync_main_layer: usize,
+    rvo_agent_group: usize,
+    rvo_agent_sync_group: usize,
+    rvo_agent_ignore_same_group: usize,
+    rvo_agent_sync_ignore_same_group: usize,
+    rvo_agent_team: usize,
+    rvo_agent_sync_team: usize,
+    agent_max_neighbours: usize,
+    agent_neighbour_count: usize,
+    agent_neighbours: usize,
+    agent_neighbour_dists: usize,
+    vo_buffer: usize,
+    vo_buffer_length: usize,
+}
+
+#[derive(Clone, Copy, Default)]
+struct NativeRvoAgentState {
+    pointer: usize,
+    radius_inner: FixedPoint,
+    size: i32,
+    radius_outer: FixedPoint,
+    max_speed: FixedPoint,
+    desired_speed: FixedPoint,
+    agent_time_horizon: FixedPoint,
+    priority: FixedPoint,
+    published_calculated_speed: FixedPoint,
+    current_velocity: FixedVec2,
+    desired_velocity: FixedVec2,
+    desired_target: FixedVec2,
+    calculated_target: FixedVec2,
+    locked: bool,
+    layer: i32,
+    collides_with: i32,
+    max_neighbours: i32,
+    main_layer: i32,
+    sync_main_layer: i32,
+    group: i32,
+    sync_group: i32,
+    ignore_same_group: bool,
+    sync_ignore_same_group: bool,
+    team: FixedRvoTeam,
+    sync_team: FixedRvoTeam,
+    position: FixedVec2,
+}
+
+struct NativeRvoNeighbourSet {
+    update_ordinal: u64,
+    source_call_ordinal: u64,
+    source: usize,
+    neighbours: Vec<(usize, i64)>,
+}
+
+struct NativeOpponentVo {
+    update_ordinal: u64,
+    call_ordinal: u64,
+    source: usize,
+    target: usize,
+    vo_buffer_length_before: i32,
+    vo_buffer_length_after: i32,
+    appended_colliding: bool,
+}
+
+struct NativeRvoVoBuffer {
+    update_ordinal: u64,
+    call_ordinal: u64,
+    source: usize,
+    vos: Vec<NativeRvoVo>,
 }
 
 #[derive(Default)]
@@ -199,13 +475,26 @@ struct CaptureState {
     projectile_ids: BTreeMap<usize, u64>,
     status_ids: BTreeMap<usize, u64>,
     formation_ids: BTreeMap<usize, u64>,
+    rvo_agent_refs: BTreeMap<usize, ObjectRef>,
+    rvo_agent_owners: BTreeMap<usize, usize>,
+    rvo_internal_agent_ids: BTreeMap<usize, u64>,
     next_unit_id: u64,
     next_building_id: u64,
     next_projectile_id: u64,
     next_status_id: u64,
     next_formation_id: u64,
+    next_rvo_internal_agent_id: u64,
     in_update: bool,
     traces: Vec<NativeTrace>,
+    rvo_neighbour_sets: Vec<NativeRvoNeighbourSet>,
+    rvo_agent_sets: BTreeMap<u64, Vec<NativeRvoAgentState>>,
+    rvo_vo_buffers: Vec<NativeRvoVoBuffer>,
+    opponent_vos: Vec<NativeOpponentVo>,
+    rvo_update_modes: BTreeMap<u64, bool>,
+    rvo_update_symmetry_breaking_biases: BTreeMap<u64, FixedPoint>,
+    rvo_update_start_native_ticks: BTreeMap<u64, u64>,
+    rvo_update_publish_native_ticks: BTreeMap<u64, u64>,
+    rvo_update_multithreaded: BTreeMap<u64, bool>,
     visual: Option<VisualCapture>,
     pending_visual: Option<PendingVisualMessage>,
     render_completed: bool,
@@ -222,13 +511,25 @@ impl CaptureState {
         self.projectile_ids.clear();
         self.status_ids.clear();
         self.formation_ids.clear();
+        self.rvo_agent_refs.clear();
+        self.rvo_internal_agent_ids.clear();
         self.next_unit_id = 1;
         self.next_building_id = 1;
         self.next_projectile_id = 1;
         self.next_status_id = 1;
         self.next_formation_id = 1;
+        self.next_rvo_internal_agent_id = 0;
         self.in_update = false;
         self.traces.clear();
+        self.rvo_neighbour_sets.clear();
+        self.rvo_agent_sets.clear();
+        self.rvo_vo_buffers.clear();
+        self.opponent_vos.clear();
+        self.rvo_update_modes.clear();
+        self.rvo_update_symmetry_breaking_biases.clear();
+        self.rvo_update_start_native_ticks.clear();
+        self.rvo_update_publish_native_ticks.clear();
+        self.rvo_update_multithreaded.clear();
         self.visual = None;
         self.pending_visual = None;
         self.render_completed = false;
@@ -828,6 +1129,24 @@ static ORIGINAL_POST_RENDER: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut())
 static ORIGINAL_PROJECTILE_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_DAMAGE_PERFORM: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_CONTROLLER_ACTIVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_ADD_AGENT_FIXED: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_FIXED_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_PRE_CALCULATION: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_CALCULATE_NEIGHBOURS: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RVO_GENERATE_OPPONENT_VOS: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static RVO_UPDATE_ORDINAL: AtomicU64 = AtomicU64::new(0);
+static RVO_SOURCE_CALL_ORDINAL: AtomicU64 = AtomicU64::new(0);
+static RVO_VO_CALL_ORDINAL: AtomicU64 = AtomicU64::new(0);
+static ACTIVE_RVO_UPDATE: AtomicU64 = AtomicU64::new(u64::MAX);
+static CURRENT_RVO_FIXED_UPDATE: AtomicU64 = AtomicU64::new(u64::MAX);
+static CURRENT_RVO_ACTIVATION_COUNT: AtomicU64 = AtomicU64::new(0);
+static RVO_ACTIVATION_COUNT: AtomicU64 = AtomicU64::new(0);
+
+thread_local! {
+    static ACTIVE_RVO_CONTROLLER: Cell<usize> = const { Cell::new(0) };
+}
 
 enum NativeTrace {
     ProjectileReleased {
@@ -859,6 +1178,7 @@ pub(crate) fn initialize(runtime: &mut Runtime) {
     let mut state = capture_state()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
+    state.rvo_agent_owners.clear();
     match result {
         Ok(metadata) => {
             state.metadata = metadata;
@@ -971,6 +1291,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
         install_post_render_hook(api, post_render)?;
+        let (rvo, rvo_error) = match initialize_rvo_instrumentation(api) {
+            Ok(metadata) => (Some(metadata), None),
+            Err(error) => (None, Some(error)),
+        };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             projectile_controllers: projectile_controllers as usize,
@@ -988,8 +1312,233 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             fight_skill_class: fight_skill.map(|class| class as usize),
             fight_skill_lock_target,
             fight_skill_attack_target,
+            rvo,
+            rvo_error,
         })
     }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn initialize_rvo_instrumentation(api: Api) -> Result<RvoMetadata, String> {
+    let fight_actor = api
+        .class("GRFight.dll", "GameRiver.Fight", "FightActor")
+        .map_err(|error| error.to_string())?;
+    let fight_actor_rvo_controller = api
+        .field(fight_actor, "rvoController")
+        .map_err(|error| error.to_string())?;
+    let rvo_controller = api
+        .class("GRFight.dll", "GameRiver.Fight.GRPF.RVO", "RVOController")
+        .map_err(|error| error.to_string())?;
+    let rvo_controller_agent = api
+        .field(rvo_controller, "<rvoAgent>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let rvo_controller_fixed = api
+        .class("GRFight.dll", "GameRiver.Fight", "RVOControllerFixed")
+        .map_err(|error| error.to_string())?;
+    let rvo_controller_owner = api
+        .field(rvo_controller_fixed, "owner")
+        .map_err(|error| error.to_string())?;
+    let rvo_controller_active = api
+        .method(rvo_controller_fixed, "Active", 0)
+        .map_err(|error| error.to_string())?;
+    let simulator = api
+        .class("GRFight.dll", "GameRiver.Fight.GRPF.RVO", "Simulator")
+        .map_err(|error| error.to_string())?;
+    let simulator_double_buffering = api
+        .field(simulator, "doubleBuffering")
+        .map_err(|error| error.to_string())?;
+    let simulator_symmetry_breaking_bias = api
+        .field(simulator, "symmetryBreakingBias")
+        .map_err(|error| error.to_string())?;
+    let simulator_workers = api
+        .field(simulator, "workers")
+        .map_err(|error| error.to_string())?;
+    let simulator_agents = api
+        .field(simulator, "agents")
+        .map_err(|error| error.to_string())?;
+    let fixed_update = api
+        .method(simulator, "FixedUpdate", 0)
+        .map_err(|error| error.to_string())?;
+    let pre_calculation = api
+        .method(simulator, "PreCalculation", 0)
+        .map_err(|error| error.to_string())?;
+    let add_agent_fixed = api
+        .method(simulator, "AddAgentFixed", 1)
+        .map_err(|error| error.to_string())?;
+    let agent = api
+        .class("GRFight.dll", "GameRiver.Fight.GRPF.RVO.Sampled", "Agent")
+        .map_err(|error| error.to_string())?;
+    let agent_neighbour_count = api
+        .field(agent, "<NeighbourCount>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let agent_radius_inner = api
+        .field(agent, "radiusInner")
+        .map_err(|error| error.to_string())?;
+    let agent_size = api
+        .field(agent, "<Size>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let agent_radius_outer = api
+        .field(agent, "radius")
+        .map_err(|error| error.to_string())?;
+    let agent_max_speed = api
+        .field(agent, "maxSpeed")
+        .map_err(|error| error.to_string())?;
+    let agent_desired_speed = api
+        .field(agent, "desiredSpeed")
+        .map_err(|error| error.to_string())?;
+    let agent_time_horizon = api
+        .field(agent, "agentTimeHorizon")
+        .map_err(|error| error.to_string())?;
+    let agent_priority = api
+        .field(agent, "<Priority>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let agent_published_calculated_speed = api
+        .field(agent, "<CalculatedSpeed>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let agent_current_velocity = api
+        .field(agent, "currentVelocity")
+        .map_err(|error| error.to_string())?;
+    let agent_desired_velocity = api
+        .field(agent, "desiredVelocity")
+        .map_err(|error| error.to_string())?;
+    let agent_desired_target = api
+        .field(agent, "desiredTargetPointInVelocitySpace")
+        .map_err(|error| error.to_string())?;
+    let agent_calculated_target = api
+        .field(agent, "<CalculatedTargetPoint>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let agent_locked = api
+        .field(agent, "locked")
+        .map_err(|error| error.to_string())?;
+    let agent_layer = api
+        .field(agent, "layer")
+        .map_err(|error| error.to_string())?;
+    let agent_collides_with = api
+        .field(agent, "collidesWith")
+        .map_err(|error| error.to_string())?;
+    let agent_internal_max_neighbours = api
+        .field(agent, "maxNeighbours")
+        .map_err(|error| error.to_string())?;
+    let agent_position = api
+        .field(agent, "position")
+        .map_err(|error| error.to_string())?;
+    let agent_simulator = api
+        .field(agent, "simulator")
+        .map_err(|error| error.to_string())?;
+    let agent_max_neighbours = api
+        .field(agent, "<MaxNeighbours>k__BackingField")
+        .map_err(|error| error.to_string())?;
+    let agent_neighbours = api
+        .field(agent, "neighbours")
+        .map_err(|error| error.to_string())?;
+    let agent_neighbour_dists = api
+        .field(agent, "neighbourDists")
+        .map_err(|error| error.to_string())?;
+    let calculate_neighbours = api
+        .method(agent, "CalculateNeighbours", 0)
+        .map_err(|error| error.to_string())?;
+    let rvo_agent = api
+        .class(
+            "GRFight.dll",
+            "GameRiver.Fight.GRPF.RVO.Sampled",
+            "RVOAgentFixed",
+        )
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_main_layer = api
+        .field(rvo_agent, "mainLayer")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_sync_main_layer = api
+        .field(rvo_agent, "sync_mainLayer")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_group = api
+        .field(rvo_agent, "group")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_sync_group = api
+        .field(rvo_agent, "sync_group")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_ignore_same_group = api
+        .field(rvo_agent, "ignoreSameGroup")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_sync_ignore_same_group = api
+        .field(rvo_agent, "sync_ignoreSameGroup")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_team = api
+        .field(rvo_agent, "team")
+        .map_err(|error| error.to_string())?;
+    let rvo_agent_sync_team = api
+        .field(rvo_agent, "sync_team")
+        .map_err(|error| error.to_string())?;
+    let generate_neighbour_vos = api
+        .method(rvo_agent, "GenerateNeighbourAgentVOs", 1)
+        .map_err(|error| error.to_string())?;
+    let generate_opponent_vos = api
+        .method(rvo_agent, "GenerateOpponentVOs", 2)
+        .map_err(|error| error.to_string())?;
+    let vo_buffer = api
+        .class(
+            "GRFight.dll",
+            "GameRiver.Fight.GRPF.RVO.Sampled",
+            "Agent/VOBuffer",
+        )
+        .map_err(|error| error.to_string())?;
+    let vo_buffer_buffer = api
+        .field(vo_buffer, "buffer")
+        .map_err(|error| error.to_string())?;
+    let vo_buffer_length = api
+        .field(vo_buffer, "length")
+        .map_err(|error| error.to_string())?;
+    run_rvo_hook_install_sequence(|index| match index {
+        0 => install_rvo_controller_active_hook(api, rvo_controller_active),
+        1 => install_rvo_add_agent_fixed_hook(api, add_agent_fixed),
+        2 => install_rvo_fixed_update_hook(api, fixed_update),
+        3 => install_rvo_pre_calculation_hook(api, pre_calculation),
+        4 => install_rvo_calculate_neighbours_hook(api, calculate_neighbours),
+        5 => install_rvo_generate_neighbour_vos_hook(api, generate_neighbour_vos),
+        6 => install_rvo_generate_opponent_vos_hook(api, generate_opponent_vos),
+        _ => unreachable!("RVO hook sequence has exactly seven entries"),
+    })?;
+    Ok(RvoMetadata {
+        fight_actor_rvo_controller: fight_actor_rvo_controller as usize,
+        rvo_controller_agent: rvo_controller_agent as usize,
+        rvo_controller_owner: rvo_controller_owner as usize,
+        simulator_double_buffering: simulator_double_buffering as usize,
+        simulator_symmetry_breaking_bias: simulator_symmetry_breaking_bias as usize,
+        simulator_workers: simulator_workers as usize,
+        simulator_agents: simulator_agents as usize,
+        agent_radius_inner: agent_radius_inner as usize,
+        agent_size: agent_size as usize,
+        agent_radius_outer: agent_radius_outer as usize,
+        agent_max_speed: agent_max_speed as usize,
+        agent_desired_speed: agent_desired_speed as usize,
+        agent_time_horizon: agent_time_horizon as usize,
+        agent_priority: agent_priority as usize,
+        agent_published_calculated_speed: agent_published_calculated_speed as usize,
+        agent_current_velocity: agent_current_velocity as usize,
+        agent_desired_velocity: agent_desired_velocity as usize,
+        agent_desired_target: agent_desired_target as usize,
+        agent_calculated_target: agent_calculated_target as usize,
+        agent_locked: agent_locked as usize,
+        agent_layer: agent_layer as usize,
+        agent_collides_with: agent_collides_with as usize,
+        agent_internal_max_neighbours: agent_internal_max_neighbours as usize,
+        agent_position: agent_position as usize,
+        agent_simulator: agent_simulator as usize,
+        rvo_agent_class: rvo_agent as usize,
+        rvo_agent_main_layer: rvo_agent_main_layer as usize,
+        rvo_agent_sync_main_layer: rvo_agent_sync_main_layer as usize,
+        rvo_agent_group: rvo_agent_group as usize,
+        rvo_agent_sync_group: rvo_agent_sync_group as usize,
+        rvo_agent_ignore_same_group: rvo_agent_ignore_same_group as usize,
+        rvo_agent_sync_ignore_same_group: rvo_agent_sync_ignore_same_group as usize,
+        rvo_agent_team: rvo_agent_team as usize,
+        rvo_agent_sync_team: rvo_agent_sync_team as usize,
+        agent_max_neighbours: agent_max_neighbours as usize,
+        agent_neighbour_count: agent_neighbour_count as usize,
+        agent_neighbours: agent_neighbours as usize,
+        agent_neighbour_dists: agent_neighbour_dists as usize,
+        vo_buffer: vo_buffer_buffer as usize,
+        vo_buffer_length: vo_buffer_length as usize,
+    })
 }
 
 pub(crate) fn start(
@@ -1006,17 +1555,18 @@ pub(crate) fn start(
     if state.armed {
         return Err("a battle recording is already active".into());
     }
-    if instrumentation_profile == Some(CaptureInstrumentationProfile::TargetRefsV1)
+    if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_target_refs)
         && (state.metadata.fight_mech_lock_target.is_none()
             || state.metadata.fight_skill_class.is_none()
             || state.metadata.fight_skill_lock_target.is_none()
             || state.metadata.fight_skill_attack_target.is_none())
     {
         return Err(
-            "target_refs_v1 is unavailable because native target fields could not be resolved"
+            "target-reference instrumentation is unavailable because native target fields could not be resolved"
                 .into(),
         );
     }
+    validate_rvo_profile_availability(instrumentation_profile, &state.metadata)?;
     let fight = runtime.current_fight();
     if fight.is_null() {
         return Err("fight controller is unavailable".into());
@@ -1037,6 +1587,13 @@ pub(crate) fn start(
         return Err("active match disappeared before recording started".into());
     }
     state.reset_session();
+    RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
+    RVO_SOURCE_CALL_ORDINAL.store(0, Ordering::Release);
+    RVO_VO_CALL_ORDINAL.store(0, Ordering::Release);
+    ACTIVE_RVO_UPDATE.store(u64::MAX, Ordering::Release);
+    CURRENT_RVO_FIXED_UPDATE.store(u64::MAX, Ordering::Release);
+    CURRENT_RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
+    RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
     state.instrumentation_profile = instrumentation_profile;
     if visual {
         state.visual = Some(VisualCapture::new(runtime)?);
@@ -1058,6 +1615,25 @@ pub(crate) fn start(
     Ok(())
 }
 
+fn validate_rvo_profile_availability(
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
+    metadata: &Metadata,
+) -> Result<(), String> {
+    if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_rvo)
+        && metadata.rvo.is_none()
+    {
+        Err(format!(
+            "target_refs_rvo_v1 is unavailable: {}",
+            metadata
+                .rvo_error
+                .as_deref()
+                .unwrap_or("native RVO fields or hooks could not be resolved")
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 pub(crate) fn stop() -> Result<(), String> {
     let mut state = capture_state()
         .lock()
@@ -1065,12 +1641,33 @@ pub(crate) fn stop() -> Result<(), String> {
     state.armed = false;
     state.pending_visual = None;
     state.traces.clear();
+    clear_pending_rvo_state(&mut state);
+    reset_rvo_sentinels();
     let visual = state.visual.take();
     drop(state);
     if let Some(visual) = visual {
         visual.restore(true)?;
     }
     Ok(())
+}
+
+fn clear_pending_rvo_state(state: &mut CaptureState) {
+    state.rvo_neighbour_sets.clear();
+    state.rvo_agent_sets.clear();
+    state.rvo_vo_buffers.clear();
+    state.opponent_vos.clear();
+    state.rvo_update_modes.clear();
+    state.rvo_update_symmetry_breaking_biases.clear();
+    state.rvo_update_start_native_ticks.clear();
+    state.rvo_update_publish_native_ticks.clear();
+    state.rvo_update_multithreaded.clear();
+}
+
+fn reset_rvo_sentinels() {
+    ACTIVE_RVO_UPDATE.store(u64::MAX, Ordering::Release);
+    CURRENT_RVO_FIXED_UPDATE.store(u64::MAX, Ordering::Release);
+    CURRENT_RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
+    RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
 }
 
 pub(crate) fn poll() -> Option<CaptureMessage> {
@@ -1100,6 +1697,974 @@ type DamagePerformFn = unsafe extern "C" fn(
     *mut Object,
     *const MethodInfo,
 ) -> i32;
+type RvoControllerActiveFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type RvoAddAgentFixedFn =
+    unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo) -> *mut Object;
+type RvoFixedUpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type RvoPreCalculationFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type RvoCalculateNeighboursFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type RvoGenerateNeighbourVosFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
+type RvoGenerateOpponentVosFn =
+    unsafe extern "C" fn(*mut Object, *mut Object, *mut Object, *const MethodInfo);
+
+const RVO_HOOK_COUNT: usize = 7;
+
+fn run_rvo_hook_install_sequence(
+    mut install: impl FnMut(usize) -> Result<(), String>,
+) -> Result<(), String> {
+    for index in 0..RVO_HOOK_COUNT {
+        install(index)?;
+    }
+    Ok(())
+}
+
+unsafe extern "C" fn rvo_controller_active_hook(
+    controller: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_RVO_CONTROLLER_ACTIVE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoControllerActiveFn = unsafe { std::mem::transmute(original) };
+    let previous = ACTIVE_RVO_CONTROLLER.with(|active| active.replace(controller as usize));
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    unsafe { original(controller, method) };
+    ACTIVE_RVO_CONTROLLER.with(|active| active.set(previous));
+    observe_active_rvo_controller(controller);
+}
+
+unsafe extern "C" fn rvo_add_agent_fixed_hook(
+    simulator: *mut Object,
+    agent: *mut Object,
+    method: *const MethodInfo,
+) -> *mut Object {
+    let original = ORIGINAL_RVO_ADD_AGENT_FIXED.load(Ordering::Acquire);
+    if original.is_null() {
+        return ptr::null_mut();
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoAddAgentFixedFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    let added = unsafe { original(simulator, agent, method) };
+    ACTIVE_RVO_CONTROLLER.with(|active| {
+        let controller = active.get();
+        if controller != 0 && !added.is_null() {
+            observe_rvo_agent_owner(controller as *mut Object, added);
+        }
+    });
+    added
+}
+
+fn observe_active_rvo_controller(controller: *mut Object) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let metadata = {
+        capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .metadata
+            .rvo
+    };
+    let Some(metadata) = metadata else {
+        return;
+    };
+    let agent: Result<*mut Object, _> = runtime
+        .api
+        .field_value(controller, metadata.rvo_controller_agent as *mut FieldInfo);
+    if let Ok(agent) = agent
+        && !agent.is_null()
+    {
+        observe_rvo_agent_owner(controller, agent);
+    }
+}
+
+fn observe_rvo_agent_owner(controller: *mut Object, agent: *mut Object) {
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let Some(metadata) = state.metadata.rvo else {
+            return;
+        };
+        let owner: Result<*mut Object, _> = runtime
+            .api
+            .field_value(controller, metadata.rvo_controller_owner as *mut FieldInfo);
+        let owner = match owner {
+            Ok(owner) if !owner.is_null() => owner,
+            Ok(_) => return,
+            Err(error) => {
+                if state.armed {
+                    state.fail(format!(
+                        "cannot observe native RVO controller owner: {error}"
+                    ));
+                }
+                return;
+            }
+        };
+        record_rvo_agent_owner_mapping(&mut state, agent as usize, owner as usize);
+    }));
+}
+
+fn record_rvo_agent_owner_mapping(state: &mut CaptureState, agent: usize, owner: usize) {
+    if let Some(previous) = state.rvo_agent_owners.insert(agent, owner)
+        && previous != owner
+        && state.armed
+    {
+        state.fail("native RVO agent was assigned to two FightActors".into());
+    }
+}
+
+unsafe extern "C" fn rvo_fixed_update_hook(simulator: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_RVO_FIXED_UPDATE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoFixedUpdateFn = unsafe { std::mem::transmute(original) };
+    let update_ordinal = begin_rvo_update(simulator);
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    unsafe { original(simulator, method) };
+    if let Some(update_ordinal) = update_ordinal {
+        finish_rvo_update(update_ordinal);
+    }
+}
+
+unsafe extern "C" fn rvo_pre_calculation_hook(simulator: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_RVO_PRE_CALCULATION.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoPreCalculationFn = unsafe { std::mem::transmute(original) };
+    activate_rvo_update();
+    // PreCalculation is called after any previous double-buffered workers were
+    // joined/published and before this update's worker tasks are signalled.
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    unsafe { original(simulator, method) };
+}
+
+unsafe extern "C" fn rvo_calculate_neighbours_hook(agent: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_RVO_CALCULATE_NEIGHBOURS.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoCalculateNeighboursFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    unsafe { original(agent, method) };
+    record_rvo_neighbours(agent);
+}
+
+unsafe extern "C" fn rvo_generate_neighbour_vos_hook(
+    agent: *mut Object,
+    vos: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoGenerateNeighbourVosFn = unsafe { std::mem::transmute(original) };
+    let update_ordinal = active_rvo_update();
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    unsafe { original(agent, vos, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed
+            || !state
+                .instrumentation_profile
+                .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+        {
+            return;
+        }
+        let Some(update_ordinal) = update_ordinal else {
+            if RVO_ACTIVATION_COUNT.load(Ordering::Acquire) != 0 {
+                let error = rvo_boundary_diagnostic(
+                    "GenerateNeighbourAgentVOs completed outside an active RVO update",
+                    &state,
+                );
+                state.fail(error);
+            }
+            return;
+        };
+        let Some(metadata) = state.metadata.rvo else {
+            state.fail("RVO metadata disappeared during instrumentation".into());
+            return;
+        };
+        match read_native_rvo_vo_buffer(runtime.api, vos, metadata) {
+            Ok(vos) => state.rvo_vo_buffers.push(NativeRvoVoBuffer {
+                update_ordinal,
+                call_ordinal: RVO_VO_CALL_ORDINAL.fetch_add(1, Ordering::AcqRel),
+                source: agent as usize,
+                vos,
+            }),
+            Err(error) => state.fail(error),
+        }
+    }));
+}
+
+unsafe extern "C" fn rvo_generate_opponent_vos_hook(
+    agent: *mut Object,
+    vos: *mut Object,
+    other: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_RVO_GENERATE_OPPONENT_VOS.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact method ABI.
+    let original: RvoGenerateOpponentVosFn = unsafe { std::mem::transmute(original) };
+    let profile_active = {
+        let state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        state.armed
+            && state
+                .instrumentation_profile
+                .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+    };
+    let update_ordinal = active_rvo_update();
+    let before = update_ordinal.and_then(|_| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() {
+            return None;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed
+            || !state
+                .instrumentation_profile
+                .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+        {
+            return None;
+        }
+        state
+            .metadata
+            .rvo
+            .map(|metadata| read_vo_buffer_length(runtime.api, vos, metadata))
+    });
+    // SAFETY: arguments are forwarded unchanged from IL2CPP.
+    unsafe { original(agent, vos, other, method) };
+    if profile_active && update_ordinal.is_none() {
+        if RVO_ACTIVATION_COUNT.load(Ordering::Acquire) == 0 {
+            return;
+        }
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if state.armed {
+            let error = rvo_boundary_diagnostic(
+                "GenerateOpponentVOs completed outside an active RVO update",
+                &state,
+            );
+            state.fail(error);
+        }
+        return;
+    }
+    if let (Some(update_ordinal), Some(before)) = (update_ordinal, before) {
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let runtime = RUNTIME.load(Ordering::Acquire);
+            if runtime.is_null() {
+                return;
+            }
+            // SAFETY: runtime is boxed for the adapter process lifetime.
+            let runtime = unsafe { &*runtime };
+            let mut state = capture_state()
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if !state.armed
+                || !state
+                    .instrumentation_profile
+                    .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+            {
+                return;
+            }
+            let Some(metadata) = state.metadata.rvo else {
+                state.fail("RVO metadata disappeared during instrumentation".into());
+                return;
+            };
+            let observation = before.and_then(|before| {
+                let after = read_vo_buffer_length(runtime.api, vos, metadata)?;
+                let colliding =
+                    read_appended_vo_colliding(runtime.api, vos, before, after, metadata)?;
+                Ok(NativeOpponentVo {
+                    update_ordinal,
+                    call_ordinal: RVO_VO_CALL_ORDINAL.fetch_add(1, Ordering::AcqRel),
+                    source: agent as usize,
+                    target: other as usize,
+                    vo_buffer_length_before: before,
+                    vo_buffer_length_after: after,
+                    appended_colliding: colliding,
+                })
+            });
+            match observation {
+                Ok(observation) => state.opponent_vos.push(observation),
+                Err(error) => state.fail(error),
+            }
+        }));
+    }
+}
+
+fn begin_rvo_update(simulator: *mut Object) -> Option<u64> {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return None;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed
+        || !state
+            .instrumentation_profile
+            .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+    {
+        return None;
+    }
+    if !state.in_update {
+        state.fail("native RVO FixedUpdate began outside the captured logic tick".into());
+        return None;
+    }
+    let Some(metadata) = state.metadata.rvo else {
+        state.fail("RVO metadata disappeared during instrumentation".into());
+        return None;
+    };
+    let double_buffering: bool = match runtime.api.field_value(
+        simulator,
+        metadata.simulator_double_buffering as *mut FieldInfo,
+    ) {
+        Ok(value) => value,
+        Err(error) => {
+            state.fail(format!("cannot read native RVO doubleBuffering: {error}"));
+            return None;
+        }
+    };
+    let symmetry_breaking_bias: FixedPoint = match runtime.api.field_value(
+        simulator,
+        metadata.simulator_symmetry_breaking_bias as *mut FieldInfo,
+    ) {
+        Ok(value) => value,
+        Err(error) => {
+            state.fail(format!(
+                "cannot read native RVO symmetryBreakingBias: {error}"
+            ));
+            return None;
+        }
+    };
+    let workers: *mut Object = match runtime
+        .api
+        .field_value(simulator, metadata.simulator_workers as *mut FieldInfo)
+    {
+        Ok(value) => value,
+        Err(error) => {
+            state.fail(format!("cannot read native RVO workers: {error}"));
+            return None;
+        }
+    };
+    let worker_count = match managed_array_length(workers, "RVO Simulator.workers", 256) {
+        Ok(value) => value,
+        Err(error) => {
+            state.fail(error);
+            return None;
+        }
+    };
+    let fight = runtime.current_fight();
+    if fight.is_null() {
+        state.fail("fight controller disappeared at native RVO update".into());
+        return None;
+    }
+    let native_tick = match runtime
+        .api
+        .invoke_value::<i32>(fight, "get_Tick", &mut [])
+        .map_err(|error| error.to_string())
+        .and_then(|tick| {
+            u64::try_from(tick).map_err(|_| format!("negative native logic tick {tick}"))
+        }) {
+        Ok(value) => value,
+        Err(error) => {
+            state.fail(error);
+            return None;
+        }
+    };
+    let ordinal = RVO_UPDATE_ORDINAL.fetch_add(1, Ordering::AcqRel);
+    if CURRENT_RVO_FIXED_UPDATE
+        .compare_exchange(u64::MAX, ordinal, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        state.fail("native RVO FixedUpdate calls overlapped during instrumentation".into());
+        return None;
+    }
+    CURRENT_RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
+    state.rvo_update_modes.insert(ordinal, double_buffering);
+    state
+        .rvo_update_symmetry_breaking_biases
+        .insert(ordinal, symmetry_breaking_bias);
+    state
+        .rvo_update_start_native_ticks
+        .insert(ordinal, native_tick);
+    state
+        .rvo_update_multithreaded
+        .insert(ordinal, worker_count != 0);
+    Some(ordinal)
+}
+
+fn managed_array_length(array: *mut Object, label: &str, cap: usize) -> Result<usize, String> {
+    const ARRAY_LENGTH_OFFSET: usize = 0x18;
+    if array.is_null() {
+        return Ok(0);
+    }
+    // The target IL2CPP array ABI stores max_length at 0x18. This is the same
+    // build-2259 ABI used below for the directly observed VO array.
+    // SAFETY: `array` is a non-null managed array read from a typed field.
+    let length = unsafe {
+        array
+            .cast::<u8>()
+            .add(ARRAY_LENGTH_OFFSET)
+            .cast::<usize>()
+            .read_unaligned()
+    };
+    if length > cap {
+        return Err(format!("native {label} length {length} exceeds cap {cap}"));
+    }
+    Ok(length)
+}
+
+fn finish_rvo_update(update_ordinal: u64) {
+    if CURRENT_RVO_FIXED_UPDATE
+        .compare_exchange(
+            update_ordinal,
+            u64::MAX,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        )
+        .is_err()
+    {
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if state.armed {
+            state.fail("native RVO FixedUpdate boundary changed before completion".into());
+        }
+        return;
+    }
+    let activation_count = CURRENT_RVO_ACTIVATION_COUNT.swap(0, Ordering::AcqRel);
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed {
+        return;
+    }
+    let Some(&double_buffering) = state.rvo_update_modes.get(&update_ordinal) else {
+        state.fail(format!("native RVO update {update_ordinal} lost its mode"));
+        return;
+    };
+    let Some(&multithreaded) = state.rvo_update_multithreaded.get(&update_ordinal) else {
+        state.fail(format!(
+            "native RVO update {update_ordinal} lost its worker mode"
+        ));
+        return;
+    };
+    if activation_count == 0 {
+        discard_unpublished_rvo_update(&mut state, update_ordinal);
+        return;
+    }
+    if activation_count != 1 {
+        state.fail(format!(
+            "native RVO update {update_ordinal} crossed PreCalculation {activation_count} times"
+        ));
+        return;
+    }
+    if !multithreaded || !double_buffering {
+        let Some(&publish_tick) = state.rvo_update_start_native_ticks.get(&update_ordinal) else {
+            state.fail(format!(
+                "native RVO update {update_ordinal} lost its start tick"
+            ));
+            return;
+        };
+        if state
+            .rvo_update_publish_native_ticks
+            .insert(update_ordinal, publish_tick)
+            .is_some()
+        {
+            state.fail(format!(
+                "native RVO update {update_ordinal} was published twice"
+            ));
+            return;
+        }
+        if ACTIVE_RVO_UPDATE
+            .compare_exchange(
+                update_ordinal,
+                u64::MAX,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_err()
+        {
+            state.fail(format!(
+                "native RVO update {update_ordinal} was not active at synchronous publication"
+            ));
+        }
+    }
+}
+
+fn discard_unpublished_rvo_update(state: &mut CaptureState, update_ordinal: u64) {
+    state.rvo_update_modes.remove(&update_ordinal);
+    state
+        .rvo_update_symmetry_breaking_biases
+        .remove(&update_ordinal);
+    state.rvo_update_start_native_ticks.remove(&update_ordinal);
+    state.rvo_update_multithreaded.remove(&update_ordinal);
+}
+
+fn activate_rvo_update() {
+    let update_ordinal = CURRENT_RVO_FIXED_UPDATE.load(Ordering::Acquire);
+    if update_ordinal == u64::MAX {
+        return;
+    }
+    CURRENT_RVO_ACTIVATION_COUNT.fetch_add(1, Ordering::AcqRel);
+    RVO_ACTIVATION_COUNT.fetch_add(1, Ordering::AcqRel);
+    let active = ACTIVE_RVO_UPDATE.swap(update_ordinal, Ordering::AcqRel);
+    if active == update_ordinal {
+        return;
+    }
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed
+        || !state
+            .instrumentation_profile
+            .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+    {
+        return;
+    }
+    if active != u64::MAX {
+        let Some(&publish_tick) = state.rvo_update_start_native_ticks.get(&update_ordinal) else {
+            state.fail(format!(
+                "native RVO update {update_ordinal} lost its start tick before scheduling"
+            ));
+            return;
+        };
+        if state
+            .rvo_update_publish_native_ticks
+            .insert(active, publish_tick)
+            .is_some()
+        {
+            state.fail(format!("native RVO update {active} was published twice"));
+        }
+    }
+}
+
+fn active_rvo_update() -> Option<u64> {
+    let ordinal = ACTIVE_RVO_UPDATE.load(Ordering::Acquire);
+    (ordinal != u64::MAX).then_some(ordinal)
+}
+
+fn record_rvo_neighbours(agent: *mut Object) {
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed
+            || !state
+                .instrumentation_profile
+                .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+        {
+            return;
+        }
+        let Some(update_ordinal) = active_rvo_update() else {
+            if RVO_ACTIVATION_COUNT.load(Ordering::Acquire) == 0 {
+                return;
+            }
+            let error = rvo_boundary_diagnostic(
+                "CalculateNeighbours completed outside an active RVO update",
+                &state,
+            );
+            state.fail(error);
+            return;
+        };
+        let Some(metadata) = state.metadata.rvo else {
+            state.fail("RVO metadata disappeared during instrumentation".into());
+            return;
+        };
+        if !state.rvo_agent_sets.contains_key(&update_ordinal) {
+            match read_native_rvo_agent_set(runtime.api, agent, metadata) {
+                Ok(agents) => {
+                    state.rvo_agent_sets.insert(update_ordinal, agents);
+                }
+                Err(error) => {
+                    state.fail(error);
+                    return;
+                }
+            }
+        }
+        let source_call_ordinal = RVO_SOURCE_CALL_ORDINAL.fetch_add(1, Ordering::AcqRel);
+        match read_native_rvo_neighbour_set(
+            runtime.api,
+            agent,
+            update_ordinal,
+            source_call_ordinal,
+            metadata,
+        ) {
+            Ok(observation) => state.rvo_neighbour_sets.push(observation),
+            Err(error) => state.fail(error),
+        }
+    }));
+}
+
+fn read_native_rvo_agent_set(
+    api: Api,
+    source: *mut Object,
+    metadata: RvoMetadata,
+) -> Result<Vec<NativeRvoAgentState>, String> {
+    const INSTRUMENTATION_AGENT_CAP: i32 = 4_096;
+    let simulator: *mut Object = api
+        .field_value(source, metadata.agent_simulator as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if simulator.is_null() {
+        return Err("native RVO source has no simulator".into());
+    }
+    let agents: *mut Object = api
+        .field_value(simulator, metadata.simulator_agents as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let count = list_count(api, agents, INSTRUMENTATION_AGENT_CAP)?;
+    let mut result = Vec::with_capacity(count as usize);
+    for index in 0..count {
+        let agent = list_item(api, agents, index)?;
+        if agent.is_null() {
+            return Err(format!("native RVO agent {index} is null"));
+        }
+        let class = api
+            .object_class(agent)
+            .ok_or_else(|| format!("native RVO agent {index} has no runtime class"))?;
+        if !api.class_is_or_inherits(class, metadata.rvo_agent_class as *mut Class) {
+            return Err(format!(
+                "native RVO agent {index} is {}, expected RVOAgentFixed",
+                api.object_class_name(agent)
+            ));
+        }
+        let read = |field: usize| {
+            api.field_value::<FixedPoint>(agent, field as *mut FieldInfo)
+                .map_err(|error| error.to_string())
+        };
+        let radius_inner = read(metadata.agent_radius_inner)?;
+        let radius_outer = read(metadata.agent_radius_outer)?;
+        let max_speed = read(metadata.agent_max_speed)?;
+        let desired_speed = read(metadata.agent_desired_speed)?;
+        let agent_time_horizon = read(metadata.agent_time_horizon)?;
+        let priority = read(metadata.agent_priority)?;
+        let published_calculated_speed = read(metadata.agent_published_calculated_speed)?;
+        let current_velocity = api
+            .field_value::<FixedVec2>(agent, metadata.agent_current_velocity as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let desired_velocity = api
+            .field_value::<FixedVec2>(agent, metadata.agent_desired_velocity as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let desired_target = api
+            .field_value::<FixedVec2>(agent, metadata.agent_desired_target as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let calculated_target = api
+            .field_value::<FixedVec2>(agent, metadata.agent_calculated_target as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let size = api
+            .field_value::<i32>(agent, metadata.agent_size as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let locked = api
+            .field_value::<bool>(agent, metadata.agent_locked as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let layer = api
+            .field_value::<i32>(agent, metadata.agent_layer as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let collides_with = api
+            .field_value::<i32>(agent, metadata.agent_collides_with as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let max_neighbours = api
+            .field_value::<i32>(
+                agent,
+                metadata.agent_internal_max_neighbours as *mut FieldInfo,
+            )
+            .map_err(|error| error.to_string())?;
+        let main_layer = api
+            .field_value::<i32>(agent, metadata.rvo_agent_main_layer as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let sync_main_layer = api
+            .field_value::<i32>(agent, metadata.rvo_agent_sync_main_layer as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let group = api
+            .field_value::<i32>(agent, metadata.rvo_agent_group as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let sync_group = api
+            .field_value::<i32>(agent, metadata.rvo_agent_sync_group as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let ignore_same_group = api
+            .field_value::<bool>(
+                agent,
+                metadata.rvo_agent_ignore_same_group as *mut FieldInfo,
+            )
+            .map_err(|error| error.to_string())?;
+        let sync_ignore_same_group = api
+            .field_value::<bool>(
+                agent,
+                metadata.rvo_agent_sync_ignore_same_group as *mut FieldInfo,
+            )
+            .map_err(|error| error.to_string())?;
+        let team = api
+            .field_value::<FixedRvoTeam>(agent, metadata.rvo_agent_team as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let sync_team = api
+            .field_value::<FixedRvoTeam>(agent, metadata.rvo_agent_sync_team as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        let position = api
+            .field_value::<FixedVec2>(agent, metadata.agent_position as *mut FieldInfo)
+            .map_err(|error| error.to_string())?;
+        result.push(NativeRvoAgentState {
+            pointer: agent as usize,
+            radius_inner,
+            size,
+            radius_outer,
+            max_speed,
+            desired_speed,
+            agent_time_horizon,
+            priority,
+            published_calculated_speed,
+            current_velocity,
+            desired_velocity,
+            desired_target,
+            calculated_target,
+            locked,
+            layer,
+            collides_with,
+            max_neighbours,
+            main_layer,
+            sync_main_layer,
+            group,
+            sync_group,
+            ignore_same_group,
+            sync_ignore_same_group,
+            team,
+            sync_team,
+            position,
+        });
+    }
+    Ok(result)
+}
+
+fn rvo_boundary_diagnostic(label: &str, state: &CaptureState) -> String {
+    format!(
+        "{label}: current_fixed={}, activation_count={}, total_activations={}, allocated_updates={}, initialized={}, in_update={}",
+        CURRENT_RVO_FIXED_UPDATE.load(Ordering::Acquire),
+        CURRENT_RVO_ACTIVATION_COUNT.load(Ordering::Acquire),
+        RVO_ACTIVATION_COUNT.load(Ordering::Acquire),
+        RVO_UPDATE_ORDINAL.load(Ordering::Acquire),
+        state.initialized,
+        state.in_update,
+    )
+}
+
+fn read_native_rvo_neighbour_set(
+    api: Api,
+    agent: *mut Object,
+    update_ordinal: u64,
+    source_call_ordinal: u64,
+    metadata: RvoMetadata,
+) -> Result<NativeRvoNeighbourSet, String> {
+    const INSTRUMENTATION_NEIGHBOUR_CAP: i32 = 4_096;
+    let max_neighbours: i32 = api
+        .field_value(agent, metadata.agent_max_neighbours as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let neighbour_count: i32 = api
+        .field_value(agent, metadata.agent_neighbour_count as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if !(0..=INSTRUMENTATION_NEIGHBOUR_CAP).contains(&max_neighbours)
+        || !(0..=max_neighbours).contains(&neighbour_count)
+    {
+        return Err(format!(
+            "native RVO neighbour bounds are invalid: count={neighbour_count}, max={max_neighbours}"
+        ));
+    }
+    let neighbours: *mut Object = api
+        .field_value(agent, metadata.agent_neighbours as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let neighbour_dists: *mut Object = api
+        .field_value(agent, metadata.agent_neighbour_dists as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let neighbours_len = list_count(api, neighbours, INSTRUMENTATION_NEIGHBOUR_CAP)?;
+    let distances_len = list_count(api, neighbour_dists, INSTRUMENTATION_NEIGHBOUR_CAP)?;
+    if neighbours_len != neighbour_count || distances_len != neighbour_count {
+        return Err(format!(
+            "native RVO neighbour fields disagree: count={neighbour_count}, neighbours={neighbours_len}, distances={distances_len}"
+        ));
+    }
+    let mut observations = Vec::with_capacity(neighbour_count as usize);
+    for index in 0..neighbour_count {
+        let neighbour = list_item(api, neighbours, index)?;
+        if neighbour.is_null() {
+            return Err(format!("native RVO neighbour {index} is null"));
+        }
+        let mut value_index = index;
+        let distance = api
+            .invoke_value::<FixedPoint>(
+                neighbour_dists,
+                "get_Item",
+                &mut [argument(&mut value_index)],
+            )
+            .map_err(|error| error.to_string())?;
+        observations.push((neighbour as usize, distance.raw));
+    }
+    Ok(NativeRvoNeighbourSet {
+        update_ordinal,
+        source_call_ordinal,
+        source: agent as usize,
+        neighbours: observations,
+    })
+}
+
+fn read_vo_buffer_length(api: Api, vos: *mut Object, metadata: RvoMetadata) -> Result<i32, String> {
+    let length: i32 = api
+        .field_value(vos, metadata.vo_buffer_length as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if (0..=64).contains(&length) {
+        Ok(length)
+    } else {
+        Err(format!("native RVO VOBuffer length {length} is invalid"))
+    }
+}
+
+fn read_native_rvo_vo_buffer(
+    api: Api,
+    vos: *mut Object,
+    metadata: RvoMetadata,
+) -> Result<Vec<NativeRvoVo>, String> {
+    const ARRAY_LENGTH_OFFSET: usize = 0x18;
+    const ARRAY_DATA_OFFSET: usize = 0x20;
+    const VO_SIZE: usize = 0xb8;
+    if std::mem::size_of::<NativeRvoVo>() != VO_SIZE {
+        return Err(format!(
+            "native RVO VO ABI size is {}, expected {VO_SIZE}",
+            std::mem::size_of::<NativeRvoVo>()
+        ));
+    }
+    let length = usize::try_from(read_vo_buffer_length(api, vos, metadata)?)
+        .map_err(|_| "negative RVO VOBuffer length".to_owned())?;
+    let buffer: *mut Object = api
+        .field_value(vos, metadata.vo_buffer as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if buffer.is_null() {
+        return Err("native RVO VOBuffer array is null".into());
+    }
+    // SAFETY: buffer is a live managed array read directly from VOBuffer.buffer.
+    let capacity = unsafe {
+        buffer
+            .cast::<u8>()
+            .add(ARRAY_LENGTH_OFFSET)
+            .cast::<usize>()
+            .read_unaligned()
+    };
+    if length > capacity || capacity > 4_096 {
+        return Err(format!(
+            "native RVO VOBuffer length {length} exceeds capacity {capacity}"
+        ));
+    }
+    let mut result = Vec::with_capacity(length);
+    for index in 0..length {
+        // SAFETY: the validated managed-array capacity contains this target-build
+        // value entry, whose 0xb8 layout is mirrored by NativeRvoVo.
+        result.push(unsafe {
+            buffer
+                .cast::<u8>()
+                .add(ARRAY_DATA_OFFSET + index * VO_SIZE)
+                .cast::<NativeRvoVo>()
+                .read_unaligned()
+        });
+    }
+    Ok(result)
+}
+
+fn read_appended_vo_colliding(
+    api: Api,
+    vos: *mut Object,
+    before: i32,
+    after: i32,
+    metadata: RvoMetadata,
+) -> Result<bool, String> {
+    const ARRAY_LENGTH_OFFSET: usize = 0x18;
+    const ARRAY_DATA_OFFSET: usize = 0x20;
+    const VO_SIZE: usize = 0xb8;
+    const VO_COLLIDING_OFFSET: usize = 0x70;
+    if after != before + 1 {
+        return Err(format!(
+            "GenerateOpponentVOs appended {} VOs instead of one",
+            after - before
+        ));
+    }
+    let buffer: *mut Object = api
+        .field_value(vos, metadata.vo_buffer as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if buffer.is_null() {
+        return Err("native RVO VOBuffer array is null".into());
+    }
+    // The target IL2CPP array ABI stores max_length at 0x18 and value data at 0x20.
+    // SAFETY: buffer is a live managed array read directly from VOBuffer.buffer.
+    let capacity = unsafe {
+        buffer
+            .cast::<u8>()
+            .add(ARRAY_LENGTH_OFFSET)
+            .cast::<usize>()
+            .read_unaligned()
+    };
+    let index = usize::try_from(before).map_err(|_| "negative VO index".to_owned())?;
+    if index >= capacity || capacity > 4_096 {
+        return Err(format!(
+            "native RVO VOBuffer capacity {capacity} does not contain index {index}"
+        ));
+    }
+    // DiffableCs for build 2259 gives VO stride 0xb8 and colliding offset 0x70.
+    // SAFETY: capacity was validated above and the byte lies within that value entry.
+    let raw = unsafe {
+        buffer
+            .cast::<u8>()
+            .add(ARRAY_DATA_OFFSET + index * VO_SIZE + VO_COLLIDING_OFFSET)
+            .read()
+    };
+    match raw {
+        0 => Ok(false),
+        1 => Ok(true),
+        value => Err(format!(
+            "native RVO VO.colliding contains invalid bool {value}"
+        )),
+    }
+}
 
 #[allow(clippy::too_many_lines)]
 unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodInfo) {
@@ -1530,6 +3095,7 @@ fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
 struct RawUnit {
     pointer: usize,
     formation: usize,
+    rvo_agent: Option<usize>,
     state: UnitState,
     statuses: Vec<RawStatus>,
     target_refs: Option<RawTargetRefs>,
@@ -1558,13 +3124,14 @@ struct RawStatus {
 
 struct RawBuilding {
     pointer: usize,
+    rvo_agent: Option<usize>,
     native_index: i32,
     state: BuildingState,
 }
 
 struct CapturedSnapshot {
     world: WorldSnapshot,
-    instrumentation: Option<TargetRefsObservation>,
+    instrumentation: Option<CaptureInstrumentationObservation>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1581,6 +3148,8 @@ fn snapshot(
         .api
         .invoke_value::<i32>(fight, "get_Tick", &mut [])
         .map_err(|error| error.to_string())?;
+    let native_tick = u64::try_from(tick_before)
+        .map_err(|_| format!("negative native logic tick {tick_before}"))?;
     let teams = runtime
         .api
         .invoke(fight, "GetTeamControllers", &mut [])
@@ -1620,7 +3189,13 @@ fn snapshot(
             .map_err(|error| error.to_string())?;
         for index in 0..list_count(runtime.api, buildings, 64)? {
             let building = list_item(runtime.api, buildings, index)?;
-            raw_buildings.push(read_building(runtime.api, building, team_id)?);
+            raw_buildings.push(read_building(
+                runtime.api,
+                building,
+                team_id,
+                &capture.metadata,
+                capture.instrumentation_profile,
+            )?);
         }
     }
     raw_units.sort_by_key(|unit| {
@@ -1663,6 +3238,11 @@ fn snapshot(
             .formation_ids
             .entry(formation_key)
             .or_insert(formation_id);
+        if let Some(agent) = unit.rvo_agent {
+            capture
+                .rvo_agent_refs
+                .insert(agent, ObjectRef::new(ObjectKind::Unit, unit_id));
+        }
         unit.state.unit_id = unit_id;
         unit.state.formation_id = formation_id;
         if let Some(target_refs) = unit.target_refs {
@@ -1681,10 +3261,15 @@ fn snapshot(
         };
         capture.building_ids.entry(building.pointer).or_insert(id);
         building.state.building_id = id;
+        if let Some(agent) = building.rvo_agent {
+            capture
+                .rvo_agent_refs
+                .insert(agent, ObjectRef::new(ObjectKind::Building, id));
+        }
         buildings.push(building.state);
     }
     let instrumentation = match capture.instrumentation_profile {
-        Some(CaptureInstrumentationProfile::TargetRefsV1) => {
+        Some(profile) => {
             let mut observations = Vec::with_capacity(raw_target_refs.len());
             for (unit_id, refs) in raw_target_refs {
                 observations.push(UnitTargetRefsObservation {
@@ -1707,9 +3292,16 @@ fn snapshot(
                     )?,
                 });
             }
-            Some(TargetRefsObservation {
+            let target_refs = TargetRefsObservation {
                 units: observations,
-            })
+            };
+            if profile.includes_rvo() {
+                Some(CaptureInstrumentationObservation::TargetRefsRvo(
+                    resolve_rvo_observation(target_refs, native_tick, capture)?,
+                ))
+            } else {
+                Some(CaptureInstrumentationObservation::TargetRefs(target_refs))
+            }
         }
         None => None,
     };
@@ -1818,7 +3410,7 @@ fn read_unit(
     let body_rotation = q32_to_units(fixed_rotation.raw, ROTATION_UNITS_PER_DEGREE)?;
     let main_skill = invoke_object(api, unit, "GetMainSkill")?;
     let target_refs = match instrumentation_profile {
-        Some(CaptureInstrumentationProfile::TargetRefsV1) => {
+        Some(profile) if profile.includes_target_refs() => {
             let normal_skill_fields_available = api.class_is_or_inherits(
                 api.object_class(main_skill).unwrap_or(ptr::null_mut()),
                 metadata
@@ -1864,6 +3456,7 @@ fn read_unit(
             })
         }
         None => None,
+        Some(_) => None,
     };
     let aim_transform = invoke_object(api, main_skill, "GetMainTransform")?;
     let aim_position = vec3(invoke_value::<FixedVec3>(
@@ -1930,6 +3523,11 @@ fn read_unit(
     Ok(RawUnit {
         pointer: unit as usize,
         formation: formation as usize,
+        rvo_agent: if instrumentation_profile.is_some_and(|profile| profile.includes_rvo()) {
+            read_rvo_agent(api, unit, metadata)?
+        } else {
+            None
+        },
         state: UnitState {
             unit_id: 0,
             team_id,
@@ -1963,7 +3561,323 @@ fn read_unit(
     })
 }
 
-fn read_building(api: Api, building: *mut Object, team_id: u32) -> Result<RawBuilding, String> {
+fn read_rvo_agent(
+    api: Api,
+    actor: *mut Object,
+    metadata: &Metadata,
+) -> Result<Option<usize>, String> {
+    let rvo = metadata
+        .rvo
+        .ok_or_else(|| "native RVO metadata is unavailable".to_owned())?;
+    let controller: *mut Object = api
+        .field_value(actor, rvo.fight_actor_rvo_controller as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if controller.is_null() {
+        return Ok(None);
+    }
+    let owner: *mut Object = api
+        .field_value(controller, rvo.rvo_controller_owner as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if owner != actor {
+        return Err("RVOControllerFixed.owner does not reference its FightActor".into());
+    }
+    let agent: *mut Object = api
+        .field_value(controller, rvo.rvo_controller_agent as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if agent.is_null() {
+        return Ok(None);
+    }
+    Ok(Some(agent as usize))
+}
+
+fn resolve_rvo_observation(
+    target_refs: TargetRefsObservation,
+    native_tick: u64,
+    capture: &mut CaptureState,
+) -> Result<TargetRefsRvoObservation, String> {
+    let ready: BTreeSet<u64> = capture
+        .rvo_update_publish_native_ticks
+        .iter()
+        .filter_map(|(&update_ordinal, &publish_tick)| {
+            (publish_tick <= native_tick).then_some(update_ordinal)
+        })
+        .collect();
+    let mut updates: BTreeMap<u64, RvoUpdateObservation> = capture
+        .rvo_update_publish_native_ticks
+        .iter()
+        .filter_map(|(&update_ordinal, &publish_native_tick)| {
+            ready
+                .contains(&update_ordinal)
+                .then_some((update_ordinal, (update_ordinal, publish_native_tick)))
+        })
+        .map(|(update_ordinal, (_, publish_native_tick))| {
+            let start_native_tick = capture
+                .rvo_update_start_native_ticks
+                .get(&update_ordinal)
+                .copied()
+                .ok_or_else(|| format!("native RVO update {update_ordinal} lost its start tick"))?;
+            let double_buffering = capture
+                .rvo_update_modes
+                .get(&update_ordinal)
+                .copied()
+                .ok_or_else(|| format!("native RVO update {update_ordinal} lost its mode"))?;
+            let symmetry_breaking_bias_raw = capture
+                .rvo_update_symmetry_breaking_biases
+                .get(&update_ordinal)
+                .copied()
+                .ok_or_else(|| {
+                    format!("native RVO update {update_ordinal} lost its symmetry bias")
+                })?
+                .raw;
+            if !capture
+                .rvo_update_multithreaded
+                .contains_key(&update_ordinal)
+            {
+                return Err(format!(
+                    "native RVO update {update_ordinal} lost its worker mode"
+                ));
+            }
+            Ok((
+                update_ordinal,
+                RvoUpdateObservation {
+                    update_ordinal,
+                    start_native_tick,
+                    publish_native_tick,
+                    double_buffering,
+                    symmetry_breaking_bias_raw,
+                    agents: Vec::new(),
+                    neighbour_sets: Vec::new(),
+                    vo_buffers: Vec::new(),
+                    opponent_vos: Vec::new(),
+                },
+            ))
+        })
+        .collect::<Result<_, String>>()?;
+    let raw_agent_sets = std::mem::take(&mut capture.rvo_agent_sets);
+    for (update_ordinal, agents) in raw_agent_sets {
+        if !ready.contains(&update_ordinal) {
+            capture.rvo_agent_sets.insert(update_ordinal, agents);
+            continue;
+        }
+        let mut resolved = Vec::with_capacity(agents.len());
+        for (ordinal, agent) in agents.into_iter().enumerate() {
+            resolved.push(RvoAgentObservation {
+                ordinal: u32::try_from(ordinal)
+                    .map_err(|_| "RVO agent ordinal overflow".to_owned())?,
+                agent: resolve_rvo_agent_ref(agent.pointer, capture)?,
+                radius_inner_raw: agent.radius_inner.raw,
+                size: agent.size,
+                radius_outer_raw: agent.radius_outer.raw,
+                max_speed_raw: agent.max_speed.raw,
+                desired_speed_raw: agent.desired_speed.raw,
+                agent_time_horizon_raw: agent.agent_time_horizon.raw,
+                priority_raw: agent.priority.raw,
+                published_calculated_speed_raw: agent.published_calculated_speed.raw,
+                current_velocity_x_raw: agent.current_velocity.x.raw,
+                current_velocity_y_raw: agent.current_velocity.y.raw,
+                desired_velocity_x_raw: agent.desired_velocity.x.raw,
+                desired_velocity_y_raw: agent.desired_velocity.y.raw,
+                desired_target_x_raw: agent.desired_target.x.raw,
+                desired_target_y_raw: agent.desired_target.y.raw,
+                calculated_target_x_raw: agent.calculated_target.x.raw,
+                calculated_target_y_raw: agent.calculated_target.y.raw,
+                locked: agent.locked,
+                layer: agent.layer,
+                collides_with: agent.collides_with,
+                max_neighbours: agent.max_neighbours,
+                main_layer: agent.main_layer,
+                sync_main_layer: agent.sync_main_layer,
+                group: agent.group,
+                sync_group: agent.sync_group,
+                ignore_same_group: agent.ignore_same_group,
+                sync_ignore_same_group: agent.sync_ignore_same_group,
+                team_id: agent.team.id,
+                team_radius_raw: agent.team.radius.raw,
+                sync_team_id: agent.sync_team.id,
+                sync_team_radius_raw: agent.sync_team.radius.raw,
+                position_x_raw: agent.position.x.raw,
+                position_y_raw: agent.position.y.raw,
+            });
+        }
+        updates
+            .get_mut(&update_ordinal)
+            .ok_or_else(|| format!("unknown native RVO update {update_ordinal}"))?
+            .agents = resolved;
+    }
+    let (mut raw_neighbour_sets, pending_neighbour_sets): (Vec<_>, Vec<_>) =
+        std::mem::take(&mut capture.rvo_neighbour_sets)
+            .into_iter()
+            .partition(|set| ready.contains(&set.update_ordinal));
+    capture.rvo_neighbour_sets = pending_neighbour_sets;
+    raw_neighbour_sets.sort_by_key(|set| set.source_call_ordinal);
+    let mut update_sources = BTreeSet::new();
+    for set in raw_neighbour_sets {
+        let source = resolve_rvo_agent_ref(set.source, capture)?;
+        let mut neighbours = Vec::with_capacity(set.neighbours.len());
+        for (ordinal, (target, distance_sq_raw)) in set.neighbours.into_iter().enumerate() {
+            neighbours.push(RvoNeighbourObservation {
+                ordinal: u32::try_from(ordinal)
+                    .map_err(|_| "RVO neighbour ordinal overflow".to_owned())?,
+                target: resolve_rvo_agent_ref(target, capture)?,
+                distance_sq_raw,
+            });
+        }
+        let observation = RvoNeighbourSetObservation {
+            source_call_ordinal: set.source_call_ordinal,
+            source,
+            neighbour_count: u32::try_from(neighbours.len())
+                .map_err(|_| "RVO neighbour count overflow".to_owned())?,
+            neighbours,
+        };
+        update_sources.insert((set.update_ordinal, set.source));
+        updates
+            .get_mut(&set.update_ordinal)
+            .ok_or_else(|| format!("unknown native RVO update {}", set.update_ordinal))?
+            .neighbour_sets
+            .push(observation);
+    }
+    let (mut raw_vo_buffers, pending_vo_buffers): (Vec<_>, Vec<_>) =
+        std::mem::take(&mut capture.rvo_vo_buffers)
+            .into_iter()
+            .partition(|observation| ready.contains(&observation.update_ordinal));
+    capture.rvo_vo_buffers = pending_vo_buffers;
+    raw_vo_buffers.sort_by_key(|observation| observation.call_ordinal);
+    for observation in raw_vo_buffers {
+        if !update_sources.contains(&(observation.update_ordinal, observation.source)) {
+            return Err(format!(
+                "VO buffer call {} has no CalculateNeighbours source in RVO update {}",
+                observation.call_ordinal, observation.update_ordinal
+            ));
+        }
+        let resolved = RvoVoBufferObservation {
+            call_ordinal: observation.call_ordinal,
+            source: resolve_rvo_agent_ref(observation.source, capture)?,
+            vos: observation
+                .vos
+                .into_iter()
+                .map(rvo_vo_observation)
+                .collect(),
+        };
+        updates
+            .get_mut(&observation.update_ordinal)
+            .ok_or_else(|| format!("unknown native RVO update {}", observation.update_ordinal))?
+            .vo_buffers
+            .push(resolved);
+    }
+    let (mut raw_opponent_vos, pending_opponent_vos): (Vec<_>, Vec<_>) =
+        std::mem::take(&mut capture.opponent_vos)
+            .into_iter()
+            .partition(|observation| ready.contains(&observation.update_ordinal));
+    capture.opponent_vos = pending_opponent_vos;
+    raw_opponent_vos.sort_by_key(|observation| observation.call_ordinal);
+    for observation in raw_opponent_vos {
+        if !update_sources.contains(&(observation.update_ordinal, observation.source)) {
+            return Err(format!(
+                "opponent VO call {} has no CalculateNeighbours source in RVO update {}",
+                observation.call_ordinal, observation.update_ordinal
+            ));
+        }
+        let source = resolve_rvo_agent_ref(observation.source, capture)?;
+        let resolved = RvoOpponentVoObservation {
+            update_ordinal: observation.update_ordinal,
+            call_ordinal: observation.call_ordinal,
+            source,
+            target: resolve_rvo_agent_ref(observation.target, capture)?,
+            vo_buffer_length_before: u32::try_from(observation.vo_buffer_length_before)
+                .map_err(|_| "negative opponent VO buffer length".to_owned())?,
+            vo_buffer_length_after: u32::try_from(observation.vo_buffer_length_after)
+                .map_err(|_| "negative opponent VO buffer length".to_owned())?,
+            appended_colliding: observation.appended_colliding,
+        };
+        updates
+            .get_mut(&observation.update_ordinal)
+            .ok_or_else(|| format!("unknown native RVO update {}", observation.update_ordinal))?
+            .opponent_vos
+            .push(resolved);
+    }
+    let observation = TargetRefsRvoObservation {
+        target_refs,
+        rvo_updates: updates.into_values().collect(),
+    };
+    for update_ordinal in ready {
+        capture.rvo_update_modes.remove(&update_ordinal);
+        capture
+            .rvo_update_symmetry_breaking_biases
+            .remove(&update_ordinal);
+        capture
+            .rvo_update_start_native_ticks
+            .remove(&update_ordinal);
+        capture
+            .rvo_update_publish_native_ticks
+            .remove(&update_ordinal);
+        capture.rvo_update_multithreaded.remove(&update_ordinal);
+    }
+    Ok(observation)
+}
+
+fn rvo_vo_observation(vo: NativeRvoVo) -> RvoVoObservation {
+    RvoVoObservation {
+        line1_x_raw: vo.line1.x.raw,
+        line1_y_raw: vo.line1.y.raw,
+        line2_x_raw: vo.line2.x.raw,
+        line2_y_raw: vo.line2.y.raw,
+        dir1_x_raw: vo.dir1.x.raw,
+        dir1_y_raw: vo.dir1.y.raw,
+        dir2_x_raw: vo.dir2.x.raw,
+        dir2_y_raw: vo.dir2.y.raw,
+        cutoff_line_x_raw: vo.cutoff_line.x.raw,
+        cutoff_line_y_raw: vo.cutoff_line.y.raw,
+        cutoff_dir_x_raw: vo.cutoff_dir.x.raw,
+        cutoff_dir_y_raw: vo.cutoff_dir.y.raw,
+        circle_center_x_raw: vo.circle_center.x.raw,
+        circle_center_y_raw: vo.circle_center.y.raw,
+        colliding: vo.colliding,
+        radius_raw: vo.radius.raw,
+        weight_factor_raw: vo.weight_factor.raw,
+        weight_bonus_raw: vo.weight_bonus.raw,
+        segment_start_x_raw: vo.segment_start.x.raw,
+        segment_start_y_raw: vo.segment_start.y.raw,
+        segment_end_x_raw: vo.segment_end.x.raw,
+        segment_end_y_raw: vo.segment_end.y.raw,
+        segment: vo.segment,
+    }
+}
+
+fn resolve_rvo_agent_ref(
+    pointer: usize,
+    capture: &mut CaptureState,
+) -> Result<RvoAgentRefObservation, String> {
+    if let Some(reference) = capture.rvo_agent_refs.get(&pointer).copied() {
+        return Ok(RvoAgentRefObservation::Entity(reference));
+    }
+    if let Some(owner) = capture.rvo_agent_owners.get(&pointer).copied()
+        && let Some(reference) = object_ref_from_pointer(owner, capture)
+    {
+        return Ok(RvoAgentRefObservation::Entity(reference));
+    }
+    let internal_agent_ordinal = match capture.rvo_internal_agent_ids.get(&pointer) {
+        Some(ordinal) => *ordinal,
+        None => {
+            let ordinal = capture.next_rvo_internal_agent_id;
+            capture.next_rvo_internal_agent_id = ordinal
+                .checked_add(1)
+                .ok_or_else(|| "RVO internal agent identity overflow".to_owned())?;
+            capture.rvo_internal_agent_ids.insert(pointer, ordinal);
+            ordinal
+        }
+    };
+    Ok(RvoAgentRefObservation::Internal {
+        internal_agent_ordinal,
+    })
+}
+
+fn read_building(
+    api: Api,
+    building: *mut Object,
+    team_id: u32,
+    metadata: &Metadata,
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
+) -> Result<RawBuilding, String> {
     let transform = invoke_object(api, building, "GetFightTransform")?;
     let position = vec3(invoke_value::<FixedVec3>(
         api,
@@ -1990,6 +3904,11 @@ fn read_building(api: Api, building: *mut Object, team_id: u32) -> Result<RawBui
     let collision_enabled = invoke_value::<bool>(api, data, "get_EnableCollision")?;
     Ok(RawBuilding {
         pointer: building as usize,
+        rvo_agent: if instrumentation_profile.is_some_and(|profile| profile.includes_rvo()) {
+            read_rvo_agent(api, building, metadata)?
+        } else {
+            None
+        },
         native_index,
         state: BuildingState {
             building_id: 0,
@@ -2287,6 +4206,126 @@ fn allocate(next: &mut u64, label: &str) -> Result<u64, String> {
     Ok(id)
 }
 
+const RVO_CONTROLLER_ACTIVE_LABEL: &str = "RVOControllerFixed.Active";
+const RVO_ADD_AGENT_FIXED_LABEL: &str = "RVO Simulator.AddAgentFixed";
+const RVO_FIXED_UPDATE_LABEL: &str = "RVO Simulator.FixedUpdate";
+const RVO_PRE_CALCULATION_LABEL: &str = "RVO Simulator.PreCalculation";
+const RVO_CALCULATE_NEIGHBOURS_LABEL: &str = "RVO Agent.CalculateNeighbours";
+const RVO_GENERATE_NEIGHBOUR_VOS_LABEL: &str = "RVOAgentFixed.GenerateNeighbourAgentVOs";
+const RVO_GENERATE_OPPONENT_VOS_LABEL: &str = "RVOAgentFixed.GenerateOpponentVOs";
+const RVO_CONTROLLER_ACTIVE_PROLOGUE: [u8; 16] = [
+    0xff, 0xc3, 0x01, 0xd1, 0xf8, 0x5f, 0x03, 0xa9, 0xf6, 0x57, 0x04, 0xa9, 0xf4, 0x4f, 0x05, 0xa9,
+];
+const RVO_ADD_AGENT_FIXED_PROLOGUE: [u8; 16] = [
+    0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00, 0x91,
+];
+const RVO_FIXED_UPDATE_PROLOGUE: [u8; 16] = [
+    0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03, 0xa9,
+];
+const RVO_PRE_CALCULATION_PROLOGUE: [u8; 16] = RVO_ADD_AGENT_FIXED_PROLOGUE;
+const RVO_CALCULATE_NEIGHBOURS_PROLOGUE: [u8; 16] = [
+    0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00, 0xaa,
+];
+const RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE: [u8; 16] = [
+    0xed, 0x33, 0xb7, 0x6d, 0xeb, 0x2b, 0x01, 0x6d, 0xe9, 0x23, 0x02, 0x6d, 0xfc, 0x6f, 0x03, 0xa9,
+];
+const RVO_GENERATE_OPPONENT_VOS_PROLOGUE: [u8; 16] = [
+    0xff, 0xc3, 0x07, 0xd1, 0xfc, 0x6f, 0x19, 0xa9, 0xfa, 0x67, 0x1a, 0xa9, 0xf8, 0x5f, 0x1b, 0xa9,
+];
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_controller_active_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_CONTROLLER_ACTIVE_PROLOGUE,
+        rvo_controller_active_hook as *const c_void,
+        &ORIGINAL_RVO_CONTROLLER_ACTIVE,
+        RVO_CONTROLLER_ACTIVE_LABEL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_add_agent_fixed_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_ADD_AGENT_FIXED_PROLOGUE,
+        rvo_add_agent_fixed_hook as *const c_void,
+        &ORIGINAL_RVO_ADD_AGENT_FIXED,
+        RVO_ADD_AGENT_FIXED_LABEL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_fixed_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_FIXED_UPDATE_PROLOGUE,
+        rvo_fixed_update_hook as *const c_void,
+        &ORIGINAL_RVO_FIXED_UPDATE,
+        RVO_FIXED_UPDATE_LABEL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_pre_calculation_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_PRE_CALCULATION_PROLOGUE,
+        rvo_pre_calculation_hook as *const c_void,
+        &ORIGINAL_RVO_PRE_CALCULATION,
+        RVO_PRE_CALCULATION_LABEL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_calculate_neighbours_hook(
+    api: Api,
+    method: *const MethodInfo,
+) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_CALCULATE_NEIGHBOURS_PROLOGUE,
+        rvo_calculate_neighbours_hook as *const c_void,
+        &ORIGINAL_RVO_CALCULATE_NEIGHBOURS,
+        RVO_CALCULATE_NEIGHBOURS_LABEL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_generate_opponent_vos_hook(
+    api: Api,
+    method: *const MethodInfo,
+) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_GENERATE_OPPONENT_VOS_PROLOGUE,
+        rvo_generate_opponent_vos_hook as *const c_void,
+        &ORIGINAL_RVO_GENERATE_OPPONENT_VOS,
+        RVO_GENERATE_OPPONENT_VOS_LABEL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_rvo_generate_neighbour_vos_hook(
+    api: Api,
+    method: *const MethodInfo,
+) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE,
+        rvo_generate_neighbour_vos_hook as *const c_void,
+        &ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS,
+        RVO_GENERATE_NEIGHBOUR_VOS_LABEL,
+    )
+}
+
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
     const EXPECTED: [u8; 16] = [
@@ -2397,9 +4436,7 @@ fn install_inline_hook(
         .map_err(|error| error.to_string())?;
     // SAFETY: target points to at least the generated method prologue.
     let actual = unsafe { std::slice::from_raw_parts(target.cast::<u8>(), expected.len()) };
-    if actual != expected {
-        return Err(format!("{label} prologue mismatch: {}", bytes_hex(actual)));
-    }
+    verify_rvo_hook_prologue(actual, expected, label)?;
     // SAFETY: anonymous mapping is checked before use.
     let trampoline = unsafe {
         libc::mmap(
@@ -2432,7 +4469,16 @@ fn install_inline_hook(
     Ok(())
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
+fn verify_rvo_hook_prologue(actual: &[u8], expected: &[u8; 16], label: &str) -> Result<(), String> {
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(format!("{label} prologue mismatch: {}", bytes_hex(actual)))
+    }
+}
+
+#[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
 fn bytes_hex(bytes: &[u8]) -> String {
     use std::fmt::Write as _;
 
@@ -2519,6 +4565,118 @@ fn set_code_bytes(address: *mut c_void, bytes: &[u8]) -> Result<(), String> {
 mod tests {
     use super::*;
 
+    static RVO_GLOBAL_TEST_LOCK: Mutex<()> = Mutex::new(());
+    static TEST_HOOK_CALLS: [AtomicU64; RVO_HOOK_COUNT] =
+        [const { AtomicU64::new(0) }; RVO_HOOK_COUNT];
+    static TEST_HOOK_ARGUMENTS: [[AtomicU64; 4]; RVO_HOOK_COUNT] =
+        [const { [const { AtomicU64::new(0) }; 4] }; RVO_HOOK_COUNT];
+
+    fn record_test_hook_call(index: usize, arguments: &[usize]) {
+        TEST_HOOK_CALLS[index].fetch_add(1, Ordering::AcqRel);
+        for (slot, argument) in TEST_HOOK_ARGUMENTS[index].iter().zip(arguments) {
+            slot.store(*argument as u64, Ordering::Release);
+        }
+    }
+
+    unsafe extern "C" fn test_rvo_controller_active(
+        controller: *mut Object,
+        method: *const MethodInfo,
+    ) {
+        record_test_hook_call(0, &[controller as usize, method as usize]);
+    }
+
+    unsafe extern "C" fn test_rvo_add_agent_fixed(
+        simulator: *mut Object,
+        agent: *mut Object,
+        method: *const MethodInfo,
+    ) -> *mut Object {
+        record_test_hook_call(1, &[simulator as usize, agent as usize, method as usize]);
+        0x204_usize as *mut Object
+    }
+
+    unsafe extern "C" fn test_rvo_fixed_update(simulator: *mut Object, method: *const MethodInfo) {
+        record_test_hook_call(2, &[simulator as usize, method as usize]);
+    }
+
+    unsafe extern "C" fn test_rvo_pre_calculation(
+        simulator: *mut Object,
+        method: *const MethodInfo,
+    ) {
+        record_test_hook_call(3, &[simulator as usize, method as usize]);
+    }
+
+    unsafe extern "C" fn test_rvo_calculate_neighbours(
+        agent: *mut Object,
+        method: *const MethodInfo,
+    ) {
+        record_test_hook_call(4, &[agent as usize, method as usize]);
+    }
+
+    unsafe extern "C" fn test_rvo_generate_neighbour_vos(
+        agent: *mut Object,
+        vos: *mut Object,
+        method: *const MethodInfo,
+    ) {
+        record_test_hook_call(5, &[agent as usize, vos as usize, method as usize]);
+    }
+
+    unsafe extern "C" fn test_rvo_generate_opponent_vos(
+        agent: *mut Object,
+        vos: *mut Object,
+        other: *mut Object,
+        method: *const MethodInfo,
+    ) {
+        record_test_hook_call(
+            6,
+            &[
+                agent as usize,
+                vos as usize,
+                other as usize,
+                method as usize,
+            ],
+        );
+    }
+
+    fn target_refs() -> TargetRefsObservation {
+        TargetRefsObservation { units: Vec::new() }
+    }
+
+    fn seed_rvo_update(
+        state: &mut CaptureState,
+        ordinal: u64,
+        start_tick: u64,
+        publish_tick: u64,
+        double_buffering: bool,
+        symmetry_bias_raw: i64,
+        multithreaded: bool,
+    ) {
+        state.rvo_update_modes.insert(ordinal, double_buffering);
+        state.rvo_update_symmetry_breaking_biases.insert(
+            ordinal,
+            FixedPoint {
+                raw: symmetry_bias_raw,
+            },
+        );
+        state
+            .rvo_update_start_native_ticks
+            .insert(ordinal, start_tick);
+        state
+            .rvo_update_publish_native_ticks
+            .insert(ordinal, publish_tick);
+        state
+            .rvo_update_multithreaded
+            .insert(ordinal, multithreaded);
+    }
+
+    fn assert_internal(reference: RvoAgentRefObservation, expected: u64) {
+        assert!(matches!(
+            reference,
+            RvoAgentRefObservation::Internal {
+                internal_agent_ordinal
+            } if internal_agent_ordinal == expected
+        ));
+    }
+
     fn unit(id: u64, team: u32, formation: u64) -> UnitState {
         UnitState {
             unit_id: id,
@@ -2556,6 +4714,715 @@ mod tests {
                 max_energy: 0,
             },
         }
+    }
+
+    #[test]
+    fn rvo_profile_payload_and_generic_sidecar_contract() {
+        let target_profile = CaptureInstrumentationProfile::TargetRefsV1;
+        let rvo_profile = CaptureInstrumentationProfile::TargetRefsRvoV1;
+        assert_eq!(target_profile.as_str(), "target_refs_v1");
+        assert_eq!(target_profile.channel(), "target_refs");
+        assert!(target_profile.includes_target_refs());
+        assert!(!target_profile.includes_rvo());
+        assert_eq!(rvo_profile.as_str(), "target_refs_rvo_v1");
+        assert_eq!(rvo_profile.channel(), "target_refs_rvo");
+        assert!(rvo_profile.includes_target_refs());
+        assert!(rvo_profile.includes_rvo());
+
+        let target_payload = CaptureInstrumentationObservation::TargetRefs(target_refs());
+        let target_json = serde_json::to_value(&target_payload).unwrap();
+        assert_eq!(target_json, serde_json::json!({"units": []}));
+        let rvo_payload =
+            CaptureInstrumentationObservation::TargetRefsRvo(TargetRefsRvoObservation {
+                target_refs: target_refs(),
+                rvo_updates: Vec::new(),
+            });
+        let rvo_json = serde_json::to_value(&rvo_payload).unwrap();
+        let keys: BTreeSet<_> = rvo_json.as_object().unwrap().keys().cloned().collect();
+        assert_eq!(
+            keys,
+            BTreeSet::from(["rvo_updates".to_owned(), "target_refs".to_owned()])
+        );
+        assert_eq!(rvo_json["target_refs"], target_json);
+        assert_eq!(rvo_json["rvo_updates"], serde_json::json!([]));
+
+        let directory = tempfile::tempdir().unwrap();
+        let scenario_hash = "00".repeat(32);
+        for (index, profile, payload, expected) in [
+            (0, target_profile, &target_payload, &target_json),
+            (1, rvo_profile, &rvo_payload, &rvo_json),
+        ] {
+            let path = directory.path().join(format!("profile-{index}.h5"));
+            let mut writer = mechcore_mcfr::InstrumentationWriter::create(
+                &path,
+                &scenario_hash,
+                profile.as_str(),
+                "adapter-offline-test",
+            )
+            .unwrap();
+            writer
+                .record_json(index, profile.channel(), payload)
+                .unwrap();
+            writer.finish().unwrap();
+            let reader = mechcore_mcfr::InstrumentationReader::open(path).unwrap();
+            assert_eq!(reader.scenario_hash(), scenario_hash);
+            assert_eq!(reader.profile(), profile.as_str());
+            assert_eq!(reader.producer(), "adapter-offline-test");
+            assert_eq!(reader.len(), 1);
+            let entry = reader.entry(0).unwrap();
+            assert_eq!(entry.step, index);
+            assert_eq!(entry.channel, profile.channel());
+            assert_eq!(entry.content_type, "application/json");
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&entry.payload).unwrap(),
+                *expected
+            );
+        }
+    }
+
+    #[test]
+    fn rvo_agent_identity_precedence_and_stability() {
+        let unit_ref = ObjectRef::new(ObjectKind::Unit, 1);
+        let other_unit_ref = ObjectRef::new(ObjectKind::Unit, 2);
+        let building_ref = ObjectRef::new(ObjectKind::Building, 3);
+        let mut state = CaptureState::default();
+        state.unit_ids.insert(10, 1);
+        state.unit_ids.insert(11, 2);
+        state.building_ids.insert(12, 3);
+        state.rvo_agent_refs.insert(100, other_unit_ref);
+        state.rvo_agent_refs.insert(101, building_ref);
+        state.rvo_agent_owners.insert(100, 10);
+        state.rvo_agent_owners.insert(102, 10);
+
+        assert!(matches!(
+            resolve_rvo_agent_ref(100, &mut state).unwrap(),
+            RvoAgentRefObservation::Entity(reference) if reference == other_unit_ref
+        ));
+        assert!(matches!(
+            resolve_rvo_agent_ref(101, &mut state).unwrap(),
+            RvoAgentRefObservation::Entity(reference) if reference == building_ref
+        ));
+        assert!(matches!(
+            resolve_rvo_agent_ref(102, &mut state).unwrap(),
+            RvoAgentRefObservation::Entity(reference) if reference == unit_ref
+        ));
+        assert_internal(resolve_rvo_agent_ref(200, &mut state).unwrap(), 0);
+        assert_internal(resolve_rvo_agent_ref(200, &mut state).unwrap(), 0);
+        assert_internal(resolve_rvo_agent_ref(201, &mut state).unwrap(), 1);
+        state.next_rvo_internal_agent_id = u64::MAX;
+        let error = resolve_rvo_agent_ref(202, &mut state).unwrap_err();
+        assert_eq!(error, "RVO internal agent identity overflow");
+        assert!(!state.rvo_internal_agent_ids.contains_key(&202));
+    }
+
+    #[test]
+    fn rvo_drain_readiness_ordering_and_source_join() {
+        let mut state = CaptureState::default();
+        state
+            .rvo_agent_refs
+            .insert(10, ObjectRef::new(ObjectKind::Unit, 1));
+        state
+            .rvo_agent_refs
+            .insert(20, ObjectRef::new(ObjectKind::Unit, 2));
+        seed_rvo_update(&mut state, 1, 4, 4, false, 11, false);
+        seed_rvo_update(&mut state, 2, 4, 5, true, 22, true);
+        seed_rvo_update(&mut state, 3, 5, 6, true, 33, true);
+        state.rvo_agent_sets.insert(
+            1,
+            vec![
+                NativeRvoAgentState {
+                    pointer: 20,
+                    ..NativeRvoAgentState::default()
+                },
+                NativeRvoAgentState {
+                    pointer: 10,
+                    ..NativeRvoAgentState::default()
+                },
+            ],
+        );
+        state.rvo_neighbour_sets.extend([
+            NativeRvoNeighbourSet {
+                update_ordinal: 1,
+                source_call_ordinal: 9,
+                source: 10,
+                neighbours: vec![(20, 90)],
+            },
+            NativeRvoNeighbourSet {
+                update_ordinal: 1,
+                source_call_ordinal: 3,
+                source: 10,
+                neighbours: vec![(20, 30)],
+            },
+            NativeRvoNeighbourSet {
+                update_ordinal: 3,
+                source_call_ordinal: 1,
+                source: 10,
+                neighbours: Vec::new(),
+            },
+        ]);
+        state.rvo_vo_buffers.extend([
+            NativeRvoVoBuffer {
+                update_ordinal: 1,
+                call_ordinal: 8,
+                source: 10,
+                vos: vec![NativeRvoVo::default()],
+            },
+            NativeRvoVoBuffer {
+                update_ordinal: 1,
+                call_ordinal: 4,
+                source: 10,
+                vos: vec![NativeRvoVo::default()],
+            },
+        ]);
+        state.opponent_vos.extend([
+            NativeOpponentVo {
+                update_ordinal: 1,
+                call_ordinal: 7,
+                source: 10,
+                target: 20,
+                vo_buffer_length_before: 0,
+                vo_buffer_length_after: 1,
+                appended_colliding: false,
+            },
+            NativeOpponentVo {
+                update_ordinal: 1,
+                call_ordinal: 2,
+                source: 10,
+                target: 20,
+                vo_buffer_length_before: 1,
+                vo_buffer_length_after: 2,
+                appended_colliding: true,
+            },
+        ]);
+
+        let observation = resolve_rvo_observation(target_refs(), 5, &mut state).unwrap();
+        assert_eq!(
+            observation
+                .rvo_updates
+                .iter()
+                .map(|update| update.update_ordinal)
+                .collect::<Vec<_>>(),
+            [1, 2]
+        );
+        assert!(!observation.rvo_updates[0].double_buffering);
+        assert!(observation.rvo_updates[1].double_buffering);
+        assert_eq!(observation.rvo_updates[0].publish_native_tick, 4);
+        assert_eq!(observation.rvo_updates[1].publish_native_tick, 5);
+        assert_eq!(
+            observation.rvo_updates[0]
+                .agents
+                .iter()
+                .map(|agent| agent.ordinal)
+                .collect::<Vec<_>>(),
+            [0, 1]
+        );
+        assert_eq!(
+            observation.rvo_updates[0]
+                .neighbour_sets
+                .iter()
+                .map(|set| set.source_call_ordinal)
+                .collect::<Vec<_>>(),
+            [3, 9]
+        );
+        assert_eq!(
+            observation.rvo_updates[0]
+                .vo_buffers
+                .iter()
+                .map(|buffer| buffer.call_ordinal)
+                .collect::<Vec<_>>(),
+            [4, 8]
+        );
+        assert_eq!(
+            observation.rvo_updates[0]
+                .opponent_vos
+                .iter()
+                .map(|opponent| opponent.call_ordinal)
+                .collect::<Vec<_>>(),
+            [2, 7]
+        );
+        assert_eq!(state.rvo_update_publish_native_ticks.len(), 1);
+        assert_eq!(state.rvo_update_publish_native_ticks.get(&3), Some(&6));
+        assert_eq!(state.rvo_neighbour_sets.len(), 1);
+        assert_eq!(state.rvo_neighbour_sets[0].update_ordinal, 3);
+
+        for opponent_only in [false, true] {
+            let mut missing_source = CaptureState::default();
+            missing_source
+                .rvo_agent_refs
+                .insert(10, ObjectRef::new(ObjectKind::Unit, 1));
+            missing_source
+                .rvo_agent_refs
+                .insert(20, ObjectRef::new(ObjectKind::Unit, 2));
+            seed_rvo_update(&mut missing_source, 1, 1, 1, false, 1, false);
+            if opponent_only {
+                missing_source.opponent_vos.push(NativeOpponentVo {
+                    update_ordinal: 1,
+                    call_ordinal: 1,
+                    source: 10,
+                    target: 20,
+                    vo_buffer_length_before: 0,
+                    vo_buffer_length_after: 1,
+                    appended_colliding: false,
+                });
+            } else {
+                missing_source.rvo_vo_buffers.push(NativeRvoVoBuffer {
+                    update_ordinal: 1,
+                    call_ordinal: 1,
+                    source: 10,
+                    vos: Vec::new(),
+                });
+            }
+            let error = resolve_rvo_observation(target_refs(), 1, &mut missing_source).unwrap_err();
+            assert!(error.contains("has no CalculateNeighbours source"));
+        }
+    }
+
+    #[test]
+    fn rvo_symmetry_bias_serialization_and_ready_cleanup() {
+        let mut state = CaptureState::default();
+        seed_rvo_update(&mut state, 4, 8, 9, true, 429_496_729, true);
+        let observation = resolve_rvo_observation(target_refs(), 9, &mut state).unwrap();
+        assert_eq!(observation.rvo_updates.len(), 1);
+        assert_eq!(
+            observation.rvo_updates[0].symmetry_breaking_bias_raw,
+            429_496_729
+        );
+        assert_eq!(
+            serde_json::to_value(&observation).unwrap()["rvo_updates"][0]["symmetry_breaking_bias_raw"],
+            serde_json::json!(429_496_729)
+        );
+        assert!(!state.rvo_update_modes.contains_key(&4));
+        assert!(!state.rvo_update_symmetry_breaking_biases.contains_key(&4));
+        assert!(!state.rvo_update_start_native_ticks.contains_key(&4));
+        assert!(!state.rvo_update_publish_native_ticks.contains_key(&4));
+        assert!(!state.rvo_update_multithreaded.contains_key(&4));
+
+        let mut zero_activation = CaptureState::default();
+        zero_activation.rvo_update_modes.insert(5, false);
+        zero_activation
+            .rvo_update_symmetry_breaking_biases
+            .insert(5, FixedPoint { raw: 99 });
+        zero_activation.rvo_update_start_native_ticks.insert(5, 10);
+        zero_activation.rvo_update_multithreaded.insert(5, false);
+        discard_unpublished_rvo_update(&mut zero_activation, 5);
+        assert!(zero_activation.rvo_update_modes.is_empty());
+        assert!(
+            zero_activation
+                .rvo_update_symmetry_breaking_biases
+                .is_empty()
+        );
+        assert!(zero_activation.rvo_update_start_native_ticks.is_empty());
+        assert!(zero_activation.rvo_update_multithreaded.is_empty());
+
+        let mut missing_bias = CaptureState::default();
+        seed_rvo_update(&mut missing_bias, 6, 1, 1, false, 1, false);
+        missing_bias.rvo_update_symmetry_breaking_biases.clear();
+        let error = resolve_rvo_observation(target_refs(), 1, &mut missing_bias).unwrap_err();
+        assert_eq!(error, "native RVO update 6 lost its symmetry bias");
+    }
+
+    #[test]
+    fn rvo_stop_and_failure_cleanup() {
+        let _guard = RVO_GLOBAL_TEST_LOCK.lock().unwrap();
+        let mut state = CaptureState {
+            armed: true,
+            ..CaptureState::default()
+        };
+        state.rvo_agent_owners.insert(100, 10);
+        state.rvo_neighbour_sets.push(NativeRvoNeighbourSet {
+            update_ordinal: 1,
+            source_call_ordinal: 1,
+            source: 100,
+            neighbours: Vec::new(),
+        });
+        state
+            .rvo_agent_sets
+            .insert(1, vec![NativeRvoAgentState::default()]);
+        state.rvo_vo_buffers.push(NativeRvoVoBuffer {
+            update_ordinal: 1,
+            call_ordinal: 1,
+            source: 100,
+            vos: Vec::new(),
+        });
+        state.opponent_vos.push(NativeOpponentVo {
+            update_ordinal: 1,
+            call_ordinal: 2,
+            source: 100,
+            target: 200,
+            vo_buffer_length_before: 0,
+            vo_buffer_length_after: 1,
+            appended_colliding: false,
+        });
+        seed_rvo_update(&mut state, 1, 1, 2, true, 3, true);
+        state.fail("forced capture failure".into());
+        assert!(!state.armed);
+        assert!(matches!(
+            state.queue.back(),
+            Some(CaptureMessage::Failure(reason)) if reason == "forced capture failure"
+        ));
+        clear_pending_rvo_state(&mut state);
+        assert!(state.rvo_neighbour_sets.is_empty());
+        assert!(state.rvo_agent_sets.is_empty());
+        assert!(state.rvo_vo_buffers.is_empty());
+        assert!(state.opponent_vos.is_empty());
+        assert!(state.rvo_update_modes.is_empty());
+        assert!(state.rvo_update_symmetry_breaking_biases.is_empty());
+        assert!(state.rvo_update_start_native_ticks.is_empty());
+        assert!(state.rvo_update_publish_native_ticks.is_empty());
+        assert!(state.rvo_update_multithreaded.is_empty());
+        assert_eq!(state.rvo_agent_owners.get(&100), Some(&10));
+
+        ACTIVE_RVO_UPDATE.store(1, Ordering::Release);
+        CURRENT_RVO_FIXED_UPDATE.store(2, Ordering::Release);
+        CURRENT_RVO_ACTIVATION_COUNT.store(3, Ordering::Release);
+        RVO_ACTIVATION_COUNT.store(4, Ordering::Release);
+        reset_rvo_sentinels();
+        assert_eq!(ACTIVE_RVO_UPDATE.load(Ordering::Acquire), u64::MAX);
+        assert_eq!(CURRENT_RVO_FIXED_UPDATE.load(Ordering::Acquire), u64::MAX);
+        assert_eq!(CURRENT_RVO_ACTIVATION_COUNT.load(Ordering::Acquire), 0);
+        assert_eq!(RVO_ACTIVATION_COUNT.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn rvo_seven_hook_contract_and_inactive_profile_behavior() {
+        let _guard = RVO_GLOBAL_TEST_LOCK.lock().unwrap();
+        struct Contract {
+            method: &'static str,
+            abi: &'static str,
+            wrapper: &'static str,
+            installer: &'static str,
+            original_slot: &'static str,
+            prologue: [u8; 16],
+        }
+        let contracts = [
+            Contract {
+                method: RVO_CONTROLLER_ACTIVE_LABEL,
+                abi: "unsafe extern C fn(controller, method_info) -> ()",
+                wrapper: "rvo_controller_active_hook",
+                installer: "install_rvo_controller_active_hook",
+                original_slot: "ORIGINAL_RVO_CONTROLLER_ACTIVE",
+                prologue: RVO_CONTROLLER_ACTIVE_PROLOGUE,
+            },
+            Contract {
+                method: RVO_ADD_AGENT_FIXED_LABEL,
+                abi: "unsafe extern C fn(simulator, agent, method_info) -> object",
+                wrapper: "rvo_add_agent_fixed_hook",
+                installer: "install_rvo_add_agent_fixed_hook",
+                original_slot: "ORIGINAL_RVO_ADD_AGENT_FIXED",
+                prologue: RVO_ADD_AGENT_FIXED_PROLOGUE,
+            },
+            Contract {
+                method: RVO_FIXED_UPDATE_LABEL,
+                abi: "unsafe extern C fn(simulator, method_info) -> ()",
+                wrapper: "rvo_fixed_update_hook",
+                installer: "install_rvo_fixed_update_hook",
+                original_slot: "ORIGINAL_RVO_FIXED_UPDATE",
+                prologue: RVO_FIXED_UPDATE_PROLOGUE,
+            },
+            Contract {
+                method: RVO_PRE_CALCULATION_LABEL,
+                abi: "unsafe extern C fn(simulator, method_info) -> ()",
+                wrapper: "rvo_pre_calculation_hook",
+                installer: "install_rvo_pre_calculation_hook",
+                original_slot: "ORIGINAL_RVO_PRE_CALCULATION",
+                prologue: RVO_PRE_CALCULATION_PROLOGUE,
+            },
+            Contract {
+                method: RVO_CALCULATE_NEIGHBOURS_LABEL,
+                abi: "unsafe extern C fn(agent, method_info) -> ()",
+                wrapper: "rvo_calculate_neighbours_hook",
+                installer: "install_rvo_calculate_neighbours_hook",
+                original_slot: "ORIGINAL_RVO_CALCULATE_NEIGHBOURS",
+                prologue: RVO_CALCULATE_NEIGHBOURS_PROLOGUE,
+            },
+            Contract {
+                method: RVO_GENERATE_NEIGHBOUR_VOS_LABEL,
+                abi: "unsafe extern C fn(agent, vo_buffer, method_info) -> ()",
+                wrapper: "rvo_generate_neighbour_vos_hook",
+                installer: "install_rvo_generate_neighbour_vos_hook",
+                original_slot: "ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS",
+                prologue: RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE,
+            },
+            Contract {
+                method: RVO_GENERATE_OPPONENT_VOS_LABEL,
+                abi: "unsafe extern C fn(agent, vo_buffer, other, method_info) -> ()",
+                wrapper: "rvo_generate_opponent_vos_hook",
+                installer: "install_rvo_generate_opponent_vos_hook",
+                original_slot: "ORIGINAL_RVO_GENERATE_OPPONENT_VOS",
+                prologue: RVO_GENERATE_OPPONENT_VOS_PROLOGUE,
+            },
+        ];
+        assert_eq!(contracts.len(), RVO_HOOK_COUNT);
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|entry| entry.method)
+                .collect::<Vec<_>>(),
+            [
+                "RVOControllerFixed.Active",
+                "RVO Simulator.AddAgentFixed",
+                "RVO Simulator.FixedUpdate",
+                "RVO Simulator.PreCalculation",
+                "RVO Agent.CalculateNeighbours",
+                "RVOAgentFixed.GenerateNeighbourAgentVOs",
+                "RVOAgentFixed.GenerateOpponentVOs",
+            ]
+        );
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|entry| entry.wrapper)
+                .collect::<Vec<_>>(),
+            [
+                "rvo_controller_active_hook",
+                "rvo_add_agent_fixed_hook",
+                "rvo_fixed_update_hook",
+                "rvo_pre_calculation_hook",
+                "rvo_calculate_neighbours_hook",
+                "rvo_generate_neighbour_vos_hook",
+                "rvo_generate_opponent_vos_hook",
+            ]
+        );
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|entry| entry.installer)
+                .collect::<Vec<_>>(),
+            [
+                "install_rvo_controller_active_hook",
+                "install_rvo_add_agent_fixed_hook",
+                "install_rvo_fixed_update_hook",
+                "install_rvo_pre_calculation_hook",
+                "install_rvo_calculate_neighbours_hook",
+                "install_rvo_generate_neighbour_vos_hook",
+                "install_rvo_generate_opponent_vos_hook",
+            ]
+        );
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|entry| entry.original_slot)
+                .collect::<Vec<_>>(),
+            [
+                "ORIGINAL_RVO_CONTROLLER_ACTIVE",
+                "ORIGINAL_RVO_ADD_AGENT_FIXED",
+                "ORIGINAL_RVO_FIXED_UPDATE",
+                "ORIGINAL_RVO_PRE_CALCULATION",
+                "ORIGINAL_RVO_CALCULATE_NEIGHBOURS",
+                "ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS",
+                "ORIGINAL_RVO_GENERATE_OPPONENT_VOS",
+            ]
+        );
+        assert_eq!(
+            contracts.iter().map(|entry| entry.abi).collect::<Vec<_>>(),
+            [
+                "unsafe extern C fn(controller, method_info) -> ()",
+                "unsafe extern C fn(simulator, agent, method_info) -> object",
+                "unsafe extern C fn(simulator, method_info) -> ()",
+                "unsafe extern C fn(simulator, method_info) -> ()",
+                "unsafe extern C fn(agent, method_info) -> ()",
+                "unsafe extern C fn(agent, vo_buffer, method_info) -> ()",
+                "unsafe extern C fn(agent, vo_buffer, other, method_info) -> ()",
+            ]
+        );
+        assert_eq!(
+            contracts
+                .iter()
+                .map(|entry| entry.prologue)
+                .collect::<Vec<_>>(),
+            [
+                [
+                    0xff, 0xc3, 0x01, 0xd1, 0xf8, 0x5f, 0x03, 0xa9, 0xf6, 0x57, 0x04, 0xa9, 0xf4,
+                    0x4f, 0x05, 0xa9
+                ],
+                [
+                    0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd,
+                    0x83, 0x00, 0x91
+                ],
+                [
+                    0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd,
+                    0x7b, 0x03, 0xa9
+                ],
+                [
+                    0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd,
+                    0x83, 0x00, 0x91
+                ],
+                [
+                    0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3,
+                    0x03, 0x00, 0xaa
+                ],
+                [
+                    0xed, 0x33, 0xb7, 0x6d, 0xeb, 0x2b, 0x01, 0x6d, 0xe9, 0x23, 0x02, 0x6d, 0xfc,
+                    0x6f, 0x03, 0xa9
+                ],
+                [
+                    0xff, 0xc3, 0x07, 0xd1, 0xfc, 0x6f, 0x19, 0xa9, 0xfa, 0x67, 0x1a, 0xa9, 0xf8,
+                    0x5f, 0x1b, 0xa9
+                ],
+            ]
+        );
+
+        let mismatch = verify_rvo_hook_prologue(
+            &[0; 16],
+            &RVO_CONTROLLER_ACTIVE_PROLOGUE,
+            RVO_CONTROLLER_ACTIVE_LABEL,
+        )
+        .unwrap_err();
+        assert!(mismatch.contains("RVOControllerFixed.Active prologue mismatch"));
+        assert!(mismatch.ends_with("00000000000000000000000000000000"));
+
+        let mut attempted = Vec::new();
+        let install_error = run_rvo_hook_install_sequence(|index| {
+            attempted.push(index);
+            if index == 3 {
+                Err("forced RVO hook 3 failure".into())
+            } else {
+                Ok(())
+            }
+        })
+        .unwrap_err();
+        assert_eq!(attempted, [0, 1, 2, 3]);
+        let unavailable = Metadata {
+            rvo_error: Some(install_error.clone()),
+            ..Metadata::default()
+        };
+        assert!(validate_rvo_profile_availability(None, &unavailable).is_ok());
+        assert!(
+            validate_rvo_profile_availability(
+                Some(CaptureInstrumentationProfile::TargetRefsV1),
+                &unavailable
+            )
+            .is_ok()
+        );
+        let profile_error = validate_rvo_profile_availability(
+            Some(CaptureInstrumentationProfile::TargetRefsRvoV1),
+            &unavailable,
+        )
+        .unwrap_err();
+        assert!(profile_error.contains(&install_error));
+
+        for counter in &TEST_HOOK_CALLS {
+            counter.store(0, Ordering::Release);
+        }
+        for arguments in &TEST_HOOK_ARGUMENTS {
+            for argument in arguments {
+                argument.store(0, Ordering::Release);
+            }
+        }
+        RUNTIME.store(ptr::null_mut(), Ordering::Release);
+        reset_rvo_sentinels();
+        ORIGINAL_RVO_CONTROLLER_ACTIVE
+            .store(test_rvo_controller_active as *mut c_void, Ordering::Release);
+        ORIGINAL_RVO_ADD_AGENT_FIXED
+            .store(test_rvo_add_agent_fixed as *mut c_void, Ordering::Release);
+        ORIGINAL_RVO_FIXED_UPDATE.store(test_rvo_fixed_update as *mut c_void, Ordering::Release);
+        ORIGINAL_RVO_PRE_CALCULATION
+            .store(test_rvo_pre_calculation as *mut c_void, Ordering::Release);
+        ORIGINAL_RVO_CALCULATE_NEIGHBOURS.store(
+            test_rvo_calculate_neighbours as *mut c_void,
+            Ordering::Release,
+        );
+        ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS.store(
+            test_rvo_generate_neighbour_vos as *mut c_void,
+            Ordering::Release,
+        );
+        ORIGINAL_RVO_GENERATE_OPPONENT_VOS.store(
+            test_rvo_generate_opponent_vos as *mut c_void,
+            Ordering::Release,
+        );
+        // SAFETY: the test slots contain functions with the exact declared ABIs,
+        // and the opaque pointer values are only forwarded and recorded.
+        let added = unsafe {
+            rvo_controller_active_hook(
+                0x101_usize as *mut Object,
+                0x102_usize as *const MethodInfo,
+            );
+            let added = rvo_add_agent_fixed_hook(
+                0x201_usize as *mut Object,
+                0x202_usize as *mut Object,
+                0x203_usize as *const MethodInfo,
+            );
+            rvo_fixed_update_hook(0x301_usize as *mut Object, 0x302_usize as *const MethodInfo);
+            rvo_pre_calculation_hook(0x401_usize as *mut Object, 0x402_usize as *const MethodInfo);
+            rvo_calculate_neighbours_hook(
+                0x501_usize as *mut Object,
+                0x502_usize as *const MethodInfo,
+            );
+            rvo_generate_neighbour_vos_hook(
+                0x601_usize as *mut Object,
+                0x602_usize as *mut Object,
+                0x603_usize as *const MethodInfo,
+            );
+            rvo_generate_opponent_vos_hook(
+                0x701_usize as *mut Object,
+                0x702_usize as *mut Object,
+                0x703_usize as *mut Object,
+                0x704_usize as *const MethodInfo,
+            );
+            added
+        };
+        assert_eq!(added as usize, 0x204);
+        assert_eq!(
+            TEST_HOOK_CALLS
+                .iter()
+                .map(|count| count.load(Ordering::Acquire))
+                .collect::<Vec<_>>(),
+            [1; RVO_HOOK_COUNT]
+        );
+        assert_eq!(
+            TEST_HOOK_ARGUMENTS
+                .iter()
+                .map(|arguments| {
+                    std::array::from_fn(|index| arguments[index].load(Ordering::Acquire))
+                })
+                .collect::<Vec<_>>(),
+            [
+                [0x101, 0x102, 0, 0],
+                [0x201, 0x202, 0x203, 0],
+                [0x301, 0x302, 0, 0],
+                [0x401, 0x402, 0, 0],
+                [0x501, 0x502, 0, 0],
+                [0x601, 0x602, 0x603, 0],
+                [0x701, 0x702, 0x703, 0x704],
+            ]
+        );
+        for slot in [
+            &ORIGINAL_RVO_CONTROLLER_ACTIVE,
+            &ORIGINAL_RVO_ADD_AGENT_FIXED,
+            &ORIGINAL_RVO_FIXED_UPDATE,
+            &ORIGINAL_RVO_PRE_CALCULATION,
+            &ORIGINAL_RVO_CALCULATE_NEIGHBOURS,
+            &ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS,
+            &ORIGINAL_RVO_GENERATE_OPPONENT_VOS,
+        ] {
+            slot.store(ptr::null_mut(), Ordering::Release);
+        }
+
+        for profile in [None, Some(CaptureInstrumentationProfile::TargetRefsV1)] {
+            let mut state = CaptureState {
+                armed: true,
+                instrumentation_profile: profile,
+                ..CaptureState::default()
+            };
+            record_rvo_agent_owner_mapping(&mut state, 100, 10);
+            assert_eq!(state.rvo_agent_owners.get(&100), Some(&10));
+            assert!(state.armed);
+            record_rvo_agent_owner_mapping(&mut state, 100, 10);
+            assert!(state.armed);
+            record_rvo_agent_owner_mapping(&mut state, 100, 11);
+            assert_eq!(state.rvo_agent_owners.get(&100), Some(&11));
+            assert!(!state.armed);
+            assert!(matches!(
+                state.queue.back(),
+                Some(CaptureMessage::Failure(reason))
+                    if reason == "native RVO agent was assigned to two FightActors"
+            ));
+        }
+        let mut unarmed = CaptureState::default();
+        record_rvo_agent_owner_mapping(&mut unarmed, 200, 20);
+        assert_eq!(unarmed.rvo_agent_owners.get(&200), Some(&20));
+        assert!(unarmed.queue.is_empty());
     }
 
     #[test]

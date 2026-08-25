@@ -777,7 +777,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                                 {
                                     sidecar.record_json(
                                         u64::try_from(step).expect("tick count fits u64"),
-                                        "target_refs",
+                                        instrumentation.profile.channel(),
                                         observation,
                                     )?;
                                 }
@@ -815,7 +815,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                                 && (0..sidecar.len()).all(|index| {
                                     sidecar.entry(index).is_ok_and(|entry| {
                                         entry.step == index as u64
-                                            && entry.channel == "target_refs"
+                                            && entry.channel == instrumentation.profile.channel()
                                             && entry.content_type == "application/json"
                                     })
                                 });
