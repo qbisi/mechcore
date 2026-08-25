@@ -51,7 +51,10 @@ pub(crate) enum LayoutExecutionStage {
 #[derive(Clone, Copy)]
 pub(crate) enum InternalOperation {
     Status,
-    StartCapture { visual: bool },
+    StartCapture {
+        visual: bool,
+        instrumentation_profile: Option<crate::capture::CaptureInstrumentationProfile>,
+    },
     StopCapture,
     SpeedUp,
     ToggleFight,
@@ -69,7 +72,10 @@ pub(crate) fn execute_internal(
 ) -> Response<Value> {
     let result = match operation {
         InternalOperation::Status => Ok(status(runtime)),
-        InternalOperation::StartCapture { visual } => crate::capture::start(runtime, visual)
+        InternalOperation::StartCapture {
+            visual,
+            instrumentation_profile,
+        } => crate::capture::start(runtime, visual, instrumentation_profile)
             .map(|()| json!({"started": true}))
             .map_err(OperationError::InvalidState),
         InternalOperation::StopCapture => crate::capture::stop()

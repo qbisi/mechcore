@@ -14,7 +14,7 @@ use rmcp::{
     tool, tool_handler, tool_router,
     transport::stdio,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
     env, fs,
@@ -53,6 +53,17 @@ struct RecordBattleParameters {
     output: PathBuf,
     /// Optional absolute destination for a logic-frame-aligned `QuickTime` MJPEG `.mov`.
     video_output: Option<PathBuf>,
+    /// Optional temporary Adapter-native research sidecar.
+    instrumentation: Option<RecordBattleInstrumentationParameters>,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct RecordBattleInstrumentationParameters {
+    /// Absolute destination path for the new HDF5 instrumentation sidecar.
+    output: PathBuf,
+    /// Adapter-defined temporary research profile name.
+    profile: String,
 }
 
 struct Shared {
@@ -62,6 +73,7 @@ struct Shared {
     child: Mutex<Option<Child>>,
     last_exit_code: Mutex<Option<i32>>,
     operation: Mutex<()>,
+    last_applied_layout: Mutex<Option<Value>>,
     status: watch::Sender<Value>,
 }
 
@@ -88,6 +100,7 @@ impl Shared {
             child: Mutex::new(None),
             last_exit_code: Mutex::new(None),
             operation: Mutex::new(()),
+            last_applied_layout: Mutex::new(None),
             status,
         }))
     }
@@ -261,6 +274,7 @@ impl Shared {
     async fn start_test(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
+        *self.last_applied_layout.lock().await = None;
         let result = self
             .adapter_request(Operation::StartTest, json!({}))
             .await?;
@@ -277,12 +291,15 @@ impl Shared {
     async fn apply_layout(&self, layout: Value) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_training_deployment(1).await?;
+        *self.last_applied_layout.lock().await = None;
         let activation_round = layout
             .get("round")
             .and_then(Value::as_i64)
             .filter(|round| (1..=i64::from(MAX_ACTIVATION_ROUND)).contains(round))
             .ok_or_else(|| format!("layout round must be within 1..={MAX_ACTIVATION_ROUND}"))?;
-        let result = self.adapter_request(Operation::ApplyLayout, layout).await?;
+        let result = self
+            .adapter_request(Operation::ApplyLayout, layout.clone())
+            .await?;
         if result.get("applied").and_then(Value::as_bool) != Some(true) {
             return Err(format!(
                 "adapter did not confirm layout application: {result}"
@@ -299,6 +316,7 @@ impl Shared {
                 "layout completed outside activation-round deployment: {status}"
             ));
         }
+        *self.last_applied_layout.lock().await = Some(layout.clone());
         Ok(json!({"operation": result, "status": status}))
     }
 
@@ -306,6 +324,7 @@ impl Shared {
         &self,
         output: PathBuf,
         video_output: Option<PathBuf>,
+        instrumentation: Option<RecordBattleInstrumentationParameters>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         let before = self.refresh_status().await?;
@@ -343,17 +362,59 @@ impl Shared {
                 ));
             }
         }
+        if let Some(instrumentation) = &instrumentation {
+            if instrumentation.profile.trim().is_empty() || instrumentation.profile.contains('\0') {
+                return Err("record_battle instrumentation profile is invalid".into());
+            }
+            if !instrumentation.output.is_absolute() {
+                return Err("record_battle instrumentation output must be absolute".into());
+            }
+            if instrumentation
+                .output
+                .extension()
+                .and_then(|value| value.to_str())
+                != Some("h5")
+            {
+                return Err(
+                    "record_battle instrumentation output must use the .h5 extension".into(),
+                );
+            }
+            if instrumentation.output == output
+                || video_output.as_ref() == Some(&instrumentation.output)
+            {
+                return Err("record_battle output paths must differ".into());
+            }
+            if instrumentation.output.exists() {
+                return Err(format!(
+                    "record_battle refuses to overwrite {}",
+                    instrumentation.output.display()
+                ));
+            }
+        }
+        let layout_input =
+            self.last_applied_layout.lock().await.clone().ok_or(
+                "record_battle requires a successfully applied layout in this test session",
+            )?;
         let result = self
             .adapter_request(
                 Operation::RecordBattle,
-                json!({"output": output, "video_output": video_output}),
+                json!({
+                    "output": output,
+                    "video_output": video_output,
+                    "instrumentation": instrumentation,
+                }),
             )
             .await?;
         if result.get("recorded").and_then(Value::as_bool) != Some(true) {
             return Err(format!("adapter did not confirm recording: {result}"));
         }
+        *self.last_applied_layout.lock().await = None;
         let status = self.refresh_status().await?;
-        Ok(json!({"operation": result, "status": status}))
+        Ok(json!({
+            "operation": result,
+            "layout_input": layout_input,
+            "status": status,
+        }))
     }
 
     async fn toggle_fight(&self) -> Result<Value, String> {
@@ -549,7 +610,11 @@ impl MechcoreMcp {
     ) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(
             self.shared
-                .record_battle(parameters.output, parameters.video_output)
+                .record_battle(
+                    parameters.output,
+                    parameters.video_output,
+                    parameters.instrumentation,
+                )
                 .await,
         ))
     }

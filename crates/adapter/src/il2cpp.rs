@@ -419,6 +419,20 @@ impl Api {
         Err(Error::MissingField(name.into()))
     }
 
+    pub fn class_is_or_inherits(self, mut class: *mut Class, expected: *mut Class) -> bool {
+        if expected.is_null() {
+            return false;
+        }
+        while !class.is_null() {
+            if class == expected {
+                return true;
+            }
+            // SAFETY: class is a runtime class from the current IL2CPP domain.
+            class = unsafe { (self.class_get_parent)(class) };
+        }
+        false
+    }
+
     pub fn static_object(self, field: *mut FieldInfo) -> *mut Object {
         let mut value: *mut Object = ptr::null_mut();
         // SAFETY: field is a static object field and output points to pointer storage.

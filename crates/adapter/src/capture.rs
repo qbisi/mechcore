@@ -9,6 +9,7 @@ use mechcore_mcfr::{
     PersonalShieldState, Pose, ProjectileState, Rational, StatusState, TransitionEvents, UnitState,
     Vec3, Visibility, WorldSnapshot,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     ffi::c_void,
@@ -33,6 +34,34 @@ pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 1_070.0;
 pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
 pub(crate) const CALIBRATION_CAMERA_PITCH_DEGREES: f32 = 45.0;
 pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum CaptureInstrumentationProfile {
+    TargetRefsV1,
+}
+
+impl CaptureInstrumentationProfile {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::TargetRefsV1 => "target_refs_v1",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct TargetRefsObservation {
+    pub(crate) units: Vec<UnitTargetRefsObservation>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct UnitTargetRefsObservation {
+    pub(crate) unit: ObjectRef,
+    pub(crate) mech_lock_target: Option<ObjectRef>,
+    pub(crate) normal_skill_fields_available: bool,
+    pub(crate) skill_lock_target: Option<ObjectRef>,
+    pub(crate) skill_attack_target: Option<ObjectRef>,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -84,11 +113,13 @@ pub(crate) enum CaptureMessage {
     Initial {
         context: DurableContext,
         state: WorldSnapshot,
+        instrumentation: Option<TargetRefsObservation>,
         frame: Option<Vec<u8>>,
     },
     Transition {
         events: TransitionEvents,
         state: WorldSnapshot,
+        instrumentation: Option<TargetRefsObservation>,
         terminal: bool,
         frame: Option<Vec<u8>>,
     },
@@ -99,10 +130,12 @@ enum PendingVisualMessage {
     Initial {
         context: DurableContext,
         state: WorldSnapshot,
+        instrumentation: Option<TargetRefsObservation>,
     },
     Transition {
         events: TransitionEvents,
         state: WorldSnapshot,
+        instrumentation: Option<TargetRefsObservation>,
         terminal: bool,
     },
 }
@@ -146,6 +179,10 @@ struct Metadata {
     motion_move_state_class: usize,
     motion_attack_state_class: usize,
     motion_stop_state_class: usize,
+    fight_mech_lock_target: Option<usize>,
+    fight_skill_class: Option<usize>,
+    fight_skill_lock_target: Option<usize>,
+    fight_skill_attack_target: Option<usize>,
 }
 
 #[derive(Default)]
@@ -153,6 +190,7 @@ struct Metadata {
 struct CaptureState {
     availability: Option<String>,
     metadata: Metadata,
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
     armed: bool,
     initialized: bool,
     queue: VecDeque<CaptureMessage>,
@@ -177,6 +215,7 @@ impl CaptureState {
     fn reset_session(&mut self) {
         self.armed = false;
         self.initialized = false;
+        self.instrumentation_profile = None;
         self.queue.clear();
         self.unit_ids.clear();
         self.building_ids.clear();
@@ -900,6 +939,20 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let motion_stop_state = api
             .class("GRFight.dll", "GameRiver.Fight", "MotionStopState")
             .map_err(|error| error.to_string())?;
+        let fight_mech_lock_target = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightMech")
+            .and_then(|class| api.field(class, "lockTarget"))
+            .ok()
+            .map(|field| field as usize);
+        let fight_skill = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightSkill")
+            .ok();
+        let fight_skill_lock_target = fight_skill
+            .and_then(|class| api.field(class, "lockTarget").ok())
+            .map(|field| field as usize);
+        let fight_skill_attack_target = fight_skill
+            .and_then(|class| api.field(class, "attackTarget").ok())
+            .map(|field| field as usize);
         let damage_performer = api
             .class("GRFight.dll", "GameRiver.Fight", "DamagePerformer")
             .map_err(|error| error.to_string())?;
@@ -931,11 +984,19 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             motion_move_state_class: motion_move_state as usize,
             motion_attack_state_class: motion_attack_state as usize,
             motion_stop_state_class: motion_stop_state as usize,
+            fight_mech_lock_target,
+            fight_skill_class: fight_skill.map(|class| class as usize),
+            fight_skill_lock_target,
+            fight_skill_attack_target,
         })
     }
 }
 
-pub(crate) fn start(runtime: &Runtime, visual: bool) -> Result<(), String> {
+pub(crate) fn start(
+    runtime: &Runtime,
+    visual: bool,
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
+) -> Result<(), String> {
     let mut state = capture_state()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -944,6 +1005,17 @@ pub(crate) fn start(runtime: &Runtime, visual: bool) -> Result<(), String> {
     }
     if state.armed {
         return Err("a battle recording is already active".into());
+    }
+    if instrumentation_profile == Some(CaptureInstrumentationProfile::TargetRefsV1)
+        && (state.metadata.fight_mech_lock_target.is_none()
+            || state.metadata.fight_skill_class.is_none()
+            || state.metadata.fight_skill_lock_target.is_none()
+            || state.metadata.fight_skill_attack_target.is_none())
+    {
+        return Err(
+            "target_refs_v1 is unavailable because native target fields could not be resolved"
+                .into(),
+        );
     }
     let fight = runtime.current_fight();
     if fight.is_null() {
@@ -965,6 +1037,7 @@ pub(crate) fn start(runtime: &Runtime, visual: bool) -> Result<(), String> {
         return Err("active match disappeared before recording started".into());
     }
     state.reset_session();
+    state.instrumentation_profile = instrumentation_profile;
     if visual {
         state.visual = Some(VisualCapture::new(runtime)?);
     }
@@ -1099,12 +1172,14 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                     state.render_completed = false;
                     state.pending_visual = Some(PendingVisualMessage::Initial {
                         context,
-                        state: initial,
+                        state: initial.world,
+                        instrumentation: initial.instrumentation,
                     });
                 } else {
                     state.push(CaptureMessage::Initial {
                         context,
-                        state: initial,
+                        state: initial.world,
+                        instrumentation: initial.instrumentation,
                         frame: None,
                     })?;
                 }
@@ -1119,13 +1194,15 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 state.render_completed = false;
                 state.pending_visual = Some(PendingVisualMessage::Transition {
                     events,
-                    state: next,
+                    state: next.world,
+                    instrumentation: next.instrumentation,
                     terminal,
                 });
             } else {
                 state.push(CaptureMessage::Transition {
                     events,
-                    state: next,
+                    state: next.world,
+                    instrumentation: next.instrumentation,
                     terminal,
                     frame: None,
                 })?;
@@ -1230,18 +1307,22 @@ fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
         PendingVisualMessage::Initial {
             context,
             state: world,
+            instrumentation,
         } => state.push(CaptureMessage::Initial {
             context,
             state: world,
+            instrumentation,
             frame: Some(frame),
         }),
         PendingVisualMessage::Transition {
             events,
             state: world,
+            instrumentation,
             terminal,
         } => state.push(CaptureMessage::Transition {
             events,
             state: world,
+            instrumentation,
             terminal,
             frame: Some(frame),
         }),
@@ -1451,6 +1532,14 @@ struct RawUnit {
     formation: usize,
     state: UnitState,
     statuses: Vec<RawStatus>,
+    target_refs: Option<RawTargetRefs>,
+}
+
+struct RawTargetRefs {
+    mech_lock_target: usize,
+    normal_skill_fields_available: bool,
+    skill_lock_target: usize,
+    skill_attack_target: usize,
 }
 
 struct RawStatus {
@@ -1473,12 +1562,17 @@ struct RawBuilding {
     state: BuildingState,
 }
 
+struct CapturedSnapshot {
+    world: WorldSnapshot,
+    instrumentation: Option<TargetRefsObservation>,
+}
+
 #[allow(clippy::too_many_lines)]
 fn snapshot(
     runtime: &Runtime,
     capture: &mut CaptureState,
     initial: bool,
-) -> Result<WorldSnapshot, String> {
+) -> Result<CapturedSnapshot, String> {
     let fight = runtime.current_fight();
     if fight.is_null() {
         return Err("fight controller disappeared during capture".into());
@@ -1512,7 +1606,13 @@ fn snapshot(
             .map_err(|error| error.to_string())?;
         for index in 0..list_count(runtime.api, units, 100_000)? {
             let unit = list_item(runtime.api, units, index)?;
-            raw_units.push(read_unit(runtime.api, unit, team_id, &capture.metadata)?);
+            raw_units.push(read_unit(
+                runtime.api,
+                unit,
+                team_id,
+                &capture.metadata,
+                capture.instrumentation_profile,
+            )?);
         }
         let buildings = runtime
             .api
@@ -1543,6 +1643,7 @@ fn snapshot(
     }
     let mut units = Vec::with_capacity(raw_units.len());
     let mut raw_statuses = Vec::new();
+    let mut raw_target_refs = Vec::new();
     for mut unit in raw_units {
         let unit_id = match capture.unit_ids.get(&unit.pointer) {
             Some(id) => *id,
@@ -1564,6 +1665,9 @@ fn snapshot(
             .or_insert(formation_id);
         unit.state.unit_id = unit_id;
         unit.state.formation_id = formation_id;
+        if let Some(target_refs) = unit.target_refs {
+            raw_target_refs.push((unit_id, target_refs));
+        }
         raw_statuses.append(&mut unit.statuses);
         units.push(unit.state);
     }
@@ -1579,6 +1683,36 @@ fn snapshot(
         building.state.building_id = id;
         buildings.push(building.state);
     }
+    let instrumentation = match capture.instrumentation_profile {
+        Some(CaptureInstrumentationProfile::TargetRefsV1) => {
+            let mut observations = Vec::with_capacity(raw_target_refs.len());
+            for (unit_id, refs) in raw_target_refs {
+                observations.push(UnitTargetRefsObservation {
+                    unit: ObjectRef::new(ObjectKind::Unit, unit_id),
+                    mech_lock_target: resolve_target_ref(
+                        refs.mech_lock_target,
+                        "FightMech.lockTarget",
+                        capture,
+                    )?,
+                    normal_skill_fields_available: refs.normal_skill_fields_available,
+                    skill_lock_target: resolve_target_ref(
+                        refs.skill_lock_target,
+                        "FightSkill.lockTarget",
+                        capture,
+                    )?,
+                    skill_attack_target: resolve_target_ref(
+                        refs.skill_attack_target,
+                        "FightSkill.attackTarget",
+                        capture,
+                    )?,
+                });
+            }
+            Some(TargetRefsObservation {
+                units: observations,
+            })
+        }
+        None => None,
+    };
     let projectiles = read_projectiles(runtime, capture)?;
     let mut seen_statuses = BTreeSet::new();
     let mut statuses = Vec::with_capacity(raw_statuses.len());
@@ -1621,11 +1755,14 @@ fn snapshot(
             "logic tick changed during snapshot ({tick_before} -> {tick_after})"
         ));
     }
-    Ok(WorldSnapshot {
-        units,
-        projectiles,
-        buildings,
-        statuses,
+    Ok(CapturedSnapshot {
+        world: WorldSnapshot {
+            units,
+            projectiles,
+            buildings,
+            statuses,
+        },
+        instrumentation,
     })
 }
 
@@ -1635,6 +1772,7 @@ fn read_unit(
     unit: *mut Object,
     team_id: u32,
     metadata: &Metadata,
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
 ) -> Result<RawUnit, String> {
     if unit.is_null() {
         return Err("team contains a null unit".into());
@@ -1679,6 +1817,54 @@ fn read_unit(
     let position = vec3(fixed_position)?;
     let body_rotation = q32_to_units(fixed_rotation.raw, ROTATION_UNITS_PER_DEGREE)?;
     let main_skill = invoke_object(api, unit, "GetMainSkill")?;
+    let target_refs = match instrumentation_profile {
+        Some(CaptureInstrumentationProfile::TargetRefsV1) => {
+            let normal_skill_fields_available = api.class_is_or_inherits(
+                api.object_class(main_skill).unwrap_or(ptr::null_mut()),
+                metadata
+                    .fight_skill_class
+                    .expect("profile fields checked at capture start") as *mut _,
+            );
+            let mech_lock_target = api
+                .field_value::<*mut Object>(
+                    unit,
+                    metadata
+                        .fight_mech_lock_target
+                        .expect("profile fields checked at capture start")
+                        as *mut FieldInfo,
+                )
+                .map_err(|error| error.to_string())? as usize;
+            let (skill_lock_target, skill_attack_target) = if normal_skill_fields_available {
+                (
+                    api.field_value::<*mut Object>(
+                        main_skill,
+                        metadata
+                            .fight_skill_lock_target
+                            .expect("profile fields checked at capture start")
+                            as *mut FieldInfo,
+                    )
+                    .map_err(|error| error.to_string())? as usize,
+                    api.field_value::<*mut Object>(
+                        main_skill,
+                        metadata
+                            .fight_skill_attack_target
+                            .expect("profile fields checked at capture start")
+                            as *mut FieldInfo,
+                    )
+                    .map_err(|error| error.to_string())? as usize,
+                )
+            } else {
+                (0, 0)
+            };
+            Some(RawTargetRefs {
+                mech_lock_target,
+                normal_skill_fields_available,
+                skill_lock_target,
+                skill_attack_target,
+            })
+        }
+        None => None,
+    };
     let aim_transform = invoke_object(api, main_skill, "GetMainTransform")?;
     let aim_position = vec3(invoke_value::<FixedVec3>(
         api,
@@ -1773,6 +1959,7 @@ fn read_unit(
             personal_shield,
         },
         statuses,
+        target_refs,
     })
 }
 
@@ -2010,6 +2197,19 @@ fn object_ref_from_pointer(pointer: usize, capture: &CaptureState) -> Option<Obj
                 .get(&pointer)
                 .map(|id| ObjectRef::new(ObjectKind::Projectile, *id))
         })
+}
+
+fn resolve_target_ref(
+    pointer: usize,
+    field: &str,
+    capture: &CaptureState,
+) -> Result<Option<ObjectRef>, String> {
+    if pointer == 0 {
+        return Ok(None);
+    }
+    object_ref_from_pointer(pointer, capture)
+        .map(Some)
+        .ok_or_else(|| format!("{field} references an actor absent from the MCFR world snapshot"))
 }
 
 const fn event(

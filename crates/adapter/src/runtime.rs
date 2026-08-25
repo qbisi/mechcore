@@ -30,6 +30,15 @@ struct RecordBattleArguments {
     output: PathBuf,
     #[serde(default)]
     video_output: Option<PathBuf>,
+    #[serde(default)]
+    instrumentation: Option<RecordBattleInstrumentationArguments>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RecordBattleInstrumentationArguments {
+    output: PathBuf,
+    profile: capture::CaptureInstrumentationProfile,
 }
 
 #[derive(Debug)]
@@ -459,11 +468,52 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
             );
         }
     }
+    if let Some(instrumentation) = &arguments.instrumentation {
+        if !instrumentation.output.is_absolute() {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_battle instrumentation output must be absolute",
+            );
+        }
+        if instrumentation
+            .output
+            .extension()
+            .and_then(|value| value.to_str())
+            != Some("h5")
+        {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_battle instrumentation output must use the .h5 extension",
+            );
+        }
+        if instrumentation.output == arguments.output
+            || arguments.video_output.as_ref() == Some(&instrumentation.output)
+        {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_battle output paths must differ",
+            );
+        }
+        if instrumentation.output.exists() {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                format!("refusing to overwrite {}", instrumentation.output.display()),
+            );
+        }
+    }
     if let Err(response) = successful_result(execute_internal_on_main(
         runtime,
         request.id,
         operations::InternalOperation::StartCapture {
             visual: arguments.video_output.is_some(),
+            instrumentation_profile: arguments
+                .instrumentation
+                .as_ref()
+                .map(|value| value.profile),
         },
     )) {
         return response;
@@ -471,6 +521,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
     let deadline = Instant::now() + RECORDING_TIMEOUT;
     let mut writer = None;
     let mut video = None;
+    let mut instrumentation_records = Vec::new();
     loop {
         if Instant::now() >= deadline {
             return recording_failure(
@@ -484,6 +535,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
             Some(CaptureMessage::Initial {
                 context,
                 state,
+                instrumentation,
                 frame,
             }) => {
                 if writer.is_some() {
@@ -527,6 +579,26 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         "visual capture produced a frame without video_output".into(),
                     );
                 }
+                match (&arguments.instrumentation, instrumentation) {
+                    (Some(_), Some(observation)) => instrumentation_records.push(observation),
+                    (None, None) => {}
+                    (Some(_), None) => {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "capture omitted requested instrumentation at tick zero".into(),
+                        );
+                    }
+                    (None, Some(_)) => {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "capture produced unrequested instrumentation at tick zero".into(),
+                        );
+                    }
+                }
                 match mechcore_mcfr::McfrWriter::create(&arguments.output, &context).and_then(
                     |mut created| {
                         created.append_tick(
@@ -561,6 +633,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
             Some(CaptureMessage::Transition {
                 events,
                 state,
+                instrumentation,
                 terminal,
                 frame,
             }) => {
@@ -574,6 +647,26 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                 };
                 if let Err(error) = active.append_tick(state, &events) {
                     return recording_failure(runtime, request.id, "mcfr_error", error.to_string());
+                }
+                match (&arguments.instrumentation, instrumentation) {
+                    (Some(_), Some(observation)) => instrumentation_records.push(observation),
+                    (None, None) => {}
+                    (Some(_), None) => {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "capture omitted requested instrumentation".into(),
+                        );
+                    }
+                    (None, Some(_)) => {
+                        return recording_failure(
+                            runtime,
+                            request.id,
+                            "capture_failed",
+                            "capture produced unrequested instrumentation".into(),
+                        );
+                    }
                 }
                 match (video.as_mut(), frame.as_deref()) {
                     (Some(active), Some(frame)) => {
@@ -642,21 +735,110 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             "published MCFR hashes changed after reopening",
                         );
                     }
-                    if let Some(summary) = &video_summary {
-                        if summary.frame_count != published.tick_count() {
-                            remove_published(Some(&arguments.output));
-                            remove_published(arguments.video_output.as_deref());
-                            return Response::failure(
-                                request.id,
-                                "video_verification_failed",
-                                format!(
-                                    "video frame count {} does not match MCFR tick count {}",
-                                    summary.frame_count,
-                                    published.tick_count()
-                                ),
-                            );
-                        }
+                    if let Some(summary) = &video_summary
+                        && summary.frame_count != published.tick_count()
+                    {
+                        remove_published(Some(&arguments.output));
+                        remove_published(arguments.video_output.as_deref());
+                        return Response::failure(
+                            request.id,
+                            "video_verification_failed",
+                            format!(
+                                "video frame count {} does not match MCFR tick count {}",
+                                summary.frame_count,
+                                published.tick_count()
+                            ),
+                        );
                     }
+                    let instrumentation_result = match &arguments.instrumentation {
+                        Some(instrumentation) => {
+                            if instrumentation_records.len() != published.tick_count() as usize {
+                                remove_published(Some(&arguments.output));
+                                remove_published(arguments.video_output.as_deref());
+                                return Response::failure(
+                                    request.id,
+                                    "instrumentation_verification_failed",
+                                    format!(
+                                        "instrumentation record count {} does not match MCFR tick count {}",
+                                        instrumentation_records.len(),
+                                        published.tick_count()
+                                    ),
+                                );
+                            }
+                            let write_result = (|| {
+                                let mut sidecar = mechcore_mcfr::InstrumentationWriter::create(
+                                    &instrumentation.output,
+                                    &hashes.scenario_hash,
+                                    instrumentation.profile.as_str(),
+                                    "adapter",
+                                )?;
+                                for (step, observation) in
+                                    instrumentation_records.iter().enumerate()
+                                {
+                                    sidecar.record_json(
+                                        u64::try_from(step).expect("tick count fits u64"),
+                                        "target_refs",
+                                        observation,
+                                    )?;
+                                }
+                                sidecar.finish()
+                            })();
+                            if let Err(error) = write_result {
+                                remove_published(Some(&arguments.output));
+                                remove_published(arguments.video_output.as_deref());
+                                remove_published(Some(&instrumentation.output));
+                                return Response::failure(
+                                    request.id,
+                                    "instrumentation_error",
+                                    error.to_string(),
+                                );
+                            }
+                            let sidecar = match mechcore_mcfr::InstrumentationReader::open(
+                                &instrumentation.output,
+                            ) {
+                                Ok(sidecar) => sidecar,
+                                Err(error) => {
+                                    remove_published(Some(&arguments.output));
+                                    remove_published(arguments.video_output.as_deref());
+                                    remove_published(Some(&instrumentation.output));
+                                    return Response::failure(
+                                        request.id,
+                                        "instrumentation_verification_failed",
+                                        error.to_string(),
+                                    );
+                                }
+                            };
+                            let valid = sidecar.scenario_hash() == hashes.scenario_hash
+                                && sidecar.profile() == instrumentation.profile.as_str()
+                                && sidecar.producer() == "adapter"
+                                && sidecar.len() == published.tick_count() as usize
+                                && (0..sidecar.len()).all(|index| {
+                                    sidecar.entry(index).is_ok_and(|entry| {
+                                        entry.step == index as u64
+                                            && entry.channel == "target_refs"
+                                            && entry.content_type == "application/json"
+                                    })
+                                });
+                            if !valid {
+                                remove_published(Some(&arguments.output));
+                                remove_published(arguments.video_output.as_deref());
+                                remove_published(Some(&instrumentation.output));
+                                return Response::failure(
+                                    request.id,
+                                    "instrumentation_verification_failed",
+                                    "published instrumentation metadata or records changed during verification",
+                                );
+                            }
+                            Some(serde_json::json!({
+                                "output": instrumentation.output,
+                                "profile": instrumentation.profile.as_str(),
+                                "producer": "adapter",
+                                "scenario_hash": sidecar.scenario_hash(),
+                                "record_count": sidecar.len(),
+                            }))
+                        }
+                        None => None,
+                    };
                     let video_result = video_summary.map(|summary| {
                         serde_json::json!({
                             "output": arguments.video_output,
@@ -688,6 +870,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             "terminal_tick": published.terminal_tick(),
                             "hashes": hashes,
                             "video": video_result,
+                            "instrumentation": instrumentation_result,
                         }),
                     );
                 }
