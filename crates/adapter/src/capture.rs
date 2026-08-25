@@ -512,6 +512,7 @@ impl CaptureState {
         self.status_ids.clear();
         self.formation_ids.clear();
         self.rvo_agent_refs.clear();
+        self.rvo_agent_owners.clear();
         self.rvo_internal_agent_ids.clear();
         self.next_unit_id = 1;
         self.next_building_id = 1;
@@ -5430,6 +5431,59 @@ mod tests {
         assert_eq!(q32_to_units(1_i64 << 32, 1_000).unwrap(), 1_000);
         assert_eq!(q32_to_units(-(1_i64 << 32), 1_000).unwrap(), -1_000);
         assert_eq!(q32_to_units(1_i64 << 31, 1_000).unwrap(), 500);
+    }
+
+    #[test]
+    fn capture_session_reset_allows_reused_rvo_agent_pointer() {
+        let mut capture = CaptureState::default();
+        capture
+            .rvo_agent_refs
+            .insert(11, ObjectRef::new(ObjectKind::Unit, 1));
+        capture.rvo_agent_owners.insert(11, 22);
+        capture.rvo_internal_agent_ids.insert(44, 7);
+        capture.next_rvo_internal_agent_id = 8;
+        capture
+            .rvo_agent_sets
+            .insert(1, vec![NativeRvoAgentState::default()]);
+        capture.rvo_neighbour_sets.push(NativeRvoNeighbourSet {
+            update_ordinal: 1,
+            source_call_ordinal: 1,
+            source: 11,
+            neighbours: Vec::new(),
+        });
+        capture.rvo_vo_buffers.push(NativeRvoVoBuffer {
+            update_ordinal: 1,
+            call_ordinal: 1,
+            source: 11,
+            vos: Vec::new(),
+        });
+        capture.opponent_vos.push(NativeOpponentVo {
+            update_ordinal: 1,
+            call_ordinal: 2,
+            source: 11,
+            target: 33,
+            vo_buffer_length_before: 0,
+            vo_buffer_length_after: 1,
+            appended_colliding: false,
+        });
+        seed_rvo_update(&mut capture, 1, 1, 2, true, 3, true);
+
+        capture.reset_session();
+
+        assert!(capture.rvo_agent_refs.is_empty());
+        assert!(capture.rvo_agent_owners.is_empty());
+        assert!(capture.rvo_internal_agent_ids.is_empty());
+        assert_eq!(capture.next_rvo_internal_agent_id, 0);
+        assert!(capture.rvo_agent_sets.is_empty());
+        assert!(capture.rvo_neighbour_sets.is_empty());
+        assert!(capture.rvo_vo_buffers.is_empty());
+        assert!(capture.opponent_vos.is_empty());
+        assert!(capture.rvo_update_modes.is_empty());
+        assert!(capture.rvo_update_symmetry_breaking_biases.is_empty());
+        assert!(capture.rvo_update_start_native_ticks.is_empty());
+        assert!(capture.rvo_update_publish_native_ticks.is_empty());
+        assert!(capture.rvo_update_multithreaded.is_empty());
+        assert_eq!(capture.rvo_agent_owners.insert(11, 33), None);
     }
 
     #[test]
