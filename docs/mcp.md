@@ -69,8 +69,9 @@ verifying the requested artifacts, it leaves the completed Training Ground and
 returns success only after `main_menu` is observed. Its structured result marks
 `cleanup.match_exited=true`, reports the final status, and identifies
 `start_test` and `quit_game` as the legal next session actions. It never quits
-the game: a process reused for another capture begins again with `start_test`,
-while only the final capture is followed by `quit_game`.
+the game. Keep the process only when another layout capture is already queued;
+that capture begins again with `start_test`. When the capture queue is empty or
+paused, call `quit_game` from `main_menu` instead of leaving the game idle.
 
 If recording or cleanup fails, the error result reports whether recording was
 confirmed, the observed status, whether external process resolution is needed,
