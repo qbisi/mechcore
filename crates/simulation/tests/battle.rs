@@ -1,7 +1,19 @@
 use std::{fs, path::PathBuf};
 
-use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
+use mechcore_mcfr::{EventKind, EventPayload, InstrumentationReader, McfrReader, ObjectRef};
 use mechcore_simulation::{simulate_layout, simulate_layout_with_config};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct TargetRefsObservation {
+    units: Vec<UnitTargetRefsObservation>,
+}
+
+#[derive(Deserialize)]
+struct UnitTargetRefsObservation {
+    unit: ObjectRef,
+    mech_lock_target: Option<ObjectRef>,
+}
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
@@ -72,24 +84,29 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 }
 
 #[test]
-fn marksman_vs_arclight_matches_the_build_2259_native_recording() {
+fn marksman_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(fixture(), &output, Some(1_787_551_408)).unwrap();
+    let result = simulate_layout(fixture(), &output, Some(1_787_720_817)).unwrap();
     assert_eq!(
         result.hashes.scenario_hash,
-        "af4c7c7410377edb84ec3106ad2fe2427864e313d42092351e217462c025efee"
+        "d06fcbff599a161eb3d23b3bfb3fd3e73c3229dc6cf80c4efcea24fc6a2d292b"
     );
     assert_eq!(
         result.hashes.result_hash,
-        "6dc45a4ef0bd5b469f727790555ff6bd47c38cadb1e0d0aebf97b260c5059fc5"
+        "8e27f7fadf7575f527bebdcda4ce452dcb8bbeda4fa39d91b6bd8d7b25079c5f"
     );
     let reader = McfrReader::open(output).unwrap();
     assert_eq!(reader.tick_count(), 92);
+    let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
-        reader
-            .state(reader.terminal_tick())
-            .unwrap()
+        terminal
+            .units
+            .iter()
+            .all(|unit| unit.mech_lock_target.is_none())
+    );
+    assert!(
+        terminal
             .buildings
             .iter()
             .all(|building| building.life == 3_400 && building.alive && building.targetable)
@@ -97,23 +114,23 @@ fn marksman_vs_arclight_matches_the_build_2259_native_recording() {
 }
 
 #[test]
-fn rhino_vs_arclight_matches_the_build_2259_native_recording() {
+fn rhino_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(rhino_fixture(), &output, Some(1_787_624_046)).unwrap();
+    let result = simulate_layout(rhino_fixture(), &output, Some(1_787_720_897)).unwrap();
     assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, 236);
+    assert_eq!(result.steps, 235);
     assert_eq!(
         result.hashes.scenario_hash,
-        "30000f5ae6d4d76102111300e3219dc22a3b8f2a7cd7c6e138d8a4d7a6180f4a"
+        "38c831beb8a6d75473ffd65c293f0683729de0a58d8204c78f1905f9760bfa4a"
     );
     assert_eq!(
         result.hashes.result_hash,
-        "e464a399fd4b603fe63b5de4d0bbd9d06cdd39549d86be38c11094bfd886182a"
+        "d1b90af517b08494ceffa3cfd6ab608db4e2dc5c78d139984582382285a26b8e"
     );
 
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 237);
+    assert_eq!(reader.tick_count(), 236);
     let direct_damage = (0..reader.tick_count())
         .flat_map(|tick| reader.events(tick).unwrap().events)
         .filter_map(|event| match event.payload {
@@ -128,6 +145,12 @@ fn rhino_vs_arclight_matches_the_build_2259_native_recording() {
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
+            .units
+            .iter()
+            .all(|unit| unit.mech_lock_target.is_none())
+    );
+    assert!(
+        terminal
             .buildings
             .iter()
             .filter(|building| building.team_id == 1)
@@ -136,23 +159,69 @@ fn rhino_vs_arclight_matches_the_build_2259_native_recording() {
 }
 
 #[test]
-fn rhino_retarget_matches_the_build_2259_native_recording() {
+#[ignore = "requires the accepted native target_refs_v1 research sidecar"]
+fn rhino_mech_lock_target_s_matches_the_existing_native_i_sidecar_per_tick() {
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let sidecar = InstrumentationReader::open(
+        repository.join("work/research/rhino-target-refs-2259/native-i.h5"),
+    )
+    .unwrap();
+    assert_eq!(sidecar.profile(), "target_refs_v1");
+    assert_eq!(sidecar.producer(), "adapter");
+    assert_eq!(
+        sidecar.scenario_hash(),
+        "30000f5ae6d4d76102111300e3219dc22a3b8f2a7cd7c6e138d8a4d7a6180f4a"
+    );
+
+    let directory = tempfile::tempdir().unwrap();
+    let output = directory.path().join("schema-v3.mcfr");
+    simulate_layout(rhino_fixture(), &output, Some(1_787_624_046)).unwrap();
+    let simulated = McfrReader::open(output).unwrap();
+    assert_eq!(
+        usize::try_from(simulated.tick_count()).unwrap(),
+        sidecar.len()
+    );
+
+    for tick in 0..simulated.tick_count() {
+        let entry = sidecar.entry(usize::try_from(tick).unwrap()).unwrap();
+        assert_eq!(entry.step, tick);
+        assert_eq!(entry.channel, "target_refs");
+        assert_eq!(entry.content_type, "application/json");
+        let observed: TargetRefsObservation = serde_json::from_slice(&entry.payload).unwrap();
+        let state = simulated.state(tick).unwrap();
+        for unit in state.units {
+            let native = observed
+                .units
+                .iter()
+                .find(|candidate| candidate.unit.id == unit.unit_id)
+                .expect("native I sidecar omitted a simulated unit");
+            assert_eq!(
+                unit.mech_lock_target, native.mech_lock_target,
+                "mech_lock_target differs at tick {tick} for unit {}",
+                unit.unit_id
+            );
+        }
+    }
+}
+
+#[test]
+fn rhino_retarget_matches_the_schema_v3_build_2259_native_recording() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(rhino_retarget_fixture(), &output, Some(1_787_601_811)).unwrap();
+    let result = simulate_layout(rhino_retarget_fixture(), &output, Some(1_787_720_956)).unwrap();
     assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, 337);
+    assert_eq!(result.steps, 336);
     assert_eq!(
         result.hashes.scenario_hash,
-        "9e7c8f5e5e7a3c3cbaaa8352f03dba1d6fc62493b2da1ff1356c27f771943fcf"
+        "657032d4bd1ba7f8374cb800858a42f4c6906b38efc39b36f070e3e7737ad1c2"
     );
     assert_eq!(
         result.hashes.result_hash,
-        "02302cb6f2d780fc507e45747e3669d11b30947159592602a69072c2e22303d4"
+        "56cc3814b09f7258a59c05e3fb050098914113f1dba8e56ea636bc9118476b51"
     );
 
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 338);
+    assert_eq!(reader.tick_count(), 337);
     let initial = reader.state(0).unwrap();
     assert_eq!(
         initial
@@ -167,9 +236,9 @@ fn rhino_retarget_matches_the_build_2259_native_recording() {
             ))
             .collect::<Vec<_>>(),
         [
-            (1, 0, -284_400, -104_900, 358_219),
-            (2, 1, -189_500, 99_300, 204_939),
-            (3, 1, -290_600, 99_900, 178_219),
+            (1, 0, -284_800, -104_500, 358_447),
+            (2, 1, -290_200, 99_500, 178_447),
+            (3, 1, -190_300, 99_600, 204_857),
         ]
     );
 
@@ -183,10 +252,10 @@ fn rhino_retarget_matches_the_build_2259_native_recording() {
             .unwrap()
             .motion_state
     };
-    assert_eq!(rhino_motion(223), mechcore_mcfr::MotionState::Idle);
-    assert_eq!(rhino_motion(233), mechcore_mcfr::MotionState::Idle);
-    assert_eq!(rhino_motion(234), mechcore_mcfr::MotionState::Moving);
-    assert_eq!(rhino_motion(309), mechcore_mcfr::MotionState::Attacking);
+    assert_eq!(rhino_motion(222), mechcore_mcfr::MotionState::Idle);
+    assert_eq!(rhino_motion(232), mechcore_mcfr::MotionState::Idle);
+    assert_eq!(rhino_motion(233), mechcore_mcfr::MotionState::Moving);
+    assert_eq!(rhino_motion(308), mechcore_mcfr::MotionState::Attacking);
 
     let direct_damage = (0..reader.tick_count())
         .flat_map(|tick| {
@@ -206,10 +275,10 @@ fn rhino_retarget_matches_the_build_2259_native_recording() {
     assert_eq!(
         direct_damage,
         [
-            (205, 3, 3_560),
-            (223, 3, 1_253),
-            (318, 2, 3_560),
-            (336, 2, 1_253)
+            (204, 2, 3_560),
+            (222, 2, 1_253),
+            (317, 3, 3_560),
+            (335, 3, 1_253)
         ]
     );
 }

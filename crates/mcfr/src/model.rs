@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{Error, Result, canonical};
 
 pub const MCFR_FORMAT: &str = "mechcore.mcfr";
-pub const MCFR_SCHEMA_VERSION: u32 = 2;
+pub const MCFR_SCHEMA_VERSION: u32 = 3;
 pub const MCFR_CONTAINER_VERSION: u32 = 2;
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 1;
@@ -379,6 +379,7 @@ pub struct UnitState {
     pub aim_pose: Pose,
     pub velocity: Vec3,
     pub motion_state: MotionState,
+    pub mech_lock_target: Option<ObjectRef>,
     pub collision_radius: i64,
     pub life: i64,
     pub max_life: i64,

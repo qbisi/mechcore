@@ -71,7 +71,7 @@ struct Actor {
     life: i64,
     motion: MotionState,
     next_attack_step: u64,
-    current_target: Option<u64>,
+    mech_lock_target: Option<u64>,
     retarget_after_own_direct_kill: bool,
     pending: Option<PendingRelease>,
     backswing_finish_step: Option<u64>,
@@ -124,7 +124,7 @@ impl Actor {
             life: max_life,
             motion: MotionState::Idle,
             next_attack_step: 0,
-            current_target: None,
+            mech_lock_target: None,
             retarget_after_own_direct_kill: false,
             pending: None,
             backswing_finish_step: None,
@@ -200,6 +200,9 @@ impl Actor {
                 q32_to_space_rounded(self.current_velocity_z_q32),
             ),
             motion_state: self.motion,
+            mech_lock_target: self
+                .mech_lock_target
+                .map(|target| ObjectRef::new(ObjectKind::Unit, target)),
             collision_radius: self.rules.collision_radius(),
             life: self.life,
             max_life: self.rules.max_life,
@@ -526,7 +529,7 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable");
-            actor.current_target = Some(target_id);
+            actor.mech_lock_target = Some(target_id);
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
@@ -593,6 +596,11 @@ impl Simulation {
         if self.naturally_finished() {
             for actor in self.actors.values_mut() {
                 actor.motion = MotionState::Idle;
+            }
+        }
+        if self.ready_to_finish() {
+            for actor in self.actors.values_mut() {
+                actor.mech_lock_target = None;
             }
         }
         if !self.ready_to_finish() {
@@ -717,35 +725,42 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.pending = None;
-            actor.current_target = None;
+            actor.mech_lock_target = None;
             actor.retarget_after_own_direct_kill = false;
             actor.motion = MotionState::Idle;
             return Ok(());
         }
-        if self.actors[&actor_id]
+        let released_this_step = if self.actors[&actor_id]
             .pending
             .is_some_and(|pending| pending.step <= step)
         {
             self.release(actor_id, events)?;
-        }
-        let current_target = self.actors[&actor_id].current_target;
-        if let Some(target_id) = current_target {
+            true
+        } else {
+            false
+        };
+        let mech_lock_target = self.actors[&actor_id].mech_lock_target;
+        if let Some(target_id) = mech_lock_target {
             let target_alive = self.actors.get(&target_id).is_some_and(Actor::alive);
             if !target_alive && self.actors[&actor_id].backswing_finish_step.is_some() {
-                if !self.actors[&actor_id].retarget_after_own_direct_kill
-                    && self.actors.values().any(|candidate| {
-                        candidate.placement.team != self.actors[&actor_id].placement.team
-                            && candidate.alive()
-                    })
-                {
+                let has_living_enemy = self.actors.values().any(|candidate| {
+                    candidate.placement.team != self.actors[&actor_id].placement.team
+                        && candidate.alive()
+                });
+                if !self.actors[&actor_id].retarget_after_own_direct_kill && has_living_enemy {
                     return Err(Error::new(
                         "target death during backswing outside the reviewed own direct-kill branch is not closed",
                     ));
                 }
-                self.actors
+                let actor = self
+                    .actors
                     .get_mut(&actor_id)
-                    .expect("actor identity is stable")
-                    .motion = MotionState::Idle;
+                    .expect("actor identity is stable");
+                actor.motion = MotionState::Idle;
+                if !has_living_enemy && !released_this_step {
+                    actor.mech_lock_target = None;
+                    actor.retarget_after_own_direct_kill = false;
+                }
                 return Ok(());
             }
             if !target_alive && backswing_just_finished {
@@ -753,7 +768,7 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                actor.current_target = None;
+                actor.mech_lock_target = None;
                 actor.retarget_after_own_direct_kill = false;
                 actor.motion = MotionState::Idle;
                 return Ok(());
@@ -770,21 +785,21 @@ impl Simulation {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
-                    .current_target = None;
+                    .mech_lock_target = None;
             } else if self.select_normal_unit_target(actor_id)? != Some(target_id) {
                 return Err(Error::new(
                     "live periodic target change is not closed for the current simulator slice",
                 ));
             }
         }
-        let target_id = match self.actors[&actor_id].current_target {
+        let target_id = match self.actors[&actor_id].mech_lock_target {
             Some(target_id) => Some(target_id),
             None => {
                 let selected = self.select_normal_unit_target(actor_id)?;
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
-                    .current_target = selected;
+                    .mech_lock_target = selected;
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
@@ -992,7 +1007,7 @@ impl Simulation {
             for (&candidate_id, candidate) in
                 self.actors.iter().filter(|(candidate_id, candidate)| {
                     **candidate_id != actor_id
-                        && Some(**candidate_id) != actor.current_target
+                        && Some(**candidate_id) != actor.mech_lock_target
                         && candidate.alive()
                 })
             {
@@ -2050,7 +2065,7 @@ mod tests {
         let mut simulation = make_simulation();
         assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(3));
         simulation.initialize_presearch_targets().unwrap();
-        assert_eq!(simulation.actors[&1].current_target, Some(3));
+        assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
         assert_eq!(simulation.actors[&1].body_rotation, 358_219);
 
         let current = simulation.actors.get_mut(&3).unwrap();
@@ -2340,7 +2355,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 20_000, 0);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.current_target = Some(2);
+        source.mech_lock_target = Some(2);
         source.motion = MotionState::Moving;
         simulation.rvo_counter = 3;
         let error = simulation.step_rvo().unwrap_err().to_string();
@@ -2366,7 +2381,7 @@ mod tests {
         let building = simulation.buildings.first_mut().unwrap();
         building.position = point(20_000, 0);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.current_target = Some(2);
+        source.mech_lock_target = Some(2);
         source.motion = MotionState::Moving;
         simulation.rvo_counter = 3;
         let error = simulation.step_rvo().unwrap_err().to_string();
@@ -2418,7 +2433,7 @@ mod tests {
             68_000,
         ));
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.current_target = Some(2);
+        source.mech_lock_target = Some(2);
         source.motion = MotionState::Moving;
         simulation.rvo_counter = 3;
         let error = simulation.step_rvo().unwrap_err().to_string();
@@ -2444,14 +2459,14 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 75_000, 0);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.current_target = Some(2);
+        source.mech_lock_target = Some(2);
         source.motion = MotionState::Moving;
         simulation.rvo_counter = 3;
         simulation.step_rvo().unwrap();
     }
 
     #[test]
-    fn reviewed_direct_kill_keeps_then_clears_the_private_target_state() {
+    fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
         let config = SimulationConfig::load(None).unwrap();
         let layout = CompiledLayout {
             round: 1,
@@ -2499,23 +2514,23 @@ mod tests {
             simulation.step(output_tick - 1).unwrap();
             match output_tick {
                 223 => {
-                    assert_eq!(simulation.actors[&1].current_target, Some(3));
+                    assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
                     assert!(simulation.actors[&1].retarget_after_own_direct_kill);
                     assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
                 }
                 224..=232 => {
-                    assert_eq!(simulation.actors[&1].current_target, Some(3));
+                    assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
                     assert!(simulation.actors[&1].retarget_after_own_direct_kill);
                 }
                 233 => {
-                    assert_eq!(simulation.actors[&1].current_target, None);
+                    assert_eq!(simulation.actors[&1].mech_lock_target, None);
                     assert!(!simulation.actors[&1].retarget_after_own_direct_kill);
                     assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
                 }
                 234 => {
-                    // The exact native assignment point is not observable. This only
-                    // locks the simulator-private state needed to reproduce S/E tick 234.
-                    assert_eq!(simulation.actors[&1].current_target, Some(2));
+                    // This retarget layout has no direct target-reference witness yet. Keep
+                    // the assignment timing constrained only by its accepted visible trace.
+                    assert_eq!(simulation.actors[&1].mech_lock_target, Some(2));
                     assert_eq!(simulation.actors[&1].motion, MotionState::Moving);
                 }
                 _ => {}

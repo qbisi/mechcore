@@ -412,7 +412,7 @@ struct Metadata {
     motion_move_state_class: usize,
     motion_attack_state_class: usize,
     motion_stop_state_class: usize,
-    fight_mech_lock_target: Option<usize>,
+    fight_mech_lock_target: usize,
     fight_skill_class: Option<usize>,
     fight_skill_lock_target: Option<usize>,
     fight_skill_attack_target: Option<usize>,
@@ -1351,8 +1351,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let fight_mech_lock_target = api
             .class("GRFight.dll", "GameRiver.Fight", "FightMech")
             .and_then(|class| api.field(class, "lockTarget"))
-            .ok()
-            .map(|field| field as usize);
+            .map_err(|error| error.to_string())? as usize;
         let fight_skill = api
             .class("GRFight.dll", "GameRiver.Fight", "FightSkill")
             .ok();
@@ -1646,8 +1645,7 @@ pub(crate) fn start(
     }
     validate_checker_profile_start(instrumentation_profile)?;
     if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_target_refs)
-        && (state.metadata.fight_mech_lock_target.is_none()
-            || state.metadata.fight_skill_class.is_none()
+        && (state.metadata.fight_skill_class.is_none()
             || state.metadata.fight_skill_lock_target.is_none()
             || state.metadata.fight_skill_attack_target.is_none())
     {
@@ -3304,6 +3302,7 @@ struct RawUnit {
     pointer: usize,
     formation: usize,
     rvo_agent: Option<usize>,
+    mech_lock_target: usize,
     state: UnitState,
     statuses: Vec<RawStatus>,
     target_refs: Option<RawTargetRefs>,
@@ -3426,6 +3425,7 @@ fn snapshot(
     }
     let mut units = Vec::with_capacity(raw_units.len());
     let mut raw_statuses = Vec::new();
+    let mut raw_mech_lock_targets = Vec::with_capacity(raw_units.len());
     let mut raw_target_refs = Vec::new();
     for mut unit in raw_units {
         let unit_id = match capture.unit_ids.get(&unit.pointer) {
@@ -3453,6 +3453,7 @@ fn snapshot(
         }
         unit.state.unit_id = unit_id;
         unit.state.formation_id = formation_id;
+        raw_mech_lock_targets.push((units.len(), unit.mech_lock_target));
         if let Some(target_refs) = unit.target_refs {
             raw_target_refs.push((unit_id, target_refs));
         }
@@ -3475,6 +3476,10 @@ fn snapshot(
                 .insert(agent, ObjectRef::new(ObjectKind::Building, id));
         }
         buildings.push(building.state);
+    }
+    for (unit_index, target_pointer) in raw_mech_lock_targets {
+        units[unit_index].mech_lock_target =
+            resolve_target_ref(target_pointer, "FightMech.lockTarget", capture)?;
     }
     let instrumentation = match capture.instrumentation_profile {
         Some(profile) if profile.includes_target_refs() => {
@@ -3623,6 +3628,9 @@ fn read_unit(
     let position = vec3(fixed_position)?;
     let body_rotation = q32_to_units(fixed_rotation.raw, ROTATION_UNITS_PER_DEGREE)?;
     let main_skill = invoke_object(api, unit, "GetMainSkill")?;
+    let mech_lock_target = api
+        .field_value::<*mut Object>(unit, metadata.fight_mech_lock_target as *mut FieldInfo)
+        .map_err(|error| error.to_string())? as usize;
     let target_refs = match instrumentation_profile {
         Some(profile) if profile.includes_target_refs() => {
             let normal_skill_fields_available = api.class_is_or_inherits(
@@ -3631,15 +3639,6 @@ fn read_unit(
                     .fight_skill_class
                     .expect("profile fields checked at capture start") as *mut _,
             );
-            let mech_lock_target = api
-                .field_value::<*mut Object>(
-                    unit,
-                    metadata
-                        .fight_mech_lock_target
-                        .expect("profile fields checked at capture start")
-                        as *mut FieldInfo,
-                )
-                .map_err(|error| error.to_string())? as usize;
             let (skill_lock_target, skill_attack_target) = if normal_skill_fields_available {
                 (
                     api.field_value::<*mut Object>(
@@ -3742,6 +3741,7 @@ fn read_unit(
         } else {
             None
         },
+        mech_lock_target,
         state: UnitState {
             unit_id: 0,
             team_id,
@@ -3758,6 +3758,7 @@ fn read_unit(
             aim_pose,
             velocity: vec3(velocity)?,
             motion_state,
+            mech_lock_target: None,
             collision_radius: q32_to_units(
                 invoke_value::<FixedPoint>(api, unit, "GetRadius")?.raw,
                 DISTANCE_UNITS_PER_METER,
@@ -5067,6 +5068,7 @@ mod tests {
             },
             velocity: Vec3 { x: 0, y: 0, z: 0 },
             motion_state: MotionState::Idle,
+            mech_lock_target: None,
             collision_radius: 100,
             life: 10,
             max_life: 10,

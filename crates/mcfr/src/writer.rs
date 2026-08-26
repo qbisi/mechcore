@@ -126,7 +126,7 @@ impl McfrWriter {
         if self.tick_hashes.is_empty() {
             return Err(Error::invalid("an MCFR must contain tick zero"));
         }
-        let mut scenario_hasher = CanonicalHasher::new("scenario-v2");
+        let mut scenario_hasher = CanonicalHasher::new("scenario-v3");
         scenario_hasher.update(&self.context_bytes);
         scenario_hasher.update(
             self.initial_state_bytes

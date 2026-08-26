@@ -5,7 +5,7 @@
 ## 状态
 
 本文定义原生采集、模拟、比较和播放共同遵循的 `S`、`E` 基础逻辑内容。Schema
-version 2 及其有类型列式 HDF5 投影已在 `mechcore-mcfr` 中提供 Rust 参考实现。
+version 3 及其有类型列式 HDF5 投影已在 `mechcore-mcfr` 中提供 Rust 参考实现。
 
 ## 目的
 
@@ -91,7 +91,7 @@ MCFR 世界 `z`。Layout 保留原生二维 `(x, y)` schema；Adapter 和 simula
 - 从一开始计数的战斗回合和 match seed；
 - 来源中立的身份契约。
 
-Schema version 2 不允许 fighting 开始后再输入改变战斗逻辑的外部命令。试验场加速投票
+Schema version 3 不允许 fighting 开始后再输入改变战斗逻辑的外部命令。试验场加速投票
 只改变墙钟调度，不改变逻辑步输入或战斗结果，因此属于编排信息，不进入 `D`、`S` 或
 `E`。Adapter 必须在第一次战斗
 更新以及战斗随机流消费之前采集 `S(0)`。无法仅从有类型的回合/seed 字段和 `S(0)`
@@ -105,7 +105,7 @@ fingerprint。因此原生采集不需要单位 config 目录；错误的外部�
 战斗在 `S(0)` 后对逻辑演化封闭，不允许任何外部动作再影响战斗结果。仅采集 MCFR 时绑定
 逻辑更新而非渲染帧或墙钟帧，可以请求只改变墙钟速度的加速投票；带视觉 sidecar 时则可将
 下一逻辑更新限制到已完成的渲染边界。无法保证该边界的生产者
-不得完成 schema-version-2 录像。
+不得完成 schema-version-3 录像。
 
 ## 消费层级
 
@@ -128,7 +128,7 @@ fingerprint。因此原生采集不需要单位 config 目录；错误的外部�
 `S` 与来源无关。原生指针、运行时对象地址、Adapter 记账信息以及模拟器私有类型均
 不得进入 `S`。
 
-Schema version 2 的世界边界只包含：
+Schema version 3 的世界边界只包含：
 
 - 单位；
 - 投射物；
@@ -142,7 +142,7 @@ Team 和 Formation 是具体世界对象的归属与身份属性，不是逐帧�
 Status 是持久 buff 和 debuff 的统一表达，也包括禁用科技的效果。不再并行维护专用
 的 `buffs` 和 `technology_disabled` 字段。
 
-Schema version 2 使用 `team_zx_sequential_v1` 身份。Unit、Projectile、Building 和
+Schema version 3 使用 `team_zx_sequential_v1` 身份。Unit、Projectile、Building 和
 Status 各自拥有独立 ID 命名空间，每个空间都从 1
 开始且不留空洞；Formation 使用另一套从 1 开始的连续命名空间。对于初始 Unit，
 build 2227 已有证据支持的顺序是：先按 team-controller 顺序，再在每个 team 内按统一
@@ -167,7 +167,7 @@ build 2227 已有证据支持的顺序是：先按 team-controller 顺序，再�
 
 | 世界对象 | 必需的逻辑状态 |
 | --- | --- |
-| Unit | `unit_id`、`team_id`、`formation_id`、`unit_type_id`、domain；位置、主体旋转、主技能瞄准姿态、当前速度和原生 MotionFSM 状态；碰撞半径；生命、最大生命、alive、active、targetable 和 visibility；个人护盾 active/enabled 状态及当前/最大能量。 |
+| Unit | `unit_id`、`team_id`、`formation_id`、`unit_type_id`、domain；位置、主体旋转、主技能瞄准姿态、当前速度、原生 MotionFSM 状态和 `mech_lock_target`；碰撞半径；生命、最大生命、alive、active、targetable 和 visibility；个人护盾 active/enabled 状态及当前/最大能量。 |
 | Projectile | `projectile_id`、team 和 owner；位置和朝向；目标对象引用；原生缓存目标位置和半径；released 标记及当前/最大投射物生命。不从配置或其它字段推导投射物类别、速度、active、命中结果或移除原因。 |
 | Building | `building_id`、team 和建筑类型；位置、旋转和原生 bounds 宽/高；生命、最大生命、alive、destroyed、available、targetable 和 collision-enabled 状态。 |
 | Status | `status_id`、原生 Buff 类型、source 和 target；additive stack；原始 `duration_time`、`max_duration_time`、`step_time`、`step_time_config`；finished 和 frozen。上述值保留为原生计数器，不重新解释为 elapsed 或 remaining。 |
@@ -176,7 +176,7 @@ build 2227 已有证据支持的顺序是：先按 team-controller 顺序，再�
 
 | 世界对象 | 直接原生来源 |
 | --- | --- |
-| Unit | Team 归属来自 `FightController.GetTeamControllers` 和 `FightTeamController.GetTeamIndex`；成员和 Formation 来自 `FightTeam.GetMeches` 与 `FightMech.GetMechTeam`；类型/domain 来自 `GetMechID`、`IsFly`；主体与瞄准变换来自 `GetFightTransform`、`GetMainSkill().GetMainTransform()`；速度来自 `MotionController.GetCurrentVelocity`；motion 来自 `MotionController.fsm.GetCurrentState`；半径、gauge 和标记来自 `GetRadius`、`GetLife`、`GetMaxLife`、`IsAlive`、`get_IsActive`、`IsValidTarget(0)`、`GetVisibility`；个人护盾来自 `GetEnergyShieldController`。 |
+| Unit | Team 归属来自 `FightController.GetTeamControllers` 和 `FightTeamController.GetTeamIndex`；成员和 Formation 来自 `FightTeam.GetMeches` 与 `FightMech.GetMechTeam`；类型/domain 来自 `GetMechID`、`IsFly`；主体与瞄准变换来自 `GetFightTransform`、`GetMainSkill().GetMainTransform()`；速度来自 `MotionController.GetCurrentVelocity`；motion 来自 `MotionController.fsm.GetCurrentState`；`mech_lock_target` 直接来自 `FightMech.lockTarget`，并规范化为目标的 MCFR `ObjectRef`；半径、gauge 和标记来自 `GetRadius`、`GetLife`、`GetMaxLife`、`IsAlive`、`get_IsActive`、`IsValidTarget(0)`、`GetVisibility`；个人护盾来自 `GetEnergyShieldController`。 |
 | Projectile | 枚举与 Team 来自 `ProjectileSystem.projectileControllers` 和 `ProjectileController.GetTeamController`；owner、target、transform、缓存目标信息、released 及 life 直接来自 `FightProjectile.GetOwner`、`GetTarget`、`GetFightTransform`、`GetTargetInfo`、`IsRelease`、`GetLife`、`GetMaxLife`。 |
 | Building | 成员/Team 来自 `FightTeam.GetTowers`；类型/顺序、transform、bounds、life 和标记来自 `GetBuildingType`、`GetBuildingIndex`、`GetFightTransform`、`GetBoundsRect`、`GetLife`、`GetMaxLife`、`IsAlive`、`IsDestroyed`、`IsAvaliable`、`IsValidTarget(0)`、`GetBuildingData().get_EnableCollision()`。 |
 | Status | 枚举来自 `FightMech.GetBuffManager` 和 `BuffManager.buffs`；类型/source、stack 和标记来自 `Buff.GetBuffID`、`GetSource`、`GetAdditiveStack`、`IsFinish`、`IsFreeze`；四个计时器来自同名 `Buff` 原生字段；target 是其 BuffManager 包含该 Buff 的 `FightMech`。 |
@@ -293,13 +293,13 @@ step、channel、content type、payload 字节和 payload offset，并通过根�
 正确性定义在规范逻辑内容上，而不是 HDF5 文件的原始字节上。HDF5 库版本、元数据
 顺序、chunk 布局、压缩和来源 provenance 都可能改变物理字节而不改变战斗内容。
 
-Schema version 2 使用带 domain separation 的 BLAKE3，并在每条规范记录前加入一个
+Schema version 3 使用带 domain separation 的 BLAKE3，并在每条规范记录前加入一个
 little-endian `u64` 长度。正式哈希模型为：
 
 ```text
-scenario_hash = BLAKE3("scenario-v2", canonical D, canonical S(0))
-tick_hash(t)  = BLAKE3("tick-v2", little_endian_u64(t), canonical S(t), canonical E(t))
-result_hash   = BLAKE3("result-v2", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
+scenario_hash = BLAKE3("scenario-v3", canonical D, canonical S(0))
+tick_hash(t)  = BLAKE3("tick-v3", little_endian_u64(t), canonical S(t), canonical E(t))
+result_hash   = BLAKE3("result-v3", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
 ```
 
 `D` 只包含有类型字段：schema/build 身份、时序和数值尺度、战斗回合、match seed 与

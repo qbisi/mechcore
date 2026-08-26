@@ -302,6 +302,7 @@ fn unit(id: u64, team: u32, x: i64, life: i64) -> UnitState {
         } else {
             MotionState::Attacking
         },
+        mech_lock_target: (id == 1).then(|| ObjectRef::new(ObjectKind::Unit, 2)),
         collision_radius: 5,
         life,
         max_life: 100,

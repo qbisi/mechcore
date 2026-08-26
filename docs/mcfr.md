@@ -5,7 +5,7 @@
 ## Status
 
 This document defines the baseline logical contents of `S` and `E` shared by
-native capture, simulation, comparison, and playback. Schema version 2 and its
+native capture, simulation, comparison, and playback. Schema version 3 and its
 typed columnar HDF5 projection have a Rust reference implementation in
 `mechcore-mcfr`.
 
@@ -116,7 +116,7 @@ not naturally expressed as a per-frame world snapshot. It binds:
 - the one-based combat round and match seed;
 - the source-neutral identity contract.
 
-Schema version 2 admits no external command that changes logical combat after fighting begins. A
+Schema version 3 admits no external command that changes logical combat after fighting begins. A
 Training Ground speed-up vote changes only wall-clock scheduling, not logic-step inputs or results;
 it is therefore orchestration metadata and is excluded from `D`, `S`, and `E`. The adapter
 must capture `S(0)` before the first combat update and before combat random
@@ -134,7 +134,7 @@ field.
 Combat is closed after `S(0)`: no external action may affect its logical evolution. MCFR-only capture
 may request wall-clock-only speed-up because it is attached to logic updates, not render or wall-clock
 frames; a visual sidecar may instead throttle logic advancement to completed render boundaries. A producer
-that cannot guarantee this boundary must not finalize a schema-version-2
+that cannot guarantee this boundary must not finalize a schema-version-3
 recording.
 
 ## Consumer levels
@@ -160,7 +160,7 @@ survive in a tick-end snapshot.
 `S` is source-neutral. Native pointers, runtime object addresses, adapter
 bookkeeping, and simulator-private types do not enter it.
 
-The schema-version-2 world boundary contains only:
+The schema-version-3 world boundary contains only:
 
 - units;
 - projectiles;
@@ -177,7 +177,7 @@ Status is the shared representation for persistent buffs and debuffs,
 including technology-disable effects. Specialized `buffs` and
 `technology_disabled` fields are not maintained in parallel.
 
-Schema version 2 uses `team_zx_sequential_v1` identities. Object IDs occupy
+Schema version 3 uses `team_zx_sequential_v1` identities. Object IDs occupy
 independent namespaces for Unit, Projectile, Building, and Status; each
 namespace starts at one and has no gaps.
 Formation IDs use another one-based, gapless namespace. For initial Units,
@@ -210,7 +210,7 @@ of the logical snapshot.
 
 | World kind | Required logical state |
 | --- | --- |
-| Unit | `unit_id`, `team_id`, `formation_id`, `unit_type_id`, domain; position, body rotation, main-skill aim pose, current velocity and native MotionFSM state; collision radius; life, maximum life, alive, active, targetable and visibility; personal-shield active/enabled state and current/maximum energy. |
+| Unit | `unit_id`, `team_id`, `formation_id`, `unit_type_id`, domain; position, body rotation, main-skill aim pose, current velocity, native MotionFSM state and `mech_lock_target`; collision radius; life, maximum life, alive, active, targetable and visibility; personal-shield active/enabled state and current/maximum energy. |
 | Projectile | `projectile_id`, team and owner; position and orientation; target object reference; native cached target position and radius; released flag and current/maximum projectile life. Projectile class, velocity, active state, impact outcome and removal reason are not inferred. |
 | Building | `building_id`, team and building type; position, rotation and native bounds width/height; life, maximum life, alive, destroyed, available, targetable and collision-enabled state. |
 | Status | `status_id`, native buff type, source and target; additive stack; raw `duration_time`, `max_duration_time`, `step_time`, and `step_time_config`; finished and frozen flags. These values are preserved as native counters rather than reinterpreted as elapsed or remaining time. |
@@ -219,7 +219,7 @@ The adapter source map for this baseline is normative:
 
 | World kind | Direct native source |
 | --- | --- |
-| Unit | Team ownership comes from `FightController.GetTeamControllers` and `FightTeamController.GetTeamIndex`; membership and formation come from `FightTeam.GetMeches` and `FightMech.GetMechTeam`; type/domain come from `GetMechID` and `IsFly`; body and aim transforms come from `GetFightTransform` and `GetMainSkill().GetMainTransform()`; velocity comes from `MotionController.GetCurrentVelocity`; motion comes from `MotionController.fsm.GetCurrentState`; radius, gauges and flags come from `GetRadius`, `GetLife`, `GetMaxLife`, `IsAlive`, `get_IsActive`, `IsValidTarget(0)`, and `GetVisibility`; personal-shield values come from `GetEnergyShieldController`. |
+| Unit | Team ownership comes from `FightController.GetTeamControllers` and `FightTeamController.GetTeamIndex`; membership and formation come from `FightTeam.GetMeches` and `FightMech.GetMechTeam`; type/domain come from `GetMechID` and `IsFly`; body and aim transforms come from `GetFightTransform` and `GetMainSkill().GetMainTransform()`; velocity comes from `MotionController.GetCurrentVelocity`; motion comes from `MotionController.fsm.GetCurrentState`; `mech_lock_target` comes directly from `FightMech.lockTarget` and is normalized to the target's MCFR `ObjectRef`; radius, gauges and flags come from `GetRadius`, `GetLife`, `GetMaxLife`, `IsAlive`, `get_IsActive`, `IsValidTarget(0)`, and `GetVisibility`; personal-shield values come from `GetEnergyShieldController`. |
 | Projectile | Enumeration and team come from `ProjectileSystem.projectileControllers` and `ProjectileController.GetTeamController`; owner, target, transform, cached target data, released flag and life come directly from `FightProjectile.GetOwner`, `GetTarget`, `GetFightTransform`, `GetTargetInfo`, `IsRelease`, `GetLife`, and `GetMaxLife`. |
 | Building | Membership/team come from `FightTeam.GetTowers`; type/order, transform, bounds, life and flags come from `GetBuildingType`, `GetBuildingIndex`, `GetFightTransform`, `GetBoundsRect`, `GetLife`, `GetMaxLife`, `IsAlive`, `IsDestroyed`, `IsAvaliable`, `IsValidTarget(0)`, and `GetBuildingData().get_EnableCollision()`. |
 | Status | Enumeration comes from `FightMech.GetBuffManager` and `BuffManager.buffs`; type/source, stack and flags come from `Buff.GetBuffID`, `GetSource`, `GetAdditiveStack`, `IsFinish`, and `IsFreeze`; the four clocks are the native `Buff` fields with the same names. Target is the owning `FightMech` whose manager contains the Buff. |
@@ -363,13 +363,13 @@ Correctness is defined over canonical logical content, not raw HDF5 file
 bytes. HDF5 library versions, metadata order, chunk layout, compression, and
 source provenance may change physical bytes without changing battle content.
 
-Schema version 2 uses BLAKE3 with domain separation and a little-endian `u64`
+Schema version 3 uses BLAKE3 with domain separation and a little-endian `u64`
 length before every canonical record. The formal hash model is:
 
 ```text
-scenario_hash = BLAKE3("scenario-v2", canonical D, canonical S(0))
-tick_hash(t)  = BLAKE3("tick-v2", little_endian_u64(t), canonical S(t), canonical E(t))
-result_hash   = BLAKE3("result-v2", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
+scenario_hash = BLAKE3("scenario-v3", canonical D, canonical S(0))
+tick_hash(t)  = BLAKE3("tick-v3", little_endian_u64(t), canonical S(t), canonical E(t))
+result_hash   = BLAKE3("result-v3", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
 ```
 
 `D` contains only typed fields: schema/build identity, timing and numeric

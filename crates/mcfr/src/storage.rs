@@ -21,6 +21,9 @@ const UNIT_COLUMNS: &[(&str, usize)] = &[
     ("aim_rotation", 1),
     ("velocity", 3),
     ("motion_state", 1),
+    ("mech_lock_target_valid", 1),
+    ("mech_lock_target_kind", 1),
+    ("mech_lock_target_id", 1),
     ("collision_radius", 1),
     ("life", 1),
     ("max_life", 1),
@@ -292,6 +295,10 @@ fn create_unit_columns(group: &H5Group) -> Result<()> {
     create_scalar::<i64>(group, "aim_rotation")?;
     create_vec3(group, "velocity")?;
     create_scalar::<u8>(group, "motion_state")?;
+    for name in ["mech_lock_target_valid", "mech_lock_target_kind"] {
+        create_scalar::<u8>(group, name)?;
+    }
+    create_scalar::<u64>(group, "mech_lock_target_id")?;
     for name in ["collision_radius", "life", "max_life"] {
         create_scalar::<i64>(group, name)?;
     }
@@ -473,6 +480,11 @@ fn append_units(file: &H5File, rows: &[UnitState]) -> Result<()> {
             .map(|v| encode_motion(v.motion_state))
             .collect::<Vec<_>>(),
     )?;
+    let mech_lock_targets = rows
+        .iter()
+        .map(|v| encode_ref(v.mech_lock_target))
+        .collect::<Vec<_>>();
+    append_refs(file, "states/units/mech_lock_target", &mech_lock_targets)?;
     append(
         file,
         "states/units/collision_radius",
@@ -778,6 +790,7 @@ fn read_units(file: &H5File, (start, len): (usize, usize)) -> Result<Vec<UnitSta
     let aim_rotation = read::<i64>(file, "states/units/aim_rotation", start, len)?;
     let velocity = read_vec3(file, "states/units/velocity", start, len)?;
     let motion = read::<u8>(file, "states/units/motion_state", start, len)?;
+    let mech_lock_target = read_refs(file, "states/units/mech_lock_target", start, len)?;
     let radius = read::<i64>(file, "states/units/collision_radius", start, len)?;
     let life = read::<i64>(file, "states/units/life", start, len)?;
     let max_life = read::<i64>(file, "states/units/max_life", start, len)?;
@@ -801,6 +814,7 @@ fn read_units(file: &H5File, (start, len): (usize, usize)) -> Result<Vec<UnitSta
                 },
                 velocity: velocity[i],
                 motion_state: decode_motion(motion[i])?,
+                mech_lock_target: mech_lock_target[i],
                 collision_radius: radius[i],
                 life: life[i],
                 max_life: max_life[i],
