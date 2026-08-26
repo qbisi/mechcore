@@ -2371,7 +2371,7 @@ fn normal_visible_full_rotation_score_from_distance_and_angle_q32(
     if distance_q32 > max_range_q32 {
         score_q32 = score_q32.saturating_add(TARGET_SCORE_OUT_OF_RANGE_PENALTY_Q32);
     }
-    Some(score_q32.saturating_add(angle_score_q32))
+    Some(score_q32.saturating_add(distance_q32))
 }
 
 fn normalized_velocity_q32_raw(dx: i64, dz: i64, speed: i64) -> (i64, i64) {
@@ -2800,6 +2800,28 @@ mod tests {
         assert_eq!(
             score(0, distance_q32 - 1).unwrap(),
             at_both_edges.saturating_add(TARGET_SCORE_OUT_OF_RANGE_PENALTY_Q32)
+        );
+    }
+
+    #[test]
+    fn normal_target_score_adds_raw_distance_after_weighted_term() {
+        let distance_q32 = 20_i64 << 32;
+        let angle_q32 = 50_i64 << 32;
+        let angle_score_q32 = q32_mul(angle_q32, TARGET_SCORE_ANGLE_FACTOR_Q32);
+        let expected_q32 = q32_mul(
+            distance_q32,
+            TARGET_SCORE_BASE_Q32.saturating_add(angle_score_q32),
+        )
+        .saturating_add(distance_q32);
+
+        assert_eq!(
+            normal_visible_full_rotation_score_from_distance_and_angle_q32(
+                distance_q32,
+                angle_q32,
+                0,
+                100_i64 << 32,
+            ),
+            Some(expected_q32)
         );
     }
 
