@@ -304,6 +304,42 @@ fn rhino_retarget_matches_the_schema_v3_build_2259_native_recording() {
 }
 
 #[test]
+fn rhino_vs_crawlers_sampled_native_recordings_match_schema_v3_build_2259() {
+    for name in [
+        "rhino-vs-crawlers-02",
+        "rhino-vs-crawlers-03",
+        "rhino-vs-crawlers-06",
+        "rhino-vs-crawlers-09",
+        "rhino-vs-crawlers-10",
+    ] {
+        let regression = native_regression(name);
+        let directory = tempfile::tempdir().unwrap();
+        let output = directory.path().join("battle.mcfr");
+        let result = simulate_layout(
+            regression_layout(&regression),
+            &output,
+            Some(regression.seed),
+        )
+        .unwrap();
+        assert_eq!(result.game_build, regression.game_build, "{name}");
+        assert_eq!(result.winner, Some("blue"), "{name}");
+        assert_eq!(
+            result.hashes.scenario_hash, regression.scenario_hash,
+            "{name}"
+        );
+        assert_eq!(result.hashes.result_hash, regression.result_hash, "{name}");
+
+        let reader = McfrReader::open(output).unwrap();
+        assert_eq!(
+            reader.context().schema_version,
+            regression.schema_version,
+            "{name}"
+        );
+        assert_eq!(reader.tick_count(), regression.tick_count, "{name}");
+    }
+}
+
+#[test]
 fn the_same_layout_and_seed_have_identical_semantic_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let first = simulate_layout(fixture(), directory.path().join("first.mcfr"), Some(-19)).unwrap();
