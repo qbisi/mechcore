@@ -378,6 +378,9 @@ struct Actor {
     z: i64,
     x_q32: i64,
     z_q32: i64,
+    target_query_x_q32: i64,
+    target_query_z_q32: i64,
+    target_query_body_rotation_q32: i64,
     rvo_tree_x_q32: i64,
     rvo_tree_z_q32: i64,
     current_velocity_x_q32: i64,
@@ -438,6 +441,9 @@ impl Actor {
             z,
             x_q32,
             z_q32,
+            target_query_x_q32: x_q32,
+            target_query_z_q32: z_q32,
+            target_query_body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             rvo_tree_x_q32: x_q32,
             rvo_tree_z_q32: z_q32,
             body_rotation: placement.rotation,
@@ -982,10 +988,22 @@ impl Simulation {
         }
     }
 
+    fn refresh_target_query_snapshot(&mut self) {
+        // Build 2259 prepares selector inputs before FightCore updates actors
+        // sequentially. Red actors must therefore score the tick-start pose,
+        // not positions already advanced by blue actors in the same tick.
+        for actor in self.actors.values_mut() {
+            actor.target_query_x_q32 = actor.x_q32;
+            actor.target_query_z_q32 = actor.z_q32;
+            actor.target_query_body_rotation_q32 = actor.body_rotation_q32;
+        }
+    }
+
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
         if self.terminal_drain_pending {
             self.terminal_drain_pending = false;
         }
+        self.refresh_target_query_snapshot();
         let mut events = Vec::new();
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
@@ -1112,12 +1130,12 @@ impl Simulation {
                             continue;
                         }
                         if let Some(score) = normal_visible_full_rotation_target_score_q32(
-                            source.x_q32,
-                            source.z_q32,
+                            source.target_query_x_q32,
+                            source.target_query_z_q32,
                             source.rules.collision_radius(),
-                            source.body_rotation_q32,
-                            candidate_actor.x_q32,
-                            candidate_actor.z_q32,
+                            source.target_query_body_rotation_q32,
+                            candidate_actor.target_query_x_q32,
+                            candidate_actor.target_query_z_q32,
                             candidate_actor.rules.collision_radius(),
                             source.rules.attack.min_range(),
                             source.rules.attack.range(),
@@ -1137,10 +1155,10 @@ impl Simulation {
                             continue;
                         };
                         if let Some(score) = normal_visible_full_rotation_target_score_q32(
-                            source.x_q32,
-                            source.z_q32,
+                            source.target_query_x_q32,
+                            source.target_query_z_q32,
                             source.rules.collision_radius(),
-                            source.body_rotation_q32,
+                            source.target_query_body_rotation_q32,
                             space_to_q32(building.position.x),
                             space_to_q32(building.position.z),
                             building.bounds_width / 2,
@@ -1248,6 +1266,7 @@ impl Simulation {
 
     #[cfg(test)]
     fn step_actor(&mut self, actor_id: u64, step: u64, events: &mut Vec<Event>) -> Result<()> {
+        self.refresh_target_query_snapshot();
         let target_search_order = self.target_search_order();
         self.step_actor_with_target_order(actor_id, step, &target_search_order, events)
     }
@@ -2864,6 +2883,8 @@ mod tests {
     fn set_actor_position_q32(actor: &mut Actor, x_q32: i64, z_q32: i64) {
         actor.x_q32 = x_q32;
         actor.z_q32 = z_q32;
+        actor.target_query_x_q32 = x_q32;
+        actor.target_query_z_q32 = z_q32;
         actor.x = q32_to_space_rounded(x_q32);
         actor.z = q32_to_space_rounded(z_q32);
         actor.next_target_x_q32 = actor.x_q32;
@@ -3088,6 +3109,7 @@ mod tests {
         let source = fight_skill.actors.get_mut(&1).unwrap();
         source.mech_search_target_time = SEARCH_TARGET_RESET_TICKS;
         source.fight_skill_search_target_time = 1;
+        fight_skill.refresh_target_query_snapshot();
         let target_search_order = fight_skill.target_search_order();
         fight_skill
             .update_fight_skill_target_search(1, 0, &target_search_order)
@@ -3132,6 +3154,7 @@ mod tests {
             attack_state_start_step: 10,
             target: 3,
         });
+        prepare_state.refresh_target_query_snapshot();
         let target_search_order = prepare_state.target_search_order();
         prepare_state
             .update_mech_target_search(1, 0, &target_search_order)
@@ -3240,6 +3263,33 @@ mod tests {
         source.set_body_rotation(0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), -20_000, 100_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 20_000, 100_000);
+        assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(2));
+    }
+
+    #[test]
+    fn normal_selector_scores_the_start_of_tick_snapshot() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![
+                test_placement(0, 0, 0, 0),
+                test_placement(1, 0, 0, 100),
+                test_placement(1, 1, 20, 100),
+            ],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
+        set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
+        set_actor_position(simulation.actors.get_mut(&3).unwrap(), 0, 40_000);
+        assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(2));
+
+        let current = simulation.actors.get_mut(&2).unwrap();
+        current.x_q32 = 0;
+        current.z_q32 = space_to_q32(100_000);
+        let current = simulation.actors.get_mut(&3).unwrap();
+        current.x_q32 = 0;
+        current.z_q32 = space_to_q32(10_000);
+
         assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(2));
     }
 
