@@ -404,7 +404,6 @@ struct Actor {
     next_attack_step: u64,
     motion_attack_hold_fire: bool,
     mech_lock_target: Option<u64>,
-    mech_search_target_time: i32,
     fight_skill_search_target_time: i32,
     fight_skill_phase: FightSkillPhase,
     retarget_after_own_direct_kill: bool,
@@ -470,9 +469,6 @@ impl Actor {
             next_attack_step: 0,
             motion_attack_hold_fire: false,
             mech_lock_target: None,
-            // Build 2259 SearchTargetController::.ctor initializes the
-            // MechSearchTargetController-owned periodic counter to ten.
-            mech_search_target_time: SEARCH_TARGET_RESET_TICKS,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
             fight_skill_search_target_time: SEARCH_TARGET_RESET_TICKS,
@@ -491,7 +487,6 @@ impl Actor {
         self.motion = MotionState::Idle;
         self.pending = None;
         self.mech_lock_target = None;
-        self.mech_search_target_time = 0;
         self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.fight_skill_phase = FightSkillPhase::Idle;
         self.retarget_after_own_direct_kill = false;
@@ -934,11 +929,6 @@ impl Simulation {
             terminal_drain_pending: false,
         };
         simulation.initialize_presearch_targets()?;
-        // Build 2259 FightMech.OnFightStart resets the mech-owned search
-        // controller after its constructor initialized the counter to ten.
-        for actor in simulation.actors.values_mut() {
-            actor.mech_search_target_time = 0;
-        }
         Ok(simulation)
     }
 
@@ -1182,63 +1172,16 @@ impl Simulation {
         }
     }
 
-    fn update_mech_target_search(
-        &mut self,
-        actor_id: u64,
-        step: u64,
-        target_search_order: &BTreeMap<u32, Vec<NormalTargetCandidate>>,
-    ) -> Result<()> {
-        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Attack {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.mech_search_target_time = actor.mech_search_target_time.saturating_sub(1);
-            return Ok(());
-        }
-
-        let target_alive = self.actors[&actor_id]
-            .mech_lock_target
-            .and_then(|target_id| self.actors.get(&target_id))
-            .is_some_and(Actor::alive);
-        if target_alive && self.actors[&actor_id].mech_search_target_time > 0 {
-            self.actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable")
-                .mech_search_target_time -= 1;
-            return Ok(());
-        }
-
-        // Build 2259 MechSearchTargetController searches synchronously when
-        // its counter is due (<= 0), while a null or dead target bypasses the
-        // live-target timer. FightSkill Prepare is not an attack-state gate;
-        // only its concrete SkillAttackState takes the refresh-only branch.
-        let selected = self
-            .select_normal_unit_target_with_order(actor_id, target_search_order)
-            .map_err(|error| Error::new(format!("logic step {step}: {error}")))?;
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        actor.mech_lock_target = selected;
-        actor.mech_search_target_time = SEARCH_TARGET_RESET_TICKS;
-        actor.retarget_after_own_direct_kill = false;
-        Ok(())
-    }
-
     fn update_fight_skill_target_search(
         &mut self,
         actor_id: u64,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<NormalTargetCandidate>>,
     ) -> Result<()> {
-        // The FightSkill-owned SearchTargetController advances only while its
-        // SkillStateController is in SkillIdleState and MoveAbility has not
-        // suspended SkillManager for an unaligned bodyless melee attack.
-        // Prepare, Attack, and motion hold-fire retain the private counter.
-        if self.actors[&actor_id].fight_skill_phase != FightSkillPhase::Idle
-            || self.actors[&actor_id].motion_attack_hold_fire
-        {
+        // Target-build MechData disables MechSearchTargetController for every
+        // supported non-supergiant unit, so live periodic selection belongs to
+        // the main FightSkill. Prepare and Attack retain this private counter.
+        if self.actors[&actor_id].fight_skill_phase != FightSkillPhase::Idle {
             return Ok(());
         }
 
@@ -1293,7 +1236,6 @@ impl Simulation {
             actor.exit_fight_on_death();
             return Ok(());
         }
-        self.update_mech_target_search(actor_id, step, target_search_order)?;
         self.update_fight_skill_target_search(actor_id, step, target_search_order)?;
         if backswing_just_finished {
             let actor = self
@@ -3041,24 +2983,6 @@ mod tests {
                 (3, 1, 3, "arclight", -290_600, 99_900),
             ]
         );
-        assert_eq!(
-            actors[&1].mech_search_target_time,
-            SEARCH_TARGET_RESET_TICKS
-        );
-        let fight_started = Simulation::new(
-            &layout,
-            &config.units,
-            &config.training_ground,
-            1_787_601_811,
-        )
-        .unwrap();
-        assert!(
-            fight_started
-                .actors
-                .values()
-                .all(|actor| actor.mech_search_target_time == 0)
-        );
-
         let make_simulation = || {
             let actors = actors.clone();
             let buildings = initialize_buildings(&config.training_ground).unwrap();
@@ -3084,24 +3008,6 @@ mod tests {
         assert_eq!(simulation.actors[&2].fight_skill_search_target_time, 1);
         assert_eq!(simulation.actors[&3].fight_skill_search_target_time, 2);
 
-        let current = simulation.actors.get_mut(&3).unwrap();
-        current.x = -100_000;
-        current.z = 300_000;
-        current.x_q32 = space_to_q32(current.x);
-        current.z_q32 = space_to_q32(current.z);
-        let source = simulation.actors.get_mut(&1).unwrap();
-        source.mech_search_target_time = 1;
-        source.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
-        simulation.step_actor(1, 0, &mut Vec::new()).unwrap();
-        assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
-        assert_eq!(simulation.actors[&1].mech_search_target_time, 0);
-        simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
-        assert_eq!(simulation.actors[&1].mech_lock_target, Some(2));
-        assert_eq!(
-            simulation.actors[&1].mech_search_target_time,
-            SEARCH_TARGET_RESET_TICKS
-        );
-
         let mut fight_skill = make_simulation();
         fight_skill.initialize_presearch_targets().unwrap();
         let current = fight_skill.actors.get_mut(&3).unwrap();
@@ -3110,7 +3016,6 @@ mod tests {
         current.x_q32 = space_to_q32(current.x);
         current.z_q32 = space_to_q32(current.z);
         let source = fight_skill.actors.get_mut(&1).unwrap();
-        source.mech_search_target_time = SEARCH_TARGET_RESET_TICKS;
         source.fight_skill_search_target_time = 1;
         fight_skill.refresh_target_query_snapshot();
         let target_search_order = fight_skill.target_search_order();
@@ -3143,8 +3048,11 @@ mod tests {
         hold_fire
             .update_fight_skill_target_search(1, 0, &target_search_order)
             .unwrap();
-        assert_eq!(hold_fire.actors[&1].mech_lock_target, Some(3));
-        assert_eq!(hold_fire.actors[&1].fight_skill_search_target_time, 0);
+        assert_eq!(hold_fire.actors[&1].mech_lock_target, Some(2));
+        assert_eq!(
+            hold_fire.actors[&1].fight_skill_search_target_time,
+            SEARCH_TARGET_RESET_TICKS
+        );
 
         let mut attack_state = make_simulation();
         attack_state.initialize_presearch_targets().unwrap();
@@ -3154,11 +3062,15 @@ mod tests {
         current.x_q32 = space_to_q32(current.x);
         current.z_q32 = space_to_q32(current.z);
         let source = attack_state.actors.get_mut(&1).unwrap();
-        source.mech_search_target_time = 0;
+        source.fight_skill_search_target_time = 0;
         source.fight_skill_phase = FightSkillPhase::Attack;
-        attack_state.step_actor(1, 0, &mut Vec::new()).unwrap();
+        attack_state.refresh_target_query_snapshot();
+        let target_search_order = attack_state.target_search_order();
+        attack_state
+            .update_fight_skill_target_search(1, 0, &target_search_order)
+            .unwrap();
         assert_eq!(attack_state.actors[&1].mech_lock_target, Some(3));
-        assert_eq!(attack_state.actors[&1].mech_search_target_time, -1);
+        assert_eq!(attack_state.actors[&1].fight_skill_search_target_time, 0);
 
         let mut prepare_state = make_simulation();
         prepare_state.initialize_presearch_targets().unwrap();
@@ -3168,7 +3080,7 @@ mod tests {
         current.x_q32 = space_to_q32(current.x);
         current.z_q32 = space_to_q32(current.z);
         let source = prepare_state.actors.get_mut(&1).unwrap();
-        source.mech_search_target_time = 0;
+        source.fight_skill_search_target_time = 0;
         source.fight_skill_phase = FightSkillPhase::Prepare;
         source.pending = Some(PendingRelease {
             step: 20,
@@ -3178,13 +3090,10 @@ mod tests {
         prepare_state.refresh_target_query_snapshot();
         let target_search_order = prepare_state.target_search_order();
         prepare_state
-            .update_mech_target_search(1, 0, &target_search_order)
+            .update_fight_skill_target_search(1, 0, &target_search_order)
             .unwrap();
-        assert_eq!(prepare_state.actors[&1].mech_lock_target, Some(2));
-        assert_eq!(
-            prepare_state.actors[&1].mech_search_target_time,
-            SEARCH_TARGET_RESET_TICKS
-        );
+        assert_eq!(prepare_state.actors[&1].mech_lock_target, Some(3));
+        assert_eq!(prepare_state.actors[&1].fight_skill_search_target_time, 0);
 
         let mut dead_target = make_simulation();
         dead_target.initialize_presearch_targets().unwrap();
@@ -3192,7 +3101,7 @@ mod tests {
             .actors
             .get_mut(&1)
             .unwrap()
-            .mech_search_target_time = 10;
+            .fight_skill_search_target_time = 10;
         dead_target.actors.get_mut(&3).unwrap().life = 0;
         dead_target.step_actor(1, 0, &mut Vec::new()).unwrap();
         assert_eq!(dead_target.actors[&1].mech_lock_target, Some(2));
