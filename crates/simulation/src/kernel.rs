@@ -915,6 +915,11 @@ impl Simulation {
             terminal_drain_pending: false,
         };
         simulation.initialize_presearch_targets()?;
+        // Build 2259 FightMech.OnFightStart resets the mech-owned search
+        // controller after its constructor initialized the counter to ten.
+        for actor in simulation.actors.values_mut() {
+            actor.skill_search_time = 0;
+        }
         Ok(simulation)
     }
 
@@ -2911,6 +2916,19 @@ mod tests {
             ]
         );
         assert_eq!(actors[&1].skill_search_time, SEARCH_TARGET_RESET_TICKS);
+        let fight_started = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_601_811,
+        )
+        .unwrap();
+        assert!(
+            fight_started
+                .actors
+                .values()
+                .all(|actor| actor.skill_search_time == 0)
+        );
 
         let make_simulation = || {
             let actors = actors.clone();
