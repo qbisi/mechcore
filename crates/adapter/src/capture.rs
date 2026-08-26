@@ -42,6 +42,7 @@ pub(crate) enum CaptureInstrumentationProfile {
     TargetRefsV1,
     TargetRefsRvoV1,
     SkillAttackableCheckerV1,
+    SelectorScoreV1,
 }
 
 impl CaptureInstrumentationProfile {
@@ -50,6 +51,7 @@ impl CaptureInstrumentationProfile {
             Self::TargetRefsV1 => "target_refs_v1",
             Self::TargetRefsRvoV1 => "target_refs_rvo_v1",
             Self::SkillAttackableCheckerV1 => "skill_attackable_checker_v1",
+            Self::SelectorScoreV1 => "selector_score_v1",
         }
     }
 
@@ -58,6 +60,7 @@ impl CaptureInstrumentationProfile {
             Self::TargetRefsV1 => "target_refs",
             Self::TargetRefsRvoV1 => "target_refs_rvo",
             Self::SkillAttackableCheckerV1 => "skill_attackable_checker",
+            Self::SelectorScoreV1 => "selector_score",
         }
     }
 
@@ -71,6 +74,10 @@ impl CaptureInstrumentationProfile {
 
     const fn includes_skill_attackable_checker(self) -> bool {
         matches!(self, Self::SkillAttackableCheckerV1)
+    }
+
+    const fn includes_selector_score(self) -> bool {
+        matches!(self, Self::SelectorScoreV1)
     }
 }
 
@@ -94,6 +101,27 @@ pub(crate) enum CaptureInstrumentationObservation {
     TargetRefs(TargetRefsObservation),
     TargetRefsRvo(TargetRefsRvoObservation),
     SkillAttackableChecker(SkillAttackableCheckerObservation),
+    SelectorScore(SelectorScoreObservation),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+pub(crate) struct SelectorScoreObservation {
+    pub(crate) score_calculations: Vec<SelectorScoreCalculation>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub(crate) struct SelectorScoreCalculation {
+    pub(crate) invocation_ordinal: u64,
+    pub(crate) distance_raw: i64,
+    pub(crate) distance_score_raw: i64,
+    pub(crate) angle_raw: i64,
+    pub(crate) angle_score_raw: i64,
+    pub(crate) max_attack_range_raw: i64,
+    pub(crate) source_rotation_raw: i64,
+    pub(crate) min_rotation_raw: i64,
+    pub(crate) max_rotation_raw: i64,
+    pub(crate) is_left_side: bool,
+    pub(crate) score_raw: i64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
@@ -418,6 +446,23 @@ struct Metadata {
     fight_skill_attack_target: Option<usize>,
     rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
+    selector_score_available: bool,
+    selector_score_error: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RawSelectorScoreCalculation {
+    invocation_ordinal: u64,
+    distance_raw: i64,
+    distance_score_raw: i64,
+    angle_raw: i64,
+    angle_score_raw: i64,
+    max_attack_range_raw: i64,
+    source_rotation_raw: i64,
+    min_rotation_raw: i64,
+    max_rotation_raw: i64,
+    is_left_side: bool,
+    score_raw: i64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -567,6 +612,8 @@ struct CaptureState {
     next_formation_id: u64,
     next_rvo_internal_agent_id: u64,
     next_checker_invocation_ordinal: u64,
+    next_selector_invocation_ordinal: u64,
+    selector_score_calculations: Vec<RawSelectorScoreCalculation>,
     in_update: bool,
     traces: Vec<NativeTrace>,
     open_checker_calls: BTreeMap<u64, OpenCheckerCall>,
@@ -606,6 +653,8 @@ impl CaptureState {
         self.next_formation_id = 1;
         self.next_rvo_internal_agent_id = 0;
         self.next_checker_invocation_ordinal = 0;
+        self.next_selector_invocation_ordinal = 0;
+        self.selector_score_calculations.clear();
         self.in_update = false;
         self.traces.clear();
         self.open_checker_calls.clear();
@@ -1225,6 +1274,7 @@ static ORIGINAL_RVO_PRE_CALCULATION: AtomicPtr<c_void> = AtomicPtr::new(ptr::nul
 static ORIGINAL_RVO_CALCULATE_NEIGHBOURS: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_GENERATE_OPPONENT_VOS: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_SELECTOR_CALCULATE_SCORE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static RVO_UPDATE_ORDINAL: AtomicU64 = AtomicU64::new(0);
 static RVO_SOURCE_CALL_ORDINAL: AtomicU64 = AtomicU64::new(0);
 static RVO_VO_CALL_ORDINAL: AtomicU64 = AtomicU64::new(0);
@@ -1383,6 +1433,11 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Ok(metadata) => (Some(metadata), None),
             Err(error) => (None, Some(error)),
         };
+        let (selector_score_available, selector_score_error) =
+            match initialize_selector_score_instrumentation(api) {
+                Ok(()) => (true, None),
+                Err(error) => (false, Some(error)),
+            };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             projectile_controllers: projectile_controllers as usize,
@@ -1402,8 +1457,25 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             fight_skill_attack_target,
             rvo,
             rvo_error,
+            selector_score_available,
+            selector_score_error,
         })
     }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn initialize_selector_score_instrumentation(api: Api) -> Result<(), String> {
+    let score_selector = api
+        .class(
+            "GRFight.dll",
+            "GameRiver.Fight",
+            "ScoreRatingTargetSelector",
+        )
+        .map_err(|error| error.to_string())?;
+    let calculate_score = api
+        .method(score_selector, "CalculateScore", 9)
+        .map_err(|error| error.to_string())?;
+    install_selector_calculate_score_hook(api, calculate_score)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -1655,6 +1727,7 @@ pub(crate) fn start(
         );
     }
     validate_rvo_profile_availability(instrumentation_profile, &state.metadata)?;
+    validate_selector_score_profile_availability(instrumentation_profile, &state.metadata)?;
     let fight = runtime.current_fight();
     if fight.is_null() {
         return Err("fight controller is unavailable".into());
@@ -1731,6 +1804,25 @@ fn validate_rvo_profile_availability(
                 .rvo_error
                 .as_deref()
                 .unwrap_or("native RVO fields or hooks could not be resolved")
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_selector_score_profile_availability(
+    instrumentation_profile: Option<CaptureInstrumentationProfile>,
+    metadata: &Metadata,
+) -> Result<(), String> {
+    if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_selector_score)
+        && !metadata.selector_score_available
+    {
+        Err(format!(
+            "selector_score_v1 is unavailable: {}",
+            metadata
+                .selector_score_error
+                .as_deref()
+                .unwrap_or("native selector method or hook could not be resolved")
         ))
     } else {
         Ok(())
@@ -1824,6 +1916,89 @@ type RvoCalculateNeighboursFn = unsafe extern "C" fn(*mut Object, *const MethodI
 type RvoGenerateNeighbourVosFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
 type RvoGenerateOpponentVosFn =
     unsafe extern "C" fn(*mut Object, *mut Object, *mut Object, *const MethodInfo);
+type SelectorCalculateScoreFn = unsafe extern "C" fn(
+    FixedPoint,
+    FixedPoint,
+    FixedPoint,
+    FixedPoint,
+    FixedPoint,
+    FixedPoint,
+    FixedPoint,
+    FixedPoint,
+    bool,
+    *const MethodInfo,
+) -> FixedPoint;
+
+#[allow(clippy::too_many_arguments)]
+unsafe extern "C" fn selector_calculate_score_hook(
+    distance: FixedPoint,
+    distance_score: FixedPoint,
+    angle: FixedPoint,
+    angle_score: FixedPoint,
+    max_attack_range: FixedPoint,
+    source_rotation: FixedPoint,
+    min_rotation: FixedPoint,
+    max_rotation: FixedPoint,
+    is_left_side: bool,
+    method: *const MethodInfo,
+) -> FixedPoint {
+    let original = ORIGINAL_SELECTOR_CALCULATE_SCORE.load(Ordering::Acquire);
+    if original.is_null() {
+        return FixedPoint::default();
+    }
+    // SAFETY: the installer stores the trampoline for this exact IL2CPP method ABI.
+    let original: SelectorCalculateScoreFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: all arguments are forwarded unchanged to the native method.
+    let score = unsafe {
+        original(
+            distance,
+            distance_score,
+            angle,
+            angle_score,
+            max_attack_range,
+            source_rotation,
+            min_rotation,
+            max_rotation,
+            is_left_side,
+            method,
+        )
+    };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed
+            || !state.in_update
+            || !state
+                .instrumentation_profile
+                .is_some_and(CaptureInstrumentationProfile::includes_selector_score)
+        {
+            return;
+        }
+        let invocation_ordinal = state.next_selector_invocation_ordinal;
+        let Some(next) = invocation_ordinal.checked_add(1) else {
+            state.fail("selector invocation ordinal overflow".into());
+            return;
+        };
+        state.next_selector_invocation_ordinal = next;
+        state
+            .selector_score_calculations
+            .push(RawSelectorScoreCalculation {
+                invocation_ordinal,
+                distance_raw: distance.raw,
+                distance_score_raw: distance_score.raw,
+                angle_raw: angle.raw,
+                angle_score_raw: angle_score.raw,
+                max_attack_range_raw: max_attack_range.raw,
+                source_rotation_raw: source_rotation.raw,
+                min_rotation_raw: min_rotation.raw,
+                max_rotation_raw: max_rotation.raw,
+                is_left_side,
+                score_raw: score.raw,
+            });
+    }));
+    score
+}
 
 #[cfg(test)]
 fn run_checker_wrapper_offline<Before, Original, After, Fail>(
@@ -3521,6 +3696,9 @@ fn snapshot(
                 drain_skill_attackable_checker_calls(native_tick, capture)?,
             ))
         }
+        Some(CaptureInstrumentationProfile::SelectorScoreV1) => Some(
+            CaptureInstrumentationObservation::SelectorScore(drain_selector_score_calls(capture)?),
+        ),
         None => None,
         Some(_) => unreachable!("all capture instrumentation profiles are handled"),
     };
@@ -4346,6 +4524,28 @@ fn resolve_target_ref(
         .ok_or_else(|| format!("{field} references an actor absent from the MCFR world snapshot"))
 }
 
+fn drain_selector_score_calls(
+    capture: &mut CaptureState,
+) -> Result<SelectorScoreObservation, String> {
+    let score_calculations = std::mem::take(&mut capture.selector_score_calculations)
+        .into_iter()
+        .map(|calculation| SelectorScoreCalculation {
+            invocation_ordinal: calculation.invocation_ordinal,
+            distance_raw: calculation.distance_raw,
+            distance_score_raw: calculation.distance_score_raw,
+            angle_raw: calculation.angle_raw,
+            angle_score_raw: calculation.angle_score_raw,
+            max_attack_range_raw: calculation.max_attack_range_raw,
+            source_rotation_raw: calculation.source_rotation_raw,
+            min_rotation_raw: calculation.min_rotation_raw,
+            max_rotation_raw: calculation.max_rotation_raw,
+            is_left_side: calculation.is_left_side,
+            score_raw: calculation.score_raw,
+        })
+        .collect();
+    Ok(SelectorScoreObservation { score_calculations })
+}
+
 fn drain_skill_attackable_checker_calls(
     snapshot_native_tick: u64,
     capture: &mut CaptureState,
@@ -4600,6 +4800,24 @@ const RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE: [u8; 16] = [
 const RVO_GENERATE_OPPONENT_VOS_PROLOGUE: [u8; 16] = [
     0xff, 0xc3, 0x07, 0xd1, 0xfc, 0x6f, 0x19, 0xa9, 0xfa, 0x67, 0x1a, 0xa9, 0xf8, 0x5f, 0x1b, 0xa9,
 ];
+const SELECTOR_CALCULATE_SCORE_PROLOGUE: [u8; 16] = [
+    0xff, 0x03, 0x02, 0xd1, 0xfc, 0x6f, 0x02, 0xa9, 0xfa, 0x67, 0x03, 0xa9, 0xf8, 0x5f, 0x04, 0xa9,
+];
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_selector_calculate_score_hook(
+    api: Api,
+    method: *const MethodInfo,
+) -> Result<(), String> {
+    install_inline_hook(
+        api,
+        method,
+        &SELECTOR_CALCULATE_SCORE_PROLOGUE,
+        selector_calculate_score_hook as *const c_void,
+        &ORIGINAL_SELECTOR_CALCULATE_SCORE,
+        "ScoreRatingTargetSelector.CalculateScore",
+    )
+}
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_rvo_controller_active_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
@@ -5187,6 +5405,85 @@ mod tests {
         let error = validate_checker_profile_start(Some(profile)).unwrap_err();
         assert!(error.contains("unsupported"));
         assert!(error.contains("independent evidence"));
+    }
+
+    #[test]
+    fn selector_score_profile_is_private_mutually_selected_and_default_off() {
+        let profile = CaptureInstrumentationProfile::SelectorScoreV1;
+        assert_eq!(profile.as_str(), "selector_score_v1");
+        assert_eq!(profile.channel(), "selector_score");
+        assert!(profile.includes_selector_score());
+        assert!(!profile.includes_target_refs());
+        assert!(!profile.includes_rvo());
+        assert!(!profile.includes_skill_attackable_checker());
+        assert_eq!(CaptureState::default().instrumentation_profile, None);
+
+        let unavailable = Metadata {
+            selector_score_error: Some("forced selector hook failure".into()),
+            ..Metadata::default()
+        };
+        for inactive in [
+            None,
+            Some(CaptureInstrumentationProfile::TargetRefsV1),
+            Some(CaptureInstrumentationProfile::TargetRefsRvoV1),
+            Some(CaptureInstrumentationProfile::SkillAttackableCheckerV1),
+        ] {
+            assert!(validate_selector_score_profile_availability(inactive, &unavailable).is_ok());
+        }
+        let error =
+            validate_selector_score_profile_availability(Some(profile), &unavailable).unwrap_err();
+        assert!(error.contains("selector_score_v1 is unavailable"));
+        assert!(error.contains("forced selector hook failure"));
+
+        let available = Metadata {
+            selector_score_available: true,
+            ..Metadata::default()
+        };
+        assert!(validate_selector_score_profile_availability(Some(profile), &available).is_ok());
+    }
+
+    #[test]
+    fn selector_score_drain_preserves_raw_values_and_clears_tick_buffer() {
+        let expected = RawSelectorScoreCalculation {
+            invocation_ordinal: 7,
+            distance_raw: 11,
+            distance_score_raw: 13,
+            angle_raw: 17,
+            angle_score_raw: 19,
+            max_attack_range_raw: 23,
+            source_rotation_raw: 29,
+            min_rotation_raw: 31,
+            max_rotation_raw: 37,
+            is_left_side: true,
+            score_raw: 41,
+        };
+        let mut capture = CaptureState::default();
+        capture.selector_score_calculations.push(expected);
+
+        let drained = drain_selector_score_calls(&mut capture).unwrap();
+        assert_eq!(
+            drained.score_calculations,
+            vec![SelectorScoreCalculation {
+                invocation_ordinal: expected.invocation_ordinal,
+                distance_raw: expected.distance_raw,
+                distance_score_raw: expected.distance_score_raw,
+                angle_raw: expected.angle_raw,
+                angle_score_raw: expected.angle_score_raw,
+                max_attack_range_raw: expected.max_attack_range_raw,
+                source_rotation_raw: expected.source_rotation_raw,
+                min_rotation_raw: expected.min_rotation_raw,
+                max_rotation_raw: expected.max_rotation_raw,
+                is_left_side: expected.is_left_side,
+                score_raw: expected.score_raw,
+            }]
+        );
+        assert!(capture.selector_score_calculations.is_empty());
+        assert!(
+            drain_selector_score_calls(&mut capture)
+                .unwrap()
+                .score_calculations
+                .is_empty()
+        );
     }
 
     #[test]
