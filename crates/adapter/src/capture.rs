@@ -150,6 +150,13 @@ pub(crate) struct CheckerTargetObservation {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the checker contract remains offline-only until its native hook is reviewed"
+    )
+)]
 pub(crate) enum CheckerQualifyingStatus {
     Unit {
         alive: bool,
