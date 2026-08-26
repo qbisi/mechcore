@@ -35,10 +35,11 @@ const DEFAULT_UNITS: [&str; 23] = [
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
-const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 3] = [
+const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 4] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
+    include_str!("../../../config/units/crawler.yaml"),
 ];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
@@ -928,7 +929,10 @@ mod tests {
     fn current_kernel_support_follows_the_explicit_config_set() {
         let config = SimulationConfig::load(None).unwrap();
         for (type_name, rules) in &config.units.units {
-            let is_supported = matches!(type_name.as_str(), "marksman" | "arclight" | "rhino");
+            let is_supported = matches!(
+                type_name.as_str(),
+                "marksman" | "arclight" | "rhino" | "crawler"
+            );
             assert_eq!(
                 rules.ensure_current_kernel_support().is_ok(),
                 is_supported,

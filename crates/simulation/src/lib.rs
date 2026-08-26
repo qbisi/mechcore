@@ -7,6 +7,7 @@ mod kernel;
 mod layout;
 mod random;
 mod rules;
+mod rvo;
 
 use std::{
     fmt, fs,

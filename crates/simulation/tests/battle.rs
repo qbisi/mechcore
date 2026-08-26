@@ -39,8 +39,13 @@ fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
 }
 
+fn rhino_two_arclights_fixture() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/layouts/rhino-vs-two-arclights.yaml")
+}
+
 #[test]
-fn public_simulation_rejects_unclosed_multi_member_behavior_before_creating_an_mcfr() {
+fn public_simulation_accepts_crawler_movement_until_the_next_unclosed_attack_branch() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("crawler.yaml");
     let output = directory.path().join("battle.mcfr");
@@ -60,8 +65,52 @@ sides:
     let error = simulate_layout(&layout, &output, Some(1_787_601_811))
         .unwrap_err()
         .to_string();
-    assert!(error.contains("not in the current kernel's supported behavior set"));
+    assert!(error.contains("projectile splash with a secondary target is not closed"));
     assert!(!output.exists());
+}
+
+#[test]
+fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_schema_v3() {
+    let directory = tempfile::tempdir().unwrap();
+    let output = directory.path().join("battle.mcfr");
+    let result =
+        simulate_layout(rhino_two_arclights_fixture(), &output, Some(1_787_634_176)).unwrap();
+    assert_eq!(result.winner, Some("blue"));
+    assert_eq!(result.steps, 321);
+    // The accepted native recording is schema v2. These schema-v3 hashes
+    // freeze the migrated simulator projection, while the tick/event checks
+    // below retain the reviewed native timeline. A new schema-v3 native
+    // recording is still required before claiming current-format hash parity.
+    assert_eq!(
+        result.hashes.scenario_hash,
+        "646bbc9986fd91182574b8fa9965f8e6c1895ca82e7c5cb82c582c82c32c78a2"
+    );
+    assert_eq!(
+        result.hashes.result_hash,
+        "fcd299149730b7b621d6c14da78ab0cc00c92417b9660a7c26c6a666a9aef6e4"
+    );
+
+    let reader = McfrReader::open(output).unwrap();
+    assert_eq!(reader.tick_count(), 322);
+    assert_eq!(
+        reader
+            .events(151)
+            .unwrap()
+            .events
+            .into_iter()
+            .map(|event| (
+                event.kind(),
+                event.subject.map(|value| value.id),
+                event.source.map(|value| value.id),
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (EventKind::Damage, None, Some(7)),
+            (EventKind::ProjectileRemoved, Some(7), Some(2)),
+            (EventKind::Damage, None, Some(6)),
+            (EventKind::ProjectileRemoved, Some(6), Some(3)),
+        ]
+    );
 }
 
 #[test]
