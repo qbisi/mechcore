@@ -1436,6 +1436,26 @@ impl Simulation {
             }
             return Ok(());
         }
+        if actor.motion == MotionState::Attacking
+            && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+            && !actor.rules.has_body
+            && actor.pending.is_none()
+            && actor.backswing_finish_step.is_none()
+        {
+            // FightSkill updates before MotionController. A bodyless melee
+            // unit whose attack phases are idle therefore rejects an
+            // out-of-range retained target and enters SkillIdleState before
+            // MotionAttackState can fall through to movement. Both state
+            // machines expose one targetless Idle tick.
+            actor.motion = MotionState::Idle;
+            actor.mech_lock_target = None;
+            actor.motion_attack_hold_fire = false;
+            actor.next_target_x_q32 = actor.x_q32;
+            actor.next_target_z_q32 = actor.z_q32;
+            actor.next_speed_q32 = 0;
+            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            return Ok(());
+        }
         if attack_point_rejected
             && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
             && !actor.rules.has_body
@@ -3036,6 +3056,31 @@ mod tests {
         source.mech_lock_target = Some(2);
         source.motion = MotionState::Moving;
         source.backswing_finish_step = Some(10);
+        source.set_body_rotation(mdeg_to_degrees_q32(123_000));
+
+        simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
+
+        let source = &simulation.actors[&1];
+        assert_eq!(source.motion, MotionState::Idle);
+        assert_eq!(source.mech_lock_target, None);
+        assert_eq!(source.body_rotation, 123_000);
+        assert_eq!((source.next_target_x_q32, source.next_target_z_q32), (0, 0));
+    }
+
+    #[test]
+    fn bodyless_melee_attack_motion_exits_through_idle_when_target_leaves_range() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
+        set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.rules = config.units.get("crawler").unwrap().clone();
+        source.mech_lock_target = Some(2);
+        source.motion = MotionState::Attacking;
         source.set_body_rotation(mdeg_to_degrees_q32(123_000));
 
         simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
