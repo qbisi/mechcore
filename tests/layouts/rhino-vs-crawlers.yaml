@@ -1,0 +1,14 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: rhino
+        x: 5
+        y: -105
+
+  red:
+    formations:
+      - type: crawler
+        x: 5
+        y: -100
