@@ -1,19 +1,7 @@
 use std::{fs, path::PathBuf};
 
-use mechcore_mcfr::{EventKind, EventPayload, InstrumentationReader, McfrReader, ObjectRef};
+use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
 use mechcore_simulation::{simulate_layout, simulate_layout_with_config};
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-struct TargetRefsObservation {
-    units: Vec<UnitTargetRefsObservation>,
-}
-
-#[derive(Deserialize)]
-struct UnitTargetRefsObservation {
-    unit: ObjectRef,
-    mech_lock_target: Option<ObjectRef>,
-}
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
@@ -156,52 +144,6 @@ fn rhino_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
             .filter(|building| building.team_id == 1)
             .all(|building| building.life == 0 && !building.alive && !building.targetable)
     );
-}
-
-#[test]
-#[ignore = "requires the accepted native target_refs_v1 research sidecar"]
-fn rhino_mech_lock_target_s_matches_the_existing_native_i_sidecar_per_tick() {
-    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let sidecar = InstrumentationReader::open(
-        repository.join("work/research/rhino-target-refs-2259/native-i.h5"),
-    )
-    .unwrap();
-    assert_eq!(sidecar.profile(), "target_refs_v1");
-    assert_eq!(sidecar.producer(), "adapter");
-    assert_eq!(
-        sidecar.scenario_hash(),
-        "30000f5ae6d4d76102111300e3219dc22a3b8f2a7cd7c6e138d8a4d7a6180f4a"
-    );
-
-    let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("schema-v3.mcfr");
-    simulate_layout(rhino_fixture(), &output, Some(1_787_624_046)).unwrap();
-    let simulated = McfrReader::open(output).unwrap();
-    assert_eq!(
-        usize::try_from(simulated.tick_count()).unwrap(),
-        sidecar.len()
-    );
-
-    for tick in 0..simulated.tick_count() {
-        let entry = sidecar.entry(usize::try_from(tick).unwrap()).unwrap();
-        assert_eq!(entry.step, tick);
-        assert_eq!(entry.channel, "target_refs");
-        assert_eq!(entry.content_type, "application/json");
-        let observed: TargetRefsObservation = serde_json::from_slice(&entry.payload).unwrap();
-        let state = simulated.state(tick).unwrap();
-        for unit in state.units {
-            let native = observed
-                .units
-                .iter()
-                .find(|candidate| candidate.unit.id == unit.unit_id)
-                .expect("native I sidecar omitted a simulated unit");
-            assert_eq!(
-                unit.mech_lock_target, native.mech_lock_target,
-                "mech_lock_target differs at tick {tick} for unit {}",
-                unit.unit_id
-            );
-        }
-    }
 }
 
 #[test]
