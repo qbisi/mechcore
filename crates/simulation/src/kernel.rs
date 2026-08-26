@@ -1233,9 +1233,12 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<NormalTargetCandidate>>,
     ) -> Result<()> {
         // The FightSkill-owned SearchTargetController advances only while its
-        // SkillStateController is in SkillIdleState. Prepare and Attack have
-        // their own retained-target checks and do not consume this counter.
-        if self.actors[&actor_id].fight_skill_phase != FightSkillPhase::Idle {
+        // SkillStateController is in SkillIdleState and MoveAbility has not
+        // suspended SkillManager for an unaligned bodyless melee attack.
+        // Prepare, Attack, and motion hold-fire retain the private counter.
+        if self.actors[&actor_id].fight_skill_phase != FightSkillPhase::Idle
+            || self.actors[&actor_id].motion_attack_hold_fire
+        {
             return Ok(());
         }
 
@@ -3124,6 +3127,24 @@ mod tests {
             fight_skill.actors[&1].fight_skill_search_target_time,
             SEARCH_TARGET_RESET_TICKS
         );
+
+        let mut hold_fire = make_simulation();
+        hold_fire.initialize_presearch_targets().unwrap();
+        let current = hold_fire.actors.get_mut(&3).unwrap();
+        current.x = -100_000;
+        current.z = 300_000;
+        current.x_q32 = space_to_q32(current.x);
+        current.z_q32 = space_to_q32(current.z);
+        let source = hold_fire.actors.get_mut(&1).unwrap();
+        source.fight_skill_search_target_time = 0;
+        source.motion_attack_hold_fire = true;
+        hold_fire.refresh_target_query_snapshot();
+        let target_search_order = hold_fire.target_search_order();
+        hold_fire
+            .update_fight_skill_target_search(1, 0, &target_search_order)
+            .unwrap();
+        assert_eq!(hold_fire.actors[&1].mech_lock_target, Some(3));
+        assert_eq!(hold_fire.actors[&1].fight_skill_search_target_time, 0);
 
         let mut attack_state = make_simulation();
         attack_state.initialize_presearch_targets().unwrap();
