@@ -25,6 +25,15 @@
   scenario_hash: 657032d4bd1ba7f8374cb800858a42f4c6906b38efc39b36f070e3e7737ad1c2
   result_hash: 56cc3814b09f7258a59c05e3fb050098914113f1dba8e56ea636bc9118476b51
 
+- name: rhino-vs-crawlers-01
+  layout: tests/layouts/rhino-vs-crawlers.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787748319
+  tick_count: 378
+  scenario_hash: ccf2219a3709910f0a389aee28ab12b9305456a1a41053e4519626c9613af886
+  result_hash: 612bb2d0edee8117f4fbde6b0e69587159f18f463da433913a781e79d0f531fd
+
 - name: rhino-vs-crawlers-02
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
@@ -43,6 +52,24 @@
   scenario_hash: 71ad7e784870f2e3aa596bc9a42f197210b0a76fcf2e8fb0677b2667d0274bfe
   result_hash: 2d0a43b1b945e21506c9f8ca00dbcf527b3c429ced471d18a32436badafe33e4
 
+- name: rhino-vs-crawlers-04
+  layout: tests/layouts/rhino-vs-crawlers.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787748402
+  tick_count: 361
+  scenario_hash: 483612dcde6eb9692bfa949d4b7243df2c6b27df378a0b14f126f7dccc26e515
+  result_hash: 77636ba3a408ac95fb528a8d46c7aaf57ae20b3cea08c489c60707b54e9074e9
+
+- name: rhino-vs-crawlers-05
+  layout: tests/layouts/rhino-vs-crawlers.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787748432
+  tick_count: 326
+  scenario_hash: 58c979270f8b96c782502ab43a54bf662229de29e5ece999fc1ea78fc4d42327
+  result_hash: e98d7ad14d17317d5a916fdf913ada7bd4efe5c1caaca8285bdda025383db29e
+
 - name: rhino-vs-crawlers-06
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
@@ -51,6 +78,24 @@
   tick_count: 383
   scenario_hash: f094b4f3dac4e72a5ee77dce54168eed259d5acce972023b904ef194760d98a5
   result_hash: 75456cda62b18215290ae637055e466f7712de3acd3b3645c107df9cdd285cd2
+
+- name: rhino-vs-crawlers-07
+  layout: tests/layouts/rhino-vs-crawlers.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787748526
+  tick_count: 318
+  scenario_hash: b1854f715df770275832609cb8d233ea8b75f0eb8910aec232194e96996ef753
+  result_hash: 5958b64775d05e1b7e38c28c13ad78ad1d3ffb2ec8c96acf6cecd2efc3828f02
+
+- name: rhino-vs-crawlers-08
+  layout: tests/layouts/rhino-vs-crawlers.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787748558
+  tick_count: 326
+  scenario_hash: cfa304c033db86bcd07a1e12968650ee3b162d6a4fde2f7ca0d88879c8080e81
+  result_hash: 2ac0cfe6912143e858be863b5bfc37b922af9a134d656d3503c7c8a9a579501c
 
 - name: rhino-vs-crawlers-09
   layout: tests/layouts/rhino-vs-crawlers.yaml
@@ -69,3 +114,93 @@
   tick_count: 237
   scenario_hash: d3303bff09819604f39d3fd3e702af30258e7eea3eb549bfd0606cda815ba88e
   result_hash: 99847397e8474a09ffb9f90b1a324ae8dfd1592838f066d6a6953fe091e15a6c
+
+- name: crawlers-vs-rhino-01
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787757964
+  tick_count: 281
+  scenario_hash: 87bfc63151e3152f80d68517339fbeb3f790777bec4ae7d277d3de760562e882
+  result_hash: f21c940260fd6fdf055a9bf6da35fff1b287cd119d7bc6ac9196c97509cfabf1
+
+- name: crawlers-vs-rhino-02
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758008
+  tick_count: 302
+  scenario_hash: e9d60d331ba55b87e413b55a28d0b5b5ca5dca50b60e9d59a7075aa4cd9f5e08
+  result_hash: 52653aa0a9799570032ef9b5f2fcfd2fb4f351438031e5fb19fbafe1b9442590
+
+- name: crawlers-vs-rhino-03
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758042
+  tick_count: 309
+  scenario_hash: 8beb6f1c40ef37175e541ea525437c4e0e349b950416e1bb4d0d7b66e45223bd
+  result_hash: 0f1945df5ac321b682d8b61d326c9a9d2273a6c74a9ececda368ca37f2724864
+
+- name: crawlers-vs-rhino-04
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758104
+  tick_count: 365
+  scenario_hash: e879c9ebcc5bb32163cdb47dc74c6b0fc5bee5033c4166c485c676bc8845e822
+  result_hash: 15caed9624d610961fbef1a341b83bb93eb7b65d33e3babf0615ba34378a887e
+
+- name: crawlers-vs-rhino-05
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758157
+  tick_count: 322
+  scenario_hash: b9649c76ceea916ff01c7907dd2f87d124f76de1546d9c09bcba0e0c3758661e
+  result_hash: f0f4f543175b208bbbee086ac1d2bffa7ba0c594054b5e4f3ecb402709659240
+
+- name: crawlers-vs-rhino-06
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758202
+  tick_count: 265
+  scenario_hash: 0fd7a8a858ae750cbceca727774fac63acc0c85628d7f706ba5991d769e2e50c
+  result_hash: 9cadbb041c0adbf2eecfe1d52177692eba901bd4b104a2816184546f6286c2b7
+
+- name: crawlers-vs-rhino-07
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758244
+  tick_count: 299
+  scenario_hash: 3ae5a9eda739ba17dacf2924555dca807b7c86dd3d1622f2e25a4adba908c7b3
+  result_hash: 5fe871a5a9ea2ed4d549784010d01ae1bffa464b6ae999f07d81c632663a32d6
+
+- name: crawlers-vs-rhino-08
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758281
+  tick_count: 280
+  scenario_hash: 635fbebf33112275238c4a8c693a2dfa1a7bf8c54de0ef09652c6ac2e8ec293b
+  result_hash: d17e89664bf1d5cef7c9ac1373b9cff96bf9926845ad392201ef68697b371a8c
+
+- name: crawlers-vs-rhino-09
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758328
+  tick_count: 296
+  scenario_hash: 8bac8d0226189ef87c15466d2be03db67a187e2192909956540068917fd594fb
+  result_hash: 8dd31460c3c1721f7be0a3648764d0fdee301e3bb6f96dd2ee36d4ae1ec4cdda
+
+- name: crawlers-vs-rhino-10
+  layout: tests/layouts/crawlers-vs-rhino.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787758384
+  tick_count: 308
+  scenario_hash: 82a8bdcb3b5f4b29b07b0c665e4703ca353a96fe210b75bee4f83f105f8ba65e
+  result_hash: 21f013f5b61c0fa507f724bf8112005ca28aa336bcc6c77c983caf4ee7d7b82f

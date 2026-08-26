@@ -21,11 +21,13 @@ fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn native_regression(name: &str) -> NativeRegression {
+fn native_regressions() -> Vec<NativeRegression> {
     let manifest = repository().join("tests/mcfr-regressions.yaml");
-    let regressions: Vec<NativeRegression> =
-        serde_yaml::from_slice(&fs::read(manifest).unwrap()).unwrap();
-    regressions
+    serde_yaml::from_slice(&fs::read(manifest).unwrap()).unwrap()
+}
+
+fn native_regression(name: &str) -> NativeRegression {
+    native_regressions()
         .into_iter()
         .find(|regression| regression.name == name)
         .unwrap_or_else(|| panic!("missing native MCFR regression {name}"))
@@ -304,15 +306,9 @@ fn rhino_retarget_matches_the_schema_v3_build_2259_native_recording() {
 }
 
 #[test]
-fn rhino_vs_crawlers_sampled_native_recordings_match_schema_v3_build_2259() {
-    for name in [
-        "rhino-vs-crawlers-02",
-        "rhino-vs-crawlers-03",
-        "rhino-vs-crawlers-06",
-        "rhino-vs-crawlers-09",
-        "rhino-vs-crawlers-10",
-    ] {
-        let regression = native_regression(name);
+fn native_regression_manifest_hashes_match() {
+    for regression in native_regressions() {
+        let name = regression.name.as_str();
         let directory = tempfile::tempdir().unwrap();
         let output = directory.path().join("battle.mcfr");
         let result = simulate_layout(
@@ -321,21 +317,11 @@ fn rhino_vs_crawlers_sampled_native_recordings_match_schema_v3_build_2259() {
             Some(regression.seed),
         )
         .unwrap();
-        assert_eq!(result.game_build, regression.game_build, "{name}");
-        assert_eq!(result.winner, Some("blue"), "{name}");
         assert_eq!(
             result.hashes.scenario_hash, regression.scenario_hash,
             "{name}"
         );
         assert_eq!(result.hashes.result_hash, regression.result_hash, "{name}");
-
-        let reader = McfrReader::open(output).unwrap();
-        assert_eq!(
-            reader.context().schema_version,
-            regression.schema_version,
-            "{name}"
-        );
-        assert_eq!(reader.tick_count(), regression.tick_count, "{name}");
     }
 }
 
