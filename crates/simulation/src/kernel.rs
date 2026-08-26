@@ -1221,6 +1221,27 @@ impl Simulation {
             actor.backswing_finish_step = None;
             actor.skill_target_check_active = false;
         }
+        let active_attack_rejected = self.actors[&actor_id].pending.is_some_and(|pending| {
+            self.bodyless_melee_attackable_invalid(actor_id, pending.target)
+        });
+        if active_attack_rejected {
+            // Build 2259 SkillPrepareState and SkillAttackState both run
+            // CheckAttackable before advancing their current attack phase.
+            // A failed check enters SkillIdleState in the same update.
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.motion = MotionState::Idle;
+            actor.mech_lock_target = None;
+            actor.pending = None;
+            actor.skill_target_check_active = false;
+            actor.next_target_x_q32 = actor.x_q32;
+            actor.next_target_z_q32 = actor.z_q32;
+            actor.next_speed_q32 = 0;
+            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            return Ok(());
+        }
         let released_this_step = self.actors[&actor_id]
             .pending
             .is_some_and(|pending| pending.step <= step);
@@ -1710,37 +1731,38 @@ impl Simulation {
         Ok(())
     }
 
+    fn bodyless_melee_attackable_invalid(&self, actor_id: u64, target_id: u64) -> bool {
+        let actor = &self.actors[&actor_id];
+        if !matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+            || actor.rules.has_body
+        {
+            return false;
+        }
+        let target = &self.actors[&target_id];
+        let center_distance_q32 = native_q32_magnitude(
+            target.x_q32.saturating_sub(actor.x_q32),
+            target.z_q32.saturating_sub(actor.z_q32),
+        );
+        let edge_distance_q32 = center_distance_q32
+            .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+            .saturating_sub(space_to_q32(target.rules.collision_radius()));
+        let in_range = edge_distance_q32 <= space_to_q32(actor.rules.attack.range());
+        let in_angle = rotation_distance_q32(
+            actor.body_rotation_q32,
+            direction_degrees_q32_raw(
+                target.x_q32.saturating_sub(actor.x_q32),
+                target.z_q32.saturating_sub(actor.z_q32),
+            ),
+        ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg());
+        !in_range || !in_angle
+    }
+
     fn release(&mut self, actor_id: u64, events: &mut Vec<Event>) -> Result<bool> {
         let pending = self.actors[&actor_id]
             .pending
             .ok_or_else(|| Error::new("attack release has no pending action"))?;
-        let release_attackable_invalid = {
-            let actor = &self.actors[&actor_id];
-            let target = &self.actors[&pending.target];
-            if matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
-                && !actor.rules.has_body
-            {
-                let center_distance_q32 = native_q32_magnitude(
-                    target.x_q32.saturating_sub(actor.x_q32),
-                    target.z_q32.saturating_sub(actor.z_q32),
-                );
-                let edge_distance_q32 = center_distance_q32
-                    .saturating_sub(space_to_q32(actor.rules.collision_radius()))
-                    .saturating_sub(space_to_q32(target.rules.collision_radius()));
-                let in_range = edge_distance_q32 <= space_to_q32(actor.rules.attack.range());
-                let in_angle =
-                    rotation_distance_q32(
-                        actor.body_rotation_q32,
-                        direction_degrees_q32_raw(
-                            target.x_q32.saturating_sub(actor.x_q32),
-                            target.z_q32.saturating_sub(actor.z_q32),
-                        ),
-                    ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg());
-                !in_range || !in_angle
-            } else {
-                false
-            }
-        };
+        let release_attackable_invalid =
+            self.bodyless_melee_attackable_invalid(actor_id, pending.target);
         if release_attackable_invalid {
             // SkillAttackState rechecks CheckAttackable and target angle at
             // the attack point. A failed check skips PerformAttack; the skill
@@ -3130,6 +3152,38 @@ mod tests {
         assert_eq!(source.mech_lock_target, None);
         assert_eq!(source.body_rotation, 123_000);
         assert_eq!((source.next_target_x_q32, source.next_target_z_q32), (0, 0));
+    }
+
+    #[test]
+    fn rejected_bodyless_melee_active_attack_reopens_idle_search_before_release() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
+        set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.rules = config.units.get("crawler").unwrap().clone();
+        source.mech_lock_target = Some(2);
+        source.motion = MotionState::Attacking;
+        source.pending = Some(PendingRelease {
+            step: 12,
+            target: 2,
+        });
+        source.skill_target_check_active = true;
+
+        simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
+        let source = &simulation.actors[&1];
+        assert_eq!(source.motion, MotionState::Idle);
+        assert_eq!(source.mech_lock_target, None);
+        assert!(!source.skill_target_check_active);
+
+        simulation.step_actor(1, 12, &mut Vec::new()).unwrap();
+        let source = &simulation.actors[&1];
+        assert_eq!(source.motion, MotionState::Moving);
+        assert_eq!(source.mech_lock_target, Some(2));
     }
 
     #[test]
