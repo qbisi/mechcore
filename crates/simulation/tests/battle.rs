@@ -2,18 +2,41 @@ use std::{fs, path::PathBuf};
 
 use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
 use mechcore_simulation::{simulate_layout, simulate_layout_with_config};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NativeRegression {
+    name: String,
+    layout: PathBuf,
+    game_build: String,
+    schema_version: u32,
+    seed: i32,
+    tick_count: u64,
+    scenario_hash: String,
+    result_hash: String,
+}
+
+fn repository() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
+fn native_regression(name: &str) -> NativeRegression {
+    let manifest = repository().join("tests/mcfr-regressions.yaml");
+    let regressions: Vec<NativeRegression> =
+        serde_yaml::from_slice(&fs::read(manifest).unwrap()).unwrap();
+    regressions
+        .into_iter()
+        .find(|regression| regression.name == name)
+        .unwrap_or_else(|| panic!("missing native MCFR regression {name}"))
+}
+
+fn regression_layout(regression: &NativeRegression) -> PathBuf {
+    repository().join(&regression.layout)
+}
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
-}
-
-fn rhino_fixture() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/rhino-vs-arclight.yaml")
-}
-
-fn rhino_retarget_fixture() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/layouts/rhino-retarget-vs-arclights.yaml")
 }
 
 #[test]
@@ -73,19 +96,21 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 
 #[test]
 fn marksman_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
+    let regression = native_regression("marksman-vs-arclight");
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(fixture(), &output, Some(1_787_720_817)).unwrap();
-    assert_eq!(
-        result.hashes.scenario_hash,
-        "d06fcbff599a161eb3d23b3bfb3fd3e73c3229dc6cf80c4efcea24fc6a2d292b"
-    );
-    assert_eq!(
-        result.hashes.result_hash,
-        "8e27f7fadf7575f527bebdcda4ce452dcb8bbeda4fa39d91b6bd8d7b25079c5f"
-    );
+    let result = simulate_layout(
+        regression_layout(&regression),
+        &output,
+        Some(regression.seed),
+    )
+    .unwrap();
+    assert_eq!(result.game_build, regression.game_build);
+    assert_eq!(result.hashes.scenario_hash, regression.scenario_hash);
+    assert_eq!(result.hashes.result_hash, regression.result_hash);
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 92);
+    assert_eq!(reader.context().schema_version, regression.schema_version);
+    assert_eq!(reader.tick_count(), regression.tick_count);
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
@@ -103,22 +128,24 @@ fn marksman_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
 
 #[test]
 fn rhino_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
+    let regression = native_regression("rhino-vs-arclight");
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(rhino_fixture(), &output, Some(1_787_720_897)).unwrap();
+    let result = simulate_layout(
+        regression_layout(&regression),
+        &output,
+        Some(regression.seed),
+    )
+    .unwrap();
+    assert_eq!(result.game_build, regression.game_build);
     assert_eq!(result.winner, Some("blue"));
     assert_eq!(result.steps, 235);
-    assert_eq!(
-        result.hashes.scenario_hash,
-        "38c831beb8a6d75473ffd65c293f0683729de0a58d8204c78f1905f9760bfa4a"
-    );
-    assert_eq!(
-        result.hashes.result_hash,
-        "d1b90af517b08494ceffa3cfd6ab608db4e2dc5c78d139984582382285a26b8e"
-    );
+    assert_eq!(result.hashes.scenario_hash, regression.scenario_hash);
+    assert_eq!(result.hashes.result_hash, regression.result_hash);
 
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 236);
+    assert_eq!(reader.context().schema_version, regression.schema_version);
+    assert_eq!(reader.tick_count(), regression.tick_count);
     let direct_damage = (0..reader.tick_count())
         .flat_map(|tick| reader.events(tick).unwrap().events)
         .filter_map(|event| match event.payload {
@@ -148,22 +175,24 @@ fn rhino_vs_arclight_matches_the_schema_v3_build_2259_native_recording() {
 
 #[test]
 fn rhino_retarget_matches_the_schema_v3_build_2259_native_recording() {
+    let regression = native_regression("rhino-retarget");
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(rhino_retarget_fixture(), &output, Some(1_787_720_956)).unwrap();
+    let result = simulate_layout(
+        regression_layout(&regression),
+        &output,
+        Some(regression.seed),
+    )
+    .unwrap();
+    assert_eq!(result.game_build, regression.game_build);
     assert_eq!(result.winner, Some("blue"));
     assert_eq!(result.steps, 336);
-    assert_eq!(
-        result.hashes.scenario_hash,
-        "657032d4bd1ba7f8374cb800858a42f4c6906b38efc39b36f070e3e7737ad1c2"
-    );
-    assert_eq!(
-        result.hashes.result_hash,
-        "56cc3814b09f7258a59c05e3fb050098914113f1dba8e56ea636bc9118476b51"
-    );
+    assert_eq!(result.hashes.scenario_hash, regression.scenario_hash);
+    assert_eq!(result.hashes.result_hash, regression.result_hash);
 
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 337);
+    assert_eq!(reader.context().schema_version, regression.schema_version);
+    assert_eq!(reader.tick_count(), regression.tick_count);
     let initial = reader.state(0).unwrap();
     assert_eq!(
         initial
