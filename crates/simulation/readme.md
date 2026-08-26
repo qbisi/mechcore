@@ -68,6 +68,21 @@
 - 用于验证实现的录像场景、seed、MCFR hash 和首个分歧结果；
 - 未覆盖分支、未验证假设和可判定的 `reopen_when`。
 
+## Build 2259 live-target selector 入口
+
+`MechSearchTargetController.Update` 中的全局锁敌 selector 不是每 tick 无条件
+运行。Simulator 当前按目标 build 的反编译控制流保留以下入口语义：
+
+- 主技能处于 `AttackState` 时不进入 selector，只刷新（递减）搜索计时；
+- 非 `AttackState` 且原锁定目标为空或已死时，立即进入 selector；
+- 非 `AttackState` 且原目标仍存活时，只有搜索计时 `<= 0` 才进入
+  selector；成功经过该入口后将计时重置为 `10`。
+
+`SkillPrepareState`/`SkillAttackState` 每 tick 的 attackability 检查是另一条路径，
+不能因为它们可能搜索替代目标，就将其建模为每 tick 进入上述全局
+selector。当前正式实现只关闭已经目标版本代码和原生 `I` sidecar 验证的
+Idle due/null/dead 入口；Prepare/Attack 中的 quick-switch 子分支仍保持未闭合。
+
 ## Agent 自动化研究管线
 
 ### 闭合单元与目标

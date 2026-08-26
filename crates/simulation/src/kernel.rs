@@ -38,6 +38,7 @@ const TARGET_QUADTREE_HALF_WIDTH_Q32: i64 = 400 * Q32_ONE;
 const TARGET_QUADTREE_HALF_HEIGHT_Q32: i64 = 350 * Q32_ONE;
 const RVO_SIMULATOR_ORIGIN_OFFSET_Q32: i64 = 400 * Q32_ONE;
 const CORE_TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
+const SEARCH_TARGET_RESET_TICKS: i32 = 10;
 
 #[derive(Debug, Clone, Copy)]
 struct RvoProfile {
@@ -392,6 +393,8 @@ struct Actor {
     next_attack_step: u64,
     motion_attack_hold_fire: bool,
     mech_lock_target: Option<u64>,
+    skill_search_time: i32,
+    skill_target_check_active: bool,
     retarget_after_own_direct_kill: bool,
     pending: Option<PendingRelease>,
     backswing_finish_step: Option<u64>,
@@ -452,6 +455,10 @@ impl Actor {
             next_attack_step: 0,
             motion_attack_hold_fire: false,
             mech_lock_target: None,
+            // Build 2259 SearchTargetController::.ctor initializes the
+            // FightSkill-owned periodic search counter to ten.
+            skill_search_time: SEARCH_TARGET_RESET_TICKS,
+            skill_target_check_active: false,
             retarget_after_own_direct_kill: false,
             pending: None,
             backswing_finish_step: None,
@@ -466,6 +473,8 @@ impl Actor {
         self.motion = MotionState::Idle;
         self.pending = None;
         self.mech_lock_target = None;
+        self.skill_search_time = 0;
+        self.skill_target_check_active = false;
         self.retarget_after_own_direct_kill = false;
         self.motion_attack_hold_fire = false;
         self.current_velocity_x_q32 = 0;
@@ -1008,6 +1017,7 @@ impl Simulation {
         if self.ready_to_finish() {
             for actor in self.actors.values_mut() {
                 actor.mech_lock_target = None;
+                actor.skill_target_check_active = false;
             }
         }
         if !self.ready_to_finish() {
@@ -1126,6 +1136,52 @@ impl Simulation {
         }
     }
 
+    fn update_idle_target_search(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        target_search_order: &BTreeMap<u32, Vec<NormalTargetCandidate>>,
+    ) -> Result<()> {
+        if self.actors[&actor_id].skill_target_check_active {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.skill_search_time = actor.skill_search_time.saturating_sub(1);
+            return Ok(());
+        }
+
+        let target_alive = self.actors[&actor_id]
+            .mech_lock_target
+            .and_then(|target_id| self.actors.get(&target_id))
+            .is_some_and(Actor::alive);
+        if target_alive && self.actors[&actor_id].skill_search_time > 0 {
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .skill_search_time -= 1;
+            return Ok(());
+        }
+
+        // Build 2259 SkillIdleState enters SearchAttackTarget only when its
+        // SearchTargetController is due (<= 0), while a null or dead target
+        // bypasses the live-target timer. The accepted Rhino x=-5 recording
+        // observes the due branch committing a live A -> live B change and
+        // resetting the counter to ten. Prepare/Attack target checks are a
+        // separate branch and never enter this Idle selector path.
+        let selected = self
+            .select_normal_unit_target_with_order(actor_id, target_search_order)
+            .map_err(|error| Error::new(format!("logic step {step}: {error}")))?;
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.mech_lock_target = selected;
+        actor.skill_search_time = SEARCH_TARGET_RESET_TICKS;
+        actor.retarget_after_own_direct_kill = false;
+        Ok(())
+    }
+
     #[cfg(test)]
     fn step_actor(&mut self, actor_id: u64, step: u64, events: &mut Vec<Event>) -> Result<()> {
         let target_search_order = self.target_search_order();
@@ -1143,12 +1199,6 @@ impl Simulation {
         let backswing_just_finished = self.actors[&actor_id]
             .backswing_finish_step
             .is_some_and(|finish_step| finish_step < step);
-        if backswing_just_finished {
-            self.actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable")
-                .backswing_finish_step = None;
-        }
         if !self.actors[&actor_id].alive() {
             let actor = self
                 .actors
@@ -1157,10 +1207,19 @@ impl Simulation {
             actor.exit_fight_on_death();
             return Ok(());
         }
-        let attack_point_rejected = if self.actors[&actor_id]
+        self.update_idle_target_search(actor_id, step, target_search_order)?;
+        if backswing_just_finished {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.backswing_finish_step = None;
+            actor.skill_target_check_active = false;
+        }
+        let released_this_step = self.actors[&actor_id]
             .pending
-            .is_some_and(|pending| pending.step <= step)
-        {
+            .is_some_and(|pending| pending.step <= step);
+        let attack_point_rejected = if released_this_step {
             self.release(actor_id, events)?
         } else {
             false
@@ -1169,20 +1228,24 @@ impl Simulation {
         if let Some(target_id) = mech_lock_target {
             let target_alive = self.actors.get(&target_id).is_some_and(Actor::alive);
             if !target_alive && self.actors[&actor_id].backswing_finish_step.is_some() {
-                if !self.actors[&actor_id].retarget_after_own_direct_kill
-                    && self.actors.values().any(|candidate| {
-                        candidate.placement.team != self.actors[&actor_id].placement.team
-                            && candidate.alive()
-                    })
-                {
+                let has_living_enemy = self.actors.values().any(|candidate| {
+                    candidate.placement.team != self.actors[&actor_id].placement.team
+                        && candidate.alive()
+                });
+                if !self.actors[&actor_id].retarget_after_own_direct_kill && has_living_enemy {
                     return Err(Error::new(
                         "target death during backswing outside the reviewed own direct-kill branch is not closed",
                     ));
                 }
-                self.actors
+                let actor = self
+                    .actors
                     .get_mut(&actor_id)
-                    .expect("actor identity is stable")
-                    .motion = MotionState::Idle;
+                    .expect("actor identity is stable");
+                actor.motion = MotionState::Idle;
+                if !has_living_enemy && !released_this_step {
+                    actor.mech_lock_target = None;
+                    actor.retarget_after_own_direct_kill = false;
+                }
                 return Ok(());
             }
             if !target_alive && backswing_just_finished {
@@ -1196,53 +1259,13 @@ impl Simulation {
                 return Ok(());
             }
             if !target_alive {
-                if self.actors.values().any(|candidate| {
-                    candidate.placement.team != self.actors[&actor_id].placement.team
-                        && candidate.alive()
-                }) {
-                    return Err(Error::new(
-                        "dead-target replacement outside the reviewed direct-attack backswing branch is not closed",
-                    ));
-                }
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
                     .mech_lock_target = None;
-            } else {
-                let selected = self
-                    .select_normal_unit_target_with_order(actor_id, target_search_order)
-                    .map_err(|error| Error::new(format!("logic step {step}: {error}")))?;
-                if selected != Some(target_id) {
-                    let actor = &self.actors[&actor_id];
-                    return Err(Error::new(format!(
-                        "logic step {step}: live periodic target change is not closed for the current simulator slice: actor {actor_id} ({type_name}), current target {target_id}, selected {selected:?}, motion {motion:?}, pending {pending:?}, backswing_finish_step {backswing_finish_step:?}, next_attack_step {next_attack_step}, motion_attack_hold_fire {motion_attack_hold_fire}",
-                        type_name = actor.placement.type_name,
-                        motion = actor.motion,
-                        pending = actor.pending,
-                        backswing_finish_step = actor.backswing_finish_step,
-                        next_attack_step = actor.next_attack_step,
-                        motion_attack_hold_fire = actor.motion_attack_hold_fire,
-                    )));
-                }
             }
         }
-        let target_id = match self.actors[&actor_id].mech_lock_target {
-            Some(target_id) => Some(target_id),
-            None => {
-                let selected = self
-                    .select_normal_unit_target_with_order(actor_id, target_search_order)
-                    .map_err(|error| Error::new(format!("logic step {step}: {error}")))?;
-                self.actors
-                    .get_mut(&actor_id)
-                    .expect("actor identity is stable")
-                    .mech_lock_target = selected;
-                self.actors
-                    .get_mut(&actor_id)
-                    .expect("actor identity is stable")
-                    .retarget_after_own_direct_kill = false;
-                selected
-            }
-        };
+        let target_id = self.actors[&actor_id].mech_lock_target;
         let Some(target_id) = target_id else {
             let actor = self
                 .actors
@@ -1324,6 +1347,7 @@ impl Simulation {
                     // this transition tick preserves the old body facing.
                     actor.motion = MotionState::Idle;
                     actor.mech_lock_target = None;
+                    actor.skill_target_check_active = false;
                     actor.next_target_x_q32 = actor.x_q32;
                     actor.next_target_z_q32 = actor.z_q32;
                     actor.next_speed_q32 = 0;
@@ -1368,6 +1392,7 @@ impl Simulation {
                             .saturating_add(attack_point_steps),
                         target: target_id,
                     });
+                    actor.skill_target_check_active = true;
                 }
                 (
                     entered_attack,
@@ -1423,6 +1448,7 @@ impl Simulation {
             // the following update rather than recursively entering Moving.
             actor.motion = MotionState::Idle;
             actor.mech_lock_target = None;
+            actor.skill_target_check_active = false;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
@@ -1440,6 +1466,7 @@ impl Simulation {
             // one targetless Idle tick before reacquisition on the next tick.
             actor.motion = MotionState::Idle;
             actor.mech_lock_target = None;
+            actor.skill_target_check_active = false;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
@@ -2782,7 +2809,7 @@ mod tests {
     }
 
     #[test]
-    fn multi_formation_initial_state_matches_build_2259() {
+    fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
         let layout = CompiledLayout {
             round: 1,
             placements: vec![
@@ -2841,6 +2868,7 @@ mod tests {
                 (3, 1, 3, "arclight", -290_600, 99_900),
             ]
         );
+        assert_eq!(actors[&1].skill_search_time, SEARCH_TARGET_RESET_TICKS);
 
         let make_simulation = || {
             let actors = actors.clone();
@@ -2869,26 +2897,39 @@ mod tests {
         current.z = 300_000;
         current.x_q32 = space_to_q32(current.x);
         current.z_q32 = space_to_q32(current.z);
-        let error = simulation
+        simulation.actors.get_mut(&1).unwrap().skill_search_time = 1;
+        simulation.step_actor(1, 0, &mut Vec::new()).unwrap();
+        assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
+        assert_eq!(simulation.actors[&1].skill_search_time, 0);
+        simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
+        assert_eq!(simulation.actors[&1].mech_lock_target, Some(2));
+        assert_eq!(
+            simulation.actors[&1].skill_search_time,
+            SEARCH_TARGET_RESET_TICKS
+        );
+
+        let mut target_check_active = make_simulation();
+        target_check_active.initialize_presearch_targets().unwrap();
+        let current = target_check_active.actors.get_mut(&3).unwrap();
+        current.x = -100_000;
+        current.z = 300_000;
+        current.x_q32 = space_to_q32(current.x);
+        current.z_q32 = space_to_q32(current.z);
+        let source = target_check_active.actors.get_mut(&1).unwrap();
+        source.skill_search_time = 0;
+        source.skill_target_check_active = true;
+        target_check_active
             .step_actor(1, 0, &mut Vec::new())
-            .unwrap_err()
-            .to_string();
-        assert!(error.contains("live periodic target change is not closed"));
-        assert!(error.contains("logic step 0"));
-        assert!(error.contains("actor 1 (rhino)"));
-        assert!(error.contains("current target 3, selected Some(2)"));
-        assert!(error.contains("motion Idle"));
-        assert!(error.contains("pending None"));
-        assert!(error.contains("backswing_finish_step None"));
+            .unwrap();
+        assert_eq!(target_check_active.actors[&1].mech_lock_target, Some(3));
+        assert_eq!(target_check_active.actors[&1].skill_search_time, -1);
 
         let mut dead_target = make_simulation();
         dead_target.initialize_presearch_targets().unwrap();
+        dead_target.actors.get_mut(&1).unwrap().skill_search_time = 10;
         dead_target.actors.get_mut(&3).unwrap().life = 0;
-        let error = dead_target
-            .step_actor(1, 0, &mut Vec::new())
-            .unwrap_err()
-            .to_string();
-        assert!(error.contains("dead-target replacement outside the reviewed"));
+        dead_target.step_actor(1, 0, &mut Vec::new()).unwrap();
+        assert_eq!(dead_target.actors[&1].mech_lock_target, Some(2));
     }
 
     #[test]
