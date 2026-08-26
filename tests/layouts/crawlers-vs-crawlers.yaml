@@ -1,0 +1,14 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: crawler
+        x: 5
+        y: -100
+
+  red:
+    formations:
+      - type: crawler
+        x: 5
+        y: -100
