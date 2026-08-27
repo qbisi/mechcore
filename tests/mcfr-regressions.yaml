@@ -927,3 +927,113 @@
   tick_count: 296
   scenario_hash: 3912ad55a6d9a946fc1ef7adba1980cd02d97931dabb314c71556238e7c706ae
   result_hash: 437d6edd4299c436c5ff7bad6cb6677f07d83f61bb990f23ca4b1bee4af0353f
+
+- name: fangs-vs-fangs-01
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787808873
+  tick_count: 345
+  scenario_hash: 4c02d68d21f155e93199638528070f181172ea75c21f8e94da5eb20f6b555f70
+  result_hash: 24992b179ef5ddd0fccc0c8af5c56e631badba918ed5cf4c12f719df6dd06fd4
+
+- name: fangs-vs-fangs-02
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787808906
+  tick_count: 393
+  scenario_hash: 773c2dd613c9d3e11620cded477a033dc95fc163159cf0ce7804fa0402051fc8
+  result_hash: 6b29c502fb45b2dec5a9512723a88dea5efd7b900f591b19ab167ef3fa86ae5f
+
+- name: fangs-vs-fangs-03
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787808949
+  tick_count: 351
+  scenario_hash: bb121558276a523ed3dede3b21f0039c82295a3114db976df4d4fbba79a1978a
+  result_hash: c760696a5097eb245c2ae23f13d72793a1f4fca8d0e6a98966f085a83a610207
+
+- name: fangs-vs-fangs-04
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787808985
+  tick_count: 338
+  scenario_hash: 50b0653795b22668d9b047eb012c8ae88e3de386574aca2c1680f00c87f792b9
+  result_hash: 6d6d5a4b2be0c7528c27672cd259ee906b83418c30fdc2a0947cfe6753732a3a
+
+- name: fangs-vs-fangs-05
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787809018
+  tick_count: 367
+  scenario_hash: a248404d7782e6eca0c5709eb21bab844720a7d650131f96631a1dc98bbcbd1f
+  result_hash: 20f4eb0dd14d0cadff19836473687ac31037e237a4cd23c957a32561f4bdfbf4
+
+- name: fangs-vs-fangs-06
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787816186
+  tick_count: 364
+  scenario_hash: 23ae80f11f1dfa67a1ec79a410ffe249c9e8e7d4058cb441c8fbb4e9dcf96b73
+  result_hash: a333446763d4d119dc7a9fad8406d2f296c470db487397888fa91465eae5ceb5
+
+- name: fangs-vs-fangs-07
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787816925
+  tick_count: 348
+  scenario_hash: e13d0716a9aaadf0bc178cfb3590ed1b5fd39fcc2e0c7a66ba2d5c6d43f0c210
+  result_hash: f46a2c640f9a7109219261ff25b54a7ad62b9ddd70b187ad1f21071f9a7ee5f4
+
+- name: fangs-vs-fangs-08
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787817059
+  tick_count: 349
+  scenario_hash: d1d8ce8a3279829fc266e66b986741326706896a3aa6fb965c84ccb5a77bd3ba
+  result_hash: 4a7c081c2e50ff9247bcd5cf4c35fcab547bcdcd67407445392cbb097726f393
+
+- name: fangs-vs-fangs-09
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787818397
+  tick_count: 344
+  scenario_hash: ff8992bbfea6c708206b1a4e356859ceebb5a8ac43fc03c313de190399d59d2a
+  result_hash: bd626a5e046f85600700942bed15cd154a2b875c5f9357dd462bbf7a92012543
+
+- name: fangs-vs-fangs-10
+  smoke: false
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787818488
+  tick_count: 338
+  scenario_hash: 41ee17fc6947d0264f3bfee12a2ddf162b85eca55b5ca1002d4deac2f6a57158
+  result_hash: 92dde4eefb243436ec09d6d1ecf70866f3548d42973e6564ede209388c61dec7
+
+- name: fangs-vs-fangs-11
+  smoke: true
+  layout: tests/layouts/fangs-vs-fangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787819220
+  tick_count: 330
+  scenario_hash: 5b50b4851101a116b107f5df2c43b1c7302011702f8208ab0a8f8fbf18fa7cc8
+  result_hash: 39ab67a444c7ea466e038f01ad2c7500a7c52a6a24a7eda1d7ba0ed38ef22b3f
