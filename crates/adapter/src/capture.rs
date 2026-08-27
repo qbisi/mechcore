@@ -43,6 +43,7 @@ pub(crate) enum CaptureInstrumentationProfile {
     TargetRefsRvoV1,
     SkillAttackableCheckerV1,
     SelectorScoreV1,
+    SelectorScoreRvoV1,
 }
 
 impl CaptureInstrumentationProfile {
@@ -52,6 +53,7 @@ impl CaptureInstrumentationProfile {
             Self::TargetRefsRvoV1 => "target_refs_rvo_v1",
             Self::SkillAttackableCheckerV1 => "skill_attackable_checker_v1",
             Self::SelectorScoreV1 => "selector_score_v1",
+            Self::SelectorScoreRvoV1 => "selector_score_rvo_v1",
         }
     }
 
@@ -61,6 +63,7 @@ impl CaptureInstrumentationProfile {
             Self::TargetRefsRvoV1 => "target_refs_rvo",
             Self::SkillAttackableCheckerV1 => "skill_attackable_checker",
             Self::SelectorScoreV1 => "selector_score",
+            Self::SelectorScoreRvoV1 => "selector_score_rvo",
         }
     }
 
@@ -69,7 +72,7 @@ impl CaptureInstrumentationProfile {
     }
 
     const fn includes_rvo(self) -> bool {
-        matches!(self, Self::TargetRefsRvoV1)
+        matches!(self, Self::TargetRefsRvoV1 | Self::SelectorScoreRvoV1)
     }
 
     const fn includes_skill_attackable_checker(self) -> bool {
@@ -77,7 +80,7 @@ impl CaptureInstrumentationProfile {
     }
 
     const fn includes_selector_score(self) -> bool {
-        matches!(self, Self::SelectorScoreV1)
+        matches!(self, Self::SelectorScoreV1 | Self::SelectorScoreRvoV1)
     }
 }
 
@@ -102,11 +105,18 @@ pub(crate) enum CaptureInstrumentationObservation {
     TargetRefsRvo(TargetRefsRvoObservation),
     SkillAttackableChecker(SkillAttackableCheckerObservation),
     SelectorScore(SelectorScoreObservation),
+    SelectorScoreRvo(SelectorScoreRvoObservation),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub(crate) struct SelectorScoreObservation {
     pub(crate) score_calculations: Vec<SelectorScoreCalculation>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct SelectorScoreRvoObservation {
+    pub(crate) selector_score: SelectorScoreObservation,
+    pub(crate) rvo_updates: Vec<RvoUpdateObservation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -1802,11 +1812,12 @@ fn validate_rvo_profile_availability(
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
     metadata: &Metadata,
 ) -> Result<(), String> {
-    if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_rvo)
-        && metadata.rvo.is_none()
+    if let Some(profile) = instrumentation_profile
+        .filter(|profile| profile.includes_rvo() && metadata.rvo.is_none())
     {
         Err(format!(
-            "target_refs_rvo_v1 is unavailable: {}",
+            "{} is unavailable: {}",
+            profile.as_str(),
             metadata
                 .rvo_error
                 .as_deref()
@@ -1821,11 +1832,12 @@ fn validate_selector_score_profile_availability(
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
     metadata: &Metadata,
 ) -> Result<(), String> {
-    if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_selector_score)
-        && !metadata.selector_score_available
+    if let Some(profile) = instrumentation_profile
+        .filter(|profile| profile.includes_selector_score() && !metadata.selector_score_available)
     {
         Err(format!(
-            "selector_score_v1 is unavailable: {}",
+            "{} is unavailable: {}",
+            profile.as_str(),
             metadata
                 .selector_score_error
                 .as_deref()
@@ -3706,6 +3718,12 @@ fn snapshot(
         Some(CaptureInstrumentationProfile::SelectorScoreV1) => Some(
             CaptureInstrumentationObservation::SelectorScore(drain_selector_score_calls(capture)?),
         ),
+        Some(CaptureInstrumentationProfile::SelectorScoreRvoV1) => Some(
+            CaptureInstrumentationObservation::SelectorScoreRvo(SelectorScoreRvoObservation {
+                selector_score: drain_selector_score_calls(capture)?,
+                rvo_updates: resolve_rvo_updates(native_tick, capture)?,
+            }),
+        ),
         None => None,
         Some(_) => unreachable!("all capture instrumentation profiles are handled"),
     };
@@ -3995,6 +4013,16 @@ fn resolve_rvo_observation(
     native_tick: u64,
     capture: &mut CaptureState,
 ) -> Result<TargetRefsRvoObservation, String> {
+    Ok(TargetRefsRvoObservation {
+        target_refs,
+        rvo_updates: resolve_rvo_updates(native_tick, capture)?,
+    })
+}
+
+fn resolve_rvo_updates(
+    native_tick: u64,
+    capture: &mut CaptureState,
+) -> Result<Vec<RvoUpdateObservation>, String> {
     let ready: BTreeSet<u64> = capture
         .rvo_update_publish_native_ticks
         .iter()
@@ -4195,10 +4223,7 @@ fn resolve_rvo_observation(
             .opponent_vos
             .push(resolved);
     }
-    let observation = TargetRefsRvoObservation {
-        target_refs,
-        rvo_updates: updates.into_values().collect(),
-    };
+    let updates = updates.into_values().collect();
     for update_ordinal in ready {
         capture.rvo_update_modes.remove(&update_ordinal);
         capture
@@ -4212,7 +4237,7 @@ fn resolve_rvo_observation(
             .remove(&update_ordinal);
         capture.rvo_update_multithreaded.remove(&update_ordinal);
     }
-    Ok(observation)
+    Ok(updates)
 }
 
 fn rvo_vo_observation(vo: NativeRvoVo) -> RvoVoObservation {
@@ -5417,12 +5442,19 @@ mod tests {
     #[test]
     fn selector_score_profile_is_private_mutually_selected_and_default_off() {
         let profile = CaptureInstrumentationProfile::SelectorScoreV1;
+        let combined_profile = CaptureInstrumentationProfile::SelectorScoreRvoV1;
         assert_eq!(profile.as_str(), "selector_score_v1");
         assert_eq!(profile.channel(), "selector_score");
         assert!(profile.includes_selector_score());
         assert!(!profile.includes_target_refs());
         assert!(!profile.includes_rvo());
         assert!(!profile.includes_skill_attackable_checker());
+        assert_eq!(combined_profile.as_str(), "selector_score_rvo_v1");
+        assert_eq!(combined_profile.channel(), "selector_score_rvo");
+        assert!(combined_profile.includes_selector_score());
+        assert!(combined_profile.includes_rvo());
+        assert!(!combined_profile.includes_target_refs());
+        assert!(!combined_profile.includes_skill_attackable_checker());
         assert_eq!(CaptureState::default().instrumentation_profile, None);
 
         let unavailable = Metadata {
@@ -5441,12 +5473,20 @@ mod tests {
             validate_selector_score_profile_availability(Some(profile), &unavailable).unwrap_err();
         assert!(error.contains("selector_score_v1 is unavailable"));
         assert!(error.contains("forced selector hook failure"));
+        let combined_error =
+            validate_selector_score_profile_availability(Some(combined_profile), &unavailable)
+                .unwrap_err();
+        assert!(combined_error.contains("selector_score_rvo_v1 is unavailable"));
+        assert!(combined_error.contains("forced selector hook failure"));
 
         let available = Metadata {
             selector_score_available: true,
             ..Metadata::default()
         };
         assert!(validate_selector_score_profile_availability(Some(profile), &available).is_ok());
+        assert!(
+            validate_selector_score_profile_availability(Some(combined_profile), &available).is_ok()
+        );
     }
 
     #[test]
@@ -6206,6 +6246,7 @@ mod tests {
     fn rvo_profile_payload_and_generic_sidecar_contract() {
         let target_profile = CaptureInstrumentationProfile::TargetRefsV1;
         let rvo_profile = CaptureInstrumentationProfile::TargetRefsRvoV1;
+        let combined_profile = CaptureInstrumentationProfile::SelectorScoreRvoV1;
         assert_eq!(target_profile.as_str(), "target_refs_v1");
         assert_eq!(target_profile.channel(), "target_refs");
         assert!(target_profile.includes_target_refs());
@@ -6214,6 +6255,11 @@ mod tests {
         assert_eq!(rvo_profile.channel(), "target_refs_rvo");
         assert!(rvo_profile.includes_target_refs());
         assert!(rvo_profile.includes_rvo());
+        assert_eq!(combined_profile.as_str(), "selector_score_rvo_v1");
+        assert_eq!(combined_profile.channel(), "selector_score_rvo");
+        assert!(!combined_profile.includes_target_refs());
+        assert!(combined_profile.includes_selector_score());
+        assert!(combined_profile.includes_rvo());
 
         let target_payload = CaptureInstrumentationObservation::TargetRefs(target_refs());
         let target_json = serde_json::to_value(&target_payload).unwrap();
@@ -6231,12 +6277,27 @@ mod tests {
         );
         assert_eq!(rvo_json["target_refs"], target_json);
         assert_eq!(rvo_json["rvo_updates"], serde_json::json!([]));
+        let combined_payload = CaptureInstrumentationObservation::SelectorScoreRvo(
+            SelectorScoreRvoObservation {
+                selector_score: SelectorScoreObservation::default(),
+                rvo_updates: Vec::new(),
+            },
+        );
+        let combined_json = serde_json::to_value(&combined_payload).unwrap();
+        assert_eq!(
+            combined_json,
+            serde_json::json!({
+                "selector_score": {"score_calculations": []},
+                "rvo_updates": []
+            })
+        );
 
         let directory = tempfile::tempdir().unwrap();
         let scenario_hash = "00".repeat(32);
         for (index, profile, payload, expected) in [
             (0, target_profile, &target_payload, &target_json),
             (1, rvo_profile, &rvo_payload, &rvo_json),
+            (2, combined_profile, &combined_payload, &combined_json),
         ] {
             let path = directory.path().join(format!("profile-{index}.h5"));
             let mut writer = mechcore_mcfr::InstrumentationWriter::create(
