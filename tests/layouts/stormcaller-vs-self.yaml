@@ -1,0 +1,20 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: crawler
+        x: 5
+        y: -80
+      - type: stormcaller
+        x: 5
+        y: -120
+
+  red:
+    formations:
+      - type: crawler
+        x: 5
+        y: -80
+      - type: stormcaller
+        x: 5
+        y: -120
