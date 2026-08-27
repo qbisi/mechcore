@@ -35,7 +35,7 @@ const DEFAULT_UNITS: [&str; 23] = [
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
-const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 8] = [
+const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 9] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
@@ -44,6 +44,7 @@ const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 8] = [
     include_str!("../../../config/units/mustang.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
     include_str!("../../../config/units/steel_ball.yaml"),
+    include_str!("../../../config/units/wraith.yaml"),
 ];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
@@ -963,6 +964,7 @@ mod tests {
                     | "mustang"
                     | "wasp"
                     | "steel_ball"
+                    | "wraith"
             );
             assert_eq!(
                 rules.ensure_current_kernel_support().is_ok(),

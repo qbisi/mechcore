@@ -1087,3 +1087,13 @@
   tick_count: 498
   scenario_hash: 6a07e5cc2b7fd74555b09cf39f8ca962451a91b1a5934a0e449180c2a1d8d9c7
   result_hash: 6a1589c4d21a779753d15e15d263a2492584bc7b3e4bf60e2fb0bc8ae4833eb7
+
+- name: wraith-group-attack-01
+  smoke: true
+  layout: tests/layouts/wraith-group-attack.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787857041
+  tick_count: 648
+  scenario_hash: 02636d943f770b1f3e8a8fe0afe2f524b7410f80b0df382b084e25f930d8120e
+  result_hash: c23562e5f49ea1395756e823aefaaf9b07b281b5161e4263b8fa3f00eb792ba9
