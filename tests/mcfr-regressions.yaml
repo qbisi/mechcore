@@ -1067,3 +1067,13 @@
   tick_count: 303
   scenario_hash: e70d923f19605392f0536da6a9a0478341ec2bc229b2db17c0dea4ce7e88710e
   result_hash: 1e2d9ba12da49d3d4a3744335945f2580e341fc444b0334364a5bb847e764aa9
+
+- name: crawler-vs-rotated-01
+  smoke: true
+  layout: tests/layouts/crawler-vs-rotated.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787833929
+  tick_count: 272
+  scenario_hash: e5161b7bbdfbf926d166e0210ed3b06d72e8f09f188ccb4209a2cedc62c8ff12
+  result_hash: 248dd13aa82699d88459bb4abd51231d990fae32f5c4eff33eaf8caeba3bbd31

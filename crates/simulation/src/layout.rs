@@ -93,6 +93,7 @@ pub(crate) struct Placement {
     pub(crate) world_x: i64,
     pub(crate) world_z: i64,
     pub(crate) rotation: i64,
+    pub(crate) rotated: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -183,11 +184,7 @@ fn compile_formation(
             "side {side_name} requires level-one, unequipped, non-travelling formations"
         )));
     }
-    if formation.rotated.unwrap_or(false) {
-        return Err(Error::new(format!(
-            "side {side_name} rotated formations are outside the current baseline simulator slice"
-        )));
-    }
+    let rotated = formation.rotated.unwrap_or(false);
     let rules = units.get(&formation.type_name).ok_or_else(|| {
         Error::new(format!(
             "side {side_name} formation type {:?} has no unit configuration",
@@ -212,6 +209,7 @@ fn compile_formation(
         world_x,
         world_z,
         rotation,
+        rotated,
     })
 }
 
@@ -221,6 +219,11 @@ fn validate_deployment_position(
     rules: &UnitConfig,
 ) -> Result<()> {
     let (width, depth) = rules.formation_footprint_meters()?;
+    let (width, depth) = if formation.rotated.unwrap_or(false) {
+        (depth, width)
+    } else {
+        (width, depth)
+    };
     let x = i64::from(formation.x);
     let z = i64::from(formation.y);
     let required_x = grid_center_remainder(width).ok_or_else(|| {
@@ -264,11 +267,21 @@ fn validate_collisions(placements: &[Placement], units: &UnitConfigs) -> Result<
             .get(&left.type_name)
             .expect("compiled placement owns unit rules");
         let (left_width, left_depth) = left_rules.formation_footprint_meters()?;
+        let (left_width, left_depth) = if left.rotated {
+            (left_depth, left_width)
+        } else {
+            (left_width, left_depth)
+        };
         for right in &placements[index + 1..] {
             let right_rules = units
                 .get(&right.type_name)
                 .expect("compiled placement owns unit rules");
             let (right_width, right_depth) = right_rules.formation_footprint_meters()?;
+            let (right_width, right_depth) = if right.rotated {
+                (right_depth, right_width)
+            } else {
+                (right_width, right_depth)
+            };
             let overlaps_x =
                 (left.world_x - right.world_x).abs() * 2 < left_width.saturating_add(right_width);
             let overlaps_z =
@@ -361,5 +374,19 @@ sides:
         let layout = compile_default(&value).unwrap();
         assert_eq!(layout.placements.len(), 2);
         assert_eq!(layout.placements[0].type_name, "crawler");
+    }
+
+    #[test]
+    fn rotated_formation_swaps_config_footprint_without_rotating_unit_facing() {
+        let value = LAYOUT.replace(
+            "{type: arclight, x: 0, y: -50}",
+            "{type: crawler, rotated: true, x: 0, y: -105}",
+        );
+        let layout = compile_default(&value).unwrap();
+        let red = &layout.placements[1];
+
+        assert!(red.rotated);
+        assert_eq!((red.world_x, red.world_z), (0, 105));
+        assert_eq!(red.rotation, 180_000);
     }
 }

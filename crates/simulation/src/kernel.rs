@@ -618,6 +618,11 @@ fn generate_formation_positions(
 ) -> Result<Vec<(i64, i64)>> {
     let members = i64::from(rules.formation.members);
     let (width, depth) = rules.formation_footprint_meters()?;
+    let (width, depth) = if placement.rotated {
+        (depth, width)
+    } else {
+        (width, depth)
+    };
     let slot_size = rules.formation_slot_size_meters()?;
     let max_columns = width / slot_size;
     if max_columns <= 0 {
@@ -3391,6 +3396,7 @@ mod tests {
             world_x,
             world_z,
             rotation: if team == 0 { 0 } else { 180_000 },
+            rotated: false,
         }
     }
 
@@ -3575,6 +3581,7 @@ mod tests {
                     world_x: -285,
                     world_z: -105,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -3585,6 +3592,7 @@ mod tests {
                     world_x: -290,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -3595,6 +3603,7 @@ mod tests {
                     world_x: -190,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -3756,6 +3765,7 @@ mod tests {
             world_x: 0,
             world_z: -100,
             rotation: 0,
+            rotated: false,
         }];
         placements.extend((0_i32..18).map(|index| Placement {
             team: 1,
@@ -3766,6 +3776,7 @@ mod tests {
             world_x: i64::from(index) * 20 - 170,
             world_z: 100,
             rotation: 180_000,
+            rotated: false,
         }));
         let layout = CompiledLayout {
             round: 1,
@@ -4766,6 +4777,7 @@ mod tests {
                     world_x: -285,
                     world_z: -105,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -4776,6 +4788,7 @@ mod tests {
                     world_x: -290,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -4786,6 +4799,7 @@ mod tests {
                     world_x: -190,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -4837,6 +4851,7 @@ mod tests {
             world_x: 0,
             world_z: 0,
             rotation: 0,
+            rotated: false,
         };
         let seed = 1_787_601_811;
         let positions = generate_formation_positions(&placement, rules, seed).unwrap();
@@ -4880,6 +4895,30 @@ mod tests {
                     (red_x, red_z) == (-blue_x, -blue_z)
                 })
         );
+
+        red.rotated = true;
+        red.world_z = 105;
+        let seed = 1_787_832_792;
+        let rotated_positions = generate_formation_positions(&red, rules, seed).unwrap();
+        let mut random = GrRandom::new(i64::from(seed).cast_unsigned());
+        let base_offsets = rotated_positions
+            .into_iter()
+            .map(|(x_q32, z_q32)| {
+                let jitter_x = i64::from(random.next_in_range(FORMATION_JITTER_RANGE_TENTHS))
+                    .saturating_mul(C0_1_RAW);
+                let jitter_z = i64::from(random.next_in_range(FORMATION_JITTER_RANGE_TENTHS))
+                    .saturating_mul(C0_1_RAW);
+                (
+                    (x_q32 + jitter_x) >> 32,
+                    (z_q32 - 105 * Q32_ONE + jitter_z) >> 32,
+                )
+            })
+            .collect::<Vec<_>>();
+        let expected = [-22, -16, -10, -4, 2, 8, 14, 20]
+            .into_iter()
+            .flat_map(|z| [(6, z), (0, z), (-6, z)])
+            .collect::<Vec<_>>();
+        assert_eq!(base_offsets, expected);
     }
 
     #[test]
@@ -4895,6 +4934,7 @@ mod tests {
             world_x: 0,
             world_z: 0,
             rotation: 0,
+            rotated: false,
         };
         let seed = 1_787_601_811;
         let positions = generate_formation_positions(&placement, rules, seed).unwrap();
@@ -4935,6 +4975,7 @@ mod tests {
                 world_x: 5,
                 world_z: -50,
                 rotation: 0,
+                rotated: false,
             }],
         };
         let actors = initialize_actors(&layout, &config.units, 1_787_601_811).unwrap();
@@ -4998,6 +5039,7 @@ mod tests {
                 world_x: 0,
                 world_z: 0,
                 rotation: 0,
+                rotated: false,
             },
             rules,
             0,
@@ -5023,6 +5065,7 @@ mod tests {
                     world_x: -35,
                     world_z: -105,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5033,6 +5076,7 @@ mod tests {
                     world_x: 40,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5226,6 +5270,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5236,6 +5281,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5279,6 +5325,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5289,6 +5336,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5339,6 +5387,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5349,6 +5398,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5405,6 +5455,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5415,6 +5466,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5478,6 +5530,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5488,6 +5541,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5564,6 +5618,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5574,6 +5629,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5623,6 +5679,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5633,6 +5690,7 @@ mod tests {
                     world_x: 0,
                     world_z: 100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
@@ -5690,6 +5748,7 @@ mod tests {
                     world_x: 0,
                     world_z: -50,
                     rotation: 0,
+                    rotated: false,
                 },
                 Placement {
                     team: 1,
@@ -5700,6 +5759,7 @@ mod tests {
                     world_x: 0,
                     world_z: -100,
                     rotation: 180_000,
+                    rotated: false,
                 },
             ],
         };
