@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
 use mechcore_simulation::{simulate_layout, simulate_layout_with_config};
@@ -8,6 +8,7 @@ use serde::Deserialize;
 #[serde(deny_unknown_fields)]
 struct NativeRegression {
     name: String,
+    smoke: bool,
     layout: PathBuf,
     game_build: String,
     schema_version: u32,
@@ -31,6 +32,24 @@ fn native_regression(name: &str) -> NativeRegression {
         .into_iter()
         .find(|regression| regression.name == name)
         .unwrap_or_else(|| panic!("missing native MCFR regression {name}"))
+}
+
+fn smoke_native_regressions() -> Vec<NativeRegression> {
+    let regressions = native_regressions();
+    let mut smoke_counts = BTreeMap::<PathBuf, usize>::new();
+    for regression in &regressions {
+        smoke_counts.entry(regression.layout.clone()).or_default();
+        if regression.smoke {
+            *smoke_counts.entry(regression.layout.clone()).or_default() += 1;
+        }
+    }
+    for (layout, count) in smoke_counts {
+        assert_eq!(count, 1, "{} must have exactly one smoke case", layout.display());
+    }
+    regressions
+        .into_iter()
+        .filter(|regression| regression.smoke)
+        .collect()
 }
 
 fn regression_layout(regression: &NativeRegression) -> PathBuf {
@@ -305,9 +324,8 @@ fn rhino_retarget_matches_the_schema_v3_build_2259_native_recording() {
     );
 }
 
-#[test]
-fn native_regression_manifest_hashes_match() {
-    for regression in native_regressions() {
+fn assert_native_regression_hashes(regressions: impl IntoIterator<Item = NativeRegression>) {
+    for regression in regressions {
         let name = regression.name.as_str();
         let directory = tempfile::tempdir().unwrap();
         let output = directory.path().join("battle.mcfr");
@@ -323,6 +341,17 @@ fn native_regression_manifest_hashes_match() {
         );
         assert_eq!(result.hashes.result_hash, regression.result_hash, "{name}");
     }
+}
+
+#[test]
+fn native_regression_smoke_hashes_match() {
+    assert_native_regression_hashes(smoke_native_regressions());
+}
+
+#[test]
+#[ignore = "run explicitly for the full native MCFR regression suite"]
+fn native_regression_full_hashes_match() {
+    assert_native_regression_hashes(native_regressions());
 }
 
 #[test]

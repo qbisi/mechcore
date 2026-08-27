@@ -1,4 +1,5 @@
 - name: marksman-vs-arclight
+  smoke: true
   layout: tests/layouts/marksman-vs-arclight.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -8,6 +9,7 @@
   result_hash: 8e27f7fadf7575f527bebdcda4ce452dcb8bbeda4fa39d91b6bd8d7b25079c5f
 
 - name: rhino-vs-arclight
+  smoke: true
   layout: tests/layouts/rhino-vs-arclight.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -17,6 +19,7 @@
   result_hash: d1b90af517b08494ceffa3cfd6ab608db4e2dc5c78d139984582382285a26b8e
 
 - name: rhino-retarget
+  smoke: true
   layout: tests/layouts/rhino-retarget-vs-arclights.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -26,6 +29,7 @@
   result_hash: 56cc3814b09f7258a59c05e3fb050098914113f1dba8e56ea636bc9118476b51
 
 - name: rhino-vs-crawlers-01
+  smoke: true
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -35,6 +39,7 @@
   result_hash: 612bb2d0edee8117f4fbde6b0e69587159f18f463da433913a781e79d0f531fd
 
 - name: rhino-vs-crawlers-02
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -44,6 +49,7 @@
   result_hash: f88f0f956795408492a3d8fec9581de38db2ecd0b295ce789ec81563b1f5c5e6
 
 - name: rhino-vs-crawlers-03
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -53,6 +59,7 @@
   result_hash: 2d0a43b1b945e21506c9f8ca00dbcf527b3c429ced471d18a32436badafe33e4
 
 - name: rhino-vs-crawlers-04
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -62,6 +69,7 @@
   result_hash: 77636ba3a408ac95fb528a8d46c7aaf57ae20b3cea08c489c60707b54e9074e9
 
 - name: rhino-vs-crawlers-05
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -71,6 +79,7 @@
   result_hash: e98d7ad14d17317d5a916fdf913ada7bd4efe5c1caaca8285bdda025383db29e
 
 - name: rhino-vs-crawlers-06
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -80,6 +89,7 @@
   result_hash: 75456cda62b18215290ae637055e466f7712de3acd3b3645c107df9cdd285cd2
 
 - name: rhino-vs-crawlers-07
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -89,6 +99,7 @@
   result_hash: 5958b64775d05e1b7e38c28c13ad78ad1d3ffb2ec8c96acf6cecd2efc3828f02
 
 - name: rhino-vs-crawlers-08
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -98,6 +109,7 @@
   result_hash: 2ac0cfe6912143e858be863b5bfc37b922af9a134d656d3503c7c8a9a579501c
 
 - name: rhino-vs-crawlers-09
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -107,6 +119,7 @@
   result_hash: 5e80577698b267f9271e28200e4529264c258e94c0a85522e887b6d56d744abc
 
 - name: rhino-vs-crawlers-10
+  smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -116,6 +129,7 @@
   result_hash: 99847397e8474a09ffb9f90b1a324ae8dfd1592838f066d6a6953fe091e15a6c
 
 - name: crawlers-vs-rhino-01
+  smoke: true
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -125,6 +139,7 @@
   result_hash: f21c940260fd6fdf055a9bf6da35fff1b287cd119d7bc6ac9196c97509cfabf1
 
 - name: crawlers-vs-rhino-02
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -134,6 +149,7 @@
   result_hash: 52653aa0a9799570032ef9b5f2fcfd2fb4f351438031e5fb19fbafe1b9442590
 
 - name: crawlers-vs-rhino-03
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -143,6 +159,7 @@
   result_hash: 0f1945df5ac321b682d8b61d326c9a9d2273a6c74a9ececda368ca37f2724864
 
 - name: crawlers-vs-rhino-04
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -152,6 +169,7 @@
   result_hash: 15caed9624d610961fbef1a341b83bb93eb7b65d33e3babf0615ba34378a887e
 
 - name: crawlers-vs-rhino-05
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -161,6 +179,7 @@
   result_hash: f0f4f543175b208bbbee086ac1d2bffa7ba0c594054b5e4f3ecb402709659240
 
 - name: crawlers-vs-rhino-06
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -170,6 +189,7 @@
   result_hash: 9cadbb041c0adbf2eecfe1d52177692eba901bd4b104a2816184546f6286c2b7
 
 - name: crawlers-vs-rhino-07
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -179,6 +199,7 @@
   result_hash: 5fe871a5a9ea2ed4d549784010d01ae1bffa464b6ae999f07d81c632663a32d6
 
 - name: crawlers-vs-rhino-08
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -188,6 +209,7 @@
   result_hash: d17e89664bf1d5cef7c9ac1373b9cff96bf9926845ad392201ef68697b371a8c
 
 - name: crawlers-vs-rhino-09
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -197,6 +219,7 @@
   result_hash: 8dd31460c3c1721f7be0a3648764d0fdee301e3bb6f96dd2ee36d4ae1ec4cdda
 
 - name: crawlers-vs-rhino-10
+  smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -206,6 +229,7 @@
   result_hash: 21f013f5b61c0fa507f724bf8112005ca28aa336bcc6c77c983caf4ee7d7b82f
 
 - name: crawlers-vs-crawlers-01
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -215,6 +239,7 @@
   result_hash: dda99035ee848cbe48ec75a0cae87de39ed974543dee4c23185f733676d9c1cc
 
 - name: crawlers-vs-crawlers-02
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -224,6 +249,7 @@
   result_hash: 3803f3c72b2f6f9b55c1dd62c7125d024385b3c9a16abe149ec961d0355d2813
 
 - name: crawlers-vs-crawlers-03
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -233,6 +259,7 @@
   result_hash: a13523c111c8c1a12439eddd99c657084d1bc90fe470f7f5e2a4ca482087580d
 
 - name: crawlers-vs-crawlers-04
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -242,6 +269,7 @@
   result_hash: c678c8ab44e4e86de0fa0d39909a87341a8a34959fe1f897c7c830b6ae1eda21
 
 - name: crawlers-vs-crawlers-05
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -251,6 +279,7 @@
   result_hash: 45bfbf771a50e11b8440f52048d7c81591745478f3868527552c6c3200e1ceb1
 
 - name: crawlers-vs-crawlers-06
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -260,6 +289,7 @@
   result_hash: 4557838dc3f0524090557b583d3598972f63a44d0e8dc6401c9d8d9729f6b1d3
 
 - name: crawlers-vs-crawlers-07
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -269,6 +299,7 @@
   result_hash: 18d000bc28fd3cac1ae5315411cab819b1f4eb8c3ad900c84001f12baaeb4aa1
 
 - name: crawlers-vs-crawlers-08
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -278,6 +309,7 @@
   result_hash: bc5188dcaf972194278afbdf152a6d5df1cf7e5925ea2664f52e6daeb340955a
 
 - name: crawlers-vs-crawlers-09
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -287,6 +319,7 @@
   result_hash: 44135baba16753bcb2d84cf41973a5279e819ad5e43b2fd9149569a5884fbc4b
 
 - name: crawlers-vs-crawlers-10
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -296,6 +329,7 @@
   result_hash: a74e962362305e5b98ce4d215d73fb5f99b2114c1d2fdca451c3054d7adb07e0
 
 - name: crawlers-vs-crawlers-11
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -305,6 +339,7 @@
   result_hash: 53202a08e3699ed0d6addd84f2b28c18e810d0072b574c4480d0ad3cc8dcd510
 
 - name: crawlers-vs-crawlers-12
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -314,6 +349,7 @@
   result_hash: 34dc9dbad4d978f841a66d8c6dc88216d75e866b80d10b5f4af9785cd70aafe3
 
 - name: crawlers-vs-crawlers-13
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -323,6 +359,7 @@
   result_hash: 47c0cf4447aa1bfb161fef3b976f5850ddcddf8fa51a66aec5b5ab49a4244d52
 
 - name: crawlers-vs-crawlers-14
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -332,6 +369,7 @@
   result_hash: 471de498b7ff58a8472389c1b4413b16220a7ca3e590a8e50a85c222b7c04626
 
 - name: crawlers-vs-crawlers-15
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -341,6 +379,7 @@
   result_hash: 4ff7a5f34cb3a32383c13f79c354f2cf8d5b17d62c78d5f8e42d80163d4d049c
 
 - name: crawlers-vs-crawlers-16
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -350,6 +389,7 @@
   result_hash: 792a4e125266c39cb06533e8ccc352194fb952a9fda18e4677bc906733a1c4e1
 
 - name: crawlers-vs-crawlers-17
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -359,6 +399,7 @@
   result_hash: 77e4a5270c0574384026257e43f22f6304506abcc72c5dc423aa070bbb11b939
 
 - name: crawlers-vs-crawlers-18
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -368,6 +409,7 @@
   result_hash: fa5a9ac640a4285cd218a2530451f63d8c65c1276cd500e5c98f17d2c798cd6a
 
 - name: crawlers-vs-crawlers-19
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -377,6 +419,7 @@
   result_hash: 7ff493154d0e1284ca189414714341bc9cd86529f4644245618a785ead0a74f6
 
 - name: crawlers-vs-crawlers-20
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -386,6 +429,7 @@
   result_hash: e71ab3cb055c0936ef9cca856f596fef2896fad1ae24416578a64b8f184fc2c2
 
 - name: crawlers-vs-crawlers-21
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -395,6 +439,7 @@
   result_hash: 7bb3ec297764f381a1b9693800d934920088c635fa756ebec2d7c4978eebcd1b
 
 - name: crawlers-vs-crawlers-22
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -404,6 +449,7 @@
   result_hash: 3fdde3e0a3c45f8971469207e6680d1dc62ffd6cfacb0f153c79ca405ce063ba
 
 - name: crawlers-vs-crawlers-23
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -413,6 +459,7 @@
   result_hash: d286ca270acec33158be6c035727eabe8071a58e5b75b3d5e7b4fcf918318772
 
 - name: crawlers-vs-crawlers-24
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -422,6 +469,7 @@
   result_hash: 0c3f323a8362eca8f26a8bb8f77e60f36e4b0f1edf99ba3cf28b4fa2677bddac
 
 - name: crawlers-vs-crawlers-25
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -431,6 +479,7 @@
   result_hash: af012b1e468597cb023ae40a894012ddbb9446f35212928541fc1bd9ac191652
 
 - name: crawlers-vs-crawlers-26
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -440,6 +489,7 @@
   result_hash: f155bb19d8a58ab5c810f5652abb74992ea28278b7f5cda77ceb0ff6fde70a85
 
 - name: crawlers-vs-crawlers-27
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -449,6 +499,7 @@
   result_hash: fec881bcf2717538225cea77008d3a2a14c8d3d39cbf6ebdb8a26da28d48a6fe
 
 - name: crawlers-vs-crawlers-28
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -458,6 +509,7 @@
   result_hash: bb772e243a25f778199b5f3549a8e0ac85f3095f5ca1529885084d031b3a20ba
 
 - name: crawlers-vs-crawlers-29
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -467,6 +519,7 @@
   result_hash: 01845d2828a83fc679c1ff9b0e6cbf40a4a5733986ad887bd8d28d2cbf78596c
 
 - name: crawlers-vs-crawlers-30
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -476,6 +529,7 @@
   result_hash: 977de147957e7475a2f361df6b9ce27345f98b68c9750546d22e148e4d6ed9e1
 
 - name: crawlers-vs-crawlers-31
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -485,6 +539,7 @@
   result_hash: 2db2b2b7bd4a9ff563a87221aa08ff485d4385f8384dce461da769c680b684cd
 
 - name: crawlers-vs-crawlers-32
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -494,6 +549,7 @@
   result_hash: d4998b451aea1948f02397f1697e5ff70a38ea4803bfd052bf43a1ef549894bb
 
 - name: crawlers-vs-crawlers-33
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -503,6 +559,7 @@
   result_hash: 5df6e30cfd5fc47ade4b35de90276a4d7a57ed37f65e9cf61251ff33ac26fb28
 
 - name: crawlers-vs-crawlers-34
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -512,6 +569,7 @@
   result_hash: 882ea18fad4c9c2593678819e593496e5131687b899e4ef9257c8b3c51befb39
 
 - name: crawlers-vs-crawlers-35
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -521,6 +579,7 @@
   result_hash: d13bb81a5c5477a36d24fc1302ace5ee4ef894b00d5ce49a45a4cbe1fb718491
 
 - name: crawlers-vs-crawlers-36
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -530,6 +589,7 @@
   result_hash: 8aa4e4e0c38ebc749a3eee030a3bd20aa48d1977bba960aa530121ef3152cf9f
 
 - name: crawlers-vs-crawlers-37
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -539,6 +599,7 @@
   result_hash: 7cf11cefdd87b7cd6ac8463d7f357a13d5f7e41289fa7e6dee9f2d4d47c7a0aa
 
 - name: crawlers-vs-crawlers-38
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -548,6 +609,7 @@
   result_hash: 522a2d649ecfe781e088df4316ea7fccd36b0219e0ebbe491b4458f7b175a844
 
 - name: crawlers-vs-crawlers-39
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -557,6 +619,7 @@
   result_hash: 026a8feb5546f42e88fb8d4f5404d668a27c21ea5e08f61a4ff5d7c01c37909a
 
 - name: crawlers-vs-crawlers-40
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -566,6 +629,7 @@
   result_hash: 2655423cb95ca71f0d32bd9666da058a234ad51184d2288bcb77ade647c3e413
 
 - name: crawlers-vs-crawlers-41
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -575,6 +639,7 @@
   result_hash: 0494ab8cc2af49d99865b4d46612a37b80fa4c088e0a459c353bdbede7a48c09
 
 - name: crawlers-vs-crawlers-42
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -584,6 +649,7 @@
   result_hash: 1f012fa232566e4bf1e0c83286c07798ea9b1a55a832d4ae6d8832ef46c652e9
 
 - name: crawlers-vs-crawlers-43
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -593,6 +659,7 @@
   result_hash: b4510f259e6c63a4996183585d345d114248a2bdfc223d7daccc28189b07203f
 
 - name: crawlers-vs-crawlers-44
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -602,6 +669,7 @@
   result_hash: 658748f902c3dcf3601718b8e3dece41309e815ff0ec14cee31ae69d136de0f7
 
 - name: crawlers-vs-crawlers-45
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -611,6 +679,7 @@
   result_hash: fcba077f7cf783fcb88d1c1882ef6cf565e45f22b1591f189743d494d68e5175
 
 - name: crawlers-vs-crawlers-46
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -620,6 +689,7 @@
   result_hash: a8b555d3721bdbef872a2c76e7e1345be4dc23b898326c9c49345b72df4009ea
 
 - name: crawlers-vs-crawlers-47
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -629,6 +699,7 @@
   result_hash: da75974d94625ed04067dc07d211b8fbcd319241e8154a0daeb00bc9469629a4
 
 - name: crawlers-vs-crawlers-48
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -638,6 +709,7 @@
   result_hash: 3f1a2da82ae5a6f52d6a3b895e96202e2090979b32c80e4aaef5db82727e35cb
 
 - name: crawlers-vs-crawlers-49
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -647,6 +719,7 @@
   result_hash: 08f34328356eb7df15ef543a02caf3f656b79bf0c90e361bd490bae541c9b2de
 
 - name: crawlers-vs-crawlers-50
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -656,6 +729,7 @@
   result_hash: c40d2d6361a55b49f2577d565090f950e9e0fb79d4e14c7a51b208ccf77f2512
 
 - name: crawlers-vs-crawlers-51
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -665,6 +739,7 @@
   result_hash: 29068ba34a02491e32a00d5c371dc7b59293018129bbda8bcb837c4f7cf97d5c
 
 - name: crawlers-vs-crawlers-52
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -674,6 +749,7 @@
   result_hash: 3a9537bce8dcc86e843d781c35f6aadf43eb947d57cd310823587df1a626cc15
 
 - name: crawlers-vs-crawlers-53
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -683,6 +759,7 @@
   result_hash: 4a123138f15772f5ef74f0cefda61b8977bf540cb4519cb2da0ef47c1ac302f8
 
 - name: crawlers-vs-crawlers-54
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -692,6 +769,7 @@
   result_hash: 9b913eae1d96fea9f3c5ea2c1caf26628952db1557f7c7820215da066c5056f5
 
 - name: crawlers-vs-crawlers-55
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -701,6 +779,7 @@
   result_hash: 7c57b8806919f3d0d18d64b357d2b8caee6f3b304f21f999cd343005040b77fd
 
 - name: crawlers-vs-crawlers-56
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -710,6 +789,7 @@
   result_hash: 47fb14d1fa0bbb74ea0cb49d4979bbcd44fb108fdc580eb38f53c42b145ac34c
 
 - name: crawlers-vs-crawlers-57
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -719,6 +799,7 @@
   result_hash: 44b727d6530d4549c165eb5fb5f40db88ec37a0206b81d9dd2b31f50df7b9d45
 
 - name: crawlers-vs-crawlers-58
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -728,6 +809,7 @@
   result_hash: 7b4f86ea1f35cc858191c6eec79500d1b52c955d3d0523df70261052defabf0a
 
 - name: crawlers-vs-crawlers-59
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -737,6 +819,7 @@
   result_hash: f004875028099297badca48107032d1cea42e1087b709f6ab74675d7792fe3c2
 
 - name: crawlers-vs-crawlers-60
+  smoke: true
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -746,6 +829,7 @@
   result_hash: 5de72fff812d6881a0721ab868b88d7e269588c9064992e269788d77c8789c44
 
 - name: crawlers-vs-crawlers-61
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -755,6 +839,7 @@
   result_hash: f74033ac9f19e1f583756c254c391b6ab26cc22d15765f40f9073c153a4380ab
 
 - name: crawlers-vs-crawlers-62
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -764,6 +849,7 @@
   result_hash: 9703f61d00c15178fb1dd7b1d8c738cfcebbd6a7abed5a20929bdfd7888e0fd9
 
 - name: crawlers-vs-crawlers-63
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -773,6 +859,7 @@
   result_hash: 8548478f3fd15d52b35433385797bbe9ec76241c4243e6aad5ad4f5fb43df4f5
 
 - name: crawlers-vs-crawlers-64
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -782,6 +869,7 @@
   result_hash: 4b05378cb59a7b9944a8afc003cb4da5b0957b4fbd4f4022f18fe4c608c52723
 
 - name: crawlers-vs-crawlers-65
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -791,6 +879,7 @@
   result_hash: 806f6f12cf5ab8e7b86f645623da11abda5c5946b008421fe8ecbb11faa79504
 
 - name: crawlers-vs-crawlers-66
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -800,6 +889,7 @@
   result_hash: 0eb17644b78f6899b912d072db66ece66ba164c8c9b95664f3e3a7cc2c5a9366
 
 - name: crawlers-vs-crawlers-67
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -809,6 +899,7 @@
   result_hash: c05b393c17c633a5a18827720793edba02b244fe101f541b9a0b427d9919204a
 
 - name: crawlers-vs-crawlers-68
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -818,6 +909,7 @@
   result_hash: cf647ff63fd5da6b9e0d0cad9f9f30a3a04804f464bdf888c50a7fe338545c14
 
 - name: crawlers-vs-crawlers-69
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
@@ -827,6 +919,7 @@
   result_hash: c868615dc424f65cb75c0af0d054e388f5633b92b96b1bc7ccadf77fa276e048
 
 - name: crawlers-vs-crawlers-70
+  smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   schema_version: 3
