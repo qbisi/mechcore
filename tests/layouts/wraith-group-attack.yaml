@@ -1,0 +1,30 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: wraith
+        x: -5
+        y: -95
+      - type: crawler
+        rotated: true
+        x: 0
+        y: -135
+      - type: steel_ball
+        rotated: true
+        x: 20
+        y: -135
+
+  red:
+    formations:
+      - type: wraith
+        x: -5
+        y: -95
+      - type: crawler
+        rotated: true
+        x: 0
+        y: -135
+      - type: steel_ball
+        rotated: true
+        x: 20
+        y: -135
