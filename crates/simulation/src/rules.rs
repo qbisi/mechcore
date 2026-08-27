@@ -35,13 +35,14 @@ const DEFAULT_UNITS: [&str; 23] = [
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
-const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 6] = [
+const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 7] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/crawler.yaml"),
     include_str!("../../../config/units/fang.yaml"),
     include_str!("../../../config/units/mustang.yaml"),
+    include_str!("../../../config/units/wasp.yaml"),
 ];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
@@ -933,7 +934,7 @@ mod tests {
         for (type_name, rules) in &config.units.units {
             let is_supported = matches!(
                 type_name.as_str(),
-                "marksman" | "arclight" | "rhino" | "crawler" | "fang" | "mustang"
+                "marksman" | "arclight" | "rhino" | "crawler" | "fang" | "mustang" | "wasp"
             );
             assert_eq!(
                 rules.ensure_current_kernel_support().is_ok(),

@@ -20,6 +20,7 @@ use crate::{
 };
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
+const AIR_UNIT_HEIGHT: i64 = 70_000;
 const TIME_UNITS_PER_SECOND: u64 = 2_000;
 const LOGIC_TICK_TIME_UNITS: u64 = 100;
 const FIGHT_TIME_SECONDS: u64 = 120;
@@ -562,6 +563,7 @@ impl Actor {
     }
 
     fn snapshot(&self) -> UnitState {
+        let height = unit_height(self.rules.domain);
         UnitState {
             unit_id: self.placement.unit_id,
             team_id: self.placement.team,
@@ -571,10 +573,10 @@ impl Actor {
                 UnitDomain::Ground => Domain::Ground,
                 UnitDomain::Air => Domain::Air,
             },
-            position: point(self.x, self.z),
+            position: point_at_height(self.x, height, self.z),
             body_rotation: self.body_rotation,
             aim_pose: Pose {
-                position: point(self.x, self.z),
+                position: point_at_height(self.x, height, self.z),
                 rotation: self.aim_rotation,
             },
             velocity: point(
@@ -816,10 +818,12 @@ struct Projectile {
     owner: u64,
     target: u64,
     x: i64,
+    y: i64,
     z: i64,
     x_q32: i64,
     z_q32: i64,
     cached_target_x: i64,
+    cached_target_y: i64,
     cached_target_z: i64,
     cached_target_x_q32: i64,
     cached_target_z_q32: i64,
@@ -838,10 +842,14 @@ impl Projectile {
             projectile_id: self.id,
             team_id: self.team,
             owner: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
-            position: point(self.x, self.z),
+            position: point_at_height(self.x, self.y, self.z),
             orientation: 0,
             target: Some(ObjectRef::new(ObjectKind::Unit, self.target)),
-            cached_target_position: point(self.cached_target_x, self.cached_target_z),
+            cached_target_position: point_at_height(
+                self.cached_target_x,
+                self.cached_target_y,
+                self.cached_target_z,
+            ),
             cached_target_radius: self.cached_target_radius,
             released: false,
             life: Gauge {
@@ -1008,6 +1016,7 @@ impl Simulation {
             self.terminal_drain_pending = false;
         }
         let fight_was_finished = self.naturally_finished();
+        let winner_was_decided = self.winner().is_some();
         let actor_motion_at_start = self
             .actors
             .iter()
@@ -1136,17 +1145,21 @@ impl Simulation {
         if queued_late_building_death {
             self.terminal_drain_pending = true;
         }
-        if self.ready_to_finish() {
+        let ready_to_finish = self.ready_to_finish();
+        let stop_fight = ready_to_finish || winner_was_decided;
+        if stop_fight {
             for actor in self.actors.values_mut() {
                 actor.motion = MotionState::Idle;
                 actor.mech_lock_target = None;
                 actor.terminal_building_target = None;
                 actor.fight_skill_phase = FightSkillPhase::Idle;
-                actor.current_velocity_x_q32 = 0;
-                actor.current_velocity_z_q32 = 0;
+                if ready_to_finish {
+                    actor.current_velocity_x_q32 = 0;
+                    actor.current_velocity_z_q32 = 0;
+                }
             }
         }
-        if !self.ready_to_finish() {
+        if !ready_to_finish {
             self.step_rvo()?;
         }
         Ok(TransitionEvents { events })
@@ -1324,6 +1337,22 @@ impl Simulation {
         let target_alive = target.is_some_and(Actor::alive);
         let target_died_during_tick =
             target.is_some_and(|target| target.target_query_alive && !target.alive());
+        if !target_alive
+            && actor
+                .backswing_finish_step
+                .is_some_and(|finish_step| finish_step >= step)
+        {
+            let quick_switch_interval_due = actor.rules.attack.quick_switch_target
+                && step > actor.next_attack_step;
+            if !quick_switch_interval_due {
+                return Ok(());
+            }
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .backswing_finish_step = None;
+        }
+        let actor = &self.actors[&actor_id];
         if (matches!(actor.fight_skill_phase, FightSkillPhase::Prepare { .. })
             || actor.fight_skill_phase == FightSkillPhase::Attack)
             && (!actor.rules.attack.quick_switch_target || target_alive)
@@ -1487,9 +1516,37 @@ impl Simulation {
                 }
             };
         }
+        let quick_switch_backswing_due = {
+            let actor = &self.actors[&actor_id];
+            actor.rules.attack.quick_switch_target
+                && actor
+                    .backswing_finish_step
+                    .is_some_and(|finish_step| finish_step >= step)
+                && step > actor.next_attack_step
+        };
+        let quick_switch_dead_backswing_due = quick_switch_backswing_due
+            && self.actors[&actor_id]
+                .mech_lock_target
+                .is_some_and(|target_id| !self.actors[&target_id].alive());
+        let dead_backswing_just_finished = backswing_just_finished
+            && self.actors[&actor_id]
+                .mech_lock_target
+                .is_some_and(|target_id| !self.actors[&target_id].alive());
         self.update_fight_skill_target_search(actor_id, step, target_search_order)?;
-        let stale_replacement = stale_bodyless_attack_target
-            .and(self.actors[&actor_id].mech_lock_target);
+        if quick_switch_backswing_due && !quick_switch_dead_backswing_due {
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .backswing_finish_step = None;
+        }
+        let stale_replacement = if stale_bodyless_attack_target.is_some()
+            || quick_switch_dead_backswing_due
+            || dead_backswing_just_finished
+        {
+            self.actors[&actor_id].mech_lock_target
+        } else {
+            None
+        };
         let stale_replacement_outside_attack_area = stale_replacement.is_some_and(|target_id| {
             !self.bodyless_target_in_attack_area(actor_id, target_id)
         });
@@ -1502,11 +1559,16 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
+            let entered_idle = actor.motion != MotionState::Idle;
             actor.motion = MotionState::Idle;
             actor.mech_lock_target = None;
             actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
+            actor.backswing_finish_step = None;
+            actor.retarget_after_own_direct_kill = false;
+            if entered_idle {
+                actor.next_target_x_q32 = actor.x_q32;
+                actor.next_target_z_q32 = actor.z_q32;
+            }
             actor.next_speed_q32 = 0;
             actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
             return Ok(());
@@ -1692,16 +1754,14 @@ impl Simulation {
                             AttackPath::Projectile { .. } | AttackPath::Direct { melee: true }
                         );
                 }
-                let invalid_attack_angle_barrier =
-                    matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
-                        && !actor.rules.has_body
+                let invalid_attack_angle_barrier = !actor.rules.has_body
                         && !entered_attack
                         && !actor.motion_attack_hold_fire
                         && !in_attack_angle
                         && actor.pending.is_none()
                         && actor.backswing_finish_step.is_none();
                 if invalid_attack_angle_barrier {
-                    // MotionAttackState returns to Idle when an active melee
+                    // MotionAttackState returns to Idle when an active bodyless
                     // skill loses its root-transform attack angle. The new
                     // Idle state is entered synchronously but is not updated
                     // recursively, so target reacquisition waits one tick and
@@ -1735,7 +1795,7 @@ impl Simulation {
                     };
                     entered_skill_phase = prepare_steps > 0;
                 }
-                if !entered_attack
+                if (!entered_attack || actor.rules.attack.quick_switch_target)
                     && !actor.motion_attack_hold_fire
                     && in_attack_angle
                     && actor.pending.is_none()
@@ -2193,13 +2253,6 @@ impl Simulation {
         if actor.rules.has_body {
             return false;
         }
-        let target = &self.actors[&target_id];
-        if !target.alive() {
-            return true;
-        }
-        if !matches!(actor.rules.attack.path, AttackPath::Direct { melee: true }) {
-            return false;
-        }
         !self.bodyless_target_in_attack_area(actor_id, target_id)
     }
 
@@ -2253,6 +2306,7 @@ impl Simulation {
         }
         let target = &self.actors[&pending.target];
         let target_x = target.x;
+        let target_y = unit_height(target.rules.domain);
         let target_z = target.z;
         let target_x_q32 = target.x_q32;
         let target_z_q32 = target.z_q32;
@@ -2268,10 +2322,12 @@ impl Simulation {
             owner: actor_id,
             target: pending.target,
             x: owner.x,
+            y: unit_height(owner.rules.domain),
             z: owner.z,
             x_q32: owner.x_q32,
             z_q32: owner.z_q32,
             cached_target_x: target_x,
+            cached_target_y: target_y,
             cached_target_z: target_z,
             cached_target_x_q32: target_x_q32,
             cached_target_z_q32: target_z_q32,
@@ -2499,7 +2555,7 @@ impl Simulation {
             Some(owner_ref),
             Some(target_ref),
             EventPayload::ProjectileRemoved {
-                position: point(projectile.x, projectile.z),
+                position: point_at_height(projectile.x, projectile.y, projectile.z),
                 intercepted: false,
             },
         ));
@@ -2735,6 +2791,17 @@ fn event(
 
 const fn point(x: i64, z: i64) -> Vec3 {
     Vec3 { x, y: 0, z }
+}
+
+const fn point_at_height(x: i64, y: i64, z: i64) -> Vec3 {
+    Vec3 { x, y, z }
+}
+
+const fn unit_height(domain: UnitDomain) -> i64 {
+    match domain {
+        UnitDomain::Ground => 0,
+        UnitDomain::Air => AIR_UNIT_HEIGHT,
+    }
 }
 
 fn magnitude(x: i64, z: i64) -> i64 {
@@ -3799,46 +3866,51 @@ mod tests {
                 test_placement(1, 1, 0, 110),
             ],
         };
-        let mut simulation = raw_test_simulation(&layout, &config, 7);
-        let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
-        source.mech_lock_target = Some(3);
-        source.motion = MotionState::Attacking;
-        source.fight_skill_phase = FightSkillPhase::Attack;
-        source.backswing_finish_step = Some(10);
-        simulation.actors.get_mut(&3).unwrap().life = 0;
+        for type_name in ["crawler", "wasp"] {
+            let mut simulation = raw_test_simulation(&layout, &config, 7);
+            let source = simulation.actors.get_mut(&1).unwrap();
+            source.rules = config.units.get(type_name).unwrap().clone();
+            source.mech_lock_target = Some(3);
+            source.motion = MotionState::Attacking;
+            source.fight_skill_phase = FightSkillPhase::Attack;
+            source.backswing_finish_step = Some(10);
+            source.next_attack_step = 20;
+            simulation.actors.get_mut(&3).unwrap().life = 0;
 
-        simulation.step_actor(1, 8, &mut Vec::new()).unwrap();
-        let stop_target = {
-            let source = &simulation.actors[&1];
-            assert_eq!(source.motion, MotionState::Idle);
-            assert_eq!(source.mech_lock_target, Some(3));
-            assert_eq!(source.backswing_finish_step, Some(10));
-            (source.next_target_x_q32, source.next_target_z_q32)
-        };
-        simulation.actors.get_mut(&1).unwrap().x_q32 += Q32_ONE;
+            simulation.step_actor(1, 8, &mut Vec::new()).unwrap();
+            let stop_target = {
+                let source = &simulation.actors[&1];
+                assert_eq!(source.motion, MotionState::Idle, "{type_name}");
+                assert_eq!(source.mech_lock_target, Some(3), "{type_name}");
+                assert_eq!(source.backswing_finish_step, Some(10), "{type_name}");
+                (source.next_target_x_q32, source.next_target_z_q32)
+            };
+            simulation.actors.get_mut(&1).unwrap().x_q32 += Q32_ONE;
 
-        for step in 9..=10 {
-            simulation.step_actor(1, step, &mut Vec::new()).unwrap();
+            for step in 9..=10 {
+                simulation.step_actor(1, step, &mut Vec::new()).unwrap();
+                let source = &simulation.actors[&1];
+                assert_eq!(source.motion, MotionState::Idle, "{type_name}");
+                assert_eq!(source.mech_lock_target, Some(3), "{type_name}");
+                assert_eq!(source.backswing_finish_step, Some(10), "{type_name}");
+                assert_eq!(
+                    (source.next_target_x_q32, source.next_target_z_q32),
+                    stop_target,
+                    "{type_name}"
+                );
+            }
+
+            simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
             let source = &simulation.actors[&1];
-            assert_eq!(source.motion, MotionState::Idle);
-            assert_eq!(source.mech_lock_target, Some(3));
-            assert_eq!(source.backswing_finish_step, Some(10));
+            assert_eq!(source.motion, MotionState::Idle, "{type_name}");
+            assert_eq!(source.mech_lock_target, None, "{type_name}");
+            assert_eq!(source.backswing_finish_step, None, "{type_name}");
             assert_eq!(
                 (source.next_target_x_q32, source.next_target_z_q32),
-                stop_target
+                stop_target,
+                "{type_name}"
             );
         }
-
-        simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
-        let source = &simulation.actors[&1];
-        assert_eq!(source.motion, MotionState::Idle);
-        assert_eq!(source.mech_lock_target, None);
-        assert_eq!(source.backswing_finish_step, None);
-        assert_eq!(
-            (source.next_target_x_q32, source.next_target_z_q32),
-            stop_target
-        );
     }
 
     #[test]
@@ -4000,16 +4072,27 @@ mod tests {
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation.team_random.insert(0, GrRandom::new(7));
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("fang").unwrap().clone();
+        source.rules = config.units.get("wasp").unwrap().clone();
         source.mech_lock_target = Some(2);
         source.motion = MotionState::Attacking;
-        source.fight_skill_phase = FightSkillPhase::Idle;
+        source.fight_skill_phase = FightSkillPhase::Attack;
         source.next_attack_step = 10;
+        source.backswing_finish_step = Some(20);
         simulation.actors.get_mut(&2).unwrap().life = 0;
 
         simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
 
+        assert_eq!(simulation.actors[&1].mech_lock_target, Some(2));
+        assert_eq!(simulation.actors[&1].backswing_finish_step, Some(20));
+
+        let mut events = Vec::new();
+        simulation.step_actor(1, 11, &mut events).unwrap();
+
         assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
+        assert_eq!(simulation.actors[&1].backswing_finish_step, Some(41));
+        assert!(events.iter().any(|event| {
+            matches!(event.payload, EventPayload::ProjectileReleased)
+        }));
     }
 
     #[test]
@@ -4329,10 +4412,12 @@ mod tests {
             owner: 1,
             target: 2,
             x: 0,
+            y: 0,
             z: 20_000,
             x_q32: 0,
             z_q32: space_to_q32(20_000),
             cached_target_x: 0,
+            cached_target_y: 0,
             cached_target_z: 20_000,
             cached_target_x_q32: 0,
             cached_target_z_q32: space_to_q32(20_000),
@@ -4379,10 +4464,12 @@ mod tests {
             owner: 1,
             target: 2,
             x: 0,
+            y: 0,
             z: 20_000,
             x_q32: 0,
             z_q32: space_to_q32(20_000),
             cached_target_x: 0,
+            cached_target_y: 0,
             cached_target_z: 20_000,
             cached_target_x_q32: 0,
             cached_target_z_q32: space_to_q32(20_000),

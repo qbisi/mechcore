@@ -1047,3 +1047,13 @@
   tick_count: 255
   scenario_hash: afbf9253000da726b88053a63426148b6402876fde16d7de98a5c4e3793bc891
   result_hash: ccac7934488baebf9c99e358c80a343c7e19418c4bccdd45be3afb3b06f74287
+
+- name: wasps-vs-wasps-01
+  smoke: true
+  layout: tests/layouts/wasps-vs-wasps.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787829131
+  tick_count: 197
+  scenario_hash: 49e8f71b67439ee7531dd4b18e6d942837a40dec851bcb8baf8066c271759d79
+  result_hash: 35e62324e894619a38dbeae98a50a8e241b41f930275c24e5dcf840d1aafaa65
