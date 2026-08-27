@@ -980,10 +980,10 @@ impl Simulation {
                     1
                 };
                 for _ in 0..skill_count {
-                let _initial_sample =
-                    random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
+                    let _initial_sample =
+                        random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
+                }
             }
-        }
         }
         let buildings = initialize_buildings(training_ground)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
@@ -1059,14 +1059,14 @@ impl Simulation {
             actor.target_query_z_q32 = actor.z_q32;
             actor.target_query_source_rotation_q32 =
                 if actor.rules.has_body || actor.rules.attack.weapons.mode == WeaponMode::Group {
-                actor
-                    .weapon_rotations_q32
-                    .first()
-                    .copied()
-                    .unwrap_or(actor.body_rotation_q32)
-            } else {
-                actor.body_rotation_q32
-            };
+                    actor
+                        .weapon_rotations_q32
+                        .first()
+                        .copied()
+                        .unwrap_or(actor.body_rotation_q32)
+                } else {
+                    actor.body_rotation_q32
+                };
             actor.target_query_alive = actor.alive();
             actor.fight_skill_searched_this_tick = false;
         }
@@ -1369,13 +1369,13 @@ impl Simulation {
                             continue;
                         }
                         let (candidate_x_q32, candidate_z_q32) = if use_live_candidate_positions {
-                                (candidate_actor.x_q32, candidate_actor.z_q32)
-                            } else {
-                                (
-                                    candidate_actor.target_query_x_q32,
-                                    candidate_actor.target_query_z_q32,
-                                )
-                            };
+                            (candidate_actor.x_q32, candidate_actor.z_q32)
+                        } else {
+                            (
+                                candidate_actor.target_query_x_q32,
+                                candidate_actor.target_query_z_q32,
+                            )
+                        };
                         if let Some(score) = normal_visible_full_rotation_target_score_q32(
                             source.target_query_x_q32,
                             source.target_query_z_q32,
@@ -1670,8 +1670,8 @@ impl Simulation {
                         },
                     ));
                 }
+            }
         }
-    }
         if let Some((_, target_id)) = formal_target_changes.last_key_value() {
             actor.mech_lock_target = *target_id;
         }
@@ -2250,11 +2250,11 @@ impl Simulation {
                         );
                 }
                 let invalid_attack_angle_barrier = !actor.rules.has_body
-                        && !entered_attack
-                        && !actor.motion_attack_hold_fire
-                        && !in_attack_angle
-                        && actor.pending.is_none()
-                        && actor.backswing_finish_step.is_none();
+                    && !entered_attack
+                    && !actor.motion_attack_hold_fire
+                    && !in_attack_angle
+                    && actor.pending.is_none()
+                    && actor.backswing_finish_step.is_none();
                 if invalid_attack_angle_barrier {
                     // MotionAttackState returns to Idle when an active bodyless
                     // skill loses its root-transform attack angle. The new
@@ -2871,12 +2871,12 @@ impl Simulation {
         let target = &self.actors[&target_id];
         target.alive()
             && rotation_distance_q32(
-            actor.body_rotation_q32,
-            direction_degrees_q32_raw(
-                target.x_q32.saturating_sub(actor.x_q32),
-                target.z_q32.saturating_sub(actor.z_q32),
-            ),
-        ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
+                actor.body_rotation_q32,
+                direction_degrees_q32_raw(
+                    target.x_q32.saturating_sub(actor.x_q32),
+                    target.z_q32.saturating_sub(actor.z_q32),
+                ),
+            ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
     }
 
     fn bodyless_attackable_invalid(&self, actor_id: u64, target_id: u64) -> bool {

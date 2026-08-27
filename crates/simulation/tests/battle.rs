@@ -44,7 +44,12 @@ fn smoke_native_regressions() -> Vec<NativeRegression> {
         }
     }
     for (layout, count) in smoke_counts {
-        assert_eq!(count, 1, "{} must have exactly one smoke case", layout.display());
+        assert_eq!(
+            count,
+            1,
+            "{} must have exactly one smoke case",
+            layout.display()
+        );
     }
     regressions
         .into_iter()

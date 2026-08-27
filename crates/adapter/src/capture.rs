@@ -1812,8 +1812,8 @@ fn validate_rvo_profile_availability(
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
     metadata: &Metadata,
 ) -> Result<(), String> {
-    if let Some(profile) = instrumentation_profile
-        .filter(|profile| profile.includes_rvo() && metadata.rvo.is_none())
+    if let Some(profile) =
+        instrumentation_profile.filter(|profile| profile.includes_rvo() && metadata.rvo.is_none())
     {
         Err(format!(
             "{} is unavailable: {}",
@@ -5485,7 +5485,8 @@ mod tests {
         };
         assert!(validate_selector_score_profile_availability(Some(profile), &available).is_ok());
         assert!(
-            validate_selector_score_profile_availability(Some(combined_profile), &available).is_ok()
+            validate_selector_score_profile_availability(Some(combined_profile), &available)
+                .is_ok()
         );
     }
 
@@ -6277,12 +6278,11 @@ mod tests {
         );
         assert_eq!(rvo_json["target_refs"], target_json);
         assert_eq!(rvo_json["rvo_updates"], serde_json::json!([]));
-        let combined_payload = CaptureInstrumentationObservation::SelectorScoreRvo(
-            SelectorScoreRvoObservation {
+        let combined_payload =
+            CaptureInstrumentationObservation::SelectorScoreRvo(SelectorScoreRvoObservation {
                 selector_score: SelectorScoreObservation::default(),
                 rvo_updates: Vec::new(),
-            },
-        );
+            });
         let combined_json = serde_json::to_value(&combined_payload).unwrap();
         assert_eq!(
             combined_json,
