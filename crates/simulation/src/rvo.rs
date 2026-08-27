@@ -947,7 +947,7 @@ fn trace_score_replaces_incumbent(step_index: i64, score: i64, incumbent: i64) -
 /// sentinel. This matters in the late Trace iterations: a numerically lower
 /// score only replaces the incumbent when it is lower by at least 44 raw
 /// units.
-fn fpoint_less_than(left: i64, right: i64) -> bool {
+pub(crate) fn fpoint_less_than(left: i64, right: i64) -> bool {
     const SENTINEL: i64 = i64::MIN + 1;
     if left == SENTINEL || right == SENTINEL {
         return false;
