@@ -66,31 +66,6 @@ fn rhino_two_arclights_fixture() -> PathBuf {
 }
 
 #[test]
-fn public_simulation_accepts_crawler_movement_until_the_next_unclosed_attack_branch() {
-    let directory = tempfile::tempdir().unwrap();
-    let layout = directory.path().join("crawler.yaml");
-    let output = directory.path().join("battle.mcfr");
-    fs::write(
-        &layout,
-        r"
-round: 1
-sides:
-  blue:
-    formations: [{type: crawler, x: 5, y: -50}]
-  red:
-    formations: [{type: arclight, x: 0, y: -50}]
-",
-    )
-    .unwrap();
-
-    let error = simulate_layout(&layout, &output, Some(1_787_601_811))
-        .unwrap_err()
-        .to_string();
-    assert!(error.contains("projectile splash with a secondary target is not closed"));
-    assert!(!output.exists());
-}
-
-#[test]
 fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_schema_v3() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");

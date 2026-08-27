@@ -1077,3 +1077,13 @@
   tick_count: 272
   scenario_hash: e5161b7bbdfbf926d166e0210ed3b06d72e8f09f188ccb4209a2cedc62c8ff12
   result_hash: 248dd13aa82699d88459bb4abd51231d990fae32f5c4eff33eaf8caeba3bbd31
+
+- name: arclight-splash-01
+  smoke: true
+  layout: tests/layouts/arclight-splash.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787837829
+  tick_count: 498
+  scenario_hash: 6a07e5cc2b7fd74555b09cf39f8ca962451a91b1a5934a0e449180c2a1d8d9c7
+  result_hash: 6a1589c4d21a779753d15e15d263a2492584bc7b3e4bf60e2fb0bc8ae4833eb7

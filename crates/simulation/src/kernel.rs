@@ -379,7 +379,7 @@ struct Actor {
     z_q32: i64,
     target_query_x_q32: i64,
     target_query_z_q32: i64,
-    target_query_body_rotation_q32: i64,
+    target_query_source_rotation_q32: i64,
     target_query_alive: bool,
     rvo_tree_x_q32: i64,
     rvo_tree_z_q32: i64,
@@ -445,7 +445,7 @@ impl Actor {
             z_q32,
             target_query_x_q32: x_q32,
             target_query_z_q32: z_q32,
-            target_query_body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
+            target_query_source_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             target_query_alive: true,
             rvo_tree_x_q32: x_q32,
             rvo_tree_z_q32: z_q32,
@@ -1010,10 +1010,20 @@ impl Simulation {
         // Build 2259 prepares selector inputs before FightCore updates actors
         // sequentially. Red actors must therefore score the tick-start pose,
         // not positions already advanced by blue actors in the same tick.
+        // FightSkill::GetMainTransform returns its first valid owned weapon transform;
+        // bodyless weapons without one fall back to the mech's root transform.
         for actor in self.actors.values_mut() {
             actor.target_query_x_q32 = actor.x_q32;
             actor.target_query_z_q32 = actor.z_q32;
-            actor.target_query_body_rotation_q32 = actor.body_rotation_q32;
+            actor.target_query_source_rotation_q32 = if actor.rules.has_body {
+                actor
+                    .weapon_rotations_q32
+                    .first()
+                    .copied()
+                    .unwrap_or(actor.body_rotation_q32)
+            } else {
+                actor.body_rotation_q32
+            };
             actor.target_query_alive = actor.alive();
             actor.fight_skill_searched_this_tick = false;
         }
@@ -1222,7 +1232,7 @@ impl Simulation {
                 source.target_query_x_q32,
                 source.target_query_z_q32,
                 source.rules.collision_radius(),
-                source.target_query_body_rotation_q32,
+                source.target_query_source_rotation_q32,
                 space_to_q32(building.position.x),
                 space_to_q32(building.position.z),
                 building.bounds_width / 2,
@@ -1307,7 +1317,7 @@ impl Simulation {
                             source.target_query_x_q32,
                             source.target_query_z_q32,
                             source.rules.collision_radius(),
-                            source.target_query_body_rotation_q32,
+                            source.target_query_source_rotation_q32,
                             candidate_x_q32,
                             candidate_z_q32,
                             candidate_actor.rules.collision_radius(),
@@ -1332,7 +1342,7 @@ impl Simulation {
                             source.target_query_x_q32,
                             source.target_query_z_q32,
                             source.rules.collision_radius(),
-                            source.target_query_body_rotation_q32,
+                            source.target_query_source_rotation_q32,
                             space_to_q32(building.position.x),
                             space_to_q32(building.position.z),
                             building.bounds_width / 2,
@@ -1516,10 +1526,9 @@ impl Simulation {
             actor.retarget_after_own_direct_kill = false;
             return Ok(());
         }
-        let stale_bodyless_attack_target = {
+        let stale_attack_target = {
             let actor = &self.actors[&actor_id];
             if actor.motion == MotionState::Attacking
-                && !actor.rules.has_body
                 && !actor.motion_attack_hold_fire
                 && actor.pending.is_none()
                 && actor.backswing_finish_step.is_none()
@@ -1532,7 +1541,7 @@ impl Simulation {
                 None
             }
         };
-        if stale_bodyless_attack_target.is_some()
+        if stale_attack_target.is_some()
             && !self.actors[&actor_id].rules.attack.quick_switch_target
         {
             let actor = self
@@ -1598,7 +1607,7 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .backswing_finish_step = None;
         }
-        let stale_replacement = if stale_bodyless_attack_target.is_some()
+        let stale_replacement = if stale_attack_target.is_some()
             || quick_switch_dead_backswing_due
             || dead_backswing_just_finished
         {
@@ -1607,7 +1616,7 @@ impl Simulation {
             None
         };
         let stale_replacement_outside_attack_area = stale_replacement.is_some_and(|target_id| {
-            !self.bodyless_target_in_attack_area(actor_id, target_id)
+            !self.target_in_attack_area(actor_id, target_id)
         });
         if stale_replacement_outside_attack_area {
             // SkillAttackableChecker can adopt an immediately attackable
@@ -1756,7 +1765,6 @@ impl Simulation {
             target_x_q32.saturating_sub(actor.x_q32),
             target_z_q32.saturating_sub(actor.z_q32),
         );
-        let target_rotation = degrees_q32_to_mdeg(target_rotation_q32);
         let center_distance_q32 = native_q32_magnitude(
             target_x_q32.saturating_sub(actor.x_q32),
             target_z_q32.saturating_sub(actor.z_q32),
@@ -1901,17 +1909,26 @@ impl Simulation {
             if release_now {
                 let _attack_point_rejected = self.release(actor_id, events)?;
             }
+            if entered_attack {
+                // SimpleFSM enters MotionAttackState synchronously but does not
+                // update the newly entered state in the same tick. FightSkill
+                // therefore starts tracking the target on the next tick.
+                return Ok(());
+            }
             let actor = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             // FightSkill.Update rotates every free weapon after its state controller.
             actor.rotate_weapons_towards(target_rotation_q32);
-            if entered_attack {
-                return Ok(());
-            }
             if actor.rules.has_body {
-                actor.aim_rotation = target_rotation;
+                actor.aim_rotation = degrees_q32_to_mdeg(
+                    actor
+                        .weapon_rotations_q32
+                        .first()
+                        .copied()
+                        .unwrap_or(actor.body_rotation_q32),
+                );
             } else {
                 actor.rotate_body_towards(target_rotation_q32);
                 actor.aim_rotation = actor.body_rotation;
@@ -1993,10 +2010,20 @@ impl Simulation {
             actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
             return Ok(());
         }
-        // FightSkill.Update tracks its current target before MotionController updates movement.
-        actor.rotate_weapons_towards(target_rotation_q32);
-        if actor.rules.has_body {
-            actor.aim_rotation = target_rotation;
+        let entered_move_from_idle = actor.motion == MotionState::Idle;
+        if !entered_move_from_idle {
+            // FightSkill.Update tracks an existing target before MotionController updates movement.
+            // A target acquired by MotionIdleState is not visible to FightSkill until the next tick.
+            actor.rotate_weapons_towards(target_rotation_q32);
+            if actor.rules.has_body {
+                actor.aim_rotation = degrees_q32_to_mdeg(
+                    actor
+                        .weapon_rotations_q32
+                        .first()
+                        .copied()
+                        .unwrap_or(actor.body_rotation_q32),
+                );
+            }
         }
         let entered_move = actor.motion != MotionState::Moving;
         actor.motion = MotionState::Moving;
@@ -2278,6 +2305,21 @@ impl Simulation {
     fn bodyless_target_in_attack_area(&self, actor_id: u64, target_id: u64) -> bool {
         self.bodyless_target_in_attack_range(actor_id, target_id)
             && self.bodyless_target_in_attack_angle(actor_id, target_id)
+    }
+
+    fn target_in_attack_area(&self, actor_id: u64, target_id: u64) -> bool {
+        if !self.bodyless_target_in_attack_range(actor_id, target_id) {
+            return false;
+        }
+        let actor = &self.actors[&actor_id];
+        if !actor.rules.has_body {
+            return self.bodyless_target_in_attack_angle(actor_id, target_id);
+        }
+        let target = &self.actors[&target_id];
+        actor.weapons_in_attack_angle(direction_degrees_q32_raw(
+            target.x_q32.saturating_sub(actor.x_q32),
+            target.z_q32.saturating_sub(actor.z_q32),
+        ))
     }
 
     fn bodyless_target_in_attack_range(&self, actor_id: u64, target_id: u64) -> bool {
@@ -2591,77 +2633,73 @@ impl Simulation {
             .get(&projectile.owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         let splash_radius = owner.rules.attack.splash_radius();
+        let owner_team = owner.placement.team;
+        let targets = owner.rules.attack.targets;
         if splash_radius > 0 {
-            let owner_team = owner.placement.team;
-            let targets = owner.rules.attack.targets;
-            let secondary_unit = self.actors.iter().any(|(&candidate_id, candidate)| {
-                candidate_id != projectile.target
-                    && candidate.alive()
-                    && candidate.placement.team != owner_team
-                    && match candidate.rules.domain {
-                        UnitDomain::Ground => targets.ground,
-                        UnitDomain::Air => targets.air,
-                    }
-                    && [
-                        (projectile.x, projectile.z),
-                        (projectile.cached_target_x, projectile.cached_target_z),
-                    ]
-                    .into_iter()
-                    .any(|(center_x, center_z)| {
-                        magnitude(
-                            candidate.x.saturating_sub(center_x),
-                            candidate.z.saturating_sub(center_z),
-                        )
-                        .saturating_sub(candidate.rules.collision_radius())
-                            <= splash_radius
-                    })
-            });
             let secondary_building = targets.ground
                 && self.buildings.iter().any(|building| {
                     building.alive
                         && building.targetable
                         && building.team_id != owner_team
-                        && [
-                            (projectile.x, projectile.z),
-                            (projectile.cached_target_x, projectile.cached_target_z),
-                        ]
-                        .into_iter()
-                        .any(|(center_x, center_z)| {
-                            magnitude(
-                                building.position.x.saturating_sub(center_x),
-                                building.position.z.saturating_sub(center_z),
-                            )
-                            .saturating_sub(building.bounds_width / 2)
-                                <= splash_radius
-                        })
+                        && magnitude(
+                            building.position.x.saturating_sub(projectile.x),
+                            building.position.z.saturating_sub(projectile.z),
+                        )
+                        .saturating_sub(building.bounds_width / 2)
+                            <= splash_radius
                 });
-            if secondary_unit || secondary_building {
+            if secondary_building {
                 return Err(Error::new(
-                    "projectile splash with a secondary target is not closed",
+                    "projectile splash against a building is not closed",
                 ));
             }
         }
         let projectile_ref = projectile.object_ref();
         let owner_ref = ObjectRef::new(ObjectKind::Unit, projectile.owner);
         let target_ref = ObjectRef::new(ObjectKind::Unit, projectile.target);
-        let target = self
+        let target_ids = self
             .actors
-            .get_mut(&projectile.target)
-            .ok_or_else(|| Error::new("projectile target is absent"))?;
-        if target.alive() {
+            .iter()
+            .filter_map(|(&candidate_id, candidate)| {
+                (candidate.alive()
+                    && candidate.placement.team != owner_team
+                    && match candidate.rules.domain {
+                        UnitDomain::Ground => targets.ground,
+                        UnitDomain::Air => targets.air,
+                    }
+                    && (candidate_id == projectile.target
+                        || (splash_radius > 0
+                            && magnitude(
+                                candidate.x.saturating_sub(projectile.x),
+                                candidate.z.saturating_sub(projectile.z),
+                            )
+                            .saturating_sub(candidate.rules.collision_radius())
+                                <= splash_radius)))
+                    .then_some(candidate_id)
+            })
+            .collect::<Vec<_>>();
+        let mut aggregate_damage = 0;
+        for target_id in target_ids {
+            let target = self
+                .actors
+                .get_mut(&target_id)
+                .ok_or_else(|| Error::new("projectile target is absent"))?;
             let previous_life = target.life;
             target.life = target.life.saturating_sub(projectile.damage).max(0);
+            aggregate_damage += previous_life - target.life;
+            if target.life == 0 {
+                target.exit_fight_on_death();
+            }
+        }
+        if aggregate_damage > 0 {
             events.push(event(
                 None,
                 Some(projectile_ref),
                 Some(target_ref),
                 EventPayload::Damage {
-                    amount: previous_life - target.life,
+                    amount: aggregate_damage,
                 },
             ));
-            if target.life == 0 {
-                target.exit_fight_on_death();
-            }
         }
         events.push(event(
             Some(projectile_ref),
@@ -3872,6 +3910,116 @@ mod tests {
     }
 
     #[test]
+    fn fight_skill_selector_scores_the_weapon_rotation_instead_of_the_root_body() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![
+                test_placement(0, 0, 0, 0),
+                test_placement(1, 0, -8, 94),
+                test_placement(1, 1, 3, 96),
+            ],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        set_actor_position(simulation.actors.get_mut(&1).unwrap(), 298, -64_312);
+        set_actor_position(simulation.actors.get_mut(&2).unwrap(), -8_193, 29_690);
+        set_actor_position(simulation.actors.get_mut(&3).unwrap(), 3_679, 31_889);
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.set_body_rotation(mdeg_to_degrees_q32(2_680));
+        source.set_weapon_rotation(mdeg_to_degrees_q32(358_902));
+        simulation.refresh_target_query_snapshot();
+
+        assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(2));
+
+        simulation.actors.get_mut(&1).unwrap().target_query_source_rotation_q32 =
+            mdeg_to_degrees_q32(2_680);
+        assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(3));
+
+        simulation.actors.get_mut(&1).unwrap().rules.has_body = false;
+        simulation.refresh_target_query_snapshot();
+        assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(3));
+    }
+
+    #[test]
+    fn has_body_attack_replacement_outside_range_exits_through_one_idle_tick() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![
+                test_placement(0, 0, 0, 0),
+                test_placement(1, 0, 0, 20),
+                test_placement(1, 1, 0, 200),
+            ],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        simulation.actors.get_mut(&2).unwrap().life = 0;
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.motion = MotionState::Attacking;
+        source.mech_lock_target = Some(2);
+        source.fight_skill_phase = FightSkillPhase::Attack;
+        source.set_weapon_rotation(mdeg_to_degrees_q32(4_924));
+        source.aim_rotation = 4_924;
+
+        simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
+        assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
+        assert_eq!(simulation.actors[&1].mech_lock_target, None);
+
+        simulation.step_actor(1, 2, &mut Vec::new()).unwrap();
+        assert_eq!(simulation.actors[&1].motion, MotionState::Moving);
+        assert_eq!(simulation.actors[&1].mech_lock_target, Some(3));
+        assert_eq!(simulation.actors[&1].aim_rotation, 4_924);
+    }
+
+    #[test]
+    fn has_body_attack_replacement_outside_weapon_angle_exits_through_idle() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![
+                test_placement(0, 0, 0, 0),
+                test_placement(1, 0, 0, 20),
+                test_placement(1, 1, 0, 50),
+            ],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        simulation.actors.get_mut(&2).unwrap().life = 0;
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.motion = MotionState::Attacking;
+        source.mech_lock_target = Some(2);
+        source.fight_skill_phase = FightSkillPhase::Attack;
+        source.set_weapon_rotation(mdeg_to_degrees_q32(90_000));
+
+        simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
+
+        assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
+        assert_eq!(simulation.actors[&1].mech_lock_target, None);
+    }
+
+    #[test]
+    fn entering_attack_defers_weapon_tracking_until_the_next_tick() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 50, 0)],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        let initial_rotation = mdeg_to_degrees_q32(168_143);
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.mech_lock_target = Some(2);
+        source.set_weapon_rotation(initial_rotation);
+        source.aim_rotation = 168_143;
+
+        simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
+        assert_eq!(simulation.actors[&1].motion, MotionState::Attacking);
+        assert_eq!(simulation.actors[&1].weapon_rotations_q32[0], initial_rotation);
+        assert_eq!(simulation.actors[&1].aim_rotation, 168_143);
+
+        simulation.step_actor(1, 2, &mut Vec::new()).unwrap();
+        assert_ne!(simulation.actors[&1].weapon_rotations_q32[0], initial_rotation);
+        assert_ne!(simulation.actors[&1].aim_rotation, 168_143);
+    }
+
+    #[test]
     fn same_tick_target_death_scores_live_candidate_positions() {
         let config = SimulationConfig::load(None).unwrap();
         let layout = CompiledLayout {
@@ -4546,7 +4694,7 @@ mod tests {
     }
 
     #[test]
-    fn projectile_splash_refuses_secondary_targets_before_damage() {
+    fn projectile_splash_applies_one_aggregate_event_to_secondary_targets() {
         let config = SimulationConfig::load(None).unwrap();
         let layout = CompiledLayout {
             round: 1,
@@ -4585,15 +4733,16 @@ mod tests {
             damage: simulation.actors[&1].rules.attack.base_damage,
         };
         let previous_life = [simulation.actors[&2].life, simulation.actors[&3].life];
-        let error = simulation
-            .impact(&projectile, &mut Vec::new())
-            .unwrap_err()
-            .to_string();
-        assert!(error.contains("projectile splash with a secondary target"));
+        let mut events = Vec::new();
+        simulation.impact(&projectile, &mut events).unwrap();
         assert_eq!(
             [simulation.actors[&2].life, simulation.actors[&3].life],
-            previous_life
+            previous_life.map(|life| life - 365)
         );
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].source, Some(ObjectRef::new(ObjectKind::Projectile, 1)));
+        assert_eq!(events[0].target, Some(ObjectRef::new(ObjectKind::Unit, 2)));
+        assert_eq!(events[0].payload, EventPayload::Damage { amount: 730 });
     }
 
     #[test]
@@ -4641,7 +4790,7 @@ mod tests {
             .impact(&projectile, &mut Vec::new())
             .unwrap_err()
             .to_string();
-        assert!(error.contains("projectile splash with a secondary target"));
+        assert!(error.contains("projectile splash against a building"));
         assert_eq!(simulation.actors[&2].life, previous_life);
     }
 
@@ -5735,7 +5884,7 @@ mod tests {
     }
 
     #[test]
-    fn stopped_attacker_tracks_target_with_aim_without_rotating_root_body() {
+    fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
         let layout = CompiledLayout {
             round: 1,
             placements: vec![
@@ -5791,12 +5940,22 @@ mod tests {
                 .z_q32
                 .saturating_sub(simulation.actors[&1].z_q32),
         );
+        let maximum = q32_mul(
+            mdeg_to_degrees_q32(simulation.actors[&1].rules.rotate_speed_mdeg_per_second()),
+            NATIVE_LOGIC_DELTA_Q32,
+        );
+        let expected_limited = degrees_q32_to_mdeg(rotate_towards_q32(
+            mdeg_to_degrees_q32(initial_aim),
+            mdeg_to_degrees_q32(expected_aim),
+            maximum,
+        ));
         simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
         let marksman = &simulation.actors[&1];
 
         assert_eq!(marksman.motion, MotionState::Attacking);
         assert_eq!(marksman.body_rotation, root_body);
         assert_ne!(marksman.aim_rotation, initial_aim);
-        assert_eq!(marksman.aim_rotation, expected_aim);
+        assert_ne!(marksman.aim_rotation, expected_aim);
+        assert_eq!(marksman.aim_rotation, expected_limited);
     }
 }

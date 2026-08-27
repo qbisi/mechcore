@@ -380,7 +380,7 @@ sampled-RVO 登记只接受已经通过数值门禁的单位参数。比如
 | 基础方向 | 不存在额外的 `aim_tolerance: 20` 转向死区；当前场景部署方向已对齐 | `Normalize -> Angle -> RawAcos` 全方向和边界舍入 |
 | Normal 目标评分与开战前索敌 | build2259 在可见、全旋转、未分裂四叉树且唯一最优的当前普通地面目标集合中，以 Q32 边缘距离、最小射程严格排除、角度因子、射程外惩罚和严格最小分数选择目标；`FightPrepareState` 在 S(0) 前完成首次索敌并同步初始朝向 | 分裂四叉树、同分候选、建筑胜出、移动候选重插入和其它 selector mode |
 | 普通投射物 | `Init/Update/Move` 的 Q32.32 移动、活动时 `released=false`、默认 rotation 和实际 transform 移除位置；build2259 长弓/弧光普通单投射物在 `isLockTarget=true`、目标存活且移动、`randomTargetRange=0`/offset=0 分支逐 tick 刷新目标 root Q32 位置 | 非锁定、目标死亡、非零随机 offset、拦截及其它投射物类型 |
-| 伤害与死亡 | `ReduceLife` 将实际扣血裁剪为 `min(currentLife, incomingDamage)`；Adapter 的 Damage hook 直接记录原生 performer 返回值。除已闭合的 Projectile provider 外，build2259 犀牛主技能 5001 在 level-1、无科技/装备/动态 buff/护盾干预的当前单目标直接效果中，经 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty` 得到 nominal 3560，末击按剩余生命裁剪 | 多目标范围伤害、修正链、护盾和其它 provider/目标域 |
+| 伤害与死亡 | `ReduceLife` 将实际扣血裁剪为 `min(currentLife, incomingDamage)`；Adapter 的 Damage hook 直接记录原生 performer 返回值。build2259 level-1 弧光在无科技/装备/动态 buff/护盾干预的当前地面单位范围中，以投射物 transform 为作用中心选择半径内目标，并将各目标实际扣血之和记录为主目标的一条 Damage 事件。犀牛主技能 5001 在同类基线约束的当前单目标直接效果中，经 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty` 得到 nominal 3560，末击按剩余生命裁剪 | 建筑溅射、范围边界与顺序、修正链、护盾和其它 provider/目标域 |
 | 个人护盾基线 | 无护盾单位的 `EnergyShieldController.enabled=true` 初始状态 | 实际护盾激活、吸收和销毁生命周期 |
 | 普通首发延迟 | 当前 P0 普通首发分支分别将 `prepareTime` 与 `attackPoint` 除以逻辑步并截断；长弓为 10+2 tick，弧光为 0+0 tick | 重复攻击、grouped/loading、后摇及其它阶段调整；不得推广为两字段相加的通式 |
 | 普通同步直接攻击后摇 | build2259 犀牛普通直接攻击在 effect tick 进入 9-tick backswing；wait controller 每 tick 先递增再以 `counter >= duration` 完成，因此第九次 wait update 所在 tick 仍不能重新发起攻击，下一 tick 才重新进入 `TryPerformAttack` | 前摇中目标失效、第三方击杀、快速换目标及其它 controller |
