@@ -1,0 +1,14 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: steel_ball
+        x: 5
+        y: -100
+
+  red:
+    formations:
+      - type: steel_ball
+        x: 5
+        y: -100
