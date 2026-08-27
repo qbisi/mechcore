@@ -409,6 +409,7 @@ struct Actor {
     fight_skill_search_target_time: i32,
     fight_skill_searched_this_tick: bool,
     fight_skill_phase: FightSkillPhase,
+    laser_attack_count: usize,
     retarget_after_own_direct_kill: bool,
     pending: Option<PendingRelease>,
     backswing_finish_step: Option<u64>,
@@ -478,6 +479,7 @@ impl Actor {
             fight_skill_search_target_time: SEARCH_TARGET_RESET_TICKS,
             fight_skill_searched_this_tick: false,
             fight_skill_phase: FightSkillPhase::Idle,
+            laser_attack_count: 0,
             retarget_after_own_direct_kill: false,
             pending: None,
             backswing_finish_step: None,
@@ -495,6 +497,7 @@ impl Actor {
         self.terminal_building_target = None;
         self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.fight_skill_phase = FightSkillPhase::Idle;
+        self.laser_attack_count = 0;
         self.retarget_after_own_direct_kill = false;
         self.motion_attack_hold_fire = false;
         self.current_velocity_x_q32 = 0;
@@ -1145,6 +1148,35 @@ impl Simulation {
         if queued_late_building_death {
             self.terminal_drain_pending = true;
         }
+        let laser_finish_observed_at_defeated_team_entry = !fight_was_finished
+            && self.naturally_finished()
+            && self.winner().is_some_and(|winning_team| {
+                self.actors.values().any(|actor| {
+                    actor.placement.team == winning_team
+                        && actor.alive()
+                        && matches!(actor.rules.attack.path, AttackPath::Laser { .. })
+                })
+            })
+            && team_alive_counts.iter().any(|(&team_id, &alive_count)| {
+                alive_count == 0 && Some(team_id) != self.winner()
+            });
+        if laser_finish_observed_at_defeated_team_entry {
+            // FightCore updates blue before red. If an earlier team eliminates
+            // a later team, the native finish callback is queued only after
+            // that defeated team's module observes its empty actor set. Its
+            // attacker therefore exposes the dead laser target for one tick
+            // while the callback tears down that team's core buildings.
+            for building in self.buildings.iter_mut().filter(|building| {
+                team_alive_counts
+                    .get(&building.team_id)
+                    .is_some_and(|alive_count| *alive_count == 0)
+            }) {
+                building.life = 0;
+                building.alive = false;
+                building.targetable = false;
+            }
+            self.terminal_drain_pending = true;
+        }
         let ready_to_finish = self.ready_to_finish();
         let stop_fight = ready_to_finish || winner_was_decided;
         if stop_fight {
@@ -1405,6 +1437,9 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
+        if actor.mech_lock_target != selected {
+            actor.laser_attack_count = 0;
+        }
         actor.mech_lock_target = selected;
         actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         actor.retarget_after_own_direct_kill = false;
@@ -1455,6 +1490,25 @@ impl Simulation {
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
             actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            return Ok(());
+        }
+        let completed_laser_kill = {
+            let actor = &self.actors[&actor_id];
+            actor.retarget_after_own_direct_kill
+                && matches!(actor.rules.attack.path, AttackPath::Laser { .. })
+                && actor
+                    .mech_lock_target
+                    .is_some_and(|target_id| !self.actors[&target_id].alive())
+        };
+        if completed_laser_kill {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.mech_lock_target = None;
+            actor.fight_skill_phase = FightSkillPhase::Idle;
+            actor.laser_attack_count = 0;
+            actor.retarget_after_own_direct_kill = false;
             return Ok(());
         }
         let stale_bodyless_attack_target = {
@@ -1751,7 +1805,9 @@ impl Simulation {
                         && !in_attack_angle
                         && matches!(
                             actor.rules.attack.path,
-                            AttackPath::Projectile { .. } | AttackPath::Direct { melee: true }
+                            AttackPath::Projectile { .. }
+                                | AttackPath::Direct { melee: true }
+                                | AttackPath::Laser { .. }
                         );
                 }
                 let invalid_attack_angle_barrier = !actor.rules.has_body
@@ -2285,6 +2341,7 @@ impl Simulation {
             (backswing_steps > 0).then(|| pending.step.saturating_add(backswing_steps));
         owner.fight_skill_phase = if owner.backswing_finish_step.is_none()
             && !owner.rules.attack.quick_switch_target
+            && !matches!(owner.rules.attack.path, AttackPath::Laser { .. })
         {
             FightSkillPhase::Idle
         } else {
@@ -2301,6 +2358,19 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
                     .retarget_after_own_direct_kill = true;
+            }
+            return Ok(false);
+        }
+        if matches!(self.actors[&actor_id].rules.attack.path, AttackPath::Laser { .. }) {
+            let target_was_alive = self.actors[&pending.target].alive();
+            self.laser_effect(actor_id, pending.target, events)?;
+            if target_was_alive && !self.actors[&pending.target].alive() {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                actor.motion = MotionState::Idle;
+                actor.retarget_after_own_direct_kill = true;
             }
             return Ok(false);
         }
@@ -2413,6 +2483,44 @@ impl Simulation {
             Some(ObjectRef::new(ObjectKind::Unit, target_id)),
             EventPayload::Damage {
                 amount: aggregate_damage,
+            },
+        ));
+        Ok(())
+    }
+
+    fn laser_effect(
+        &mut self,
+        actor_id: u64,
+        target_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let damage = {
+            let attacker = &self.actors[&actor_id];
+            attacker
+                .rules
+                .attack
+                .laser_damage(attacker.laser_attack_count)
+        };
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .laser_attack_count += 1;
+        let target = self
+            .actors
+            .get_mut(&target_id)
+            .ok_or_else(|| Error::new("laser attack target is absent"))?;
+        let previous_life = target.life;
+        target.life = target.life.saturating_sub(damage).max(0);
+        let actual_damage = previous_life - target.life;
+        if target.life == 0 {
+            target.exit_fight_on_death();
+        }
+        events.push(event(
+            None,
+            None,
+            Some(ObjectRef::new(ObjectKind::Unit, target_id)),
+            EventPayload::Damage {
+                amount: actual_damage,
             },
         ));
         Ok(())
@@ -4267,6 +4375,46 @@ mod tests {
             assert_eq!(simulation.actors[&1].mech_lock_target, Some(3), "{type_name}");
             assert!(events.is_empty(), "{type_name}");
         }
+    }
+
+    #[test]
+    fn laser_own_kill_retains_then_clears_the_dead_target() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        let source = simulation.actors.get_mut(&1).unwrap();
+        source.rules = config.units.get("steel_ball").unwrap().clone();
+        source.mech_lock_target = Some(2);
+        source.motion = MotionState::Attacking;
+        source.fight_skill_phase = FightSkillPhase::Attack;
+        source.pending = Some(PendingRelease {
+            step: 10,
+            target: 2,
+        });
+        simulation.actors.get_mut(&2).unwrap().life = 1;
+        let mut events = Vec::new();
+
+        simulation.release(1, &mut events).unwrap();
+
+        let source = &simulation.actors[&1];
+        assert_eq!(source.motion, MotionState::Idle);
+        assert_eq!(source.mech_lock_target, Some(2));
+        assert!(source.retarget_after_own_direct_kill);
+        assert_eq!(source.laser_attack_count, 1);
+        assert!(matches!(
+            events[0].payload,
+            EventPayload::Damage { amount: 1 }
+        ));
+
+        simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
+        let source = &simulation.actors[&1];
+        assert_eq!(source.motion, MotionState::Idle);
+        assert_eq!(source.mech_lock_target, None);
+        assert!(!source.retarget_after_own_direct_kill);
+        assert_eq!(source.laser_attack_count, 0);
     }
 
     #[test]

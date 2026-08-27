@@ -1057,3 +1057,13 @@
   tick_count: 197
   scenario_hash: 49e8f71b67439ee7531dd4b18e6d942837a40dec851bcb8baf8066c271759d79
   result_hash: 35e62324e894619a38dbeae98a50a8e241b41f930275c24e5dcf840d1aafaa65
+
+- name: steel-balls-vs-steel-balls-01
+  smoke: true
+  layout: tests/layouts/steel-balls-vs-steel-balls.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787831322
+  tick_count: 303
+  scenario_hash: e70d923f19605392f0536da6a9a0478341ec2bc229b2db17c0dea4ce7e88710e
+  result_hash: 1e2d9ba12da49d3d4a3744335945f2580e341fc444b0334364a5bb847e764aa9

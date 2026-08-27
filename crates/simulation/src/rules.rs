@@ -35,7 +35,7 @@ const DEFAULT_UNITS: [&str; 23] = [
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
-const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 7] = [
+const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 8] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
@@ -43,6 +43,7 @@ const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 7] = [
     include_str!("../../../config/units/fang.yaml"),
     include_str!("../../../config/units/mustang.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
+    include_str!("../../../config/units/steel_ball.yaml"),
 ];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
@@ -672,6 +673,14 @@ impl AttackConfig {
         quantize_i64(speed, SPACE_UNITS_PER_METER)
     }
 
+    pub(crate) fn laser_damage(&self, attack_count: usize) -> i64 {
+        let AttackPath::Laser { damage_multipliers } = &self.path else {
+            unreachable!("laser damage requires the laser attack path")
+        };
+        let multiplier = damage_multipliers[attack_count.min(damage_multipliers.len() - 1)];
+        (self.base_damage as f64 * multiplier).trunc() as i64
+    }
+
     pub(crate) const fn accepts(&self, domain: UnitDomain) -> bool {
         match domain {
             UnitDomain::Ground => self.targets.ground,
@@ -929,12 +938,31 @@ mod tests {
     }
 
     #[test]
+    fn steel_ball_laser_damage_truncates_and_caps_the_native_multiplier_sequence() {
+        let config = SimulationConfig::load(None).unwrap();
+        let attack = &config.units.get("steel_ball").unwrap().attack;
+        let damage = (0..7)
+            .map(|attack_count| attack.laser_damage(attack_count))
+            .collect::<Vec<_>>();
+
+        assert_eq!(damage, [2, 3, 8, 17, 31, 51, 77]);
+        assert_eq!(attack.laser_damage(usize::MAX), 2_604);
+    }
+
+    #[test]
     fn current_kernel_support_follows_the_explicit_config_set() {
         let config = SimulationConfig::load(None).unwrap();
         for (type_name, rules) in &config.units.units {
             let is_supported = matches!(
                 type_name.as_str(),
-                "marksman" | "arclight" | "rhino" | "crawler" | "fang" | "mustang" | "wasp"
+                "marksman"
+                    | "arclight"
+                    | "rhino"
+                    | "crawler"
+                    | "fang"
+                    | "mustang"
+                    | "wasp"
+                    | "steel_ball"
             );
             assert_eq!(
                 rules.ensure_current_kernel_support().is_ok(),
