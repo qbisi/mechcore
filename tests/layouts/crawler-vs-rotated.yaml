@@ -1,0 +1,15 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: crawler
+        x: 5
+        y: -100
+
+  red:
+    formations:
+      - type: crawler
+        rotated: true
+        x: 0
+        y: -105
