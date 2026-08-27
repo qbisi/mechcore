@@ -238,36 +238,6 @@
   scenario_hash: 47d86c29effc72abf2481fb80ad5ee7633e1c0de488f6219d0af06420d6d82d2
   result_hash: dda99035ee848cbe48ec75a0cae87de39ed974543dee4c23185f733676d9c1cc
 
-- name: crawlers-vs-crawlers-02
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787778861
-  tick_count: 359
-  scenario_hash: 5d5dafcd96c7d3b49ad3bef5538a077d361eb34f0bbf91a4d6fd79825f5f4457
-  result_hash: 3803f3c72b2f6f9b55c1dd62c7125d024385b3c9a16abe149ec961d0355d2813
-
-- name: crawlers-vs-crawlers-03
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787778896
-  tick_count: 329
-  scenario_hash: fdc9011e311ab8d6ec229808e828b44142b3980f9c0055a58dffced1fcb60152
-  result_hash: a13523c111c8c1a12439eddd99c657084d1bc90fe470f7f5e2a4ca482087580d
-
-- name: crawlers-vs-crawlers-04
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787778929
-  tick_count: 371
-  scenario_hash: ce7eaf8b21bd66912133e990a4d06714bc990ae091179494205a57b1a38efdce
-  result_hash: c678c8ab44e4e86de0fa0d39909a87341a8a34959fe1f897c7c830b6ae1eda21
-
 - name: crawlers-vs-crawlers-05
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -277,36 +247,6 @@
   tick_count: 372
   scenario_hash: 6cb4405f38b3f07701f31870491ba3022929ed3a7d0c99700288ebb75aca44b8
   result_hash: 45bfbf771a50e11b8440f52048d7c81591745478f3868527552c6c3200e1ceb1
-
-- name: crawlers-vs-crawlers-06
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787791613
-  tick_count: 361
-  scenario_hash: c7c6c6a1815f963128591f4b1e29a38572278d5f099bc84385cd307753b2bc2a
-  result_hash: 4557838dc3f0524090557b583d3598972f63a44d0e8dc6401c9d8d9729f6b1d3
-
-- name: crawlers-vs-crawlers-07
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787791670
-  tick_count: 358
-  scenario_hash: 6fa28fb144838c019e2286ed3eeaf5ac2c503962b0c84f8d4448987a4db664f1
-  result_hash: 18d000bc28fd3cac1ae5315411cab819b1f4eb8c3ad900c84001f12baaeb4aa1
-
-- name: crawlers-vs-crawlers-08
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787791714
-  tick_count: 410
-  scenario_hash: fe5e15ffa306601b9aee0fcb6e5d2da000c3812e199122f0ad36d6a9bfbeba68
-  result_hash: bc5188dcaf972194278afbdf152a6d5df1cf7e5925ea2664f52e6daeb340955a
 
 - name: crawlers-vs-crawlers-09
   smoke: false
@@ -318,36 +258,6 @@
   scenario_hash: e62cec333f610faa63f76ffb1bb98f08563ee7521f4b8fe4f6a02edf41f1f645
   result_hash: 44135baba16753bcb2d84cf41973a5279e819ad5e43b2fd9149569a5884fbc4b
 
-- name: crawlers-vs-crawlers-10
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787791791
-  tick_count: 370
-  scenario_hash: 7fed687ce32f25573477e24542b27cc4ecb66e094b5ced0e0ee0288982ea23e5
-  result_hash: a74e962362305e5b98ce4d215d73fb5f99b2114c1d2fdca451c3054d7adb07e0
-
-- name: crawlers-vs-crawlers-11
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799402
-  tick_count: 385
-  scenario_hash: fcd13d9cd4e4476eeb33641277e168f663fd27db894d6f39a827f79450f461d3
-  result_hash: 53202a08e3699ed0d6addd84f2b28c18e810d0072b574c4480d0ad3cc8dcd510
-
-- name: crawlers-vs-crawlers-12
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799459
-  tick_count: 317
-  scenario_hash: 8803d8913f768b34926047e3fdc809ec08deeaf8c794cda3b85f1bf281746f6a
-  result_hash: 34dc9dbad4d978f841a66d8c6dc88216d75e866b80d10b5f4af9785cd70aafe3
-
 - name: crawlers-vs-crawlers-13
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -357,36 +267,6 @@
   tick_count: 380
   scenario_hash: 7c495b54704e5509461b710f982cd11886830bab30ec83346b84a89375ba6d47
   result_hash: 47c0cf4447aa1bfb161fef3b976f5850ddcddf8fa51a66aec5b5ab49a4244d52
-
-- name: crawlers-vs-crawlers-14
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799540
-  tick_count: 346
-  scenario_hash: e871964e87e306169997b123181be694f361333adf360e0928176efdc7bbec31
-  result_hash: 471de498b7ff58a8472389c1b4413b16220a7ca3e590a8e50a85c222b7c04626
-
-- name: crawlers-vs-crawlers-15
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799582
-  tick_count: 387
-  scenario_hash: f8e4779d7de6498fd6449dfe38a83e61650aa0407c394f15f89c3080c9024054
-  result_hash: 4ff7a5f34cb3a32383c13f79c354f2cf8d5b17d62c78d5f8e42d80163d4d049c
-
-- name: crawlers-vs-crawlers-16
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799712
-  tick_count: 388
-  scenario_hash: 25e14dce2064232da5c0fc25d6a251eed80d8299676bbfbb70909a5209458484
-  result_hash: 792a4e125266c39cb06533e8ccc352194fb952a9fda18e4677bc906733a1c4e1
 
 - name: crawlers-vs-crawlers-17
   smoke: false
@@ -398,36 +278,6 @@
   scenario_hash: 622b61a9dcfbba2f47854086f61ef15ac87c42fd578a2eb3ff3a02ec335d8f8b
   result_hash: 77e4a5270c0574384026257e43f22f6304506abcc72c5dc423aa070bbb11b939
 
-- name: crawlers-vs-crawlers-18
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799786
-  tick_count: 407
-  scenario_hash: 857a996dfafb245d68f166e5acf673fbedd4e6e59421564ffe4f26a5dde4f506
-  result_hash: fa5a9ac640a4285cd218a2530451f63d8c65c1276cd500e5c98f17d2c798cd6a
-
-- name: crawlers-vs-crawlers-19
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799827
-  tick_count: 390
-  scenario_hash: 45805b11188dfa048831d1657c5f383df14631f41cffabc491fb020e79f674d0
-  result_hash: 7ff493154d0e1284ca189414714341bc9cd86529f4644245618a785ead0a74f6
-
-- name: crawlers-vs-crawlers-20
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787799867
-  tick_count: 385
-  scenario_hash: fc114ebf60ed148ba8a7f43e84f63e0b6124f59674af10cca353a4fd8975837a
-  result_hash: e71ab3cb055c0936ef9cca856f596fef2896fad1ae24416578a64b8f184fc2c2
-
 - name: crawlers-vs-crawlers-21
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -437,36 +287,6 @@
   tick_count: 378
   scenario_hash: fe040d376877cda20831ec190fdd46a57e26f7e78026370666a8bb8580bb4949
   result_hash: 7bb3ec297764f381a1b9693800d934920088c635fa756ebec2d7c4978eebcd1b
-
-- name: crawlers-vs-crawlers-22
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787800668
-  tick_count: 366
-  scenario_hash: 2fe0163f08cb68dcc211b329c18e0b80be538b62483f3a89aa078f015d78ba40
-  result_hash: 3fdde3e0a3c45f8971469207e6680d1dc62ffd6cfacb0f153c79ca405ce063ba
-
-- name: crawlers-vs-crawlers-23
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787800703
-  tick_count: 351
-  scenario_hash: 3299e4232e5ead8ffafae246e936b119c68c227d6b598fba79847edfa3d0f568
-  result_hash: d286ca270acec33158be6c035727eabe8071a58e5b75b3d5e7b4fcf918318772
-
-- name: crawlers-vs-crawlers-24
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787800742
-  tick_count: 369
-  scenario_hash: f2b050cd521f3b83f1fbdd462ed2770109cf1b69632aa72d0180ff7a02ee94d3
-  result_hash: 0c3f323a8362eca8f26a8bb8f77e60f36e4b0f1edf99ba3cf28b4fa2677bddac
 
 - name: crawlers-vs-crawlers-25
   smoke: false
@@ -478,36 +298,6 @@
   scenario_hash: 083e6c90e22edeb7fa5d73eab10945cc7453e92cddacbb36d6dc2c21e2d2481e
   result_hash: af012b1e468597cb023ae40a894012ddbb9446f35212928541fc1bd9ac191652
 
-- name: crawlers-vs-crawlers-26
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787800882
-  tick_count: 405
-  scenario_hash: e74044db614d3c903ce7b1d8b2af07789b84f29fa542f198d67dd5401ffbae55
-  result_hash: f155bb19d8a58ab5c810f5652abb74992ea28278b7f5cda77ceb0ff6fde70a85
-
-- name: crawlers-vs-crawlers-27
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787800927
-  tick_count: 391
-  scenario_hash: ac72ac95976d584da3b2a39fba292e7548e00f6490b3eef23aafeda25cc0e163
-  result_hash: fec881bcf2717538225cea77008d3a2a14c8d3d39cbf6ebdb8a26da28d48a6fe
-
-- name: crawlers-vs-crawlers-28
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787800972
-  tick_count: 386
-  scenario_hash: 23786b191a426656b15fe46739efdd22aae7125992968f8a490038ca171caffa
-  result_hash: bb772e243a25f778199b5f3549a8e0ac85f3095f5ca1529885084d031b3a20ba
-
 - name: crawlers-vs-crawlers-29
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -517,36 +307,6 @@
   tick_count: 318
   scenario_hash: 25577af67c4514f4cc5130d84795dc7e1054bed39861dcb3c4914560e28a485b
   result_hash: 01845d2828a83fc679c1ff9b0e6cbf40a4a5733986ad887bd8d28d2cbf78596c
-
-- name: crawlers-vs-crawlers-30
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787801047
-  tick_count: 342
-  scenario_hash: f5e5b50b73789666414105207388e9169e9ec48e4dc8aa26e3eeb6909784bb2d
-  result_hash: 977de147957e7475a2f361df6b9ce27345f98b68c9750546d22e148e4d6ed9e1
-
-- name: crawlers-vs-crawlers-31
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787802424
-  tick_count: 351
-  scenario_hash: 5f1913c86a6877cd00a438d67283d49eeca727a6d7973425de5d8f3d5140500b
-  result_hash: 2db2b2b7bd4a9ff563a87221aa08ff485d4385f8384dce461da769c680b684cd
-
-- name: crawlers-vs-crawlers-32
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787802490
-  tick_count: 367
-  scenario_hash: c0be1a6e58add18a81ed35c6978d572f4c5e4903cafdd2c96854e8a68e2a00ad
-  result_hash: d4998b451aea1948f02397f1697e5ff70a38ea4803bfd052bf43a1ef549894bb
 
 - name: crawlers-vs-crawlers-33
   smoke: false
@@ -558,36 +318,6 @@
   scenario_hash: 126c6e06e5f9874e5e4e3a3ab662c2fcccdff025a568ab8a34a0fcfaaccd73d1
   result_hash: 5df6e30cfd5fc47ade4b35de90276a4d7a57ed37f65e9cf61251ff33ac26fb28
 
-- name: crawlers-vs-crawlers-34
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787802559
-  tick_count: 404
-  scenario_hash: 2cafd54682ae12e8410b7a761edb7ec4cbf0446d4008b1895ba629ce2fc0949c
-  result_hash: 882ea18fad4c9c2593678819e593496e5131687b899e4ef9257c8b3c51befb39
-
-- name: crawlers-vs-crawlers-35
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787802593
-  tick_count: 328
-  scenario_hash: af20a339a840e86a69e2af842f464c30bd5f3dbc36e56b4269ec0c33627ab692
-  result_hash: d13bb81a5c5477a36d24fc1302ace5ee4ef894b00d5ce49a45a4cbe1fb718491
-
-- name: crawlers-vs-crawlers-36
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803487
-  tick_count: 396
-  scenario_hash: af39623e5f7e37d8e379b7de369ae0e2bb72c5e8c49ae6175d24c6e488448fca
-  result_hash: 8aa4e4e0c38ebc749a3eee030a3bd20aa48d1977bba960aa530121ef3152cf9f
-
 - name: crawlers-vs-crawlers-37
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -597,36 +327,6 @@
   tick_count: 357
   scenario_hash: 4c66c0f5ba4f49fd3adcd5acbef5a61bac95e47e2b8e2c3e3ae2b2a4f6254828
   result_hash: 7cf11cefdd87b7cd6ac8463d7f357a13d5f7e41289fa7e6dee9f2d4d47c7a0aa
-
-- name: crawlers-vs-crawlers-38
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803553
-  tick_count: 396
-  scenario_hash: 4a80cbd9f6a22cd446592f8731605ec86a322d3b23afeb96be94ef06a4199aad
-  result_hash: 522a2d649ecfe781e088df4316ea7fccd36b0219e0ebbe491b4458f7b175a844
-
-- name: crawlers-vs-crawlers-39
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803604
-  tick_count: 370
-  scenario_hash: 728242ae65e2d12e1139d8359ceb5099fe26d207c06db7bde43a5d9aeabe0669
-  result_hash: 026a8feb5546f42e88fb8d4f5404d668a27c21ea5e08f61a4ff5d7c01c37909a
-
-- name: crawlers-vs-crawlers-40
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803641
-  tick_count: 397
-  scenario_hash: c386cfaa2a8dcc90e4bc9bc8f6cbfb389bb2713f5a12bf983227605bd88ba0ae
-  result_hash: 2655423cb95ca71f0d32bd9666da058a234ad51184d2288bcb77ade647c3e413
 
 - name: crawlers-vs-crawlers-41
   smoke: false
@@ -638,36 +338,6 @@
   scenario_hash: a022c51709c9bc4372916fa42a8f32b8e89bb387b476d7ad1753c3aa21c4ba89
   result_hash: 0494ab8cc2af49d99865b4d46612a37b80fa4c088e0a459c353bdbede7a48c09
 
-- name: crawlers-vs-crawlers-42
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803771
-  tick_count: 327
-  scenario_hash: 8f8781f2710eb2f824eeea5082b19194318ad61221a830b681e929acec71a73f
-  result_hash: 1f012fa232566e4bf1e0c83286c07798ea9b1a55a832d4ae6d8832ef46c652e9
-
-- name: crawlers-vs-crawlers-43
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803810
-  tick_count: 391
-  scenario_hash: aaf85e27ef3a56a06281e07d49516dfbaf150b949f662117d71efcb0b0153b7d
-  result_hash: b4510f259e6c63a4996183585d345d114248a2bdfc223d7daccc28189b07203f
-
-- name: crawlers-vs-crawlers-44
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787803837
-  tick_count: 324
-  scenario_hash: 8c4c7a7b4e982a7140f1170c3af8cc9a3ecf315a637f1dc33160d9f0c7b05673
-  result_hash: 658748f902c3dcf3601718b8e3dece41309e815ff0ec14cee31ae69d136de0f7
-
 - name: crawlers-vs-crawlers-45
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -678,36 +348,6 @@
   scenario_hash: b9c7a5e0766f48afc8ece6dea50c58e08f73664325479afb88ed9b000c727f7c
   result_hash: fcba077f7cf783fcb88d1c1882ef6cf565e45f22b1591f189743d494d68e5175
 
-- name: crawlers-vs-crawlers-46
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787804431
-  tick_count: 381
-  scenario_hash: 3611c7991b5f5bc9749353294a1c41a94ff8bd478252af5ec220f93601d3002c
-  result_hash: a8b555d3721bdbef872a2c76e7e1345be4dc23b898326c9c49345b72df4009ea
-
-- name: crawlers-vs-crawlers-47
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787804469
-  tick_count: 377
-  scenario_hash: 1701d48ada5ad4b339a21d0f391b273d31666656f1c994e4fbe561bc7ea897bc
-  result_hash: da75974d94625ed04067dc07d211b8fbcd319241e8154a0daeb00bc9469629a4
-
-- name: crawlers-vs-crawlers-48
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787804497
-  tick_count: 325
-  scenario_hash: 632d178abbccfb340b39b7228b9d6ff7a8ea5790e517bddff6f6b89a26db3882
-  result_hash: 3f1a2da82ae5a6f52d6a3b895e96202e2090979b32c80e4aaef5db82727e35cb
-
 - name: crawlers-vs-crawlers-49
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -717,36 +357,6 @@
   tick_count: 390
   scenario_hash: 0493b023295363a7ca560f026fd04b9e5692ecfacf15ebd8e0680ac96aacc834
   result_hash: 08f34328356eb7df15ef543a02caf3f656b79bf0c90e361bd490bae541c9b2de
-
-- name: crawlers-vs-crawlers-50
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787804562
-  tick_count: 352
-  scenario_hash: 98d52ec43b9cad32f62a1c61d9eb3ed3f748f6b22704ff00d1368ed5f5ff35c8
-  result_hash: c40d2d6361a55b49f2577d565090f950e9e0fb79d4e14c7a51b208ccf77f2512
-
-- name: crawlers-vs-crawlers-51
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787804948
-  tick_count: 401
-  scenario_hash: 3d60eca36f19d15e1cc34384e86bbd2245237a73ad26bb797e0793a10ef53d63
-  result_hash: 29068ba34a02491e32a00d5c371dc7b59293018129bbda8bcb837c4f7cf97d5c
-
-- name: crawlers-vs-crawlers-52
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787804984
-  tick_count: 331
-  scenario_hash: 4e73135e3cc28537586e52d9ec3ec35e0f91c1aa1f68673b9313bacb482f2f0a
-  result_hash: 3a9537bce8dcc86e843d781c35f6aadf43eb947d57cd310823587df1a626cc15
 
 - name: crawlers-vs-crawlers-53
   smoke: false
@@ -778,46 +388,6 @@
   scenario_hash: 659769bbc56288d749a29e38614c98ca0c9ee3eebaa3a6858b3c3e2d52dee7ee
   result_hash: 7c57b8806919f3d0d18d64b357d2b8caee6f3b304f21f999cd343005040b77fd
 
-- name: crawlers-vs-crawlers-56
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787805830
-  tick_count: 319
-  scenario_hash: 3a61c93d37568c95f77512f7ca77877e2ee5e5a1696033e4286f59bb47ad9358
-  result_hash: 47fb14d1fa0bbb74ea0cb49d4979bbcd44fb108fdc580eb38f53c42b145ac34c
-
-- name: crawlers-vs-crawlers-57
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787805858
-  tick_count: 352
-  scenario_hash: 5517c1fea7c16043c0ca42e03a85843a87b35d303c1f722026fdbc6654883411
-  result_hash: 44b727d6530d4549c165eb5fb5f40db88ec37a0206b81d9dd2b31f50df7b9d45
-
-- name: crawlers-vs-crawlers-58
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787805887
-  tick_count: 371
-  scenario_hash: ff6c3406765e57f08728be9e07a3aa54828496325ef923368140020be223e210
-  result_hash: 7b4f86ea1f35cc858191c6eec79500d1b52c955d3d0523df70261052defabf0a
-
-- name: crawlers-vs-crawlers-59
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787805920
-  tick_count: 380
-  scenario_hash: 5396fff80086fb79bc244fc162bfb8e2dd4aaac4e0b54212308b45fdd3a19f42
-  result_hash: f004875028099297badca48107032d1cea42e1087b709f6ab74675d7792fe3c2
-
 - name: crawlers-vs-crawlers-60
   smoke: true
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -827,46 +397,6 @@
   tick_count: 343
   scenario_hash: 7850f875ac032bb36b229c93ad89f869f118e3b8a2c13d3feb057ad1bca6cbfb
   result_hash: 5de72fff812d6881a0721ab868b88d7e269588c9064992e269788d77c8789c44
-
-- name: crawlers-vs-crawlers-61
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806401
-  tick_count: 331
-  scenario_hash: e630d7a89aabcf55d55ccddb7bc6bdf1e7747d45171a704fba78209d72feb3ac
-  result_hash: f74033ac9f19e1f583756c254c391b6ab26cc22d15765f40f9073c153a4380ab
-
-- name: crawlers-vs-crawlers-62
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806440
-  tick_count: 390
-  scenario_hash: 66b0dddce4186b670f9d83ce77c01b34f1a1e6776ff88f4e8bb2528b0e4abc3d
-  result_hash: 9703f61d00c15178fb1dd7b1d8c738cfcebbd6a7abed5a20929bdfd7888e0fd9
-
-- name: crawlers-vs-crawlers-63
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806474
-  tick_count: 336
-  scenario_hash: 3cf411b00c83bb57c5045c0eefd74933ede4d2fe41612772389d2baedb65ae73
-  result_hash: 8548478f3fd15d52b35433385797bbe9ec76241c4243e6aad5ad4f5fb43df4f5
-
-- name: crawlers-vs-crawlers-64
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806505
-  tick_count: 344
-  scenario_hash: 0f2d46351e786a0a02f335fc83c24a52e255e0746d6d0e22918ef65e0685a18c
-  result_hash: 4b05378cb59a7b9944a8afc003cb4da5b0957b4fbd4f4022f18fe4c608c52723
 
 - name: crawlers-vs-crawlers-65
   smoke: false
@@ -878,26 +408,6 @@
   scenario_hash: c195cb6b9387983f103456d8741dba587282ab747056ce0d2e66d42ee212afe6
   result_hash: 806f6f12cf5ab8e7b86f645623da11abda5c5946b008421fe8ecbb11faa79504
 
-- name: crawlers-vs-crawlers-66
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806594
-  tick_count: 390
-  scenario_hash: 2870ac161bdc1e65d7a11d84471c2a0481b7dae923bec3dac069dc9ba09ed773
-  result_hash: 0eb17644b78f6899b912d072db66ece66ba164c8c9b95664f3e3a7cc2c5a9366
-
-- name: crawlers-vs-crawlers-67
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806630
-  tick_count: 387
-  scenario_hash: 8c057fc91211028e34588c31be5072e630258cb7abfda1a5f240bff60eb3d4e7
-  result_hash: c05b393c17c633a5a18827720793edba02b244fe101f541b9a0b427d9919204a
-
 - name: crawlers-vs-crawlers-68
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
@@ -907,16 +417,6 @@
   tick_count: 405
   scenario_hash: 4d755cb22504f9ce703c0b702a656cc9d8c6a36fa4b8194195b37801acb48b03
   result_hash: cf647ff63fd5da6b9e0d0cad9f9f30a3a04804f464bdf888c50a7fe338545c14
-
-- name: crawlers-vs-crawlers-69
-  smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
-  schema_version: 3
-  seed: 1787806749
-  tick_count: 326
-  scenario_hash: 202e7385dc665088197eaeb0c2af398d0e9c50cba2e3b2875e0e0e450a03e452
-  result_hash: c868615dc424f65cb75c0af0d054e388f5633b92b96b1bc7ccadf77fa276e048
 
 - name: crawlers-vs-crawlers-70
   smoke: false
