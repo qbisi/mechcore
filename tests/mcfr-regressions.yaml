@@ -1037,3 +1037,13 @@
   tick_count: 330
   scenario_hash: 5b50b4851101a116b107f5df2c43b1c7302011702f8208ab0a8f8fbf18fa7cc8
   result_hash: 39ab67a444c7ea466e038f01ad2c7500a7c52a6a24a7eda1d7ba0ed38ef22b3f
+
+- name: mustangs-vs-mustangs-01
+  smoke: true
+  layout: tests/layouts/mustangs-vs-mustangs.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787823221
+  tick_count: 255
+  scenario_hash: afbf9253000da726b88053a63426148b6402876fde16d7de98a5c4e3793bc891
+  result_hash: ccac7934488baebf9c99e358c80a343c7e19418c4bccdd45be3afb3b06f74287
