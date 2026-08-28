@@ -214,12 +214,20 @@ authoritative completion condition.
 
 ### start_test
 
-Input is an empty object.
+Input optionally specifies the native match seed:
+
+```json
+{"seed":1787720817}
+```
+
+Omitting `seed`, or passing `0`, preserves the game's system-generated seed
+behavior. Any nonzero signed 32-bit value is written to `BattleSetting.SystemSeed`
+before host creation.
 
 Typical output:
 
 ```json
-{"created":true,"initial_supply":10000}
+{"created":true,"initial_supply":10000,"requested_seed":1787720817}
 ```
 
 The operation creates the single fixed Training Ground mode used by
@@ -242,12 +250,13 @@ Main-menu output:
 Training Ground output:
 
 ```json
-{"status":"training_ground","round_count":1,"deploying":true,"fighting":false}
+{"status":"training_ground","round_count":1,"deploying":true,"fighting":false,"match_seed":1787720817}
 ```
 
 `status` is exactly one of `main_menu`, `training_ground`, `replay`, or
-`unknown`. Training Ground additionally reports `round_count`, `deploying`, and
-`fighting`; a temporarily unavailable native detail is `null`.
+`unknown`. Training Ground additionally reports `round_count`, `deploying`,
+`fighting`, and the effective `match_seed` read from the native match random
+stream; a temporarily unavailable native detail is `null`.
 
 ### toggle_fight
 

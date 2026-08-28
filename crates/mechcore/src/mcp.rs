@@ -37,6 +37,13 @@ type ApplyLayoutParameters = mechcore_layout::Layout;
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
+struct StartTestParameters {
+    /// Native match seed. Zero or omission lets the game generate one.
+    seed: Option<i32>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 struct RecordBattleParameters {
     /// Absolute destination path for the new `.mcfr` file.
     output: PathBuf,
@@ -182,12 +189,12 @@ impl Shared {
         Ok(json!({"connected": true, "status": status}))
     }
 
-    async fn start_test(&self) -> Result<Value, String> {
+    async fn start_test(&self, seed: Option<i32>) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
         *self.last_applied_layout.lock().await = None;
         let result = self
-            .adapter_request(Operation::StartTest, json!({}))
+            .adapter_request(Operation::StartTest, json!({"seed": seed}))
             .await?;
         let status = self
             .wait_status(
@@ -480,10 +487,13 @@ impl MechcoreMcp {
     }
 
     #[tool(
-        description = "Create the fixed Training Ground test mode and wait for round-one deployment"
+        description = "Create the fixed Training Ground test mode with an optional native match seed and wait for round-one deployment; zero or omission lets the game generate one"
     )]
-    async fn start_test(&self) -> Result<CallToolResult, ErrorData> {
-        Ok(tool_result(self.shared.start_test().await))
+    async fn start_test(
+        &self,
+        Parameters(parameters): Parameters<StartTestParameters>,
+    ) -> Result<CallToolResult, ErrorData> {
+        Ok(tool_result(self.shared.start_test(parameters.seed).await))
     }
 
     #[tool(description = "Apply a staged layout and advance to its activation-round deployment")]
@@ -923,6 +933,26 @@ mod tests {
         assert!(description.contains("main_menu"));
         assert!(description.contains("never quits the game"));
         assert!(description.contains("continuous captures"));
+    }
+
+    #[test]
+    fn start_test_tool_exposes_optional_seed() {
+        let shared = Shared::new();
+        let tool = MechcoreMcp::new(shared)
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == "start_test")
+            .expect("start_test tool exists");
+        let schema = Value::Object(tool.input_schema.as_ref().clone());
+
+        assert!(schema.pointer("/properties/seed").is_some());
+        assert!(
+            schema
+                .get("required")
+                .and_then(Value::as_array)
+                .is_none_or(|required| !required.contains(&json!("seed")))
+        );
     }
 
     #[test]

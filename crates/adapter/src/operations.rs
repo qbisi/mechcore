@@ -5,6 +5,7 @@ use crate::layout::{
 };
 use crate::runtime::Runtime;
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
+use serde::Deserialize;
 use serde_json::{Value, json};
 
 #[repr(C)]
@@ -44,6 +45,12 @@ const RESEARCH_CENTER_KIND: i32 = 2;
 const RANGE_ENHANCEMENT_SKILL: i32 = 5;
 const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
+
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct StartTestArguments {
+    seed: Option<i32>,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum LayoutExecutionStage {
@@ -168,7 +175,7 @@ impl From<Il2CppError> for OperationError {
 fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, OperationError> {
     match request.operation {
         Operation::Status => Ok(status(runtime)),
-        Operation::StartTest => start_test(runtime),
+        Operation::StartTest => start_test(runtime, &request.arguments),
         Operation::RecordBattle => Err(OperationError::InvalidState(
             "record_battle requires the runtime capture coordinator".into(),
         )),
@@ -210,11 +217,17 @@ fn status(runtime: &Runtime) -> Value {
         let round_count = api
             .invoke_value::<i32>(current_match, "get_RoundCount", &mut [])
             .ok();
+        let match_seed = api
+            .invoke(current_match, "GetRandom", &mut [])
+            .ok()
+            .filter(|random| !random.is_null())
+            .and_then(|random| api.invoke_value::<i32>(random, "GetSeed", &mut []).ok());
         return json!({
             "status": GameStatus::TrainingGround,
             "round_count": round_count,
             "deploying": deploying,
-            "fighting": fighting
+            "fighting": fighting,
+            "match_seed": match_seed
         });
     } else {
         GameStatus::Unknown
@@ -253,7 +266,8 @@ fn classify_replay(api: Api, object: *mut Object) -> Option<bool> {
     derives_from_match.then_some(replay)
 }
 
-fn start_test(runtime: &Runtime) -> Result<Value, OperationError> {
+fn start_test(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
+    let requested_seed = parse_start_test_seed(arguments)?;
     if !runtime.current_match().is_null() {
         return Err(OperationError::InvalidState(
             "a match is already active".into(),
@@ -273,7 +287,7 @@ fn start_test(runtime: &Runtime) -> Result<Value, OperationError> {
             "game did not create battle setting".into(),
         ));
     }
-    let mut seed = 0_i32;
+    let mut seed = requested_seed.unwrap_or(0);
     api.invoke_void(setting, "set_SystemSeed", &mut [argument(&mut seed)])?;
     let mut optional_features = false;
     for setter in [
@@ -309,8 +323,16 @@ fn start_test(runtime: &Runtime) -> Result<Value, OperationError> {
     }
     Ok(json!({
         "created": true,
-        "initial_supply": TRAINING_GROUND_SUPPLY
+        "initial_supply": TRAINING_GROUND_SUPPLY,
+        "requested_seed": requested_seed
     }))
+}
+
+fn parse_start_test_seed(arguments: &Value) -> Result<Option<i32>, OperationError> {
+    let arguments = serde_json::from_value::<Option<StartTestArguments>>(arguments.clone())
+        .map_err(|error| OperationError::InvalidArguments(error.to_string()))?
+        .unwrap_or_default();
+    Ok(arguments.seed)
 }
 
 fn configure_training_ground_supply(api: Api, setting: *mut Object) -> Result<(), OperationError> {
@@ -2582,6 +2604,18 @@ mod tests {
         assert!(is_main_menu_scene("Main Scene"));
         assert!(!is_main_menu_scene("Loading"));
         assert!(!is_main_menu_scene(""));
+    }
+
+    #[test]
+    fn start_test_seed_is_optional_i32_with_native_zero_semantics() {
+        assert_eq!(parse_start_test_seed(&Value::Null).unwrap(), None);
+        assert_eq!(parse_start_test_seed(&json!({})).unwrap(), None);
+        assert_eq!(parse_start_test_seed(&json!({"seed": 0})).unwrap(), Some(0));
+        assert_eq!(
+            parse_start_test_seed(&json!({"seed": 42})).unwrap(),
+            Some(42)
+        );
+        assert!(parse_start_test_seed(&json!({"unknown": 42})).is_err());
     }
 
     #[test]

@@ -149,8 +149,11 @@ speed field in `status`, so successful execution is its completion condition.
 
 ### start_test
 
-Input is empty. The call creates the fixed layout-test Training Ground and
-returns only after round 1 reports `deploying=true` and `fighting=false`.
+Input optionally contains `{"seed":1787720817}`. A nonzero signed 32-bit value
+requests that native match seed; zero or omission lets the game generate one.
+The call creates the fixed layout-test Training Ground and returns only after
+round 1 reports `deploying=true`, `fighting=false`, and the effective
+`match_seed` in its status snapshot.
 
 ### status
 
