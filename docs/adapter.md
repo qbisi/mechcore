@@ -110,12 +110,12 @@ Typical output:
 
 The operation begins only during first-round Training Ground deployment. It
 compiles and validates the complete layout before mutation, clears both sides,
-and lets earlier empty rounds end naturally. Non-travelling ambush units are
-placed in the round immediately before activation; only that round uses the
-private Training Ground finish-fight action if battle begins. Every remaining
-formation and modifier is applied in the activation round. The operation
-returns only after authoritative readback and stable activation-round
-deployment status.
+and expires earlier empty deployment states synchronously. Non-travelling
+ambush units are placed in the round immediately before activation; only that
+round uses the private Training Ground finish-fight action if battle begins.
+Every remaining formation and modifier is applied in the activation round,
+whose deployment timer is then reset. The operation returns only after
+authoritative readback and stable activation-round deployment status.
 
 ### quit_game
 

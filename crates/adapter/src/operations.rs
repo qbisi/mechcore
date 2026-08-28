@@ -14,6 +14,10 @@ struct MapVector {
     y: i32,
 }
 
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct FPoint(i64);
+
 #[derive(Debug)]
 struct UnitReadback {
     id: i32,
@@ -57,7 +61,8 @@ pub(crate) enum InternalOperation {
     },
     StopCapture,
     SpeedUp,
-    ToggleFight,
+    ExpireDeployment(i32),
+    ResetDeployment(i32),
     FinishPreparation(i32),
 }
 
@@ -82,7 +87,8 @@ pub(crate) fn execute_internal(
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
         InternalOperation::SpeedUp => speed_up(runtime),
-        InternalOperation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
+        InternalOperation::ExpireDeployment(round) => expire_deployment(runtime, round),
+        InternalOperation::ResetDeployment(round) => reset_deployment(runtime, round),
         InternalOperation::FinishPreparation(round) => finish_preparation(runtime, round),
     };
     operation_response(request_id, result)
@@ -364,6 +370,52 @@ fn invoke_match_void(runtime: &Runtime, method: &str) -> Result<Value, Operation
     let current = require_match(runtime)?;
     runtime.api.invoke_void(current, method, &mut [])?;
     Ok(json!({"performed": true}))
+}
+
+fn expire_deployment(runtime: &Runtime, expected_round: i32) -> Result<Value, OperationError> {
+    let (current, process) = require_deployment_process(runtime, expected_round)?;
+    // This is the synchronous body of StandaloneMatchActionController's delayed
+    // ExitCurrentMatchState action; queuing that action can expire the next round.
+    let mut state_over_time =
+        runtime
+            .api
+            .invoke_value::<FPoint>(current, "CalculateStateOverTime", &mut [])?;
+    runtime.api.invoke_void(
+        process,
+        "SetStateTime",
+        &mut [argument(&mut state_over_time)],
+    )?;
+    Ok(json!({"performed": true, "round": expected_round}))
+}
+
+fn reset_deployment(runtime: &Runtime, expected_round: i32) -> Result<Value, OperationError> {
+    let (_, process) = require_deployment_process(runtime, expected_round)?;
+    let mut state_time = FPoint(0);
+    runtime
+        .api
+        .invoke_void(process, "SetStateTime", &mut [argument(&mut state_time)])?;
+    Ok(json!({"performed": true, "round": expected_round}))
+}
+
+fn require_deployment_process(
+    runtime: &Runtime,
+    expected_round: i32,
+) -> Result<(*mut Object, *mut Object), OperationError> {
+    require_layout_deployment(runtime, expected_round)?;
+    let current = require_match(runtime)?;
+    let process = runtime
+        .api
+        .invoke(current, "GetProcessController", &mut [])?;
+    if process.is_null()
+        || !runtime
+            .api
+            .invoke_value::<bool>(process, "IsDeployState", &mut [])?
+    {
+        return Err(OperationError::InvalidState(
+            "layout round is not in the native deployment process state".into(),
+        ));
+    }
+    Ok((current, process))
 }
 
 fn finish_preparation(runtime: &Runtime, expected_round: i32) -> Result<Value, OperationError> {

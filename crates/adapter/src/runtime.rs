@@ -978,6 +978,23 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
         Ok(result) => stages.push(result),
         Err(response) => return response,
     }
+    if let Err(response) = successful_result(execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::ResetDeployment(target_round),
+    )) {
+        return response;
+    }
+    if let Err(response) = wait_layout_status(
+        runtime,
+        request.id,
+        deadline,
+        &format!("round {target_round} reset deployment"),
+        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+        |status| is_training_state(status, target_round, true, false),
+    ) {
+        return response;
+    }
     Response::success(
         request.id,
         serde_json::json!({
@@ -1012,7 +1029,7 @@ fn advance_layout_round(
     successful_result(execute_internal_on_main(
         runtime,
         request_id,
-        operations::InternalOperation::ToggleFight,
+        operations::InternalOperation::ExpireDeployment(round),
     ))?;
 
     if finish_if_fighting {
