@@ -1,82 +1,84 @@
 use mechcore_protocol::MAX_ACTIVATION_ROUND;
-use serde::Deserialize;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct Layout {
-    round: i32,
-    sides: Sides,
+pub struct Layout {
+    #[schemars(range(min = 1, max = 15))]
+    pub round: i32,
+    pub sides: Sides,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct Sides {
-    blue: Side,
-    red: Side,
+pub struct Sides {
+    pub blue: Side,
+    pub red: Side,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct Side {
+pub struct Side {
     #[serde(default)]
-    techs: Techs,
+    pub techs: Techs,
     #[serde(default)]
-    research_center: ResearchCenter,
+    pub research_center: ResearchCenter,
     #[serde(default)]
-    energy_tower: EnergyTower,
-    formations: Vec<Formation>,
+    pub energy_tower: EnergyTower,
+    pub formations: Vec<Formation>,
     #[serde(default)]
-    battle_skills: Vec<BattleSkillDefinition>,
+    pub battle_skills: Vec<BattleSkillDefinition>,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
-pub(crate) struct Techs {
-    pub(crate) officers: Vec<i32>,
-    pub(crate) units: Vec<i32>,
+pub struct Techs {
+    pub officers: Vec<i32>,
+    pub units: Vec<i32>,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
 #[allow(clippy::struct_field_names)] // Field names are fixed by the public layout schema.
-pub(crate) struct ResearchCenter {
-    pub(crate) strength_level: i32,
-    pub(crate) attack_level: i32,
-    pub(crate) defense_level: i32,
+pub struct ResearchCenter {
+    pub strength_level: i32,
+    pub attack_level: i32,
+    pub defense_level: i32,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
-pub(crate) struct EnergyTower {
-    pub(crate) strength_level: i32,
-    pub(crate) range_enhancement: bool,
-    pub(crate) movement_enhancement: bool,
+pub struct EnergyTower {
+    pub strength_level: i32,
+    pub range_enhancement: bool,
+    pub movement_enhancement: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct Formation {
+pub struct Formation {
     #[serde(rename = "type")]
-    type_name: String,
-    x: i32,
-    y: i32,
-    level: Option<i32>,
-    rotated: Option<bool>,
-    equipment: Option<i32>,
-    travelling: Option<bool>,
+    pub type_name: String,
+    pub x: i32,
+    pub y: i32,
+    pub level: Option<i32>,
+    pub rotated: Option<bool>,
+    pub equipment: Option<i32>,
+    pub travelling: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct BattleSkillDefinition {
+pub struct BattleSkillDefinition {
     #[serde(rename = "type")]
-    type_name: String,
-    positions: Vec<Position>,
+    pub type_name: String,
+    pub positions: Vec<Position>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum NativeFormation {
+pub enum NativeFormation {
     Unit(i32),
     Construction(i32),
     Contraption(i32),
@@ -89,52 +91,52 @@ struct FormationSpec {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum PlacementStage {
+pub enum PlacementStage {
     PreActivation,
     Activation,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Position {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct BattleSkill {
-    pub(crate) type_name: String,
-    pub(crate) commander_skill_id: i32,
-    pub(crate) positions: Vec<Position>,
+pub struct BattleSkill {
+    pub type_name: String,
+    pub commander_skill_id: i32,
+    pub positions: Vec<Position>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct Placement {
-    pub(crate) type_name: String,
-    pub(crate) native: NativeFormation,
-    pub(crate) footprint: Option<(i64, i64)>,
-    pub(crate) position: Position,
-    pub(crate) level: Option<i32>,
-    pub(crate) rotated: bool,
-    pub(crate) equipment: Option<i32>,
-    pub(crate) travelling: bool,
-    pub(crate) stage: PlacementStage,
+pub struct Placement {
+    pub type_name: String,
+    pub native: NativeFormation,
+    pub footprint: Option<(i64, i64)>,
+    pub position: Position,
+    pub level: Option<i32>,
+    pub rotated: bool,
+    pub equipment: Option<i32>,
+    pub travelling: bool,
+    pub stage: PlacementStage,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct SidePlan {
-    pub(crate) techs: Techs,
-    pub(crate) research_center: ResearchCenter,
-    pub(crate) energy_tower: EnergyTower,
-    pub(crate) formations: Vec<Placement>,
-    pub(crate) battle_skills: Vec<BattleSkill>,
+pub struct SidePlan {
+    pub techs: Techs,
+    pub research_center: ResearchCenter,
+    pub energy_tower: EnergyTower,
+    pub formations: Vec<Placement>,
+    pub battle_skills: Vec<BattleSkill>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct Plan {
-    pub(crate) round: i32,
-    pub(crate) blue: SidePlan,
-    pub(crate) red: SidePlan,
+pub struct Plan {
+    pub round: i32,
+    pub blue: SidePlan,
+    pub red: SidePlan,
 }
 
 const DEPLOYMENT_MIN_X: i64 = -300;
@@ -181,14 +183,30 @@ struct BattleSkillSpec {
 }
 
 impl Plan {
-    pub(crate) fn formation_count(&self) -> usize {
+    #[must_use]
+    pub fn formation_count(&self) -> usize {
         self.blue.formations.len() + self.red.formations.len()
     }
 }
 
-pub(crate) fn compile(value: &Value) -> Result<Plan, String> {
+/// Deserializes, validates, and normalizes a JSON layout into an execution plan.
+///
+/// # Errors
+///
+/// Returns an error when the JSON does not match [`Layout`] or violates any
+/// shared static layout rule.
+pub fn compile(value: &Value) -> Result<Plan, String> {
     let layout: Layout = serde_json::from_value(value.clone())
         .map_err(|error| format!("invalid layout: {error}"))?;
+    compile_layout(layout)
+}
+
+/// Validates and normalizes a parsed public layout into an execution plan.
+///
+/// # Errors
+///
+/// Returns an error when the layout violates any shared static layout rule.
+pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     if !(1..=MAX_ACTIVATION_ROUND).contains(&layout.round) {
         return Err(format!(
             "layout round must be within 1..={MAX_ACTIVATION_ROUND}"

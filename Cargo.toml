@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/adapter",
+    "crates/layout",
     "crates/mcfr",
     "crates/mechcore",
     "crates/protocol",

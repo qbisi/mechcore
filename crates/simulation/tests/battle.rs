@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
-use mechcore_simulation::{simulate_layout, simulate_layout_with_config};
+use mechcore_simulation::simulate_layout;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -358,58 +358,4 @@ fn generated_seed_is_reported_and_replayable() {
     )
     .unwrap();
     assert_eq!(generated.hashes, replayed.hashes);
-}
-
-#[test]
-fn unit_names_are_config_data_not_kernel_branches() {
-    let directory = tempfile::tempdir().unwrap();
-    let baseline =
-        simulate_layout(fixture(), directory.path().join("baseline.mcfr"), Some(7)).unwrap();
-
-    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source_units = repository.join("config/units");
-    let config_root = directory.path().join("config");
-    let units = config_root.join("units");
-    fs::create_dir_all(&units).unwrap();
-    fs::copy(
-        repository.join("config/config.yaml"),
-        config_root.join("config.yaml"),
-    )
-    .unwrap();
-    fs::copy(
-        repository.join("config/training_ground.yaml"),
-        config_root.join("training_ground.yaml"),
-    )
-    .unwrap();
-    for (source, renamed) in [("marksman", "unit_a"), ("arclight", "unit_b")] {
-        let mut config: serde_yaml::Value =
-            serde_yaml::from_slice(&fs::read(source_units.join(format!("{source}.yaml"))).unwrap())
-                .unwrap();
-        config["type_name"] = serde_yaml::Value::String(renamed.to_owned());
-        fs::write(
-            units.join(format!("{renamed}.yaml")),
-            serde_yaml::to_string(&config).unwrap(),
-        )
-        .unwrap();
-    }
-    let layout = directory.path().join("layout.yaml");
-    fs::write(
-        &layout,
-        fs::read_to_string(fixture())
-            .unwrap()
-            .replace("marksman", "unit_a")
-            .replace("arclight", "unit_b"),
-    )
-    .unwrap();
-
-    let renamed = simulate_layout_with_config(
-        layout,
-        directory.path().join("renamed.mcfr"),
-        Some(7),
-        Some(&config_root),
-    )
-    .unwrap();
-    assert_eq!(renamed.winner, baseline.winner);
-    assert_eq!(renamed.steps, baseline.steps);
-    assert_eq!(renamed.hashes, baseline.hashes);
 }

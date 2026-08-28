@@ -94,6 +94,13 @@ sides:
 YAML field order has no semantic meaning. Examples and generated files should
 nevertheless use the order above.
 
+The `mechcore-layout` crate is the authoritative implementation of this public
+shape, its static legality rules, and normalized execution plan. MCP uses its
+`Layout` type for the `apply_layout` input schema and validates with the shared
+compiler before contacting the game; the Adapter consumes the same plan, while
+the Simulator adds only its narrower feature-support and configuration checks.
+Runtime catalog availability and native readback remain Adapter-owned.
+
 ## Activation round
 
 `round` is a required integer in `1..=15`. It names the Training Ground round
@@ -398,11 +405,11 @@ infer a size from combat-member radius.
 
 Tracked negative fixtures cover the spatial rejection cases:
 
-- `crates/adapter/tests/fixtures/invalid-footprint-boundary.yaml`: center
+- `crates/layout/tests/fixtures/invalid-footprint-boundary.yaml`: center
   inside, footprint edge outside;
-- `crates/adapter/tests/fixtures/invalid-unit-collision.yaml`: an unrotated
+- `crates/layout/tests/fixtures/invalid-unit-collision.yaml`: an unrotated
   `50 x 20` Sledgehammer overlaps a rotated `20 x 50` Crawler;
-- `crates/adapter/tests/fixtures/invalid-unit-construction-collision.yaml`: a
+- `crates/layout/tests/fixtures/invalid-unit-construction-collision.yaml`: a
   `20 x 20` Marksman overlaps a `60 x 10` Defensive Wall.
 
 Numeric formation IDs are adapter details and must not appear in a layout. The

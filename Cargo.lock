@@ -400,6 +400,7 @@ name = "mechcore"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "mechcore-layout",
  "mechcore-mcfr",
  "mechcore-protocol",
  "mechcore-simulation",
@@ -417,12 +418,23 @@ version = "0.1.0"
 dependencies = [
  "jpeg-encoder",
  "libc",
+ "mechcore-layout",
  "mechcore-mcfr",
  "mechcore-protocol",
  "serde",
  "serde_json",
- "serde_yaml",
  "tempfile",
+]
+
+[[package]]
+name = "mechcore-layout"
+version = "0.1.0"
+dependencies = [
+ "mechcore-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]
@@ -449,6 +461,7 @@ name = "mechcore-simulation"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "mechcore-layout",
  "mechcore-mcfr",
  "serde",
  "serde_json",

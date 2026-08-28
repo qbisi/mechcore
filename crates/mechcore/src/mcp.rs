@@ -1,5 +1,5 @@
 use crate::adapter;
-use mechcore_protocol::{MAX_ACTIVATION_ROUND, Operation};
+use mechcore_protocol::Operation;
 use rmcp::{
     ErrorData, RoleServer, ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -33,13 +33,7 @@ const ADAPTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(60);
 const TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 
-#[derive(Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-struct ApplyLayoutParameters {
-    #[schemars(range(min = 1, max = 15))]
-    round: i32,
-    sides: Value,
-}
+type ApplyLayoutParameters = mechcore_layout::Layout;
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -206,14 +200,11 @@ impl Shared {
     }
 
     async fn apply_layout(&self, layout: Value) -> Result<Value, String> {
+        let plan = mechcore_layout::compile(&layout)?;
+        let activation_round = i64::from(plan.round);
         let _operation = self.operation.lock().await;
         self.require_training_deployment(1).await?;
         *self.last_applied_layout.lock().await = None;
-        let activation_round = layout
-            .get("round")
-            .and_then(Value::as_i64)
-            .filter(|round| (1..=i64::from(MAX_ACTIVATION_ROUND)).contains(round))
-            .ok_or_else(|| format!("layout round must be within 1..={MAX_ACTIVATION_ROUND}"))?;
         let result = self
             .adapter_request(Operation::ApplyLayout, layout.clone())
             .await?;
@@ -975,9 +966,58 @@ mod tests {
         assert!(serde_json::from_value::<ApplyLayoutParameters>(json!({"sides": {}})).is_err());
         let parameters = serde_json::from_value::<ApplyLayoutParameters>(json!({
             "round": 3,
-            "sides": {"blue": {}, "red": {}}
+            "sides": {
+                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
+                "red": {"formations": [{"type": "arclight", "x": 0, "y": -50}]}
+            }
         }))
         .unwrap();
         assert_eq!(parameters.round, 3);
+    }
+
+    #[tokio::test]
+    async fn apply_layout_runs_shared_validation_before_game_state_checks() {
+        let error = Shared::new()
+            .apply_layout(json!({
+                "round": 1,
+                "sides": {
+                    "blue": {"formations": [{"type": "unknown", "x": 0, "y": -50}]},
+                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                }
+            }))
+            .await
+            .unwrap_err();
+
+        assert!(error.contains("formation type \"unknown\""));
+    }
+
+    #[test]
+    fn apply_layout_tool_schema_describes_both_sides_and_formations() {
+        let shared = Shared::new();
+        let tool = MechcoreMcp::new(shared)
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == "apply_layout")
+            .expect("apply_layout tool exists");
+        let schema = Value::Object(tool.input_schema.as_ref().clone());
+
+        assert_eq!(
+            schema
+                .pointer("/properties/sides/$ref")
+                .and_then(Value::as_str),
+            Some("#/$defs/Sides")
+        );
+        let required_sides = schema
+            .pointer("/$defs/Sides/required")
+            .and_then(Value::as_array)
+            .expect("sides has a required list");
+        assert_eq!(required_sides.as_slice(), [json!("blue"), json!("red")]);
+        assert!(
+            schema
+                .pointer("/$defs/Side/properties/formations")
+                .is_some()
+        );
+        assert!(schema.pointer("/$defs/Formation/properties/type").is_some());
     }
 }

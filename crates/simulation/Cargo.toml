@@ -6,6 +6,7 @@ license.workspace = true
 rust-version = "1.89"
 
 [dependencies]
+mechcore-layout = { path = "../layout" }
 blake3 = "1"
 mechcore-mcfr = { path = "../mcfr" }
 serde = { version = "1", features = ["derive"] }
