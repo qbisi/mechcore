@@ -597,3 +597,203 @@
   tick_count: 648
   scenario_hash: 02636d943f770b1f3e8a8fe0afe2f524b7410f80b0df382b084e25f930d8120e
   result_hash: c23562e5f49ea1395756e823aefaaf9b07b281b5161e4263b8fa3f00eb792ba9
+
+- name: stormcaller-vs-self-01
+  smoke: true
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887280
+  tick_count: 764
+  scenario_hash: 15b5753458f5869b342633207eeaa61a509ad0a98c1be29e5c8e42bd86db34fc
+  result_hash: 64dc462a931ab0fedf036d3def06cebd27bd5b558614d0c40e8235df473e8e1c
+
+- name: stormcaller-vs-self-02
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787863348
+  tick_count: 499
+  scenario_hash: 25dc67a5bdbc9430a9bf5e9c32d085a6cb83c96a9a7f112b3e856735a05aa480
+  result_hash: 8ea955815c141e736454303343f9f0153522e1e1bad79a89961590f7f6f36fbe
+
+- name: stormcaller-vs-self-03
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787863396
+  tick_count: 503
+  scenario_hash: cd494b174821af69b4aa4020b506ba892e1e71e54b3ae604a10dd485821986a4
+  result_hash: 192483835836f63b4af8b098c35b92f7699d27e9b07300f058730fee1b9f62d0
+
+- name: stormcaller-vs-self-04
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787863436
+  tick_count: 515
+  scenario_hash: c30a8e051e53a68c2a14100119a5ea3e97a5ed58c4c93a36472cf9c87aaf4877
+  result_hash: a343bc074eaa29b6803b40338ffdec02392620e6a9b70f5d19a87976bc0f6167
+
+- name: stormcaller-vs-self-05
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787863478
+  tick_count: 596
+  scenario_hash: cdd515911535a00bc17ca647d98f8d972028aa1c1be73b3b32b4c0c293fc139b
+  result_hash: b4f8848844561773ef407cc42c3df7a3dbc15b96f5a723c2bc0752d87288151a
+
+- name: stormcaller-vs-self-06
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787863515
+  tick_count: 631
+  scenario_hash: 6903da5079646e576c1f9a3b37d8fe842e3894e92e2f1db060b45323df1aa9ea
+  result_hash: 09df610449240373c931a12683c32c5b8bdf394ec602be5a98defecfd3f7c8ae
+
+- name: stormcaller-vs-self-07
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887111
+  tick_count: 610
+  scenario_hash: fbd4d3abd0faaee0e8945a77c8b11b208ccb4f7a81d70a6a586651183e196886
+  result_hash: 9a4a85a42ceb073a27d0839458598542d3a2a31ae67b874d27eb3f6915547d99
+
+- name: stormcaller-vs-self-08
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887134
+  tick_count: 504
+  scenario_hash: a7dfa5b4784c41e03aa2aab446ec0aa6a9b7a680aeed0070dd804ea60207fcf5
+  result_hash: 0a3532426888304f61cb49938f3d10b5eef7e814213af36bc4160491171168ba
+
+- name: stormcaller-vs-self-09
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887155
+  tick_count: 597
+  scenario_hash: 64ad9200c81d0a75acd831296a4643ce1a38d1c535ee91dacd6c42618826887a
+  result_hash: 4edcfd5a256f45a2e2a876b1a2fae4e31858bb058c0c1a8fe6c6fcdb5657ecc9
+
+- name: stormcaller-vs-self-10
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887178
+  tick_count: 615
+  scenario_hash: 4490523f98a99df84c5f73c9ad904f21f4c00b3468c10492e77c811ffbb3530d
+  result_hash: 9690308049ff0a0483fae65cf54833f1f37a604759eef0d5036c628fd8bb55aa
+
+- name: stormcaller-vs-self-11
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887201
+  tick_count: 635
+  scenario_hash: 6d73221602582f54b6c34fb373872d47ffb6eac05446cd48553ca8daf8b8d6e8
+  result_hash: bccad06dcebe8ce146181372360010e5a9497d0c513d95f204f33437367e5a76
+
+- name: stormcaller-vs-self-12
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887304
+  tick_count: 431
+  scenario_hash: 4d74ccebb2690fdf0a2d3e385159643094bb1c82782b53ff280a9fc706a85d1e
+  result_hash: 88764aa14a4c446235dac702f01d6162d12b62452ddd6ca76bb906251ff86524
+
+- name: stormcaller-vs-self-13
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887323
+  tick_count: 548
+  scenario_hash: 3ec60d0830882be1c56e0561ac958b8c99ddbbbe29cda05d192e8c89be0fa0db
+  result_hash: 6159bdf2b56fb44ce891c34abbf292b46a0301f47e8e2285d4a908695dd90bc7
+
+- name: stormcaller-vs-self-14
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887345
+  tick_count: 628
+  scenario_hash: 770bc52252a2913441ad9ce258cb043c90f92cd6f5a03132ac525786d0e1b274
+  result_hash: 728f953eb818ab1f022676eae9b6dc0e63ebc41a753f9cf37eafbb80340bbf6f
+
+- name: stormcaller-vs-self-15
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787887368
+  tick_count: 504
+  scenario_hash: bd573e9e7482752f73f1eb2e4470a5d511959898bf8a29218a4c957bbeea84dc
+  result_hash: c48b987a6bc2110cb791ebacdff90abd80000accdf93667456910dfe2566ac90
+
+- name: stormcaller-vs-self-16
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787884975
+  tick_count: 519
+  scenario_hash: 72007292b3df1cf8a0f9bf7ea0aea381eb070eee5887fd0b925f01b81501c5be
+  result_hash: 6bd0ef1e4ee9789ba25fd04d2b7fbeb3db57d989e74ffb6460d8307fc5d4d92e
+
+- name: stormcaller-vs-self-17
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787882500
+  tick_count: 638
+  scenario_hash: 4a1e987eff5c4e2274328dd82318a0c32b43ec8497a4c33e63a5dbce8e10d11b
+  result_hash: dcc835fd74cf2e7dc513471dca560ba07694a4c1710fe4db16b4682c54658111
+
+- name: stormcaller-vs-self-18
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787881295
+  tick_count: 993
+  scenario_hash: 94f09c7da3cedf9b2544baade5236902e2f3e6c115d9d97da9b7674b19591c33
+  result_hash: c3ec158e860a7ba2c5c7fff118a467a2ac8db2eb6426ca407e445bc2b55a1a80
+
+- name: stormcaller-vs-self-19
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787880738
+  tick_count: 572
+  scenario_hash: 3d6098044b535a6782043448b4ad244d001bde286e4998153725b76993639ea3
+  result_hash: 62cfa388ee5f2deeab5f97726867fc5174670851fefd1fcaf6c62d6ce69b2758
+
+- name: stormcaller-vs-self-20
+  smoke: false
+  layout: tests/layouts/stormcaller-vs-self.yaml
+  game_build: 1.11.1.3.2259
+  schema_version: 3
+  seed: 1787869558
+  tick_count: 600
+  scenario_hash: e7684c295c2b5bbca92c497022a32c469bd8b1af5582916ec7d07833d320a169
+  result_hash: c85839813252578406a3a866621874cf7a400d55b617bdbd77d914e127eef65d
