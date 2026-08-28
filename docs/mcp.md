@@ -23,7 +23,7 @@ mechcore mcp
 
 The subcommand accepts no additional arguments or project-specific environment
 variables. The project-level Codex configuration starts the server through
-`direnv` and `cargo`, so it does not depend on the checkout path.
+`cargo`, so it does not depend on the checkout path.
 
 The controlling Agent separately builds and loads the Adapter and launches the
 game as documented in [Adapter build and launch](adapter.md#build-and-launch).
