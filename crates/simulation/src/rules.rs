@@ -35,7 +35,7 @@ const DEFAULT_UNITS: [&str; 23] = [
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
-const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 9] = [
+const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 10] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
@@ -45,6 +45,7 @@ const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 9] = [
     include_str!("../../../config/units/wasp.yaml"),
     include_str!("../../../config/units/steel_ball.yaml"),
     include_str!("../../../config/units/wraith.yaml"),
+    include_str!("../../../config/units/stormcaller.yaml"),
 ];
 
 const SPACE_UNITS_PER_METER: f64 = 1_000.0;
@@ -588,6 +589,13 @@ impl AttackConfig {
                     "path.target_offset_radius",
                     true,
                 )?;
+                let target_offset_space =
+                    quantize_i64(*target_offset_radius, SPACE_UNITS_PER_METER);
+                if target_offset_space != 0 && target_offset_space < 10 {
+                    return Err(Error::new(
+                        "path.target_offset_radius must be zero or at least one centimeter",
+                    ));
+                }
                 validate_scaled(
                     *extra_search_range,
                     SPACE_UNITS_PER_METER,
@@ -672,6 +680,41 @@ impl AttackConfig {
             unreachable!("the current kernel validates the projectile path")
         };
         quantize_i64(speed, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) fn projectile_life(&self) -> i64 {
+        let AttackPath::Projectile { max_life, .. } = self.path else {
+            unreachable!("projectile life requires the projectile attack path")
+        };
+        max_life.max(1)
+    }
+
+    pub(crate) fn projectile_count(&self) -> u32 {
+        let AttackPath::Projectile { count, .. } = self.path else {
+            unreachable!("projectile count requires the projectile attack path")
+        };
+        count
+    }
+
+    pub(crate) fn projectile_release_interval_time_units(&self) -> u64 {
+        let AttackPath::Projectile {
+            release_interval, ..
+        } = self.path
+        else {
+            unreachable!("projectile interval requires the projectile attack path")
+        };
+        quantize_u64(release_interval, TIME_UNITS_PER_SECOND)
+    }
+
+    pub(crate) fn projectile_target_offset_radius(&self) -> i64 {
+        let AttackPath::Projectile {
+            target_offset_radius,
+            ..
+        } = self.path
+        else {
+            unreachable!("projectile target offset requires the projectile attack path")
+        };
+        quantize_i64(target_offset_radius, SPACE_UNITS_PER_METER)
     }
 
     pub(crate) fn laser_damage(&self, attack_count: usize) -> i64 {
@@ -939,6 +982,23 @@ mod tests {
     }
 
     #[test]
+    fn projectile_target_offset_radius_is_zero_or_at_least_one_centimeter() {
+        let config = SimulationConfig::load(None).unwrap();
+        let mut stormcaller = config.units.get("stormcaller").unwrap().clone();
+        for (radius, valid) in [(0.009, false), (0.01, true), (0.0, true)] {
+            let AttackPath::Projectile {
+                target_offset_radius,
+                ..
+            } = &mut stormcaller.attack.path
+            else {
+                panic!("stormcaller uses the projectile path");
+            };
+            *target_offset_radius = radius;
+            assert_eq!(stormcaller.validate().is_ok(), valid, "radius {radius}");
+        }
+    }
+
+    #[test]
     fn steel_ball_laser_damage_truncates_and_caps_the_native_multiplier_sequence() {
         let config = SimulationConfig::load(None).unwrap();
         let attack = &config.units.get("steel_ball").unwrap().attack;
@@ -965,6 +1025,7 @@ mod tests {
                     | "wasp"
                     | "steel_ball"
                     | "wraith"
+                    | "stormcaller"
             );
             assert_eq!(
                 rules.ensure_current_kernel_support().is_ok(),

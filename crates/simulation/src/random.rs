@@ -40,6 +40,11 @@ impl GrRandom {
         }
     }
 
+    pub(crate) fn next_between_inclusive(&mut self, low: i32, high: i32) -> i32 {
+        i32::try_from(self.next_inclusive(i64::from(low), i64::from(high)))
+            .expect("the sample remains inside the i32 input range")
+    }
+
     pub(crate) fn next_in_range(&mut self, range: i32) -> i32 {
         debug_assert!(range > 0);
         i32::try_from(self.next_inclusive(i64::from(1 - range), i64::from(range - 1)))
