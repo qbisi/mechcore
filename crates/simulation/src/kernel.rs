@@ -2,9 +2,9 @@ use std::{cmp::Ordering, collections::BTreeMap};
 
 use mechcore_mcfr::{
     BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityAllocator,
-    IdentityContract, MCFR_SCHEMA_VERSION, McfrWriter, MotionState, NumericConvention, ObjectKind,
-    ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState,
-    Vec3, Visibility, WorldSnapshot,
+    IdentityContract, McfrWriter, MotionState, NumericConvention, ObjectKind, ObjectRef,
+    PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState, Vec3,
+    Visibility, WorldSnapshot,
 };
 use serde::Serialize;
 
@@ -4052,7 +4052,6 @@ pub(crate) fn run(
 ) -> Result<SimulationResult> {
     let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
     let context = DurableContext {
-        schema_version: MCFR_SCHEMA_VERSION,
         game_build: config.game_build.clone(),
         logic_step: Rational {
             numerator: LOGIC_TICK_TIME_UNITS / divisor,

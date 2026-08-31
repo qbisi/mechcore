@@ -1,12 +1,13 @@
+use std::io::{Read, Write};
+
 use mechcore_mcfr::{
     BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityContract,
     InstrumentationReader, InstrumentationRecord, InstrumentationSink, InstrumentationWriter,
-    MCFR_SCHEMA_VERSION, McfrReader, McfrWriter, MotionState, NumericConvention, ObjectKind,
-    ObjectRef, PersonalShieldState, Pose, ProjectileState, Rational, StatusState, TransitionEvents,
-    UnitState, Vec3, Visibility, WorldSnapshot,
+    MCFR_FORMAT, McfrReader, McfrWriter, MotionState, NumericConvention, ObjectKind, ObjectRef,
+    PersonalShieldState, Pose, ProjectileState, Rational, StatusState, TransitionEvents, UnitState,
+    Vec3, Visibility, WorldSnapshot,
 };
 
-use rust_hdf5::H5File;
 use serde_json::json;
 
 #[test]
@@ -34,10 +35,61 @@ fn writes_and_reads_state_and_event_tracks() {
     assert_eq!(reader.events(2).unwrap(), impact_events());
     assert_eq!(reader.tick(1).unwrap().state, projectile_state());
 
-    let file = H5File::open(&path).unwrap();
-    assert_eq!(file.dataset("ticks/hash").unwrap().shape(), [3, 32]);
-    assert_eq!(file.dataset("states/units/position").unwrap().shape()[1], 3);
-    assert!(file.dataset("states/data").is_err());
+    let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
+    assert_eq!(archive.len(), 6);
+    for name in [
+        "ticks.parquet",
+        "units.parquet",
+        "projectiles.parquet",
+        "buildings.parquet",
+        "statuses.parquet",
+        "events.parquet",
+    ] {
+        let mut entry = archive.by_name(name).unwrap();
+        assert_eq!(entry.compression(), zip::CompressionMethod::Stored);
+        assert!(entry.size() >= 8);
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes).unwrap();
+        assert_eq!(&bytes[..4], b"PAR1");
+        assert_eq!(&bytes[bytes.len() - 4..], b"PAR1");
+    }
+    assert_eq!(MCFR_FORMAT, "0.0.1");
+}
+
+#[test]
+fn reader_rejects_an_incomplete_member_set() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("source.mcfr");
+    write_battle(&source, initial_state());
+    let corrupt = directory.path().join("corrupt.mcfr");
+    let mut input = zip::ZipArchive::new(std::fs::File::open(source).unwrap()).unwrap();
+    let mut output = zip::ZipWriter::new(std::fs::File::create(&corrupt).unwrap());
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Stored)
+        .large_file(true);
+    for name in [
+        "ticks.parquet",
+        "units.parquet",
+        "projectiles.parquet",
+        "buildings.parquet",
+        "events.parquet",
+    ] {
+        let mut entry = input.by_name(name).unwrap();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes).unwrap();
+        output.start_file(name, options).unwrap();
+        output.write_all(&bytes).unwrap();
+    }
+    output.finish().unwrap();
+    assert!(McfrReader::open(corrupt).is_err());
+}
+
+#[test]
+fn writer_refuses_to_overwrite_an_existing_target() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("battle.mcfr");
+    write_battle(&path, initial_state());
+    assert!(McfrWriter::create(path, &context()).is_err());
 }
 
 #[test]
@@ -167,7 +219,6 @@ fn write_battle_with_middle(
 
 fn context() -> DurableContext {
     DurableContext {
-        schema_version: MCFR_SCHEMA_VERSION,
         game_build: "test-build".into(),
         logic_step: Rational {
             numerator: 1,

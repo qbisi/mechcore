@@ -5,9 +5,9 @@
 ## Status
 
 This document defines the baseline logical contents of `S` and `E` shared by
-native capture, simulation, comparison, and playback. Schema version 3 and its
-typed columnar HDF5 projection have a Rust reference implementation in
-`mechcore-mcfr`.
+native capture, simulation, comparison, and playback. Format `0.0.1` preserves
+the version 3 field semantics and projects them into a typed Parquet container
+implemented by `mechcore-mcfr`.
 
 ## Purpose
 
@@ -319,38 +319,31 @@ Rust simulation kernel --/
 ```
 
 `mechcore-mcfr` owns the logical record types, canonical ordering, validation,
-hashing, HDF5 serialization, and corresponding reader. The adapter may call
+hashing, Parquet serialization, and corresponding reader. The adapter may call
 the crate directly inside the game process; MCP may choose the output path and
 orchestrate the recording lifecycle, but it is not a required serialization
 intermediary.
 
-## HDF5 container version 2
+## Parquet format 0.0.1
 
-The `.mcfr` file is HDF5. The writer creates a temporary sibling and publishes
-the final path without overwriting an existing file only after all datasets,
-metadata, and hashes have been finalized.
+The `.mcfr` file is a STORE-only ZIP64 container with exactly six members:
+`ticks.parquet`, `units.parquet`, `projectiles.parquet`, `buildings.parquet`,
+`statuses.parquet`, and `events.parquet`. Every member uses Zstd-compressed
+Parquet pages and 128-tick row groups. State tracks are strictly ordered by
+`(tick, object_id)` and events by `(tick, ordinal)`; no cross-tick state delta
+is used.
 
-| Path | HDF5 type | Meaning |
-| --- | --- | --- |
-| `/context/data` | contiguous `u8` | One canonical `D` record. |
-| `/ticks/{unit,projectile,building,status,event}_offsets` | chunked `u64` | Ragged row boundaries for every tick, including initial zero. |
-| `/ticks/hash` | chunked `u8 [tick,32]` | Raw independent BLAKE3 hash for every logical tick. |
-| `/states/{units,projectiles,buildings,statuses}/<field>` | chunked typed columns | All directly observed snapshot fields, concatenated across ticks. Three-component vectors use `[row,3]`. |
-| `/events/<field>` | chunked typed columns | Ordered typed event discriminants, references, and payload columns concatenated across ticks. |
+`ticks.parquet` file metadata contains the single version marker
+`format = "0.0.1"`, canonical-JSON `durable_context`, lowercase hexadecimal
+scenario/result hashes, and decimal tick counts. Its rows contain continuous
+`tick: UINT64` and `tick_hash: FIXED[32]`. The other members contain typed Arrow
+columns and nullable structs only where the logical model is optional. Event
+payloads are a closed tagged union whose inactive branch leaves must be null.
 
-Root attributes contain the format and container/schema versions, `tick_count`,
-`terminal_tick`, `scenario_hash`, and `result_hash`. Container version 2
-requires `tick_count >= 1`, `terminal_tick = tick_count - 1`, one extra offset
-per ragged track, and `E(0) = []`.
-
-The logical API is array-of-structures by tick, while the physical HDF5 layout
-is structure-of-arrays by field. Each offset pair selects one tick's rows; no
-group-per-tick, HDF5 variable-length value, or per-tick JSON blob is used.
-Numeric columns use multi-row chunks with shuffle plus deflate level 1. Boolean
-state flags are losslessly bit-packed. Event payload columns are shared by the
-closed event union; cells unused by an event discriminant are zero and have no
-logical meaning. This layout supports streaming append, selective field reads,
-and direct random access to one comparison tick without state deltas.
+The writer builds the members in a temporary sibling directory, packages them
+into a temporary ZIP64 file, reopens and semantically verifies it, then publishes
+the final path without overwriting an existing file. ZIP CRC32 protects member
+transport; canonical hashes protect decoded logical content.
 
 An instrumentation sidecar uses the HDF5 format marker
 `mechcore.mcfr.instrumentation`. It stores steps, channels, content types,
@@ -359,26 +352,26 @@ payload bytes and payload offsets under `/records`, plus `scenario_hash`,
 
 ## Canonical hashes
 
-Correctness is defined over canonical logical content, not raw HDF5 file
-bytes. HDF5 library versions, metadata order, chunk layout, compression, and
+Correctness is defined over canonical logical content, not raw ZIP or Parquet
+bytes. Library versions, metadata order, row-group layout, compression, and
 source provenance may change physical bytes without changing battle content.
 
-Schema version 3 uses BLAKE3 with domain separation and a little-endian `u64`
+Format `0.0.1` uses BLAKE3 with domain separation and a little-endian `u64`
 length before every canonical record. The formal hash model is:
 
 ```text
-scenario_hash = BLAKE3("scenario-v3", canonical D, canonical S(0))
-tick_hash(t)  = BLAKE3("tick-v3", little_endian_u64(t), canonical S(t), canonical E(t))
-result_hash   = BLAKE3("result-v3", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
+scenario_hash = BLAKE3("scenario-0.0.1", "0.0.1", canonical D, canonical S(0))
+tick_hash(t)  = BLAKE3("tick-0.0.1", little_endian_u64(t), canonical S(t), canonical E(t))
+result_hash   = BLAKE3("result-0.0.1", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
 ```
 
-`D` contains only typed fields: schema/build identity, timing and numeric
-scales, combat round, match seed, and identity contract. Producer-private JSON,
+`D` contains only typed fields: build identity, timing and numeric scales,
+combat round, match seed, and identity contract. Producer-private JSON,
 configuration fingerprints, and source-specific commands do not enter the
 formal scenario hash.
 
-Two recordings are comparable only when their schema versions and
-`scenario_hash` values match.
+Two recordings are comparable only when their formats and `scenario_hash`
+values match.
 
 - the first unequal `tick_hash(t)` is the first divergent logical tick and its
   `S(t)/E(t)` can be read directly for diagnosis;
@@ -399,11 +392,11 @@ canonical JSON representation.
 
 ## Validation boundary
 
-MCFR reader validation covers container structure, canonical decoding, track
-lengths, hash presence and encoding, and the initial canonical identity
-contract. The writer computes and persists independent tick hashes; comparison
-scans those hashes directly and reads `S/E` only at the first divergent tick.
-The reader does not rebuild every hash from the HDF5 tracks. It also does not
+MCFR reader validation covers the exact ZIP member set, CRC, Parquet schemas and
+compression, canonical decoding, track ordering, event-union validity, and the
+initial canonical identity contract. It rebuilds scenario, tick, and result
+hashes from decoded logical content before accepting a file. Comparison scans
+the verified tick hashes and reads `S/E` only at the first divergent tick. It does not
 decide whether a gameplay state transition, reference, amount, gauge, or event
 sequence is logically legal; that belongs to a game-specific analyzer or
 simulator test.

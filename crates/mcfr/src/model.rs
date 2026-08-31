@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "mechcore.mcfr";
-pub const MCFR_SCHEMA_VERSION: u32 = 3;
-pub const MCFR_CONTAINER_VERSION: u32 = 2;
+pub const MCFR_FORMAT: &str = "0.0.1";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 1;
 
@@ -51,7 +49,6 @@ pub struct TickSlice {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DurableContext {
-    pub schema_version: u32,
     pub game_build: String,
     pub logic_step: Rational,
     pub numeric_convention: NumericConvention,
@@ -65,15 +62,8 @@ impl DurableContext {
     ///
     /// # Errors
     ///
-    /// Returns an error for unsupported schema versions, missing build identity, or invalid
-    /// timing and numeric ratios.
+    /// Returns an error for missing build identity or invalid timing and numeric ratios.
     pub fn validate(&self) -> Result<()> {
-        if self.schema_version != MCFR_SCHEMA_VERSION {
-            return Err(Error::invalid(format!(
-                "unsupported MCFR schema version {}",
-                self.schema_version
-            )));
-        }
         require_text(&self.game_build, "game_build")?;
         if self.combat_round == 0 {
             return Err(Error::invalid("combat_round must be positive"));

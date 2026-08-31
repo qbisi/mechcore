@@ -3,21 +3,20 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rust_hdf5::H5File;
 use tempfile::TempPath;
 
 use crate::{
-    DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TransitionEvents,
+    DurableContext, Error, Hashes, MCFR_FORMAT, McfrReader, Result, TransitionEvents,
     WorldSnapshot,
     canonical::{self, CanonicalHasher},
     model::IdentityAllocator,
-    storage,
+    parquet_storage::{self, StorageWriter},
 };
 
 pub struct McfrWriter {
     target: PathBuf,
     temporary: TempPath,
-    file: Option<H5File>,
+    storage: Option<StorageWriter>,
     context_bytes: Vec<u8>,
     initial_state_bytes: Option<Vec<u8>>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
@@ -30,7 +29,7 @@ impl McfrWriter {
     ///
     /// # Errors
     ///
-    /// Returns an error for invalid context, an existing target, or an HDF5 initialization
+    /// Returns an error for invalid context, an existing target, or a Parquet initialization
     /// failure.
     pub fn create(path: impl AsRef<Path>, context: &DurableContext) -> Result<Self> {
         let target = path.as_ref().to_path_buf();
@@ -46,23 +45,14 @@ impl McfrWriter {
         let context_bytes = canonical::encode(context)?;
         let temporary = tempfile::Builder::new()
             .prefix(".mcfr-")
-            .suffix(".h5.part")
+            .suffix(".zip.part")
             .tempfile_in(parent)?
             .into_temp_path();
-        let file = H5File::create(&temporary)?;
-        file.set_attr_string("format", MCFR_FORMAT)?;
-        file.set_attr_string("container_version", &MCFR_CONTAINER_VERSION.to_string())?;
-        file.set_attr_string("schema_version", &context.schema_version.to_string())?;
-        file.create_group("context")?
-            .new_dataset::<u8>()
-            .shape([context_bytes.len()])
-            .create("data")?
-            .write_raw(&context_bytes)?;
-        storage::create(&file)?;
+        let storage = StorageWriter::create(parent)?;
         Ok(Self {
             target,
             temporary,
-            file: Some(file),
+            storage: Some(storage),
             context_bytes,
             initial_state_bytes: None,
             tick_hashes: Vec::new(),
@@ -75,7 +65,7 @@ impl McfrWriter {
     /// # Errors
     ///
     /// Returns an error for an invalid tick-zero snapshot, canonical encoding failure, or partial
-    /// HDF5 append failure.
+    /// Parquet append failure.
     pub fn append_tick(
         &mut self,
         mut state: WorldSnapshot,
@@ -95,14 +85,10 @@ impl McfrWriter {
         let event_bytes = canonical::encode(events)?;
         let hash = canonical::tick_hash(tick, &state_bytes, &event_bytes);
         self.poisoned = true;
-        storage::append_tick(
-            self.file
-                .as_ref()
-                .ok_or_else(|| Error::invalid("writer file is unavailable"))?,
-            &state,
-            events,
-            &hash,
-        )?;
+        self.storage
+            .as_mut()
+            .ok_or_else(|| Error::invalid("writer storage is unavailable"))?
+            .append_tick(tick, &state, events, hash)?;
         if tick == 0 {
             self.initial_state_bytes = Some(state_bytes);
         }
@@ -126,7 +112,8 @@ impl McfrWriter {
         if self.tick_hashes.is_empty() {
             return Err(Error::invalid("an MCFR must contain tick zero"));
         }
-        let mut scenario_hasher = CanonicalHasher::new("scenario-v3");
+        let mut scenario_hasher = CanonicalHasher::new("scenario-0.0.1");
+        scenario_hasher.update(MCFR_FORMAT.as_bytes());
         scenario_hasher.update(&self.context_bytes);
         scenario_hasher.update(
             self.initial_state_bytes
@@ -136,20 +123,19 @@ impl McfrWriter {
         let scenario = scenario_hasher.finalize();
         let result = canonical::result_hash(&scenario, &self.tick_hashes);
         let hashes = Hashes::from_raw(scenario, result);
-        let tick_count = u64::try_from(self.tick_hashes.len())
-            .map_err(|_| Error::invalid("tick count overflow"))?;
-        let file = self
-            .file
-            .as_ref()
-            .ok_or_else(|| Error::invalid("writer file is unavailable"))?;
-        file.set_attr_string("tick_count", &tick_count.to_string())?;
-        file.set_attr_string("terminal_tick", &(tick_count - 1).to_string())?;
-        file.set_attr_string("scenario_hash", &hashes.scenario_hash)?;
-        file.set_attr_string("result_hash", &hashes.result_hash)?;
-        self.file
+        let directory = self
+            .storage
             .take()
-            .ok_or_else(|| Error::invalid("writer file is unavailable"))?
-            .close()?;
+            .ok_or_else(|| Error::invalid("writer storage is unavailable"))?
+            .finish(&self.context_bytes, &hashes)?;
+        parquet_storage::package_members(directory.path(), &self.temporary)?;
+        let verified = McfrReader::open(&self.temporary)?;
+        if verified.hashes() != &hashes {
+            return Err(Error::invalid(
+                "published MCFR hashes differ after structural verification",
+            ));
+        }
+        drop(verified);
         self.temporary
             .persist_noclobber(&self.target)
             .map_err(|error| Error::Io(error.error))?;

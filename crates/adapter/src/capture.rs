@@ -5,9 +5,9 @@ use crate::{
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_mcfr::{
     BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, IdentityContract,
-    MCFR_SCHEMA_VERSION, MotionState, NumericConvention, ObjectKind, ObjectRef,
-    PersonalShieldState, Pose, ProjectileState, Rational, StatusState, TransitionEvents, UnitState,
-    Vec3, Visibility, WorldSnapshot,
+    MotionState, NumericConvention, ObjectKind, ObjectRef, PersonalShieldState, Pose,
+    ProjectileState, Rational, StatusState, TransitionEvents, UnitState, Vec3, Visibility,
+    WorldSnapshot,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -3475,7 +3475,6 @@ fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
     let random = invoke_object(runtime.api, current_match, "GetRandom")?;
     let match_seed = invoke_value::<i32>(runtime.api, random, "GetSeed")?;
     Ok(DurableContext {
-        schema_version: MCFR_SCHEMA_VERSION,
         game_build: version,
         logic_step: Rational {
             numerator: 1,
@@ -7064,7 +7063,6 @@ mod tests {
         ];
         let events = transition_events(&traces, &capture);
         let context = DurableContext {
-            schema_version: MCFR_SCHEMA_VERSION,
             game_build: "test".into(),
             logic_step: Rational {
                 numerator: 1,

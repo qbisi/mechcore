@@ -2,798 +2,798 @@
   smoke: true
   layout: tests/layouts/marksman-vs-arclight.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787720817
   tick_count: 92
-  scenario_hash: d06fcbff599a161eb3d23b3bfb3fd3e73c3229dc6cf80c4efcea24fc6a2d292b
-  result_hash: 8e27f7fadf7575f527bebdcda4ce452dcb8bbeda4fa39d91b6bd8d7b25079c5f
+  scenario_hash: b22bf23d1dd0b596b32aea358a47a3da8dae8560848e8d94dce10e1dc939cfa2
+  result_hash: 07987bfdf48f0b482731b416597cd29cb998ffd3e151ad8734b2091f8ea6cbcc
 
 - name: rhino-vs-arclight
   smoke: true
   layout: tests/layouts/rhino-vs-arclight.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787720897
   tick_count: 236
-  scenario_hash: 38c831beb8a6d75473ffd65c293f0683729de0a58d8204c78f1905f9760bfa4a
-  result_hash: d1b90af517b08494ceffa3cfd6ab608db4e2dc5c78d139984582382285a26b8e
+  scenario_hash: 99931a3fab58942a5e7830126a727ba75245e2f23e9559f664585abbbf588fda
+  result_hash: 5a0672da2d3984f560608684c374e8051f103d331f9ede3b97a34afb3aa0cea6
 
 - name: rhino-retarget
   smoke: true
   layout: tests/layouts/rhino-retarget-vs-arclights.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787720956
   tick_count: 337
-  scenario_hash: 657032d4bd1ba7f8374cb800858a42f4c6906b38efc39b36f070e3e7737ad1c2
-  result_hash: 56cc3814b09f7258a59c05e3fb050098914113f1dba8e56ea636bc9118476b51
+  scenario_hash: bde36144754233984580f7b6a7349df701aaa5ad711252a86d57dde6276c8979
+  result_hash: 8c82cc1eb38776e918b5e90ceb6457f7d4bcbc32f23f5bd4cd8421616f8b390a
 
 - name: rhino-vs-crawlers-01
   smoke: true
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748319
   tick_count: 378
-  scenario_hash: ccf2219a3709910f0a389aee28ab12b9305456a1a41053e4519626c9613af886
-  result_hash: 612bb2d0edee8117f4fbde6b0e69587159f18f463da433913a781e79d0f531fd
+  scenario_hash: b2e17bcacde8d7f4616405325775400fbc27895bd9224e49478c5b50da77323a
+  result_hash: d67a0d68b96a68e3f08ae844bdaceb3615d4aed29678d5dccf7d657d099016b1
 
 - name: rhino-vs-crawlers-02
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748346
   tick_count: 313
-  scenario_hash: cbac8c632f0be4fff74a7ac6f36be663a630890af2fea77588545bc2a913fa25
-  result_hash: f88f0f956795408492a3d8fec9581de38db2ecd0b295ce789ec81563b1f5c5e6
+  scenario_hash: 7c2fb5ae47691961ab485c8205e8f9025798d2df7c1f9308b7c82a445245964b
+  result_hash: 70295a47fd77dd42a2df2812bfc09bda7c71e81abe1fcc71f0ee3f8113b348d9
 
 - name: rhino-vs-crawlers-03
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748375
   tick_count: 279
-  scenario_hash: 71ad7e784870f2e3aa596bc9a42f197210b0a76fcf2e8fb0677b2667d0274bfe
-  result_hash: 2d0a43b1b945e21506c9f8ca00dbcf527b3c429ced471d18a32436badafe33e4
+  scenario_hash: 0c37896683f977cf6ec23f39ac0c9b3cce4acdcade6610145b231b072f392e25
+  result_hash: e31c4ea610df1381592277e38b1d55ca75d1419943ccbe471bef57964e80eaf3
 
 - name: rhino-vs-crawlers-04
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748402
   tick_count: 361
-  scenario_hash: 483612dcde6eb9692bfa949d4b7243df2c6b27df378a0b14f126f7dccc26e515
-  result_hash: 77636ba3a408ac95fb528a8d46c7aaf57ae20b3cea08c489c60707b54e9074e9
+  scenario_hash: fe44130600bb1141203b287396e82d62e19f14d0b2149ab3fe95c8017d6d4956
+  result_hash: 89b89c20122403be6f90b6ce1048dd806a5074bb495ddc0202fcc85f97b70307
 
 - name: rhino-vs-crawlers-05
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748432
   tick_count: 326
-  scenario_hash: 58c979270f8b96c782502ab43a54bf662229de29e5ece999fc1ea78fc4d42327
-  result_hash: e98d7ad14d17317d5a916fdf913ada7bd4efe5c1caaca8285bdda025383db29e
+  scenario_hash: bc4ef411538c8530b02be1a7d657c2c1f19d995006b8bd4c6720768594b50952
+  result_hash: 3136ed5f2e15a75c46b13e7032d41977a7a89923fad735e549849fbabbfd969d
 
 - name: rhino-vs-crawlers-06
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748486
   tick_count: 383
-  scenario_hash: f094b4f3dac4e72a5ee77dce54168eed259d5acce972023b904ef194760d98a5
-  result_hash: 75456cda62b18215290ae637055e466f7712de3acd3b3645c107df9cdd285cd2
+  scenario_hash: 9d7e75b8cc938a4f32699cca68717041cc04a02fb4efa79c88ac9eed5d0eb95b
+  result_hash: f257e172480e4e5f140fb842ebe282ed6e57dd232bc76796c4c81c28043fc6de
 
 - name: rhino-vs-crawlers-07
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748526
   tick_count: 318
-  scenario_hash: b1854f715df770275832609cb8d233ea8b75f0eb8910aec232194e96996ef753
-  result_hash: 5958b64775d05e1b7e38c28c13ad78ad1d3ffb2ec8c96acf6cecd2efc3828f02
+  scenario_hash: 977bdf14593c83272e959abd101b1007c8cb82f52ec4e2424e79f78ebca0da27
+  result_hash: bff82f33b80f12dcee6789bb58170ca54f869eb03c543d7e2768be7ac6003307
 
 - name: rhino-vs-crawlers-08
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748558
   tick_count: 326
-  scenario_hash: cfa304c033db86bcd07a1e12968650ee3b162d6a4fde2f7ca0d88879c8080e81
-  result_hash: 2ac0cfe6912143e858be863b5bfc37b922af9a134d656d3503c7c8a9a579501c
+  scenario_hash: f7b136b0f14c8e7e95b615666c7f5d36218751df473dfa0573bda446e982fdd6
+  result_hash: af0bb77cb88ff4c012a540229901169950fb3079cd3d20a342969eae1bfae8ce
 
 - name: rhino-vs-crawlers-09
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748599
   tick_count: 361
-  scenario_hash: 6ec1a15ce4e6bbe3d5df40c44307315901ae25c10a8f9e410d6e2479a373840b
-  result_hash: 5e80577698b267f9271e28200e4529264c258e94c0a85522e887b6d56d744abc
+  scenario_hash: 8b1832b50a958e287dc2d7e82f82e6345404b8ebfcc583842740431180796735
+  result_hash: b89e8590b65f5359a6a71be79a4732b6eef9c721e79c063587276e207f47fac3
 
 - name: rhino-vs-crawlers-10
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787748638
   tick_count: 237
-  scenario_hash: d3303bff09819604f39d3fd3e702af30258e7eea3eb549bfd0606cda815ba88e
-  result_hash: 99847397e8474a09ffb9f90b1a324ae8dfd1592838f066d6a6953fe091e15a6c
+  scenario_hash: ce7e94be05b8ba65b7e964bdaa3783ce5f8be7f5f2ffdc7844c990f20c74b047
+  result_hash: ff988c144991b7774f3253c4a79fede46da9b896d7336e15d1eee6b478d8aaa7
 
 - name: crawlers-vs-rhino-01
   smoke: true
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787757964
   tick_count: 281
-  scenario_hash: 87bfc63151e3152f80d68517339fbeb3f790777bec4ae7d277d3de760562e882
-  result_hash: f21c940260fd6fdf055a9bf6da35fff1b287cd119d7bc6ac9196c97509cfabf1
+  scenario_hash: 18b1e417098129959b7b269bd0ec0262c488c2ce468cd176212f3bcda49abc7a
+  result_hash: 4d08138580a641240d33fa91a6d8915da220917558d8b442cc4b23e3ee21387a
 
 - name: crawlers-vs-rhino-02
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758008
   tick_count: 302
-  scenario_hash: e9d60d331ba55b87e413b55a28d0b5b5ca5dca50b60e9d59a7075aa4cd9f5e08
-  result_hash: 52653aa0a9799570032ef9b5f2fcfd2fb4f351438031e5fb19fbafe1b9442590
+  scenario_hash: 633b70bac20e6088425c2b6ea5354a4eabd35199f16c286c4625fb528f16add2
+  result_hash: b61e37896040a6064965db34bf035a57d52ac76b8b64c14e8e9cfae6084c3530
 
 - name: crawlers-vs-rhino-03
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758042
   tick_count: 309
-  scenario_hash: 8beb6f1c40ef37175e541ea525437c4e0e349b950416e1bb4d0d7b66e45223bd
-  result_hash: 0f1945df5ac321b682d8b61d326c9a9d2273a6c74a9ececda368ca37f2724864
+  scenario_hash: 7051f647fd1bbcd5a769a9a487dc3e4a1f42704083620637c696e06e4637b41e
+  result_hash: 59471fa9a1cd0ac24ea5bbe6fa42594da369396e208c7da19edd293c0aea490e
 
 - name: crawlers-vs-rhino-04
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758104
   tick_count: 365
-  scenario_hash: e879c9ebcc5bb32163cdb47dc74c6b0fc5bee5033c4166c485c676bc8845e822
-  result_hash: 15caed9624d610961fbef1a341b83bb93eb7b65d33e3babf0615ba34378a887e
+  scenario_hash: 248231f08450e8e3e3b6fb542302a54e9883b62a53c4e10b479fffcb8a21cf91
+  result_hash: ba48fcc374efde26f051dc33f93953370bf77a4fb6f522b79952b019a6605dd7
 
 - name: crawlers-vs-rhino-05
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758157
   tick_count: 322
-  scenario_hash: b9649c76ceea916ff01c7907dd2f87d124f76de1546d9c09bcba0e0c3758661e
-  result_hash: f0f4f543175b208bbbee086ac1d2bffa7ba0c594054b5e4f3ecb402709659240
+  scenario_hash: 32038cb63ae16875f89feb4d9e5a724eea1f3a1063074d373a4bee4649e07215
+  result_hash: 4aae1544b22b98dc1f753a8f035daf95b16435ef9be92ddbff103d40797a2c7a
 
 - name: crawlers-vs-rhino-06
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758202
   tick_count: 265
-  scenario_hash: 0fd7a8a858ae750cbceca727774fac63acc0c85628d7f706ba5991d769e2e50c
-  result_hash: 9cadbb041c0adbf2eecfe1d52177692eba901bd4b104a2816184546f6286c2b7
+  scenario_hash: 633a2bb7b08f36552d35bd8ac7623ea04eaf2c8c73457cb5012884e164df3771
+  result_hash: c1ff21e5b4a4eb105bc318804e49cd48d87cee20a48aea3e25a4a8fddb8a26e7
 
 - name: crawlers-vs-rhino-07
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758244
   tick_count: 299
-  scenario_hash: 3ae5a9eda739ba17dacf2924555dca807b7c86dd3d1622f2e25a4adba908c7b3
-  result_hash: 5fe871a5a9ea2ed4d549784010d01ae1bffa464b6ae999f07d81c632663a32d6
+  scenario_hash: 8b067b0d97c42217fc5f0baa27d8a1db2127e9e82849f837047c0644228c3efa
+  result_hash: b447bb378867b9fb2c5f92670ae59f4e1c7f9683c83f28b32ad8a8660987c181
 
 - name: crawlers-vs-rhino-08
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758281
   tick_count: 280
-  scenario_hash: 635fbebf33112275238c4a8c693a2dfa1a7bf8c54de0ef09652c6ac2e8ec293b
-  result_hash: d17e89664bf1d5cef7c9ac1373b9cff96bf9926845ad392201ef68697b371a8c
+  scenario_hash: 64c01589d8dae4e4271187cd967c27c9bb6f8ba2e8eceaf4efe6cd02c5ef5fe6
+  result_hash: 0a155c86b3a249c676785f6b352aa57b50580013535847fd88c12c8ba81dee0f
 
 - name: crawlers-vs-rhino-09
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758328
   tick_count: 296
-  scenario_hash: 8bac8d0226189ef87c15466d2be03db67a187e2192909956540068917fd594fb
-  result_hash: 8dd31460c3c1721f7be0a3648764d0fdee301e3bb6f96dd2ee36d4ae1ec4cdda
+  scenario_hash: 81e575e5454130b6011807d4a10a510a7feea7b88f44db73bb2e4f564b085475
+  result_hash: 93ecf80da17af8cce1ee99766004a7f07a657ba746c2e99879cb7468865f0917
 
 - name: crawlers-vs-rhino-10
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787758384
   tick_count: 308
-  scenario_hash: 82a8bdcb3b5f4b29b07b0c665e4703ca353a96fe210b75bee4f83f105f8ba65e
-  result_hash: 21f013f5b61c0fa507f724bf8112005ca28aa336bcc6c77c983caf4ee7d7b82f
+  scenario_hash: c0e09918795dac96ba262ec1bdce4fcfe5e858b63a61555d99079ed5d2f879b4
+  result_hash: 5dfab899ffcc134d8ad36bddc8274a90f1875bc2b33a5417cb68262cdad87296
 
 - name: crawlers-vs-crawlers-01
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787778788
   tick_count: 352
-  scenario_hash: 47d86c29effc72abf2481fb80ad5ee7633e1c0de488f6219d0af06420d6d82d2
-  result_hash: dda99035ee848cbe48ec75a0cae87de39ed974543dee4c23185f733676d9c1cc
+  scenario_hash: 5cdca4eb30de18cc5da5ef21b3dfd4127e9d5f5561be51dff7f2aa9022124976
+  result_hash: 59f4b019fd5182c66999d20e1e9257241e1431b874fc6b4d48a6214ab0c39141
 
 - name: crawlers-vs-crawlers-05
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787778960
   tick_count: 372
-  scenario_hash: 6cb4405f38b3f07701f31870491ba3022929ed3a7d0c99700288ebb75aca44b8
-  result_hash: 45bfbf771a50e11b8440f52048d7c81591745478f3868527552c6c3200e1ceb1
+  scenario_hash: bff1d1bfc55ed317fc0ca9242e3325003b52627e516f202429dac33700578ecb
+  result_hash: 897432996787c36025036085cebd39012368e88d9e9e4a1f20627bb754c670ea
 
 - name: crawlers-vs-crawlers-09
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787791755
   tick_count: 404
-  scenario_hash: e62cec333f610faa63f76ffb1bb98f08563ee7521f4b8fe4f6a02edf41f1f645
-  result_hash: 44135baba16753bcb2d84cf41973a5279e819ad5e43b2fd9149569a5884fbc4b
+  scenario_hash: 2d22c94fdc9df14e6bfd071cae2cd79a7be71af22c4b4d168547e8afda7518f1
+  result_hash: fe5d51ba9f89b6966da26d8498e454c0b931498bfd55dc938b6538fb1219b04a
 
 - name: crawlers-vs-crawlers-13
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787799499
   tick_count: 380
-  scenario_hash: 7c495b54704e5509461b710f982cd11886830bab30ec83346b84a89375ba6d47
-  result_hash: 47c0cf4447aa1bfb161fef3b976f5850ddcddf8fa51a66aec5b5ab49a4244d52
+  scenario_hash: dc5238240612c249890e8b15c0cfee8e82917df1e5f066ff4c08143418e856c9
+  result_hash: 9037cdc2a796bf0eb0bd994f66fe9667091cdb458431bd17200acda613e86a4a
 
 - name: crawlers-vs-crawlers-17
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787799748
   tick_count: 382
-  scenario_hash: 622b61a9dcfbba2f47854086f61ef15ac87c42fd578a2eb3ff3a02ec335d8f8b
-  result_hash: 77e4a5270c0574384026257e43f22f6304506abcc72c5dc423aa070bbb11b939
+  scenario_hash: 170f7dbf6b2c510a148d7828a568c1ec54c718f4697bed32499fe4b10fa1250f
+  result_hash: d576ffc58a15362aee68d87e123281e9fb9da810ce57003d3bec3cc5dbd9be08
 
 - name: crawlers-vs-crawlers-21
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787800633
   tick_count: 378
-  scenario_hash: fe040d376877cda20831ec190fdd46a57e26f7e78026370666a8bb8580bb4949
-  result_hash: 7bb3ec297764f381a1b9693800d934920088c635fa756ebec2d7c4978eebcd1b
+  scenario_hash: b98e88d11194a9794cb6a5925c54063dd98c11d020483145d000e60d69cb7069
+  result_hash: 875b4afeaca3e74ab38212dedb14cf9293a59a3797b949f1805c54bbe1d5e106
 
 - name: crawlers-vs-crawlers-25
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787800781
   tick_count: 367
-  scenario_hash: 083e6c90e22edeb7fa5d73eab10945cc7453e92cddacbb36d6dc2c21e2d2481e
-  result_hash: af012b1e468597cb023ae40a894012ddbb9446f35212928541fc1bd9ac191652
+  scenario_hash: 40bb4f955f2d68ad1d9ef23e5d496e8c0cbcfbcec06aa27767efcb8d8c2fc55e
+  result_hash: 6e302f5c86dfa87b738acd5899a35e4cd5d1bfeb057b0fe144c005680647d40f
 
 - name: crawlers-vs-crawlers-29
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787801010
   tick_count: 318
-  scenario_hash: 25577af67c4514f4cc5130d84795dc7e1054bed39861dcb3c4914560e28a485b
-  result_hash: 01845d2828a83fc679c1ff9b0e6cbf40a4a5733986ad887bd8d28d2cbf78596c
+  scenario_hash: bef93cc349113bbf73e80843caf4c1765a660bc48d3943ed1037969b3e32fa59
+  result_hash: 4fff3db7beed8eb4ed0bc0f8a32e2de74773e4747b62079013ad6f5c416ec02e
 
 - name: crawlers-vs-crawlers-33
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787802518
   tick_count: 440
-  scenario_hash: 126c6e06e5f9874e5e4e3a3ab662c2fcccdff025a568ab8a34a0fcfaaccd73d1
-  result_hash: 5df6e30cfd5fc47ade4b35de90276a4d7a57ed37f65e9cf61251ff33ac26fb28
+  scenario_hash: 1aa8582801072adb0a7fd1641d055f4c924763c83f2099e3080a99d4535dada2
+  result_hash: feca8c315d2d007e2990d07cfd420491524fbf641dc1e8b13b3e04a25f7230a6
 
 - name: crawlers-vs-crawlers-37
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787803517
   tick_count: 357
-  scenario_hash: 4c66c0f5ba4f49fd3adcd5acbef5a61bac95e47e2b8e2c3e3ae2b2a4f6254828
-  result_hash: 7cf11cefdd87b7cd6ac8463d7f357a13d5f7e41289fa7e6dee9f2d4d47c7a0aa
+  scenario_hash: a7e0c7120937f43bcc4a14ab07488fd16a724568d77af9da4020965ee173da24
+  result_hash: e9164f7cdae777fb2d8bdcfc38c5f34aea2244caf209c0735c094b3795068b40
 
 - name: crawlers-vs-crawlers-41
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787803732
   tick_count: 354
-  scenario_hash: a022c51709c9bc4372916fa42a8f32b8e89bb387b476d7ad1753c3aa21c4ba89
-  result_hash: 0494ab8cc2af49d99865b4d46612a37b80fa4c088e0a459c353bdbede7a48c09
+  scenario_hash: 4d8a437fafbabb5d654bf517877ba297a269dd6c5fabda658a0da3aee8a18a29
+  result_hash: a266ac7ba320cfb0349b275061aad6dc1aae153cc23527f50c5a8c512ac42957
 
 - name: crawlers-vs-crawlers-45
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787803881
   tick_count: 301
-  scenario_hash: b9c7a5e0766f48afc8ece6dea50c58e08f73664325479afb88ed9b000c727f7c
-  result_hash: fcba077f7cf783fcb88d1c1882ef6cf565e45f22b1591f189743d494d68e5175
+  scenario_hash: 7a25e4e1a7b79515556a56fe0a22b674252b8c40c7036cbf22361b0981db8e94
+  result_hash: 5156e0e7e3ef7c1f9e0c7190a20b256b1f42805c491fdd9146684094a80c3282
 
 - name: crawlers-vs-crawlers-49
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787804531
   tick_count: 390
-  scenario_hash: 0493b023295363a7ca560f026fd04b9e5692ecfacf15ebd8e0680ac96aacc834
-  result_hash: 08f34328356eb7df15ef543a02caf3f656b79bf0c90e361bd490bae541c9b2de
+  scenario_hash: d1fc2ab2ee2eed363fefc56d48e524d88dceca9c300db2e74274a6865a35419e
+  result_hash: 7b6276b897e03ad461c13de460a37d6e17dc1113a02532ab77dc6ded8cd6ea44
 
 - name: crawlers-vs-crawlers-53
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787805016
   tick_count: 351
-  scenario_hash: 5f3149a68d44565536b0b43bfbf6428d83ee32fe721fe270d571adc11170326d
-  result_hash: 4a123138f15772f5ef74f0cefda61b8977bf540cb4519cb2da0ef47c1ac302f8
+  scenario_hash: fd80a2ac0bd001fc27392b2262eb57518efb237d322e299806438e4b3b0b2f9a
+  result_hash: 530ef0175ee7f85da42999af375a2d54663c95a1d2adf5fb429ce3b29b5e0f20
 
 - name: crawlers-vs-crawlers-54
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787805051
   tick_count: 350
-  scenario_hash: ef6646b02e566dca10950b3cb4bef476d5cff3435f8b25c2b25c03857862677a
-  result_hash: 9b913eae1d96fea9f3c5ea2c1caf26628952db1557f7c7820215da066c5056f5
+  scenario_hash: 0e4e93e5b90205940bc531e1eef4a4a41607870c7396fa73d8be0c7ac44f9098
+  result_hash: 2440d0192b7d39be40fbe5e13867daf92f727852619c721318223fdba8fda47b
 
 - name: crawlers-vs-crawlers-55
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787805107
   tick_count: 369
-  scenario_hash: 659769bbc56288d749a29e38614c98ca0c9ee3eebaa3a6858b3c3e2d52dee7ee
-  result_hash: 7c57b8806919f3d0d18d64b357d2b8caee6f3b304f21f999cd343005040b77fd
+  scenario_hash: b3e6bf74a822a37f8a31126539af22664fc705fc84a0fda9e4bac5b70327eb26
+  result_hash: 4031724252b68ca2358e3a7a5dcd857f5c4f44949b29e1cbde56bfa18c97cd13
 
 - name: crawlers-vs-crawlers-60
   smoke: true
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787805959
   tick_count: 343
-  scenario_hash: 7850f875ac032bb36b229c93ad89f869f118e3b8a2c13d3feb057ad1bca6cbfb
-  result_hash: 5de72fff812d6881a0721ab868b88d7e269588c9064992e269788d77c8789c44
+  scenario_hash: 2ed0e386616c65e7bdcc654769f892abf69a27873068ac35e3ac14e4aec3a291
+  result_hash: 3787fcbafe1efdee6fefe9ef0352a8cd7523f662fba2ce26551a8a7789b2791b
 
 - name: crawlers-vs-crawlers-65
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787806536
   tick_count: 335
-  scenario_hash: c195cb6b9387983f103456d8741dba587282ab747056ce0d2e66d42ee212afe6
-  result_hash: 806f6f12cf5ab8e7b86f645623da11abda5c5946b008421fe8ecbb11faa79504
+  scenario_hash: 1f6ea1d5184777eb4e19276fd0f6635e776a902d35a5d604dbce0ccc587f1d41
+  result_hash: bc3badb850aa8a5c99d200b8e339be31aeba92f16f179e25776441f959855fe7
 
 - name: crawlers-vs-crawlers-68
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787806713
   tick_count: 405
-  scenario_hash: 4d755cb22504f9ce703c0b702a656cc9d8c6a36fa4b8194195b37801acb48b03
-  result_hash: cf647ff63fd5da6b9e0d0cad9f9f30a3a04804f464bdf888c50a7fe338545c14
+  scenario_hash: 042b84926ae25fd21f2ad8a0c338b9df517e5b91e555dd332c70ae7c68cd2823
+  result_hash: 8d10a406356a0d12bd379154cc4a058f49ab759ad4aa069a97142f375835515a
 
 - name: crawlers-vs-crawlers-70
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787806795
   tick_count: 296
-  scenario_hash: 3912ad55a6d9a946fc1ef7adba1980cd02d97931dabb314c71556238e7c706ae
-  result_hash: 437d6edd4299c436c5ff7bad6cb6677f07d83f61bb990f23ca4b1bee4af0353f
+  scenario_hash: 8d7655266f8bf7ca8eb7b797f28ee451fd6261a184c77cb27c240a18c76a1419
+  result_hash: f8bc43955f5ac6f3e6e9307ca1216a5dbd6b528408432971b0b438ab2447b6be
 
 - name: fangs-vs-fangs-01
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787808873
   tick_count: 345
-  scenario_hash: 4c02d68d21f155e93199638528070f181172ea75c21f8e94da5eb20f6b555f70
-  result_hash: 24992b179ef5ddd0fccc0c8af5c56e631badba918ed5cf4c12f719df6dd06fd4
+  scenario_hash: eb9aac60a38fed1d0f308bea427a37ad36860463c532c26da432dea0743fb8e6
+  result_hash: 3ababbb1de355f0054c5dcec6469feb7dbca2c91e04486cb5dc233044dbb2082
 
 - name: fangs-vs-fangs-02
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787808906
   tick_count: 393
-  scenario_hash: 773c2dd613c9d3e11620cded477a033dc95fc163159cf0ce7804fa0402051fc8
-  result_hash: 6b29c502fb45b2dec5a9512723a88dea5efd7b900f591b19ab167ef3fa86ae5f
+  scenario_hash: 08b38499f41e32153c914a5befd15d263c14ae743354cbef8ae9e2c5eb13aca1
+  result_hash: 02c7694edfa88141c9747350e763f27986c0c39d7b4e7fe023034c4f7c6c4467
 
 - name: fangs-vs-fangs-03
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787808949
   tick_count: 351
-  scenario_hash: bb121558276a523ed3dede3b21f0039c82295a3114db976df4d4fbba79a1978a
-  result_hash: c760696a5097eb245c2ae23f13d72793a1f4fca8d0e6a98966f085a83a610207
+  scenario_hash: ab03682d97b98ddb75175f595724c2bb78fb345e0558f881d97be691c83dcb98
+  result_hash: aef826beafbcd9d9e8a36eea01e2b04d0e3ae59393838a818b120477d7785417
 
 - name: fangs-vs-fangs-04
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787808985
   tick_count: 338
-  scenario_hash: 50b0653795b22668d9b047eb012c8ae88e3de386574aca2c1680f00c87f792b9
-  result_hash: 6d6d5a4b2be0c7528c27672cd259ee906b83418c30fdc2a0947cfe6753732a3a
+  scenario_hash: 6f3fe99b59f24e5a6e54ef71f7116d6c9c8d31545c2261014dbf37d4ac14ae88
+  result_hash: f0391d471cd4ba94126792dcc144491eb7b270214b940913a016131014f4bae1
 
 - name: fangs-vs-fangs-05
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787809018
   tick_count: 367
-  scenario_hash: a248404d7782e6eca0c5709eb21bab844720a7d650131f96631a1dc98bbcbd1f
-  result_hash: 20f4eb0dd14d0cadff19836473687ac31037e237a4cd23c957a32561f4bdfbf4
+  scenario_hash: d2be55cd5f4c9cd30fcd77a82c66fb56ccf8d5fb2591cdf5f77534bb141e5a33
+  result_hash: ca98b5cccfe2ec9280af51a18f4cd87e64e4b58eccc4426ceaff3e8a76a73aca
 
 - name: fangs-vs-fangs-06
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787816186
   tick_count: 364
-  scenario_hash: 23ae80f11f1dfa67a1ec79a410ffe249c9e8e7d4058cb441c8fbb4e9dcf96b73
-  result_hash: a333446763d4d119dc7a9fad8406d2f296c470db487397888fa91465eae5ceb5
+  scenario_hash: 05ef0bb538fb676607108a47ffc837b3005490e8c65d06dcc1d9d4d5658cc785
+  result_hash: 9818657dfe716b5d0f003617d325c135c20467f53058e3c6c76cd9696758a97a
 
 - name: fangs-vs-fangs-07
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787816925
   tick_count: 348
-  scenario_hash: e13d0716a9aaadf0bc178cfb3590ed1b5fd39fcc2e0c7a66ba2d5c6d43f0c210
-  result_hash: f46a2c640f9a7109219261ff25b54a7ad62b9ddd70b187ad1f21071f9a7ee5f4
+  scenario_hash: 67454190f0008b79b6814f5f279d1c679c1291b1d0078bd06228183e11a4b1a2
+  result_hash: 480e335ebf882942cc9ba29bd7287454bbd41df2d243c66bd60d7d56f60028fc
 
 - name: fangs-vs-fangs-08
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787817059
   tick_count: 349
-  scenario_hash: d1d8ce8a3279829fc266e66b986741326706896a3aa6fb965c84ccb5a77bd3ba
-  result_hash: 4a7c081c2e50ff9247bcd5cf4c35fcab547bcdcd67407445392cbb097726f393
+  scenario_hash: 4f5d04232a54e952ad7018dad3c6c299433430838afa2886ac7c25851a717e7e
+  result_hash: 4ba94a6f441a6d816a10a25502ed20362b712c9b5f5d6ff8076141e2617b6dd6
 
 - name: fangs-vs-fangs-09
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787818397
   tick_count: 344
-  scenario_hash: ff8992bbfea6c708206b1a4e356859ceebb5a8ac43fc03c313de190399d59d2a
-  result_hash: bd626a5e046f85600700942bed15cd154a2b875c5f9357dd462bbf7a92012543
+  scenario_hash: ea4db477691cf241af7724001968a60231a3682d0dff5e098b30330788b93f1c
+  result_hash: 3d9dfa90e783c3c2bdb5c6b093038edde7fa2e892e0bca909339fef0a2b357e6
 
 - name: fangs-vs-fangs-10
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787818488
   tick_count: 338
-  scenario_hash: 41ee17fc6947d0264f3bfee12a2ddf162b85eca55b5ca1002d4deac2f6a57158
-  result_hash: 92dde4eefb243436ec09d6d1ecf70866f3548d42973e6564ede209388c61dec7
+  scenario_hash: 86603aedec04cbc3f9df6cd8423641f8be7939a46f5a01f0a023a9865b6222df
+  result_hash: a1f1a6ed3caf0322f5ccf71aab7414842ab44be724c7815121ba2e883d353f76
 
 - name: fangs-vs-fangs-11
   smoke: true
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787819220
   tick_count: 330
-  scenario_hash: 5b50b4851101a116b107f5df2c43b1c7302011702f8208ab0a8f8fbf18fa7cc8
-  result_hash: 39ab67a444c7ea466e038f01ad2c7500a7c52a6a24a7eda1d7ba0ed38ef22b3f
+  scenario_hash: e55b821f56fc8d787d9a790ef9ebf24ff51dfbf73a98e6f9f86f95d905c89b08
+  result_hash: 26319ec592254203ef7176c66c43f4d5686621f42fd1fe0f47d521326da1aa6c
 
 - name: mustangs-vs-mustangs-01
   smoke: true
   layout: tests/layouts/mustangs-vs-mustangs.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787823221
   tick_count: 255
-  scenario_hash: afbf9253000da726b88053a63426148b6402876fde16d7de98a5c4e3793bc891
-  result_hash: ccac7934488baebf9c99e358c80a343c7e19418c4bccdd45be3afb3b06f74287
+  scenario_hash: 8a9d9d6751e86679a224c1fb29864eaff815f726a33e9e0153b14efe1b9e6092
+  result_hash: 1d9b2af8c3eedee4590da0b41adabc1ba9155cbd2b8f8bc72ab8263e0cd3dc53
 
 - name: wasps-vs-wasps-01
   smoke: true
   layout: tests/layouts/wasps-vs-wasps.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787829131
   tick_count: 197
-  scenario_hash: 49e8f71b67439ee7531dd4b18e6d942837a40dec851bcb8baf8066c271759d79
-  result_hash: 35e62324e894619a38dbeae98a50a8e241b41f930275c24e5dcf840d1aafaa65
+  scenario_hash: b86da1a6687d871ac42cbf7f821649de822e6010e3d114c1165abdf9efb4a2d6
+  result_hash: 0efa8525905b21a6be5d7f6e2d45d8dda1d3d5f590f3219dfd694340ddc951ad
 
 - name: steel-balls-vs-steel-balls-01
   smoke: true
   layout: tests/layouts/steel-balls-vs-steel-balls.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787831322
   tick_count: 303
-  scenario_hash: e70d923f19605392f0536da6a9a0478341ec2bc229b2db17c0dea4ce7e88710e
-  result_hash: 1e2d9ba12da49d3d4a3744335945f2580e341fc444b0334364a5bb847e764aa9
+  scenario_hash: 12187ee26f4d801b7ccbbacaa14b1dfd930834084b7240e2f39b92a5a69c13fe
+  result_hash: fec8ed5947a938391c9783c3e9a5de5f20ceb2494a2d96077b0d0d611af730c0
 
 - name: crawler-vs-rotated-01
   smoke: true
   layout: tests/layouts/crawler-vs-rotated.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787833929
   tick_count: 272
-  scenario_hash: e5161b7bbdfbf926d166e0210ed3b06d72e8f09f188ccb4209a2cedc62c8ff12
-  result_hash: 248dd13aa82699d88459bb4abd51231d990fae32f5c4eff33eaf8caeba3bbd31
+  scenario_hash: 122a8b5616b87148f6a657c25679aff203f3506a11b1f9901f67f430c99936ae
+  result_hash: 38d6f8a0ec6830cb4569528086fb165dda0ca1861491860cc06f331814fd411e
 
 - name: arclight-splash-01
   smoke: true
   layout: tests/layouts/arclight-splash.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787837829
   tick_count: 498
-  scenario_hash: 6a07e5cc2b7fd74555b09cf39f8ca962451a91b1a5934a0e449180c2a1d8d9c7
-  result_hash: 6a1589c4d21a779753d15e15d263a2492584bc7b3e4bf60e2fb0bc8ae4833eb7
+  scenario_hash: 84280ef142251388c4ab19030658e4d3fd4afa7f34a53959b1a788635704781f
+  result_hash: f3591e3593fc8affbe1deca3f19743b14ae717323380ccf3fd9645a071fc324c
 
 - name: wraith-group-attack-01
   smoke: true
   layout: tests/layouts/wraith-group-attack.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787857041
   tick_count: 648
-  scenario_hash: 02636d943f770b1f3e8a8fe0afe2f524b7410f80b0df382b084e25f930d8120e
-  result_hash: c23562e5f49ea1395756e823aefaaf9b07b281b5161e4263b8fa3f00eb792ba9
+  scenario_hash: f1f9a05a5e3862b2fe19587b0224a8998e2901d2f35dcbbc7f37b173c45ff0d5
+  result_hash: 7601728271e7e5babd6cf127fa6c5fc76baacc78f92cc10948fe38346ea10f9e
 
 - name: stormcaller-vs-self-01
   smoke: true
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887280
   tick_count: 764
-  scenario_hash: 15b5753458f5869b342633207eeaa61a509ad0a98c1be29e5c8e42bd86db34fc
-  result_hash: 64dc462a931ab0fedf036d3def06cebd27bd5b558614d0c40e8235df473e8e1c
+  scenario_hash: c3d90d04e023bed0bee6c4b54f6a13a7df8df63aa7c1f3392f7162dd707840d6
+  result_hash: 09731761ce022da76146b8a4681a73c0f50eae10bcf03903628ca5cf99c44d01
 
 - name: stormcaller-vs-self-02
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787863348
   tick_count: 499
-  scenario_hash: 25dc67a5bdbc9430a9bf5e9c32d085a6cb83c96a9a7f112b3e856735a05aa480
-  result_hash: 8ea955815c141e736454303343f9f0153522e1e1bad79a89961590f7f6f36fbe
+  scenario_hash: 97e966f6349c1800cfed38475d8ec3bad8dbd136376d4931c0bbf781fefa22a4
+  result_hash: c9a3e8034845145a0826fc6e4054cff423821a7fa2aeac15d295b33cfba17f4d
 
 - name: stormcaller-vs-self-03
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787863396
   tick_count: 503
-  scenario_hash: cd494b174821af69b4aa4020b506ba892e1e71e54b3ae604a10dd485821986a4
-  result_hash: 192483835836f63b4af8b098c35b92f7699d27e9b07300f058730fee1b9f62d0
+  scenario_hash: 3ec817bb522023a32062d211d4494a71278e1ea2b8215eb5ecd1d6c02c0c5f97
+  result_hash: 1e697e6bc40321492529fc2311e7dd061a610b27d77e7bb1be24163c7a7d5190
 
 - name: stormcaller-vs-self-04
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787863436
   tick_count: 515
-  scenario_hash: c30a8e051e53a68c2a14100119a5ea3e97a5ed58c4c93a36472cf9c87aaf4877
-  result_hash: a343bc074eaa29b6803b40338ffdec02392620e6a9b70f5d19a87976bc0f6167
+  scenario_hash: 079bda70559e8be9b5209aaddabe635ac4e63e42862c364709218f821e1ec07f
+  result_hash: 439dbfaefd7dd83cf44a71003af1d67d4b7b4fb3aeb2ffd40e0ee676cf8b9410
 
 - name: stormcaller-vs-self-05
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787863478
   tick_count: 596
-  scenario_hash: cdd515911535a00bc17ca647d98f8d972028aa1c1be73b3b32b4c0c293fc139b
-  result_hash: b4f8848844561773ef407cc42c3df7a3dbc15b96f5a723c2bc0752d87288151a
+  scenario_hash: 57fc2ecc66395d953ed4638d350a5d30e726f232874fd360538ff3e0d1124088
+  result_hash: 375e28fd0bb2ee65a3059eea62734f3fa88990d649f1b31a037d66d012aa28a4
 
 - name: stormcaller-vs-self-06
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787863515
   tick_count: 631
-  scenario_hash: 6903da5079646e576c1f9a3b37d8fe842e3894e92e2f1db060b45323df1aa9ea
-  result_hash: 09df610449240373c931a12683c32c5b8bdf394ec602be5a98defecfd3f7c8ae
+  scenario_hash: 3a97a4d963a6182a5f4f8d867f991831a5ca1403ddad8d86c53c484409394362
+  result_hash: f09fe968abf72cddb53e2f025f06c938630a774d041f093418888d3c21982cbd
 
 - name: stormcaller-vs-self-07
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887111
   tick_count: 610
-  scenario_hash: fbd4d3abd0faaee0e8945a77c8b11b208ccb4f7a81d70a6a586651183e196886
-  result_hash: 9a4a85a42ceb073a27d0839458598542d3a2a31ae67b874d27eb3f6915547d99
+  scenario_hash: f2414270a1331528ffefc3cffad7685ff4e00d73b1685fe5aa66cfc8bfacd5fb
+  result_hash: ed2d072022341b8f472862b13300798293f172e324a0c21869ee02cc9ffa0947
 
 - name: stormcaller-vs-self-08
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887134
   tick_count: 504
-  scenario_hash: a7dfa5b4784c41e03aa2aab446ec0aa6a9b7a680aeed0070dd804ea60207fcf5
-  result_hash: 0a3532426888304f61cb49938f3d10b5eef7e814213af36bc4160491171168ba
+  scenario_hash: 5e60d31c8b982a4addf31d86db1fe4565a2ac4b256c7d53b2249eef6a94cf786
+  result_hash: f1f66aec5cf568aad800c085c7bff98346a082983a3d93b4813c164945b85f3b
 
 - name: stormcaller-vs-self-09
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887155
   tick_count: 597
-  scenario_hash: 64ad9200c81d0a75acd831296a4643ce1a38d1c535ee91dacd6c42618826887a
-  result_hash: 4edcfd5a256f45a2e2a876b1a2fae4e31858bb058c0c1a8fe6c6fcdb5657ecc9
+  scenario_hash: 42b903859a0436d32eb82c9a24808ed41bd4de5d895a1e2f5cdc0c9d450ebfc7
+  result_hash: 275ae08c06983183fc918bbbb8f8cb3bb84ec295de1d59977f149d259ae8afa7
 
 - name: stormcaller-vs-self-10
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887178
   tick_count: 615
-  scenario_hash: 4490523f98a99df84c5f73c9ad904f21f4c00b3468c10492e77c811ffbb3530d
-  result_hash: 9690308049ff0a0483fae65cf54833f1f37a604759eef0d5036c628fd8bb55aa
+  scenario_hash: f002e5ba7f2f34228708b96a73872a9708615b6464d97b7ac4a0e55182721b55
+  result_hash: c5a210a4e6acdfe7c0d2059abb4bb1a933f620cdf412c350165e5dfdaf2d2998
 
 - name: stormcaller-vs-self-11
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887201
   tick_count: 635
-  scenario_hash: 6d73221602582f54b6c34fb373872d47ffb6eac05446cd48553ca8daf8b8d6e8
-  result_hash: bccad06dcebe8ce146181372360010e5a9497d0c513d95f204f33437367e5a76
+  scenario_hash: 23de7f7b7dbdcd379492e42bc3a339babb1a9ae05f0d829c1facb359b88ca28b
+  result_hash: 4efa43f34de80ce7c0e0a6e65cd953921146d24529b94882b99308d85060586a
 
 - name: stormcaller-vs-self-12
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887304
   tick_count: 431
-  scenario_hash: 4d74ccebb2690fdf0a2d3e385159643094bb1c82782b53ff280a9fc706a85d1e
-  result_hash: 88764aa14a4c446235dac702f01d6162d12b62452ddd6ca76bb906251ff86524
+  scenario_hash: 921acac03f9a847064926ca4ca55f1eab7e0044ef09a3dcc816f919ed2fd4047
+  result_hash: 14dcacd73d7a2715c82c6400783e844910098dcd351f5d5fe651088420c43426
 
 - name: stormcaller-vs-self-13
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887323
   tick_count: 548
-  scenario_hash: 3ec60d0830882be1c56e0561ac958b8c99ddbbbe29cda05d192e8c89be0fa0db
-  result_hash: 6159bdf2b56fb44ce891c34abbf292b46a0301f47e8e2285d4a908695dd90bc7
+  scenario_hash: 3fdf56996c4f9c4b455c651fe14896bdda1549e24505a1f9a7bd1671a72735e5
+  result_hash: 873917c7315c1dff09f7c3ddb0130c16e45be03239f319716b17e6c66967c035
 
 - name: stormcaller-vs-self-14
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887345
   tick_count: 628
-  scenario_hash: 770bc52252a2913441ad9ce258cb043c90f92cd6f5a03132ac525786d0e1b274
-  result_hash: 728f953eb818ab1f022676eae9b6dc0e63ebc41a753f9cf37eafbb80340bbf6f
+  scenario_hash: d090ed97fc7a879b17791b43bb5dda290169518d69fedbf7b38bfd7a5f172a34
+  result_hash: b7c8ae923b311045a380837cc49c226c26062ed7aeb4ae1173a03bfe0e6e4c95
 
 - name: stormcaller-vs-self-15
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787887368
   tick_count: 504
-  scenario_hash: bd573e9e7482752f73f1eb2e4470a5d511959898bf8a29218a4c957bbeea84dc
-  result_hash: c48b987a6bc2110cb791ebacdff90abd80000accdf93667456910dfe2566ac90
+  scenario_hash: 4352c84dce07ed6ad992cdf1bcf8c4087e84b5aaa54fe602f3c0142477c7e9ad
+  result_hash: c503801d5a69b1911821c13cc5f35a8ad6015201a6f2100f58e5fe5ed6e61ba7
 
 - name: stormcaller-vs-self-16
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787884975
   tick_count: 519
-  scenario_hash: 72007292b3df1cf8a0f9bf7ea0aea381eb070eee5887fd0b925f01b81501c5be
-  result_hash: 6bd0ef1e4ee9789ba25fd04d2b7fbeb3db57d989e74ffb6460d8307fc5d4d92e
+  scenario_hash: 75033984d4d971c64dff52ebe2d2998289ff58bf0c024a250e43ff96893fd485
+  result_hash: 78206a619e11fb87edfb0af08f55c291cb07491c8024db729121f7a7b2f9f488
 
 - name: stormcaller-vs-self-17
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787882500
   tick_count: 638
-  scenario_hash: 4a1e987eff5c4e2274328dd82318a0c32b43ec8497a4c33e63a5dbce8e10d11b
-  result_hash: dcc835fd74cf2e7dc513471dca560ba07694a4c1710fe4db16b4682c54658111
+  scenario_hash: 857ec74226a9d957ce27668b56fd5a37c28529e0f086e0ccb56118a86fb63f6c
+  result_hash: c691210a12315106e8321bae72e526bd07d48bfef4ec5b00c1bfbdbfca47476d
 
 - name: stormcaller-vs-self-18
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787881295
   tick_count: 993
-  scenario_hash: 94f09c7da3cedf9b2544baade5236902e2f3e6c115d9d97da9b7674b19591c33
-  result_hash: c3ec158e860a7ba2c5c7fff118a467a2ac8db2eb6426ca407e445bc2b55a1a80
+  scenario_hash: 42e6611bc3af6163d2e39b9ccabccc90e54744d8e7a0fe021358cbffac2ac27c
+  result_hash: 48361a9fa618eef63dca590e8b13750d9cba30a7e4f8f057ebfa055f658d72a0
 
 - name: stormcaller-vs-self-19
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787880738
   tick_count: 572
-  scenario_hash: 3d6098044b535a6782043448b4ad244d001bde286e4998153725b76993639ea3
-  result_hash: 62cfa388ee5f2deeab5f97726867fc5174670851fefd1fcaf6c62d6ce69b2758
+  scenario_hash: 227589526e5eb8729800110001745a3bad7704ea3479832c0182e69cb3bcdd51
+  result_hash: 17c3577b936da96f8cc3a2444f9cc5e16cc36914cdc9e1053652cd56d32b5694
 
 - name: stormcaller-vs-self-20
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  schema_version: 3
+  format: 0.0.1
   seed: 1787869558
   tick_count: 600
-  scenario_hash: e7684c295c2b5bbca92c497022a32c469bd8b1af5582916ec7d07833d320a169
-  result_hash: c85839813252578406a3a866621874cf7a400d55b617bdbd77d914e127eef65d
+  scenario_hash: 19176106ccdfefcd93f710da92eee4d77a5b747bc50562487a085b2c4e02e7c4
+  result_hash: 07eeaacda716e6b412bf326098fde5ede546b5517839113dc7fceac2ef4c3d77

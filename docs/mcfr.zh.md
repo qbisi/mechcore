@@ -4,8 +4,8 @@
 
 ## 状态
 
-本文定义原生采集、模拟、比较和播放共同遵循的 `S`、`E` 基础逻辑内容。Schema
-version 3 及其有类型列式 HDF5 投影已在 `mechcore-mcfr` 中提供 Rust 参考实现。
+本文定义原生采集、模拟、比较和播放共同遵循的 `S`、`E` 基础逻辑内容。格式
+`0.0.1` 保留 version 3 字段语义，并由 `mechcore-mcfr` 实现为有类型 Parquet 容器。
 
 ## 目的
 
@@ -257,32 +257,26 @@ game adapter capture ----\
 Rust simulation kernel --/
 ```
 
-`mechcore-mcfr` 统一负责逻辑记录类型、规范排序、验证、哈希、HDF5 序列化及对应的
+`mechcore-mcfr` 统一负责逻辑记录类型、规范排序、验证、哈希、Parquet 序列化及对应的
 读取器。Adapter 可以在游戏进程内直接调用该 crate；MCP 可以选择输出路径并编排录像
 生命周期，但不是文件序列化的必要中间层。
 
-## HDF5 container version 2
+## Parquet format 0.0.1
 
-`.mcfr` 文件采用 HDF5。写入器先创建同目录临时文件；只有全部 dataset、元数据和哈希
-完成后，才在不覆盖已有文件的前提下发布最终路径。
+`.mcfr` 是只使用 STORE 的 ZIP64 容器，且必须恰好包含六个 member：`ticks.parquet`、
+`units.parquet`、`projectiles.parquet`、`buildings.parquet`、`statuses.parquet` 和
+`events.parquet`。各 member 的 Parquet page 使用 Zstd，row group 覆盖 128 tick。状态轨道
+严格按 `(tick, object_id)` 排序，事件严格按 `(tick, ordinal)` 排序；不使用跨 tick 状态差分。
 
-| 路径 | HDF5 类型 | 含义 |
-| --- | --- | --- |
-| `/context/data` | 连续 `u8` | 一条规范 `D` 记录。 |
-| `/ticks/{unit,projectile,building,status,event}_offsets` | 分块 `u64` | 各 tick 的变长行边界，包含初始零。 |
-| `/ticks/hash` | 分块 `u8 [tick,32]` | 每个逻辑 tick 的原始独立 BLAKE3 哈希。 |
-| `/states/{units,projectiles,buildings,statuses}/<field>` | 分块有类型列 | 跨 tick 连续保存所有直接观测的快照字段；三分量向量使用 `[row,3]`。 |
-| `/events/<field>` | 分块有类型列 | 跨 tick 连续保存有序事件类型、引用和 payload。 |
+`ticks.parquet` file metadata 保存唯一版本字段 `format = "0.0.1"`、canonical JSON
+`durable_context`、小写十六进制 scenario/result hash 与十进制 tick 计数。行中保存连续的
+`tick: UINT64` 和 `tick_hash: FIXED[32]`。其它 member 使用有类型 Arrow 列；只有逻辑模型中
+本来可选的值才使用 nullable struct。事件 payload 是封闭 tagged union，非活动 branch leaf
+必须为 null。
 
-根属性保存格式标识、container/schema 版本、`tick_count`、`terminal_tick`、
-`scenario_hash` 和 `result_hash`。Container version 2 要求 `tick_count >= 1`、
-`terminal_tick = tick_count - 1`、每条变长轨道比 tick 多一个 offset，并要求 `E(0) = []`。
-
-逻辑 API 按 tick 提供 AoS 形式，HDF5 物理布局则按字段采用 SoA。每对 offset 直接选择
-一个 tick 的行；不使用逐 tick group、HDF5 变长值或逐 tick JSON blob。数值列采用跨多行
-chunk，并使用 shuffle + deflate level 1。布尔状态标志做无损 bit-pack。封闭事件 union
-共享 payload 列；某事件类型未使用的 payload cell 固定为零且没有逻辑含义。该布局支持
-流式追加、按字段读取和直接随机访问某一比较 tick，当前不使用状态差分。
+Writer 先在同目录临时目录写 member，再封装临时 ZIP64，重新打开并完成语义校验后，才在
+不覆盖已有文件的前提下发布最终路径。ZIP CRC32 保护 member 传输完整性，canonical hash
+保护解码后的逻辑内容。
 
 I sidecar 使用 HDF5 格式标识 `mechcore.mcfr.instrumentation`，在 `/records` 下保存
 step、channel、content type、payload 字节和 payload offset，并通过根属性保存
@@ -290,22 +284,22 @@ step、channel、content type、payload 字节和 payload offset，并通过根�
 
 ## 规范哈希
 
-正确性定义在规范逻辑内容上，而不是 HDF5 文件的原始字节上。HDF5 库版本、元数据
-顺序、chunk 布局、压缩和来源 provenance 都可能改变物理字节而不改变战斗内容。
+正确性定义在规范逻辑内容上，而不是 ZIP 或 Parquet 文件的原始字节上。库版本、元数据
+顺序、row-group 布局、压缩和来源 provenance 都可能改变物理字节而不改变战斗内容。
 
-Schema version 3 使用带 domain separation 的 BLAKE3，并在每条规范记录前加入一个
+格式 `0.0.1` 使用带 domain separation 的 BLAKE3，并在每条规范记录前加入一个
 little-endian `u64` 长度。正式哈希模型为：
 
 ```text
-scenario_hash = BLAKE3("scenario-v3", canonical D, canonical S(0))
-tick_hash(t)  = BLAKE3("tick-v3", little_endian_u64(t), canonical S(t), canonical E(t))
-result_hash   = BLAKE3("result-v3", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
+scenario_hash = BLAKE3("scenario-0.0.1", "0.0.1", canonical D, canonical S(0))
+tick_hash(t)  = BLAKE3("tick-0.0.1", little_endian_u64(t), canonical S(t), canonical E(t))
+result_hash   = BLAKE3("result-0.0.1", scenario_hash, little_endian_u64(tick_count), tick_hash(0)..tick_hash(n))
 ```
 
-`D` 只包含有类型字段：schema/build 身份、时序和数值尺度、战斗回合、match seed 与
+`D` 只包含有类型字段：build 身份、时序和数值尺度、战斗回合、match seed 与
 身份契约。生产者私有 JSON、配置 fingerprint 和来源专用命令不进入正式 scenario hash。
 
-只有 schema 版本和 `scenario_hash` 均相同的两个录像才能比较。
+只有 format 和 `scenario_hash` 均相同的两个录像才能比较。
 
 - 首个不相等的 `tick_hash(t)` 就是首个发生分歧的逻辑 tick，可直接读取该 tick 的
   `S(t)/E(t)` 诊断；
@@ -321,9 +315,10 @@ provenance 作为元数据保留，并排除在 `result_hash` 之外。
 
 ## 验证边界
 
-MCFR Reader 校验覆盖容器结构、规范解码、轨道长度、哈希的存在与编码，以及初始规范
-身份契约。Writer 生成并持久化相互独立的逐 tick hash；比较时直接扫描这些 hash，只在
-首个分歧 tick 读取 `S/E`。Reader 不从 HDF5 轨道重建全部 hash，也不判断游戏状态转换、
+MCFR Reader 校验覆盖精确 ZIP member 集合、CRC、Parquet schema 与压缩、规范解码、轨道
+排序、事件 union 有效性和初始规范身份契约。它在接受文件前从解码后的逻辑内容复算
+scenario、tick 与 result hash；比较时扫描已验证的 tick hash，只在首个分歧 tick 读取
+`S/E`。Reader 不判断游戏状态转换、
 引用、数值、gauge 或事件序列在玩法逻辑上是否合法；这些属于特定游戏分析器或
 simulation 测试的职责。
 

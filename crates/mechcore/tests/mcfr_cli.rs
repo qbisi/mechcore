@@ -1,8 +1,8 @@
 use std::{path::Path, process::Command};
 
 use mechcore_mcfr::{
-    DurableContext, Event, EventPayload, IdentityContract, MCFR_SCHEMA_VERSION, McfrWriter,
-    NumericConvention, Rational, TransitionEvents, WorldSnapshot,
+    DurableContext, Event, EventPayload, IdentityContract, McfrWriter, NumericConvention, Rational,
+    TransitionEvents, WorldSnapshot,
 };
 
 #[test]
@@ -100,7 +100,6 @@ fn compare(left: &Path, right: &Path) -> std::process::Output {
 
 fn write_recording(path: &Path, seed: i32, damages: &[i64]) {
     let context = DurableContext {
-        schema_version: MCFR_SCHEMA_VERSION,
         game_build: "test-build".into(),
         logic_step: Rational {
             numerator: 1,

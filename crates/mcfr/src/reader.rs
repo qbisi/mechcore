@@ -1,14 +1,13 @@
 use std::path::Path;
 
-use rust_hdf5::H5File;
-
 use crate::{
-    DurableContext, Error, Hashes, MCFR_CONTAINER_VERSION, MCFR_FORMAT, Result, TickSlice,
-    TransitionEvents, WorldSnapshot, canonical, storage::StorageReader,
+    DurableContext, Error, Hashes, MCFR_FORMAT, Result, TickSlice, TransitionEvents, WorldSnapshot,
+    canonical::{self, CanonicalHasher},
+    model::IdentityAllocator,
+    parquet_storage::StorageReader,
 };
 
 pub struct McfrReader {
-    file: H5File,
     context: DurableContext,
     tick_count: u64,
     terminal_tick: u64,
@@ -17,45 +16,19 @@ pub struct McfrReader {
 }
 
 impl McfrReader {
-    /// Opens an MCFR and validates its HDF5 structure and metadata.
+    /// Opens an MCFR and validates its ZIP64/Parquet structure and metadata.
     ///
     /// # Errors
     ///
-    /// Returns an error for I/O failures, unsupported versions, malformed metadata, or invalid
-    /// column and offset shapes.
+    /// Returns an error for I/O failures, unsupported formats, malformed metadata, invalid
+    /// Parquet tracks, or canonical hash mismatches.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
-        let file = H5File::open(path)?;
-        expect_attr(&file, "format", MCFR_FORMAT)?;
-        let container_version = parse_u32_attr(&file, "container_version")?;
-        if container_version != MCFR_CONTAINER_VERSION {
-            return Err(Error::invalid(format!(
-                "unsupported MCFR container version {container_version}"
-            )));
-        }
-        let schema_version = parse_u32_attr(&file, "schema_version")?;
-        let tick_count = parse_u64_attr(&file, "tick_count")?;
-        let terminal_tick = parse_u64_attr(&file, "terminal_tick")?;
-        if tick_count == 0 || terminal_tick != tick_count - 1 {
-            return Err(Error::invalid(
-                "MCFR must contain tick zero and terminal_tick must be the final tick",
-            ));
-        }
-        let hashes = Hashes {
-            scenario_hash: file.attr_string("scenario_hash")?,
-            result_hash: file.attr_string("result_hash")?,
-        };
-        hashes.validate_encoding()?;
-        let context_data = file.dataset("context/data")?.read_raw::<u8>()?;
-        let context: DurableContext = canonical::decode(&context_data, "durable context")?;
-        context.validate()?;
-        if context.schema_version != schema_version {
-            return Err(Error::invalid(
-                "schema_version attribute differs from durable context",
-            ));
-        }
-        let storage = StorageReader::open(&file, tick_count)?;
+        let storage = StorageReader::open(path.as_ref())?;
+        let context = storage.metadata().context.clone();
+        let tick_count = storage.metadata().tick_count;
+        let terminal_tick = storage.metadata().terminal_tick;
+        let hashes = storage.metadata().hashes.clone();
         let reader = Self {
-            file,
             context,
             tick_count,
             terminal_tick,
@@ -65,6 +38,8 @@ impl McfrReader {
         if !reader.events(0)?.events.is_empty() {
             return Err(Error::invalid("tick zero must have an empty event batch"));
         }
+        IdentityAllocator::from_initial(&reader.state(0)?)?;
+        reader.validate_hashes()?;
         Ok(reader)
     }
 
@@ -103,7 +78,7 @@ impl McfrReader {
     ///
     /// Returns an error when `tick` is out of range or a stored value is malformed.
     pub fn state(&self, tick: u64) -> Result<WorldSnapshot> {
-        let state = self.storage.state(&self.file, tick)?;
+        let state = self.storage.state(tick)?;
         let mut normalized = state.clone();
         normalized.canonicalize();
         if normalized != state {
@@ -111,7 +86,48 @@ impl McfrReader {
                 "state {tick} object collections are not in canonical order"
             )));
         }
+        state.object_keys()?;
         Ok(state)
+    }
+
+    fn validate_hashes(&self) -> Result<()> {
+        let context = canonical::encode(&self.context)?;
+        let initial = canonical::encode(&self.state(0)?)?;
+        let mut scenario = CanonicalHasher::new("scenario-0.0.1");
+        scenario.update(MCFR_FORMAT.as_bytes());
+        scenario.update(&context);
+        scenario.update(&initial);
+        let scenario = scenario.finalize();
+        let stored_scenario = canonical::parse_hex(&self.hashes.scenario_hash, "scenario_hash")?;
+        if scenario != stored_scenario {
+            return Err(Error::invalid(
+                "scenario_hash does not match decoded durable context and S(0)",
+            ));
+        }
+
+        let mut tick_hashes = Vec::with_capacity(
+            usize::try_from(self.tick_count)
+                .map_err(|_| Error::invalid("tick count is too large"))?,
+        );
+        for tick in 0..self.tick_count {
+            let state = canonical::encode(&self.state(tick)?)?;
+            let events = canonical::encode(&self.events(tick)?)?;
+            let actual = canonical::tick_hash(tick, &state, &events);
+            if actual != self.storage.tick_hash(tick)? {
+                return Err(Error::invalid(format!(
+                    "tick_hash({tick}) does not match decoded S({tick}) and E({tick})"
+                )));
+            }
+            tick_hashes.push(actual);
+        }
+        let result = canonical::result_hash(&scenario, &tick_hashes);
+        let stored_result = canonical::parse_hex(&self.hashes.result_hash, "result_hash")?;
+        if result != stored_result {
+            return Err(Error::invalid(
+                "result_hash does not match the decoded tick hash sequence",
+            ));
+        }
+        Ok(())
     }
 
     /// Reads the native event batch associated with one tick. Events at tick
@@ -121,7 +137,7 @@ impl McfrReader {
     ///
     /// Returns an error when `tick` is out of range or a stored value is malformed.
     pub fn events(&self, tick: u64) -> Result<TransitionEvents> {
-        self.storage.events(&self.file, tick)
+        self.storage.events(tick)
     }
 
     /// Reads the state, events, and hash for one logical tick.
@@ -170,26 +186,4 @@ impl McfrReader {
             Ok(Some(self.tick_count.min(other.tick_count)))
         }
     }
-}
-
-fn expect_attr(file: &H5File, name: &str, expected: &str) -> Result<()> {
-    let actual = file.attr_string(name)?;
-    if actual != expected {
-        return Err(Error::invalid(format!(
-            "attribute {name} is {actual:?}, expected {expected:?}"
-        )));
-    }
-    Ok(())
-}
-
-fn parse_u32_attr(file: &H5File, name: &str) -> Result<u32> {
-    file.attr_string(name)?
-        .parse()
-        .map_err(|_| Error::invalid(format!("attribute {name} is not a u32")))
-}
-
-fn parse_u64_attr(file: &H5File, name: &str) -> Result<u64> {
-    file.attr_string(name)?
-        .parse()
-        .map_err(|_| Error::invalid(format!("attribute {name} is not a u64")))
 }
