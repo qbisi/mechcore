@@ -208,6 +208,12 @@ impl Shared {
 
     async fn apply_layout(&self, layout: Value) -> Result<Value, String> {
         let plan = mechcore_layout::compile(&layout)?;
+        if plan.terrain_count() != 0 {
+            return Err(
+                "apply_layout refuses layouts with non-empty terrains until GRBR-derived MCFR capture is available for native closure"
+                    .into(),
+            );
+        }
         let activation_round = i64::from(plan.round);
         let _operation = self.operation.lock().await;
         self.require_training_deployment(1).await?;
@@ -1026,6 +1032,28 @@ mod tests {
         assert!(error.contains("formation type \"unknown\""));
     }
 
+    #[tokio::test]
+    async fn apply_layout_rejects_nonempty_terrains_before_game_state_checks() {
+        let error = Shared::new()
+            .apply_layout(json!({
+                "round": 1,
+                "sides": {
+                    "blue": {
+                        "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                        "terrains": [{"type": "oil", "x": -60, "y": 40, "grid_rows": []}]
+                    },
+                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                }
+            }))
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            error,
+            "apply_layout refuses layouts with non-empty terrains until GRBR-derived MCFR capture is available for native closure"
+        );
+    }
+
     #[test]
     fn apply_layout_tool_schema_describes_seed_and_side_placements() {
         let shared = Shared::new();
@@ -1063,6 +1091,20 @@ mod tests {
                 .pointer("/$defs/Side/properties/contraptions")
                 .is_some()
         );
+        assert!(schema.pointer("/$defs/Side/properties/terrains").is_some());
+        assert_eq!(
+            schema
+                .pointer("/$defs/TerrainType/enum/0")
+                .and_then(Value::as_str),
+            Some("oil")
+        );
+        let required_terrain_fields = schema
+            .pointer("/$defs/Terrain/required")
+            .and_then(Value::as_array)
+            .expect("terrain has a required list");
+        for field in ["type", "x", "y", "grid_rows"] {
+            assert!(required_terrain_fields.contains(&json!(field)));
+        }
         assert!(schema.pointer("/properties/seed").is_some());
         assert!(schema.pointer("/$defs/Formation/properties/type").is_some());
         assert!(

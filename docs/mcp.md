@@ -92,6 +92,11 @@ returns only after all setup rounds have been skipped, the adapter's staged
 native actions/readbacks succeed, and that activation round reports
 `deploying=true` and `fighting=false`.
 
+The shared layout schema accepts `sides.<side>.terrains` for offline readback and
+validation, but this tool rejects a non-empty terrain list before checking game
+state or contacting the Adapter. Terrain execution remains disabled until a
+GRBR-derived MCFR baseline exists for closure.
+
 ### connect_adapter
 
 Input is empty. The Agent must first launch Mechabellum with the Adapter by

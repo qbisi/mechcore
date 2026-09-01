@@ -73,6 +73,8 @@ sides:
         x: 5
         y: -95
 
+    terrains: []
+
     battle_skills:
       - type: mobile_beacon
         positions:
@@ -98,6 +100,7 @@ sides:
         y: -100
 
     contraptions: []
+    terrains: []
     battle_skills: []
 ```
 
@@ -181,10 +184,14 @@ normalized to the Unity world battlefield axis: `layout.x -> world.x` and
 mapping is outside the layout schema and does not rename its fields.
 
 The same transform applies independently to every coordinate in
-`battle_skills.positions`. A 180-degree transform does not change a formation's
-`rotated` boolean. Authoritative native readback remains in world coordinates;
-the adapter verifies that world state against the compiled position and returns
-the layout-local position publicly.
+`battle_skills.positions` and every `terrains` center. Terrain `grid_rows` are
+also expressed in the owning side's local frame: rows advance along local `+y`
+and low-order bits advance along local `+x`. A future native terrain executor
+must therefore rotate both row order and bit order for the red side. A
+180-degree transform does not change a formation's `rotated` boolean.
+Authoritative native readback remains in world coordinates; the adapter verifies
+that world state against the compiled position and returns the layout-local
+position publicly.
 
 ## Side definition
 
@@ -203,6 +210,7 @@ when omitted:
 - `energy_tower.movement_enhancement` defaults to `false`.
 - `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
+- `terrains` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
 - A unit formation's `level` defaults to `1`.
 - A unit formation's `rotated` defaults to `false`.
@@ -516,6 +524,45 @@ The executor performs the native placement check, releases the contraption once,
 and verifies its type and exact position through authoritative recorder
 readback.
 
+### `terrains`
+
+`terrains` records the active cross-round battlefield terrain owned by one side
+at the start of this single fight. It defaults to `[]`. Each active terrain
+point is one independent entry with exactly four required fields:
+
+```yaml
+terrains:
+  - type: oil
+    x: -60
+    y: 40
+    grid_rows: []
+```
+
+- `type` currently accepts only `oil`, the native terrain type produced by the
+  cross-round battlefield Sticky Oil Bomb. It does not use the producing battle
+  skill name `sticky_oil_bomb`.
+- `x` and `y` are the active terrain object's center in the owning side's local
+  frame. They are not the original skill endpoints.
+- `grid_rows: []` means the complete 30 m oil circle is active.
+- A non-empty `grid_rows` is the final shield-clipped `12 x 12` occupancy mask.
+  It contains exactly 12 unsigned integer rows; within each row the low 12 bits
+  represent cells in increasing local x order, and rows appear in increasing
+  local y order. Bits above bit 11 are rejected, and at least one cell must be
+  active.
+
+The 30 m circle must overlap the battlefield rectangle
+`x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler validates
+this bound and the structural grid rules. It deliberately does not infer the
+original `positions`, retain an `active_sub_effects` encoding, or accept a
+`remaining_rounds` field. Those are GRBR reconstruction or multi-round
+transition concerns rather than state required by one fight layout.
+
+This schema is currently read/format/verify only. `apply_layout` rejects any
+layout with non-empty `terrains` before native mutation, and the Simulator
+rejects it before constructing a simulated battle. Neither executor may claim
+terrain support until GRBR rounds can be captured as MCFR and compared for
+closure.
+
 ### `battle_skills`
 
 `battle_skills` describes the battle skills owned and released by one side in
@@ -668,13 +715,17 @@ The compiler accepts omitted fields and explicit baseline values described in
 this document, except that `formations` is mandatory and non-empty on both
 sides. It rejects tower levels outside `0..=2`, unknown deployment footprints,
 deployment collisions where applicable, and contraptions outside their target
-regions. Unsupported state is never silently ignored.
+regions. It accepts structurally valid `terrains` for layout readback and
+verification, but `apply_layout` rejects a non-empty terrain list before its
+prepare stage. Unsupported state is never silently ignored.
 
 The compiler owns the activation round and the separate formation,
 construction, and contraption counts. A successful `apply_layout` response
 includes them as `round`, `formation_count`, `construction_count`, and
 `contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
 do not recount the input or returned arrays to establish completeness.
+`mechcore layout verify` additionally reports `terrain_count` even though
+non-empty terrain layouts are not executable yet.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is

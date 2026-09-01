@@ -203,7 +203,18 @@ GridBlockInt.Sync
 
 共享 MCFR schema 支持同一 Terrain 身份内的类型或归属转换。当前已观察的黏油点燃以旧 oil 移除和新 fire 创建表达。
 
-## 8. 原生采集材料
+## 8. 单回合 Layout 表达边界
+
+`layout.yaml` 在所属 `sides.<side>.terrains` 中保存战斗开始时已经存在的跨回合地形。
+每个激活点独立表示为恰好四个字段：`type`、中心 `x/y` 和最终 `grid_rows`。当前只接受
+`type: oil`；`grid_rows: []` 表示完整 30 m 圆，非空值必须是规范的 `12 x 12`、y 行/x
+低位优先掩码。Layout 不保留 GRBR 的技能端点、`activeState` 或 `round`。
+
+这只是读取、格式化与静态验证契约。`apply_layout` 和 Simulator 都拒绝非空
+`terrains`，不得据此声明已经支持跨回合地形。完整闭合要等到 GRBR 单回合状态能够采集为
+MCFR，再用相同回合的原生 Terrain 集合对照验证。
+
+## 9. 原生采集材料
 
 | 场景 | Layout | MCFR |
 | --- | --- | --- |
@@ -217,7 +228,7 @@ GridBlockInt.Sync
 
 以上录像均来自 build `1.11.1.3.2259`。MCFR 录像是具体运行时分支和值的证据；反编译索引用于确认静态类型、直接调用关系和候选机制。
 
-## 9. 静态证据与限制
+## 10. 静态证据与限制
 
 索引根目录：`work/unity-index/1.11.1.3.2259/`
 

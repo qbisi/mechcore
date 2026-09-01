@@ -35,6 +35,8 @@ pub struct Side {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub terrains: Vec<Terrain>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<BattleSkillDefinition>,
 }
 
@@ -116,6 +118,22 @@ pub struct BattleSkillDefinition {
     pub positions: Vec<Position>,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TerrainType {
+    Oil,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Terrain {
+    #[serde(rename = "type")]
+    pub terrain_type: TerrainType,
+    pub x: i32,
+    pub y: i32,
+    pub grid_rows: Vec<u32>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativeFormation {
     Unit(i32),
@@ -170,6 +188,7 @@ pub struct SidePlan {
     pub formations: Vec<Placement>,
     pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
+    pub terrains: Vec<Terrain>,
     pub battle_skills: Vec<BattleSkill>,
 }
 
@@ -196,6 +215,9 @@ const BATTLEFIELD_MIN_X: i64 = -400;
 const BATTLEFIELD_MAX_X: i64 = 400;
 const BATTLEFIELD_MIN_Y: i64 = -350;
 const BATTLEFIELD_MAX_Y: i64 = 350;
+const OIL_TERRAIN_RADIUS: i64 = 30;
+const OIL_TERRAIN_GRID_SIZE: usize = 12;
+const OIL_TERRAIN_GRID_MASK: u32 = (1 << OIL_TERRAIN_GRID_SIZE) - 1;
 const ENEMY_TOWER_X: [i64; 2] = [-140, 140];
 const ENEMY_TOWER_Y: i64 = 170;
 const ENEMY_TOWER_PROTECTION_RANGE: i64 = 140;
@@ -238,6 +260,11 @@ impl Plan {
     #[must_use]
     pub fn contraption_count(&self) -> usize {
         self.blue.contraptions.len() + self.red.contraptions.len()
+    }
+
+    #[must_use]
+    pub fn terrain_count(&self) -> usize {
+        self.blue.terrains.len() + self.red.terrains.len()
     }
 }
 
@@ -402,11 +429,13 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         formations,
         constructions,
         contraptions,
+        terrains,
         battle_skills,
     } = side;
     let formations = compile_formations(side_name, formations, round)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
+    let terrains = compile_terrains(side_name, terrains)?;
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     Ok(SidePlan {
         techs,
@@ -415,6 +444,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         formations,
         constructions,
         contraptions,
+        terrains,
         battle_skills,
     })
 }
@@ -554,6 +584,47 @@ fn compile_contraptions(
             })
         })
         .collect()
+}
+
+fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terrain>, String> {
+    for (terrain_index, terrain) in terrains.iter().enumerate() {
+        let type_name = match terrain.terrain_type {
+            TerrainType::Oil => "oil",
+        };
+        let x = i64::from(terrain.x);
+        let y = i64::from(terrain.y);
+        if x + OIL_TERRAIN_RADIUS < BATTLEFIELD_MIN_X
+            || x - OIL_TERRAIN_RADIUS > BATTLEFIELD_MAX_X
+            || y + OIL_TERRAIN_RADIUS < BATTLEFIELD_MIN_Y
+            || y - OIL_TERRAIN_RADIUS > BATTLEFIELD_MAX_Y
+        {
+            return Err(format!(
+                "side {side_name} terrain[{terrain_index}] type {type_name:?} at ({}, {}) does not overlap the battlefield",
+                terrain.x, terrain.y
+            ));
+        }
+        if terrain.grid_rows.is_empty() {
+            continue;
+        }
+        if terrain.grid_rows.len() != OIL_TERRAIN_GRID_SIZE {
+            return Err(format!(
+                "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows must be empty or contain exactly {OIL_TERRAIN_GRID_SIZE} rows"
+            ));
+        }
+        for (row_index, &row) in terrain.grid_rows.iter().enumerate() {
+            if row & !OIL_TERRAIN_GRID_MASK != 0 {
+                return Err(format!(
+                    "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows[{row_index}] uses bits outside width {OIL_TERRAIN_GRID_SIZE}"
+                ));
+            }
+        }
+        if terrain.grid_rows.iter().all(|&row| row == 0) {
+            return Err(format!(
+                "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows must activate at least one cell"
+            ));
+        }
+    }
+    Ok(terrains)
 }
 
 fn compile_battle_skills(
@@ -1464,6 +1535,21 @@ mod tests {
         })
     }
 
+    fn layout_with_blue_terrains(terrains: Value) -> Value {
+        json!({
+            "round": 1,
+            "sides": {
+                "blue": {
+                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "terrains": terrains
+                },
+                "red": {
+                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                }
+            }
+        })
+    }
+
     #[test]
     fn requires_a_bounded_activation_round() {
         let missing = compile(&json!({
@@ -1514,6 +1600,60 @@ mod tests {
 
         assert_eq!(compile(&layout(None)).unwrap().seed, 0);
         assert_eq!(compile(&layout(Some(-17))).unwrap().seed, -17);
+    }
+
+    #[test]
+    fn compiles_and_counts_valid_oil_terrain_state() {
+        let plan = compile(&layout_with_blue_terrains(json!([
+            {"type": "oil", "x": -60, "y": 40, "grid_rows": []},
+            {"type": "oil", "x": -20, "y": 40, "grid_rows": vec![0x0fff_u32; 12]}
+        ])))
+        .unwrap();
+
+        assert_eq!(plan.terrain_count(), 2);
+        assert_eq!(plan.blue.terrains[0].terrain_type, TerrainType::Oil);
+        assert!(plan.blue.terrains[0].grid_rows.is_empty());
+        assert_eq!(plan.blue.terrains[1].grid_rows, vec![0x0fff; 12]);
+        assert!(plan.red.terrains.is_empty());
+    }
+
+    #[test]
+    fn terrain_fields_and_grid_shape_are_fail_closed() {
+        let missing_grid = compile(&layout_with_blue_terrains(json!([
+            {"type": "oil", "x": 0, "y": 0}
+        ])))
+        .unwrap_err();
+        assert!(missing_grid.contains("missing field `grid_rows`"));
+
+        let unknown = compile(&layout_with_blue_terrains(json!([
+            {"type": "fire", "x": 0, "y": 0, "grid_rows": []}
+        ])))
+        .unwrap_err();
+        assert!(unknown.contains("unknown variant `fire`, expected `oil`"));
+
+        let outside = compile(&layout_with_blue_terrains(json!([
+            {"type": "oil", "x": 431, "y": 0, "grid_rows": []}
+        ])))
+        .unwrap_err();
+        assert!(outside.contains("does not overlap the battlefield"));
+
+        let wrong_height = compile(&layout_with_blue_terrains(json!([
+            {"type": "oil", "x": 0, "y": 0, "grid_rows": vec![1_u32; 11]}
+        ])))
+        .unwrap_err();
+        assert!(wrong_height.contains("exactly 12 rows"));
+
+        let outside_width = compile(&layout_with_blue_terrains(json!([
+            {"type": "oil", "x": 0, "y": 0, "grid_rows": vec![0x1000_u32; 12]}
+        ])))
+        .unwrap_err();
+        assert!(outside_width.contains("uses bits outside width 12"));
+
+        let empty_grid = compile(&layout_with_blue_terrains(json!([
+            {"type": "oil", "x": 0, "y": 0, "grid_rows": vec![0_u32; 12]}
+        ])))
+        .unwrap_err();
+        assert!(empty_grid.contains("must activate at least one cell"));
     }
 
     #[test]

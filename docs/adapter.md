@@ -117,6 +117,12 @@ Every remaining formation, construction, contraption, and modifier is applied in
 whose deployment timer is then reset. The operation returns only after
 authoritative readback and stable activation-round deployment status.
 
+A structurally valid layout may contain `sides.<side>.terrains` for readback and
+offline verification. The Adapter rejects any non-empty terrain list before the
+prepare stage and performs no native mutation. Native terrain application stays
+disabled until GRBR-derived rounds can be captured as MCFR and compared for
+closure.
+
 ### quit_game
 
 Input is an empty object.

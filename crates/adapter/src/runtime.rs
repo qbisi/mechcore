@@ -917,6 +917,9 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
         Ok(plan) => plan,
         Err(error) => return Response::failure(request.id, "invalid_arguments", error),
     };
+    if let Err(error) = validate_apply_layout_support(&plan) {
+        return Response::failure(request.id, "invalid_arguments", error);
+    }
     let deadline = Instant::now() + LAYOUT_SERIES_TIMEOUT;
     let prepare = execute_layout_stage_on_main(
         runtime,
@@ -1002,6 +1005,16 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
             "stages": stages,
         }),
     )
+}
+
+fn validate_apply_layout_support(plan: &Plan) -> Result<(), String> {
+    if plan.terrain_count() != 0 {
+        return Err(
+            "apply_layout refuses layouts with non-empty terrains until GRBR-derived MCFR capture is available for native closure"
+                .into(),
+        );
+    }
+    Ok(())
 }
 
 const fn is_pre_activation_round(current_round: i32, target_round: i32) -> bool {
@@ -1169,5 +1182,25 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn apply_layout_support_rejects_valid_nonempty_terrains() {
+        let plan = layout::compile(&serde_json::json!({
+            "round": 1,
+            "sides": {
+                "blue": {
+                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "terrains": [{"type": "oil", "x": -60, "y": 40, "grid_rows": []}]
+                },
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(
+            validate_apply_layout_support(&plan).unwrap_err(),
+            "apply_layout refuses layouts with non-empty terrains until GRBR-derived MCFR capture is available for native closure"
+        );
     }
 }

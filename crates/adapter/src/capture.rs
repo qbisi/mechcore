@@ -4511,6 +4511,8 @@ fn read_native_side(
         formations,
         constructions,
         contraptions: read_native_contraptions(api, controller, team)?,
+        // Native terrain readback is not part of layout capture until GRBR-derived MCFR closure.
+        terrains: Vec::new(),
         battle_skills: read_native_battle_skills(api, controller, team)?,
     })
 }

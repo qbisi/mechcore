@@ -14,6 +14,7 @@ sides:
     formations: [{type: marksman, x: 0, y: -50}]
     constructions: [{type: defensive_wall, x: 140, y: -105}]
     contraptions: [{type: interceptor, x: 35, y: -85}]
+    terrains: [{type: oil, x: -60, y: 40, grid_rows: []}]
   red:
     formations: [{type: arclight, x: 0, y: -50}]
 "#,
@@ -38,6 +39,7 @@ sides:
     assert_eq!(report["formation_count"], 2);
     assert_eq!(report["construction_count"], 1);
     assert_eq!(report["contraption_count"], 1);
+    assert_eq!(report["terrain_count"], 1);
 }
 
 #[test]
@@ -80,6 +82,7 @@ round: 1
 sides:
   blue:
     formations: [{type: marksman, x: 0, y: -50, level: 1, rotated: false}]
+    terrains: [{type: oil, x: -60, y: 40, grid_rows: []}]
   red:
     formations: [{type: arclight, x: 0, y: -50, travelling: false}]
 "#,
@@ -97,6 +100,10 @@ sides:
     assert!(!canonical.contains("level:"));
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
+    assert!(
+        canonical
+            .contains("terrains:\n    - type: oil\n      x: -60\n      y: 40\n      grid_rows: []")
+    );
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["layout", "format"])

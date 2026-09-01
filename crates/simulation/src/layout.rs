@@ -86,6 +86,11 @@ fn compile_side(
             "side {name} tower modifiers are outside the current baseline simulator slice"
         )));
     }
+    if !side.terrains.is_empty() {
+        return Err(Error::new(format!(
+            "side {name} terrains are outside the current simulator closure; persistent terrain simulation requires GRBR-derived MCFR comparison"
+        )));
+    }
     if !side.battle_skills.is_empty() {
         return Err(Error::new(format!(
             "side {name} battle skills are outside the current baseline simulator slice"
@@ -239,6 +244,18 @@ sides:
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
             "side blue constructions are outside the current baseline simulator slice"
+        );
+    }
+
+    #[test]
+    fn rejects_persistent_terrains_outside_simulator_closure() {
+        let value = LAYOUT.replace(
+            "formations: [{type: marksman, x: 0, y: -50}]",
+            "formations: [{type: marksman, x: 0, y: -50}]\n    terrains: [{type: oil, x: -60, y: 40, grid_rows: []}]",
+        );
+        assert_eq!(
+            compile_default(&value).unwrap_err().to_string(),
+            "side blue terrains are outside the current simulator closure; persistent terrain simulation requires GRBR-derived MCFR comparison"
         );
     }
 
