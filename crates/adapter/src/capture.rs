@@ -4,8 +4,8 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_layout::{
-    BattleSkillDefinition, Contraption, EnergyTower, Formation, Layout, Position, ResearchCenter,
-    Side, Sides, Techs, battle_skill_type_from_id, canonical_embedded_yaml,
+    BattleSkillDefinition, EnergyTower, Formation, Layout, Position, ResearchCenter, Side, Sides,
+    StaticPlacement, Techs, battle_skill_type_from_id, canonical_embedded_yaml,
     construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
@@ -4478,29 +4478,26 @@ fn read_native_side(
             ));
         }
     }
-    let mut formations = indexed_units
+    let formations = indexed_units
         .into_iter()
         .map(|(_, formation)| formation)
         .collect::<Vec<_>>();
 
     let construction_manager = invoke_object(api, controller, "GetConstructionManager")?;
-    let constructions = invoke_object(api, construction_manager, "GetConstructionElements")?;
-    for index in 0..list_count(api, constructions, 10_000)? {
-        let construction = list_item(api, constructions, index)?;
+    let native_constructions = invoke_object(api, construction_manager, "GetConstructionElements")?;
+    let mut constructions = Vec::new();
+    for index in 0..list_count(api, native_constructions, 10_000)? {
+        let construction = list_item(api, native_constructions, index)?;
         let data = invoke_object(api, construction, "GetConstructionData")?;
         let native_id = invoke_value::<i32>(api, data, "GetID")?;
         let (type_name, _) = construction_type_from_id(native_id)
             .ok_or_else(|| format!("unknown build-2259 construction type ID {native_id}"))?;
         let position = invoke_value::<MapVector>(api, construction, "GetPosition")?;
         let (x, y) = side_local_position(position, team)?;
-        formations.push(Formation {
+        constructions.push(StaticPlacement {
             type_name: type_name.to_owned(),
             x,
             y,
-            level: None,
-            rotated: None,
-            equipment: None,
-            travelling: None,
         });
     }
 
@@ -4512,6 +4509,7 @@ fn read_native_side(
         research_center: read_native_research_center(api, controller)?,
         energy_tower: read_native_energy_tower(api, controller)?,
         formations,
+        constructions,
         contraptions: read_native_contraptions(api, controller, team)?,
         battle_skills: read_native_battle_skills(api, controller, team)?,
     })
@@ -4702,7 +4700,7 @@ fn read_native_contraptions(
     api: Api,
     controller: *mut Object,
     team: usize,
-) -> Result<Vec<Contraption>, String> {
+) -> Result<Vec<StaticPlacement>, String> {
     let manager = invoke_object(api, controller, "GetContraptionManager")?;
     let recorder = invoke_object(api, manager, "GetFightObjectRecorder")?;
     let records = invoke_object(api, recorder, "GeRecords")?;
@@ -4725,7 +4723,7 @@ fn read_native_contraptions(
             .invoke_value::<MapVector>(positions, "get_Item", &mut [argument(&mut first)])
             .map_err(|error| error.to_string())?;
         let (x, y) = side_local_position(position, team)?;
-        result.push(Contraption {
+        result.push(StaticPlacement {
             type_name: type_name.to_owned(),
             x,
             y,

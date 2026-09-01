@@ -12,6 +12,7 @@ round: 1
 sides:
   blue:
     formations: [{type: marksman, x: 0, y: -50}]
+    constructions: [{type: defensive_wall, x: 140, y: -105}]
     contraptions: [{type: interceptor, x: 35, y: -85}]
   red:
     formations: [{type: arclight, x: 0, y: -50}]
@@ -35,6 +36,7 @@ sides:
     assert_eq!(report["seed"], -17);
     assert_eq!(report["round"], 1);
     assert_eq!(report["formation_count"], 2);
+    assert_eq!(report["construction_count"], 1);
     assert_eq!(report["contraption_count"], 1);
 }
 

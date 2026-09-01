@@ -31,7 +31,9 @@ pub struct Side {
     pub energy_tower: EnergyTower,
     pub formations: Vec<Formation>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub contraptions: Vec<Contraption>,
+    pub constructions: Vec<StaticPlacement>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contraptions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<BattleSkillDefinition>,
 }
@@ -99,7 +101,7 @@ pub struct Formation {
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct Contraption {
+pub struct StaticPlacement {
     #[serde(rename = "type")]
     pub type_name: String,
     pub x: i32,
@@ -166,6 +168,7 @@ pub struct SidePlan {
     pub research_center: ResearchCenter,
     pub energy_tower: EnergyTower,
     pub formations: Vec<Placement>,
+    pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
     pub battle_skills: Vec<BattleSkill>,
 }
@@ -228,6 +231,11 @@ impl Plan {
     }
 
     #[must_use]
+    pub fn construction_count(&self) -> usize {
+        self.blue.constructions.len() + self.red.constructions.len()
+    }
+
+    #[must_use]
     pub fn contraption_count(&self) -> usize {
         self.blue.contraptions.len() + self.red.contraptions.len()
     }
@@ -274,7 +282,50 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<Layout, String> {
 ///
 /// Returns an error when the YAML does not match the shared layout structure.
 pub fn parse_embedded_yaml(bytes: &[u8]) -> Result<Layout, String> {
-    serde_yaml::from_slice(bytes).map_err(|error| format!("invalid layout YAML: {error}"))
+    let layout: Layout =
+        serde_yaml::from_slice(bytes).map_err(|error| format!("invalid layout YAML: {error}"))?;
+    validate_embedded_categories(&layout)?;
+    Ok(layout)
+}
+
+fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
+    for (side_name, side) in [("blue", &layout.sides.blue), ("red", &layout.sides.red)] {
+        for formation in &side.formations {
+            if resolve_unit_type(&formation.type_name).is_none() {
+                let destination = if resolve_construction_type(&formation.type_name).is_some() {
+                    "constructions"
+                } else if resolve_contraption_type(&formation.type_name).is_some() {
+                    "contraptions"
+                } else {
+                    return Err(format!(
+                        "side {side_name} formation type {:?} is unknown",
+                        formation.type_name
+                    ));
+                };
+                return Err(format!(
+                    "side {side_name} formation type {:?} belongs in {destination}",
+                    formation.type_name,
+                ));
+            }
+        }
+        for construction in &side.constructions {
+            if resolve_construction_type(&construction.type_name).is_none() {
+                return Err(format!(
+                    "side {side_name} construction type {:?} is unknown",
+                    construction.type_name
+                ));
+            }
+        }
+        for contraption in &side.contraptions {
+            if resolve_contraption_type(&contraption.type_name).is_none() {
+                return Err(format!(
+                    "side {side_name} contraption type {:?} is unknown",
+                    contraption.type_name
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Serializes a validated layout into the canonical YAML representation.
@@ -296,6 +347,7 @@ pub fn canonical_yaml(layout: Layout) -> Result<String, String> {
 ///
 /// Returns an error when the layout cannot be serialized.
 pub fn canonical_embedded_yaml(layout: Layout) -> Result<String, String> {
+    validate_embedded_categories(&layout)?;
     let layout = layout.normalized();
     serde_yaml::to_string(&layout).map_err(|error| format!("cannot serialize layout YAML: {error}"))
 }
@@ -325,11 +377,13 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     }
     let blue = compile_side("blue", layout.sides.blue, layout.round)?;
     let red = compile_side("red", layout.sides.red, layout.round)?;
-    validate_formation_footprints("blue", &blue.formations)?;
-    validate_formation_footprints("red", &red.formations)?;
-    validate_formation_footprints("blue", &blue.contraptions)?;
-    validate_formation_footprints("red", &red.contraptions)?;
-    validate_formation_collisions(&blue, &red)?;
+    validate_placement_footprints("blue", &blue.formations)?;
+    validate_placement_footprints("red", &red.formations)?;
+    validate_placement_footprints("blue", &blue.constructions)?;
+    validate_placement_footprints("red", &red.constructions)?;
+    validate_placement_footprints("blue", &blue.contraptions)?;
+    validate_placement_footprints("red", &red.contraptions)?;
+    validate_placement_collisions(&blue, &red)?;
     Ok(Plan {
         seed: layout.seed,
         round: layout.round,
@@ -346,10 +400,12 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         research_center,
         energy_tower,
         formations,
+        constructions,
         contraptions,
         battle_skills,
     } = side;
     let formations = compile_formations(side_name, formations, round)?;
+    let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     Ok(SidePlan {
@@ -357,6 +413,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         research_center,
         energy_tower,
         formations,
+        constructions,
         contraptions,
         battle_skills,
     })
@@ -381,7 +438,13 @@ fn compile_formations(
                 travelling,
             } = formation;
             let position = Position { x, y };
-            let spec = resolve_formation_type(&type_name).ok_or_else(|| {
+            let spec = resolve_unit_type(&type_name).ok_or_else(|| {
+                if resolve_construction_type(&type_name).is_some() {
+                    return format!(
+                        "side {side_name} formation type {type_name:?} at ({}, {}) belongs in constructions",
+                        position.x, position.y
+                    );
+                }
                 if resolve_contraption_type(&type_name).is_some() {
                     return format!(
                         "side {side_name} formation type {type_name:?} at ({}, {}) belongs in contraptions",
@@ -393,72 +456,39 @@ fn compile_formations(
                     position.x, position.y
                 )
             })?;
-            match spec.native {
-                NativeFormation::Unit(unit_id) => {
-                    let level = level.unwrap_or(1);
-                    let rotated = rotated.unwrap_or(false);
-                    let travelling = travelling.unwrap_or(false);
-                    if !(1..=9).contains(&level) {
-                        return Err(format!(
-                            "side {side_name} formation type {type_name:?} at ({}, {}) level must be 1..=9",
-                            position.x, position.y
-                        ));
-                    }
-                    if equipment.is_some_and(|id| id <= 0) {
-                        return Err(format!(
-                            "side {side_name} formation type {type_name:?} at ({}, {}) equipment must be a positive integer",
-                            position.x, position.y
-                        ));
-                    }
-                    let stage = unit_placement_stage(
-                        side_name,
-                        &type_name,
-                        position,
-                        travelling,
-                        round,
-                    )?;
-                    Ok(Placement {
-                        type_name,
-                        native: NativeFormation::Unit(unit_id),
-                        footprint: spec.footprint,
-                        position,
-                        level: Some(level),
-                        rotated,
-                        equipment,
-                        travelling,
-                        stage,
-                    })
-                }
-                NativeFormation::Construction(id) => {
-                    reject_unit_fields(
-                        side_name,
-                        &type_name,
-                        position,
-                        level,
-                        rotated,
-                        equipment,
-                        travelling,
-                    )?;
-                    Ok(Placement {
-                        type_name,
-                        native: NativeFormation::Construction(id),
-                        footprint: spec.footprint,
-                        position,
-                        level: None,
-                        rotated: false,
-                        equipment: None,
-                        travelling: false,
-                        stage: PlacementStage::Activation,
-                    })
-                }
-                NativeFormation::Contraption(_) => unreachable!("formation resolver returned contraption"),
+            let NativeFormation::Unit(unit_id) = spec.native else {
+                unreachable!("unit resolver returned non-unit placement")
+            };
+            let level = level.unwrap_or(1);
+            let rotated = rotated.unwrap_or(false);
+            let travelling = travelling.unwrap_or(false);
+            if !(1..=9).contains(&level) {
+                return Err(format!(
+                    "side {side_name} formation type {type_name:?} at ({}, {}) level must be 1..=9",
+                    position.x, position.y
+                ));
             }
+            if equipment.is_some_and(|id| id <= 0) {
+                return Err(format!(
+                    "side {side_name} formation type {type_name:?} at ({}, {}) equipment must be a positive integer",
+                    position.x, position.y
+                ));
+            }
+            let stage = unit_placement_stage(side_name, &type_name, position, travelling, round)?;
+            Ok(Placement {
+                type_name,
+                native: NativeFormation::Unit(unit_id),
+                footprint: spec.footprint,
+                position,
+                level: Some(level),
+                rotated,
+                equipment,
+                travelling,
+                stage,
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if !placements
-        .iter()
-        .any(|placement| matches!(placement.native, NativeFormation::Unit(_)))
-    {
+    if placements.is_empty() {
         return Err(format!(
             "side {side_name} formations must contain at least one valid unit"
         ));
@@ -466,14 +496,44 @@ fn compile_formations(
     Ok(placements)
 }
 
-fn compile_contraptions(
+fn compile_constructions(
     side_name: &str,
-    definitions: Vec<Contraption>,
+    definitions: Vec<StaticPlacement>,
 ) -> Result<Vec<Placement>, String> {
     definitions
         .into_iter()
         .map(|definition| {
-            let Contraption { type_name, x, y } = definition;
+            let StaticPlacement { type_name, x, y } = definition;
+            let position = Position { x, y };
+            let spec = resolve_construction_type(&type_name).ok_or_else(|| {
+                format!(
+                    "side {side_name} construction type {type_name:?} at ({}, {}) is unknown",
+                    position.x, position.y
+                )
+            })?;
+            Ok(Placement {
+                type_name,
+                native: spec.native,
+                footprint: spec.footprint,
+                position,
+                level: None,
+                rotated: false,
+                equipment: None,
+                travelling: false,
+                stage: PlacementStage::Activation,
+            })
+        })
+        .collect()
+}
+
+fn compile_contraptions(
+    side_name: &str,
+    definitions: Vec<StaticPlacement>,
+) -> Result<Vec<Placement>, String> {
+    definitions
+        .into_iter()
+        .map(|definition| {
+            let StaticPlacement { type_name, x, y } = definition;
             let position = Position { x, y };
             let spec = resolve_contraption_type(&type_name).ok_or_else(|| {
                 format!(
@@ -731,7 +791,7 @@ fn point_on_segment(point: (i64, i64), start: (i64, i64), end: (i64, i64)) -> bo
         && (start.1.min(end.1)..=start.1.max(end.1)).contains(&point.1)
 }
 
-fn validate_formation_footprints(side_name: &str, placements: &[Placement]) -> Result<(), String> {
+fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> Result<(), String> {
     for placement in placements {
         match placement.native {
             NativeFormation::Contraption(10001) => {
@@ -744,7 +804,7 @@ fn validate_formation_footprints(side_name: &str, placements: &[Placement]) -> R
             }
             _ => {}
         }
-        let (width, height) = formation_footprint(placement)
+        let (width, height) = placement_footprint(placement)
             .ok_or_else(|| missing_footprint(side_name, placement))?;
         let x = i64::from(placement.position.x);
         let y = i64::from(placement.position.y);
@@ -754,19 +814,19 @@ fn validate_formation_footprints(side_name: &str, placements: &[Placement]) -> R
         let max_y = y + height / 2;
         let required_x = grid_center_remainder(width).ok_or_else(|| {
             format!(
-                "side {side_name} formation type {:?} at ({}, {}) has unsupported footprint width {width}",
+                "side {side_name} placement type {:?} at ({}, {}) has unsupported footprint width {width}",
                 placement.type_name, placement.position.x, placement.position.y
             )
         })?;
         let required_y = grid_center_remainder(height).ok_or_else(|| {
             format!(
-                "side {side_name} formation type {:?} at ({}, {}) has unsupported footprint height {height}",
+                "side {side_name} placement type {:?} at ({}, {}) has unsupported footprint height {height}",
                 placement.type_name, placement.position.x, placement.position.y
             )
         })?;
         if x.rem_euclid(10) != required_x || y.rem_euclid(10) != required_y {
             return Err(format!(
-                "side {side_name} formation type {:?} at ({}, {}) is off the native 10x10 grid: footprint {width}x{height} requires center x≡{required_x}, y≡{required_y} (mod 10)",
+                "side {side_name} placement type {:?} at ({}, {}) is off the native 10x10 grid: footprint {width}x{height} requires center x≡{required_x}, y≡{required_y} (mod 10)",
                 placement.type_name, placement.position.x, placement.position.y,
             ));
         }
@@ -793,7 +853,7 @@ fn validate_formation_footprints(side_name: &str, placements: &[Placement]) -> R
             );
             if !inside_left && !inside_right {
                 return Err(format!(
-                    "side {side_name} formation type {:?} at ({}, {}) footprint {width}x{height} must fit completely inside one ambush zone: left x=[{AMBUSH_LEFT_MIN_X},{AMBUSH_LEFT_MAX_X}] or right x=[{AMBUSH_RIGHT_MIN_X},{AMBUSH_RIGHT_MAX_X}], y=[{AMBUSH_MIN_Y},{AMBUSH_MAX_Y}]",
+                    "side {side_name} placement type {:?} at ({}, {}) footprint {width}x{height} must fit completely inside one ambush zone: left x=[{AMBUSH_LEFT_MIN_X},{AMBUSH_LEFT_MAX_X}] or right x=[{AMBUSH_RIGHT_MIN_X},{AMBUSH_RIGHT_MAX_X}], y=[{AMBUSH_MIN_Y},{AMBUSH_MAX_Y}]",
                     placement.type_name, placement.position.x, placement.position.y
                 ));
             }
@@ -808,7 +868,7 @@ fn validate_formation_footprints(side_name: &str, placements: &[Placement]) -> R
             DEPLOYMENT_MAX_Y,
         ) {
             return Err(format!(
-                "side {side_name} formation type {:?} at ({}, {}) footprint {width}x{height} exceeds the main deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
+                "side {side_name} placement type {:?} at ({}, {}) footprint {width}x{height} exceeds the main deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
                 placement.type_name, placement.position.x, placement.position.y
             ));
         }
@@ -825,7 +885,7 @@ fn validate_shield_position(side_name: &str, placement: &Placement) -> Result<()
         Ok(())
     } else {
         Err(format!(
-            "side {side_name} formation type {:?} at ({}, {}) places its radius-{SHIELD_RADIUS} edge outside the own-side deployment boundary: center must be within x=[{min_x},{max_x}], y=[{min_y},{max_y}]",
+            "side {side_name} placement type {:?} at ({}, {}) places its radius-{SHIELD_RADIUS} edge outside the own-side deployment boundary: center must be within x=[{min_x},{max_x}], y=[{min_y},{max_y}]",
             placement.type_name, placement.position.x, placement.position.y
         ))
     }
@@ -842,7 +902,7 @@ fn validate_missile_position(side_name: &str, placement: &Placement) -> Result<(
         Ok(())
     } else {
         Err(format!(
-            "side {side_name} formation type {:?} at ({}, {}) is outside the own-side deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
+            "side {side_name} placement type {:?} at ({}, {}) is outside the own-side deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
             placement.type_name, placement.position.x, placement.position.y
         ))
     }
@@ -876,16 +936,19 @@ fn grid_center_remainder(extent: i64) -> Option<i64> {
     }
 }
 
-fn validate_formation_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), String> {
+fn validate_placement_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), String> {
     let mut world = Vec::with_capacity(
         blue.formations.len()
+            + blue.constructions.len()
             + blue.contraptions.len()
             + red.formations.len()
+            + red.constructions.len()
             + red.contraptions.len(),
     );
     world.extend(
         blue.formations
             .iter()
+            .chain(&blue.constructions)
             .chain(&blue.contraptions)
             .filter(|placement| participates_in_collision(placement))
             .map(|placement| {
@@ -900,6 +963,7 @@ fn validate_formation_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), 
     world.extend(
         red.formations
             .iter()
+            .chain(&red.constructions)
             .chain(&red.contraptions)
             .filter(|placement| participates_in_collision(placement))
             .map(|placement| {
@@ -914,15 +978,15 @@ fn validate_formation_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), 
 
     for (index, &(left_side, left, left_x, left_y)) in world.iter().enumerate() {
         let (left_width, left_height) =
-            formation_footprint(left).ok_or_else(|| missing_footprint(left_side, left))?;
+            placement_footprint(left).ok_or_else(|| missing_footprint(left_side, left))?;
         for &(right_side, right, right_x, right_y) in &world[index + 1..] {
             let (right_width, right_height) =
-                formation_footprint(right).ok_or_else(|| missing_footprint(right_side, right))?;
+                placement_footprint(right).ok_or_else(|| missing_footprint(right_side, right))?;
             let overlaps_x = (left_x - right_x).abs() * 2 < left_width + right_width;
             let overlaps_y = (left_y - right_y).abs() * 2 < left_height + right_height;
             if overlaps_x && overlaps_y {
                 return Err(format!(
-                    "formations collide: {left_side} type {:?} at ({}, {}) and {right_side} type {:?} at ({}, {})",
+                    "placements collide: {left_side} type {:?} at ({}, {}) and {right_side} type {:?} at ({}, {})",
                     left.type_name,
                     left.position.x,
                     left.position.y,
@@ -945,12 +1009,12 @@ const fn participates_in_collision(placement: &Placement) -> bool {
 
 fn missing_footprint(side_name: &str, placement: &Placement) -> String {
     format!(
-        "side {side_name} formation type {:?} at ({}, {}) has no deployment footprint",
+        "side {side_name} placement type {:?} at ({}, {}) has no deployment footprint",
         placement.type_name, placement.position.x, placement.position.y
     )
 }
 
-fn formation_footprint(placement: &Placement) -> Option<(i64, i64)> {
+fn placement_footprint(placement: &Placement) -> Option<(i64, i64)> {
     let (width, height) = placement.footprint?;
     Some(
         if matches!(placement.native, NativeFormation::Unit(_))
@@ -1004,25 +1068,6 @@ fn unit_placement_stage(
     })
 }
 
-fn reject_unit_fields(
-    side_name: &str,
-    type_name: &str,
-    position: Position,
-    level: Option<i32>,
-    rotated: Option<bool>,
-    equipment: Option<i32>,
-    travelling: Option<bool>,
-) -> Result<(), String> {
-    if level.is_some() || rotated.is_some() || equipment.is_some() || travelling.is_some() {
-        Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) does not accept level, rotated, equipment, or travelling",
-            position.x, position.y
-        ))
-    } else {
-        Ok(())
-    }
-}
-
 const fn formation_spec(native: NativeFormation, footprint: Option<(i64, i64)>) -> FormationSpec {
     FormationSpec { native, footprint }
 }
@@ -1035,7 +1080,7 @@ const fn construction_spec(id: i32, width: i64, height: i64) -> FormationSpec {
     formation_spec(NativeFormation::Construction(id), Some((width, height)))
 }
 
-const fn resolve_formation_type(type_name: &str) -> Option<FormationSpec> {
+const fn resolve_unit_type(type_name: &str) -> Option<FormationSpec> {
     match type_name.as_bytes() {
         b"fortress" => Some(unit_spec(1, 40, 40)),
         b"marksman" => Some(unit_spec(2, 20, 20)),
@@ -1069,6 +1114,12 @@ const fn resolve_formation_type(type_name: &str) -> Option<FormationSpec> {
         b"void_eye" => Some(unit_spec(30, 40, 20)),
         b"vortex" => Some(unit_spec(31, 20, 20)),
         b"mountain" => Some(unit_spec(2002, 70, 70)),
+        _ => None,
+    }
+}
+
+const fn resolve_construction_type(type_name: &str) -> Option<FormationSpec> {
+    match type_name.as_bytes() {
         b"defensive_wall" => Some(construction_spec(1, 60, 10)),
         b"anti_armor_turret" => Some(construction_spec(2, 20, 20)),
         b"rapid_fire_turret" => Some(construction_spec(3, 20, 20)),
@@ -1466,6 +1517,27 @@ mod tests {
     }
 
     #[test]
+    fn embedded_layout_keeps_placement_categories_explicit() {
+        let error = parse_embedded_yaml(
+            br#"
+round: 1
+sides:
+  blue:
+    formations:
+      - {type: defensive_wall, x: 140, y: -105}
+  red:
+    formations:
+      - {type: marksman, x: 0, y: -50}
+"#,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            "side blue formation type \"defensive_wall\" belongs in constructions"
+        );
+    }
+
+    #[test]
     fn compiles_formations_into_pre_activation_and_activation_stages() {
         let plan = compile(&json!({
             "round": 3,
@@ -1540,7 +1612,7 @@ mod tests {
     }
 
     #[test]
-    fn travelling_is_unit_only_and_requires_an_ambush_position() {
+    fn travelling_requires_an_ambush_position() {
         let main_error = compile(&json!({
             "round": 3,
             "sides": {
@@ -1552,20 +1624,6 @@ mod tests {
         }))
         .unwrap_err();
         assert!(main_error.contains("travelling=true outside the ambush zones"));
-
-        let construction_error = compile(&json!({
-            "round": 3,
-            "sides": {
-                "blue": {"formations": [
-                    {"type": "defensive_wall", "x": 0, "y": -55, "travelling": false},
-                    {"type": "marksman", "x": 100, "y": -50}
-                ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
-            }
-        }))
-        .unwrap_err();
-        assert!(construction_error.contains("does not accept"));
-        assert!(construction_error.contains("travelling"));
     }
 
     #[test]
@@ -1599,7 +1657,7 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(
-            formation_footprint(&plan.blue.formations[0]),
+            placement_footprint(&plan.blue.formations[0]),
             Some((50, 20))
         );
 
@@ -1666,15 +1724,15 @@ mod tests {
     }
 
     #[test]
-    fn rejects_equipment_for_non_unit_formations() {
+    fn constructions_reject_unit_only_fields() {
         let error = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [
-                    {"type": "defensive_wall", "x": 0, "y": -55,
-                     "equipment": 13_030_001},
-                    {"type": "marksman", "x": 100, "y": -50}
-                ]},
+                "blue": {
+                    "formations": [{"type": "marksman", "x": 100, "y": -50}],
+                    "constructions": [{"type": "defensive_wall", "x": 0, "y": -55,
+                     "equipment": 13_030_001}]
+                },
                 "red": {"formations": [{
                     "type": "marksman", "x": 0, "y": -50
                 }]}
@@ -1682,10 +1740,7 @@ mod tests {
         }))
         .unwrap_err();
 
-        assert_eq!(
-            error,
-            "side blue formation type \"defensive_wall\" at (0, -55) does not accept level, rotated, equipment, or travelling"
-        );
+        assert!(error.contains("unknown field `equipment`"));
     }
 
     #[test]
@@ -1778,13 +1833,13 @@ mod tests {
     }
 
     #[test]
-    fn rejects_fields_invalid_for_the_formation_type() {
+    fn rejects_construction_types_in_formations() {
         let error = compile(&json!({
             "round": 1,
             "sides": {
                 "blue": {"formations": [{
                     "type": "defensive_wall",
-                    "x": 0, "y": 0, "rotated": false
+                    "x": 0, "y": -55
                 }]},
                 "red": {"formations": [{
                     "type": "marksman", "x": 0, "y": -50
@@ -1792,7 +1847,10 @@ mod tests {
             }
         }))
         .unwrap_err();
-        assert!(error.contains("does not accept level, rotated, equipment, or travelling"));
+        assert_eq!(
+            error,
+            "side blue formation type \"defensive_wall\" at (0, -55) belongs in constructions"
+        );
     }
 
     #[test]
@@ -1840,7 +1898,7 @@ mod tests {
         };
 
         let error = compile(&layout(10)).unwrap_err();
-        assert!(error.contains("formations collide"));
+        assert!(error.contains("placements collide"));
         assert!(error.contains("marksman"));
         assert!(error.contains("arclight"));
         compile(&layout(20)).unwrap();
@@ -1854,7 +1912,7 @@ mod tests {
         let error = compile(&value).unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"sledgehammer\" at (285, -60) footprint 50x20 exceeds the main deployment boundary x=[-300,300], y=[-310,-10]"
+            "side blue placement type \"sledgehammer\" at (285, -60) footprint 50x20 exceeds the main deployment boundary x=[-300,300], y=[-310,-10]"
         );
     }
 
@@ -1866,19 +1924,19 @@ mod tests {
         let error = compile(&value).unwrap_err();
         assert_eq!(
             error,
-            "formations collide: blue type \"sledgehammer\" at (5, -100) and blue type \"crawler\" at (20, -95)"
+            "placements collide: blue type \"sledgehammer\" at (5, -100) and blue type \"crawler\" at (20, -95)"
         );
     }
 
     #[test]
-    fn rejects_unit_construction_collision_and_names_both_formations() {
+    fn rejects_unit_construction_collision_and_names_both_placements() {
         let value = yaml_fixture(include_str!(
             "../tests/fixtures/invalid-unit-construction-collision.yaml"
         ));
         let error = compile(&value).unwrap_err();
         assert_eq!(
             error,
-            "formations collide: blue type \"marksman\" at (140, -100) and blue type \"defensive_wall\" at (140, -105)"
+            "placements collide: blue type \"marksman\" at (140, -100) and blue type \"defensive_wall\" at (140, -105)"
         );
     }
 
@@ -1898,7 +1956,7 @@ mod tests {
         .unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"marksman\" at (5, -50) is off the native 10x10 grid: footprint 20x20 requires center x≡0, y≡0 (mod 10)"
+            "side blue placement type \"marksman\" at (5, -50) is off the native 10x10 grid: footprint 20x20 requires center x≡0, y≡0 (mod 10)"
         );
     }
 
@@ -1952,7 +2010,7 @@ mod tests {
         ];
         for &(type_names, footprint) in groups {
             for &type_name in type_names {
-                let spec = resolve_formation_type(type_name).unwrap();
+                let spec = resolve_unit_type(type_name).unwrap();
                 assert!(matches!(spec.native, NativeFormation::Unit(_)));
                 assert_eq!(spec.footprint, Some(footprint));
             }
@@ -1964,14 +2022,14 @@ mod tests {
     }
 
     #[test]
-    fn formation_specs_cover_the_four_constructions() {
+    fn construction_specs_cover_the_four_constructions() {
         for (type_name, footprint) in [
             ("defensive_wall", (60, 10)),
             ("anti_armor_turret", (20, 20)),
             ("rapid_fire_turret", (20, 20)),
             ("magnetic_barrier", (50, 10)),
         ] {
-            let spec = resolve_formation_type(type_name).unwrap();
+            let spec = resolve_construction_type(type_name).unwrap();
             assert!(matches!(spec.native, NativeFormation::Construction(_)));
             assert_eq!(spec.footprint, Some(footprint));
         }
@@ -2029,7 +2087,7 @@ mod tests {
         let error = compile(&layout(-95)).unwrap_err();
         assert_eq!(
             error,
-            "formations collide: blue type \"marksman\" at (0, -100) and blue type \"interceptor\" at (5, -95)"
+            "placements collide: blue type \"marksman\" at (0, -100) and blue type \"interceptor\" at (5, -95)"
         );
 
         let plan = compile(&layout(-125)).unwrap();
@@ -2096,7 +2154,7 @@ mod tests {
         let error = compile(&layout(230, -80)).unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"shield\" at (230, -80) places its radius-70 edge outside the own-side deployment boundary: center must be within x=[-229,229], y=[-239,-81]"
+            "side blue placement type \"shield\" at (230, -80) places its radius-70 edge outside the own-side deployment boundary: center must be within x=[-229,229], y=[-239,-81]"
         );
     }
 
@@ -2122,7 +2180,7 @@ mod tests {
         let error = compile(&layout(301, -10)).unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"missile\" at (301, -10) is outside the own-side deployment boundary x=[-300,300], y=[-310,-10]"
+            "side blue placement type \"missile\" at (301, -10) is outside the own-side deployment boundary x=[-300,300], y=[-310,-10]"
         );
     }
 
@@ -2131,12 +2189,13 @@ mod tests {
         let plan = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [
+                "blue": {
+                    "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                    "constructions": [
                     {"type": "rapid_fire_turret", "x": 140, "y": -60},
                     {"type": "defensive_wall", "x": 140, "y": -105},
                     {"type": "anti_armor_turret", "x": -140, "y": -60},
-                    {"type": "magnetic_barrier", "x": -165, "y": -105},
-                    {"type": "marksman", "x": 0, "y": -150}
+                    {"type": "magnetic_barrier", "x": -165, "y": -105}
                 ]},
                 "red": {"formations": [{
                     "type": "marksman", "x": 0, "y": -50
@@ -2145,10 +2204,11 @@ mod tests {
         }))
         .unwrap();
 
-        assert_eq!(plan.formation_count(), 6);
+        assert_eq!(plan.formation_count(), 2);
+        assert_eq!(plan.construction_count(), 4);
         assert_eq!(
             plan.blue
-                .formations
+                .constructions
                 .iter()
                 .map(|placement| placement.native)
                 .collect::<Vec<_>>(),
@@ -2157,7 +2217,6 @@ mod tests {
                 NativeFormation::Construction(1),
                 NativeFormation::Construction(2),
                 NativeFormation::Construction(4),
-                NativeFormation::Unit(2),
             ]
         );
     }
@@ -2438,12 +2497,20 @@ mod tests {
         let formations = [
             ("fortress", NativeFormation::Unit(1)),
             ("mountain", NativeFormation::Unit(2002)),
-            ("defensive_wall", NativeFormation::Construction(1)),
-            ("magnetic_barrier", NativeFormation::Construction(4)),
         ];
         for (type_name, native) in formations {
             assert_eq!(
-                resolve_formation_type(type_name).map(|spec| spec.native),
+                resolve_unit_type(type_name).map(|spec| spec.native),
+                Some(native)
+            );
+        }
+        let constructions = [
+            ("defensive_wall", NativeFormation::Construction(1)),
+            ("magnetic_barrier", NativeFormation::Construction(4)),
+        ];
+        for (type_name, native) in constructions {
+            assert_eq!(
+                resolve_construction_type(type_name).map(|spec| spec.native),
                 Some(native)
             );
         }
@@ -2458,7 +2525,8 @@ mod tests {
                 Some(native)
             );
         }
-        assert_eq!(resolve_formation_type("unit"), None);
+        assert_eq!(resolve_unit_type("unit"), None);
+        assert_eq!(resolve_construction_type("unit"), None);
         assert_eq!(resolve_contraption_type("unit"), None);
     }
 }

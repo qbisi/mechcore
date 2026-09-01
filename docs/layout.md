@@ -63,6 +63,7 @@ sides:
         y: 20
         travelling: true
 
+    constructions:
       - type: defensive_wall
         x: 140
         y: -105
@@ -112,7 +113,8 @@ Runtime catalog availability and native readback remain Adapter-owned.
 
 `mechcore layout verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. A successful JSON report includes the normalized
-seed, activation round, formation count, and contraption count.
+seed, activation round, formation count, construction count, and contraption
+count.
 
 ## Seed
 
@@ -199,6 +201,7 @@ when omitted:
 - `energy_tower.strength_level` defaults to `0`.
 - `energy_tower.range_enhancement` defaults to `false`.
 - `energy_tower.movement_enhancement` defaults to `false`.
+- `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
 - A unit formation's `level` defaults to `1`.
@@ -342,8 +345,8 @@ applies the complete Energy Tower state in the activation round.
 
 ### `formations`
 
-`formations` is a union of units and constructions. Each entry
-uses one semantic `type` instead of exposing a catalog category and numeric ID:
+`formations` contains the side's unit formations. Each entry uses the unit's
+semantic `type` instead of exposing its native numeric ID:
 
 ```yaml
 - type: marksman
@@ -351,16 +354,14 @@ uses one semantic `type` instead of exposing a catalog category and numeric ID:
   y: -50
 ```
 
-- `type` is the lower `snake_case` form of the unit or construction's English
-  in-game name. It selects both the native catalog and the valid type-specific
-  fields.
+- `type` is the lower `snake_case` form of the unit's English in-game name. It
+  selects both the native catalog and the valid unit fields.
 - `x` and `y` are required exact signed coordinates in the owning side's fixed
   local frame defined above, not native world or screen pixels.
 
 A formation has no user-defined identifier. The adapter reports a failed
-formation by its `type`, `x`, and `y`; a successful unit placement may return
-the native runtime `unit_index`, and a successful construction placement may
-return `construction_index`, but those transient values are not layout state.
+formation by its `type`, `x`, and `y`; a successful placement may return the
+native runtime `unit_index`, but that transient value is not layout state.
 
 The layout compiler resolves every unit, construction, and interceptor
 deployment footprint and rejects positive-area overlap before any game
@@ -371,7 +372,7 @@ effective world footprint once more. Collision checks use this region-aware
 footprint and compiled world positions, so units, constructions, and
 interceptors share one collision space within a side and across `blue` and
 `red` after the red-side 180-degree transform. Shields and missiles do not
-participate in formation collision checks.
+participate in deployment collision checks.
 
 For units, constructions, and interceptors, all four footprint vertices must
 lie on the native `10 x 10` deployment grid. The compiler enforces the
@@ -400,7 +401,7 @@ defined above. A center inside a legal rectangle is insufficient when any
 footprint edge crosses it.
 
 Shields and missiles use their native contraption target regions instead of
-the formation footprint rules above. Neither has a modulo-10 requirement or a
+the deployment footprint rules above. Neither has a modulo-10 requirement or a
 collision footprint. A missile's center must lie in
 `x=[-300,300], y=[-310,-10]`. A shield has a 70 m radius, and the native check
 requires its complete edge to be strictly inside the same own-side region. For
@@ -425,7 +426,7 @@ and the interceptor:
 - `magnetic_barrier`: `50 x 10`;
 - `interceptor`: `30 x 30`.
 
-Any unknown formation type remains rejected fail-closed; the compiler does not
+Any unknown placement type remains rejected fail-closed; the compiler does not
 infer a size from combat-member radius.
 
 Tracked negative fixtures cover the spatial rejection cases:
@@ -437,8 +438,8 @@ Tracked negative fixtures cover the spatial rejection cases:
 - `crates/layout/tests/fixtures/invalid-unit-construction-collision.yaml`: a
   `20 x 20` Marksman overlaps a `60 x 10` Defensive Wall.
 
-Numeric formation IDs are adapter details and must not appear in a layout. The
-following values form the closed public `type` vocabulary:
+Native catalog IDs are adapter details and do not appear in a layout. The
+following values form the closed public `type` vocabulary for each field:
 
 - Units: `abyss`, `arclight`, `crawler`, `fang`, `farseer`, `fire_badger`,
   `fortress`, `hacker`, `hound`, `marksman`, `melting_point`, `mountain`,
@@ -449,22 +450,6 @@ following values form the closed public `type` vocabulary:
 - Constructions: `defensive_wall`, `anti_armor_turret`,
   `rapid_fire_turret`, and `magnetic_barrier`.
 - Contraptions: `shield`, `interceptor`, and `missile`.
-
-For example, a unit and a construction are unambiguous without a separate
-category field:
-
-```yaml
-- type: fortress
-  x: 0
-  y: -50
-- type: defensive_wall
-  x: 140
-  y: -105
-```
-
-An implementation must resolve each item as a discriminated union. It must
-reject unknown fields and `type` values, missing required fields, and fields
-that do not belong to the selected type.
 
 #### Unit
 
@@ -487,7 +472,7 @@ most one equipment slot, so this field is singular rather than an array.
 effect only for an ambush-zone unit: `true` requires that the unit be first
 deployed during the activation round, while `false` requires deployment in the
 immediately preceding round. `travelling: true` is invalid outside the ambush
-zones. Constructions must not declare `equipment` or `travelling`.
+zones.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
@@ -498,18 +483,20 @@ Ground inventory through `MAD_AddEquipment`, uses the existing native
 ownership readback. Available IDs and effects are listed in the
 [Equipment index](equipment.md) ([中文](equipment.zh.md)).
 
-#### Construction
+### `constructions`
 
 ```yaml
-- type: defensive_wall
-  x: 140
-  y: -105
+constructions:
+  - type: defensive_wall
+    x: 140
+    y: -105
 ```
 
-A construction accepts no `level`, `rotated`, `equipment`, or `travelling`
-field because the current native release action takes none of these values. The
-executor resolves its English type to the native `ConstructionData`, performs
-the placement check, releases it once, and verifies its type and exact position.
+`constructions` is parallel to `formations` under one side and defaults to
+`[]`. Each entry contains exactly `type`, `x`, and `y`. The executor resolves
+its English type to the native `ConstructionData`, performs the placement
+check, releases it once, and verifies its type and exact position. A successful
+placement may return the transient runtime `construction_index`.
 
 ### `contraptions`
 
@@ -521,9 +508,10 @@ contraptions:
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
-contraption kind. `contraptions` is parallel to `formations` under one side and
-defaults to `[]`. A contraption entry contains exactly `type`, `x`, and `y`; none
-of these three types requires an extra position.
+contraption kind. `contraptions` is parallel to `formations` and
+`constructions` under one side and defaults to `[]`. A contraption entry
+contains exactly `type`, `x`, and `y`; none of these three types requires an
+extra position.
 The executor performs the native placement check, releases the contraption once,
 and verifies its type and exact position through authoritative recorder
 readback.
@@ -606,7 +594,7 @@ Applying a layout is fail-closed:
    explicitly.
 3. Types, type-specific fields, side-local coordinates, static battle-skill
    position counts, known deployment footprints, applicable footprint grid
-   alignment, and applicable formation collisions are validated before
+   alignment, and applicable deployment collisions are validated before
    mutation. After provisioning a battle skill, its runtime position count and
    every target position are checked natively before that skill is released.
 4. Mutations are executed in document order within each array.
@@ -631,7 +619,8 @@ application: stable Officer IDs are validated, added through `MAD_AddOfficer`,
 and read back through `OfficerManager`; unit technology ownership is decoded
 statically, checked against the runtime catalog, added, activated, and read
 back through `TechnologyManager`. Research Center blueprints, Energy Tower
-effects, tower strengthening, all supported formation placements, side
+effects, tower strengthening, all supported formations, constructions, and
+contraptions, side
 switching, and field-state clearing use their corresponding native actions and
 readbacks.
 
@@ -652,7 +641,7 @@ request:
 
 1. require round-one Training Ground deployment;
 2. compile the complete layout and resolve every Officer, unit technology,
-   formation, contraption, fixed tower, required blueprint, Energy Tower skill, and battle
+   formation, construction, contraption, fixed tower, required blueprint, Energy Tower skill, and battle
    skill through each side's runtime catalog before mutation;
 3. clear both sides in round 1 without placing combat formations;
 4. start each earlier empty round and wait for the game to advance it naturally,
@@ -677,15 +666,15 @@ world positions.
 
 The compiler accepts omitted fields and explicit baseline values described in
 this document, except that `formations` is mandatory and non-empty on both
-sides. It rejects tower levels outside `0..=2`, unknown formation footprints,
-formation collisions where applicable, and contraptions outside their target
+sides. It rejects tower levels outside `0..=2`, unknown deployment footprints,
+deployment collisions where applicable, and contraptions outside their target
 regions. Unsupported state is never silently ignored.
 
-The compiler owns the activation round and the separate formation and
-contraption counts. A successful `apply_layout` response includes them as
-`round`, `formation_count`, and `contraption_count`, plus the completed `stages`
-and `skipped_rounds`; callers do not recount the input or returned arrays to
-establish completeness.
+The compiler owns the activation round and the separate formation,
+construction, and contraption counts. A successful `apply_layout` response
+includes them as `round`, `formation_count`, `construction_count`, and
+`contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
+do not recount the input or returned arrays to establish completeness.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is
@@ -720,9 +709,9 @@ and shutdown.
 complete `50 x 20` deployment footprint lies inside its own radius-70 shield.
 After the red-side transform, each Stormcaller starts about 51.35 m from the
 opponent's missile, inside the reference missile's 100 m trigger range. Both
-contraption centers deliberately avoid the formation modulo-10 grid. It is the
+contraption centers deliberately avoid the deployment modulo-10 grid. It is the
 live regression sample for shield and missile target-region validation, their
-exclusion from formation collisions, native recorder readback, battle
+exclusion from deployment collisions, native recorder readback, battle
 interaction, round transition, and shutdown.
 
 `crawler-in-face.yaml` places a `50 x 20` Crawler for each side at local

@@ -23,6 +23,7 @@ fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
         "seed": plan.seed,
         "round": plan.round,
         "formation_count": plan.formation_count(),
+        "construction_count": plan.construction_count(),
         "contraption_count": plan.contraption_count(),
     });
     println!(

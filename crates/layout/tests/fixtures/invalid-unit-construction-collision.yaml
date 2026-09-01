@@ -6,6 +6,7 @@ sides:
       - type: marksman
         x: 140
         y: -100
+    constructions:
       - type: defensive_wall
         x: 140
         y: -105

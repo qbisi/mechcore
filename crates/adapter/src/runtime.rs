@@ -930,6 +930,7 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
     };
     let target_round = plan.round;
     let formation_count = plan.formation_count();
+    let construction_count = plan.construction_count();
     let contraption_count = plan.contraption_count();
 
     let mut current_round = 1_i32;
@@ -995,6 +996,7 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
             "applied": true,
             "round": target_round,
             "formation_count": formation_count,
+            "construction_count": construction_count,
             "contraption_count": contraption_count,
             "skipped_rounds": skipped_rounds,
             "stages": stages,

@@ -1027,7 +1027,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_layout_tool_schema_describes_seed_formations_and_contraptions() {
+    fn apply_layout_tool_schema_describes_seed_and_side_placements() {
         let shared = Shared::new();
         let tool = MechcoreMcp::new(shared)
             .tool_router
@@ -1055,6 +1055,11 @@ mod tests {
         );
         assert!(
             schema
+                .pointer("/$defs/Side/properties/constructions")
+                .is_some()
+        );
+        assert!(
+            schema
                 .pointer("/$defs/Side/properties/contraptions")
                 .is_some()
         );
@@ -1062,7 +1067,7 @@ mod tests {
         assert!(schema.pointer("/$defs/Formation/properties/type").is_some());
         assert!(
             schema
-                .pointer("/$defs/Contraption/properties/type")
+                .pointer("/$defs/StaticPlacement/properties/type")
                 .is_some()
         );
     }

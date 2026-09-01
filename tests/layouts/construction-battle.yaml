@@ -3,6 +3,10 @@ round: 1
 sides:
   blue:
     formations:
+      - type: marksman
+        x: 0
+        y: -150
+    constructions:
       # Replay R002: build-2227 opening group 28 with reverse_x.
       - type: defensive_wall
         x: -140
@@ -13,12 +17,13 @@ sides:
       - type: anti_armor_turret
         x: -140
         y: -100
-      - type: marksman
-        x: 0
-        y: -150
 
   red:
     formations:
+      - type: marksman
+        x: 0
+        y: -150
+    constructions:
       # R002 world coordinates converted into red's side-local frame.
       - type: defensive_wall
         x: 140
@@ -29,6 +34,3 @@ sides:
       - type: anti_armor_turret
         x: 140
         y: -100
-      - type: marksman
-        x: 0
-        y: -150

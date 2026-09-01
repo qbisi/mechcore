@@ -91,6 +91,11 @@ fn compile_side(
             "side {name} battle skills are outside the current baseline simulator slice"
         )));
     }
+    if !side.constructions.is_empty() {
+        return Err(Error::new(format!(
+            "side {name} constructions are outside the current baseline simulator slice"
+        )));
+    }
     if !side.contraptions.is_empty() {
         return Err(Error::new(format!(
             "side {name} contraptions are outside the current baseline simulator slice"
@@ -223,6 +228,18 @@ sides:
             "techs: {units: [10202]}\n    formations: [{type: marksman, x: 0, y: -50}]",
         );
         assert!(compile_default(&value).is_err());
+    }
+
+    #[test]
+    fn rejects_constructions_outside_the_baseline_slice() {
+        let value = LAYOUT.replace(
+            "formations: [{type: marksman, x: 0, y: -50}]",
+            "formations: [{type: marksman, x: 0, y: -50}]\n    constructions: [{type: defensive_wall, x: 140, y: -105}]",
+        );
+        assert_eq!(
+            compile_default(&value).unwrap_err().to_string(),
+            "side blue constructions are outside the current baseline simulator slice"
+        );
     }
 
     #[test]

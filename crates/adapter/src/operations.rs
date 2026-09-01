@@ -736,6 +736,7 @@ fn apply_layout_stage(
             "round": expected_round,
             "target_round": plan.round,
             "formation_count": plan.formation_count(),
+            "construction_count": plan.construction_count(),
             "contraption_count": plan.contraption_count(),
             "cleared": {"cleared": true, "both_sides": true},
         }));
@@ -775,6 +776,7 @@ fn apply_layout_stage(
         "round": expected_round,
         "target_round": plan.round,
         "formation_count": plan.formation_count(),
+        "construction_count": plan.construction_count(),
         "contraption_count": plan.contraption_count(),
         "sides": {
             "blue": blue,
@@ -803,7 +805,12 @@ fn restore_player_after_error(
 
 fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<(), OperationError> {
     let config = config_instance(runtime)?;
-    for placement in side.formations.iter().chain(&side.contraptions) {
+    for placement in side
+        .formations
+        .iter()
+        .chain(&side.constructions)
+        .chain(&side.contraptions)
+    {
         let (method, mut id) = match placement.native {
             NativeFormation::Unit(id) => ("GetUnitData", id),
             NativeFormation::Construction(id) => ("GetConstructionData", id),
@@ -819,7 +826,7 @@ fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<()
                         .invoke(manager, "GetContraption", &mut [argument(&mut id)])?;
                 if data.is_null() {
                     return Err(OperationError::InvalidArguments(format!(
-                        "formation type {:?} at local position ({}, {}) is absent from the runtime catalog",
+                        "placement type {:?} at local position ({}, {}) is absent from the runtime catalog",
                         placement.type_name, placement.position.x, placement.position.y
                     )));
                 }
@@ -831,7 +838,7 @@ fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<()
             .invoke(config, method, &mut [argument(&mut id)])?;
         if data.is_null() {
             return Err(OperationError::InvalidArguments(format!(
-                "formation type {:?} at local position ({}, {}) is absent from the runtime catalog",
+                "placement type {:?} at local position ({}, {}) is absent from the runtime catalog",
                 placement.type_name, placement.position.x, placement.position.y
             )));
         }
@@ -992,10 +999,16 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     for placement in &plan.blue.formations {
         layout_world_position(placement, false)?;
     }
+    for placement in &plan.blue.constructions {
+        layout_world_position(placement, false)?;
+    }
     for placement in &plan.blue.contraptions {
         layout_world_position(placement, false)?;
     }
     for placement in &plan.red.formations {
+        layout_world_position(placement, true)?;
+    }
+    for placement in &plan.red.constructions {
         layout_world_position(placement, true)?;
     }
     for placement in &plan.red.contraptions {
@@ -1033,6 +1046,13 @@ fn apply_side_layout_stage(
         rotate_to_world,
         placement_stage,
     )?;
+    let constructions = apply_formations(
+        runtime,
+        current,
+        &side.constructions,
+        rotate_to_world,
+        placement_stage,
+    )?;
     let contraptions = apply_formations(
         runtime,
         current,
@@ -1048,6 +1068,7 @@ fn apply_side_layout_stage(
             "research_center": apply_research_center(runtime, &side.research_center)?,
             "energy_tower": apply_energy_tower(runtime, &side.energy_tower)?,
             "formations": formations,
+            "constructions": constructions,
             "contraptions": contraptions,
             "battle_skills": apply_battle_skills(
                 runtime,
@@ -1798,10 +1819,10 @@ fn verify_unit_readback(
 }
 
 fn describe_placement(placement: &Placement) -> String {
-    let kind = if matches!(placement.native, NativeFormation::Contraption(_)) {
-        "contraption"
-    } else {
-        "formation"
+    let kind = match placement.native {
+        NativeFormation::Unit(_) => "formation",
+        NativeFormation::Construction(_) => "construction",
+        NativeFormation::Contraption(_) => "contraption",
     };
     format!(
         "{kind} type {:?} at local position ({}, {})",

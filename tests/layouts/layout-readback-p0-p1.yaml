@@ -37,6 +37,7 @@ sides:
         x: -275
         y: -80
 
+    constructions:
       - type: rapid_fire_turret
         x: 140
         y: -140
@@ -64,6 +65,7 @@ sides:
         x: -205
         y: -100
 
+    constructions:
       - type: anti_armor_turret
         x: 140
         y: -140
