@@ -7,11 +7,13 @@ import argparse
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import threading
 import time
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +32,7 @@ EXPECTED_TOOLS = {
     "status",
     "toggle_fight",
 }
-TRANSITION_TIMEOUT = 60.0
+TRANSITION_TIMEOUT = 120.0
 BATTLE_TIMEOUT = 180.0
 MAX_ACTIVATION_ROUND = 15
 REPOSITORY = Path(__file__).resolve().parent.parent
@@ -40,10 +42,32 @@ GAME = (
     Path.home()
     / "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum"
 )
+DEFAULT_MANIFEST = REPOSITORY / "tests/mcfr-regressions.yaml"
+DEFAULT_CAPTURE_ROOT = REPOSITORY / "work/captures"
 
 
 class SmokeFailure(RuntimeError):
     pass
+
+
+class ToolFailure(SmokeFailure):
+    def __init__(
+        self, name: str, detail: dict[str, Any] | None, result: dict[str, Any]
+    ):
+        super().__init__(f"tool {name} failed: {detail or result.get('content')}")
+        self.name = name
+        self.detail = detail
+
+
+@dataclass(frozen=True)
+class CaptureCase:
+    name: str
+    layout_path: Path
+    output: Path
+    seed: int | None = None
+    video_output: Path | None = None
+    instrumentation_output: Path | None = None
+    instrumentation_profile: str | None = None
 
 
 class McpClient:
@@ -127,7 +151,11 @@ class McpClient:
         )
         structured = result.get("structuredContent")
         if result.get("isError") is True:
-            raise SmokeFailure(f"tool {name} failed: {structured or result.get('content')}")
+            raise ToolFailure(
+                name,
+                structured if isinstance(structured, dict) else None,
+                result,
+            )
         if not isinstance(structured, dict):
             raise SmokeFailure(f"tool {name} omitted structuredContent: {result}")
         return structured
@@ -233,6 +261,141 @@ def load_layout(path: Path) -> dict[str, Any]:
     return layout
 
 
+def resolve_path(path: Path) -> Path:
+    return path.expanduser().resolve()
+
+
+def require_new_output(path: Path, suffix: str, label: str) -> None:
+    if not path.is_absolute():
+        raise SmokeFailure(f"{label} must be an absolute path: {path}")
+    if path.suffix != suffix:
+        raise SmokeFailure(f"{label} must use the {suffix} extension: {path}")
+    if path.exists():
+        raise SmokeFailure(f"refusing to overwrite {path}")
+
+
+def load_manifest(path: Path) -> list[dict[str, Any]]:
+    try:
+        with path.open(encoding="utf-8") as stream:
+            manifest = yaml.safe_load(stream)
+    except (OSError, yaml.YAMLError) as error:
+        raise SmokeFailure(f"cannot load manifest {path}: {error}") from error
+    if not isinstance(manifest, list) or not manifest:
+        raise SmokeFailure(f"manifest must be a non-empty list: {path}")
+    entries: list[dict[str, Any]] = []
+    names: set[str] = set()
+    for index, entry in enumerate(manifest, start=1):
+        if not isinstance(entry, dict):
+            raise SmokeFailure(f"manifest entry {index} must be an object")
+        name = entry.get("name")
+        if (
+            not isinstance(name, str)
+            or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name) is None
+        ):
+            raise SmokeFailure(f"manifest entry {index} has an invalid name: {name!r}")
+        if name in names:
+            raise SmokeFailure(f"manifest contains duplicate case name: {name}")
+        names.add(name)
+        layout = entry.get("layout")
+        if not isinstance(layout, str) or not layout:
+            raise SmokeFailure(f"manifest entry {name} has an invalid layout")
+        seed = entry.get("seed")
+        if (
+            not isinstance(seed, int)
+            or isinstance(seed, bool)
+            or seed == 0
+            or not -(2**31) <= seed < 2**31
+        ):
+            raise SmokeFailure(f"manifest entry {name} has an invalid seed: {seed!r}")
+        smoke = entry.get("smoke")
+        if not isinstance(smoke, bool):
+            raise SmokeFailure(f"manifest entry {name} has an invalid smoke flag")
+        entries.append(entry)
+    return entries
+
+
+def build_batch_cases(
+    manifest_path: Path,
+    output_dir: Path,
+    selected_names: list[str],
+    smoke_only: bool,
+) -> list[CaptureCase]:
+    manifest_path = resolve_path(manifest_path)
+    output_dir = resolve_path(output_dir)
+    entries = load_manifest(manifest_path)
+    available_names = {entry["name"] for entry in entries}
+    unknown_names = sorted(set(selected_names) - available_names)
+    if unknown_names:
+        raise SmokeFailure(f"unknown manifest cases: {', '.join(unknown_names)}")
+    selected = set(selected_names)
+    cases: list[CaptureCase] = []
+    for entry in entries:
+        if selected and entry["name"] not in selected:
+            continue
+        if smoke_only and entry["smoke"] is not True:
+            continue
+        layout_path = Path(entry["layout"])
+        if not layout_path.is_absolute():
+            layout_path = REPOSITORY / layout_path
+        layout_path = resolve_path(layout_path)
+        load_layout(layout_path)
+        output = output_dir / f"{entry['name']}.native.mcfr"
+        require_new_output(output, ".mcfr", "recording output")
+        cases.append(
+            CaptureCase(
+                name=entry["name"],
+                layout_path=layout_path,
+                output=output,
+                seed=entry["seed"],
+            )
+        )
+    if not cases:
+        raise SmokeFailure("capture queue is empty")
+    return cases
+
+
+def build_single_case(
+    layout_path: Path,
+    output: Path | None,
+    seed: int | None,
+    video_output: Path | None,
+    instrumentation_output: Path | None,
+    instrumentation_profile: str | None,
+) -> CaptureCase:
+    layout_path = resolve_path(layout_path)
+    load_layout(layout_path)
+    if output is None:
+        output = DEFAULT_CAPTURE_ROOT / (
+            f"{layout_path.stem}-{time.time_ns()}.native.mcfr"
+        )
+    output = resolve_path(output)
+    require_new_output(output, ".mcfr", "recording output")
+    if seed is not None and (seed == 0 or not -(2**31) <= seed < 2**31):
+        raise SmokeFailure("--seed must be a nonzero signed 32-bit integer")
+    if (instrumentation_output is None) != (instrumentation_profile is None):
+        raise SmokeFailure(
+            "--instrumentation-output and --instrumentation-profile must be used together"
+        )
+    if video_output is not None:
+        video_output = resolve_path(video_output)
+        require_new_output(video_output, ".mov", "video output")
+    if instrumentation_output is not None:
+        instrumentation_output = resolve_path(instrumentation_output)
+        require_new_output(instrumentation_output, ".h5", "instrumentation output")
+    outputs = [path for path in (output, video_output, instrumentation_output) if path]
+    if len(outputs) != len(set(outputs)):
+        raise SmokeFailure("recording output paths must differ")
+    return CaptureCase(
+        name=layout_path.stem,
+        layout_path=layout_path,
+        output=output,
+        seed=seed,
+        video_output=video_output,
+        instrumentation_output=instrumentation_output,
+        instrumentation_profile=instrumentation_profile,
+    )
+
+
 def launch_game() -> subprocess.Popen[str]:
     if not ADAPTER.is_file():
         raise SmokeFailure(f"release Adapter is missing: {ADAPTER}")
@@ -264,143 +427,197 @@ def require_status(status: dict[str, Any], expected: dict[str, Any], label: str)
     print(f"ok: {label}: {json.dumps(status, ensure_ascii=False)}")
 
 
-def run(
-    layout_path: Path,
-    output: Path,
-    video_output: Path | None,
-    instrumentation_output: Path | None,
-    instrumentation_profile: str | None,
-) -> None:
-    layout = load_layout(layout_path)
+def initialize_client(client: McpClient) -> None:
+    initialized = client.request(
+        "initialize",
+        {
+            "protocolVersion": "2025-03-26",
+            "capabilities": {},
+            "clientInfo": {"name": "mechcore-layout-smoke", "version": "0.2.0"},
+        },
+        10,
+    )
+    if initialized.get("protocolVersion") != "2025-03-26":
+        raise SmokeFailure(f"unexpected MCP protocol: {initialized}")
+    client.notify("notifications/initialized")
+    tools = client.request("tools/list", {}, 10).get("tools")
+    names = {tool.get("name") for tool in tools} if isinstance(tools, list) else set()
+    if names != EXPECTED_TOOLS:
+        raise SmokeFailure(f"unexpected MCP tool surface: {sorted(names)}")
+    resources = client.request("resources/list", {}, 10).get("resources")
+    uris = (
+        {resource.get("uri") for resource in resources}
+        if isinstance(resources, list)
+        else set()
+    )
+    if uris != {STATUS_URI}:
+        raise SmokeFailure(f"unexpected MCP resources: {sorted(uris)}")
+    client.request("resources/subscribe", {"uri": STATUS_URI}, 10)
+
+
+def record_case(client: McpClient, case: CaptureCase) -> None:
+    layout = load_layout(case.layout_path)
     activation_round = layout["round"]
+    start_arguments = {"seed": case.seed} if case.seed is not None else {}
+    test = client.call_tool("start_test", start_arguments)
+    expected_test_status: dict[str, Any] = {
+        "status": "training_ground",
+        "round_count": 1,
+        "deploying": True,
+        "fighting": False,
+    }
+    if case.seed is not None:
+        expected_test_status["match_seed"] = case.seed
+    require_status(
+        status_from_tool(test, "start_test"), expected_test_status, "start_test"
+    )
+    applied = client.call_tool("apply_layout", layout)
+    operation = applied.get("operation")
+    if not isinstance(operation, dict) or operation.get("applied") is not True:
+        raise SmokeFailure(f"apply_layout was not confirmed: {applied}")
+    if operation.get("round") != activation_round:
+        raise SmokeFailure(f"layout activated in an unexpected round: {applied}")
+    require_status(
+        status_from_tool(applied, "apply_layout"),
+        {
+            "status": "training_ground",
+            "round_count": activation_round,
+            "deploying": True,
+            "fighting": False,
+        },
+        "apply_layout",
+    )
+    print(f"ok: applied {case.name}: {case.layout_path}")
+    record_arguments: dict[str, Any] = {"output": str(case.output)}
+    if case.video_output is not None:
+        record_arguments["video_output"] = str(case.video_output)
+    if (
+        case.instrumentation_output is not None
+        and case.instrumentation_profile is not None
+    ):
+        record_arguments["instrumentation"] = {
+            "output": str(case.instrumentation_output),
+            "profile": case.instrumentation_profile,
+        }
+    recorded = client.call_tool("record_battle", record_arguments, BATTLE_TIMEOUT)
+    recording = recorded.get("operation")
+    if not isinstance(recording, dict) or recording.get("recorded") is not True:
+        raise SmokeFailure(f"record_battle was not confirmed: {recorded}")
+    if recording.get("output") != str(case.output):
+        raise SmokeFailure(f"record_battle published an unexpected path: {recording}")
+    cleanup = recorded.get("cleanup")
+    if (
+        not isinstance(cleanup, dict)
+        or cleanup.get("match_exited") is not True
+        or cleanup.get("game_reusable") is not True
+    ):
+        raise SmokeFailure(f"record_battle did not complete match cleanup: {recorded}")
+    require_status(
+        status_from_tool(recorded, "record_battle"),
+        {"status": "main_menu"},
+        "record_battle cleanup",
+    )
+    if not case.output.is_file() or case.output.stat().st_size == 0:
+        raise SmokeFailure(f"record_battle did not publish {case.output}")
+    tick_count = recording.get("tick_count")
+    if not isinstance(tick_count, int) or isinstance(tick_count, bool) or tick_count < 0:
+        raise SmokeFailure(f"record_battle omitted a valid tick_count: {recording}")
+    hashes = recording.get("hashes")
+    if not isinstance(hashes, dict):
+        raise SmokeFailure(f"record_battle omitted verified hashes: {recording}")
+    if case.video_output is not None:
+        video = recording.get("video")
+        if not isinstance(video, dict):
+            raise SmokeFailure(f"record_battle omitted video metadata: {recording}")
+        if not case.video_output.is_file():
+            raise SmokeFailure(f"record_battle did not publish {case.video_output}")
+        if video.get("frame_count") != tick_count + 1:
+            raise SmokeFailure(
+                f"video/MCFR frame count mismatch: {video} versus {recording}"
+            )
+        if video.get("view") != "calibration_topdown":
+            raise SmokeFailure(f"unexpected video view metadata: {video}")
+        expected_calibration = {
+            "width": 2560,
+            "height": 1600,
+            "projection": "perspective",
+            "camera_position": [0.0, 1070.0, -1070.0],
+            "camera_euler_degrees": [45.0, 0.0, 0.0],
+            "field_of_view_degrees": 20.0,
+        }
+        for key, expected in expected_calibration.items():
+            if video.get(key) != expected:
+                raise SmokeFailure(f"unexpected video {key}: {video}")
+    if case.instrumentation_output is not None:
+        instrumentation = recording.get("instrumentation")
+        if not isinstance(instrumentation, dict):
+            raise SmokeFailure(
+                f"record_battle omitted instrumentation metadata: {recording}"
+            )
+        if not case.instrumentation_output.is_file():
+            raise SmokeFailure(
+                f"record_battle did not publish {case.instrumentation_output}"
+            )
+        if instrumentation.get("profile") != case.instrumentation_profile:
+            raise SmokeFailure(f"unexpected instrumentation profile: {instrumentation}")
+        if instrumentation.get("record_count") != tick_count + 1:
+            raise SmokeFailure(
+                "instrumentation/MCFR tick count mismatch: "
+                f"{instrumentation} versus {recording}"
+            )
+    print(
+        f"ok: recorded {case.name}: output={case.output} tick_count={tick_count} "
+        f"scenario_hash={hashes.get('scenario_hash')} result_hash={hashes.get('result_hash')}"
+    )
+
+
+def recover_failed_session(client: McpClient, error: BaseException) -> None:
+    required = None
+    if isinstance(error, ToolFailure) and isinstance(error.detail, dict):
+        next_step = error.detail.get("next")
+        if isinstance(next_step, dict):
+            required = next_step.get("required")
+    try:
+        status = client.read_status_resource(TRANSITION_TIMEOUT)
+        if required == "quit_match" or status.get("status") in {
+            "training_ground",
+            "replay",
+        }:
+            client.call_tool("quit_match", {})
+            status = client.read_status_resource(TRANSITION_TIMEOUT)
+        if status.get("status") == "main_menu":
+            client.call_tool("quit_game", {})
+    except BaseException:
+        pass
+
+
+def run(cases: list[CaptureCase]) -> None:
+    if not cases:
+        raise SmokeFailure("capture queue is empty")
+    outputs = [case.output for case in cases]
+    if len(outputs) != len(set(outputs)):
+        raise SmokeFailure("capture queue contains duplicate output paths")
+    for case in cases:
+        require_new_output(case.output, ".mcfr", "recording output")
+        case.output.parent.mkdir(parents=True, exist_ok=True)
     client = McpClient()
     game: subprocess.Popen[str] | None = None
     failure: BaseException | None = None
     try:
-        initialized = client.request(
-            "initialize",
-            {
-                "protocolVersion": "2025-03-26",
-                "capabilities": {},
-                "clientInfo": {"name": "mechcore-layout-smoke", "version": "0.1.0"},
-            },
-            10,
-        )
-        if initialized.get("protocolVersion") != "2025-03-26":
-            raise SmokeFailure(f"unexpected MCP protocol: {initialized}")
-        client.notify("notifications/initialized")
-
-        tools = client.request("tools/list", {}, 10).get("tools")
-        names = {tool.get("name") for tool in tools} if isinstance(tools, list) else set()
-        if names != EXPECTED_TOOLS:
-            raise SmokeFailure(f"unexpected MCP tool surface: {sorted(names)}")
-        resources = client.request("resources/list", {}, 10).get("resources")
-        uris = {resource.get("uri") for resource in resources} if isinstance(resources, list) else set()
-        if uris != {STATUS_URI}:
-            raise SmokeFailure(f"unexpected MCP resources: {sorted(uris)}")
-        client.request("resources/subscribe", {"uri": STATUS_URI}, 10)
-
+        initialize_client(client)
         game = launch_game()
         connected = client.call_tool("connect_adapter", {})
         status_from_tool(connected, "connect_adapter")
         client.wait_stream_status({"status": "main_menu"}, TRANSITION_TIMEOUT)
-        test = client.call_tool("start_test", {})
-        require_status(
-            status_from_tool(test, "start_test"),
-            {"status": "training_ground", "round_count": 1, "deploying": True, "fighting": False},
-            "start_test",
-        )
-        applied = client.call_tool("apply_layout", layout)
-        operation = applied.get("operation")
-        if not isinstance(operation, dict) or operation.get("applied") is not True:
-            raise SmokeFailure(f"apply_layout was not confirmed: {applied}")
-        if operation.get("round") != activation_round:
-            raise SmokeFailure(f"layout activated in an unexpected round: {applied}")
-        require_status(
-            status_from_tool(applied, "apply_layout"),
-            {
-                "status": "training_ground",
-                "round_count": activation_round,
-                "deploying": True,
-                "fighting": False,
-            },
-            "apply_layout",
-        )
-        print(f"ok: applied {layout_path}")
-        record_arguments = {"output": str(output.resolve())}
-        if video_output is not None:
-            record_arguments["video_output"] = str(video_output.resolve())
-        if instrumentation_output is not None and instrumentation_profile is not None:
-            record_arguments["instrumentation"] = {
-                "output": str(instrumentation_output.resolve()),
-                "profile": instrumentation_profile,
-            }
-        recorded = client.call_tool("record_battle", record_arguments, BATTLE_TIMEOUT)
-        recording = recorded.get("operation")
-        if not isinstance(recording, dict) or recording.get("recorded") is not True:
-            raise SmokeFailure(f"record_battle was not confirmed: {recorded}")
-        cleanup = recorded.get("cleanup")
-        if (
-            not isinstance(cleanup, dict)
-            or cleanup.get("match_exited") is not True
-            or cleanup.get("game_reusable") is not True
-        ):
-            raise SmokeFailure(f"record_battle did not complete match cleanup: {recorded}")
-        require_status(
-            status_from_tool(recorded, "record_battle"),
-            {"status": "main_menu"},
-            "record_battle cleanup",
-        )
-        if not output.is_file():
-            raise SmokeFailure(f"record_battle did not publish {output}")
-        if video_output is not None:
-            video = recording.get("video")
-            if not isinstance(video, dict):
-                raise SmokeFailure(f"record_battle omitted video metadata: {recording}")
-            if not video_output.is_file():
-                raise SmokeFailure(f"record_battle did not publish {video_output}")
-            if video.get("frame_count") != recording.get("tick_count"):
-                raise SmokeFailure(
-                    f"video/MCFR frame count mismatch: {video} versus {recording}"
-                )
-            if video.get("view") != "calibration_topdown":
-                raise SmokeFailure(f"unexpected video view metadata: {video}")
-            expected_calibration = {
-                "width": 2560,
-                "height": 1600,
-                "projection": "perspective",
-                "camera_position": [0.0, 1070.0, -1070.0],
-                "camera_euler_degrees": [45.0, 0.0, 0.0],
-                "field_of_view_degrees": 20.0,
-            }
-            for key, expected in expected_calibration.items():
-                if video.get(key) != expected:
-                    raise SmokeFailure(f"unexpected video {key}: {video}")
-        if instrumentation_output is not None:
-            instrumentation = recording.get("instrumentation")
-            if not isinstance(instrumentation, dict):
-                raise SmokeFailure(
-                    f"record_battle omitted instrumentation metadata: {recording}"
-                )
-            if not instrumentation_output.is_file():
-                raise SmokeFailure(
-                    f"record_battle did not publish {instrumentation_output}"
-                )
-            if instrumentation.get("profile") != instrumentation_profile:
-                raise SmokeFailure(
-                    f"unexpected instrumentation profile: {instrumentation}"
-                )
-            if instrumentation.get("record_count") != recording.get("tick_count"):
-                raise SmokeFailure(
-                    f"instrumentation/MCFR tick count mismatch: {instrumentation} versus {recording}"
-                )
-        print(
-            "ok: recorded "
-            f"{output}: states={recording.get('state_count')} "
-            f"transitions={recording.get('transition_count')}"
-        )
+        for index, case in enumerate(cases, start=1):
+            print(f"capture {index}/{len(cases)}: {case.name}")
+            record_case(client, case)
         stopped = client.call_tool("quit_game", {})
-        require_status(status_from_tool(stopped, "quit_game"), {"status": "game_off"}, "quit_game")
+        require_status(
+            status_from_tool(stopped, "quit_game"),
+            {"status": "game_off"},
+            "quit_game",
+        )
         try:
             returncode = game.wait(timeout=30)
         except subprocess.TimeoutExpired as error:
@@ -409,17 +626,10 @@ def run(
             raise SmokeFailure(f"game exited with code {returncode}")
     except BaseException as error:
         failure = error
+        if game is not None:
+            recover_failed_session(client, error)
         raise
     finally:
-        if failure is not None and game is not None:
-            try:
-                client.call_tool("quit_match", {})
-            except BaseException:
-                pass
-            try:
-                client.call_tool("quit_game", {})
-            except BaseException:
-                pass
         if game is not None and game.poll() is None:
             game.terminate()
             try:
@@ -434,20 +644,68 @@ def run(
                 raise
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run a complete layout battle through `mechcore mcp`."
+        description=(
+            "Record one layout or a manifest-backed batch through one `mechcore mcp` "
+            "connection and game process."
+        )
     )
-    parser.add_argument("layout", type=Path)
+    parser.add_argument(
+        "layout",
+        type=Path,
+        nargs="?",
+        help="single-layout YAML; omit only when --batch is used",
+    )
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        help="record a queue from --manifest (defaults to tests/mcfr-regressions.yaml)",
+    )
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=DEFAULT_MANIFEST,
+        help="batch manifest (default: tests/mcfr-regressions.yaml)",
+    )
+    parser.add_argument(
+        "--case",
+        action="append",
+        default=[],
+        dest="cases",
+        metavar="NAME",
+        help="batch-only exact manifest case name; repeat to select multiple cases",
+    )
+    parser.add_argument(
+        "--smoke-only",
+        action="store_true",
+        help="batch-only filter for manifest entries with smoke: true",
+    )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(f"/tmp/mechcore-mcp-smoke-{int(time.time_ns())}.mcfr"),
+        help="single-layout output; defaults to a new path below work/captures",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="batch or repeated-layout output directory; defaults below work/captures",
+    )
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="single-layout capture count in one game process (default: 1)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="single-layout nonzero signed 32-bit match seed",
     )
     parser.add_argument(
         "--video-output",
         type=Path,
-        help="also export logic-frame-aligned calibration_topdown video to this new .mov path",
+        help="single-layout logic-frame-aligned calibration_topdown .mov path",
     )
     parser.add_argument(
         "--instrumentation-output",
@@ -458,21 +716,126 @@ def main() -> int:
         "--instrumentation-profile",
         help="Adapter-defined temporary research profile",
     )
-    try:
-        arguments = parser.parse_args()
-        if (arguments.instrumentation_output is None) != (
-            arguments.instrumentation_profile is None
-        ):
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the validated capture queue without starting MCP or the game",
+    )
+    return parser
+
+
+def cases_from_args(arguments: argparse.Namespace) -> list[CaptureCase]:
+    if arguments.repeat < 1:
+        raise SmokeFailure("--repeat must be positive")
+    if arguments.batch:
+        if arguments.layout is not None:
+            raise SmokeFailure("a positional layout cannot be used with --batch")
+        if arguments.output is not None:
+            raise SmokeFailure("--output is single-layout only; use --output-dir")
+        if arguments.seed is not None:
             raise SmokeFailure(
-                "--instrumentation-output and --instrumentation-profile must be used together"
+                "--seed is single-layout only; batch seeds come from the manifest"
             )
-        run(
-            arguments.layout,
-            arguments.output,
-            arguments.video_output,
-            arguments.instrumentation_output,
-            arguments.instrumentation_profile,
+        if arguments.repeat != 1:
+            raise SmokeFailure("--repeat cannot be used with --batch")
+        if arguments.video_output is not None:
+            raise SmokeFailure("--video-output is single-layout only")
+        if (
+            arguments.instrumentation_output is not None
+            or arguments.instrumentation_profile is not None
+        ):
+            raise SmokeFailure("instrumentation options are single-layout only")
+        output_dir = arguments.output_dir
+        if output_dir is None:
+            output_dir = DEFAULT_CAPTURE_ROOT / f"mcfr-regression-{time.time_ns()}"
+        return build_batch_cases(
+            arguments.manifest,
+            output_dir,
+            arguments.cases,
+            arguments.smoke_only,
         )
+    if arguments.layout is None:
+        raise SmokeFailure("provide a layout or use --batch")
+    if arguments.cases:
+        raise SmokeFailure("--case is batch-only")
+    if arguments.smoke_only:
+        raise SmokeFailure("--smoke-only is batch-only")
+    if arguments.manifest != DEFAULT_MANIFEST:
+        raise SmokeFailure("--manifest is batch-only")
+    if arguments.repeat == 1:
+        if arguments.output_dir is not None:
+            raise SmokeFailure("--output-dir requires --batch or --repeat greater than 1")
+        return [
+            build_single_case(
+                arguments.layout,
+                arguments.output,
+                arguments.seed,
+                arguments.video_output,
+                arguments.instrumentation_output,
+                arguments.instrumentation_profile,
+            )
+        ]
+    if arguments.output is not None:
+        raise SmokeFailure("--output cannot be used with repeated capture; use --output-dir")
+    if arguments.video_output is not None:
+        raise SmokeFailure("--video-output cannot be used with repeated capture")
+    if (
+        arguments.instrumentation_output is not None
+        or arguments.instrumentation_profile is not None
+    ):
+        raise SmokeFailure("instrumentation options cannot be used with repeated capture")
+    layout_path = resolve_path(arguments.layout)
+    output_dir = arguments.output_dir
+    if output_dir is None:
+        output_dir = DEFAULT_CAPTURE_ROOT / f"{layout_path.stem}-{time.time_ns()}"
+    output_dir = resolve_path(output_dir)
+    cases = []
+    for index in range(1, arguments.repeat + 1):
+        case = build_single_case(
+            layout_path,
+            output_dir / f"{layout_path.stem}-{index:02d}.native.mcfr",
+            arguments.seed,
+            None,
+            None,
+            None,
+        )
+        cases.append(
+            CaptureCase(
+                name=f"{case.name}-{index:02d}",
+                layout_path=case.layout_path,
+                output=case.output,
+                seed=case.seed,
+            )
+        )
+    return cases
+
+
+def preview(cases: list[CaptureCase]) -> None:
+    for index, case in enumerate(cases, start=1):
+        print(
+            json.dumps(
+                {
+                    "index": index,
+                    "name": case.name,
+                    "layout": str(case.layout_path),
+                    "seed": case.seed,
+                    "output": str(case.output),
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+    print(f"queue: {len(cases)} capture(s)")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    try:
+        arguments = parser.parse_args(argv)
+        cases = cases_from_args(arguments)
+        preview(cases)
+        if not arguments.dry_run:
+            run(cases)
     except (OSError, SmokeFailure, ValueError) as error:
         print(f"smoke failed: {error}", file=sys.stderr)
         return 1

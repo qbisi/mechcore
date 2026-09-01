@@ -1,7 +1,7 @@
 use std::{path::Path, process::Command};
 
 use mechcore_mcfr::{
-    DurableContext, Event, EventPayload, IdentityContract, McfrWriter, NumericConvention, Rational,
+    DurableContext, Event, EventPayload, McfrWriter, ObjectKind, ObjectRef, Rational,
     TransitionEvents, WorldSnapshot,
 };
 
@@ -65,8 +65,8 @@ fn compare_reports_the_first_missing_tick() {
     assert_eq!(output.status.code(), Some(1));
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["first_divergence"], 2);
-    assert_eq!(report["left"]["tick_count"], 2);
-    assert_eq!(report["right"]["tick_count"], 3);
+    assert_eq!(report["left"]["tick_count"], 1);
+    assert_eq!(report["right"]["tick_count"], 2);
     assert!(report["divergent_ticks"]["left"].is_null());
     assert_eq!(report["divergent_ticks"]["right"]["tick"], 2);
 }
@@ -82,10 +82,7 @@ fn compare_rejects_different_scenarios() {
     let output = compare(&left, &right);
     assert_eq!(output.status.code(), Some(1));
     assert!(output.stdout.is_empty());
-    assert!(
-        String::from_utf8_lossy(&output.stderr)
-            .contains("cannot compare first divergence for different durable contexts")
-    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("scenario_hash mismatch: left="));
 }
 
 fn compare(left: &Path, right: &Path) -> std::process::Output {
@@ -98,29 +95,18 @@ fn compare(left: &Path, right: &Path) -> std::process::Output {
         .unwrap()
 }
 
-fn write_recording(path: &Path, seed: i32, damages: &[i64]) {
+fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
     let context = DurableContext {
-        game_build: "test-build".into(),
         logic_step: Rational {
             numerator: 1,
             denominator: 20,
         },
-        numeric_convention: NumericConvention {
-            distance_units_per_meter: 1_000,
-            rotation_units_per_degree: 1_000,
-            time_units_per_second: 2_000,
-        },
+        time_units_per_second: 2_000,
         combat_round: 1,
         match_seed: seed,
-        identity_contract: IdentityContract::TeamZxSequentialV1,
     };
-    let mut writer = McfrWriter::create(path, &context).unwrap();
-    writer
-        .append_tick(
-            WorldSnapshot::default(),
-            &TransitionEvents { events: Vec::new() },
-        )
-        .unwrap();
+    let mut writer = McfrWriter::create(path, "test-build", &context).unwrap();
+    writer.set_initial_state(WorldSnapshot::default()).unwrap();
     for &damage in damages {
         writer
             .append_tick(
@@ -129,7 +115,8 @@ fn write_recording(path: &Path, seed: i32, damages: &[i64]) {
                     events: vec![Event {
                         subject: None,
                         source: None,
-                        target: None,
+                        source_team_id: None,
+                        target: Some(ObjectRef::new(ObjectKind::Unit, 1)),
                         payload: EventPayload::Damage { amount: damage },
                     }],
                 },

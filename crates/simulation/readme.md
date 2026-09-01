@@ -184,7 +184,7 @@ Agent 与审查 Agent 必须使用不同上下文分别工作；审查输入包�
 
 满足条件时，将当前单元标记为 `mcfr_blocked`，立即暂停内层和外层循环，并向用户说明
 首个分歧、缺失事实、原生采集路径、预期字段以及对 hash/写入器/读取器/播放的影响。
-在得到修改公共 MCFR 的明确许可后，才同步修改中英文规范、类型模型、HDF5 投影、
+在得到修改公共 MCFR 的明确许可后，才同步修改 MCFR 规范、类型模型、Parquet 投影、
 Writer/Reader/hash、Adapter producer、Simulator producer 和测试。MCFR 改动完成后，
 所有旧录像作废，必须从同一 layout 的步骤 1 重新开始。
 

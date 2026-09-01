@@ -1,0 +1,23 @@
+round: 1
+
+sides:
+  blue:
+    techs:
+      units: [11028]
+
+    formations:
+      - type: hound
+        x: 0
+        y: -80
+
+  red:
+    formations:
+      - type: crawler
+        x: -45
+        y: -60
+      - type: crawler
+        x: 5
+        y: -60
+      - type: crawler
+        x: 55
+        y: -60

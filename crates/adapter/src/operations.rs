@@ -67,7 +67,6 @@ pub(crate) enum InternalOperation {
         instrumentation_profile: Option<crate::capture::CaptureInstrumentationProfile>,
     },
     StopCapture,
-    SpeedUp,
     ExpireDeployment(i32),
     ResetDeployment(i32),
     FinishPreparation(i32),
@@ -93,7 +92,6 @@ pub(crate) fn execute_internal(
         InternalOperation::StopCapture => crate::capture::stop()
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
-        InternalOperation::SpeedUp => speed_up(runtime),
         InternalOperation::ExpireDeployment(round) => expire_deployment(runtime, round),
         InternalOperation::ResetDeployment(round) => reset_deployment(runtime, round),
         InternalOperation::FinishPreparation(round) => finish_preparation(runtime, round),
@@ -892,7 +890,6 @@ fn validate_tech_catalog(
         }
     }
     for &technology_id in &techs.units {
-        let unit_id = technology_owner(technology_id)?;
         let mut id = technology_id;
         let technology =
             runtime
@@ -903,26 +900,13 @@ fn validate_tech_catalog(
                 "unit technology ID {technology_id} is absent from the runtime catalog"
             )));
         }
-        let mut owner = unit_id;
-        let unit = runtime
-            .api
-            .invoke(config, "GetUnitData", &mut [argument(&mut owner)])?;
-        if unit.is_null()
-            || !runtime.api.invoke_value::<bool>(
-                unit,
-                "HaveTechnology",
-                &mut [argument(&mut id)],
-            )?
-        {
-            return Err(OperationError::InvalidArguments(format!(
-                "unit technology ID {technology_id} does not belong to encoded unit ID {unit_id} in the runtime catalog"
-            )));
-        }
+        technology_owner(runtime, config, technology_id)?;
     }
     Ok(())
 }
 
-fn technology_owner(technology_id: i32) -> Result<i32, OperationError> {
+#[cfg(test)]
+fn encoded_technology_owner(technology_id: i32) -> Result<i32, OperationError> {
     // Build 2227 encodes the owning ordinary unit ID in the final two decimal
     // digits of every unit TechnologyData.ID.
     let unit_id = technology_id % 100;
@@ -932,6 +916,39 @@ fn technology_owner(technology_id: i32) -> Result<i32, OperationError> {
         Err(OperationError::InvalidArguments(format!(
             "unit technology ID {technology_id} has no encoded ordinary-unit owner"
         )))
+    }
+}
+
+fn technology_owner(
+    runtime: &Runtime,
+    config: *mut Object,
+    technology_id: i32,
+) -> Result<i32, OperationError> {
+    let mut owners = Vec::new();
+    for unit_id in 1..=31 {
+        let mut candidate = unit_id;
+        let unit = runtime
+            .api
+            .invoke(config, "GetUnitData", &mut [argument(&mut candidate)])?;
+        if unit.is_null() {
+            continue;
+        }
+        let mut id = technology_id;
+        if runtime
+            .api
+            .invoke_value::<bool>(unit, "HaveTechnology", &mut [argument(&mut id)])?
+        {
+            owners.push(unit_id);
+        }
+    }
+    match owners.as_slice() {
+        [unit_id] => Ok(*unit_id),
+        [] => Err(OperationError::InvalidArguments(format!(
+            "unit technology ID {technology_id} has no ordinary-unit owner in the runtime catalog"
+        ))),
+        _ => Err(OperationError::Rejected(format!(
+            "unit technology ID {technology_id} belongs to multiple runtime units {owners:?}"
+        ))),
     }
 }
 
@@ -1238,8 +1255,9 @@ fn apply_techs(
     }
 
     let mut units = Vec::with_capacity(desired.units.len());
+    let config = config_instance(runtime)?;
     for &technology_id in &desired.units {
-        let unit_id = technology_owner(technology_id)?;
+        let unit_id = technology_owner(runtime, config, technology_id)?;
         if read_unit_technology(runtime, controller, unit_id, technology_id)?.is_some() {
             return Err(OperationError::Rejected(format!(
                 "unit technology ID {technology_id} already exists before layout application"
@@ -2628,10 +2646,10 @@ mod tests {
             (10215, 15),
             (180_110, 10),
         ] {
-            assert_eq!(technology_owner(technology_id).unwrap(), unit_id);
+            assert_eq!(encoded_technology_owner(technology_id).unwrap(), unit_id);
         }
-        assert!(technology_owner(10200).is_err());
-        assert!(technology_owner(10232).is_err());
+        assert!(encoded_technology_owner(10200).is_err());
+        assert!(encoded_technology_owner(10232).is_err());
     }
 
     #[test]

@@ -1,0 +1,32 @@
+round: 1
+
+sides:
+  blue:
+    techs:
+      units: [110211]
+
+    energy_tower:
+      range_enhancement: true
+
+    formations:
+      - type: rapid_fire_turret
+        x: 140
+        y: -140
+
+      - type: sabertooth
+        x: -205
+        y: -295
+        equipment: 1305003
+
+  red:
+    techs:
+      units: [1802]
+
+    formations:
+      - type: marksman
+        x: 200
+        y: -100
+
+      - type: steel_ball
+        x: -205
+        y: -100

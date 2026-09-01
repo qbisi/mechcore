@@ -7,6 +7,13 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
     let options = Options::parse(arguments)?;
     let left = McfrReader::open(&options.left).map_err(|error| error.to_string())?;
     let right = McfrReader::open(&options.right).map_err(|error| error.to_string())?;
+    if left.hashes().scenario_hash != right.hashes().scenario_hash {
+        return Err(format!(
+            "scenario_hash mismatch: left={}, right={}",
+            left.hashes().scenario_hash,
+            right.hashes().scenario_hash,
+        ));
+    }
     let first_divergence = left
         .first_divergence(&right)
         .map_err(|error| error.to_string())?;
@@ -45,8 +52,8 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
     Ok(equal)
 }
 
-fn read_tick(reader: &McfrReader, tick: u64) -> Result<Option<TickSlice>, String> {
-    if tick >= reader.tick_count() {
+fn read_tick(reader: &McfrReader, tick: u32) -> Result<Option<TickSlice>, String> {
+    if tick > reader.tick_count() {
         return Ok(None);
     }
     reader
@@ -89,14 +96,14 @@ struct CompareReport<'a> {
     scenario_hash: &'a str,
     left: RecordingSummary<'a>,
     right: RecordingSummary<'a>,
-    first_divergence: Option<u64>,
+    first_divergence: Option<u32>,
     divergent_ticks: Option<DivergentTicks>,
 }
 
 #[derive(Serialize)]
 struct RecordingSummary<'a> {
     result_hash: &'a str,
-    tick_count: u64,
+    tick_count: u32,
 }
 
 #[derive(Serialize)]

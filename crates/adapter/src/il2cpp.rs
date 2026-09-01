@@ -377,6 +377,31 @@ impl Api {
         Ok(bytes.to_vec())
     }
 
+    pub fn value_array<T: Copy>(self, array: *mut Object, cap: usize) -> Result<Vec<T>, Error> {
+        if array.is_null() {
+            return Err(Error::NullResult("value array".into()));
+        }
+        // SAFETY: array is a managed one-dimensional value-type array returned by IL2CPP.
+        let length = unsafe { (self.array_length)(array) };
+        if length > cap {
+            return Err(Error::InvalidValue(format!(
+                "managed value array length {length} exceeds {cap}"
+            )));
+        }
+        // SAFETY: the runtime reports the byte offset from the object to the first element.
+        let offset = unsafe { (self.array_object_header_size)() };
+        if !(std::mem::size_of::<usize>() * 3..=256).contains(&offset) {
+            return Err(Error::InvalidValue(format!(
+                "invalid managed array header size {offset}"
+            )));
+        }
+        // SAFETY: the caller binds T to the managed array element type; elements are contiguous.
+        let values = unsafe {
+            std::slice::from_raw_parts(array.cast::<u8>().add(offset).cast::<T>(), length)
+        };
+        Ok(values.to_vec())
+    }
+
     pub fn gc_handle(self, object: *mut Object) -> Result<u32, Error> {
         if object.is_null() {
             return Err(Error::NullResult("GC handle target".into()));

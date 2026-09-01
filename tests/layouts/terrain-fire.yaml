@@ -1,0 +1,20 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: arclight
+        x: 0
+        y: -280
+
+    battle_skills:
+      - type: incendiary_bomb
+        positions:
+          - {x: -60, y: 40}
+          - {x: 60, y: 40}
+
+  red:
+    formations:
+      - type: sledgehammer
+        x: 5
+        y: -100

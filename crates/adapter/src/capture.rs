@@ -4,10 +4,13 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_mcfr::{
-    BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, IdentityContract,
-    MotionState, NumericConvention, ObjectKind, ObjectRef, PersonalShieldState, Pose,
-    ProjectileState, Rational, StatusState, TransitionEvents, UnitState, Vec3, Visibility,
-    WorldSnapshot,
+    BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
+    LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPose,
+    QVec3, RateModifier, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
+    ShieldState, SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
+    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
+    TerrainType, TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility,
+    WeaponAimState, WorldSnapshot,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -23,13 +26,11 @@ use std::{
 };
 
 const QUEUE_CAPACITY: usize = 4096;
-const Q32_ONE: i128 = 1_i128 << 32;
-const DISTANCE_UNITS_PER_METER: u64 = 1_000;
-const ROTATION_UNITS_PER_DEGREE: u64 = 1_000;
-const TIME_UNITS_PER_SECOND: u64 = 2_000;
+const TIME_UNITS_PER_SECOND: u32 = 2_000;
 const CAPTURE_WIDTH: u16 = 2_560;
 const CAPTURE_HEIGHT: u16 = 1_600;
 const CAPTURE_FRAME_RATE: i32 = 20;
+const FIXED_ONE_RAW: i64 = 1_i64 << 32;
 pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
 pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 1_070.0;
 pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
@@ -336,6 +337,24 @@ struct FixedVec3 {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
+struct NativeHitDamageInfo {
+    source_team: *mut Object,
+    source_skill_owner: *mut Object,
+    target_actor: *mut Object,
+    is_direct_hit: bool,
+    is_suicide: bool,
+    _padding_1a: [u8; 2],
+    damage_distance: i32,
+    damage: i32,
+    damage_real: i32,
+    hit_point: FixedVec3,
+    is_special_attack: bool,
+    _padding_41: [u8; 7],
+    damage_provider: *mut Object,
+}
+
+#[repr(C)]
 #[derive(Clone, Copy, Default)]
 struct FixedRvoTeam {
     id: i32,
@@ -378,6 +397,13 @@ struct UnityVec3 {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
+struct UnityVec2Int {
+    x: i32,
+    y: i32,
+}
+
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct UnityRect {
     x: f32,
@@ -389,6 +415,7 @@ struct UnityRect {
 #[derive(Clone)]
 pub(crate) enum CaptureMessage {
     Initial {
+        game_build: String,
         context: DurableContext,
         state: WorldSnapshot,
         instrumentation: Option<CaptureInstrumentationObservation>,
@@ -406,6 +433,7 @@ pub(crate) enum CaptureMessage {
 
 enum PendingVisualMessage {
     Initial {
+        game_build: String,
         context: DurableContext,
         state: WorldSnapshot,
         instrumentation: Option<CaptureInstrumentationObservation>,
@@ -446,12 +474,28 @@ struct VisualCapture {
 #[derive(Default)]
 struct Metadata {
     projectile_system_class: usize,
+    range_item_system_class: usize,
+    fight_ground_fire_class: usize,
+    advanced_energy_shield_system_class: usize,
+    energy_shield_contraption_class: usize,
+    commander_energy_shield_class: usize,
+    owner_advanced_shield_class: usize,
+    spawned_temporary_shield_class: usize,
+    fight_team_buildings: usize,
+    fight_team_constructions: usize,
     projectile_controllers: usize,
-    buff_list: usize,
-    buff_duration_time: usize,
-    buff_max_duration_time: usize,
-    buff_step_time: usize,
-    buff_step_time_config: usize,
+    projectile_in_energy_shields: usize,
+    range_item_affected_units: usize,
+    range_item_affected_unit_times: usize,
+    range_item_effect_time_duration: usize,
+    range_item_time: usize,
+    range_item_life_time: usize,
+    ground_fire_time: usize,
+    ground_fire_life_time: usize,
+    grid_position_x: usize,
+    grid_position_y: usize,
+    grid_rows: usize,
+    grid_size: usize,
     motion_fsm: usize,
     motion_idle_state_class: usize,
     motion_move_state_class: usize,
@@ -613,11 +657,27 @@ struct CaptureState {
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
     armed: bool,
     initialized: bool,
+    entered_fighting: bool,
+    speed_up_requested: bool,
+    last_native_tick: Option<u64>,
+    native_tick_step: Option<u64>,
     queue: VecDeque<CaptureMessage>,
     unit_ids: BTreeMap<usize, u64>,
     building_ids: BTreeMap<usize, u64>,
     projectile_ids: BTreeMap<usize, u64>,
-    status_ids: BTreeMap<usize, u64>,
+    shield_ids: BTreeMap<usize, u64>,
+    terrain_ids: BTreeMap<usize, u64>,
+    live_shield_pointers: BTreeSet<usize>,
+    retired_shield_pointers: BTreeSet<usize>,
+    shield_last_states: BTreeMap<usize, ShieldState>,
+    live_terrain_pointers: BTreeSet<usize>,
+    retired_terrain_pointers: BTreeSet<usize>,
+    terrain_last_states: BTreeMap<usize, TerrainState>,
+    pending_projectile_absorptions: BTreeMap<u64, ObjectRef>,
+    original_unit_teams: BTreeMap<usize, u32>,
+    object_teams: BTreeMap<ObjectRef, u32>,
+    emitted_deaths: BTreeSet<ObjectRef>,
+    last_damage_sources: BTreeMap<ObjectRef, DamageAttribution>,
     formation_ids: BTreeMap<usize, u64>,
     rvo_agent_refs: BTreeMap<usize, ObjectRef>,
     rvo_agent_owners: BTreeMap<usize, usize>,
@@ -625,7 +685,8 @@ struct CaptureState {
     next_unit_id: u64,
     next_building_id: u64,
     next_projectile_id: u64,
-    next_status_id: u64,
+    next_shield_id: u64,
+    next_terrain_id: u64,
     next_formation_id: u64,
     next_rvo_internal_agent_id: u64,
     next_checker_invocation_ordinal: u64,
@@ -653,12 +714,28 @@ impl CaptureState {
     fn reset_session(&mut self) {
         self.armed = false;
         self.initialized = false;
+        self.entered_fighting = false;
+        self.speed_up_requested = false;
+        self.last_native_tick = None;
+        self.native_tick_step = None;
         self.instrumentation_profile = None;
         self.queue.clear();
         self.unit_ids.clear();
         self.building_ids.clear();
         self.projectile_ids.clear();
-        self.status_ids.clear();
+        self.shield_ids.clear();
+        self.terrain_ids.clear();
+        self.live_shield_pointers.clear();
+        self.retired_shield_pointers.clear();
+        self.shield_last_states.clear();
+        self.live_terrain_pointers.clear();
+        self.retired_terrain_pointers.clear();
+        self.terrain_last_states.clear();
+        self.pending_projectile_absorptions.clear();
+        self.original_unit_teams.clear();
+        self.object_teams.clear();
+        self.emitted_deaths.clear();
+        self.last_damage_sources.clear();
         self.formation_ids.clear();
         self.rvo_agent_refs.clear();
         self.rvo_agent_owners.clear();
@@ -666,7 +743,8 @@ impl CaptureState {
         self.next_unit_id = 1;
         self.next_building_id = 1;
         self.next_projectile_id = 1;
-        self.next_status_id = 1;
+        self.next_shield_id = 1;
+        self.next_terrain_id = 1;
         self.next_formation_id = 1;
         self.next_rvo_internal_agent_id = 0;
         self.next_checker_invocation_ordinal = 0;
@@ -1281,9 +1359,16 @@ static RUNTIME: AtomicPtr<Runtime> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_MATCH_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_POST_RENDER: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_PROJECTILE_CREATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_DAMAGE_PERFORM: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_ACTOR_REDUCE_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED: AtomicPtr<c_void> =
+    AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_ADVANCED_SHIELD_DAMAGE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_MECH_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_CONTROLLER_ACTIVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_ADD_AGENT_FIXED: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_FIXED_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -1302,6 +1387,21 @@ static RVO_ACTIVATION_COUNT: AtomicU64 = AtomicU64::new(0);
 
 thread_local! {
     static ACTIVE_RVO_CONTROLLER: Cell<usize> = const { Cell::new(0) };
+    static ACTIVE_PROJECTILE_CHANNEL: Cell<Option<(usize, i32)>> = const { Cell::new(None) };
+    static ACTIVE_DAMAGE_CONTEXT: Cell<Option<DamageContext>> = const { Cell::new(None) };
+}
+
+#[derive(Clone, Copy, Default)]
+struct DamageContext {
+    source: Option<ObjectRef>,
+    source_team_id: Option<u32>,
+    provider: Option<ObjectRef>,
+}
+
+#[derive(Clone, Copy, Default)]
+struct DamageAttribution {
+    source: Option<ObjectRef>,
+    source_team_id: Option<u32>,
 }
 
 enum NativeTrace {
@@ -1309,18 +1409,53 @@ enum NativeTrace {
         projectile_id: u64,
         owner: usize,
         target: usize,
+        skill_slot: Option<u16>,
+        weapon_index: Option<i32>,
     },
     ProjectileRemoved {
         projectile_id: u64,
         owner: usize,
         target: usize,
-        position: Vec3,
+        position: QVec3,
         intercepted: bool,
+        absorbed_by: Option<ObjectRef>,
     },
     Damage {
         source: Option<ObjectRef>,
-        target: usize,
-        amount: i64,
+        source_team_id: Option<u32>,
+        target: ObjectRef,
+        amount: i32,
+    },
+    ShieldCreated {
+        shield_id: u64,
+        team_id: u32,
+        source_kind: ShieldSourceKind,
+        position: QVec3,
+    },
+    ShieldDestroyed {
+        shield_id: u64,
+        position: QVec3,
+    },
+    TerrainCreated {
+        terrain_id: u64,
+        team_id: Option<u32>,
+        terrain_type: TerrainType,
+        position: QVec3,
+        radius: i64,
+    },
+    TerrainRemoved {
+        terrain_id: u64,
+        position: QVec3,
+    },
+    UnitDied {
+        unit_id: u64,
+        position: QVec3,
+        source: Option<ObjectRef>,
+        source_team_id: Option<u32>,
+    },
+    BuildingDestroyed {
+        building_id: u64,
+        position: QVec3,
     },
 }
 
@@ -1373,29 +1508,96 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let projectile_system = api
             .class("GRFight.dll", "GameRiver.Fight", "ProjectileSystem")
             .map_err(|error| error.to_string())?;
+        let range_item_system = api
+            .class("GRFight.dll", "GameRiver.Fight", "RangeItemSystem")
+            .map_err(|error| error.to_string())?;
+        let range_item_controller = api
+            .class("GRFight.dll", "GameRiver.Fight", "RangeItemController")
+            .map_err(|error| error.to_string())?;
+        let range_item = api
+            .class("GRFight.dll", "GameRiver.Fight", "RangeItem")
+            .map_err(|error| error.to_string())?;
+        let fight_ground_fire = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightGroundFire")
+            .map_err(|error| error.to_string())?;
+        let grid_block = api
+            .class("GRFight.dll", "GameRiver.Fight", "GridBlockInt")
+            .map_err(|error| error.to_string())?;
+        let advanced_energy_shield_system = api
+            .class(
+                "GRFight.dll",
+                "GameRiver.Fight",
+                "AdvancedEnergyShieldSystem",
+            )
+            .map_err(|error| error.to_string())?;
+        let energy_shield_contraption = api
+            .class("GRCore.dll", "GameRiver", "EnergyShieldContraption")
+            .map_err(|error| error.to_string())?;
+        let commander_energy_shield = api
+            .class("GRCore.dll", "GameRiver", "CS_EnergyShield")
+            .map_err(|error| error.to_string())?;
+        let owner_advanced_shield = api
+            .class(
+                "GRFight.dll",
+                "GameRiver.Fight",
+                "AdvancedEnergyShieldController",
+            )
+            .map_err(|error| error.to_string())?;
+        let spawned_temporary_shield = api
+            .class(
+                "GRFight.dll",
+                "GameRiver.Fight",
+                "SpawnAdvancedShieldController",
+            )
+            .map_err(|error| error.to_string())?;
+        let fight_team = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightTeam")
+            .map_err(|error| error.to_string())?;
+        let fight_team_buildings = api
+            .field(fight_team, "buildings")
+            .map_err(|error| error.to_string())?;
+        let fight_team_constructions = api
+            .field(fight_team, "constructions")
+            .map_err(|error| error.to_string())?;
         let projectile_controllers = api
             .field(projectile_system, "projectileControllers")
             .map_err(|error| error.to_string())?;
-        let buff_manager = api
-            .class("GRFight.dll", "GameRiver.Fight", "BuffManager")
+        let projectile_in_energy_shields = api
+            .class("GRFight.dll", "GameRiver.Fight", "ProjectileController")
+            .and_then(|class| api.field(class, "inEnergyShields"))
             .map_err(|error| error.to_string())?;
-        let buff_list = api
-            .field(buff_manager, "buffs")
+        let range_item_affected_units = api
+            .field(range_item_controller, "affectedUnits")
             .map_err(|error| error.to_string())?;
-        let buff = api
-            .class("GRFight.dll", "GameRiver.Fight", "Buff")
+        let range_item_affected_unit_times = api
+            .field(range_item_controller, "affectedUnitTimes")
             .map_err(|error| error.to_string())?;
-        let buff_duration_time = api
-            .field(buff, "durationTime")
+        let range_item_effect_time_duration = api
+            .field(range_item_controller, "effectTimeDuration")
             .map_err(|error| error.to_string())?;
-        let buff_max_duration_time = api
-            .field(buff, "maxDurationtime")
+        let range_item_time = api
+            .field(range_item, "time")
             .map_err(|error| error.to_string())?;
-        let buff_step_time = api
-            .field(buff, "stepTime")
+        let range_item_life_time = api
+            .field(range_item, "lifeTime")
             .map_err(|error| error.to_string())?;
-        let buff_step_time_config = api
-            .field(buff, "stepTimeConfig")
+        let ground_fire_time = api
+            .field(fight_ground_fire, "time")
+            .map_err(|error| error.to_string())?;
+        let ground_fire_life_time = api
+            .field(fight_ground_fire, "lifeTime")
+            .map_err(|error| error.to_string())?;
+        let grid_position_x = api
+            .field(grid_block, "positionX")
+            .map_err(|error| error.to_string())?;
+        let grid_position_y = api
+            .field(grid_block, "positionY")
+            .map_err(|error| error.to_string())?;
+        let grid_rows = api
+            .field(grid_block, "grids")
+            .map_err(|error| error.to_string())?;
+        let grid_size = api
+            .field(grid_block, "<Size>k__BackingField")
             .map_err(|error| error.to_string())?;
         let motion_controller = api
             .class("GRFight.dll", "GameRiver.Fight", "MotionController")
@@ -1431,8 +1633,14 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let damage_performer = api
             .class("GRFight.dll", "GameRiver.Fight", "DamagePerformer")
             .map_err(|error| error.to_string())?;
+        let fight_actor = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightActor")
+            .map_err(|error| error.to_string())?;
         let projectile_add = api
             .method(projectile_system, "AddProjectile", 1)
+            .map_err(|error| error.to_string())?;
+        let projectile_create = api
+            .method(projectile_system, "Create", 5)
             .map_err(|error| error.to_string())?;
         let projectile_destroy = api
             .method(projectile_system, "Destroy", 2)
@@ -1440,9 +1648,32 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let damage_perform = api
             .method(damage_performer, "Perform", 3)
             .map_err(|error| error.to_string())?;
+        let fight_actor_reduce_life = api
+            .method(fight_actor, "ReduceLife", 1)
+            .map_err(|error| error.to_string())?;
+        let fight_controller_on_actor_hitted = api
+            .method(fight, "OnActorHitted", 1)
+            .map_err(|error| error.to_string())?;
+        let advanced_shield_damage = api
+            .method(damage_performer, "PerformHitAdvancedEndergyShieldEffect", 4)
+            .map_err(|error| error.to_string())?;
+        let fight_mech_on_dead = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightMech")
+            .and_then(|class| api.method(class, "OnDead", 0))
+            .map_err(|error| error.to_string())?;
+        let fight_crystal_on_dead = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightCrystal")
+            .and_then(|class| api.method(class, "OnDead", 0))
+            .map_err(|error| error.to_string())?;
+        install_projectile_create_hook(api, projectile_create)?;
         install_projectile_add_hook(api, projectile_add)?;
         install_projectile_destroy_hook(api, projectile_destroy)?;
         install_damage_perform_hook(api, damage_perform)?;
+        install_fight_actor_reduce_life_hook(api, fight_actor_reduce_life)?;
+        install_fight_controller_on_actor_hitted_hook(api, fight_controller_on_actor_hitted)?;
+        install_advanced_shield_damage_hook(api, advanced_shield_damage)?;
+        install_fight_mech_on_dead_hook(api, fight_mech_on_dead)?;
+        install_fight_crystal_on_dead_hook(api, fight_crystal_on_dead)?;
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
         install_post_render_hook(api, post_render)?;
@@ -1457,12 +1688,28 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
+            range_item_system_class: range_item_system as usize,
+            fight_ground_fire_class: fight_ground_fire as usize,
+            advanced_energy_shield_system_class: advanced_energy_shield_system as usize,
+            energy_shield_contraption_class: energy_shield_contraption as usize,
+            commander_energy_shield_class: commander_energy_shield as usize,
+            owner_advanced_shield_class: owner_advanced_shield as usize,
+            spawned_temporary_shield_class: spawned_temporary_shield as usize,
+            fight_team_buildings: fight_team_buildings as usize,
+            fight_team_constructions: fight_team_constructions as usize,
             projectile_controllers: projectile_controllers as usize,
-            buff_list: buff_list as usize,
-            buff_duration_time: buff_duration_time as usize,
-            buff_max_duration_time: buff_max_duration_time as usize,
-            buff_step_time: buff_step_time as usize,
-            buff_step_time_config: buff_step_time_config as usize,
+            projectile_in_energy_shields: projectile_in_energy_shields as usize,
+            range_item_affected_units: range_item_affected_units as usize,
+            range_item_affected_unit_times: range_item_affected_unit_times as usize,
+            range_item_effect_time_duration: range_item_effect_time_duration as usize,
+            range_item_time: range_item_time as usize,
+            range_item_life_time: range_item_life_time as usize,
+            ground_fire_time: ground_fire_time as usize,
+            ground_fire_life_time: ground_fire_life_time as usize,
+            grid_position_x: grid_position_x as usize,
+            grid_position_y: grid_position_y as usize,
+            grid_rows: grid_rows as usize,
+            grid_size: grid_size as usize,
             motion_fsm: motion_fsm as usize,
             motion_idle_state_class: motion_idle_state as usize,
             motion_move_state_class: motion_move_state as usize,
@@ -1917,6 +2164,15 @@ pub(crate) fn abort(reason: &str) {
 type UpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type MatchUpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type PostRenderFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type ProjectileCreateFn = unsafe extern "C" fn(
+    *mut Object,
+    *mut Object,
+    FixedVec3,
+    FixedVec3,
+    i32,
+    *mut Object,
+    *const MethodInfo,
+);
 type ProjectileAddFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
 type ProjectileDestroyFn = unsafe extern "C" fn(*mut Object, *mut Object, bool, *const MethodInfo);
 type DamagePerformFn = unsafe extern "C" fn(
@@ -1926,6 +2182,13 @@ type DamagePerformFn = unsafe extern "C" fn(
     *mut Object,
     *const MethodInfo,
 ) -> i32;
+type FightActorReduceLifeFn =
+    unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, *const MethodInfo) -> i32;
+type FightControllerOnActorHittedFn =
+    unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, *const MethodInfo);
+type AdvancedShieldDamageFn =
+    unsafe extern "C" fn(*mut Object, *mut Object, i32, FixedVec3, bool, *const MethodInfo) -> i32;
+type ActorOnDeadFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type RvoControllerActiveFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type RvoAddAgentFixedFn =
     unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo) -> *mut Object;
@@ -3100,6 +3363,54 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
     if skip_update {
         return;
     }
+    let mut defer_update_for_initial_render = false;
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        if runtime.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || state.initialized {
+            return;
+        }
+        let result = (|| {
+            let initial = snapshot(runtime, &mut state, true)?;
+            let (game_build, context) = recording_context(runtime)?;
+            state.initialized = true;
+            state.last_native_tick = Some(initial.native_tick);
+            if let Some(visual) = state.visual.as_ref() {
+                visual.apply_calibration()?;
+                state.render_completed = false;
+                state.pending_visual = Some(PendingVisualMessage::Initial {
+                    game_build,
+                    context,
+                    state: initial.world,
+                    instrumentation: initial.instrumentation,
+                });
+                state.in_update = false;
+                defer_update_for_initial_render = true;
+            } else {
+                state.push(CaptureMessage::Initial {
+                    game_build,
+                    context,
+                    state: initial.world,
+                    instrumentation: initial.instrumentation,
+                    frame: None,
+                })?;
+            }
+            Ok::<(), String>(())
+        })();
+        if let Err(error) = result {
+            state.in_update = false;
+            state.fail(error);
+        }
+    }));
+    if defer_update_for_initial_render {
+        return;
+    }
     // SAFETY: controller and MethodInfo are forwarded unchanged from IL2CPP.
     unsafe { original(controller, method) };
 
@@ -3122,38 +3433,88 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 .invoke_value::<bool>(controller, "IsFighting", &mut [])
                 .map_err(|error| error.to_string())?;
             if !state.initialized {
-                if !fighting {
-                    state.traces.clear();
-                    return Ok(());
+                if fighting {
+                    return Err(
+                        "fight entered during FightController.Update before S(0) could be sampled"
+                            .into(),
+                    );
                 }
-                if !state.traces.is_empty() {
-                    return Err("combat events occurred before the fighting-entry snapshot".into());
-                }
-                let initial = snapshot(runtime, &mut state, true)?;
-                let context = durable_context(runtime)?;
-                state.initialized = true;
-                if let Some(visual) = state.visual.as_ref() {
-                    visual.apply_calibration()?;
-                    state.render_completed = false;
-                    state.pending_visual = Some(PendingVisualMessage::Initial {
-                        context,
-                        state: initial.world,
-                        instrumentation: initial.instrumentation,
-                    });
-                } else {
-                    state.push(CaptureMessage::Initial {
-                        context,
-                        state: initial.world,
-                        instrumentation: initial.instrumentation,
-                        frame: None,
-                    })?;
-                }
+                state.traces.clear();
                 return Ok(());
             }
+            if fighting && state.visual.is_none() && !state.speed_up_requested {
+                let current_match = runtime.current_match();
+                if current_match.is_null() {
+                    return Err("active match disappeared before recording speed-up".into());
+                }
+                let action_controller =
+                    invoke_object(runtime.api, current_match, "GetMatchActionController")?;
+                runtime
+                    .api
+                    .invoke_void(action_controller, "RequestSpeedUp", &mut [])
+                    .map_err(|error| format!("cannot request recording speed-up: {error}"))?;
+                state.speed_up_requested = true;
+            }
             let next = snapshot(runtime, &mut state, false)?;
+            let previous_native_tick = state
+                .last_native_tick
+                .ok_or_else(|| "capture lost its previous native tick".to_owned())?;
+            if next.native_tick == previous_native_tick {
+                if !state.traces.is_empty() {
+                    return Err(
+                        "combat events occurred without an advancing native logic tick".into(),
+                    );
+                }
+                state.entered_fighting |= fighting;
+                return Ok(());
+            }
+            if !state.entered_fighting && !fighting {
+                if !state.traces.is_empty() {
+                    return Err(
+                        "combat events occurred before FightController entered fighting".into(),
+                    );
+                }
+                state.last_native_tick = Some(next.native_tick);
+                return Ok(());
+            }
+            if state.native_tick_step.is_none() && next.native_tick < previous_native_tick {
+                if !state.traces.is_empty() {
+                    return Err(
+                        "combat events occurred while the native fight clock was resetting".into(),
+                    );
+                }
+                state.entered_fighting = true;
+                state.last_native_tick = Some(next.native_tick);
+                return Ok(());
+            }
+            let terminal = state.entered_fighting && !fighting;
+            let native_tick_step = next.native_tick.checked_sub(previous_native_tick);
+            if native_tick_step.is_none() && !terminal {
+                return Err(format!(
+                    "native logic tick moved backwards from {previous_native_tick} to {}",
+                    next.native_tick
+                ));
+            }
+            state.last_native_tick = Some(next.native_tick);
+            state.entered_fighting |= fighting;
+            if let Some(native_tick_step) = native_tick_step {
+                match state.native_tick_step {
+                    None => state.native_tick_step = Some(native_tick_step),
+                    Some(expected) if native_tick_step == expected => {}
+                    Some(expected) => {
+                        return Err(format!(
+                            "native logic tick step changed from {expected} to {native_tick_step}"
+                        ));
+                    }
+                }
+                if native_tick_step == 0 {
+                    return Err(format!(
+                        "native logic tick did not advance from {previous_native_tick}"
+                    ));
+                }
+            }
             let traces = std::mem::take(&mut state.traces);
             let events = transition_events(&traces, &state);
-            let terminal = !fighting;
             if let Some(visual) = state.visual.as_ref() {
                 visual.apply_calibration()?;
                 state.render_completed = false;
@@ -3270,10 +3631,12 @@ fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
     }
     match pending {
         PendingVisualMessage::Initial {
+            game_build,
             context,
             state: world,
             instrumentation,
         } => state.push(CaptureMessage::Initial {
+            game_build,
             context,
             state: world,
             instrumentation,
@@ -3292,6 +3655,40 @@ fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
             frame: Some(frame),
         }),
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+unsafe extern "C" fn projectile_create_hook(
+    system: *mut Object,
+    fight_skill: *mut Object,
+    target_position: FixedVec3,
+    target_position_offset: FixedVec3,
+    skill_index: i32,
+    target: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_PROJECTILE_CREATE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored a trampoline with this method ABI.
+    let original: ProjectileCreateFn = unsafe { std::mem::transmute(original) };
+    ACTIVE_PROJECTILE_CHANNEL.with(|active| {
+        let previous = active.replace(Some((fight_skill as usize, skill_index)));
+        // SAFETY: IL2CPP arguments are forwarded unchanged.
+        unsafe {
+            original(
+                system,
+                fight_skill,
+                target_position,
+                target_position_offset,
+                skill_index,
+                target,
+                method,
+            );
+        }
+        active.set(previous);
+    });
 }
 
 unsafe extern "C" fn projectile_add_hook(
@@ -3342,10 +3739,361 @@ unsafe extern "C" fn damage_perform_hook(
     }
     // SAFETY: hook installer stored a trampoline with this method ABI.
     let original: DamagePerformFn = unsafe { std::mem::transmute(original) };
+    let context = resolve_damage_context(provider);
+    let previous_context = ACTIVE_DAMAGE_CONTEXT.with(|active| active.replace(Some(context)));
     // SAFETY: IL2CPP arguments are forwarded unchanged.
     let result = unsafe { original(performer, provider, target, advanced_shield, method) };
-    let _ = catch_unwind(AssertUnwindSafe(|| record_damage(provider, target, result)));
+    ACTIVE_DAMAGE_CONTEXT.with(|active| active.set(previous_context));
     result
+}
+
+fn resolve_damage_context(provider: *mut Object) -> DamageContext {
+    if provider.is_null() {
+        return DamageContext::default();
+    }
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return DamageContext::default();
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let provider_reference = {
+        let state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || !state.in_update {
+            return DamageContext::default();
+        }
+        object_ref_from_pointer(provider as usize, &state)
+    };
+    let owner = runtime
+        .api
+        .invoke(
+            provider,
+            "GameRiver.Fight.IDamageProvider.GetOwner",
+            &mut [],
+        )
+        .or_else(|_| runtime.api.invoke(provider, "GetOwner", &mut []))
+        .unwrap_or(ptr::null_mut());
+    let owner_actor = if owner.is_null() {
+        ptr::null_mut()
+    } else {
+        runtime
+            .api
+            .invoke(owner, "GameRiver.Fight.ISkillOwner.GetFightActor", &mut [])
+            .or_else(|_| runtime.api.invoke(owner, "GetFightActor", &mut []))
+            .unwrap_or(ptr::null_mut())
+    };
+    let team_controller = runtime
+        .api
+        .invoke(
+            provider,
+            "GameRiver.Fight.IDamageProvider.GetTeamController",
+            &mut [],
+        )
+        .or_else(|_| runtime.api.invoke(provider, "GetTeamController", &mut []))
+        .unwrap_or(ptr::null_mut());
+    let native_team_id = if team_controller.is_null() {
+        None
+    } else {
+        invoke_value::<i32>(runtime.api, team_controller, "GetTeamIndex")
+            .ok()
+            .and_then(|value| u32::try_from(value).ok())
+    };
+    let state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let source = object_ref_from_pointer(owner as usize, &state)
+        .or_else(|| object_ref_from_pointer(owner_actor as usize, &state))
+        .or(provider_reference);
+    DamageContext {
+        source,
+        source_team_id: native_team_id
+            .or_else(|| source.and_then(|value| state.object_teams.get(&value).copied())),
+        provider: provider_reference,
+    }
+}
+
+fn resolve_hit_damage_context(hit: NativeHitDamageInfo) -> DamageContext {
+    let provider_context = resolve_damage_context(hit.damage_provider);
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return provider_context;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let source_actor = if hit.source_skill_owner.is_null() {
+        ptr::null_mut()
+    } else {
+        runtime
+            .api
+            .invoke(
+                hit.source_skill_owner,
+                "GameRiver.Fight.ISkillOwner.GetFightActor",
+                &mut [],
+            )
+            .or_else(|_| {
+                runtime
+                    .api
+                    .invoke(hit.source_skill_owner, "GetFightActor", &mut [])
+            })
+            .unwrap_or(ptr::null_mut())
+    };
+    let native_team_id = if hit.source_team.is_null() {
+        None
+    } else {
+        invoke_value::<i32>(runtime.api, hit.source_team, "GetTeamIndex")
+            .ok()
+            .and_then(|value| u32::try_from(value).ok())
+    };
+    let state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let source = object_ref_from_pointer(hit.source_skill_owner as usize, &state)
+        .or_else(|| object_ref_from_pointer(source_actor as usize, &state))
+        .or(provider_context.source);
+    DamageContext {
+        source,
+        source_team_id: native_team_id
+            .or(provider_context.source_team_id)
+            .or_else(|| source.and_then(|value| state.object_teams.get(&value).copied())),
+        provider: provider_context.provider,
+    }
+}
+
+unsafe extern "C" fn fight_actor_reduce_life_hook(
+    actor: *mut Object,
+    hit: NativeHitDamageInfo,
+    method: *const MethodInfo,
+) -> i32 {
+    let original = ORIGINAL_FIGHT_ACTOR_REDUCE_LIFE.load(Ordering::Acquire);
+    if original.is_null() {
+        return 0;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: FightActorReduceLifeFn = unsafe { std::mem::transmute(original) };
+    let context = resolve_hit_damage_context(hit);
+    let previous_context = ACTIVE_DAMAGE_CONTEXT.with(|active| active.replace(Some(context)));
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    let result = unsafe { original(actor, hit, method) };
+    ACTIVE_DAMAGE_CONTEXT.with(|active| active.set(previous_context));
+    result
+}
+
+unsafe extern "C" fn fight_controller_on_actor_hitted_hook(
+    controller: *mut Object,
+    hit: NativeHitDamageInfo,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: FightControllerOnActorHittedFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(controller, hit, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_damage(
+            resolve_hit_damage_context(hit),
+            hit.target_actor,
+            ptr::null_mut(),
+            hit.damage_real,
+        );
+    }));
+}
+
+unsafe extern "C" fn advanced_shield_damage_hook(
+    performer: *mut Object,
+    shield: *mut Object,
+    damage: i32,
+    position: FixedVec3,
+    is_main_target: bool,
+    method: *const MethodInfo,
+) -> i32 {
+    let original = ORIGINAL_ADVANCED_SHIELD_DAMAGE.load(Ordering::Acquire);
+    if original.is_null() {
+        return 0;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: AdvancedShieldDamageFn = unsafe { std::mem::transmute(original) };
+    let context = ACTIVE_DAMAGE_CONTEXT.with(Cell::get).unwrap_or_default();
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    let result = unsafe { original(performer, shield, damage, position, is_main_target, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_damage(context, ptr::null_mut(), shield, result);
+    }));
+    result
+}
+
+unsafe extern "C" fn fight_mech_on_dead_hook(actor: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_FIGHT_MECH_ON_DEAD.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_actor_death(actor, ObjectKind::Unit);
+    }));
+    // SAFETY: hook installer stored the trampoline for FightMech.OnDead.
+    let original: ActorOnDeadFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(actor, method) };
+}
+
+unsafe extern "C" fn fight_crystal_on_dead_hook(actor: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_FIGHT_CRYSTAL_ON_DEAD.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_actor_death(actor, ObjectKind::Building);
+    }));
+    // SAFETY: hook installer stored the trampoline for FightCrystal.OnDead.
+    let original: ActorOnDeadFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(actor, method) };
+}
+
+fn record_actor_death(actor: *mut Object, kind: ObjectKind) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return;
+    }
+    let pointer = actor as usize;
+    let active_damage_context = ACTIVE_DAMAGE_CONTEXT.with(Cell::get);
+    let reference = match kind {
+        ObjectKind::Unit => state
+            .unit_ids
+            .get(&pointer)
+            .copied()
+            .map(|id| ObjectRef::new(ObjectKind::Unit, id)),
+        ObjectKind::Building => state
+            .building_ids
+            .get(&pointer)
+            .copied()
+            .map(|id| ObjectRef::new(ObjectKind::Building, id)),
+        ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => None,
+    };
+    let Some(reference) = reference else {
+        if kind == ObjectKind::Building {
+            return;
+        }
+        state.fail(format!(
+            "{kind:?}.OnDead referenced an unallocated MCFR object"
+        ));
+        return;
+    };
+    if !state.emitted_deaths.insert(reference) {
+        state.fail(format!(
+            "{kind:?} {} emitted OnDead more than once",
+            reference.id
+        ));
+        return;
+    }
+    let attribution = match active_damage_context {
+        Some(context) => DamageAttribution {
+            source: context.source,
+            source_team_id: context.source_team_id,
+        },
+        None => state
+            .last_damage_sources
+            .remove(&reference)
+            .unwrap_or_default(),
+    };
+    state.last_damage_sources.remove(&reference);
+    let result = (|| {
+        let transform = invoke_object(runtime.api, actor, "GetFightTransform")?;
+        let position = vec3(invoke_value::<FixedVec3>(
+            runtime.api,
+            transform,
+            "GetPositionInt3D",
+        )?);
+        state.traces.push(match kind {
+            ObjectKind::Unit => NativeTrace::UnitDied {
+                unit_id: reference.id,
+                position,
+                source: attribution.source,
+                source_team_id: attribution.source_team_id,
+            },
+            ObjectKind::Building => NativeTrace::BuildingDestroyed {
+                building_id: reference.id,
+                position,
+            },
+            ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => unreachable!(),
+        });
+        Ok::<(), String>(())
+    })();
+    if let Err(error) = result {
+        state.fail(format!("{kind:?}.OnDead trace failed: {error}"));
+    }
+}
+
+fn resolve_projectile_channel(
+    api: Api,
+    owner: *mut Object,
+    fight_skill: usize,
+    skill_index: i32,
+) -> Result<(u16, i32), String> {
+    if owner.is_null() || fight_skill == 0 {
+        return Err("projectile skill channel has a null owner or skill".to_owned());
+    }
+    let all_skills = invoke_object(api, owner, "GetSkills")?;
+    let skill_count = list_count(api, all_skills, i32::from(u16::MAX))?;
+    let mut skill_slot = None;
+    for slot in 0..skill_count {
+        if list_item(api, all_skills, slot)? as usize == fight_skill {
+            skill_slot =
+                Some(u16::try_from(slot).map_err(|_| "projectile skill slot overflow".to_owned())?);
+            break;
+        }
+    }
+    let skill_slot = skill_slot.ok_or_else(|| {
+        format!("projectile FightSkill is absent from owner GetSkills (index {skill_index})")
+    })?;
+    let weapons = invoke_object(api, fight_skill as *mut Object, "GetWeapons")?;
+    let weapon_count = list_count(api, weapons, 1_024)?;
+    let list_candidate = usize::try_from(skill_index)
+        .ok()
+        .filter(|index| *index < weapon_count as usize)
+        .map(|index| list_item(api, weapons, index as i32))
+        .transpose()?
+        .map(|weapon| {
+            let weapon_data = invoke_object(api, weapon, "GetWeaponData")?;
+            invoke_value::<i32>(api, weapon_data, "get_Index")
+        })
+        .transpose()?;
+    let mut indexed_candidate = None;
+    for index in 0..weapon_count {
+        let weapon = list_item(api, weapons, index)?;
+        let weapon_data = invoke_object(api, weapon, "GetWeaponData")?;
+        let weapon_index = invoke_value::<i32>(api, weapon_data, "get_Index")?;
+        if weapon_index == skill_index {
+            indexed_candidate = Some(weapon_index);
+            break;
+        }
+    }
+    let weapon_index = match (list_candidate, indexed_candidate) {
+        (Some(list), Some(indexed)) if list != indexed => {
+            return Err(format!(
+                "projectile skill index {skill_index} ambiguously maps to weapon indices {list} and {indexed}"
+            ));
+        }
+        (Some(index), _) | (_, Some(index)) => index,
+        (None, None) => {
+            return Err(format!(
+                "projectile skill index {skill_index} is absent from {weapon_count} weapons"
+            ));
+        }
+    };
+    Ok((skill_slot, weapon_index))
 }
 
 fn record_projectile_release(controller: *mut Object) {
@@ -3377,10 +4125,23 @@ fn record_projectile_release(controller: *mut Object) {
             .api
             .invoke(projectile, "GetTarget", &mut [])
             .map_err(|error| error.to_string())? as usize;
+        let channel = ACTIVE_PROJECTILE_CHANNEL
+            .with(Cell::get)
+            .map(|(fight_skill, skill_index)| {
+                resolve_projectile_channel(
+                    runtime.api,
+                    owner as *mut Object,
+                    fight_skill,
+                    skill_index,
+                )
+            })
+            .transpose()?;
         state.traces.push(NativeTrace::ProjectileReleased {
             projectile_id: id,
             owner,
             target,
+            skill_slot: channel.map(|value| value.0),
+            weapon_index: channel.map(|value| value.1),
         });
         Ok::<(), String>(())
     })();
@@ -3423,13 +4184,18 @@ fn record_projectile_removal(controller: *mut Object, intercepted: bool) {
             runtime.api,
             transform,
             "GetPositionInt3D",
-        )?)?;
+        )?);
+        let absorbed_by = state.pending_projectile_absorptions.remove(&id);
+        if intercepted && absorbed_by.is_some() {
+            return Err("intercepted projectile also has a pending shield absorption".into());
+        }
         state.traces.push(NativeTrace::ProjectileRemoved {
             projectile_id: id,
             owner,
             target,
             position,
             intercepted,
+            absorbed_by,
         });
         state.projectile_ids.remove(&pointer);
         Ok::<(), String>(())
@@ -3439,22 +4205,59 @@ fn record_projectile_removal(controller: *mut Object, intercepted: bool) {
     }
 }
 
-fn record_damage(provider: *mut Object, target: *mut Object, result: i32) {
+fn record_damage(
+    context: DamageContext,
+    target: *mut Object,
+    advanced_shield: *mut Object,
+    result: i32,
+) {
     let mut state = capture_state()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     if !state.armed || !state.in_update || result <= 0 {
         return;
     }
-    let source = object_ref_from_pointer(provider as usize, &state);
-    state.traces.push(NativeTrace::Damage {
-        source,
-        target: target as usize,
-        amount: i64::from(result),
-    });
+    let recorded = (|| {
+        let target_pointer = if advanced_shield.is_null() {
+            target as usize
+        } else {
+            advanced_shield as usize
+        };
+        let target = object_ref_from_pointer(target_pointer, &state).ok_or_else(|| {
+            format!("damage target 0x{target_pointer:x} is absent from the MCFR identity map")
+        })?;
+        if target.kind == ObjectKind::Unit && !state.emitted_deaths.contains(&target) {
+            state.last_damage_sources.insert(
+                target,
+                DamageAttribution {
+                    source: context.source,
+                    source_team_id: context.source_team_id,
+                },
+            );
+        }
+        if target.kind == ObjectKind::Shield
+            && let Some(projectile) = context
+                .provider
+                .filter(|value| value.kind == ObjectKind::Projectile)
+        {
+            state
+                .pending_projectile_absorptions
+                .insert(projectile.id, target);
+        }
+        state.traces.push(NativeTrace::Damage {
+            source: context.source,
+            source_team_id: context.source_team_id,
+            target,
+            amount: result,
+        });
+        Ok::<(), String>(())
+    })();
+    if let Err(error) = recorded {
+        state.fail(format!("damage trace failed: {error}"));
+    }
 }
 
-fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
+fn recording_context(runtime: &Runtime) -> Result<(String, DurableContext), String> {
     let current_match = runtime.current_match();
     let round = runtime
         .api
@@ -3474,21 +4277,18 @@ fn durable_context(runtime: &Runtime) -> Result<DurableContext, String> {
         .map_err(|error| error.to_string())?;
     let random = invoke_object(runtime.api, current_match, "GetRandom")?;
     let match_seed = invoke_value::<i32>(runtime.api, random, "GetSeed")?;
-    Ok(DurableContext {
-        game_build: version,
-        logic_step: Rational {
-            numerator: 1,
-            denominator: 20,
-        },
-        numeric_convention: NumericConvention {
-            distance_units_per_meter: DISTANCE_UNITS_PER_METER,
-            rotation_units_per_degree: ROTATION_UNITS_PER_DEGREE,
+    Ok((
+        version,
+        DurableContext {
+            logic_step: Rational {
+                numerator: 1,
+                denominator: 20,
+            },
             time_units_per_second: TIME_UNITS_PER_SECOND,
+            combat_round: u32::try_from(round).map_err(|_| "combat round overflow".to_owned())?,
+            match_seed,
         },
-        combat_round: u32::try_from(round).map_err(|_| "combat round overflow".to_owned())?,
-        match_seed,
-        identity_contract: IdentityContract::TeamZxSequentialV1,
-    })
+    ))
 }
 
 struct RawUnit {
@@ -3496,8 +4296,8 @@ struct RawUnit {
     formation: usize,
     rvo_agent: Option<usize>,
     mech_lock_target: usize,
-    state: UnitState,
-    statuses: Vec<RawStatus>,
+    weapon_targets: Vec<usize>,
+    state: LiveUnitState,
     target_refs: Option<RawTargetRefs>,
 }
 
@@ -3508,20 +4308,6 @@ struct RawTargetRefs {
     skill_attack_target: usize,
 }
 
-struct RawStatus {
-    pointer: usize,
-    source: usize,
-    target: usize,
-    status_type_id: u32,
-    additive_stack: i32,
-    duration_time: i32,
-    max_duration_time: i32,
-    step_time: i32,
-    step_time_config: i32,
-    finished: bool,
-    frozen: bool,
-}
-
 struct RawBuilding {
     pointer: usize,
     rvo_agent: Option<usize>,
@@ -3529,7 +4315,20 @@ struct RawBuilding {
     state: BuildingState,
 }
 
+struct RawShield {
+    pointer: usize,
+    owner: usize,
+    state: ShieldState,
+}
+
+#[derive(Clone, Copy)]
+struct RawTerrainApplication {
+    unit_pointer: usize,
+    elapsed: i32,
+}
+
 struct CapturedSnapshot {
+    native_tick: u64,
     world: WorldSnapshot,
     instrumentation: Option<CaptureInstrumentationObservation>,
 }
@@ -3555,8 +4354,26 @@ fn snapshot(
         .invoke(fight, "GetTeamControllers", &mut [])
         .map_err(|error| error.to_string())?;
     let team_count = list_count(runtime.api, teams, 32)?;
+    let modules = runtime
+        .api
+        .invoke(fight, "GetModules", &mut [])
+        .map_err(|error| error.to_string())?;
+    let shield_system = find_module(
+        runtime.api,
+        modules,
+        capture.metadata.advanced_energy_shield_system_class,
+        "AdvancedEnergyShieldSystem",
+    )?;
+    let range_item_system = find_module(
+        runtime.api,
+        modules,
+        capture.metadata.range_item_system_class,
+        "RangeItemSystem",
+    )?;
     let mut raw_units = Vec::new();
     let mut raw_buildings = Vec::new();
+    let mut raw_shields = Vec::new();
+    let mut raw_building_teams = BTreeMap::new();
     for team_offset in 0..team_count {
         let controller = list_item(runtime.api, teams, team_offset)?;
         let team_index = runtime
@@ -3575,6 +4392,9 @@ fn snapshot(
             .map_err(|error| error.to_string())?;
         for index in 0..list_count(runtime.api, units, 100_000)? {
             let unit = list_item(runtime.api, units, index)?;
+            if !invoke_value::<bool>(runtime.api, unit, "IsAlive")? {
+                continue;
+            }
             raw_units.push(read_unit(
                 runtime.api,
                 unit,
@@ -3583,20 +4403,54 @@ fn snapshot(
                 capture.instrumentation_profile,
             )?);
         }
-        let buildings = runtime
+        let towers = invoke_object(runtime.api, team, "GetTowers")?;
+        let team_buildings: *mut Object = runtime
             .api
-            .invoke(team, "GetTowers", &mut [])
+            .field_value(
+                team,
+                capture.metadata.fight_team_buildings as *mut FieldInfo,
+            )
             .map_err(|error| error.to_string())?;
-        for index in 0..list_count(runtime.api, buildings, 64)? {
-            let building = list_item(runtime.api, buildings, index)?;
-            raw_buildings.push(read_building(
-                runtime.api,
-                building,
-                team_id,
-                &capture.metadata,
-                capture.instrumentation_profile,
-            )?);
+        let constructions: *mut Object = runtime
+            .api
+            .field_value(
+                team,
+                capture.metadata.fight_team_constructions as *mut FieldInfo,
+            )
+            .map_err(|error| error.to_string())?;
+        for list in [towers, team_buildings, constructions] {
+            for index in 0..list_count(runtime.api, list, 100_000)? {
+                let building = list_item(runtime.api, list, index)?;
+                if !invoke_value::<bool>(runtime.api, building, "IsAlive")? {
+                    continue;
+                }
+                let pointer = building as usize;
+                if let Some(existing_team) = raw_building_teams.insert(pointer, team_id) {
+                    if existing_team != team_id {
+                        return Err(format!(
+                            "FightCrystal at 0x{pointer:x} belongs to conflicting teams"
+                        ));
+                    }
+                    continue;
+                }
+                raw_buildings.push(read_building(
+                    runtime.api,
+                    building,
+                    team_id,
+                    &capture.metadata,
+                    capture.instrumentation_profile,
+                )?);
+            }
         }
+        raw_shields.extend(read_team_shields(
+            runtime.api,
+            shield_system,
+            invoke_object(runtime.api, team, "GetFightGroup")
+                .map_err(|error| format!("FightTeam.GetFightGroup: {error}"))?,
+            controller,
+            team_id,
+            &capture.metadata,
+        )?);
     }
     raw_units.sort_by_key(|unit| {
         (
@@ -3617,8 +4471,8 @@ fn snapshot(
         }
     }
     let mut units = Vec::with_capacity(raw_units.len());
-    let mut raw_statuses = Vec::new();
     let mut raw_mech_lock_targets = Vec::with_capacity(raw_units.len());
+    let mut raw_weapon_targets = Vec::new();
     let mut raw_target_refs = Vec::new();
     for mut unit in raw_units {
         let unit_id = match capture.unit_ids.get(&unit.pointer) {
@@ -3626,6 +4480,10 @@ fn snapshot(
             None => allocate(&mut capture.next_unit_id, "unit")?,
         };
         capture.unit_ids.entry(unit.pointer).or_insert(unit_id);
+        let original_team_id = *capture
+            .original_unit_teams
+            .entry(unit.pointer)
+            .or_insert(unit.state.team_id);
         let formation_key = if unit.formation == 0 {
             unit.pointer
         } else {
@@ -3645,12 +4503,22 @@ fn snapshot(
                 .insert(agent, ObjectRef::new(ObjectKind::Unit, unit_id));
         }
         unit.state.unit_id = unit_id;
+        unit.state.original_team_id = original_team_id;
+        capture.object_teams.insert(
+            ObjectRef::new(ObjectKind::Unit, unit_id),
+            unit.state.team_id,
+        );
         unit.state.formation_id = formation_id;
         raw_mech_lock_targets.push((units.len(), unit.mech_lock_target));
+        raw_weapon_targets.extend(
+            unit.weapon_targets
+                .into_iter()
+                .enumerate()
+                .map(|(aim_index, target)| (units.len(), aim_index, target)),
+        );
         if let Some(target_refs) = unit.target_refs {
             raw_target_refs.push((unit_id, target_refs));
         }
-        raw_statuses.append(&mut unit.statuses);
         units.push(unit.state);
     }
 
@@ -3663,6 +4531,10 @@ fn snapshot(
         };
         capture.building_ids.entry(building.pointer).or_insert(id);
         building.state.building_id = id;
+        capture.object_teams.insert(
+            ObjectRef::new(ObjectKind::Building, id),
+            building.state.team_id,
+        );
         if let Some(agent) = building.rvo_agent {
             capture
                 .rvo_agent_refs
@@ -3670,9 +4542,84 @@ fn snapshot(
         }
         buildings.push(building.state);
     }
+    let mut shields = Vec::with_capacity(raw_shields.len());
+    let mut current_shield_pointers = BTreeSet::new();
+    for mut shield in raw_shields {
+        if !current_shield_pointers.insert(shield.pointer) {
+            return Err(format!(
+                "FightEnergyShield at 0x{:x} appears more than once",
+                shield.pointer
+            ));
+        }
+        if capture.retired_shield_pointers.contains(&shield.pointer) {
+            return Err(format!(
+                "retired FightEnergyShield pointer 0x{:x} was reused",
+                shield.pointer
+            ));
+        }
+        let id = match capture.shield_ids.get(&shield.pointer) {
+            Some(id) => *id,
+            None => allocate(&mut capture.next_shield_id, "shield")?,
+        };
+        capture.shield_ids.entry(shield.pointer).or_insert(id);
+        shield.state.shield_id = id;
+        shield.state.owner = resolve_target_ref(
+            runtime.api,
+            shield.owner,
+            "FightEnergyShield.owner",
+            capture,
+        )?;
+        let reference = ObjectRef::new(ObjectKind::Shield, id);
+        capture.object_teams.insert(reference, shield.state.team_id);
+        capture
+            .shield_last_states
+            .insert(shield.pointer, shield.state.clone());
+        shields.push(shield.state);
+    }
+    if initial {
+        capture.live_shield_pointers = current_shield_pointers.clone();
+    } else {
+        for pointer in current_shield_pointers.difference(&capture.live_shield_pointers) {
+            let state = capture
+                .shield_last_states
+                .get(pointer)
+                .ok_or_else(|| "new shield is missing its captured state".to_owned())?;
+            capture.traces.push(NativeTrace::ShieldCreated {
+                shield_id: state.shield_id,
+                team_id: state.team_id,
+                source_kind: state.source_kind,
+                position: state.position,
+            });
+        }
+        for pointer in capture
+            .live_shield_pointers
+            .difference(&current_shield_pointers)
+        {
+            let state = capture
+                .shield_last_states
+                .get(pointer)
+                .ok_or_else(|| "destroyed shield is missing its last state".to_owned())?;
+            capture.traces.push(NativeTrace::ShieldDestroyed {
+                shield_id: state.shield_id,
+                position: state.position,
+            });
+            capture.retired_shield_pointers.insert(*pointer);
+        }
+        capture.live_shield_pointers = current_shield_pointers.clone();
+    }
+    let terrains = read_terrains(runtime.api, range_item_system, capture, initial)
+        .map_err(|error| format!("dynamic terrain snapshot failed: {error}"))?;
     for (unit_index, target_pointer) in raw_mech_lock_targets {
         units[unit_index].mech_lock_target =
-            resolve_target_ref(target_pointer, "FightMech.lockTarget", capture)?;
+            resolve_target_ref(runtime.api, target_pointer, "FightMech.lockTarget", capture)?;
+    }
+    for (unit_index, aim_index, target_pointer) in raw_weapon_targets {
+        units[unit_index].weapon_aims[aim_index].attack_target = resolve_target_ref(
+            runtime.api,
+            target_pointer,
+            "FightSkill.attackTarget",
+            capture,
+        )?;
     }
     let instrumentation = match capture.instrumentation_profile {
         Some(profile) if profile.includes_target_refs() => {
@@ -3681,17 +4628,20 @@ fn snapshot(
                 observations.push(UnitTargetRefsObservation {
                     unit: ObjectRef::new(ObjectKind::Unit, unit_id),
                     mech_lock_target: resolve_target_ref(
+                        runtime.api,
                         refs.mech_lock_target,
                         "FightMech.lockTarget",
                         capture,
                     )?,
                     normal_skill_fields_available: refs.normal_skill_fields_available,
                     skill_lock_target: resolve_target_ref(
+                        runtime.api,
                         refs.skill_lock_target,
                         "FightSkill.lockTarget",
                         capture,
                     )?,
                     skill_attack_target: resolve_target_ref(
+                        runtime.api,
                         refs.skill_attack_target,
                         "FightSkill.attackTarget",
                         capture,
@@ -3727,38 +4677,12 @@ fn snapshot(
         Some(_) => unreachable!("all capture instrumentation profiles are handled"),
     };
     let projectiles = read_projectiles(runtime, capture)?;
-    let mut seen_statuses = BTreeSet::new();
-    let mut statuses = Vec::with_capacity(raw_statuses.len());
-    for status in raw_statuses {
-        seen_statuses.insert(status.pointer);
-        let status_id = match capture.status_ids.get(&status.pointer) {
-            Some(id) => *id,
-            None => allocate(&mut capture.next_status_id, "status")?,
-        };
-        capture
-            .status_ids
-            .entry(status.pointer)
-            .or_insert(status_id);
-        let Some(target) = object_ref_from_pointer(status.target, capture) else {
-            continue;
-        };
-        statuses.push(StatusState {
-            status_id,
-            status_type_id: status.status_type_id,
-            source: object_ref_from_pointer(status.source, capture),
-            target,
-            additive_stack: status.additive_stack,
-            duration_time: status.duration_time,
-            max_duration_time: status.max_duration_time,
-            step_time: status.step_time,
-            step_time_config: status.step_time_config,
-            finished: status.finished,
-            frozen: status.frozen,
-        });
+    if !capture.pending_projectile_absorptions.is_empty() {
+        return Err(format!(
+            "{} projectile shield absorptions were not followed by projectile removal",
+            capture.pending_projectile_absorptions.len()
+        ));
     }
-    capture
-        .status_ids
-        .retain(|pointer, _| seen_statuses.contains(pointer));
     let tick_after = runtime
         .api
         .invoke_value::<i32>(fight, "get_Tick", &mut [])
@@ -3769,14 +4693,390 @@ fn snapshot(
         ));
     }
     Ok(CapturedSnapshot {
+        native_tick,
         world: WorldSnapshot {
-            units,
+            live_units: units,
             projectiles,
             buildings,
-            statuses,
+            shields,
+            terrains,
         },
         instrumentation,
     })
+}
+
+fn read_terrains(
+    api: Api,
+    system: *mut Object,
+    capture: &mut CaptureState,
+    initial: bool,
+) -> Result<Vec<TerrainState>, String> {
+    let mut terrains = Vec::new();
+    let mut current_pointers = BTreeSet::new();
+    for type_tag in 0_i32..=5 {
+        let mut type_argument = type_tag;
+        let controller = api
+            .invoke(
+                system,
+                "GetRangeItemController",
+                &mut [argument(&mut type_argument)],
+            )
+            .map_err(|error| {
+                format!("RangeItemSystem.GetRangeItemController({type_tag}) failed: {error}")
+            })?;
+        if controller.is_null() {
+            continue;
+        }
+        let controller_type = decode_terrain_type(type_tag)?;
+        let native_type = invoke_value::<i32>(api, controller, "GetRangeItemType")
+            .map_err(|error| format!("terrain controller {type_tag} GetRangeItemType: {error}"))?;
+        if native_type != type_tag {
+            return Err(format!(
+                "RangeItemController type {native_type} disagrees with requested {type_tag}"
+            ));
+        }
+        let applications = read_terrain_applications(api, controller, capture)
+            .map_err(|error| format!("terrain controller {type_tag} applications: {error}"))?;
+        let effect_duration: i32 = api
+            .field_value(
+                controller,
+                capture.metadata.range_item_effect_time_duration as *mut FieldInfo,
+            )
+            .map_err(|error| {
+                format!("terrain controller {type_tag} effectTimeDuration: {error}")
+            })?;
+        let items = invoke_object(api, controller, "GetItems")
+            .map_err(|error| format!("terrain controller {type_tag} GetItems: {error}"))?;
+        if items.is_null() {
+            continue;
+        }
+        let item_count = list_count(api, items, 100_000)
+            .map_err(|error| format!("terrain controller {type_tag} item count: {error}"))?;
+        for index in 0..item_count {
+            let item = list_item(api, items, index)
+                .map_err(|error| format!("terrain controller {type_tag} item {index}: {error}"))?;
+            let pointer = item as usize;
+            if !current_pointers.insert(pointer) {
+                return Err(format!("RangeItem at 0x{pointer:x} appears more than once"));
+            }
+            if capture.retired_terrain_pointers.contains(&pointer) {
+                return Err(format!(
+                    "retired RangeItem pointer 0x{pointer:x} was reused"
+                ));
+            }
+            let item_type =
+                invoke_value::<i32>(api, item, "GetRangeItemType").map_err(|error| {
+                    format!("terrain controller {type_tag} item {index} GetRangeItemType: {error}")
+                })?;
+            if item_type != type_tag {
+                return Err(format!(
+                    "RangeItem at 0x{pointer:x} type {item_type} disagrees with controller {type_tag}"
+                ));
+            }
+            let id = match capture.terrain_ids.get(&pointer) {
+                Some(id) => *id,
+                None => allocate(&mut capture.next_terrain_id, "terrain")?,
+            };
+            capture.terrain_ids.entry(pointer).or_insert(id);
+            let team_controller = api
+                .invoke(item, "GetTeamController", &mut [])
+                .map_err(|error| format!("terrain {id} item {index} GetTeamController: {error}"))?;
+            let team_id = if team_controller.is_null() {
+                None
+            } else {
+                let native = invoke_value::<i32>(api, team_controller, "GetTeamIndex")
+                    .map_err(|error| format!("terrain {id} GetTeamIndex: {error}"))?;
+                Some(
+                    u32::try_from(native)
+                        .map_err(|_| format!("invalid terrain team index {native}"))?,
+                )
+            };
+            let position = vec3(
+                invoke_value::<FixedVec3>(api, item, "GetPosition")
+                    .map_err(|error| format!("terrain {id} GetPosition: {error}"))?,
+            );
+            let radius = invoke_value::<FixedPoint>(api, item, "GetRange")
+                .map_err(|error| format!("terrain {id} GetRange: {error}"))?
+                .raw;
+            let grid = if invoke_value::<bool>(api, item, "IsGridMode")
+                .map_err(|error| format!("terrain {id} IsGridMode: {error}"))?
+            {
+                Some(
+                    read_terrain_grid(api, item, capture)
+                        .map_err(|error| format!("terrain {id} grid: {error}"))?,
+                )
+            } else {
+                None
+            };
+            let round = invoke_value::<i32>(api, item, "get_Round")
+                .map_err(|error| format!("terrain {id} get_Round: {error}"))?;
+            let duration = invoke_value::<i32>(api, item, "GetDuration")
+                .map_err(|error| format!("terrain {id} GetDuration: {error}"))?;
+            let remaining_rounds = if duration > 1 {
+                Some(
+                    u32::try_from(
+                        duration
+                            .checked_sub(round)
+                            .ok_or_else(|| format!("terrain {id} round subtraction overflow"))?,
+                    )
+                    .map_err(|_| {
+                        format!("terrain {id} has round {round} beyond duration {duration}")
+                    })?,
+                )
+            } else {
+                None
+            };
+            let logic_lifetime = read_terrain_lifetime(api, item, capture)
+                .map_err(|error| format!("terrain {id} lifetime: {error}"))?;
+            let mut item_applications = applications
+                .get(&pointer)
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|application| {
+                    let unit_id = capture
+                        .unit_ids
+                        .get(&application.unit_pointer)
+                        .copied()
+                        .ok_or_else(|| {
+                            format!(
+                                "terrain {id} affectedUnits references unknown FightMech 0x{:x}",
+                                application.unit_pointer
+                            )
+                        })?;
+                    Ok(TerrainApplicationState {
+                        unit_id,
+                        periodic_clock: (effect_duration > 0).then_some(TerrainEffectClock {
+                            elapsed: application.elapsed,
+                            duration: effect_duration,
+                        }),
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            item_applications.sort_by_key(|application| application.unit_id);
+            let state = TerrainState {
+                terrain_id: id,
+                team_id,
+                terrain_type: controller_type,
+                position,
+                radius,
+                grid,
+                remaining_rounds,
+                logic_lifetime,
+                applications: item_applications,
+            };
+            let reference = ObjectRef::new(ObjectKind::Terrain, id);
+            if let Some(team_id) = team_id {
+                capture.object_teams.insert(reference, team_id);
+            }
+            capture.terrain_last_states.insert(pointer, state.clone());
+            terrains.push(state);
+        }
+    }
+    if initial {
+        capture.live_terrain_pointers = current_pointers;
+    } else {
+        for pointer in current_pointers.difference(&capture.live_terrain_pointers) {
+            let state = capture
+                .terrain_last_states
+                .get(pointer)
+                .ok_or_else(|| "new terrain is missing its captured state".to_owned())?;
+            capture.traces.push(NativeTrace::TerrainCreated {
+                terrain_id: state.terrain_id,
+                team_id: state.team_id,
+                terrain_type: state.terrain_type,
+                position: state.position,
+                radius: state.radius,
+            });
+        }
+        for pointer in capture.live_terrain_pointers.difference(&current_pointers) {
+            let state = capture
+                .terrain_last_states
+                .get(pointer)
+                .ok_or_else(|| "removed terrain is missing its last state".to_owned())?;
+            capture.traces.push(NativeTrace::TerrainRemoved {
+                terrain_id: state.terrain_id,
+                position: state.position,
+            });
+            capture.retired_terrain_pointers.insert(*pointer);
+        }
+        capture.live_terrain_pointers = current_pointers;
+    }
+    terrains.sort_by_key(|terrain| terrain.terrain_id);
+    Ok(terrains)
+}
+
+fn read_terrain_applications(
+    api: Api,
+    controller: *mut Object,
+    capture: &CaptureState,
+) -> Result<BTreeMap<usize, Vec<RawTerrainApplication>>, String> {
+    let affected: *mut Object = api
+        .field_value(
+            controller,
+            capture.metadata.range_item_affected_units as *mut FieldInfo,
+        )
+        .map_err(|error| error.to_string())?;
+    let times: *mut Object = api
+        .field_value(
+            controller,
+            capture.metadata.range_item_affected_unit_times as *mut FieldInfo,
+        )
+        .map_err(|error| error.to_string())?;
+    let count = invoke_value::<i32>(api, affected, "get_Count")?;
+    let time_count = list_count(api, times, 100_000)?;
+    if count != time_count {
+        return Err(format!(
+            "RangeItemController affectedUnits count {count} disagrees with affectedUnitTimes {time_count}"
+        ));
+    }
+    let mut result = BTreeMap::<usize, Vec<RawTerrainApplication>>::new();
+    for index in 0..count {
+        let mut key_index = index;
+        let unit = api
+            .invoke(affected, "GetKeyByIndex", &mut [argument(&mut key_index)])
+            .map_err(|error| error.to_string())?;
+        let mut value_index = index;
+        let terrain = api
+            .invoke(
+                affected,
+                "GetValueByIndex",
+                &mut [argument(&mut value_index)],
+            )
+            .map_err(|error| error.to_string())?;
+        if unit.is_null() || terrain.is_null() {
+            return Err("RangeItemController affectedUnits contains null".into());
+        }
+        let elapsed = list_i32_item(api, times, index)?;
+        result
+            .entry(terrain as usize)
+            .or_default()
+            .push(RawTerrainApplication {
+                unit_pointer: unit as usize,
+                elapsed,
+            });
+    }
+    Ok(result)
+}
+
+fn read_terrain_grid(
+    api: Api,
+    item: *mut Object,
+    capture: &CaptureState,
+) -> Result<TerrainGridState, String> {
+    let grid = invoke_object(api, item, "GetGridBlock")?;
+    let origin_x: FixedPoint = api
+        .field_value(grid, capture.metadata.grid_position_x as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let origin_y: FixedPoint = api
+        .field_value(grid, capture.metadata.grid_position_y as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let size: UnityVec2Int = api
+        .field_value(grid, capture.metadata.grid_size as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let size_x =
+        u32::try_from(size.x).map_err(|_| format!("invalid terrain grid width {}", size.x))?;
+    let size_y =
+        u32::try_from(size.y).map_err(|_| format!("invalid terrain grid height {}", size.y))?;
+    if !(1..=32).contains(&size_x) || !(1..=32).contains(&size_y) {
+        return Err(format!("terrain grid size {size_x}x{size_y} exceeds 32x32"));
+    }
+    let rows_array: *mut Object = api
+        .field_value(grid, capture.metadata.grid_rows as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let columns = api
+        .value_array::<u32>(rows_array, 32)
+        .map_err(|error| error.to_string())?;
+    let rows = terrain_grid_rows_from_native_columns(&columns, size_x, size_y)?;
+    Ok(TerrainGridState {
+        origin_x: origin_x.raw,
+        origin_y: origin_y.raw,
+        size_x,
+        size_y,
+        rows,
+    })
+}
+
+fn terrain_grid_rows_from_native_columns(
+    columns: &[u32],
+    size_x: u32,
+    size_y: u32,
+) -> Result<Vec<u32>, String> {
+    let column_count =
+        usize::try_from(size_x).map_err(|_| "grid width exceeds usize".to_owned())?;
+    if columns.len() < column_count {
+        return Err(format!(
+            "terrain grid has {} columns, expected at least {column_count}",
+            columns.len()
+        ));
+    }
+    let valid_y_mask = if size_y == 32 {
+        u32::MAX
+    } else {
+        u32::MAX << (32 - size_y)
+    };
+    if columns[..column_count]
+        .iter()
+        .any(|column| column & !valid_y_mask != 0)
+    {
+        return Err("terrain grid column uses bits outside size_y".into());
+    }
+    let row_count = usize::try_from(size_y).map_err(|_| "grid height exceeds usize".to_owned())?;
+    let mut rows = vec![0_u32; row_count];
+    for (x, column) in columns[..column_count].iter().copied().enumerate() {
+        for (y, row) in rows.iter_mut().enumerate() {
+            if column & (1_u32 << (31 - y)) != 0 {
+                *row |= 1_u32 << x;
+            }
+        }
+    }
+    Ok(rows)
+}
+
+fn read_terrain_lifetime(
+    api: Api,
+    item: *mut Object,
+    capture: &CaptureState,
+) -> Result<Option<TerrainLogicLifetime>, String> {
+    let is_ground_fire = api.object_class(item).map(|class| class as usize)
+        == Some(capture.metadata.fight_ground_fire_class);
+    let (time_field, life_time_field) = if is_ground_fire {
+        (
+            capture.metadata.ground_fire_time,
+            capture.metadata.ground_fire_life_time,
+        )
+    } else {
+        (
+            capture.metadata.range_item_time,
+            capture.metadata.range_item_life_time,
+        )
+    };
+    let elapsed: i32 = api
+        .field_value(item, time_field as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let limit: i32 = api
+        .field_value(item, life_time_field as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if limit > 0 {
+        if elapsed < 0 {
+            return Err(format!("terrain lifetime elapsed {elapsed} is negative"));
+        }
+        Ok(Some(TerrainLogicLifetime { elapsed, limit }))
+    } else {
+        Ok(None)
+    }
+}
+
+fn decode_terrain_type(value: i32) -> Result<TerrainType, String> {
+    match value {
+        0 => Ok(TerrainType::Fire),
+        1 => Ok(TerrainType::Oil),
+        2 => Ok(TerrainType::Fog),
+        3 => Ok(TerrainType::Acid),
+        4 => Ok(TerrainType::RecoveryZone),
+        5 => Ok(TerrainType::FogSand),
+        _ => Err(format!("unknown build-2259 RangeItemType {value}")),
+    }
 }
 
 #[allow(clippy::too_many_lines)]
@@ -3790,12 +5090,12 @@ fn read_unit(
     if unit.is_null() {
         return Err("team contains a null unit".into());
     }
-    let transform = invoke_object(api, unit, "GetFightTransform")?;
+    let transform = invoke_object(api, unit, "GetFightTransform")
+        .map_err(|error| format!("FightMech.GetFightTransform: {error}"))?;
     let fixed_position = invoke_value::<FixedVec3>(api, transform, "GetPositionInt3D")?;
     let fixed_rotation = invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?;
     let motion = invoke_object(api, unit, "GetMotionController")?;
     let velocity = invoke_value::<FixedVec3>(api, motion, "GetCurrentVelocity")?;
-    let alive = invoke_value::<bool>(api, unit, "IsAlive")?;
     let active = invoke_value::<bool>(api, unit, "get_IsActive")?;
     let fsm: *mut Object = api
         .field_value(motion, metadata.motion_fsm as *mut FieldInfo)
@@ -3827,8 +5127,8 @@ fn read_unit(
         3 => Visibility::Hide,
         value => return Err(format!("unsupported native visibility {value}")),
     };
-    let position = vec3(fixed_position)?;
-    let body_rotation = q32_to_units(fixed_rotation.raw, ROTATION_UNITS_PER_DEGREE)?;
+    let position = vec3(fixed_position);
+    let body_rotation = fixed_rotation.raw;
     let main_skill = invoke_object(api, unit, "GetMainSkill")?;
     let mech_lock_target = api
         .field_value::<*mut Object>(unit, metadata.fight_mech_lock_target as *mut FieldInfo)
@@ -3873,62 +5173,24 @@ fn read_unit(
         None => None,
         Some(_) => None,
     };
-    let aim_transform = invoke_object(api, main_skill, "GetMainTransform")?;
-    let aim_position = vec3(invoke_value::<FixedVec3>(
-        api,
-        aim_transform,
-        "GetPositionInt3D",
-    )?)?;
-    let aim_rotation = q32_to_units(
-        invoke_value::<FixedPoint>(api, aim_transform, "GetRotationInt")?.raw,
-        ROTATION_UNITS_PER_DEGREE,
-    )?;
-    let aim_pose = Pose {
-        position: aim_position,
-        rotation: aim_rotation,
-    };
     let shield = invoke_object(api, unit, "GetEnergyShieldController")?;
     let max_energy = invoke_value::<i32>(api, shield, "GetMaxEnergy")?;
     let personal_shield = PersonalShieldState {
         active: invoke_value::<bool>(api, shield, "IsActive")?,
         enabled: invoke_value::<bool>(api, shield, "IsEnable")?,
-        energy: i64::from(invoke_value::<i32>(api, shield, "GetEnergy")?),
-        max_energy: i64::from(max_energy),
+        energy: GaugeI32 {
+            current: invoke_value::<i32>(api, shield, "GetEnergy")?,
+            maximum: max_energy,
+        },
     };
     let buff_manager = invoke_object(api, unit, "GetBuffManager")?;
-    let buffs: *mut Object = api
-        .field_value(buff_manager, metadata.buff_list as *mut FieldInfo)
-        .map_err(|error| error.to_string())?;
-    let mut statuses = Vec::new();
-    for index in 0..list_count(api, buffs, 1_024)? {
-        let buff = list_item(api, buffs, index)?;
-        let status_type = invoke_value::<i32>(api, buff, "GetBuffID")?;
-        let source = api
-            .invoke(buff, "GetSource", &mut [])
-            .map_err(|error| error.to_string())?;
-        statuses.push(RawStatus {
-            pointer: buff as usize,
-            source: source as usize,
-            target: unit as usize,
-            status_type_id: u32::try_from(status_type)
-                .map_err(|_| format!("invalid buff type {status_type}"))?,
-            additive_stack: invoke_value::<i32>(api, buff, "GetAdditiveStack")?,
-            duration_time: api
-                .field_value(buff, metadata.buff_duration_time as *mut FieldInfo)
-                .map_err(|error| error.to_string())?,
-            max_duration_time: api
-                .field_value(buff, metadata.buff_max_duration_time as *mut FieldInfo)
-                .map_err(|error| error.to_string())?,
-            step_time: api
-                .field_value(buff, metadata.buff_step_time as *mut FieldInfo)
-                .map_err(|error| error.to_string())?,
-            step_time_config: api
-                .field_value(buff, metadata.buff_step_time_config as *mut FieldInfo)
-                .map_err(|error| error.to_string())?,
-            finished: invoke_value::<bool>(api, buff, "IsFinish")?,
-            frozen: invoke_value::<bool>(api, buff, "IsFreeze")?,
-        });
-    }
+    let status_mask = u64::from(invoke_value::<bool>(api, buff_manager, "IsInvincible")?)
+        | (u64::from(invoke_value::<bool>(api, buff_manager, "IsFreeze")?) << 1)
+        | (u64::from(invoke_value::<bool>(api, unit, "IsTechnologyDisabled")?) << 2)
+        | (u64::from(invoke_value::<bool>(api, unit, "IsRecoverDisabled")?) << 3);
+    let buff_modifiers = read_buff_modifiers(api, buff_manager)?;
+    let unit_dynamic_modifiers = read_unit_modifiers(api, unit)?;
+    let (skill_dynamic_modifiers, weapon_aims, weapon_targets) = read_skill_state(api, unit)?;
     let formation = api
         .invoke(unit, "GetMechTeam", &mut [])
         .map_err(|error| error.to_string())?;
@@ -3944,9 +5206,11 @@ fn read_unit(
             None
         },
         mech_lock_target,
-        state: UnitState {
+        weapon_targets,
+        state: LiveUnitState {
             unit_id: 0,
             team_id,
+            original_team_id: team_id,
             formation_id: 0,
             unit_type_id: u32::try_from(unit_type)
                 .map_err(|_| format!("invalid unit type {unit_type}"))?,
@@ -3957,25 +5221,326 @@ fn read_unit(
             },
             position,
             body_rotation,
-            aim_pose,
-            velocity: vec3(velocity)?,
+            velocity: vec3(velocity),
             motion_state,
             mech_lock_target: None,
-            collision_radius: q32_to_units(
-                invoke_value::<FixedPoint>(api, unit, "GetRadius")?.raw,
-                DISTANCE_UNITS_PER_METER,
-            )?,
-            life: i64::from(life),
-            max_life: i64::from(max_life),
-            alive,
+            collision_radius: invoke_value::<FixedPoint>(api, unit, "GetRadius")?.raw,
+            life: GaugeI32 {
+                current: life,
+                maximum: max_life,
+            },
             active,
             targetable,
             visibility,
+            status_mask,
+            buff_modifiers,
+            unit_dynamic_modifiers,
+            skill_dynamic_modifiers,
             personal_shield,
+            weapon_aims,
         },
-        statuses,
         target_refs,
     })
+}
+
+fn read_buff_modifiers(api: Api, manager: *mut Object) -> Result<BuffModifierSet, String> {
+    Ok(BuffModifierSet {
+        move_speed_rate: named_rate(
+            api,
+            manager,
+            "GetMoveSpeedChangeAddRate",
+            "GetMoveSpeedChangeReduceRate",
+        )?,
+        move_speed_value: split_signed(invoke_value::<i32>(
+            api,
+            manager,
+            "GetMoveSpeedChangeValue",
+        )?)?,
+        damage_rate: named_rate(
+            api,
+            manager,
+            "GetDamageChangeAddRate",
+            "GetDamageChangeReduceRate",
+        )?,
+        attack_interval_rate: named_rate(
+            api,
+            manager,
+            "GetAttackIntervalChangeAddRate",
+            "GetAttackIntervalChangeReduceRate",
+        )?,
+        extra_attack_interval_rate: named_rate(
+            api,
+            manager,
+            "GetExtraAttackIntervalChangeAddRate",
+            "GetExtraAttackIntervalChangeReduceRate",
+        )?,
+        amplify_damage_rate: named_rate(
+            api,
+            manager,
+            "GetAmplifyDamageAddRate",
+            "GetAmplifyDamageReduceRate",
+        )?,
+        attack_range_value: named_value(
+            api,
+            manager,
+            "GetAttackRangeAddValue",
+            "GetAttackRangeReduceValue",
+        )?,
+        extra_attack_range_value: named_value(
+            api,
+            manager,
+            "GetExtraAttackRangeAddValue",
+            "GetExtraAttackRangeReduceValue",
+        )?,
+        attack_range_rate: named_rate(
+            api,
+            manager,
+            "GetAttackRangeAddRate",
+            "GetAttackRangeReduceRate",
+        )?,
+        extra_attack_range_rate: named_rate(
+            api,
+            manager,
+            "GetExtraAttackRangeAddRate",
+            "GetExtraAttackRangeReduceRate",
+        )?,
+    })
+}
+
+fn read_unit_modifiers(api: Api, unit: *mut Object) -> Result<UnitDynamicModifierSet, String> {
+    Ok(UnitDynamicModifierSet {
+        gf_range_value: enum_fixed(
+            api,
+            unit,
+            "GetDataFloat",
+            "GameRiver.MechDataChangeFloat",
+            0,
+        )?,
+        gf_life_time_value: enum_fixed(
+            api,
+            unit,
+            "GetDataFloat",
+            "GameRiver.MechDataChangeFloat",
+            1,
+        )?,
+        mech_group_distance: enum_fixed(
+            api,
+            unit,
+            "GetDataFloat",
+            "GameRiver.MechDataChangeFloat",
+            2,
+        )?,
+        life_rate: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 0)?,
+        life_rate_by_kill_count: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 1)?,
+        reduce_damage_from_remote: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 2)?,
+        move_ability_exit_time_change_rate: enum_rate(
+            api,
+            unit,
+            "GameRiver.MechDataChangeFloatRate",
+            3,
+        )?,
+        move_speed_change_rate: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 4)?,
+        amplify_damage_rate: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 5)?,
+        move_speed_value: enum_int(api, unit, "GetDataInt", "GameRiver.MechDataChangeInt", 0)?,
+        reduce_damage_value: enum_int(api, unit, "GetDataInt", "GameRiver.MechDataChangeInt", 1)?,
+        child_inherit_technology_effect: enum_int(
+            api,
+            unit,
+            "GetDataInt",
+            "GameRiver.MechDataChangeInt",
+            2,
+        )?,
+    })
+}
+
+type SkillState = (
+    Vec<SkillNumericModifierState>,
+    Vec<WeaponAimState>,
+    Vec<usize>,
+);
+
+fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
+    let all_skills = invoke_object(api, unit, "GetSkills")?;
+    let count = list_count(api, all_skills, i32::from(u16::MAX))?;
+    let capacity = usize::try_from(count).map_err(|_| "skill count is negative".to_owned())?;
+    let mut modifiers = Vec::with_capacity(capacity);
+    let mut aims = Vec::new();
+    let mut targets = Vec::new();
+    for slot in 0..count {
+        let skill = list_item(api, all_skills, slot)?;
+        let skill_slot = u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?;
+        modifiers.push(SkillNumericModifierState {
+            skill_slot,
+            modifiers: read_skill_modifiers(api, skill)?,
+        });
+        let target = api
+            .invoke(skill, "GetAttackTarget", &mut [])
+            .map_err(|error| error.to_string())? as usize;
+        let weapons = invoke_object(api, skill, "GetWeapons")?;
+        for weapon_slot in 0..list_count(api, weapons, 1_024)? {
+            let weapon = list_item(api, weapons, weapon_slot)?;
+            let weapon_data = invoke_object(api, weapon, "GetWeaponData")?;
+            let weapon_index = invoke_value::<i32>(api, weapon_data, "get_Index")?;
+            let transform = api
+                .invoke(weapon, "GetFightTransform", &mut [])
+                .map_err(|error| error.to_string())?;
+            let pose = if transform.is_null() {
+                None
+            } else {
+                Some(QPose {
+                    position: vec3(invoke_value::<FixedVec3>(
+                        api,
+                        transform,
+                        "GetPositionInt3D",
+                    )?),
+                    rotation: invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw,
+                })
+            };
+            aims.push(WeaponAimState {
+                skill_slot,
+                weapon_index,
+                attack_target: None,
+                pose,
+            });
+            targets.push(target);
+        }
+    }
+    let mut paired = aims.into_iter().zip(targets).collect::<Vec<_>>();
+    paired.sort_by_key(|(aim, _)| (aim.skill_slot, aim.weapon_index));
+    let (aims, targets) = paired.into_iter().unzip();
+    Ok((modifiers, aims, targets))
+}
+
+fn read_skill_modifiers(api: Api, skill: *mut Object) -> Result<SkillDynamicModifierSet, String> {
+    const FLOAT_TYPE: &str = "GameRiver.SkillDataChangeFloat";
+    const RATE_TYPE: &str = "GameRiver.SkillDataChangeFloatRate";
+    const INT_TYPE: &str = "GameRiver.SkillDataChangeInt";
+    Ok(SkillDynamicModifierSet {
+        min_attack_range_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 0)?,
+        attack_range_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 1)?,
+        attack_air_range_add_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 2)?,
+        attack_ground_range_add_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 3)?,
+        attack_interval_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 4)?,
+        damage_change_rate_ground: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 5)?,
+        damage_change_rate_air: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 6)?,
+        splash_range_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 7)?,
+        cb_life_recovery_rate: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 8)?,
+        projectile_speed_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 9)?,
+        attack_point_change_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 10)?,
+        projectile_duration_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 11)?,
+        projectile_random_range: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 12)?,
+        additional_damage_by_target_life: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 13)?,
+        damage_rate: enum_rate(api, skill, RATE_TYPE, 0)?,
+        damage_rate_by_kill_count: enum_rate(api, skill, RATE_TYPE, 1)?,
+        attack_range_rate: enum_rate(api, skill, RATE_TYPE, 2)?,
+        attack_interval_rate: enum_rate(api, skill, RATE_TYPE, 3)?,
+        damage_reduce_rate_base: enum_rate(api, skill, RATE_TYPE, 4)?,
+        projectile_life_rate: enum_rate(api, skill, RATE_TYPE, 5)?,
+        projectile_count_value: enum_int(api, skill, "GetData", INT_TYPE, 0)?,
+        air_attack_value: enum_int(api, skill, "GetData", INT_TYPE, 1)?,
+        ground_attack_value: enum_int(api, skill, "GetData", INT_TYPE, 2)?,
+        attack_range_value_air: enum_int(api, skill, "GetData", INT_TYPE, 3)?,
+        attack_range_value_ground: enum_int(api, skill, "GetData", INT_TYPE, 4)?,
+        is_lock_target: enum_int(api, skill, "GetData", INT_TYPE, 5)?,
+    })
+}
+
+fn named_rate(
+    api: Api,
+    object: *mut Object,
+    add: &str,
+    reduce: &str,
+) -> Result<RateModifier, String> {
+    let add = invoke_value::<FixedPoint>(api, object, add)?.raw;
+    let native_reduce_factor = invoke_value::<FixedPoint>(api, object, reduce)?.raw;
+    normalize_native_rate(add, native_reduce_factor)
+}
+
+fn normalize_native_rate(add: i64, native_reduce_factor: i64) -> Result<RateModifier, String> {
+    if add < 0 || !(0..=FIXED_ONE_RAW).contains(&native_reduce_factor) {
+        return Err("native rate aggregate is outside the supported range".to_owned());
+    }
+    let reduce = FIXED_ONE_RAW - native_reduce_factor;
+    Ok(RateModifier { add, reduce })
+}
+
+fn named_value(
+    api: Api,
+    object: *mut Object,
+    add: &str,
+    reduce: &str,
+) -> Result<ValueModifier, String> {
+    let add = invoke_value::<i32>(api, object, add)?;
+    let reduce = invoke_value::<i32>(api, object, reduce)?;
+    if add < 0 || reduce < 0 {
+        return Err("native value add/reduce aggregate is negative".to_owned());
+    }
+    Ok(ValueModifier { add, reduce })
+}
+
+fn split_signed(value: i32) -> Result<ValueModifier, String> {
+    if value >= 0 {
+        Ok(ValueModifier {
+            add: value,
+            reduce: 0,
+        })
+    } else {
+        Ok(ValueModifier {
+            add: 0,
+            reduce: value
+                .checked_abs()
+                .ok_or_else(|| "i32 modifier magnitude overflow".to_owned())?,
+        })
+    }
+}
+
+fn enum_rate(
+    api: Api,
+    object: *mut Object,
+    parameter_type: &str,
+    index: i32,
+) -> Result<RateModifier, String> {
+    let add = enum_fixed(api, object, "GetDataFloatAddRate", parameter_type, index)?;
+    let native_reduce_factor =
+        enum_fixed(api, object, "GetDataFloatReduceRate", parameter_type, index)?;
+    normalize_native_rate(add, native_reduce_factor)
+}
+
+fn enum_fixed(
+    api: Api,
+    object: *mut Object,
+    method_name: &str,
+    parameter_type: &str,
+    index: i32,
+) -> Result<i64, String> {
+    Ok(invoke_enum_value::<FixedPoint>(api, object, method_name, parameter_type, index)?.raw)
+}
+
+fn enum_int(
+    api: Api,
+    object: *mut Object,
+    method_name: &str,
+    parameter_type: &str,
+    index: i32,
+) -> Result<i32, String> {
+    invoke_enum_value(api, object, method_name, parameter_type, index)
+}
+
+fn invoke_enum_value<T: Copy>(
+    api: Api,
+    object: *mut Object,
+    method_name: &str,
+    parameter_type: &str,
+    mut index: i32,
+) -> Result<T, String> {
+    let method = api
+        .method_with_parameter_types(object, method_name, &[parameter_type])
+        .map_err(|error| error.to_string())?;
+    let boxed = api
+        .invoke_raw(method, object.cast(), &mut [argument(&mut index)])
+        .map_err(|error| error.to_string())?;
+    api.unbox(boxed, method_name)
+        .map_err(|error| error.to_string())
 }
 
 fn read_rvo_agent(
@@ -4302,23 +5867,19 @@ fn read_building(
     metadata: &Metadata,
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
 ) -> Result<RawBuilding, String> {
-    let transform = invoke_object(api, building, "GetFightTransform")?;
+    let transform = invoke_object(api, building, "GetFightTransform")
+        .map_err(|error| format!("FightCrystal.GetFightTransform: {error}"))?;
     let position = vec3(invoke_value::<FixedVec3>(
         api,
         transform,
         "GetPositionInt3D",
-    )?)?;
-    let rotation = q32_to_units(
-        invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw,
-        ROTATION_UNITS_PER_DEGREE,
-    )?;
+    )?);
+    let rotation = invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw;
     let bounds = invoke_value::<FixedRect>(api, building, "GetBoundsRect")?;
     let native_index = invoke_value::<i32>(api, building, "GetBuildingIndex")?;
     let building_type = invoke_value::<i32>(api, building, "GetBuildingType")?;
     let life = invoke_value::<i32>(api, building, "GetLife")?;
     let max_life = invoke_value::<i32>(api, building, "GetMaxLife")?;
-    let alive = invoke_value::<bool>(api, building, "IsAlive")?;
-    let destroyed = invoke_value::<bool>(api, building, "IsDestroyed")?;
     let available = invoke_value::<bool>(api, building, "IsAvaliable")?;
     let mut visibility = 0_i32;
     let targetable = api
@@ -4341,17 +5902,173 @@ fn read_building(
                 .map_err(|_| format!("invalid building type {building_type}"))?,
             position,
             rotation,
-            bounds_width: q32_to_units(bounds.size.x.raw, DISTANCE_UNITS_PER_METER)?,
-            bounds_height: q32_to_units(bounds.size.y.raw, DISTANCE_UNITS_PER_METER)?,
-            life: i64::from(life),
-            max_life: i64::from(max_life),
-            alive,
-            destroyed,
+            bounds_width: bounds.size.x.raw,
+            bounds_height: bounds.size.y.raw,
+            life: GaugeI32 {
+                current: life,
+                maximum: max_life,
+            },
             available,
             targetable,
             collision_enabled,
         },
     })
+}
+
+fn read_team_shields(
+    api: Api,
+    shield_system: *mut Object,
+    fight_group: *mut Object,
+    team_controller: *mut Object,
+    team_id: u32,
+    metadata: &Metadata,
+) -> Result<Vec<RawShield>, String> {
+    let all = api
+        .invoke(
+            shield_system,
+            "GetEnergyShields",
+            &mut [object_argument(fight_group)],
+        )
+        .map_err(|error| format!("AdvancedEnergyShieldSystem.GetEnergyShields: {error}"))?;
+    let active = api
+        .invoke(
+            shield_system,
+            "GetActiveEnergyShields",
+            &mut [object_argument(fight_group)],
+        )
+        .map_err(|error| format!("AdvancedEnergyShieldSystem.GetActiveEnergyShields: {error}"))?;
+    if all.is_null() || active.is_null() {
+        return Err("AdvancedEnergyShieldSystem returned a null shield list".into());
+    }
+    let mut active_orders = BTreeMap::new();
+    for index in 0..list_count(api, active, 100_000)? {
+        let shield = list_item(api, active, index)?;
+        if shield.is_null() {
+            return Err(format!("active shield list contains null at index {index}"));
+        }
+        if active_orders
+            .insert(
+                shield as usize,
+                u32::try_from(index).map_err(|_| "active shield order overflow".to_owned())?,
+            )
+            .is_some()
+        {
+            return Err("active shield list contains a duplicate object".into());
+        }
+    }
+    let mut result = Vec::new();
+    let mut all_pointers = BTreeSet::new();
+    for index in 0..list_count(api, all, 100_000)? {
+        let shield = list_item(api, all, index)?;
+        if shield.is_null() {
+            return Err(format!("shield list contains null at index {index}"));
+        }
+        let pointer = shield as usize;
+        if !all_pointers.insert(pointer) {
+            return Err("shield list contains a duplicate object".into());
+        }
+        let active = invoke_value::<bool>(api, shield, "get_IsActive")
+            .map_err(|error| format!("FightEnergyShield.get_IsActive: {error}"))?;
+        let active_order = active_orders.get(&pointer).copied();
+        if active != active_order.is_some() {
+            return Err(format!(
+                "FightEnergyShield at 0x{pointer:x} active flag disagrees with active list membership"
+            ));
+        }
+        let native_team = invoke_object(api, shield, "GetTeamController")
+            .map_err(|error| format!("FightEnergyShield.GetTeamController: {error}"))?;
+        if native_team != team_controller {
+            return Err(format!(
+                "FightEnergyShield at 0x{pointer:x} returned a different team controller"
+            ));
+        }
+        let native_team_index = invoke_value::<i32>(api, native_team, "GetTeamIndex")
+            .map_err(|error| format!("FightTeamController.GetTeamIndex: {error}"))?;
+        if u32::try_from(native_team_index).ok() != Some(team_id) {
+            return Err(format!(
+                "FightEnergyShield at 0x{pointer:x} belongs to team {native_team_index}, enumerated under {team_id}"
+            ));
+        }
+        let data = invoke_object(api, shield, "get_EnergyShieldData")
+            .map_err(|error| format!("FightEnergyShield.get_EnergyShieldData: {error}"))?;
+        let source_kind = shield_source_kind(api, data, metadata)?;
+        let short_lived = invoke_value::<bool>(api, shield, "IsShortLifeTime")
+            .map_err(|error| format!("FightEnergyShield.IsShortLifeTime: {error}"))?;
+        let reset_next_round = invoke_value::<bool>(api, shield, "IsResetNextRound")
+            .map_err(|error| format!("FightEnergyShield.IsResetNextRound: {error}"))?;
+        let round_policy = if short_lived {
+            ShieldRoundPolicy::DestroyAtRoundEnd
+        } else if reset_next_round {
+            ShieldRoundPolicy::ResetToMax
+        } else {
+            ShieldRoundPolicy::RetainState
+        };
+        let owner = api
+            .invoke(shield, "GetOwner", &mut [])
+            .map_err(|error| format!("FightEnergyShield.GetOwner: {error}"))?
+            as usize;
+        let transform = invoke_object(api, shield, "GetFightTransform")
+            .map_err(|error| format!("FightEnergyShield.GetFightTransform: {error}"))?;
+        let position = vec3(
+            invoke_value::<FixedVec3>(api, transform, "GetPositionInt3D")
+                .map_err(|error| format!("FightTransform.GetPositionInt3D: {error}"))?,
+        );
+        result.push(RawShield {
+            pointer,
+            owner,
+            state: ShieldState {
+                shield_id: 0,
+                team_id,
+                source_kind,
+                owner: None,
+                position,
+                radius: invoke_value::<FixedPoint>(api, shield, "GetRadius")
+                    .map_err(|error| format!("FightEnergyShield.GetRadius: {error}"))?
+                    .raw,
+                energy: GaugeI32 {
+                    current: invoke_value::<i32>(api, shield, "GetEnergy")
+                        .map_err(|error| format!("FightEnergyShield.GetEnergy: {error}"))?,
+                    maximum: invoke_value::<i32>(api, shield, "GetMaxEnergy")
+                        .map_err(|error| format!("FightEnergyShield.GetMaxEnergy: {error}"))?,
+                },
+                round_policy,
+                active,
+                active_order,
+            },
+        });
+    }
+    for pointer in active_orders.keys() {
+        if !all_pointers.contains(pointer) {
+            return Err(format!(
+                "active shield 0x{pointer:x} is absent from the full shield list"
+            ));
+        }
+    }
+    Ok(result)
+}
+
+fn shield_source_kind(
+    api: Api,
+    data: *mut Object,
+    metadata: &Metadata,
+) -> Result<ShieldSourceKind, String> {
+    let class =
+        api.object_class(data)
+            .ok_or_else(|| "shield data source has no runtime class".to_owned())? as usize;
+    if class == metadata.energy_shield_contraption_class {
+        Ok(ShieldSourceKind::Contraption)
+    } else if class == metadata.commander_energy_shield_class {
+        Ok(ShieldSourceKind::CommanderSkill)
+    } else if class == metadata.owner_advanced_shield_class {
+        Ok(ShieldSourceKind::OwnerAdvanced)
+    } else if class == metadata.spawned_temporary_shield_class {
+        Ok(ShieldSourceKind::SpawnedTemporary)
+    } else {
+        Err(format!(
+            "unsupported shield data source {}",
+            api.object_class_name(data)
+        ))
+    }
 }
 
 fn read_projectiles(
@@ -4363,22 +6080,12 @@ fn read_projectiles(
         .api
         .invoke(fight, "GetModules", &mut [])
         .map_err(|error| error.to_string())?;
-    let mut system = ptr::null_mut();
-    for index in 0..list_count(runtime.api, modules, 128)? {
-        let candidate = list_item(runtime.api, modules, index)?;
-        if runtime
-            .api
-            .object_class(candidate)
-            .map(|class| class as usize)
-            == Some(capture.metadata.projectile_system_class)
-        {
-            system = candidate;
-            break;
-        }
-    }
-    if system.is_null() {
-        return Err("ProjectileSystem module is unavailable".into());
-    }
+    let system = find_module(
+        runtime.api,
+        modules,
+        capture.metadata.projectile_system_class,
+        "ProjectileSystem",
+    )?;
     let controllers: *mut Object = runtime
         .api
         .field_value(
@@ -4398,18 +6105,31 @@ fn read_projectiles(
             None => allocate(&mut capture.next_projectile_id, "projectile")?,
         };
         capture.projectile_ids.entry(pointer).or_insert(id);
-        projectiles.push(read_projectile(
-            runtime.api,
-            controller,
-            projectile,
-            id,
-            capture,
-        )?);
+        let state = read_projectile(runtime.api, controller, projectile, id, capture)?;
+        capture
+            .object_teams
+            .insert(ObjectRef::new(ObjectKind::Projectile, id), state.team_id);
+        projectiles.push(state);
     }
     capture
         .projectile_ids
         .retain(|pointer, _| seen.contains(pointer));
     Ok(projectiles)
+}
+
+fn find_module(
+    api: Api,
+    modules: *mut Object,
+    class: usize,
+    label: &str,
+) -> Result<*mut Object, String> {
+    for index in 0..list_count(api, modules, 128)? {
+        let candidate = list_item(api, modules, index)?;
+        if api.object_class(candidate).map(|value| value as usize) == Some(class) {
+            return Ok(candidate);
+        }
+    }
+    Err(format!("{label} module is unavailable"))
 }
 
 fn read_projectile(
@@ -4431,24 +6151,38 @@ fn read_projectile(
     let team_index = invoke_value::<i32>(api, team_controller, "GetTeamIndex")?;
     let team_id = u32::try_from(team_index)
         .map_err(|_| format!("invalid projectile team index {team_index}"))?;
-    let transform = invoke_object(api, projectile, "GetFightTransform")?;
+    let transform = invoke_object(api, projectile, "GetFightTransform")
+        .map_err(|error| format!("FightProjectile.GetFightTransform: {error}"))?;
     let position = vec3(invoke_value::<FixedVec3>(
         api,
         transform,
         "GetPositionInt3D",
-    )?)?;
-    let orientation = q32_to_units(
-        invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw,
-        ROTATION_UNITS_PER_DEGREE,
-    )?;
+    )?);
+    let orientation = invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw;
     let target_info = invoke_object(api, projectile, "GetTargetInfo")?;
-    let cached_target_position = vec3(invoke_value::<FixedVec3>(api, target_info, "GetPosition")?)?;
-    let cached_target_radius = q32_to_units(
-        invoke_value::<FixedPoint>(api, target_info, "GetRadius")?.raw,
-        DISTANCE_UNITS_PER_METER,
-    )?;
+    let cached_target_position = vec3(invoke_value::<FixedVec3>(api, target_info, "GetPosition")?);
+    let cached_target_radius = invoke_value::<FixedPoint>(api, target_info, "GetRadius")?.raw;
     let life = invoke_value::<i32>(api, projectile, "GetLife")?;
     let max_life = invoke_value::<i32>(api, projectile, "GetMaxLife")?;
+    let in_energy_shields: *mut Object = api
+        .field_value(
+            controller,
+            capture.metadata.projectile_in_energy_shields as *mut FieldInfo,
+        )
+        .map_err(|error| error.to_string())?;
+    let mut spawn_containing_shields = Vec::new();
+    for index in 0..list_count(api, in_energy_shields, 100_000)? {
+        let shield = list_item(api, in_energy_shields, index)?;
+        let shield_id = capture.shield_ids.get(&(shield as usize)).ok_or_else(|| {
+            format!(
+                "ProjectileController.inEnergyShields references unknown shield 0x{:x}",
+                shield as usize
+            )
+        })?;
+        spawn_containing_shields.push(ObjectRef::new(ObjectKind::Shield, *shield_id));
+    }
+    spawn_containing_shields.sort_unstable();
+    spawn_containing_shields.dedup();
     Ok(ProjectileState {
         projectile_id: id,
         team_id,
@@ -4459,10 +6193,11 @@ fn read_projectile(
         cached_target_position,
         cached_target_radius,
         released: invoke_value::<bool>(api, projectile, "IsRelease")?,
-        life: Gauge {
-            current: i64::from(life),
-            maximum: i64::from(max_life),
+        life: GaugeI32 {
+            current: life,
+            maximum: max_life,
         },
+        spawn_containing_shields,
     })
 }
 
@@ -4474,12 +6209,19 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
                 projectile_id,
                 owner,
                 target,
+                skill_slot,
+                weapon_index,
             } => {
+                let source = object_ref_from_pointer(owner, capture);
                 events.push(event(
                     Some(ObjectRef::new(ObjectKind::Projectile, projectile_id)),
-                    object_ref_from_pointer(owner, capture),
+                    source,
+                    source.and_then(|value| capture.object_teams.get(&value).copied()),
                     object_ref_from_pointer(target, capture),
-                    EventPayload::ProjectileReleased,
+                    EventPayload::ProjectileReleased {
+                        skill_slot,
+                        weapon_index,
+                    },
                 ));
             }
             NativeTrace::ProjectileRemoved {
@@ -4488,31 +6230,132 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
                 target,
                 position,
                 intercepted,
+                absorbed_by,
             } => {
                 let subject = Some(ObjectRef::new(ObjectKind::Projectile, projectile_id));
+                let source = object_ref_from_pointer(owner, capture);
                 events.push(event(
                     subject,
-                    object_ref_from_pointer(owner, capture),
+                    source,
+                    source.and_then(|value| capture.object_teams.get(&value).copied()),
                     object_ref_from_pointer(target, capture),
                     EventPayload::ProjectileRemoved {
                         position,
                         intercepted,
+                        absorbed_by,
                     },
                 ));
             }
             NativeTrace::Damage {
                 source,
+                source_team_id,
                 target,
                 amount,
             } => {
-                let Some(target) = object_ref_from_pointer(target, capture) else {
-                    continue;
-                };
                 events.push(event(
                     None,
                     source,
+                    source_team_id.or_else(|| {
+                        source.and_then(|value| capture.object_teams.get(&value).copied())
+                    }),
                     Some(target),
                     EventPayload::Damage { amount },
+                ));
+            }
+            NativeTrace::UnitDied {
+                unit_id,
+                position,
+                source,
+                source_team_id,
+            } => {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Unit, unit_id)),
+                    source,
+                    source_team_id.or_else(|| {
+                        source.and_then(|value| capture.object_teams.get(&value).copied())
+                    }),
+                    None,
+                    EventPayload::UnitDied { position },
+                ));
+            }
+            NativeTrace::BuildingDestroyed {
+                building_id,
+                position,
+            } => {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Building, building_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed { position },
+                ));
+            }
+            NativeTrace::ShieldCreated {
+                shield_id,
+                team_id,
+                source_kind,
+                position,
+            } => {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Shield, shield_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::ShieldCreated {
+                        team_id,
+                        source_kind,
+                        position,
+                    },
+                ));
+            }
+            NativeTrace::ShieldDestroyed {
+                shield_id,
+                position,
+            } => {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Shield, shield_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::ShieldDestroyed {
+                        position,
+                        reason: ShieldDestroyedReason::Unknown,
+                    },
+                ));
+            }
+            NativeTrace::TerrainCreated {
+                terrain_id,
+                team_id,
+                terrain_type,
+                position,
+                radius,
+            } => {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Terrain, terrain_id)),
+                    None,
+                    team_id,
+                    None,
+                    EventPayload::TerrainCreated {
+                        team_id,
+                        terrain_type,
+                        position,
+                        radius,
+                    },
+                ));
+            }
+            NativeTrace::TerrainRemoved {
+                terrain_id,
+                position,
+            } => {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Terrain, terrain_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::TerrainRemoved {
+                        position,
+                        reason: TerrainRemovedReason::Unknown,
+                    },
                 ));
             }
         }
@@ -4540,9 +6383,22 @@ fn object_ref_from_pointer(pointer: usize, capture: &CaptureState) -> Option<Obj
                 .get(&pointer)
                 .map(|id| ObjectRef::new(ObjectKind::Projectile, *id))
         })
+        .or_else(|| {
+            capture
+                .shield_ids
+                .get(&pointer)
+                .map(|id| ObjectRef::new(ObjectKind::Shield, *id))
+        })
+        .or_else(|| {
+            capture
+                .terrain_ids
+                .get(&pointer)
+                .map(|id| ObjectRef::new(ObjectKind::Terrain, *id))
+        })
 }
 
 fn resolve_target_ref(
+    api: Api,
     pointer: usize,
     field: &str,
     capture: &CaptureState,
@@ -4552,7 +6408,12 @@ fn resolve_target_ref(
     }
     object_ref_from_pointer(pointer, capture)
         .map(Some)
-        .ok_or_else(|| format!("{field} references an actor absent from the MCFR world snapshot"))
+        .ok_or_else(|| {
+            let class = api.object_class_name(pointer as *mut Object);
+            format!(
+                "{field} references {class} at 0x{pointer:x}, absent from the MCFR world snapshot"
+            )
+        })
 }
 
 fn drain_selector_score_calls(
@@ -4695,12 +6556,12 @@ fn corroborate_checker_status(
     let mcfr = match target.target_ref.kind {
         ObjectKind::Unit => {
             let unit = world
-                .units
+                .live_units
                 .iter()
                 .find(|unit| unit.unit_id == target.target_ref.id)
                 .ok_or_else(|| "checker unit is absent from paired MCFR row".to_owned())?;
             CheckerQualifyingStatus::Unit {
-                alive: unit.alive,
+                alive: true,
                 active_or_available: unit.active,
                 targetable: unit.targetable,
             }
@@ -4712,10 +6573,10 @@ fn corroborate_checker_status(
                 .find(|building| building.building_id == target.target_ref.id)
                 .ok_or_else(|| "checker building is absent from paired MCFR row".to_owned())?;
             CheckerQualifyingStatus::Building {
-                alive: building.alive,
+                alive: true,
                 active_or_available: building.available,
                 targetable: building.targetable,
-                destroyed: building.destroyed,
+                destroyed: false,
             }
         }
         kind => return Err(format!("unsupported checker corroboration kind {kind:?}")),
@@ -4733,12 +6594,14 @@ fn corroborate_checker_status(
 const fn event(
     subject: Option<ObjectRef>,
     source: Option<ObjectRef>,
+    source_team_id: Option<u32>,
     target: Option<ObjectRef>,
     payload: EventPayload,
 ) -> Event {
     Event {
         subject,
         source,
+        source_team_id,
         target,
         payload,
     }
@@ -4761,6 +6624,11 @@ fn list_item(api: Api, list: *mut Object, mut index: i32) -> Result<*mut Object,
         .map_err(|error| error.to_string())
 }
 
+fn list_i32_item(api: Api, list: *mut Object, mut index: i32) -> Result<i32, String> {
+    api.invoke_value(list, "get_Item", &mut [argument(&mut index)])
+        .map_err(|error| error.to_string())
+}
+
 fn invoke_object(api: Api, object: *mut Object, method: &str) -> Result<*mut Object, String> {
     let value = api
         .invoke(object, method, &mut [])
@@ -4777,24 +6645,12 @@ fn invoke_value<T: Copy>(api: Api, object: *mut Object, method: &str) -> Result<
         .map_err(|error| error.to_string())
 }
 
-fn vec3(value: FixedVec3) -> Result<Vec3, String> {
-    Ok(Vec3 {
-        x: q32_to_units(value.x.raw, DISTANCE_UNITS_PER_METER)?,
-        y: q32_to_units(value.y.raw, DISTANCE_UNITS_PER_METER)?,
-        z: q32_to_units(value.z.raw, DISTANCE_UNITS_PER_METER)?,
-    })
-}
-
-fn q32_to_units(raw: i64, scale: u64) -> Result<i64, String> {
-    let scaled = i128::from(raw)
-        .checked_mul(i128::from(scale))
-        .ok_or_else(|| "fixed-point conversion overflow".to_owned())?;
-    let rounded = if scaled >= 0 {
-        (scaled + Q32_ONE / 2) / Q32_ONE
-    } else {
-        (scaled - Q32_ONE / 2) / Q32_ONE
-    };
-    i64::try_from(rounded).map_err(|_| "fixed-point conversion exceeds i64".into())
+const fn vec3(value: FixedVec3) -> QVec3 {
+    QVec3 {
+        x: value.x.raw,
+        y: value.y.raw,
+        z: value.z.raw,
+    }
 }
 
 fn allocate(next: &mut u64, label: &str) -> Result<u64, String> {
@@ -4992,6 +6848,22 @@ fn install_post_render_hook(api: Api, method: *const MethodInfo) -> Result<(), S
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_projectile_create_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xff, 0x03, 0x05, 0xd1, 0xfc, 0x6f, 0x0e, 0xa9, 0xfa, 0x67, 0x0f, 0xa9, 0xf8, 0x5f, 0x10,
+        0xa9,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        projectile_create_hook as *const c_void,
+        &ORIGINAL_PROJECTILE_CREATE,
+        "ProjectileSystem.Create(FightProjectileSkill,...)",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_projectile_add_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
     const EXPECTED: [u8; 16] = [
         0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00,
@@ -5036,6 +6908,89 @@ fn install_damage_perform_hook(api: Api, method: *const MethodInfo) -> Result<()
         damage_perform_hook as *const c_void,
         &ORIGINAL_DAMAGE_PERFORM,
         "DamagePerformer.Perform",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_fight_actor_reduce_life_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xff, 0xc3, 0x02, 0xd1, 0xfc, 0x6f, 0x05, 0xa9, 0xfa, 0x67, 0x06, 0xa9, 0xf8, 0x5f, 0x07,
+        0xa9,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        fight_actor_reduce_life_hook as *const c_void,
+        &ORIGINAL_FIGHT_ACTOR_REDUCE_LIFE,
+        "FightActor.ReduceLife",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_fight_controller_on_actor_hitted_hook(
+    api: Api,
+    method: *const MethodInfo,
+) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03,
+        0xa9,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        fight_controller_on_actor_hitted_hook as *const c_void,
+        &ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED,
+        "FightController.OnActorHitted",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_advanced_shield_damage_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03,
+        0xa9,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        advanced_shield_damage_hook as *const c_void,
+        &ORIGINAL_ADVANCED_SHIELD_DAMAGE,
+        "DamagePerformer.PerformHitAdvancedEndergyShieldEffect",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_fight_mech_on_dead_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
+        0xaa,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        fight_mech_on_dead_hook as *const c_void,
+        &ORIGINAL_FIGHT_MECH_ON_DEAD,
+        "FightMech.OnDead",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_fight_crystal_on_dead_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
+        0xaa,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        fight_crystal_on_dead_hook as *const c_void,
+        &ORIGINAL_FIGHT_CRYSTAL_ON_DEAD,
+        "FightCrystal.OnDead",
     )
 }
 
@@ -5188,6 +7143,56 @@ mod tests {
     static TEST_HOOK_ARGUMENTS: [[AtomicU64; 4]; RVO_HOOK_COUNT] =
         [const { [const { AtomicU64::new(0) }; 4] }; RVO_HOOK_COUNT];
 
+    #[test]
+    fn native_hit_damage_info_layout_matches_build_2259() {
+        assert_eq!(std::mem::size_of::<NativeHitDamageInfo>(), 0x50);
+        assert_eq!(std::mem::align_of::<NativeHitDamageInfo>(), 8);
+        assert_eq!(std::mem::offset_of!(NativeHitDamageInfo, source_team), 0x00);
+        assert_eq!(
+            std::mem::offset_of!(NativeHitDamageInfo, source_skill_owner),
+            0x08
+        );
+        assert_eq!(
+            std::mem::offset_of!(NativeHitDamageInfo, target_actor),
+            0x10
+        );
+        assert_eq!(std::mem::offset_of!(NativeHitDamageInfo, damage), 0x20);
+        assert_eq!(std::mem::offset_of!(NativeHitDamageInfo, damage_real), 0x24);
+        assert_eq!(std::mem::offset_of!(NativeHitDamageInfo, hit_point), 0x28);
+        assert_eq!(
+            std::mem::offset_of!(NativeHitDamageInfo, damage_provider),
+            0x48
+        );
+    }
+
+    #[test]
+    fn native_terrain_grid_columns_are_transposed_to_canonical_rows() {
+        assert_eq!(
+            terrain_grid_rows_from_native_columns(&[0x8000_0000, 0xc000_0000, 0], 2, 2).unwrap(),
+            vec![0b11, 0b10]
+        );
+        assert!(terrain_grid_rows_from_native_columns(&[0x2000_0000], 1, 2).is_err());
+    }
+
+    #[test]
+    fn native_rate_neutral_factor_normalizes_to_zero() {
+        assert_eq!(
+            normalize_native_rate(0, FIXED_ONE_RAW).unwrap(),
+            RateModifier::default()
+        );
+    }
+
+    #[test]
+    fn native_rate_reduction_preserves_q32_delta() {
+        assert_eq!(
+            normalize_native_rate(0, FIXED_ONE_RAW - 123).unwrap(),
+            RateModifier {
+                add: 0,
+                reduce: 123,
+            }
+        );
+    }
+
     fn record_test_hook_call(index: usize, arguments: &[usize]) {
         TEST_HOOK_CALLS[index].fetch_add(1, Ordering::AcqRel);
         for (slot, argument) in TEST_HOOK_ARGUMENTS[index].iter().zip(arguments) {
@@ -5294,43 +7299,44 @@ mod tests {
         ));
     }
 
-    fn unit(id: u64, team: u32, formation: u64) -> UnitState {
-        UnitState {
+    fn unit(id: u64, team: u32, formation: u64) -> LiveUnitState {
+        LiveUnitState {
             unit_id: id,
             team_id: team,
+            original_team_id: team,
             formation_id: formation,
             unit_type_id: 1,
             domain: Domain::Ground,
-            position: Vec3 {
+            position: QVec3 {
                 x: i64::from(team) * 1_000,
                 y: 0,
                 z: 0,
             },
             body_rotation: 0,
-            aim_pose: Pose {
-                position: Vec3 {
-                    x: i64::from(team) * 1_000,
-                    y: 0,
-                    z: 0,
-                },
-                rotation: 0,
-            },
-            velocity: Vec3 { x: 0, y: 0, z: 0 },
+            velocity: QVec3 { x: 0, y: 0, z: 0 },
             motion_state: MotionState::Idle,
             mech_lock_target: None,
             collision_radius: 100,
-            life: 10,
-            max_life: 10,
-            alive: true,
+            life: GaugeI32 {
+                current: 10,
+                maximum: 10,
+            },
             active: true,
             targetable: true,
             visibility: Visibility::Normal,
+            status_mask: 0,
+            buff_modifiers: BuffModifierSet::default(),
+            unit_dynamic_modifiers: UnitDynamicModifierSet::default(),
+            skill_dynamic_modifiers: Vec::new(),
             personal_shield: PersonalShieldState {
                 active: false,
                 enabled: false,
-                energy: 0,
-                max_energy: 0,
+                energy: GaugeI32 {
+                    current: 0,
+                    maximum: 0,
+                },
             },
+            weapon_aims: Vec::new(),
         }
     }
 
@@ -5339,14 +7345,14 @@ mod tests {
             building_id: id,
             team_id: 1,
             building_type_id: 1,
-            position: Vec3 { x: 0, y: 0, z: 0 },
+            position: QVec3 { x: 0, y: 0, z: 0 },
             rotation: 0,
             bounds_width: 1_000,
             bounds_height: 1_000,
-            life: 10,
-            max_life: 10,
-            alive: true,
-            destroyed: false,
+            life: GaugeI32 {
+                current: 10,
+                maximum: 10,
+            },
             available: true,
             targetable: true,
             collision_enabled: true,
@@ -6146,7 +8152,7 @@ mod tests {
         let mut paired = unit(1, 0, 1);
         paired.targetable = false;
         let world = WorldSnapshot {
-            units: vec![paired],
+            live_units: vec![paired],
             buildings: vec![building(1)],
             ..WorldSnapshot::default()
         };
@@ -6972,13 +8978,6 @@ mod tests {
     }
 
     #[test]
-    fn q32_conversion_rounds_to_mcfr_scale() {
-        assert_eq!(q32_to_units(1_i64 << 32, 1_000).unwrap(), 1_000);
-        assert_eq!(q32_to_units(-(1_i64 << 32), 1_000).unwrap(), -1_000);
-        assert_eq!(q32_to_units(1_i64 << 31, 1_000).unwrap(), 500);
-    }
-
-    #[test]
     fn capture_session_reset_allows_reused_rvo_agent_pointer() {
         let mut capture = CaptureState::default();
         capture
@@ -6990,6 +8989,13 @@ mod tests {
         capture
             .rvo_agent_sets
             .insert(1, vec![NativeRvoAgentState::default()]);
+        capture.last_damage_sources.insert(
+            ObjectRef::new(ObjectKind::Unit, 1),
+            DamageAttribution {
+                source: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+                source_team_id: Some(1),
+            },
+        );
         capture.rvo_neighbour_sets.push(NativeRvoNeighbourSet {
             update_ordinal: 1,
             source_call_ordinal: 1,
@@ -7017,6 +9023,7 @@ mod tests {
 
         assert!(capture.rvo_agent_refs.is_empty());
         assert!(capture.rvo_agent_owners.is_empty());
+        assert!(capture.last_damage_sources.is_empty());
         assert!(capture.rvo_internal_agent_ids.is_empty());
         assert_eq!(capture.next_rvo_internal_agent_id, 0);
         assert!(capture.rvo_agent_sets.is_empty());
@@ -7036,7 +9043,7 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("same-tick.mcfr");
         let state = WorldSnapshot {
-            units: vec![unit(1, 0, 1), unit(2, 1, 2)],
+            live_units: vec![unit(1, 0, 1), unit(2, 1, 2)],
             ..WorldSnapshot::default()
         };
         let mut capture = CaptureState::default();
@@ -7047,43 +9054,36 @@ mod tests {
                 projectile_id: 1,
                 owner: 11,
                 target: 22,
+                skill_slot: Some(1),
+                weapon_index: Some(4),
             },
             NativeTrace::Damage {
                 source: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
-                target: 22,
+                source_team_id: Some(0),
+                target: ObjectRef::new(ObjectKind::Unit, 2),
                 amount: 10,
             },
             NativeTrace::ProjectileRemoved {
                 projectile_id: 1,
                 owner: 11,
                 target: 22,
-                position: Vec3 { x: 1, y: 2, z: 0 },
+                position: QVec3 { x: 1, y: 2, z: 0 },
                 intercepted: false,
+                absorbed_by: None,
             },
         ];
         let events = transition_events(&traces, &capture);
         let context = DurableContext {
-            game_build: "test".into(),
             logic_step: Rational {
                 numerator: 1,
                 denominator: 20,
             },
-            numeric_convention: NumericConvention {
-                distance_units_per_meter: 1_000,
-                rotation_units_per_degree: 1_000,
-                time_units_per_second: 2_000,
-            },
+            time_units_per_second: 2_000,
             combat_round: 1,
             match_seed: 0,
-            identity_contract: IdentityContract::TeamZxSequentialV1,
         };
-        let mut writer = mechcore_mcfr::McfrWriter::create(&path, &context).unwrap();
-        writer
-            .append_tick(
-                state.clone(),
-                &mechcore_mcfr::TransitionEvents { events: Vec::new() },
-            )
-            .unwrap();
+        let mut writer = mechcore_mcfr::McfrWriter::create(&path, "test", &context).unwrap();
+        writer.set_initial_state(state.clone()).unwrap();
         writer.append_tick(state, &events).unwrap();
         writer.finish().unwrap();
         let reader = mechcore_mcfr::McfrReader::open(path).unwrap();
@@ -7091,7 +9091,10 @@ mod tests {
         assert_eq!(events.events.len(), 3);
         assert!(matches!(
             events.events[0].payload,
-            EventPayload::ProjectileReleased
+            EventPayload::ProjectileReleased {
+                skill_slot: Some(1),
+                weapon_index: Some(4)
+            }
         ));
         assert_eq!(
             events.events[1].source,
@@ -7104,6 +9107,29 @@ mod tests {
         assert!(matches!(
             events.events[2].payload,
             EventPayload::ProjectileRemoved { .. }
+        ));
+    }
+
+    #[test]
+    fn unit_death_preserves_lethal_damage_source() {
+        let source = ObjectRef::new(ObjectKind::Unit, 1);
+        let mut capture = CaptureState::default();
+        capture.object_teams.insert(source, 0);
+        let traces = [NativeTrace::UnitDied {
+            unit_id: 2,
+            position: QVec3 { x: 1, y: 2, z: 3 },
+            source: Some(source),
+            source_team_id: Some(0),
+        }];
+
+        let events = transition_events(&traces, &capture);
+
+        assert_eq!(events.events.len(), 1);
+        assert_eq!(events.events[0].source, Some(source));
+        assert_eq!(events.events[0].source_team_id, Some(0));
+        assert!(matches!(
+            events.events[0].payload,
+            EventPayload::UnitDied { .. }
         ));
     }
 }

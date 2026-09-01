@@ -533,6 +533,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
         }
         match capture::poll() {
             Some(CaptureMessage::Initial {
+                game_build,
                 context,
                 state,
                 instrumentation,
@@ -599,15 +600,11 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         );
                     }
                 }
-                match mechcore_mcfr::McfrWriter::create(&arguments.output, &context).and_then(
-                    |mut created| {
-                        created.append_tick(
-                            state,
-                            &mechcore_mcfr::TransitionEvents { events: Vec::new() },
-                        )?;
+                match mechcore_mcfr::McfrWriter::create(&arguments.output, &game_build, &context)
+                    .and_then(|mut created| {
+                        created.set_initial_state(state)?;
                         Ok(created)
-                    },
-                ) {
+                    }) {
                     Ok(created) => writer = Some(created),
                     Err(error) => {
                         return recording_failure(
@@ -617,17 +614,6 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             error.to_string(),
                         );
                     }
-                }
-                if arguments.video_output.is_none()
-                    && let Err(response) = successful_result(execute_internal_on_main(
-                        runtime,
-                        request.id,
-                        operations::InternalOperation::SpeedUp,
-                    ))
-                {
-                    capture::abort("speed-up vote failed after the initial snapshot");
-                    stop_capture_after_failure(runtime, request.id);
-                    return response;
                 }
             }
             Some(CaptureMessage::Transition {
@@ -736,7 +722,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         );
                     }
                     if let Some(summary) = &video_summary
-                        && summary.frame_count != published.tick_count()
+                        && summary.frame_count != u64::from(published.tick_count()) + 1
                     {
                         remove_published(Some(&arguments.output));
                         remove_published(arguments.video_output.as_deref());
@@ -744,24 +730,25 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             request.id,
                             "video_verification_failed",
                             format!(
-                                "video frame count {} does not match MCFR tick count {}",
+                                "video frame count {} does not match MCFR state count {}",
                                 summary.frame_count,
-                                published.tick_count()
+                                u64::from(published.tick_count()) + 1
                             ),
                         );
                     }
                     let instrumentation_result = match &arguments.instrumentation {
                         Some(instrumentation) => {
-                            if instrumentation_records.len() != published.tick_count() as usize {
+                            if instrumentation_records.len() != published.tick_count() as usize + 1
+                            {
                                 remove_published(Some(&arguments.output));
                                 remove_published(arguments.video_output.as_deref());
                                 return Response::failure(
                                     request.id,
                                     "instrumentation_verification_failed",
                                     format!(
-                                        "instrumentation record count {} does not match MCFR tick count {}",
+                                        "instrumentation record count {} does not match MCFR state count {}",
                                         instrumentation_records.len(),
-                                        published.tick_count()
+                                        published.tick_count() + 1
                                     ),
                                 );
                             }
@@ -811,7 +798,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                             let valid = sidecar.scenario_hash() == hashes.scenario_hash
                                 && sidecar.profile() == instrumentation.profile.as_str()
                                 && sidecar.producer() == "adapter"
-                                && sidecar.len() == published.tick_count() as usize
+                                && sidecar.len() == published.tick_count() as usize + 1
                                 && (0..sidecar.len()).all(|index| {
                                     sidecar.entry(index).is_ok_and(|entry| {
                                         entry.step == index as u64

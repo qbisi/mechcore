@@ -1,10 +1,10 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use mechcore_mcfr::{
-    BuildingState, Domain, DurableContext, Event, EventPayload, Gauge, Hashes, IdentityAllocator,
-    IdentityContract, McfrWriter, MotionState, NumericConvention, ObjectKind, ObjectRef,
-    PersonalShieldState, Pose, ProjectileState, Rational, TransitionEvents, UnitState, Vec3,
-    Visibility, WorldSnapshot,
+    BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
+    IdentityAllocator, LiveUnitState, McfrWriter, MotionState, ObjectKind, ObjectRef,
+    PersonalShieldState, ProjectileState, QVec3, Rational, TransitionEvents,
+    UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
 };
 use serde::Serialize;
 
@@ -104,6 +104,7 @@ struct PendingProjectileRelease {
     target: u64,
     target_x_q32: i64,
     target_z_q32: i64,
+    weapon_index: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -445,6 +446,7 @@ struct Actor {
     aim_rotation: i64,
     weapon_rotations_q32: Vec<i64>,
     life: i64,
+    last_damage_source: Option<(ObjectRef, u32)>,
     motion: MotionState,
     next_attack_step: u64,
     motion_attack_hold_fire: bool,
@@ -526,6 +528,7 @@ impl Actor {
             published_speed_q32: 0,
             rvo_stopped_snap_since_boundary: false,
             life: max_life,
+            last_damage_source: None,
             motion: MotionState::Idle,
             next_attack_step: 0,
             motion_attack_hold_fire: false,
@@ -649,42 +652,78 @@ impl Actor {
                 .all(|rotation| rotation_distance_q32(*rotation, target_q32) <= half_angle_q32)
     }
 
-    fn snapshot(&self) -> UnitState {
+    fn snapshot(&self) -> LiveUnitState {
         let height = unit_height(self.rules.domain);
-        UnitState {
+        let position = QVec3 {
+            x: self.x_q32,
+            y: space_to_q32(height),
+            z: self.z_q32,
+        };
+        let weapon_aims = (0..self.weapon_rotations_q32.len())
+            .map(|weapon_index| {
+                let group_mode = self.rules.attack.weapons.mode == WeaponMode::Group;
+                let attack_target = if group_mode {
+                    self.group_skill_targets
+                        .get(weapon_index)
+                        .copied()
+                        .flatten()
+                        .map(FightActorRef::Unit)
+                        .or_else(|| (weapon_index == 0).then_some(self.lock_target).flatten())
+                } else {
+                    self.lock_target
+                };
+                WeaponAimState {
+                    skill_slot: if group_mode {
+                        u16::try_from(weapon_index).expect("weapon index fits u16")
+                    } else {
+                        0
+                    },
+                    weapon_index: i32::try_from(weapon_index).expect("weapon index fits i32"),
+                    attack_target: attack_target.map(FightActorRef::object_ref),
+                    pose: None,
+                }
+            })
+            .collect();
+        LiveUnitState {
             unit_id: self.placement.unit_id,
             team_id: self.placement.team,
+            original_team_id: self.placement.team,
             formation_id: self.placement.formation_id,
             unit_type_id: self.rules.unit_type_id,
             domain: match self.rules.domain {
                 UnitDomain::Ground => Domain::Ground,
                 UnitDomain::Air => Domain::Air,
             },
-            position: point_at_height(self.x, height, self.z),
-            body_rotation: self.body_rotation,
-            aim_pose: Pose {
-                position: point_at_height(self.x, height, self.z),
-                rotation: self.aim_rotation,
+            position,
+            body_rotation: self.body_rotation_q32,
+            velocity: QVec3 {
+                x: self.current_velocity_x_q32,
+                y: 0,
+                z: self.current_velocity_z_q32,
             },
-            velocity: point(
-                q32_to_space_rounded(self.current_velocity_x_q32),
-                q32_to_space_rounded(self.current_velocity_z_q32),
-            ),
             motion_state: self.motion,
             mech_lock_target: self.lock_target.map(FightActorRef::object_ref),
-            collision_radius: self.rules.collision_radius(),
-            life: self.life,
-            max_life: self.rules.max_life,
-            alive: self.alive(),
+            collision_radius: space_to_q32(self.rules.collision_radius()),
+            life: GaugeI32 {
+                current: i32::try_from(self.life).expect("unit life fits i32"),
+                maximum: i32::try_from(self.rules.max_life).expect("unit max life fits i32"),
+            },
             active: true,
-            targetable: self.alive(),
+            targetable: true,
             visibility: Visibility::Normal,
+            status_mask: 0,
+            buff_modifiers: BuffModifierSet::default(),
+            unit_dynamic_modifiers: UnitDynamicModifierSet::default(),
+            skill_dynamic_modifiers: Vec::new(),
             personal_shield: PersonalShieldState {
                 active: false,
                 enabled: true,
-                energy: 0,
-                max_energy: 0,
+                energy: GaugeI32 {
+                    current: 0,
+                    maximum: 0,
+                },
             },
+            weapon_aims,
         }
     }
 }
@@ -840,12 +879,14 @@ fn initialize_buildings(training_ground: &TrainingGroundConfig) -> Result<Vec<Bu
                 building_type_id: building.building_type_id,
                 position: point(building.x(), building.z()),
                 rotation: 0,
-                bounds_width: radius.saturating_mul(2),
-                bounds_height: radius.saturating_mul(2),
-                life: building.life,
-                max_life: building.life,
-                alive: building.life > 0,
-                destroyed: false,
+                bounds_width: space_to_q32(radius.saturating_mul(2)),
+                bounds_height: space_to_q32(radius.saturating_mul(2)),
+                life: GaugeI32 {
+                    current: i32::try_from(building.life)
+                        .map_err(|_| Error::new("training-ground building life exceeds i32"))?,
+                    maximum: i32::try_from(building.life)
+                        .map_err(|_| Error::new("training-ground building life exceeds i32"))?,
+                },
                 available: true,
                 targetable: building.life > 0,
                 collision_enabled: building.collision_enabled,
@@ -875,9 +916,9 @@ fn initialize_target_quadtrees(
         for building in team_buildings {
             tree.insert(
                 FightActorRef::Building(building.building_id),
-                space_to_q32(building.position.x),
-                space_to_q32(building.position.z),
-                building.bounds_width / 2,
+                building.position.x,
+                building.position.z,
+                building_radius(building),
             );
         }
 
@@ -933,20 +974,25 @@ impl Projectile {
             projectile_id: self.id,
             team_id: self.team,
             owner: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
-            position: point_at_height(self.x, self.y, self.z),
+            position: QVec3 {
+                x: self.x_q32,
+                y: self.y_q32,
+                z: self.z_q32,
+            },
             orientation: 0,
             target: Some(ObjectRef::new(self.target_kind, self.target)),
-            cached_target_position: point_at_height(
-                self.cached_target_x,
-                self.cached_target_y,
-                self.cached_target_z,
-            ),
-            cached_target_radius: self.cached_target_radius,
-            released: false,
-            life: Gauge {
-                current: self.life,
-                maximum: self.life,
+            cached_target_position: QVec3 {
+                x: self.cached_target_x_q32,
+                y: self.cached_target_y_q32,
+                z: self.cached_target_z_q32,
             },
+            cached_target_radius: space_to_q32(self.cached_target_radius),
+            released: false,
+            life: GaugeI32 {
+                current: i32::try_from(self.life).expect("projectile life fits i32"),
+                maximum: i32::try_from(self.life).expect("projectile life fits i32"),
+            },
+            spawn_containing_shields: Vec::new(),
         }
     }
 }
@@ -986,10 +1032,23 @@ struct Simulation {
     rvo_counter: u8,
     rvo_solver_started: bool,
     terminal_drain_pending: bool,
+    late_building_events_pending: bool,
 }
 
 impl Simulation {
+    #[cfg(test)]
     fn new(
+        layout: &CompiledLayout,
+        configs: &UnitConfigs,
+        training_ground: &TrainingGroundConfig,
+        seed: i32,
+    ) -> Result<Self> {
+        let mut simulation = Self::new_unprepared(layout, configs, training_ground, seed)?;
+        simulation.initialize_presearch_targets()?;
+        Ok(simulation)
+    }
+
+    fn new_unprepared(
         layout: &CompiledLayout,
         configs: &UnitConfigs,
         training_ground: &TrainingGroundConfig,
@@ -1035,7 +1094,7 @@ impl Simulation {
         }
         let buildings = initialize_buildings(training_ground)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
-        let mut simulation = Self {
+        Ok(Self {
             actors,
             team_random,
             projectiles: Vec::new(),
@@ -1045,9 +1104,8 @@ impl Simulation {
             rvo_counter: 0,
             rvo_solver_started: false,
             terminal_drain_pending: false,
-        };
-        simulation.initialize_presearch_targets()?;
-        Ok(simulation)
+            late_building_events_pending: false,
+        })
     }
 
     fn initialize_presearch_targets(&mut self) -> Result<()> {
@@ -1089,9 +1147,19 @@ impl Simulation {
 
     fn snapshot(&self) -> WorldSnapshot {
         WorldSnapshot {
-            units: self.actors.values().map(Actor::snapshot).collect(),
+            live_units: self
+                .actors
+                .values()
+                .filter(|actor| actor.alive())
+                .map(Actor::snapshot)
+                .collect(),
             projectiles: self.projectiles.iter().map(Projectile::snapshot).collect(),
-            buildings: self.buildings.clone(),
+            buildings: self
+                .buildings
+                .iter()
+                .filter(|building| building_alive(building))
+                .cloned()
+                .collect(),
             ..WorldSnapshot::default()
         }
     }
@@ -1121,6 +1189,8 @@ impl Simulation {
     }
 
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
+        let publish_late_building_events = self.late_building_events_pending;
+        self.late_building_events_pending = false;
         if self.terminal_drain_pending {
             self.terminal_drain_pending = false;
         }
@@ -1141,6 +1211,23 @@ impl Simulation {
             .collect::<std::collections::BTreeSet<_>>();
         self.refresh_target_query_snapshot();
         let mut events = Vec::new();
+        if publish_late_building_events && let Some(winning_team) = self.winner() {
+            for building in self
+                .buildings
+                .iter()
+                .filter(|building| building.team_id != winning_team && !building_alive(building))
+            {
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Building, building.building_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed {
+                        position: building.position,
+                    },
+                ));
+            }
+        }
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
@@ -1201,7 +1288,9 @@ impl Simulation {
                 let Some(enemy_team) = self
                     .buildings
                     .iter()
-                    .find(|building| building.team_id != actor.placement.team && building.alive)
+                    .find(|building| {
+                        building.team_id != actor.placement.team && building_alive(building)
+                    })
                     .map(|building| building.team_id)
                 else {
                     continue;
@@ -1215,8 +1304,8 @@ impl Simulation {
                     .iter()
                     .find(|building| building.building_id == building_id)
                     .expect("selected building exists");
-                let target_x_q32 = space_to_q32(building.position.x);
-                let target_z_q32 = space_to_q32(building.position.z);
+                let target_x_q32 = building.position.x;
+                let target_z_q32 = building.position.z;
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
@@ -1243,7 +1332,7 @@ impl Simulation {
             && let Some(losing_team) = self
                 .buildings
                 .iter()
-                .find(|building| building.team_id != winning_team && building.alive)
+                .find(|building| building.team_id != winning_team && building_alive(building))
                 .map(|building| building.team_id)
             && !teams_with_building_target_at_start.contains(&losing_team)
         {
@@ -1302,9 +1391,9 @@ impl Simulation {
                     .iter()
                     .find(|building| building.building_id == building_id)
                     .expect("selected building exists");
-                let target_x_q32 = space_to_q32(building.position.x);
-                let target_z_q32 = space_to_q32(building.position.z);
-                let target_radius = building.bounds_width / 2;
+                let target_x_q32 = building.position.x;
+                let target_z_q32 = building.position.z;
+                let target_radius = building_radius(building);
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
@@ -1389,21 +1478,21 @@ impl Simulation {
                         && matches!(actor.rules.attack.path, AttackPath::Direct { .. })
                 })
             });
-        let mut queued_late_building_death = false;
+        let mut queued_late_building_events = false;
         for building in self.buildings.iter_mut().filter(|building| {
             direct_attack_winner
-                && building.alive
+                && building_alive(building)
                 && team_alive_counts
                     .get(&building.team_id)
                     .is_some_and(|alive_count| *alive_count == 0)
         }) {
-            building.life = 0;
-            building.alive = false;
+            building.life.current = 0;
             building.targetable = false;
-            queued_late_building_death = true;
+            queued_late_building_events = true;
         }
-        if queued_late_building_death {
+        if queued_late_building_events {
             self.terminal_drain_pending = true;
+            self.late_building_events_pending = true;
         }
         let laser_finish_observed_at_defeated_team_entry = !fight_was_finished
             && self.naturally_finished()
@@ -1424,12 +1513,21 @@ impl Simulation {
             // attacker therefore exposes the dead laser target for one tick
             // while the callback tears down that team's core buildings.
             for building in self.buildings.iter_mut().filter(|building| {
-                team_alive_counts
-                    .get(&building.team_id)
-                    .is_some_and(|alive_count| *alive_count == 0)
+                building_alive(building)
+                    && team_alive_counts
+                        .get(&building.team_id)
+                        .is_some_and(|alive_count| *alive_count == 0)
             }) {
-                building.life = 0;
-                building.alive = false;
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Building, building.building_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed {
+                        position: building.position,
+                    },
+                ));
+                building.life.current = 0;
                 building.targetable = false;
             }
             self.terminal_drain_pending = true;
@@ -1451,6 +1549,27 @@ impl Simulation {
         if !ready_to_finish {
             self.step_rvo()?;
         }
+        for death in events
+            .iter_mut()
+            .filter(|event| matches!(&event.payload, EventPayload::UnitDied { .. }))
+        {
+            let Some(dead_id) = death
+                .subject
+                .filter(|subject| subject.kind == ObjectKind::Unit)
+                .map(|subject| subject.id)
+            else {
+                continue;
+            };
+            (death.source, death.source_team_id) = self.actors[&dead_id]
+                .last_damage_source
+                .map_or((None, None), |(source, team_id)| {
+                    (Some(source), Some(team_id))
+                });
+        }
+        let (mut events, deaths): (Vec<_>, Vec<_>) = events
+            .into_iter()
+            .partition(|event| !matches!(&event.payload, EventPayload::UnitDied { .. }));
+        events.extend(deaths);
         Ok(TransitionEvents { events })
     }
 
@@ -1483,17 +1602,17 @@ impl Simulation {
                     .buildings
                     .iter()
                     .find(|building| building.building_id == id)?;
-                let x_q32 = space_to_q32(building.position.x);
-                let z_q32 = space_to_q32(building.position.z);
+                let x_q32 = building.position.x;
+                let z_q32 = building.position.z;
                 Some(FightActorView {
                     team: building.team_id,
                     x_q32,
                     z_q32,
                     query_x_q32: x_q32,
                     query_z_q32: z_q32,
-                    radius: building.bounds_width / 2,
-                    alive: building.alive,
-                    query_alive: building.alive,
+                    radius: building_radius(building),
+                    alive: building_alive(building),
+                    query_alive: building_alive(building),
                     targetable: building.targetable && building.available,
                     domain: UnitDomain::Ground,
                 })
@@ -1512,19 +1631,17 @@ impl Simulation {
             return None;
         }
         let mut best: Option<(u64, i64)> = None;
-        for building in self
-            .buildings
-            .iter()
-            .filter(|building| building.team_id == team_id && building.alive && building.targetable)
-        {
+        for building in self.buildings.iter().filter(|building| {
+            building.team_id == team_id && building_alive(building) && building.targetable
+        }) {
             let Some(score) = normal_visible_full_rotation_target_score_q32(
                 source.target_query_x_q32,
                 source.target_query_z_q32,
                 source.rules.collision_radius(),
                 source.target_query_source_rotation_q32,
-                space_to_q32(building.position.x),
-                space_to_q32(building.position.z),
-                building.bounds_width / 2,
+                building.position.x,
+                building.position.z,
+                building_radius(building),
                 source.rules.attack.min_range(),
                 source.rules.attack.range(),
             ) else {
@@ -2575,7 +2692,7 @@ impl Simulation {
                 && self.actors.get(&target_id).is_some_and(Actor::alive)
             {
                 self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
-                self.release_projectile(actor_id, target_id, events)?;
+                self.release_projectile(actor_id, target_id, skill_index, skill_index, events)?;
             }
         }
         let lock_target = self.actors[&actor_id].mechanical_lock_target();
@@ -3092,10 +3209,10 @@ impl Simulation {
             immovable_rvo_collision_masks(CORE_TOWER_RVO_COLLIDER_PRIORITY);
         for index in building_indices {
             let building = &self.buildings[index];
-            if !building.alive || !building.collision_enabled {
+            if !building_alive(building) || !building.collision_enabled {
                 continue;
             }
-            let radius_q32 = space_to_q32(building.bounds_width / 2);
+            let radius_q32 = building.bounds_width / 2;
             agents.push(RvoAgentInput {
                 key: RvoAgentKey::Building(building.building_id),
                 main_layer: 1,
@@ -3103,14 +3220,8 @@ impl Simulation {
                 collides_with: tower_collides_with,
                 group: i32::try_from(building.team_id).unwrap_or(i32::MAX),
                 locked: true,
-                tree_position: rvo_position(
-                    space_to_q32(building.position.x),
-                    space_to_q32(building.position.z),
-                ),
-                position: rvo_position(
-                    space_to_q32(building.position.x),
-                    space_to_q32(building.position.z),
-                ),
+                tree_position: rvo_position(building.position.x, building.position.z),
+                position: rvo_position(building.position.x, building.position.z),
                 current_velocity: FixedVec2::ZERO,
                 desired_velocity: FixedVec2::ZERO,
                 desired_target_delta: FixedVec2::ZERO,
@@ -3389,6 +3500,8 @@ impl Simulation {
         let owner = &self.actors[&actor_id];
         let count = usize::try_from(owner.rules.attack.projectile_count())
             .expect("u32 projectile count fits the supported host");
+        let weapon_count = usize::try_from(owner.rules.attack.weapons.count)
+            .expect("u32 weapon count fits the supported host");
         let interval =
             native_time_units_to_steps(owner.rules.attack.projectile_release_interval_time_units());
         let radius = owner.rules.attack.projectile_target_offset_radius();
@@ -3404,6 +3517,7 @@ impl Simulation {
                     target: target.id(),
                     target_x_q32: target_x_q32.saturating_add(x),
                     target_z_q32: target_z_q32.saturating_add(z),
+                    weapon_index: index % weapon_count,
                 });
         let first = releases
             .next()
@@ -3528,12 +3642,22 @@ impl Simulation {
         &mut self,
         actor_id: u64,
         target_id: u64,
+        skill_slot: usize,
+        weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let target = &self.actors[&target_id];
         let target_x_q32 = target.x_q32;
         let target_z_q32 = target.z_q32;
-        self.release_projectile_at(actor_id, target_id, target_x_q32, target_z_q32, events)
+        self.release_projectile_at(
+            actor_id,
+            target_id,
+            target_x_q32,
+            target_z_q32,
+            skill_slot,
+            weapon_index,
+            events,
+        )
     }
 
     fn release_pending_projectile(
@@ -3548,6 +3672,8 @@ impl Simulation {
                 pending.target,
                 pending.target_x_q32,
                 pending.target_z_q32,
+                0,
+                pending.weapon_index,
                 events,
             ),
             ObjectKind::Building => {
@@ -3565,11 +3691,13 @@ impl Simulation {
                     q32_to_space_rounded(pending.target_z_q32),
                     pending.target_x_q32,
                     pending.target_z_q32,
-                    building.bounds_width / 2,
+                    building_radius(building),
+                    0,
+                    pending.weapon_index,
                     events,
                 )
             }
-            ObjectKind::Projectile | ObjectKind::Status => {
+            ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => {
                 Err(Error::new("projectile target kind is unsupported"))
             }
         }
@@ -3581,6 +3709,8 @@ impl Simulation {
         target_id: u64,
         target_x_q32: i64,
         target_z_q32: i64,
+        skill_slot: usize,
+        weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let target = &self.actors[&target_id];
@@ -3598,6 +3728,8 @@ impl Simulation {
             target_x_q32,
             target_z_q32,
             target_radius,
+            skill_slot,
+            weapon_index,
             events,
         )
     }
@@ -3614,6 +3746,8 @@ impl Simulation {
         target_x_q32: i64,
         target_z_q32: i64,
         target_radius: i64,
+        skill_slot: usize,
+        weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
@@ -3649,8 +3783,12 @@ impl Simulation {
         events.push(event(
             Some(projectile_ref),
             Some(owner.object_ref()),
+            Some(owner.placement.team),
             Some(ObjectRef::new(target_kind, target_id)),
-            EventPayload::ProjectileReleased,
+            EventPayload::ProjectileReleased {
+                skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
+                weapon_index: Some(i32::try_from(weapon_index).expect("weapon index fits i32")),
+            },
         ));
         self.projectiles.push(projectile);
         Ok(())
@@ -3711,14 +3849,20 @@ impl Simulation {
         let attacker = &self.actors[&actor_id];
         let damage = attacker.rules.attack.base_damage;
         let attacker_team = attacker.placement.team;
+        let attacker_ref = attacker.object_ref();
         let splash_radius = attacker.rules.attack.splash_radius();
         let target_domain = attacker.rules.attack.targets;
         let center_x = self.actors[&target_id].x;
         let center_z = self.actors[&target_id].z;
         let target_ids = self
-            .actors
-            .iter()
-            .filter_map(|(&candidate_id, candidate)| {
+            .target_search_order()
+            .into_values()
+            .flatten()
+            .filter_map(|candidate_ref| {
+                let FightActorRef::Unit(candidate_id) = candidate_ref else {
+                    return None;
+                };
+                let candidate = &self.actors[&candidate_id];
                 let dx = candidate.x.saturating_sub(center_x);
                 let dz = candidate.z.saturating_sub(center_z);
                 let edge_distance =
@@ -3736,21 +3880,21 @@ impl Simulation {
             .collect::<Vec<_>>();
         if splash_radius > 0
             && self.buildings.iter().any(|building| {
-                building.alive
+                building_alive(building)
                     && building.targetable
                     && building.team_id != attacker_team
                     && target_domain.ground
                     && magnitude(
-                        building.position.x.saturating_sub(center_x),
-                        building.position.z.saturating_sub(center_z),
+                        building_x(building).saturating_sub(center_x),
+                        building_z(building).saturating_sub(center_z),
                     )
-                    .saturating_sub(building.bounds_width / 2)
+                    .saturating_sub(building_radius(building))
                         <= splash_radius
             })
         {
             return Err(Error::new("direct splash against a building is not closed"));
         }
-        let mut aggregate_damage = 0;
+        let mut deaths = Vec::new();
         for affected_id in target_ids {
             let target = self
                 .actors
@@ -3758,19 +3902,46 @@ impl Simulation {
                 .ok_or_else(|| Error::new("direct attack target is absent"))?;
             let previous_life = target.life;
             target.life = target.life.saturating_sub(damage).max(0);
-            aggregate_damage += previous_life - target.life;
+            let actual_damage = previous_life - target.life;
+            if actual_damage > 0 {
+                target.last_damage_source = Some((attacker_ref, attacker_team));
+                events.push(event(
+                    None,
+                    Some(attacker_ref),
+                    Some(attacker_team),
+                    Some(ObjectRef::new(ObjectKind::Unit, affected_id)),
+                    EventPayload::Damage {
+                        amount: i32::try_from(actual_damage)
+                            .map_err(|_| Error::new("direct damage exceeds i32"))?,
+                    },
+                ));
+            }
             if target.life == 0 {
+                deaths.push((
+                    affected_id,
+                    QVec3 {
+                        x: target.x_q32,
+                        y: space_to_q32(unit_height(target.rules.domain)),
+                        z: target.z_q32,
+                    },
+                ));
                 target.exit_fight_on_death();
             }
         }
-        events.push(event(
-            None,
-            None,
-            Some(ObjectRef::new(ObjectKind::Unit, target_id)),
-            EventPayload::Damage {
-                amount: aggregate_damage,
-            },
-        ));
+        for (dead_id, position) in deaths {
+            let (source, source_team_id) = self.actors[&dead_id]
+                .last_damage_source
+                .map_or((None, None), |(source, team_id)| {
+                    (Some(source), Some(team_id))
+                });
+            events.push(event(
+                Some(ObjectRef::new(ObjectKind::Unit, dead_id)),
+                source,
+                source_team_id,
+                None,
+                EventPayload::UnitDied { position },
+            ));
+        }
         Ok(())
     }
 
@@ -3780,12 +3951,16 @@ impl Simulation {
         target_id: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let damage = {
+        let (damage, attacker_ref, attacker_team) = {
             let attacker = &self.actors[&actor_id];
-            attacker
-                .rules
-                .attack
-                .laser_damage(attacker.laser_attack_count)
+            (
+                attacker
+                    .rules
+                    .attack
+                    .laser_damage(attacker.laser_attack_count),
+                attacker.object_ref(),
+                attacker.placement.team,
+            )
         };
         self.actors
             .get_mut(&actor_id)
@@ -3798,15 +3973,33 @@ impl Simulation {
         let previous_life = target.life;
         target.life = target.life.saturating_sub(damage).max(0);
         let actual_damage = previous_life - target.life;
+        if actual_damage > 0 {
+            target.last_damage_source = Some((attacker_ref, attacker_team));
+        }
         if target.life == 0 {
             target.exit_fight_on_death();
+            events.push(event(
+                Some(ObjectRef::new(ObjectKind::Unit, target_id)),
+                Some(attacker_ref),
+                Some(attacker_team),
+                None,
+                EventPayload::UnitDied {
+                    position: QVec3 {
+                        x: target.x_q32,
+                        y: space_to_q32(unit_height(target.rules.domain)),
+                        z: target.z_q32,
+                    },
+                },
+            ));
         }
         events.push(event(
             None,
-            None,
+            Some(attacker_ref),
+            Some(attacker_team),
             Some(ObjectRef::new(ObjectKind::Unit, target_id)),
             EventPayload::Damage {
-                amount: actual_damage,
+                amount: i32::try_from(actual_damage)
+                    .map_err(|_| Error::new("laser damage exceeds i32"))?,
             },
         ));
         Ok(())
@@ -3893,24 +4086,37 @@ impl Simulation {
                 .iter_mut()
                 .find(|building| building.building_id == projectile.target)
                 .ok_or_else(|| Error::new("projectile building target is absent"))?;
-            let previous_life = building.life;
+            let previous_life = building.life.current;
             let hit_building = magnitude(
-                building.position.x.saturating_sub(projectile.x),
-                building.position.z.saturating_sub(projectile.z),
-            ) <= (building.bounds_width / 2).saturating_add(splash_radius);
+                building_x(building).saturating_sub(projectile.x),
+                building_z(building).saturating_sub(projectile.z),
+            ) <= building_radius(building).saturating_add(splash_radius);
             if hit_building {
-                building.life = building.life.saturating_sub(projectile.damage).max(0);
+                let damage = i32::try_from(projectile.damage)
+                    .map_err(|_| Error::new("projectile building damage exceeds i32"))?;
+                building.life.current = building.life.current.saturating_sub(damage).max(0);
             }
-            let actual_damage = previous_life - building.life;
-            if building.life == 0 {
-                building.alive = false;
+            let actual_damage = previous_life - building.life.current;
+            let destroyed = previous_life > 0 && building.life.current == 0;
+            if destroyed {
                 building.targetable = false;
-                building.destroyed = true;
+            }
+            if destroyed {
+                events.push(event(
+                    Some(target_ref),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed {
+                        position: building.position,
+                    },
+                ));
             }
             if actual_damage > 0 {
                 events.push(event(
                     None,
-                    Some(projectile_ref),
+                    Some(owner_ref),
+                    Some(projectile.team),
                     Some(target_ref),
                     EventPayload::Damage {
                         amount: actual_damage,
@@ -3920,10 +4126,16 @@ impl Simulation {
             events.push(event(
                 Some(projectile_ref),
                 Some(owner_ref),
+                Some(projectile.team),
                 Some(target_ref),
                 EventPayload::ProjectileRemoved {
-                    position: point_at_height(projectile.x, projectile.y, projectile.z),
+                    position: QVec3 {
+                        x: projectile.x_q32,
+                        y: projectile.y_q32,
+                        z: projectile.z_q32,
+                    },
                     intercepted: false,
+                    absorbed_by: None,
                 },
             ));
             return Ok(());
@@ -3940,14 +4152,14 @@ impl Simulation {
         if splash_radius > 0 {
             let secondary_building = projectile_target_domain == UnitDomain::Ground
                 && self.buildings.iter().any(|building| {
-                    building.alive
+                    building_alive(building)
                         && building.targetable
                         && building.team_id != owner_team
                         && magnitude(
-                            building.position.x.saturating_sub(projectile.x),
-                            building.position.z.saturating_sub(projectile.z),
+                            building_x(building).saturating_sub(projectile.x),
+                            building_z(building).saturating_sub(projectile.z),
                         )
-                        .saturating_sub(building.bounds_width / 2)
+                        .saturating_sub(building_radius(building))
                             <= splash_radius
                 });
             if secondary_building {
@@ -3960,9 +4172,14 @@ impl Simulation {
         let owner_ref = ObjectRef::new(ObjectKind::Unit, projectile.owner);
         let target_ref = ObjectRef::new(ObjectKind::Unit, projectile.target);
         let target_ids = self
-            .actors
-            .iter()
-            .filter_map(|(&candidate_id, candidate)| {
+            .target_search_order()
+            .into_values()
+            .flatten()
+            .filter_map(|candidate_ref| {
+                let FightActorRef::Unit(candidate_id) = candidate_ref else {
+                    return None;
+                };
+                let candidate = &self.actors[&candidate_id];
                 (candidate.alive()
                     && candidate.placement.team != owner_team
                     && candidate.rules.domain == projectile_target_domain
@@ -3977,7 +4194,7 @@ impl Simulation {
                     .then_some(candidate_id)
             })
             .collect::<Vec<_>>();
-        let mut aggregate_damage = 0;
+        let mut deaths = Vec::new();
         for target_id in target_ids {
             let target = self
                 .actors
@@ -3985,30 +4202,61 @@ impl Simulation {
                 .ok_or_else(|| Error::new("projectile target is absent"))?;
             let previous_life = target.life;
             target.life = target.life.saturating_sub(projectile.damage).max(0);
-            aggregate_damage += previous_life - target.life;
+            let actual_damage = previous_life - target.life;
+            if actual_damage > 0 {
+                target.last_damage_source = Some((owner_ref, projectile.team));
+                events.push(event(
+                    None,
+                    Some(owner_ref),
+                    Some(projectile.team),
+                    Some(ObjectRef::new(ObjectKind::Unit, target_id)),
+                    EventPayload::Damage {
+                        amount: i32::try_from(actual_damage)
+                            .map_err(|_| Error::new("projectile damage exceeds i32"))?,
+                    },
+                ));
+            }
             if target.life == 0 {
+                deaths.push((
+                    target_id,
+                    QVec3 {
+                        x: target.x_q32,
+                        y: space_to_q32(unit_height(target.rules.domain)),
+                        z: target.z_q32,
+                    },
+                ));
                 target.exit_fight_on_death();
             }
-        }
-        if aggregate_damage > 0 {
-            events.push(event(
-                None,
-                Some(projectile_ref),
-                Some(target_ref),
-                EventPayload::Damage {
-                    amount: aggregate_damage,
-                },
-            ));
         }
         events.push(event(
             Some(projectile_ref),
             Some(owner_ref),
+            Some(projectile.team),
             Some(target_ref),
             EventPayload::ProjectileRemoved {
-                position: point_at_height(projectile.x, projectile.y, projectile.z),
+                position: QVec3 {
+                    x: projectile.x_q32,
+                    y: projectile.y_q32,
+                    z: projectile.z_q32,
+                },
                 intercepted: false,
+                absorbed_by: None,
             },
         ));
+        for (target_id, position) in deaths {
+            let (source, source_team_id) = self.actors[&target_id]
+                .last_damage_source
+                .map_or((None, None), |(source, team_id)| {
+                    (Some(source), Some(team_id))
+                });
+            events.push(event(
+                Some(ObjectRef::new(ObjectKind::Unit, target_id)),
+                source,
+                source_team_id,
+                None,
+                EventPayload::UnitDied { position },
+            ));
+        }
         Ok(())
     }
 
@@ -4052,26 +4300,22 @@ pub(crate) fn run(
 ) -> Result<SimulationResult> {
     let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
     let context = DurableContext {
-        game_build: config.game_build.clone(),
         logic_step: Rational {
-            numerator: LOGIC_TICK_TIME_UNITS / divisor,
-            denominator: TIME_UNITS_PER_SECOND / divisor,
+            numerator: u32::try_from(LOGIC_TICK_TIME_UNITS / divisor)
+                .map_err(|_| Error::new("logic-step numerator exceeds u32"))?,
+            denominator: u32::try_from(TIME_UNITS_PER_SECOND / divisor)
+                .map_err(|_| Error::new("logic-step denominator exceeds u32"))?,
         },
-        numeric_convention: NumericConvention {
-            distance_units_per_meter: SPACE_UNITS_PER_METER.cast_unsigned(),
-            rotation_units_per_degree: 1_000,
-            time_units_per_second: TIME_UNITS_PER_SECOND,
-        },
+        time_units_per_second: u32::try_from(TIME_UNITS_PER_SECOND)
+            .map_err(|_| Error::new("time units per second exceeds u32"))?,
         combat_round: layout.round,
         match_seed: seed,
-        identity_contract: IdentityContract::TeamZxSequentialV1,
     };
-    let mut simulation = Simulation::new(layout, &config.units, &config.training_ground, seed)?;
-    let mut writer = McfrWriter::create(output, &context)?;
-    writer.append_tick(
-        simulation.snapshot(),
-        &TransitionEvents { events: Vec::new() },
-    )?;
+    let mut simulation =
+        Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
+    let mut writer = McfrWriter::create(output, &config.game_build, &context)?;
+    writer.set_initial_state(simulation.snapshot())?;
+    simulation.initialize_presearch_targets()?;
     let mut steps = 0;
     let max_steps = FIGHT_TIME_SECONDS
         .saturating_mul(TIME_UNITS_PER_SECOND)
@@ -4227,23 +4471,41 @@ fn turn_limited_move_speed_q32(
 fn event(
     subject: Option<ObjectRef>,
     source: Option<ObjectRef>,
+    source_team_id: Option<u32>,
     target: Option<ObjectRef>,
     payload: EventPayload,
 ) -> Event {
     Event {
         subject,
         source,
+        source_team_id,
         target,
         payload,
     }
 }
 
-const fn point(x: i64, z: i64) -> Vec3 {
-    Vec3 { x, y: 0, z }
+fn point(x: i64, z: i64) -> QVec3 {
+    QVec3 {
+        x: space_to_q32(x),
+        y: 0,
+        z: space_to_q32(z),
+    }
 }
 
-const fn point_at_height(x: i64, y: i64, z: i64) -> Vec3 {
-    Vec3 { x, y, z }
+const fn building_alive(building: &BuildingState) -> bool {
+    building.life.current > 0
+}
+
+fn building_radius(building: &BuildingState) -> i64 {
+    q32_to_space_rounded(building.bounds_width / 2)
+}
+
+fn building_x(building: &BuildingState) -> i64 {
+    q32_to_space_rounded(building.position.x)
+}
+
+fn building_z(building: &BuildingState) -> i64 {
+    q32_to_space_rounded(building.position.z)
 }
 
 const fn unit_height(domain: UnitDomain) -> i64 {
@@ -4744,7 +5006,7 @@ mod tests {
         }
     }
 
-    fn visible_velocity(actor: &Actor) -> (i64, i64) {
+    fn snapshot_velocity_q32(actor: &Actor) -> (i64, i64) {
         let velocity = actor.snapshot().velocity;
         (velocity.x, velocity.z)
     }
@@ -4767,6 +5029,7 @@ mod tests {
             rvo_counter: 0,
             rvo_solver_started: false,
             terminal_drain_pending: false,
+            late_building_events_pending: false,
         }
     }
 
@@ -4988,6 +5251,7 @@ mod tests {
                 rvo_counter: 0,
                 rvo_solver_started: false,
                 terminal_drain_pending: false,
+                late_building_events_pending: false,
             }
         };
         let mut simulation = make_simulation();
@@ -5139,6 +5403,7 @@ mod tests {
             rvo_counter: 0,
             rvo_solver_started: false,
             terminal_drain_pending: false,
+            late_building_events_pending: false,
         };
         assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
     }
@@ -5913,7 +6178,7 @@ mod tests {
         assert!(
             events
                 .iter()
-                .any(|event| { matches!(event.payload, EventPayload::ProjectileReleased) })
+                .any(|event| { matches!(event.payload, EventPayload::ProjectileReleased { .. }) })
         );
     }
 
@@ -6126,8 +6391,9 @@ mod tests {
         assert_eq!(source.lock_target, Some(unit_target(2)));
         assert!(source.retarget_after_own_direct_kill);
         assert_eq!(source.laser_attack_count, 1);
+        assert!(matches!(events[0].payload, EventPayload::UnitDied { .. }));
         assert!(matches!(
-            events[0].payload,
+            events[1].payload,
             EventPayload::Damage { amount: 1 }
         ));
 
@@ -6200,7 +6466,7 @@ mod tests {
     }
 
     #[test]
-    fn direct_splash_applies_one_aggregate_event_to_secondary_targets() {
+    fn direct_splash_emits_one_damage_event_per_actual_target() {
         let config = SimulationConfig::load(None).unwrap();
         let layout = CompiledLayout {
             round: 1,
@@ -6222,9 +6488,60 @@ mod tests {
             [simulation.actors[&2].life, simulation.actors[&3].life],
             [1_253, 1_253]
         );
-        assert_eq!(events.len(), 1);
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].source, Some(ObjectRef::new(ObjectKind::Unit, 1)));
+        assert_eq!(events[0].source_team_id, Some(0));
         assert_eq!(events[0].target, Some(ObjectRef::new(ObjectKind::Unit, 2)));
-        assert_eq!(events[0].payload, EventPayload::Damage { amount: 7_120 });
+        assert_eq!(events[0].payload, EventPayload::Damage { amount: 3_560 });
+        assert_eq!(events[1].target, Some(ObjectRef::new(ObjectKind::Unit, 3)));
+        assert_eq!(events[1].payload, EventPayload::Damage { amount: 3_560 });
+        assert_eq!(
+            [
+                simulation.actors[&2].last_damage_source,
+                simulation.actors[&3].last_damage_source,
+            ],
+            [
+                Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
+                Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
+            ]
+        );
+    }
+
+    #[test]
+    fn direct_kill_emits_damage_before_death_with_raw_target_position() {
+        let config = SimulationConfig::load(None).unwrap();
+        let layout = CompiledLayout {
+            round: 1,
+            placements: vec![
+                Placement {
+                    type_name: "rhino".to_owned(),
+                    ..test_placement(0, 0, 0, 0)
+                },
+                test_placement(1, 0, 0, 20),
+            ],
+        };
+        let mut simulation = raw_test_simulation(&layout, &config, 7);
+        let target = simulation.actors.get_mut(&2).unwrap();
+        target.life = 1;
+        target.x_q32 += 7;
+        target.z_q32 -= 9;
+        let expected_position = QVec3 {
+            x: target.x_q32,
+            y: 0,
+            z: target.z_q32,
+        };
+        let mut events = Vec::new();
+
+        simulation.direct_effect(1, 2, &mut events).unwrap();
+
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].payload, EventPayload::Damage { amount: 1 });
+        assert_eq!(
+            events[1].payload,
+            EventPayload::UnitDied {
+                position: expected_position
+            }
+        );
     }
 
     #[test]
@@ -6286,7 +6603,7 @@ mod tests {
     }
 
     #[test]
-    fn projectile_splash_applies_one_aggregate_event_to_secondary_targets() {
+    fn projectile_splash_emits_one_damage_event_per_actual_target() {
         let config = SimulationConfig::load(None).unwrap();
         let layout = CompiledLayout {
             round: 1,
@@ -6336,13 +6653,26 @@ mod tests {
             [simulation.actors[&2].life, simulation.actors[&3].life],
             previous_life.map(|life| life - 365)
         );
-        assert_eq!(events.len(), 2);
-        assert_eq!(
-            events[0].source,
-            Some(ObjectRef::new(ObjectKind::Projectile, 1))
-        );
+        assert_eq!(events.len(), 3);
+        assert_eq!(events[0].source, Some(ObjectRef::new(ObjectKind::Unit, 1)));
         assert_eq!(events[0].target, Some(ObjectRef::new(ObjectKind::Unit, 2)));
-        assert_eq!(events[0].payload, EventPayload::Damage { amount: 730 });
+        assert_eq!(events[0].payload, EventPayload::Damage { amount: 365 });
+        assert_eq!(events[1].target, Some(ObjectRef::new(ObjectKind::Unit, 3)));
+        assert_eq!(events[1].payload, EventPayload::Damage { amount: 365 });
+        assert!(matches!(
+            events[2].payload,
+            EventPayload::ProjectileRemoved { .. }
+        ));
+        assert_eq!(
+            [
+                simulation.actors[&2].last_damage_source,
+                simulation.actors[&3].last_damage_source,
+            ],
+            [
+                Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
+                Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
+            ]
+        );
     }
 
     #[test]
@@ -6442,7 +6772,7 @@ mod tests {
                 .buildings
                 .iter()
                 .filter(|building| building.team_id == 0)
-                .all(|building| building.alive && building.life == 3_400)
+                .all(|building| building_alive(building) && building.life.current == 3_400)
         );
     }
 
@@ -7347,7 +7677,10 @@ mod tests {
         actor.current_velocity_x_q32 = -198_556_428;
         actor.current_velocity_z_q32 = -30_061_443_202;
 
-        assert_eq!(visible_velocity(actor), (-46, -6_999));
+        assert_eq!(
+            snapshot_velocity_q32(actor),
+            (-198_556_428, -30_061_443_202)
+        );
     }
 
     #[test]
@@ -7468,11 +7801,14 @@ mod tests {
             if tick <= 7 {
                 assert_eq!((arclight.x, arclight.z), (initial.x, initial.z));
                 assert_eq!(arclight.body_rotation, initial.body_rotation);
-                assert_eq!(visible_velocity(arclight), (0, 0));
+                assert_eq!(snapshot_velocity_q32(arclight), (0, 0));
             } else if tick == 8 {
                 assert_eq!((arclight.x, arclight.z), (initial.x, initial.z));
                 assert_eq!(arclight.body_rotation, initial.body_rotation);
-                assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                assert_eq!(
+                    snapshot_velocity_q32(arclight),
+                    (-198_556_428, -30_061_443_202)
+                );
                 assert_eq!(
                     (
                         arclight.current_velocity_x_q32,
@@ -7617,14 +7953,26 @@ mod tests {
                 121 => {
                     assert_eq!(arclight.z, 61_150);
                     assert_eq!(arclight.motion, MotionState::Moving);
-                    assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                    assert_eq!(
+                        snapshot_velocity_q32(arclight),
+                        (
+                            arclight.current_velocity_x_q32,
+                            arclight.current_velocity_z_q32
+                        )
+                    );
                     tick_121_raw_position = Some((arclight.x_q32, arclight.z_q32));
                     tick_121_body_rotation = Some(arclight.body_rotation);
                 }
                 122 => {
                     assert_eq!(arclight.z, 60_800);
                     assert_eq!(arclight.motion, MotionState::Attacking);
-                    assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                    assert_eq!(
+                        snapshot_velocity_q32(arclight),
+                        (
+                            arclight.current_velocity_x_q32,
+                            arclight.current_velocity_z_q32
+                        )
+                    );
                     assert_eq!(
                         (arclight.next_target_x_q32, arclight.next_target_z_q32),
                         tick_121_raw_position.unwrap()
@@ -7637,7 +7985,13 @@ mod tests {
                     let expected_z = 60_800 - i64::try_from(tick - 122).unwrap() * 350;
                     assert_eq!(arclight.z, expected_z);
                     assert_eq!(arclight.motion, MotionState::Attacking);
-                    assert_eq!(visible_velocity(arclight), (-46, -6_999));
+                    assert_eq!(
+                        snapshot_velocity_q32(arclight),
+                        (
+                            arclight.current_velocity_x_q32,
+                            arclight.current_velocity_z_q32
+                        )
+                    );
                     if tick == 124 {
                         assert_eq!(arclight.published_speed_q32, space_to_q32(7_000));
                         assert_eq!(arclight.solver_speed_q32, 0);
@@ -7646,7 +8000,7 @@ mod tests {
                 128 => {
                     assert_eq!(arclight.z, 58_700);
                     assert_eq!(arclight.motion, MotionState::Attacking);
-                    assert_eq!(visible_velocity(arclight), (0, 0));
+                    assert_eq!(snapshot_velocity_q32(arclight), (0, 0));
                     assert_eq!(arclight.published_speed_q32, 0);
                 }
                 _ => {}

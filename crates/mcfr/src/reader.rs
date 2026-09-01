@@ -8,9 +8,10 @@ use crate::{
 };
 
 pub struct McfrReader {
+    game_build: String,
     context: DurableContext,
-    tick_count: u64,
-    terminal_tick: u64,
+    tick_count: u32,
+    terminal_tick: u32,
     hashes: Hashes,
     storage: StorageReader,
 }
@@ -24,23 +25,27 @@ impl McfrReader {
     /// Parquet tracks, or canonical hash mismatches.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let storage = StorageReader::open(path.as_ref())?;
+        let game_build = storage.metadata().game_build.clone();
         let context = storage.metadata().context.clone();
         let tick_count = storage.metadata().tick_count;
         let terminal_tick = storage.metadata().terminal_tick;
         let hashes = storage.metadata().hashes.clone();
         let reader = Self {
+            game_build,
             context,
             tick_count,
             terminal_tick,
             hashes,
             storage,
         };
-        if !reader.events(0)?.events.is_empty() {
-            return Err(Error::invalid("tick zero must have an empty event batch"));
-        }
         IdentityAllocator::from_initial(&reader.state(0)?)?;
         reader.validate_hashes()?;
         Ok(reader)
+    }
+
+    #[must_use]
+    pub fn game_build(&self) -> &str {
+        &self.game_build
     }
 
     #[must_use]
@@ -54,12 +59,12 @@ impl McfrReader {
     }
 
     #[must_use]
-    pub const fn tick_count(&self) -> u64 {
+    pub const fn tick_count(&self) -> u32 {
         self.tick_count
     }
 
     #[must_use]
-    pub const fn terminal_tick(&self) -> u64 {
+    pub const fn terminal_tick(&self) -> u32 {
         self.terminal_tick
     }
 
@@ -68,7 +73,7 @@ impl McfrReader {
     /// # Errors
     ///
     /// Returns an error when `tick` is out of range.
-    pub fn tick_hash(&self, tick: u64) -> Result<String> {
+    pub fn tick_hash(&self, tick: u32) -> Result<String> {
         Ok(canonical::hex(&self.storage.tick_hash(tick)?))
     }
 
@@ -77,7 +82,7 @@ impl McfrReader {
     /// # Errors
     ///
     /// Returns an error when `tick` is out of range or a stored value is malformed.
-    pub fn state(&self, tick: u64) -> Result<WorldSnapshot> {
+    pub fn state(&self, tick: u32) -> Result<WorldSnapshot> {
         let state = self.storage.state(tick)?;
         let mut normalized = state.clone();
         normalized.canonicalize();
@@ -93,7 +98,7 @@ impl McfrReader {
     fn validate_hashes(&self) -> Result<()> {
         let context = canonical::encode(&self.context)?;
         let initial = canonical::encode(&self.state(0)?)?;
-        let mut scenario = CanonicalHasher::new("scenario-0.0.1");
+        let mut scenario = CanonicalHasher::new("scenario-0.1.0");
         scenario.update(MCFR_FORMAT.as_bytes());
         scenario.update(&context);
         scenario.update(&initial);
@@ -109,7 +114,7 @@ impl McfrReader {
             usize::try_from(self.tick_count)
                 .map_err(|_| Error::invalid("tick count is too large"))?,
         );
-        for tick in 0..self.tick_count {
+        for tick in 1..=self.tick_count {
             let state = canonical::encode(&self.state(tick)?)?;
             let events = canonical::encode(&self.events(tick)?)?;
             let actual = canonical::tick_hash(tick, &state, &events);
@@ -136,7 +141,7 @@ impl McfrReader {
     /// # Errors
     ///
     /// Returns an error when `tick` is out of range or a stored value is malformed.
-    pub fn events(&self, tick: u64) -> Result<TransitionEvents> {
+    pub fn events(&self, tick: u32) -> Result<TransitionEvents> {
         self.storage.events(tick)
     }
 
@@ -145,7 +150,7 @@ impl McfrReader {
     /// # Errors
     ///
     /// Returns an error when `tick` is out of range or its data is malformed.
-    pub fn tick(&self, tick: u64) -> Result<TickSlice> {
+    pub fn tick(&self, tick: u32) -> Result<TickSlice> {
         Ok(TickSlice {
             tick,
             state: self.state(tick)?,
@@ -159,13 +164,11 @@ impl McfrReader {
     ///
     /// # Errors
     ///
-    /// Returns an error when the recordings have different durable contexts or an index cannot
-    /// be represented.
-    pub fn first_divergence(&self, other: &Self) -> Result<Option<u64>> {
+    /// Returns an error when the recordings have different scenarios or an index cannot be
+    /// represented.
+    pub fn first_divergence(&self, other: &Self) -> Result<Option<u32>> {
         if self.hashes.scenario_hash != other.hashes.scenario_hash {
-            return Err(Error::invalid(
-                "cannot compare first divergence for different durable contexts",
-            ));
+            return Err(Error::invalid("scenario_hash mismatch"));
         }
         for (index, (left, right)) in self
             .storage
@@ -176,14 +179,19 @@ impl McfrReader {
         {
             if left != right {
                 return Ok(Some(
-                    u64::try_from(index).map_err(|_| Error::invalid("tick index overflow"))?,
+                    u32::try_from(index + 1).map_err(|_| Error::invalid("tick index overflow"))?,
                 ));
             }
         }
         if self.tick_count == other.tick_count {
             Ok(None)
         } else {
-            Ok(Some(self.tick_count.min(other.tick_count)))
+            Ok(Some(
+                self.tick_count
+                    .min(other.tick_count)
+                    .checked_add(1)
+                    .ok_or_else(|| Error::invalid("tick index overflow"))?,
+            ))
         }
     }
 }

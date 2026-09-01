@@ -13,7 +13,7 @@ struct NativeRegression {
     game_build: String,
     format: String,
     seed: i32,
-    tick_count: u64,
+    tick_count: u32,
     scenario_hash: String,
     result_hash: String,
 }
@@ -34,8 +34,15 @@ fn native_regression(name: &str) -> NativeRegression {
         .unwrap_or_else(|| panic!("missing native MCFR regression {name}"))
 }
 
+fn current_native_regressions() -> Vec<NativeRegression> {
+    native_regressions()
+        .into_iter()
+        .filter(|regression| regression.format == mechcore_mcfr::MCFR_FORMAT)
+        .collect()
+}
+
 fn smoke_native_regressions() -> Vec<NativeRegression> {
-    let regressions = native_regressions();
+    let regressions = current_native_regressions();
     let mut smoke_counts = BTreeMap::<PathBuf, usize>::new();
     for regression in &regressions {
         smoke_counts.entry(regression.layout.clone()).or_default();
@@ -71,28 +78,26 @@ fn rhino_two_arclights_fixture() -> PathBuf {
 }
 
 #[test]
-fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_format_0_0_1() {
+fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_format_0_1_0() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
     let result =
         simulate_layout(rhino_two_arclights_fixture(), &output, Some(1_787_634_176)).unwrap();
     assert_eq!(result.winner, Some("blue"));
     assert_eq!(result.steps, 321);
-    // The accepted native recording uses an earlier format. These 0.0.1 hashes
-    // freeze the migrated simulator projection, while the tick/event checks
-    // below retain the reviewed native timeline. A new 0.0.1 native
-    // recording is still required before claiming current-format hash parity.
+    // The hashes and tick/event checks freeze this reviewed seed under the
+    // current MCFR projection.
     assert_eq!(
         result.hashes.scenario_hash,
-        "76ae8608f6d985b22352236e0a12f508bf32060b8c9a9b8e8823b6bb9568be0f"
+        "bc8b980bf9b9daf70237dc7710c7fecae5fb6222b84aea5bee93cffe572d47fd"
     );
     assert_eq!(
         result.hashes.result_hash,
-        "3965a850729ed82cf6ecf1e123a0dc71fb9d450eb076b9667b7d4ba9bac3758f"
+        "d8459e60290a0a23e4e123fab714af9400255ef91d1e27e25a65f59e509a7b4d"
     );
 
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 322);
+    assert_eq!(reader.tick_count(), 321);
     assert_eq!(
         reader
             .events(151)
@@ -106,9 +111,9 @@ fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_format_0_0_1() {
             ))
             .collect::<Vec<_>>(),
         [
-            (EventKind::Damage, None, Some(7)),
+            (EventKind::Damage, None, Some(2)),
             (EventKind::ProjectileRemoved, Some(7), Some(2)),
-            (EventKind::Damage, None, Some(6)),
+            (EventKind::Damage, None, Some(3)),
             (EventKind::ProjectileRemoved, Some(6), Some(3)),
         ]
     );
@@ -127,15 +132,12 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     assert!(!result.draw);
 
     let reader = McfrReader::open(&output).unwrap();
-    assert_eq!(reader.context().game_build, "1.11.1.3.2259");
+    assert_eq!(reader.game_build(), "1.11.1.3.2259");
     assert_eq!(reader.hashes(), &result.hashes);
-    assert_eq!(reader.terminal_tick(), result.steps);
+    assert_eq!(u64::from(reader.terminal_tick()), result.steps);
     let final_state = reader.state(reader.terminal_tick()).unwrap();
-    assert_eq!(
-        final_state.units.iter().filter(|unit| unit.alive).count(),
-        1
-    );
-    let event_kinds = (0..reader.tick_count())
+    assert_eq!(final_state.live_units.len(), 1);
+    let event_kinds = (1..=reader.tick_count())
         .flat_map(|tick| reader.events(tick).unwrap().events)
         .map(|event| event.kind())
         .collect::<Vec<_>>();
@@ -145,7 +147,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 }
 
 #[test]
-fn marksman_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
+fn marksman_vs_arclight_matches_the_format_0_1_0_build_2259_native_recording() {
     let regression = native_regression("marksman-vs-arclight");
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
@@ -164,7 +166,7 @@ fn marksman_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
-            .units
+            .live_units
             .iter()
             .all(|unit| unit.mech_lock_target.is_none())
     );
@@ -172,12 +174,12 @@ fn marksman_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
         terminal
             .buildings
             .iter()
-            .all(|building| building.life == 3_400 && building.alive && building.targetable)
+            .all(|building| building.life.current == 3_400 && building.targetable)
     );
 }
 
 #[test]
-fn rhino_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
+fn rhino_vs_arclight_matches_the_format_0_1_0_build_2259_native_recording() {
     let regression = native_regression("rhino-vs-arclight");
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
@@ -189,17 +191,23 @@ fn rhino_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
     .unwrap();
     assert_eq!(result.game_build, regression.game_build);
     assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, 235);
+    assert_eq!(result.steps, u64::from(regression.tick_count));
     assert_eq!(result.hashes.scenario_hash, regression.scenario_hash);
     assert_eq!(result.hashes.result_hash, regression.result_hash);
 
     let reader = McfrReader::open(output).unwrap();
     assert_eq!(regression.format, mechcore_mcfr::MCFR_FORMAT);
     assert_eq!(reader.tick_count(), regression.tick_count);
-    let direct_damage = (0..reader.tick_count())
+    let direct_damage = (1..=reader.tick_count())
         .flat_map(|tick| reader.events(tick).unwrap().events)
         .filter_map(|event| match event.payload {
-            EventPayload::Damage { amount } if event.source.is_none() => {
+            EventPayload::Damage { amount }
+                if event.source
+                    == Some(mechcore_mcfr::ObjectRef::new(
+                        mechcore_mcfr::ObjectKind::Unit,
+                        1,
+                    )) =>
+            {
                 Some((event.target.unwrap().id, amount))
             }
             _ => None,
@@ -210,7 +218,7 @@ fn rhino_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
-            .units
+            .live_units
             .iter()
             .all(|unit| unit.mech_lock_target.is_none())
     );
@@ -218,13 +226,12 @@ fn rhino_vs_arclight_matches_the_format_0_0_1_build_2259_native_recording() {
         terminal
             .buildings
             .iter()
-            .filter(|building| building.team_id == 1)
-            .all(|building| building.life == 0 && !building.alive && !building.targetable)
+            .all(|building| building.team_id != 1)
     );
 }
 
 #[test]
-fn rhino_retarget_matches_the_format_0_0_1_build_2259_native_recording() {
+fn rhino_retarget_matches_the_format_0_1_0_build_2259_native_recording() {
     let regression = native_regression("rhino-retarget");
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
@@ -246,7 +253,7 @@ fn rhino_retarget_matches_the_format_0_0_1_build_2259_native_recording() {
     let initial = reader.state(0).unwrap();
     assert_eq!(
         initial
-            .units
+            .live_units
             .iter()
             .map(|unit| (
                 unit.unit_id,
@@ -257,9 +264,9 @@ fn rhino_retarget_matches_the_format_0_0_1_build_2259_native_recording() {
             ))
             .collect::<Vec<_>>(),
         [
-            (1, 0, -284_800, -104_500, 358_447),
-            (2, 1, -290_200, 99_500, 178_447),
-            (3, 1, -190_300, 99_600, 204_857),
+            (1, 0, -1_223_206_685_902, -448_824_082_435, 0),
+            (2, 1, -1_246_399_509_298, 427_349_245_955, 773_094_113_280),
+            (3, 1, -817_332_276_427, 427_778_742_684, 773_094_113_280),
         ]
     );
 
@@ -267,7 +274,7 @@ fn rhino_retarget_matches_the_format_0_0_1_build_2259_native_recording() {
         reader
             .state(tick)
             .unwrap()
-            .units
+            .live_units
             .into_iter()
             .find(|unit| unit.unit_id == 1)
             .unwrap()
@@ -278,7 +285,7 @@ fn rhino_retarget_matches_the_format_0_0_1_build_2259_native_recording() {
     assert_eq!(rhino_motion(233), mechcore_mcfr::MotionState::Moving);
     assert_eq!(rhino_motion(308), mechcore_mcfr::MotionState::Attacking);
 
-    let direct_damage = (0..reader.tick_count())
+    let direct_damage = (1..=reader.tick_count())
         .flat_map(|tick| {
             reader
                 .events(tick)
@@ -286,7 +293,13 @@ fn rhino_retarget_matches_the_format_0_0_1_build_2259_native_recording() {
                 .events
                 .into_iter()
                 .filter_map(move |event| match event.payload {
-                    EventPayload::Damage { amount } if event.source.is_none() => {
+                    EventPayload::Damage { amount }
+                        if event.source
+                            == Some(mechcore_mcfr::ObjectRef::new(
+                                mechcore_mcfr::ObjectKind::Unit,
+                                1,
+                            )) =>
+                    {
                         Some((tick, event.target.unwrap().id, amount))
                     }
                     _ => None,
@@ -329,9 +342,8 @@ fn native_regression_smoke_hashes_match() {
 }
 
 #[test]
-#[ignore = "diagnostic only until MCFR v4 is complete; temporary failures are permitted"]
 fn native_regression_full_hashes_match() {
-    assert_native_regression_hashes(native_regressions());
+    assert_native_regression_hashes(current_native_regressions());
 }
 
 #[test]

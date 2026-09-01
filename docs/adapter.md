@@ -162,7 +162,8 @@ that following update therefore captures a completed render of the pending MCFR 
 the state being advanced.
 The normal screen-space UI is included. The terminal snapshot is not returned until its completed
 render has also been captured. Frames are JPEG-encoded and written as a QuickTime Motion JPEG stream
-whose sample duration equals `D.logic_step`; frame count must equal MCFR tick count. Screen and camera
+whose sample duration equals `D.logic_step`; frame count must equal MCFR tick count plus the `S(0)`
+frame. Screen and camera
 controller state and the original target frame rate are restored after terminal capture or failure,
 and partial media remains unpublished.
 The result reports `view`, `projection`, camera position/rotation, and field of view alongside the media
@@ -170,20 +171,56 @@ dimensions so a renderer can reconstruct the same world-to-screen calibration.
 
 The operation is valid only after layout completion in Training Ground deployment. It arms native
 capture, starts combat, records `S(0)` before the first combat update, and captures every subsequent
-`FightController.Update` boundary through the unique fighting-to-over transition. The adapter calls
-`mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file structurally, and returns
-the state/transition counts and all formal hashes.
+`FightController.Update` boundary through the unique fighting-to-over transition. When video capture
+is disabled, the adapter calls native `RequestSpeedUp` once on the first update that reports
+`IsFighting=true`; requesting it during the preceding process-state transition is too early and has no
+lasting effect. It calls `mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file
+structurally, and returns the state/transition counts and all formal hashes.
 
 Projectile release/removal and damage use narrow native hooks so objects created and removed inside
 one logic step remain in `E`. The release hook records the native projectile, owner and target; the
-removal hook additionally records position and the native `intercepted` argument; the damage hook
-records the positive `DamagePerformer.Perform` return value and its native provider and target.
-Events are never synthesized from adjacent snapshots.
+removal hook additionally records position and the native `intercepted` argument. During
+`DamagePerformer.Perform`, the Adapter scopes the native provider attribution. Each
+`FightController.OnActorHitted(HitDamageInfo)` then records one actor target and its positive
+`damageReal`; `FightActor.ReduceLife(HitDamageInfo)` scopes that same attribution around synchronous
+death processing. Battlefield Shield damage is recorded per actual Shield result. The same native
+chain attaches the Shield reference to the subsequent projectile removal as `absorbed_by`.
 
-The current native snapshot closure directly reads units, projectiles, buildings, personal shields,
-and BuffManager statuses. Area shields and dynamic terrain are outside the baseline schema until a
-complete direct native capture path is implemented; their presence does not make an otherwise
-capturable recording fail. The same rule applies to future instrumentation channels.
+The current native snapshot closure directly reads units, projectiles, the alive `FightCrystal` union
+from every FightTeam's towers, buildings, and constructions, battlefield shields from
+`AdvancedEnergyShieldSystem`, dynamic battlefield terrain from `RangeItemSystem`, personal shields, the four native status bits, the three
+numeric-modifier channels, and every weapon of every entry returned by `FightMech.GetSkills()`.
+Modifier getters are read in full and fail the recording on error; MCFR persistence then encodes
+successfully read zero values as nullable sparse fields whose semantic default is no modifier.
+Neutral map crystals registered only in `BuildingSystem` are outside the Building domain; their
+`FightCrystal.OnDead` calls do not emit `building_destroyed`.
+
+Battlefield shields are the independent `FightEnergyShield` objects managed by
+`AdvancedEnergyShieldSystem`; a unit's `EnergyShieldController` remains the `personal_shield`
+component of its Unit row. The Adapter obtains each Training Ground side's `IFightGroup` through
+`FightTeam.GetFightGroup()` and reads both the full shield list and the active list. It persists
+`active` and the nullable active-list index `active_order`, because runtime
+reactivation appends an object and can change the interception order independently of Shield ID.
+Unknown shield data-source classes, inconsistent active-list membership, dangling projectile birth
+containment references, and reused retired shield pointers fail the recording. Shield lifecycle
+events are generated from authoritative changes in full-list membership at consecutive native
+snapshot boundaries; the current removal source proves destruction but not a narrower cause, so
+`shield_destroyed.reason` is `unknown`.
+
+Dynamic terrain is enumerated by the six native `RangeItemType` controllers. A controller or item
+list that has not been instantiated contributes an empty collection; each member returned by
+`RangeItemController.GetItems()` is active and receives a stable Terrain ID. The Adapter reads its
+team, type, position, radius, optional grid mask, optional cross-round remainder, optional logic
+lifetime, and the controller's direct unit applications. `affectedUnits` is joined to Unit IDs;
+`affectedUnitTimes` and positive `effectTimeDuration` provide an optional periodic clock.
+Terrain creation and removal events follow authoritative item-list membership changes at consecutive
+snapshot boundaries. Removed pointers are tombstoned, and the current removal source records
+`terrain_removed.reason=unknown`.
+
+Native build `1.11.1.3.2259` capture coverage includes `oil`, `fire`, `acid`, and `fog` battle-skill
+layouts. In those recordings all four terrain types were present in `terrains.parquet` and their
+application lists referenced the affected enemy units. Oil populated the sparse
+`remaining_rounds` field; fire, acid, and fog used null.
 
 ### quit_match
 
