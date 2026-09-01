@@ -653,6 +653,7 @@ dependencies = [
  "arrow-schema",
  "blake3",
  "bytes",
+ "mechcore-layout",
  "parquet",
  "rust-hdf5",
  "serde",

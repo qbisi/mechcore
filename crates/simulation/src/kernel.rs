@@ -4337,9 +4337,10 @@ pub(crate) fn run(
     seed: i32,
     seed_source: &'static str,
     output: Option<&Path>,
+    replay_layout: &str,
 ) -> Result<SimulationResult> {
     let generation_started = Instant::now();
-    let execution = execute(layout, config, seed, output, None)?;
+    let execution = execute(layout, config, seed, output, None, Some(replay_layout))?;
     let Execution {
         simulation,
         writer,
@@ -4415,7 +4416,7 @@ pub(crate) fn compare(
             config.game_build
         )));
     }
-    let execution = execute(layout, config, seed, None, Some(recording))?;
+    let execution = execute(layout, config, seed, None, Some(recording), None)?;
     let Execution {
         writer,
         steps,
@@ -4474,6 +4475,7 @@ fn execute(
     seed: i32,
     output: Option<&Path>,
     recording: Option<&McfrReader>,
+    replay_layout: Option<&str>,
 ) -> Result<Execution> {
     let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
     let context = DurableContext {
@@ -4491,7 +4493,18 @@ fn execute(
     let mut simulation =
         Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
     let mut writer = match output {
-        Some(path) => McfrWriter::create(path, &config.game_build, &context)?,
+        Some(path) => {
+            let mut replay_layout = mechcore_layout::parse_yaml(
+                replay_layout
+                    .ok_or_else(|| Error::new("output MCFR requires a replay layout"))?
+                    .as_bytes(),
+            )
+            .map_err(Error::new)?;
+            replay_layout.seed = seed;
+            let replay_layout =
+                mechcore_layout::canonical_yaml(replay_layout).map_err(Error::new)?;
+            McfrWriter::create(path, &config.game_build, &context, &replay_layout)?
+        }
         None => McfrWriter::hash_only(&context)?,
     };
     writer.set_initial_state(simulation.snapshot())?;

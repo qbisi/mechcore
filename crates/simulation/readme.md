@@ -26,7 +26,7 @@ full 门禁覆盖当前格式的全部 manifest 条目，包含 smoke 条目。
 `profiling.generation_duration_milliseconds` 统计从初始化战斗到完成 hash 生成的现实时间；
 指定输出时还包含 MCFR 序列化与结构校验。`profiling.simulation_to_real_time_rate` 是模拟
 战斗时长除以该现实时间。生成文件时，`file_size_bytes` 记录 MCFR 容器大小，
-`member_sizes_bytes` 分别记录其中 `ticks.parquet`、五个状态 Parquet 和
+`member_sizes_bytes` 分别记录其中 `layout.yaml`、`ticks.parquet`、五个状态 Parquet 和
 `events.jsonl` 的字节数。
 
 ## 直接对比原生录像
@@ -35,13 +35,12 @@ full 门禁覆盖当前格式的全部 manifest 条目，包含 smoke 条目。
 mechcore sim compare work/captures/*.mcfr
 ```
 
-命令按每份录像的 `scenario_hash` 在 `tests/mcfr-regressions.yaml` 中唯一确定 layout
-和 seed，然后在内存中逐 tick 生成 Simulator 的规范化状态、事件和 `tick_hash`。
+命令直接读取每份录像内嵌的 `layout.yaml` 和 seed，然后在内存中逐 tick 生成 Simulator
+的规范化状态、事件和 `tick_hash`。
 比较在首个 hash 不同或一侧缺失的 tick 停止，JSON 同时返回该 tick 的
 `recording` 与 `simulation` 数据；全程不生成 Simulator MCFR。多个输入逐份返回结果，
-任一录像存在差异时进程退出码为非零。可用 `--manifest` 指定其它回归清单，用
-`--config` 指定外部 Simulator 配置目录。录像、清单与 Simulator 的
-`game_build` 以及模拟得到的 `scenario_hash` 必须一致。提前停止时
+任一录像存在差异时进程退出码为非零。可用 `--config` 指定外部 Simulator 配置目录。
+录像与 Simulator 的 `game_build` 以及模拟得到的 `scenario_hash` 必须一致。提前停止时
 `simulation.complete=false`，其 `tick_count` 表示已经生成并比较到的 tick 数量。
 
 ## 机制与数值的证据门禁

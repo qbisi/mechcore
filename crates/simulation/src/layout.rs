@@ -27,15 +27,18 @@ pub(crate) struct CompiledLayout {
     pub(crate) placements: Vec<Placement>,
 }
 
-pub(crate) fn load(path: &Path, units: &UnitConfigs) -> Result<(i32, CompiledLayout)> {
+pub(crate) fn load(path: &Path, units: &UnitConfigs) -> Result<(i32, CompiledLayout, String)> {
     let bytes = fs::read(path)
         .map_err(|error| Error::new(format!("failed to read {}: {error}", path.display())))?;
-    compile_with_seed(&bytes, units).map_err(|error| {
+    let (seed, layout) = compile_with_seed(&bytes, units).map_err(|error| {
         Error::new(format!(
             "cannot simulate layout {}: {error}",
             path.display()
         ))
-    })
+    })?;
+    let parsed = mechcore_layout::parse_yaml(&bytes).map_err(Error::new)?;
+    let canonical = mechcore_layout::canonical_yaml(parsed).map_err(Error::new)?;
+    Ok((seed, layout, canonical))
 }
 
 #[cfg(test)]
@@ -43,9 +46,11 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
     compile_with_seed(bytes, units).map(|(_, layout)| layout)
 }
 
-fn compile_with_seed(bytes: &[u8], units: &UnitConfigs) -> Result<(i32, CompiledLayout)> {
-    let layout: mechcore_layout::Layout = serde_yaml::from_slice(bytes)
-        .map_err(|error| Error::new(format!("invalid layout YAML: {error}")))?;
+pub(crate) fn compile_with_seed(
+    bytes: &[u8],
+    units: &UnitConfigs,
+) -> Result<(i32, CompiledLayout)> {
+    let layout = mechcore_layout::parse_yaml(bytes).map_err(Error::new)?;
     let plan = mechcore_layout::compile_layout(layout).map_err(Error::new)?;
     let mut placements = compile_side("blue", 0, &plan.blue, units)?;
     placements.extend(compile_side("red", 1, &plan.red, units)?);

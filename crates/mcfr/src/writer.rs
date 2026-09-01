@@ -18,6 +18,7 @@ pub struct McfrWriter {
     temporary: Option<TempPath>,
     storage: Option<StorageWriter>,
     game_build: Option<String>,
+    layout_yaml: Option<String>,
     context_bytes: Vec<u8>,
     initial_state_bytes: Option<Vec<u8>>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
@@ -36,6 +37,7 @@ impl McfrWriter {
         path: impl AsRef<Path>,
         game_build: &str,
         context: &DurableContext,
+        layout_yaml: &str,
     ) -> Result<Self> {
         let target = path.as_ref().to_path_buf();
         if target.exists() {
@@ -50,6 +52,22 @@ impl McfrWriter {
             return Err(Error::invalid("game_build must not be empty"));
         }
         context.validate()?;
+        let layout =
+            mechcore_layout::parse_embedded_yaml(layout_yaml.as_bytes()).map_err(Error::invalid)?;
+        if layout.seed != context.match_seed {
+            return Err(Error::invalid(format!(
+                "layout seed {} differs from durable context match_seed {}",
+                layout.seed, context.match_seed
+            )));
+        }
+        if u32::try_from(layout.round).ok() != Some(context.combat_round) {
+            return Err(Error::invalid(format!(
+                "layout round {} differs from durable context combat_round {}",
+                layout.round, context.combat_round
+            )));
+        }
+        let layout_yaml =
+            mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
         let context_bytes = canonical::encode(context)?;
         let temporary = tempfile::Builder::new()
             .prefix(".mcfr-")
@@ -62,6 +80,7 @@ impl McfrWriter {
             temporary: Some(temporary),
             storage: Some(storage),
             game_build: Some(game_build.to_owned()),
+            layout_yaml: Some(layout_yaml),
             context_bytes,
             initial_state_bytes: None,
             tick_hashes: Vec::new(),
@@ -81,6 +100,7 @@ impl McfrWriter {
             temporary: None,
             storage: None,
             game_build: None,
+            layout_yaml: None,
             context_bytes: canonical::encode(context)?,
             initial_state_bytes: None,
             tick_hashes: Vec::new(),
@@ -179,11 +199,15 @@ impl McfrWriter {
             .game_build
             .as_deref()
             .ok_or_else(|| Error::invalid("writer game build is unavailable"))?;
+        let layout_yaml = self
+            .layout_yaml
+            .as_deref()
+            .ok_or_else(|| Error::invalid("writer layout is unavailable"))?;
         let temporary = self
             .temporary
             .as_ref()
             .ok_or_else(|| Error::invalid("writer temporary output is unavailable"))?;
-        let directory = storage.finish(game_build, &self.context_bytes, &hashes)?;
+        let directory = storage.finish(game_build, &self.context_bytes, layout_yaml, &hashes)?;
         parquet_storage::package_members(directory.path(), temporary)?;
         let verified = McfrReader::open(temporary)?;
         if verified.hashes() != &hashes {

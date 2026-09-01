@@ -57,6 +57,12 @@ impl McfrReader {
         &self.context
     }
 
+    /// Returns the canonical replay layout embedded in the container.
+    #[must_use]
+    pub fn layout_yaml(&self) -> &str {
+        self.storage.layout_yaml()
+    }
+
     #[must_use]
     pub const fn hashes(&self) -> &Hashes {
         &self.hashes

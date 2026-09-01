@@ -14,6 +14,8 @@ use mechcore_mcfr::{
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
 
+const LAYOUT_YAML: &str = "seed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
+
 #[test]
 fn writes_and_reads_v4_tracks() {
     let directory = tempfile::tempdir().unwrap();
@@ -35,19 +37,27 @@ fn writes_and_reads_v4_tracks() {
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
+    assert_eq!(reader.layout_yaml(), LAYOUT_YAML);
     assert_eq!(reader.hashes(), &hashes);
     assert_eq!(
         reader.file_size_bytes(),
         std::fs::metadata(&path).unwrap().len()
     );
-    assert_eq!(reader.member_sizes_bytes().len(), 7);
+    assert_eq!(reader.member_sizes_bytes().len(), 8);
     assert!(reader.member_sizes_bytes().values().all(|size| *size > 0));
     assert_eq!(reader.state(0).unwrap(), initial);
     assert_eq!(reader.state(1).unwrap(), final_state);
     assert_eq!(reader.events(1).unwrap(), events);
 
     let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
-    assert_eq!(archive.len(), 7);
+    assert_eq!(archive.len(), 8);
+    {
+        let mut entry = archive.by_name("layout.yaml").unwrap();
+        assert_eq!(entry.compression(), zip::CompressionMethod::Stored);
+        let mut layout = String::new();
+        entry.read_to_string(&mut layout).unwrap();
+        assert_eq!(layout, LAYOUT_YAML);
+    }
     for name in [
         "ticks.parquet",
         "units.parquet",
@@ -134,12 +144,73 @@ fn game_build_metadata_preserves_scenario_hashes() {
 }
 
 #[test]
+fn embedded_layout_is_not_a_hash_input() {
+    const OTHER_LAYOUT: &str = "seed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 20\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
+    let directory = tempfile::tempdir().unwrap();
+    let events = damage_events();
+    let left = write_battle(
+        &directory.path().join("left.mcfr"),
+        "build-a",
+        &context(),
+        state(100),
+        state(75),
+        &events,
+    );
+    let path = directory.path().join("right.mcfr");
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), OTHER_LAYOUT).unwrap();
+    writer.set_initial_state(state(100)).unwrap();
+    writer.append_tick(state(75), &events).unwrap();
+    let right = writer.finish().unwrap();
+    assert_eq!(left, right);
+    assert_eq!(McfrReader::open(path).unwrap().layout_yaml(), OTHER_LAYOUT);
+}
+
+#[test]
+fn embedded_layout_preserves_adapter_optional_field_gaps() {
+    const PARTIAL_LAYOUT: &str = "seed: 42\nround: 2\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: -310\n      y: 20\n  red:\n    formations:\n    - type: arclight\n      x: -310\n      y: 20\n";
+    assert!(mechcore_layout::parse_yaml(PARTIAL_LAYOUT.as_bytes()).is_err());
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("partial-layout.mcfr");
+    let context = DurableContext {
+        combat_round: 2,
+        ..context()
+    };
+    let mut writer = McfrWriter::create(&path, "build-a", &context, PARTIAL_LAYOUT).unwrap();
+    writer.set_initial_state(state(100)).unwrap();
+    writer
+        .append_tick(state(75), &TransitionEvents { events: Vec::new() })
+        .unwrap();
+    writer.finish().unwrap();
+    assert_eq!(
+        McfrReader::open(path).unwrap().layout_yaml(),
+        PARTIAL_LAYOUT
+    );
+}
+
+#[test]
+fn writer_rejects_initial_formation_ids_outside_zx_first_appearance_order() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("invalid-formations.mcfr");
+    let mut invalid = state(100);
+    invalid.live_units[0].formation_id = 2;
+    invalid.live_units[1].formation_id = 1;
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let error = writer.set_initial_state(invalid).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("first appearance in unit identity order")
+    );
+    assert!(!path.exists());
+}
+
+#[test]
 fn writer_rejects_reserved_status_bits() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid.mcfr");
     let mut invalid = state(100);
     invalid.live_units[0].status_mask = 1 << 4;
-    let mut writer = McfrWriter::create(&path, "build-a", &context()).unwrap();
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(writer.set_initial_state(invalid).is_err());
     assert!(!path.exists());
 }
@@ -148,7 +219,7 @@ fn writer_rejects_reserved_status_bits() {
 fn writer_rejects_partial_projectile_channel() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-event.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context()).unwrap();
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
     writer.set_initial_state(state(100)).unwrap();
     let events = TransitionEvents {
         events: vec![Event {
@@ -216,7 +287,7 @@ fn shield_events_and_projectile_absorption_round_trip() {
 fn writer_rejects_terrain_created_source() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-terrain-source.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context()).unwrap();
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
     writer.set_initial_state(state(100)).unwrap();
     let events = TransitionEvents {
         events: vec![Event {
@@ -295,7 +366,7 @@ fn writer_rejects_inconsistent_shield_active_order() {
     let path = directory.path().join("invalid-shield.mcfr");
     let mut invalid = state(100);
     invalid.shields[0].active_order = None;
-    let mut writer = McfrWriter::create(&path, "build-a", &context()).unwrap();
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(writer.set_initial_state(invalid).is_err());
     assert!(!path.exists());
 }
@@ -321,7 +392,7 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
         },
         spawn_containing_shields: vec![ObjectRef::new(ObjectKind::Building, 1)],
     });
-    let mut writer = McfrWriter::create(&path, "build-a", &context()).unwrap();
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(writer.set_initial_state(invalid).is_err());
     assert!(!path.exists());
 }
@@ -368,7 +439,7 @@ fn write_battle(
     final_state: WorldSnapshot,
     events: &TransitionEvents,
 ) -> Hashes {
-    let mut writer = McfrWriter::create(path, game_build, context).unwrap();
+    let mut writer = McfrWriter::create(path, game_build, context, LAYOUT_YAML).unwrap();
     writer.set_initial_state(initial).unwrap();
     writer.append_tick(final_state, events).unwrap();
     writer.finish().unwrap()

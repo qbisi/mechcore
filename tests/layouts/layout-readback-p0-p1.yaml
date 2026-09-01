@@ -1,0 +1,69 @@
+round: 2
+
+sides:
+  blue:
+    techs:
+      officers: [32101]
+      units: [1802, 110211]
+
+    research_center:
+      strength_level: 2
+      attack_level: 2
+      defense_level: 1
+
+    energy_tower:
+      strength_level: 1
+      range_enhancement: true
+      movement_enhancement: true
+
+    formations:
+      - type: arclight
+        x: 100
+        y: -80
+
+      - type: sabertooth
+        x: -205
+        y: -295
+        equipment: 1305003
+
+      - type: crawler
+        x: 310
+        y: 285
+        travelling: true
+
+      # Declared after Arclight at the same y to distinguish native z/x order
+      # from YAML declaration order in the formation_id audit.
+      - type: mustang
+        x: -275
+        y: -80
+
+      - type: rapid_fire_turret
+        x: 140
+        y: -140
+
+    contraptions:
+      - type: shield
+        x: 180
+        y: -120
+      - type: missile
+        x: 0
+        y: -20
+      - type: interceptor
+        x: -105
+        y: -105
+
+    battle_skills:
+      - type: sticky_oil_bomb
+        positions:
+          - {x: -60, y: 40}
+          - {x: 60, y: 40}
+
+  red:
+    formations:
+      - type: steel_ball
+        x: -205
+        y: -100
+
+      - type: anti_armor_turret
+        x: 140
+        y: -140

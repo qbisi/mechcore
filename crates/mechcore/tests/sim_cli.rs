@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, process::Command};
 
-use mechcore_mcfr::{MCFR_FORMAT, McfrReader, McfrWriter};
+use mechcore_mcfr::{McfrReader, McfrWriter};
 
 #[test]
 fn sim_command_writes_mcfr_and_prints_the_result() {
@@ -35,7 +35,7 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
             .as_object()
             .unwrap()
             .len(),
-        7
+        8
     );
     McfrReader::open(output).unwrap();
 }
@@ -83,7 +83,6 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     let directory = tempfile::tempdir().unwrap();
     let recording_path = directory.path().join("equal.mcfr");
     let divergent_path = directory.path().join("divergent.mcfr");
-    let manifest = directory.path().join("regressions.yaml");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/layouts/marksman-vs-arclight.yaml");
     let config = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config");
@@ -105,8 +104,13 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     );
 
     let recording = McfrReader::open(&recording_path).unwrap();
-    let mut writer =
-        McfrWriter::create(&divergent_path, recording.game_build(), recording.context()).unwrap();
+    let mut writer = McfrWriter::create(
+        &divergent_path,
+        recording.game_build(),
+        recording.context(),
+        recording.layout_yaml(),
+    )
+    .unwrap();
     writer
         .set_initial_state(recording.state(0).unwrap())
         .unwrap();
@@ -124,17 +128,6 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     );
     assert_ne!(divergent_hashes.result_hash, recording.hashes().result_hash);
 
-    fs::write(
-        &manifest,
-        format!(
-            "- name: cli-test\n  layout: {}\n  game_build: {}\n  format: {}\n  seed: 7\n  scenario_hash: {}\n",
-            layout.display(),
-            recording.game_build(),
-            MCFR_FORMAT,
-            recording.hashes().scenario_hash,
-        ),
-    )
-    .unwrap();
     drop(recording);
 
     let compared = Command::new(env!("CARGO_BIN_EXE_mechcore"))
@@ -142,8 +135,6 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
         .arg("compare")
         .arg(&recording_path)
         .arg(&divergent_path)
-        .arg("--manifest")
-        .arg(&manifest)
         .arg("--config")
         .arg(&config)
         .output()

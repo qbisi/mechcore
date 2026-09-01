@@ -3,6 +3,11 @@ use crate::{
     runtime::Runtime,
 };
 use jpeg_encoder::{ColorType, Encoder};
+use mechcore_layout::{
+    BattleSkillDefinition, Contraption, EnergyTower, Formation, Layout, Position, ResearchCenter,
+    Side, Sides, Techs, battle_skill_type_from_id, canonical_embedded_yaml,
+    construction_type_from_id, contraption_type_from_id, unit_type_from_id,
+};
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
     LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPose,
@@ -31,6 +36,10 @@ const CAPTURE_WIDTH: u16 = 2_560;
 const CAPTURE_HEIGHT: u16 = 1_600;
 const CAPTURE_FRAME_RATE: i32 = 20;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
+const ENERGY_TOWER_KIND: i32 = 1;
+const RESEARCH_CENTER_KIND: i32 = 2;
+const RANGE_ENHANCEMENT_SKILL: i32 = 5;
+const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
 pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 1_070.0;
 pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
@@ -404,6 +413,13 @@ struct UnityVec2Int {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
+struct MapVector {
+    x: i32,
+    y: i32,
+}
+
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct UnityRect {
     x: f32,
@@ -417,6 +433,7 @@ pub(crate) enum CaptureMessage {
     Initial {
         game_build: String,
         context: DurableContext,
+        layout_yaml: String,
         state: WorldSnapshot,
         instrumentation: Option<CaptureInstrumentationObservation>,
         frame: Option<Vec<u8>>,
@@ -435,6 +452,7 @@ enum PendingVisualMessage {
     Initial {
         game_build: String,
         context: DurableContext,
+        layout_yaml: String,
         state: WorldSnapshot,
         instrumentation: Option<CaptureInstrumentationObservation>,
     },
@@ -661,6 +679,7 @@ struct CaptureState {
     speed_up_requested: bool,
     last_native_tick: Option<u64>,
     native_tick_step: Option<u64>,
+    deployment_layout_yaml: Option<String>,
     queue: VecDeque<CaptureMessage>,
     unit_ids: BTreeMap<usize, u64>,
     building_ids: BTreeMap<usize, u64>,
@@ -718,6 +737,7 @@ impl CaptureState {
         self.speed_up_requested = false;
         self.last_native_tick = None;
         self.native_tick_step = None;
+        self.deployment_layout_yaml = None;
         self.instrumentation_profile = None;
         self.queue.clear();
         self.unit_ids.clear();
@@ -2011,7 +2031,10 @@ pub(crate) fn start(
     if current_match.is_null() {
         return Err("active match disappeared before recording started".into());
     }
+    let (_, context) = recording_context(runtime)?;
+    let layout_yaml = read_native_layout(runtime, &context)?;
     state.reset_session();
+    state.deployment_layout_yaml = Some(layout_yaml);
     RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
     RVO_SOURCE_CALL_ORDINAL.store(0, Ordering::Release);
     RVO_VO_CALL_ORDINAL.store(0, Ordering::Release);
@@ -3379,6 +3402,10 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
         let result = (|| {
             let initial = snapshot(runtime, &mut state, true)?;
             let (game_build, context) = recording_context(runtime)?;
+            let layout_yaml = state
+                .deployment_layout_yaml
+                .take()
+                .ok_or_else(|| "deployment layout disappeared before initial capture".to_owned())?;
             state.initialized = true;
             state.last_native_tick = Some(initial.native_tick);
             if let Some(visual) = state.visual.as_ref() {
@@ -3387,6 +3414,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 state.pending_visual = Some(PendingVisualMessage::Initial {
                     game_build,
                     context,
+                    layout_yaml,
                     state: initial.world,
                     instrumentation: initial.instrumentation,
                 });
@@ -3396,6 +3424,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 state.push(CaptureMessage::Initial {
                     game_build,
                     context,
+                    layout_yaml,
                     state: initial.world,
                     instrumentation: initial.instrumentation,
                     frame: None,
@@ -3633,11 +3662,13 @@ fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
         PendingVisualMessage::Initial {
             game_build,
             context,
+            layout_yaml,
             state: world,
             instrumentation,
         } => state.push(CaptureMessage::Initial {
             game_build,
             context,
+            layout_yaml,
             state: world,
             instrumentation,
             frame: Some(frame),
@@ -4331,6 +4362,468 @@ struct CapturedSnapshot {
     native_tick: u64,
     world: WorldSnapshot,
     instrumentation: Option<CaptureInstrumentationObservation>,
+}
+
+/// Reads the replay layout from the match's deployment objects before entering combat.
+///
+/// This deliberately does not consume the just-captured `WorldSnapshot`: `CardElement` and
+/// `ConstructionElement` retain the side-local placement, level, rotation and equipment data
+/// that the fight representation no longer exposes directly. The caller caches the resulting
+/// YAML before `Match.ChangeProcessState` consumes the deployment state.
+fn read_native_layout(runtime: &Runtime, context: &DurableContext) -> Result<String, String> {
+    let current = runtime.current_match();
+    if current.is_null() {
+        return Err("active match disappeared while reading the embedded layout".into());
+    }
+    let player_manager = invoke_object(runtime.api, current, "GetPlayerManager")
+        .map_err(|error| format!("Match.GetPlayerManager: {error}"))?;
+    let controllers = invoke_object(runtime.api, player_manager, "GetPlayerControllers")?;
+    let super_deployment =
+        find_match_module(runtime.api, current, "GameRiver", "SuperDeploymentSystem")?;
+    let round = i32::try_from(context.combat_round)
+        .map_err(|_| format!("round {} exceeds layout range", context.combat_round))?;
+    let mut sides: [Option<Side>; 2] = [None, None];
+    for index in 0..list_count(runtime.api, controllers, 32)? {
+        let player_controller = list_item(runtime.api, controllers, index)?;
+        let team = invoke_value::<i32>(runtime.api, player_controller, "GetTeamIndex")?;
+        let team = usize::try_from(team).map_err(|_| "negative native team index".to_owned())?;
+        if team >= sides.len() {
+            return Err(format!("unsupported native team index {team}"));
+        }
+        if sides[team].is_some() {
+            return Err(format!("duplicate native team index {team}"));
+        }
+        sides[team] = Some(
+            read_native_side(runtime.api, player_controller, super_deployment, team)
+                .map_err(|error| format!("team {team}: {error}"))?,
+        );
+    }
+    let layout = Layout {
+        seed: context.match_seed,
+        round,
+        sides: Sides {
+            blue: sides[0]
+                .take()
+                .ok_or_else(|| "native layout has no blue side".to_owned())?,
+            red: sides[1]
+                .take()
+                .ok_or_else(|| "native layout has no red side".to_owned())?,
+        },
+    };
+    canonical_embedded_yaml(layout).map_err(|error| format!("cannot encode native layout: {error}"))
+}
+
+fn read_native_side(
+    api: Api,
+    controller: *mut Object,
+    super_deployment: *mut Object,
+    team: usize,
+) -> Result<Side, String> {
+    let unit_manager = invoke_object(api, controller, "GetUnitManager")?;
+    let elements = invoke_object(api, unit_manager, "GetUnits")?;
+    let unit_count = list_count(api, elements, 10_000)?;
+    let mut indexed_units = Vec::with_capacity(
+        usize::try_from(unit_count).map_err(|_| "negative native unit count".to_owned())?,
+    );
+    for index in 0..unit_count {
+        let unit = list_item(api, elements, index)?;
+        let native_id = invoke_value::<i32>(api, unit, "GetID")?;
+        let (type_name, _) = unit_type_from_id(native_id)
+            .ok_or_else(|| format!("unknown build-2259 unit type ID {native_id}"))?;
+        let native_level = invoke_value::<i32>(api, unit, "GetLevel")?;
+        let displayed_level = native_level
+            .checked_add(1)
+            .ok_or_else(|| format!("unit type {native_id} level overflow"))?;
+        let map_element = invoke_object(api, unit, "GetMapElement")?;
+        let position = invoke_value::<MapVector>(api, map_element, "GetPosition")?;
+        let rotated = invoke_value::<bool>(api, map_element, "IsRotate")?;
+        let equipment = api
+            .invoke(unit, "GetEquipment", &mut [])
+            .map_err(|error| error.to_string())?;
+        let equipment = if equipment.is_null() {
+            None
+        } else {
+            Some(invoke_value::<i32>(api, equipment, "GetID")?)
+        };
+        let travelling = api
+            .invoke_value::<bool>(
+                super_deployment,
+                "IsTravellingUnit",
+                &mut [object_argument(unit)],
+            )
+            .map_err(|error| error.to_string())?;
+        let (x, y) = side_local_position(position, team)?;
+        let native_index = api
+            .invoke_value::<i32>(unit_manager, "GetUnitIndex", &mut [object_argument(unit)])
+            .map_err(|error| error.to_string())?;
+        indexed_units.push((
+            native_index,
+            Formation {
+                type_name: type_name.to_owned(),
+                x,
+                y,
+                level: Some(displayed_level),
+                rotated: Some(rotated),
+                equipment,
+                travelling: Some(travelling),
+            },
+        ));
+    }
+    indexed_units.sort_by_key(|(index, _)| *index);
+    for (expected, (native_index, _)) in indexed_units.iter().enumerate() {
+        let expected = i32::try_from(expected).map_err(|_| "unit index overflow".to_owned())?;
+        if *native_index != expected {
+            return Err(format!(
+                "native unit indices must be contiguous from zero; expected {expected}, found {native_index}"
+            ));
+        }
+    }
+    let mut formations = indexed_units
+        .into_iter()
+        .map(|(_, formation)| formation)
+        .collect::<Vec<_>>();
+
+    let construction_manager = invoke_object(api, controller, "GetConstructionManager")?;
+    let constructions = invoke_object(api, construction_manager, "GetConstructionElements")?;
+    for index in 0..list_count(api, constructions, 10_000)? {
+        let construction = list_item(api, constructions, index)?;
+        let data = invoke_object(api, construction, "GetConstructionData")?;
+        let native_id = invoke_value::<i32>(api, data, "GetID")?;
+        let (type_name, _) = construction_type_from_id(native_id)
+            .ok_or_else(|| format!("unknown build-2259 construction type ID {native_id}"))?;
+        let position = invoke_value::<MapVector>(api, construction, "GetPosition")?;
+        let (x, y) = side_local_position(position, team)?;
+        formations.push(Formation {
+            type_name: type_name.to_owned(),
+            x,
+            y,
+            level: None,
+            rotated: None,
+            equipment: None,
+            travelling: None,
+        });
+    }
+
+    Ok(Side {
+        techs: Techs {
+            officers: read_native_officers(api, controller)?,
+            units: read_native_unit_technologies(api, controller)?,
+        },
+        research_center: read_native_research_center(api, controller)?,
+        energy_tower: read_native_energy_tower(api, controller)?,
+        formations,
+        contraptions: read_native_contraptions(api, controller, team)?,
+        battle_skills: read_native_battle_skills(api, controller, team)?,
+    })
+}
+
+fn find_match_module(
+    api: Api,
+    current: *mut Object,
+    namespace: &str,
+    name: &str,
+) -> Result<*mut Object, String> {
+    let modules = invoke_object(api, current, "GetModules")?;
+    let mut found: *mut Object = ptr::null_mut();
+    for index in 0..list_count(api, modules, 256)? {
+        let module = list_item(api, modules, index)?;
+        let class = api
+            .object_class(module)
+            .ok_or_else(|| "match module has no runtime class".to_owned())?;
+        if api.class_namespace(class) != namespace || api.class_name(class) != name {
+            continue;
+        }
+        if !found.is_null() {
+            return Err(format!("duplicate match module {namespace}.{name}"));
+        }
+        found = module;
+    }
+    if found.is_null() {
+        Err(format!("match module {namespace}.{name} is absent"))
+    } else {
+        Ok(found)
+    }
+}
+
+fn read_native_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
+    let manager = invoke_object(api, controller, "GetOfficerManager")?;
+    let officers = invoke_object(api, manager, "GetOfficers")?;
+    let mut ids = Vec::new();
+    let mut seen = BTreeSet::new();
+    for index in 0..list_count(api, officers, 10_000)? {
+        let id = invoke_value::<i32>(api, list_item(api, officers, index)?, "GetID")?;
+        if id <= 0 || !seen.insert(id) {
+            return Err(format!("invalid or duplicate native officer ID {id}"));
+        }
+        ids.push(id);
+    }
+    Ok(ids)
+}
+
+fn read_native_unit_technologies(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
+    let technology_manager = invoke_object(api, controller, "GetTechnologyManager")?;
+    let mut active = BTreeSet::new();
+    for mut unit_type_id in (1..=31).chain(std::iter::once(2_002)) {
+        let manager = api
+            .invoke(
+                technology_manager,
+                "GetTechnologyManager",
+                &mut [argument(&mut unit_type_id)],
+            )
+            .map_err(|error| error.to_string())?;
+        if manager.is_null() {
+            continue;
+        }
+        let technologies = invoke_object(api, manager, "GetTechnologies")?;
+        for index in 0..list_count(api, technologies, 10_000)? {
+            let technology = list_item(api, technologies, index)?;
+            if !invoke_value::<bool>(api, technology, "IsActive")? {
+                continue;
+            }
+            let id = invoke_value::<i32>(api, technology, "GetID")?;
+            if id <= 0 || !active.insert(id) {
+                return Err(format!("invalid or duplicate active technology ID {id}"));
+            }
+        }
+    }
+    Ok(active.into_iter().collect())
+}
+
+fn read_native_research_center(
+    api: Api,
+    controller: *mut Object,
+) -> Result<ResearchCenter, String> {
+    let manager = invoke_object(api, controller, "GetBlueprintManager")?;
+    Ok(ResearchCenter {
+        strength_level: read_tower_strength(api, controller, RESEARCH_CENTER_KIND)?,
+        attack_level: read_blueprint_level(api, manager, 4, 401, "attack")?,
+        defense_level: read_blueprint_level(api, manager, 5, 501, "defense")?,
+    })
+}
+
+fn read_blueprint_level(
+    api: Api,
+    manager: *mut Object,
+    first_id: i32,
+    second_id: i32,
+    label: &str,
+) -> Result<i32, String> {
+    let first = read_blueprint_state(api, manager, first_id)?;
+    let second = read_blueprint_state(api, manager, second_id)?;
+    decode_blueprint_level(first, second, label)
+}
+
+fn decode_blueprint_level(
+    first: Option<bool>,
+    second: Option<bool>,
+    label: &str,
+) -> Result<i32, String> {
+    match (first, second) {
+        (Some(false), None) => Ok(0),
+        (None, Some(false)) => Ok(1),
+        (None, Some(true)) => Ok(2),
+        state => Err(format!(
+            "research_center {label} blueprint chain has invalid native state {state:?}"
+        )),
+    }
+}
+
+fn read_blueprint_state(
+    api: Api,
+    manager: *mut Object,
+    mut id: i32,
+) -> Result<Option<bool>, String> {
+    let blueprint = api
+        .invoke(manager, "GetBlueprint", &mut [argument(&mut id)])
+        .map_err(|error| error.to_string())?;
+    if blueprint.is_null() {
+        return Ok(None);
+    }
+    let researching = api
+        .invoke_value::<bool>(manager, "IsResearching", &mut [argument(&mut id)])
+        .map_err(|error| error.to_string())?;
+    if researching {
+        return Err(format!(
+            "research_center blueprint {id} is still researching at capture"
+        ));
+    }
+    invoke_value(api, blueprint, "IsActive").map(Some)
+}
+
+fn read_native_energy_tower(api: Api, controller: *mut Object) -> Result<EnergyTower, String> {
+    let manager = invoke_object(api, controller, "GetEnergyTowerManager")?;
+    Ok(EnergyTower {
+        strength_level: read_tower_strength(api, controller, ENERGY_TOWER_KIND)?,
+        range_enhancement: read_energy_tower_skill(api, manager, RANGE_ENHANCEMENT_SKILL)?,
+        movement_enhancement: read_energy_tower_skill(api, manager, MOVEMENT_ENHANCEMENT_SKILL)?,
+    })
+}
+
+fn read_energy_tower_skill(api: Api, manager: *mut Object, mut id: i32) -> Result<bool, String> {
+    let skill = api
+        .invoke(manager, "GetSkill", &mut [argument(&mut id)])
+        .map_err(|error| error.to_string())?;
+    if skill.is_null() {
+        return Err(format!("energy_tower skill {id} is absent"));
+    }
+    invoke_value(api, skill, "IsActive")
+}
+
+fn read_tower_strength(
+    api: Api,
+    controller: *mut Object,
+    expected_kind: i32,
+) -> Result<i32, String> {
+    let manager = invoke_object(api, controller, "GetBuildingManager")?;
+    let buildings = invoke_object(api, manager, "GetBuildings")?;
+    let mut level = None;
+    for index in 0..list_count(api, buildings, 256)? {
+        let building = list_item(api, buildings, index)?;
+        let data = invoke_object(api, building, "GetBuildingData")?;
+        if invoke_value::<i32>(api, data, "get_BuildingType")? != expected_kind {
+            continue;
+        }
+        if level.is_some() {
+            return Err(format!("multiple core towers have kind {expected_kind}"));
+        }
+        let strength = api
+            .invoke(building, "GetTowerStrengthenData", &mut [])
+            .map_err(|error| error.to_string())?;
+        level = Some(if strength.is_null() {
+            0
+        } else {
+            invoke_value::<i32>(api, strength, "GetLevel")?
+        });
+    }
+    level.ok_or_else(|| format!("core tower kind {expected_kind} is absent"))
+}
+
+fn read_native_contraptions(
+    api: Api,
+    controller: *mut Object,
+    team: usize,
+) -> Result<Vec<Contraption>, String> {
+    let manager = invoke_object(api, controller, "GetContraptionManager")?;
+    let recorder = invoke_object(api, manager, "GetFightObjectRecorder")?;
+    let records = invoke_object(api, recorder, "GeRecords")?;
+    let mut result = Vec::new();
+    for index in 0..list_count(api, records, 10_000)? {
+        let record = list_item(api, records, index)?;
+        let source = invoke_object(api, record, "get_RecordSource")?;
+        let id = invoke_value::<i32>(api, source, "get_ID")?;
+        let type_name = contraption_type_from_id(id)
+            .ok_or_else(|| format!("unknown build-2259 contraption ID {id}"))?;
+        let positions = invoke_object(api, record, "get_Positions")?;
+        let count = list_count(api, positions, 64)?;
+        if count != 1 {
+            return Err(format!(
+                "contraption {id} release record has {count} positions; layout requires one"
+            ));
+        }
+        let mut first = 0;
+        let position = api
+            .invoke_value::<MapVector>(positions, "get_Item", &mut [argument(&mut first)])
+            .map_err(|error| error.to_string())?;
+        let (x, y) = side_local_position(position, team)?;
+        result.push(Contraption {
+            type_name: type_name.to_owned(),
+            x,
+            y,
+        });
+    }
+    Ok(result)
+}
+
+fn read_native_battle_skills(
+    api: Api,
+    controller: *mut Object,
+    team: usize,
+) -> Result<Vec<BattleSkillDefinition>, String> {
+    let manager = invoke_object(api, controller, "GetCommanderSkillManager")?;
+    let skills = invoke_object(api, manager, "GetCommanderSkills")?;
+    let mut result = Vec::new();
+    let mut seen = BTreeSet::new();
+    for index in 0..list_count(api, skills, 10_000)? {
+        let skill = list_item(api, skills, index)?;
+        if !invoke_value::<bool>(api, skill, "get_IsActive")? {
+            continue;
+        }
+        let id = invoke_value::<i32>(api, skill, "GetID")?;
+        if !seen.insert(id) {
+            return Err(format!("duplicate active commander skill ID {id}"));
+        }
+        let type_name = battle_skill_type_from_id(id)
+            .ok_or_else(|| format!("unknown active build-2259 commander skill ID {id}"))?;
+        let mut release_data: *mut Object = ptr::null_mut();
+        let found = api
+            .invoke_value::<bool>(
+                manager,
+                "TryGetReleaseCommanderSkillData",
+                &mut [object_argument(skill), argument(&mut release_data)],
+            )
+            .map_err(|error| error.to_string())?;
+        if !found || release_data.is_null() {
+            return Err(format!("active commander skill {id} has no release data"));
+        }
+        let release_skill = api
+            .invoke(
+                release_data,
+                "GameRiver.Fight.IReleaseCommanderSkillInfo.GetSkill",
+                &mut [],
+            )
+            .map_err(|error| error.to_string())?;
+        if release_skill != skill {
+            return Err(format!(
+                "commander skill {id} release data points to another skill"
+            ));
+        }
+        let positions = api
+            .invoke(
+                release_data,
+                "GameRiver.Fight.IReleaseCommanderSkillInfo.GetPositions",
+                &mut [],
+            )
+            .map_err(|error| error.to_string())?;
+        let count = list_count(api, positions, 64)?;
+        if count == 0 {
+            return Err(format!("commander skill {id} has no release position"));
+        }
+        let mut local_positions = Vec::with_capacity(
+            usize::try_from(count).map_err(|_| "negative skill position count".to_owned())?,
+        );
+        for mut position_index in 0..count {
+            let position = api
+                .invoke_value::<MapVector>(
+                    positions,
+                    "get_Item",
+                    &mut [argument(&mut position_index)],
+                )
+                .map_err(|error| error.to_string())?;
+            let (x, y) = side_local_position(position, team)?;
+            local_positions.push(Position { x, y });
+        }
+        result.push(BattleSkillDefinition {
+            type_name: type_name.to_owned(),
+            positions: local_positions,
+        });
+    }
+    Ok(result)
+}
+
+fn side_local_position(position: MapVector, team: usize) -> Result<(i32, i32), String> {
+    if team == 0 {
+        return Ok((position.x, position.y));
+    }
+    Ok((
+        position
+            .x
+            .checked_neg()
+            .ok_or_else(|| "red layout x coordinate cannot be negated".to_owned())?,
+        position
+            .y
+            .checked_neg()
+            .ok_or_else(|| "red layout y coordinate cannot be negated".to_owned())?,
+    ))
 }
 
 #[allow(clippy::too_many_lines)]
@@ -7144,6 +7637,15 @@ mod tests {
         [const { [const { AtomicU64::new(0) }; 4] }; RVO_HOOK_COUNT];
 
     #[test]
+    fn research_blueprint_chain_decodes_replaced_native_slots() {
+        assert_eq!(decode_blueprint_level(Some(false), None, "attack"), Ok(0));
+        assert_eq!(decode_blueprint_level(None, Some(false), "attack"), Ok(1));
+        assert_eq!(decode_blueprint_level(None, Some(true), "attack"), Ok(2));
+        assert!(decode_blueprint_level(Some(true), None, "attack").is_err());
+        assert!(decode_blueprint_level(Some(false), Some(false), "attack").is_err());
+    }
+
+    #[test]
     fn native_hit_damage_info_layout_matches_build_2259() {
         assert_eq!(std::mem::size_of::<NativeHitDamageInfo>(), 0x50);
         assert_eq!(std::mem::align_of::<NativeHitDamageInfo>(), 8);
@@ -9082,7 +9584,9 @@ mod tests {
             combat_round: 1,
             match_seed: 0,
         };
-        let mut writer = mechcore_mcfr::McfrWriter::create(&path, "test", &context).unwrap();
+        let layout = "seed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
+        let mut writer =
+            mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
         writer.set_initial_state(state.clone()).unwrap();
         writer.append_tick(state, &events).unwrap();
         writer.finish().unwrap();

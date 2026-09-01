@@ -535,6 +535,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
             Some(CaptureMessage::Initial {
                 game_build,
                 context,
+                layout_yaml,
                 state,
                 instrumentation,
                 frame,
@@ -600,11 +601,16 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                         );
                     }
                 }
-                match mechcore_mcfr::McfrWriter::create(&arguments.output, &game_build, &context)
-                    .and_then(|mut created| {
-                        created.set_initial_state(state)?;
-                        Ok(created)
-                    }) {
+                match mechcore_mcfr::McfrWriter::create(
+                    &arguments.output,
+                    &game_build,
+                    &context,
+                    &layout_yaml,
+                )
+                .and_then(|mut created| {
+                    created.set_initial_state(state)?;
+                    Ok(created)
+                }) {
                     Ok(created) => writer = Some(created),
                     Err(error) => {
                         return recording_failure(

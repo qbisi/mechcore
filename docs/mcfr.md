@@ -14,6 +14,7 @@ format = "0.1.0"
 
 ```text
 recording.mcfr
+├── layout.yaml
 ├── ticks.parquet
 ├── units.parquet
 ├── projectiles.parquet
@@ -25,6 +26,7 @@ recording.mcfr
 
 | 成员 | 逻辑内容 | 时间覆盖 | 物理编码 |
 | --- | --- | --- | --- |
+| `layout.yaml` | 可直接重放的规范化场景布局 | 录像级 | UTF-8 YAML，LF 结尾 |
 | `ticks.parquet` | DurableContext、录像元数据、每帧摘要 | `T(1)..T(n)` | Parquet + Zstd level 6 |
 | `units.parquet` | 存活 FightMech 完整状态 | `S(0)..S(n)` | Parquet + Zstd level 6 |
 | `projectiles.parquet` | ProjectileSystem 中的弹体完整状态 | `S(0)..S(n)` | Parquet + Zstd level 6 |
@@ -34,6 +36,20 @@ recording.mcfr
 | `events.jsonl` | 相邻快照之间的有序离散事件 | `E(1)..E(n)` | UTF-8 JSON Lines，LF 结尾 |
 
 ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。六个 Parquet 成员的 row group 按 128 个逻辑 tick 刷新，单个 row group 的行数上限为 1,000,000。状态表按 `(tick, object_id)` 排序，事件按 `(tick, ordinal)` 排序。
+
+`layout.yaml` 由 Adapter 在 `StartCapture` 的部署期读取游戏对象并缓存，随后进入战斗采样。
+两侧来自 `PlayerManager.GetPlayerControllers()`。单位读取 `UnitManager.GetUnits()` 中
+`CardElement` 的类型、原生索引、等级、MapElement 位置/朝向、装备以及
+`SuperDeploymentSystem.IsTravellingUnit()`；建筑装置读取
+`ConstructionManager.GetConstructionElements()`。军官科技来自 `OfficerManager`，单位科技
+来自完整单位目录对应的 `TechnologyManager`。研究塔、能量塔、contraption 和战场技能分别
+读取其 manager 中的当前部署状态、释放记录和落点。未知类型、重复身份、断裂的升级链或不完整
+释放记录均使采集 fail-close。
+
+布局采用规范 YAML：显式记录 `seed`，省略原生值为格式默认值的字段，并按原生 Unit index
+保留 formation 声明顺序；建筑装置追加在单位之后。`mechcore layout verify/format` 和
+Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
+`mechcore sim compare`，不进入 `scenario_hash`、`tick_hash` 或 `result_hash`。
 
 逻辑时间线为：
 
@@ -469,7 +485,7 @@ Buff 观测位于 Unit 状态轨道：布尔状态进入 `status_mask`，综合�
 Writer 的公开生命周期为：
 
 ```text
-create(game_build, context)
+create(game_build, context, layout_yaml)
 set_initial_state(S(0))
 append_tick(S(1), E(1))
 ...
@@ -486,6 +502,7 @@ Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet foot
 Reader 在打开容器时验证：
 
 - ZIP 成员集合、STORE method、ZIP64 可读性与成员唯一性；
+- `layout.yaml` 的 UTF-8、共享结构、规范化表示以及 seed/round 与 DurableContext 一致性；
 - 六个 Parquet schema、required/nullable 结构及 Zstd column compression；
 - `game_build`、DurableContext canonical JSON、元数据类型和格式标识；
 - tick 连续性、状态表排序、事件排序与 ordinal 连续性；
@@ -545,7 +562,11 @@ format `0.1.0` 固定采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id,
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
-`formation_id` 由初始 Unit 顺序首次遇到的 formation 依次分配。动态 Unit、Projectile 和 Building 在各自 namespace 中按首次观察顺序追加。ID 生命周期覆盖其退出快照后的历史引用。
+`formation_id` 由上述初始 Unit 顺序首次遇到的 formation 依次分配。因此初始
+`formation_id` 的首现顺序必须严格为 `1..F`；它表达成员按世界 `z/x` 排序后的首现编号，
+不等同于布局 formation 声明索引。布局声明顺序保留原生 Unit index，因为 formation
+成员散布使用 `match_seed + unit_index`。动态 Unit、Projectile 和 Building 在各自 namespace
+中按首次观察顺序追加。ID 生命周期覆盖其退出快照后的历史引用。
 
 初始 Building 按 `(team_id, native building_index)` 排序后分配。初始 Shield 按 `(team_id, native full-list index)` 分配，战斗中新进入全量集合的 Shield 按首次观察顺序追加。初始 Terrain 按 `(terrain_type, native controller item index)` 分配，动态 Terrain 按首次观察顺序追加。Shield 与 Terrain 从各自权威集合移除后，原生指针进入 tombstone 并保持历史 ID 唯一。
 

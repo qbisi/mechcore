@@ -10,12 +10,12 @@ fn usage(program: &str) {
     eprintln!("usage: {program} mcp");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} layout verify <layout.yaml>");
+    eprintln!("       {program} layout format <layout.yaml> [--write]");
+    eprintln!("       {program} layout diff <left.yaml> <right.yaml>");
     eprintln!(
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
     );
-    eprintln!(
-        "       {program} sim compare <recording.mcfr>... [--manifest <regressions.yaml>] [--config <directory>]"
-    );
+    eprintln!("       {program} sim compare <recording.mcfr>... [--config <directory>]");
 }
 
 fn main() -> ExitCode {
@@ -38,7 +38,8 @@ fn main() -> ExitCode {
             }
         },
         Some("layout") => match layout::run(arguments) {
-            Ok(()) => ExitCode::SUCCESS,
+            Ok(true) => ExitCode::SUCCESS,
+            Ok(false) => ExitCode::FAILURE,
             Err(error) => {
                 eprintln!("mechcore layout: {error}");
                 ExitCode::FAILURE

@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
     #[serde(default)]
@@ -13,33 +13,35 @@ pub struct Layout {
     pub sides: Sides,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Sides {
     pub blue: Side,
     pub red: Side,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Side {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Techs::is_default")]
     pub techs: Techs,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "ResearchCenter::is_default")]
     pub research_center: ResearchCenter,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "EnergyTower::is_default")]
     pub energy_tower: EnergyTower,
     pub formations: Vec<Formation>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<Contraption>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<BattleSkillDefinition>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
 pub struct Techs {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub officers: Vec<i32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub units: Vec<i32>,
 }
 
@@ -60,20 +62,42 @@ pub struct EnergyTower {
     pub movement_enhancement: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+impl Techs {
+    fn is_default(&self) -> bool {
+        self == &Self::default()
+    }
+}
+
+impl ResearchCenter {
+    fn is_default(&self) -> bool {
+        self == &Self::default()
+    }
+}
+
+impl EnergyTower {
+    fn is_default(&self) -> bool {
+        self == &Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Formation {
     #[serde(rename = "type")]
     pub type_name: String,
     pub x: i32,
     pub y: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub equipment: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Contraption {
     #[serde(rename = "type")]
@@ -82,7 +106,7 @@ pub struct Contraption {
     pub y: i32,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct BattleSkillDefinition {
     #[serde(rename = "type")]
@@ -207,6 +231,73 @@ impl Plan {
     pub fn contraption_count(&self) -> usize {
         self.blue.contraptions.len() + self.red.contraptions.len()
     }
+}
+
+impl Layout {
+    /// Removes syntax that is semantically equivalent to the public defaults.
+    #[must_use]
+    pub fn normalized(mut self) -> Self {
+        for side in [&mut self.sides.blue, &mut self.sides.red] {
+            for formation in &mut side.formations {
+                if formation.level == Some(1) {
+                    formation.level = None;
+                }
+                if formation.rotated == Some(false) {
+                    formation.rotated = None;
+                }
+                if formation.travelling == Some(false) {
+                    formation.travelling = None;
+                }
+            }
+        }
+        self
+    }
+}
+
+/// Parses and validates one public layout YAML document.
+///
+/// # Errors
+///
+/// Returns an error when the YAML or shared layout contract is invalid.
+pub fn parse_yaml(bytes: &[u8]) -> Result<Layout, String> {
+    let layout = parse_embedded_yaml(bytes)?;
+    compile_layout(layout.clone())?;
+    Ok(layout)
+}
+
+/// Parses the shared layout structure used by an embedded MCFR member.
+///
+/// This level preserves optional-field gaps captured by Adapter. Consumers that execute the
+/// layout call [`parse_yaml`] to additionally apply the complete gameplay legality rules.
+///
+/// # Errors
+///
+/// Returns an error when the YAML does not match the shared layout structure.
+pub fn parse_embedded_yaml(bytes: &[u8]) -> Result<Layout, String> {
+    serde_yaml::from_slice(bytes).map_err(|error| format!("invalid layout YAML: {error}"))
+}
+
+/// Serializes a validated layout into the canonical YAML representation.
+///
+/// Canonical layout YAML always includes `seed`, preserves declaration order,
+/// omits default-valued optional syntax, and ends with one newline.
+///
+/// # Errors
+///
+/// Returns an error when the layout is invalid or cannot be serialized.
+pub fn canonical_yaml(layout: Layout) -> Result<String, String> {
+    compile_layout(layout.clone())?;
+    canonical_embedded_yaml(layout)
+}
+
+/// Serializes an embedded MCFR layout while preserving optional-field gaps.
+///
+/// # Errors
+///
+/// Returns an error when the layout cannot be serialized.
+pub fn canonical_embedded_yaml(layout: Layout) -> Result<String, String> {
+    let layout = layout.normalized();
+    serde_yaml::to_string(&layout).map_err(|error| format!("cannot serialize layout YAML: {error}"))
 }
 
 /// Deserializes, validates, and normalizes a JSON layout into an execution plan.
@@ -994,6 +1085,97 @@ const fn resolve_contraption_type(type_name: &str) -> Option<FormationSpec> {
             NativeFormation::Contraption(30001),
             Some((30, 30)),
         )),
+        _ => None,
+    }
+}
+
+/// Resolves a build-pinned native unit type ID to the public layout name and footprint.
+#[must_use]
+pub const fn unit_type_from_id(id: i32) -> Option<(&'static str, (i64, i64))> {
+    match id {
+        1 => Some(("fortress", (40, 40))),
+        2 => Some(("marksman", (20, 20))),
+        3 => Some(("vulcan", (40, 40))),
+        4 => Some(("melting_point", (40, 40))),
+        5 => Some(("rhino", (30, 30))),
+        6 => Some(("wasp", (50, 20))),
+        7 => Some(("mustang", (50, 20))),
+        8 => Some(("steel_ball", (50, 20))),
+        9 => Some(("fang", (50, 20))),
+        10 => Some(("crawler", (50, 20))),
+        11 => Some(("overlord", (50, 50))),
+        12 => Some(("stormcaller", (50, 20))),
+        13 => Some(("sledgehammer", (50, 20))),
+        14 => Some(("hacker", (30, 30))),
+        15 => Some(("arclight", (20, 20))),
+        16 => Some(("phoenix", (40, 20))),
+        17 => Some(("war_factory", (70, 70))),
+        18 => Some(("wraith", (30, 30))),
+        19 => Some(("scorpion", (30, 30))),
+        20 => Some(("fire_badger", (50, 20))),
+        21 => Some(("sabertooth", (30, 30))),
+        22 => Some(("typhoon", (40, 20))),
+        23 => Some(("sandworm", (40, 40))),
+        24 => Some(("tarantula", (30, 30))),
+        25 => Some(("phantom_ray", (50, 20))),
+        26 => Some(("farseer", (30, 30))),
+        27 => Some(("raiden", (40, 40))),
+        28 => Some(("hound", (40, 20))),
+        29 => Some(("abyss", (70, 70))),
+        30 => Some(("void_eye", (40, 20))),
+        31 => Some(("vortex", (20, 20))),
+        2002 => Some(("mountain", (70, 70))),
+        _ => None,
+    }
+}
+
+/// Resolves a native construction type ID to the public layout name and footprint.
+#[must_use]
+pub const fn construction_type_from_id(id: i32) -> Option<(&'static str, (i64, i64))> {
+    match id {
+        1 => Some(("defensive_wall", (60, 10))),
+        2 => Some(("anti_armor_turret", (20, 20))),
+        3 => Some(("rapid_fire_turret", (20, 20))),
+        4 => Some(("magnetic_barrier", (50, 10))),
+        _ => None,
+    }
+}
+
+/// Resolves a build-pinned native contraption type ID to the public layout name.
+#[must_use]
+pub const fn contraption_type_from_id(id: i32) -> Option<&'static str> {
+    match id {
+        10_001 => Some("shield"),
+        20_001 => Some("missile"),
+        30_001 => Some("interceptor"),
+        _ => None,
+    }
+}
+
+/// Resolves a build-pinned native commander-skill ID to the public layout name.
+#[must_use]
+pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
+    match id {
+        100_002 => Some("incendiary_bomb"),
+        200_001 => Some("electromagnetic_impact"),
+        200_002 => Some("electromagnetic_blast"),
+        200_003 => Some("photon_emission"),
+        300_001 => Some("missile_strike"),
+        300_003 => Some("orbital_bombardment"),
+        300_004 => Some("nuke"),
+        300_005 => Some("lightning_storm"),
+        300_006 => Some("ion_blast"),
+        300_007 => Some("orbital_javelin"),
+        400_002 => Some("sticky_oil_bomb"),
+        500_002 => Some("acid_blast"),
+        600_002 => Some("smoke_bomb"),
+        800_001 => Some("shield_airdrop"),
+        1_200_001 => Some("underground_threat"),
+        1_200_002 => Some("rhino_assault"),
+        1_200_003 => Some("wasp_swarm"),
+        1_200_004 => Some("mobilize_battleship"),
+        1_200_005 => Some("vulcans_descent"),
+        1_500_002 => Some("mobile_beacon"),
         _ => None,
     }
 }
@@ -1803,6 +1985,28 @@ mod tests {
         );
         assert_eq!(resolve_contraption_type("shield").unwrap().footprint, None);
         assert_eq!(resolve_contraption_type("missile").unwrap().footprint, None);
+        assert_eq!(contraption_type_from_id(10_001), Some("shield"));
+        assert_eq!(contraption_type_from_id(20_001), Some("missile"));
+        assert_eq!(contraption_type_from_id(30_001), Some("interceptor"));
+        assert_eq!(contraption_type_from_id(0), None);
+    }
+
+    #[test]
+    fn battle_skill_reverse_catalog_matches_the_compiler_catalog() {
+        for id in [
+            100_002, 200_001, 200_002, 200_003, 300_001, 300_003, 300_004, 300_005, 300_006,
+            300_007, 400_002, 500_002, 600_002, 800_001, 1_200_001, 1_200_002, 1_200_003,
+            1_200_004, 1_200_005, 1_500_002,
+        ] {
+            let type_name = battle_skill_type_from_id(id).unwrap();
+            assert_eq!(
+                resolve_battle_skill_type(type_name)
+                    .unwrap()
+                    .commander_skill_id,
+                id
+            );
+        }
+        assert_eq!(battle_skill_type_from_id(0), None);
     }
 
     #[test]

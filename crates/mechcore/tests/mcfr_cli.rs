@@ -105,7 +105,10 @@ fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
         combat_round: 1,
         match_seed: seed,
     };
-    let mut writer = McfrWriter::create(path, "test-build", &context).unwrap();
+    let layout = format!(
+        "seed: {seed}\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n"
+    );
+    let mut writer = McfrWriter::create(path, "test-build", &context, &layout).unwrap();
     writer.set_initial_state(WorldSnapshot::default()).unwrap();
     for &damage in damages {
         writer

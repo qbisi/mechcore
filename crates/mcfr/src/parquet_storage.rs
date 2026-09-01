@@ -37,7 +37,8 @@ use crate::{
     ValueModifier, Visibility, WeaponAimState, WorldSnapshot, canonical,
 };
 
-pub(crate) const MEMBER_NAMES: [&str; 7] = [
+pub(crate) const MEMBER_NAMES: [&str; 8] = [
+    "layout.yaml",
     "ticks.parquet",
     "units.parquet",
     "projectiles.parquet",
@@ -49,6 +50,7 @@ pub(crate) const MEMBER_NAMES: [&str; 7] = [
 
 const TICKS_PER_ROW_GROUP: u64 = 128;
 const ROWS_PER_TICK_GROUP: usize = 128;
+const MAX_LAYOUT_BYTES: u64 = 1024 * 1024;
 
 pub(crate) struct StorageWriter {
     directory: TempDir,
@@ -173,6 +175,7 @@ impl StorageWriter {
         mut self,
         game_build: &str,
         context_bytes: &[u8],
+        layout_yaml: &str,
         hashes: &Hashes,
     ) -> Result<TempDir> {
         self.flush()?;
@@ -185,6 +188,9 @@ impl StorageWriter {
             &self.directory.path().join("events.jsonl"),
             &self.event_rows,
         )?;
+        let mut layout = File::create(self.directory.path().join("layout.yaml"))?;
+        layout.write_all(layout_yaml.as_bytes())?;
+        layout.sync_all()?;
 
         let tick_count = u32::try_from(self.tick_hashes.len())
             .map_err(|_| Error::invalid("tick count overflow"))?;
@@ -1309,6 +1315,41 @@ fn write_events_jsonl(path: &Path, rows: &[(u32, u32, Event)]) -> Result<()> {
     Ok(())
 }
 
+fn read_layout_yaml(member: &MemberSlice, context: &DurableContext) -> Result<String> {
+    if member.len() == 0 || member.len() > MAX_LAYOUT_BYTES {
+        return Err(Error::invalid(format!(
+            "layout.yaml size must be within 1..={MAX_LAYOUT_BYTES} bytes"
+        )));
+    }
+    let mut bytes = Vec::new();
+    member.get_read(0)?.read_to_end(&mut bytes)?;
+    if bytes.starts_with(&[0xef, 0xbb, 0xbf]) || bytes.contains(&b'\r') {
+        return Err(Error::invalid(
+            "layout.yaml must be UTF-8 without BOM and use LF line endings",
+        ));
+    }
+    let text = std::str::from_utf8(&bytes)
+        .map_err(|_| Error::invalid("layout.yaml is not valid UTF-8"))?;
+    let layout = mechcore_layout::parse_embedded_yaml(&bytes).map_err(Error::invalid)?;
+    if layout.seed != context.match_seed {
+        return Err(Error::invalid(format!(
+            "layout.yaml seed {} differs from durable context match_seed {}",
+            layout.seed, context.match_seed
+        )));
+    }
+    if u32::try_from(layout.round).ok() != Some(context.combat_round) {
+        return Err(Error::invalid(format!(
+            "layout.yaml round {} differs from durable context combat_round {}",
+            layout.round, context.combat_round
+        )));
+    }
+    let canonical = mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
+    if text != canonical {
+        return Err(Error::invalid("layout.yaml is not canonical"));
+    }
+    Ok(canonical)
+}
+
 fn read_events_jsonl(member: &MemberSlice) -> Result<Vec<(u32, u32, Event)>> {
     let mut bytes = Vec::new();
     member.get_read(0)?.read_to_end(&mut bytes)?;
@@ -1973,6 +2014,7 @@ pub(crate) struct StoredMetadata {
 
 pub(crate) struct StorageReader {
     metadata: StoredMetadata,
+    layout_yaml: String,
     member_sizes: BTreeMap<String, u64>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     units: Vec<Vec<LiveUnitState>>,
@@ -1994,6 +2036,7 @@ impl StorageReader {
             .get("ticks.parquet")
             .ok_or_else(|| Error::invalid("missing ticks.parquet"))?;
         let (metadata, tick_hashes) = read_ticks(ticks.clone())?;
+        let layout_yaml = read_layout_yaml(&member(&members, "layout.yaml")?, &metadata.context)?;
         let tick_count = metadata.tick_count;
         let units = group_state_rows(
             read_units(member(&members, "units.parquet")?)?,
@@ -2031,6 +2074,7 @@ impl StorageReader {
         )?;
         Ok(Self {
             metadata,
+            layout_yaml,
             member_sizes,
             tick_hashes,
             units,
@@ -2044,6 +2088,10 @@ impl StorageReader {
 
     pub(crate) const fn metadata(&self) -> &StoredMetadata {
         &self.metadata
+    }
+
+    pub(crate) fn layout_yaml(&self) -> &str {
+        &self.layout_yaml
     }
 
     pub(crate) const fn member_sizes(&self) -> &BTreeMap<String, u64> {

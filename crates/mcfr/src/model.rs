@@ -455,6 +455,7 @@ impl IdentityAllocator {
             }
         }
         validate_initial_unit_order(snapshot)?;
+        validate_initial_formation_order(snapshot)?;
         allocator.observe_formations(snapshot)?;
         Ok(allocator)
     }
@@ -580,6 +581,28 @@ fn validate_initial_unit_order(snapshot: &WorldSnapshot) -> Result<()> {
             return Err(Error::invalid(
                 "initial unit identities must follow ascending team, world z, then world x",
             ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_initial_formation_order(snapshot: &WorldSnapshot) -> Result<()> {
+    let mut seen = BTreeSet::new();
+    let mut expected = 1_u64;
+    for unit in &snapshot.live_units {
+        if unit.formation_id == 0 {
+            return Err(Error::invalid("formation identity must be positive"));
+        }
+        if seen.insert(unit.formation_id) {
+            if unit.formation_id != expected {
+                return Err(Error::invalid(format!(
+                    "initial formation identities must follow first appearance in unit identity order; expected {expected}, found {}",
+                    unit.formation_id
+                )));
+            }
+            expected = expected
+                .checked_add(1)
+                .ok_or_else(|| Error::invalid("formation identity overflow"))?;
         }
     }
     Ok(())

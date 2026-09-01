@@ -76,7 +76,7 @@ pub fn simulate_layout_with_config(
 ) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
     let config = rules::SimulationConfig::load(config_directory)?;
-    let (layout_seed, layout) = layout::load(layout_path, &config.units)?;
+    let (layout_seed, layout, replay_layout) = layout::load(layout_path, &config.units)?;
     let requested_seed = seed.unwrap_or(layout_seed);
     let (seed, source) = if requested_seed == 0 {
         (generate_seed(layout_path)?, "generated")
@@ -85,30 +85,27 @@ pub fn simulate_layout_with_config(
     } else {
         (requested_seed, "layout")
     };
-    kernel::run(&layout, &config, seed, source, output_path)
+    kernel::run(&layout, &config, seed, source, output_path, &replay_layout)
 }
 
-/// Simulates a manifest-selected layout and compares canonical ticks directly
-/// with an open MCFR recording without creating another recording.
+/// Simulates the layout embedded in an MCFR and compares canonical ticks
+/// directly without creating another recording.
 ///
 /// Comparison stops after the first unequal or missing tick. The recording and
 /// simulation must have the same game build and scenario hash.
 ///
 /// # Errors
 ///
-/// Returns an error for an invalid layout or config, a zero seed, a build or
-/// scenario mismatch, or a simulation/MCFR failure.
-pub fn compare_layout_to_recording_with_config(
-    layout_path: impl AsRef<Path>,
-    seed: i32,
-    config_directory: Option<&Path>,
+/// Returns an error for an invalid layout or config, a build or scenario
+/// mismatch, or a simulation/MCFR failure.
+pub fn compare_recording_with_config(
     recording: &mechcore_mcfr::McfrReader,
+    config_directory: Option<&Path>,
 ) -> Result<SimulationComparison> {
-    if seed == 0 {
-        return Err(Error::new("sim compare requires a non-zero manifest seed"));
-    }
     let config = rules::SimulationConfig::load(config_directory)?;
-    let (_, layout) = layout::load(layout_path.as_ref(), &config.units)?;
+    let (seed, layout) =
+        layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
+            .map_err(|error| Error::new(format!("cannot simulate embedded layout: {error}")))?;
     kernel::compare(&layout, &config, seed, recording)
 }
 
