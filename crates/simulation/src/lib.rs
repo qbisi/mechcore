@@ -16,7 +16,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub use kernel::SimulationResult;
+pub use kernel::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -86,6 +86,30 @@ pub fn simulate_layout_with_config(
         (requested_seed, "layout")
     };
     kernel::run(&layout, &config, seed, source, output_path)
+}
+
+/// Simulates a manifest-selected layout and compares canonical ticks directly
+/// with an open MCFR recording without creating another recording.
+///
+/// Comparison stops after the first unequal or missing tick. The recording and
+/// simulation must have the same game build and scenario hash.
+///
+/// # Errors
+///
+/// Returns an error for an invalid layout or config, a zero seed, a build or
+/// scenario mismatch, or a simulation/MCFR failure.
+pub fn compare_layout_to_recording_with_config(
+    layout_path: impl AsRef<Path>,
+    seed: i32,
+    config_directory: Option<&Path>,
+    recording: &mechcore_mcfr::McfrReader,
+) -> Result<SimulationComparison> {
+    if seed == 0 {
+        return Err(Error::new("sim compare requires a non-zero manifest seed"));
+    }
+    let config = rules::SimulationConfig::load(config_directory)?;
+    let (_, layout) = layout::load(layout_path.as_ref(), &config.units)?;
+    kernel::compare(&layout, &config, seed, recording)
 }
 
 fn generate_seed(layout_path: &Path) -> Result<i32> {

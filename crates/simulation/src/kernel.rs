@@ -2,8 +2,8 @@ use std::{cmp::Ordering, collections::BTreeMap, path::Path, time::Instant};
 
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
-    IdentityAllocator, LiveUnitState, McfrWriter, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, ProjectileState, QVec3, Rational, TransitionEvents,
+    IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
+    PersonalShieldState, ProjectileState, QVec3, Rational, TickSlice, TransitionEvents,
     UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
 };
 use serde::Serialize;
@@ -1032,6 +1032,34 @@ pub struct SimulationProfile {
     pub file_size_bytes: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub member_sizes_bytes: Option<BTreeMap<String, u64>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulationComparison {
+    pub schema: &'static str,
+    pub game_build: String,
+    pub seed: i32,
+    pub equal: bool,
+    pub scenario_hash: String,
+    pub recording: TimelineSummary,
+    pub simulation: TimelineSummary,
+    pub first_divergence: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub divergent_tick: Option<DivergentTick>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TimelineSummary {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result_hash: Option<String>,
+    pub tick_count: u32,
+    pub complete: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DivergentTick {
+    pub recording: Option<TickSlice>,
+    pub simulation: Option<TickSlice>,
 }
 
 struct Simulation {
@@ -4311,42 +4339,16 @@ pub(crate) fn run(
     output: Option<&Path>,
 ) -> Result<SimulationResult> {
     let generation_started = Instant::now();
-    let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
-    let context = DurableContext {
-        logic_step: Rational {
-            numerator: u32::try_from(LOGIC_TICK_TIME_UNITS / divisor)
-                .map_err(|_| Error::new("logic-step numerator exceeds u32"))?,
-            denominator: u32::try_from(TIME_UNITS_PER_SECOND / divisor)
-                .map_err(|_| Error::new("logic-step denominator exceeds u32"))?,
-        },
-        time_units_per_second: u32::try_from(TIME_UNITS_PER_SECOND)
-            .map_err(|_| Error::new("time units per second exceeds u32"))?,
-        combat_round: layout.round,
-        match_seed: seed,
-    };
-    let mut simulation =
-        Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
-    let mut writer = match output {
-        Some(path) => McfrWriter::create(path, &config.game_build, &context)?,
-        None => McfrWriter::hash_only(&context)?,
-    };
-    writer.set_initial_state(simulation.snapshot())?;
-    simulation.initialize_presearch_targets()?;
-    let mut steps = 0;
-    let max_steps = FIGHT_TIME_SECONDS
-        .saturating_mul(TIME_UNITS_PER_SECOND)
-        .div_ceil(LOGIC_TICK_TIME_UNITS);
-    let end_reason = loop {
-        if steps >= max_steps {
-            break "forced_time_limit";
-        }
-        let events = simulation.step(steps)?;
-        steps += 1;
-        writer.append_tick(simulation.snapshot(), &events)?;
-        if simulation.ready_to_finish() {
-            break "natural_module_drain";
-        }
-    };
+    let execution = execute(layout, config, seed, output, None)?;
+    let Execution {
+        simulation,
+        writer,
+        steps,
+        end_reason,
+        first_divergence,
+        ..
+    } = execution;
+    debug_assert!(first_divergence.is_none());
     let hashes = writer.finish()?;
     let (file_size_bytes, member_sizes_bytes) = if let Some(path) = output {
         let published = mechcore_mcfr::McfrReader::open(path)?;
@@ -4397,6 +4399,179 @@ pub(crate) fn run(
             file_size_bytes,
             member_sizes_bytes,
         },
+    })
+}
+
+pub(crate) fn compare(
+    layout: &CompiledLayout,
+    config: &SimulationConfig,
+    seed: i32,
+    recording: &McfrReader,
+) -> Result<SimulationComparison> {
+    if recording.game_build() != config.game_build {
+        return Err(Error::new(format!(
+            "game_build mismatch: recording={}, simulation={}",
+            recording.game_build(),
+            config.game_build
+        )));
+    }
+    let execution = execute(layout, config, seed, None, Some(recording))?;
+    let Execution {
+        writer,
+        steps,
+        scenario_hash,
+        first_divergence,
+        divergent_tick,
+        ..
+    } = execution;
+    let simulation_hashes = if first_divergence.is_none() {
+        Some(writer.finish()?)
+    } else {
+        None
+    };
+    if let Some(hashes) = &simulation_hashes
+        && hashes.result_hash != recording.hashes().result_hash
+    {
+        return Err(Error::new(
+            "result hashes differ although every compared tick hash matches",
+        ));
+    }
+    Ok(SimulationComparison {
+        schema: "mechcore.sim-compare-result.v1",
+        game_build: config.game_build.clone(),
+        seed,
+        equal: first_divergence.is_none(),
+        scenario_hash,
+        recording: TimelineSummary {
+            result_hash: Some(recording.hashes().result_hash.clone()),
+            tick_count: recording.tick_count(),
+            complete: true,
+        },
+        simulation: TimelineSummary {
+            result_hash: simulation_hashes.map(|hashes| hashes.result_hash),
+            tick_count: u32::try_from(steps)
+                .map_err(|_| Error::new("simulation tick count exceeds u32"))?,
+            complete: first_divergence.is_none(),
+        },
+        first_divergence,
+        divergent_tick,
+    })
+}
+
+struct Execution {
+    simulation: Simulation,
+    writer: McfrWriter,
+    steps: u64,
+    end_reason: &'static str,
+    scenario_hash: String,
+    first_divergence: Option<u32>,
+    divergent_tick: Option<DivergentTick>,
+}
+
+fn execute(
+    layout: &CompiledLayout,
+    config: &SimulationConfig,
+    seed: i32,
+    output: Option<&Path>,
+    recording: Option<&McfrReader>,
+) -> Result<Execution> {
+    let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
+    let context = DurableContext {
+        logic_step: Rational {
+            numerator: u32::try_from(LOGIC_TICK_TIME_UNITS / divisor)
+                .map_err(|_| Error::new("logic-step numerator exceeds u32"))?,
+            denominator: u32::try_from(TIME_UNITS_PER_SECOND / divisor)
+                .map_err(|_| Error::new("logic-step denominator exceeds u32"))?,
+        },
+        time_units_per_second: u32::try_from(TIME_UNITS_PER_SECOND)
+            .map_err(|_| Error::new("time units per second exceeds u32"))?,
+        combat_round: layout.round,
+        match_seed: seed,
+    };
+    let mut simulation =
+        Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
+    let mut writer = match output {
+        Some(path) => McfrWriter::create(path, &config.game_build, &context)?,
+        None => McfrWriter::hash_only(&context)?,
+    };
+    writer.set_initial_state(simulation.snapshot())?;
+    let scenario_hash = writer.scenario_hash()?;
+    if let Some(recording) = recording
+        && scenario_hash != recording.hashes().scenario_hash
+    {
+        return Err(Error::new(format!(
+            "scenario_hash mismatch: recording={}, simulation={scenario_hash}",
+            recording.hashes().scenario_hash,
+        )));
+    }
+    simulation.initialize_presearch_targets()?;
+    let mut steps = 0;
+    let mut first_divergence = None;
+    let mut divergent_tick = None;
+    let max_steps = FIGHT_TIME_SECONDS
+        .saturating_mul(TIME_UNITS_PER_SECOND)
+        .div_ceil(LOGIC_TICK_TIME_UNITS);
+    let mut end_reason = loop {
+        if steps >= max_steps {
+            break "forced_time_limit";
+        }
+        let events = simulation.step(steps)?;
+        steps += 1;
+        let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
+        let mut state = simulation.snapshot();
+        state.canonicalize();
+        let tick_hash = writer.append_tick(state.clone(), &events)?;
+        if let Some(recording) = recording {
+            let expected_hash = if tick <= recording.tick_count() {
+                Some(recording.tick_hash(tick)?)
+            } else {
+                None
+            };
+            if expected_hash.as_deref() != Some(&tick_hash) {
+                first_divergence = Some(tick);
+                divergent_tick = Some(DivergentTick {
+                    recording: if expected_hash.is_some() {
+                        Some(recording.tick(tick)?)
+                    } else {
+                        None
+                    },
+                    simulation: Some(TickSlice {
+                        tick,
+                        state,
+                        events,
+                        tick_hash,
+                    }),
+                });
+                break "first_divergence";
+            }
+        }
+        if simulation.ready_to_finish() {
+            break "natural_module_drain";
+        }
+    };
+    if first_divergence.is_none()
+        && let Some(recording) = recording
+        && steps < u64::from(recording.tick_count())
+    {
+        let tick = u32::try_from(steps)
+            .map_err(|_| Error::new("tick index exceeds u32"))?
+            .checked_add(1)
+            .ok_or_else(|| Error::new("tick index overflow"))?;
+        first_divergence = Some(tick);
+        divergent_tick = Some(DivergentTick {
+            recording: Some(recording.tick(tick)?),
+            simulation: None,
+        });
+        end_reason = "first_divergence";
+    }
+    Ok(Execution {
+        simulation,
+        writer,
+        steps,
+        end_reason,
+        scenario_hash,
+        first_divergence,
+        divergent_tick,
     })
 }
 

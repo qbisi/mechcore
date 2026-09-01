@@ -142,6 +142,15 @@ impl McfrWriter {
         Ok(canonical::hex(&hash))
     }
 
+    /// Returns the canonical scenario hash after `S(0)` has been set.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the initial state is not available.
+    pub fn scenario_hash(&self) -> Result<String> {
+        Ok(canonical::hex(&self.scenario_hash_raw()?))
+    }
+
     /// Finalizes the timeline hash and atomically publishes the container.
     ///
     /// # Errors
@@ -160,15 +169,7 @@ impl McfrWriter {
         if self.tick_hashes.is_empty() {
             return Err(Error::invalid("an MCFR must contain at least T(1)"));
         }
-        let mut scenario_hasher = CanonicalHasher::new("scenario-0.1.0");
-        scenario_hasher.update(MCFR_FORMAT.as_bytes());
-        scenario_hasher.update(&self.context_bytes);
-        scenario_hasher.update(
-            self.initial_state_bytes
-                .as_deref()
-                .ok_or_else(|| Error::invalid("an MCFR must contain tick zero"))?,
-        );
-        let scenario = scenario_hasher.finalize();
+        let scenario = self.scenario_hash_raw()?;
         let result = canonical::result_hash(&scenario, &self.tick_hashes);
         let hashes = Hashes::from_raw(scenario, result);
         let Some(storage) = self.storage.take() else {
@@ -201,5 +202,17 @@ impl McfrWriter {
             )
             .map_err(|error| Error::Io(error.error))?;
         Ok(hashes)
+    }
+
+    fn scenario_hash_raw(&self) -> Result<[u8; canonical::HASH_BYTES]> {
+        let mut scenario = CanonicalHasher::new("scenario-0.1.0");
+        scenario.update(MCFR_FORMAT.as_bytes());
+        scenario.update(&self.context_bytes);
+        scenario.update(
+            self.initial_state_bytes
+                .as_deref()
+                .ok_or_else(|| Error::invalid("an MCFR must contain tick zero"))?,
+        );
+        Ok(scenario.finalize())
     }
 }

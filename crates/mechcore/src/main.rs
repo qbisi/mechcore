@@ -13,6 +13,9 @@ fn usage(program: &str) {
     eprintln!(
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
     );
+    eprintln!(
+        "       {program} sim compare <recording.mcfr>... [--manifest <regressions.yaml>] [--config <directory>]"
+    );
 }
 
 fn main() -> ExitCode {
@@ -42,7 +45,8 @@ fn main() -> ExitCode {
             }
         },
         Some("sim") => match sim::run(arguments) {
-            Ok(()) => ExitCode::SUCCESS,
+            Ok(true) => ExitCode::SUCCESS,
+            Ok(false) => ExitCode::FAILURE,
             Err(error) => {
                 eprintln!("mechcore sim: {error}");
                 ExitCode::FAILURE

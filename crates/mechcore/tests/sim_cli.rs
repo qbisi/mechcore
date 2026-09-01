@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, process::Command};
 
-use mechcore_mcfr::McfrReader;
+use mechcore_mcfr::{MCFR_FORMAT, McfrReader, McfrWriter};
 
 #[test]
 fn sim_command_writes_mcfr_and_prints_the_result() {
@@ -76,4 +76,93 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
     assert!(report["profiling"].get("file_size_bytes").is_none());
     assert!(report["profiling"].get("member_sizes_bytes").is_none());
     assert!(!layout.with_extension("mcfr").exists());
+}
+
+#[test]
+fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
+    let directory = tempfile::tempdir().unwrap();
+    let recording_path = directory.path().join("equal.mcfr");
+    let divergent_path = directory.path().join("divergent.mcfr");
+    let manifest = directory.path().join("regressions.yaml");
+    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+    let config = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config");
+    let generated = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("sim")
+        .arg(&layout)
+        .arg("--seed")
+        .arg("7")
+        .arg("--output")
+        .arg(&recording_path)
+        .arg("--config")
+        .arg(&config)
+        .output()
+        .unwrap();
+    assert!(
+        generated.status.success(),
+        "{}",
+        String::from_utf8_lossy(&generated.stderr)
+    );
+
+    let recording = McfrReader::open(&recording_path).unwrap();
+    let mut writer =
+        McfrWriter::create(&divergent_path, recording.game_build(), recording.context()).unwrap();
+    writer
+        .set_initial_state(recording.state(0).unwrap())
+        .unwrap();
+    for tick in 1..=recording.tick_count() {
+        let mut slice = recording.tick(tick).unwrap();
+        if tick == 1 {
+            slice.state.live_units[0].life.current -= 1;
+        }
+        writer.append_tick(slice.state, &slice.events).unwrap();
+    }
+    let divergent_hashes = writer.finish().unwrap();
+    assert_eq!(
+        divergent_hashes.scenario_hash,
+        recording.hashes().scenario_hash
+    );
+    assert_ne!(divergent_hashes.result_hash, recording.hashes().result_hash);
+
+    fs::write(
+        &manifest,
+        format!(
+            "- name: cli-test\n  layout: {}\n  game_build: {}\n  format: {}\n  seed: 7\n  scenario_hash: {}\n",
+            layout.display(),
+            recording.game_build(),
+            MCFR_FORMAT,
+            recording.hashes().scenario_hash,
+        ),
+    )
+    .unwrap();
+    drop(recording);
+
+    let compared = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("sim")
+        .arg("compare")
+        .arg(&recording_path)
+        .arg(&divergent_path)
+        .arg("--manifest")
+        .arg(&manifest)
+        .arg("--config")
+        .arg(&config)
+        .output()
+        .unwrap();
+    assert!(!compared.status.success());
+    assert!(compared.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
+    assert_eq!(report["schema"], "mechcore.sim-compare-batch-result.v1");
+    assert_eq!(report["equal"], false);
+    assert_eq!(report["comparisons"][0]["equal"], true);
+    assert!(report["comparisons"][0]["first_divergence"].is_null());
+    assert_eq!(report["comparisons"][1]["equal"], false);
+    assert_eq!(report["comparisons"][1]["first_divergence"], 1);
+    assert_eq!(
+        report["comparisons"][1]["divergent_tick"]["recording"]["tick"],
+        1
+    );
+    assert_eq!(
+        report["comparisons"][1]["divergent_tick"]["simulation"]["tick"],
+        1
+    );
 }

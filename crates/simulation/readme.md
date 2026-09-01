@@ -29,6 +29,21 @@ full 门禁覆盖当前格式的全部 manifest 条目，包含 smoke 条目。
 `member_sizes_bytes` 分别记录其中 `ticks.parquet`、五个状态 Parquet 和
 `events.jsonl` 的字节数。
 
+## 直接对比原生录像
+
+```text
+mechcore sim compare work/captures/*.mcfr
+```
+
+命令按每份录像的 `scenario_hash` 在 `tests/mcfr-regressions.yaml` 中唯一确定 layout
+和 seed，然后在内存中逐 tick 生成 Simulator 的规范化状态、事件和 `tick_hash`。
+比较在首个 hash 不同或一侧缺失的 tick 停止，JSON 同时返回该 tick 的
+`recording` 与 `simulation` 数据；全程不生成 Simulator MCFR。多个输入逐份返回结果，
+任一录像存在差异时进程退出码为非零。可用 `--manifest` 指定其它回归清单，用
+`--config` 指定外部 Simulator 配置目录。录像、清单与 Simulator 的
+`game_build` 以及模拟得到的 `scenario_hash` 必须一致。提前停止时
+`simulation.complete=false`，其 `tick_count` 表示已经生成并比较到的 tick 数量。
+
 ## 机制与数值的证据门禁
 
 机制推演和证据审查由两个相互对抗的 Agent 承担：
@@ -166,11 +181,11 @@ Agent 与审查 Agent 必须使用不同上下文分别工作；审查输入包�
    build/layout/seed 且 Adapter 与 MCFR schema 未改变时可以复用已验证录像；否则必须
    重新采集。新 case 必须从已验证 MCFR 的 `D.match_seed` 读取并冻结 seed，不假设
    Adapter 接受外部 seed。
-3. **模拟输出**：执行 `mechcore sim layout.yaml --seed ... --config ...`，保存 Simulator
-   MCFR 和结构化战斗结果。
-4. **规范对比**：结构化打开两个 MCFR，直接比较持久化的 tick hash。若
-   `scenario_hash` 不同，先逐字段比较 `D` 与 `S(0)`，不得直接比较后续 tick。若相同，
-   使用 `first_divergence` 找到首个不同 tick，只读取并比较该 tick 的 `S` 与有序 `E`。
+3. **模拟输出**：执行 `mechcore sim layout.yaml --seed ... --config ...`，取得 Simulator
+   hash、结构化战斗结果和 profiling。
+4. **规范对比**：执行 `mechcore sim compare native.mcfr --config ...`。命令先验证
+   `game_build` 和 `scenario_hash`，再在内存逐 tick 比较规范化 hash；遇到首个不同或
+   缺失 tick 即停止，只返回该 tick 两侧的 `S`、有序 `E` 和 `tick_hash`。
 5. **单一假设**：假设 Agent 只针对这个首个分歧提出一个机制或数值解释，并记录：
    反编译 selector/地址、调用链、关键分支或字段、原始数值、换算过程、预计改变的
    首个 tick/字段，以及能够排除的竞争解释。若当前 layout 无法产生区分性预测，必须
