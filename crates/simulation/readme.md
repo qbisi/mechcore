@@ -1,8 +1,33 @@
 # mechcore-simulation
 
-该 crate 根据布局、配置和随机种子执行确定性战斗模拟，并输出与 Adapter
+该 crate 根据布局、配置和随机种子执行确定性战斗模拟，并可生成与 Adapter
 相同格式的 MCFR。Simulator 与真实录像对齐时采用“大胆假设、严格求证”的
 对抗式研究流程，但能够复现录像不等于已经证明游戏机制。
+
+## 回归门禁
+
+默认 `cargo test` 执行每个 layout 的一个 smoke seed。完整 native MCFR seed corpus
+属于可选门禁，仅在需要全量确认时显式执行：
+
+```text
+cargo test -p mechcore-simulation --test battle native_regression_full_hashes_match -- --ignored --exact
+```
+
+full 门禁覆盖当前格式的全部 manifest 条目，包含 smoke 条目。
+
+## 输出与 profiling
+
+`mechcore sim <layout>` 默认只计算逐 tick hash、`scenario_hash`、`result_hash`，并向
+标准输出返回终局战斗结构和 profiling，不生成 MCFR 存储。指定
+`--output <battle.mcfr>` 时才序列化、验证并发布文件。
+`result_hash` 由 `scenario_hash`、tick 数量和有序的全部 `tick_hash` 计算，因此默认
+路径不依赖 Parquet 或 JSONL 存储。
+
+`profiling.generation_duration_milliseconds` 统计从初始化战斗到完成 hash 生成的现实时间；
+指定输出时还包含 MCFR 序列化与结构校验。`profiling.simulation_to_real_time_rate` 是模拟
+战斗时长除以该现实时间。生成文件时，`file_size_bytes` 记录 MCFR 容器大小，
+`member_sizes_bytes` 分别记录其中 `ticks.parquet`、五个状态 Parquet 和
+`events.jsonl` 的字节数。
 
 ## 机制与数值的证据门禁
 

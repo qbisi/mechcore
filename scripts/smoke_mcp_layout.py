@@ -258,6 +258,13 @@ def load_layout(path: Path) -> dict[str, Any]:
         raise SmokeFailure(
             f"layout round must be within 1..={MAX_ACTIVATION_ROUND}"
         )
+    seed = layout.get("seed", 0)
+    if (
+        not isinstance(seed, int)
+        or isinstance(seed, bool)
+        or not -(2**31) <= seed < 2**31
+    ):
+        raise SmokeFailure("layout seed must be a signed 32-bit integer")
     return layout
 
 
@@ -363,15 +370,17 @@ def build_single_case(
     instrumentation_profile: str | None,
 ) -> CaptureCase:
     layout_path = resolve_path(layout_path)
-    load_layout(layout_path)
+    layout = load_layout(layout_path)
     if output is None:
         output = DEFAULT_CAPTURE_ROOT / (
             f"{layout_path.stem}-{time.time_ns()}.native.mcfr"
         )
     output = resolve_path(output)
     require_new_output(output, ".mcfr", "recording output")
-    if seed is not None and (seed == 0 or not -(2**31) <= seed < 2**31):
-        raise SmokeFailure("--seed must be a nonzero signed 32-bit integer")
+    if seed is not None and not -(2**31) <= seed < 2**31:
+        raise SmokeFailure("--seed must be a signed 32-bit integer")
+    effective_seed = layout.get("seed", 0) if seed is None else seed
+    seed = None if effective_seed == 0 else effective_seed
     if (instrumentation_output is None) != (instrumentation_profile is None):
         raise SmokeFailure(
             "--instrumentation-output and --instrumentation-profile must be used together"
@@ -700,7 +709,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--seed",
         type=int,
-        help="single-layout nonzero signed 32-bit match seed",
+        help="single-layout signed 32-bit seed override; 0 requests system random",
     )
     parser.add_argument(
         "--video-output",

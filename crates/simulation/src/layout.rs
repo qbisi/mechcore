@@ -27,10 +27,10 @@ pub(crate) struct CompiledLayout {
     pub(crate) placements: Vec<Placement>,
 }
 
-pub(crate) fn load(path: &Path, units: &UnitConfigs) -> Result<CompiledLayout> {
+pub(crate) fn load(path: &Path, units: &UnitConfigs) -> Result<(i32, CompiledLayout)> {
     let bytes = fs::read(path)
         .map_err(|error| Error::new(format!("failed to read {}: {error}", path.display())))?;
-    compile(&bytes, units).map_err(|error| {
+    compile_with_seed(&bytes, units).map_err(|error| {
         Error::new(format!(
             "cannot simulate layout {}: {error}",
             path.display()
@@ -38,17 +38,25 @@ pub(crate) fn load(path: &Path, units: &UnitConfigs) -> Result<CompiledLayout> {
     })
 }
 
+#[cfg(test)]
 fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
+    compile_with_seed(bytes, units).map(|(_, layout)| layout)
+}
+
+fn compile_with_seed(bytes: &[u8], units: &UnitConfigs) -> Result<(i32, CompiledLayout)> {
     let layout: mechcore_layout::Layout = serde_yaml::from_slice(bytes)
         .map_err(|error| Error::new(format!("invalid layout YAML: {error}")))?;
     let plan = mechcore_layout::compile_layout(layout).map_err(Error::new)?;
     let mut placements = compile_side("blue", 0, &plan.blue, units)?;
     placements.extend(compile_side("red", 1, &plan.red, units)?);
 
-    Ok(CompiledLayout {
-        round: u32::try_from(plan.round).expect("validated layout round is positive"),
-        placements,
-    })
+    Ok((
+        plan.seed,
+        CompiledLayout {
+            round: u32::try_from(plan.round).expect("validated layout round is positive"),
+            placements,
+        },
+    ))
 }
 
 fn compile_side(
@@ -76,6 +84,11 @@ fn compile_side(
     if !side.battle_skills.is_empty() {
         return Err(Error::new(format!(
             "side {name} battle skills are outside the current baseline simulator slice"
+        )));
+    }
+    if !side.contraptions.is_empty() {
+        return Err(Error::new(format!(
+            "side {name} contraptions are outside the current baseline simulator slice"
         )));
     }
     side.formations

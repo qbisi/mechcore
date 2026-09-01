@@ -1973,6 +1973,7 @@ pub(crate) struct StoredMetadata {
 
 pub(crate) struct StorageReader {
     metadata: StoredMetadata,
+    member_sizes: BTreeMap<String, u64>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     units: Vec<Vec<LiveUnitState>>,
     projectiles: Vec<Vec<ProjectileState>>,
@@ -1985,6 +1986,10 @@ pub(crate) struct StorageReader {
 impl StorageReader {
     pub(crate) fn open(path: &Path) -> Result<Self> {
         let members = open_members(path)?;
+        let member_sizes = members
+            .iter()
+            .map(|(name, member)| (name.clone(), member.len()))
+            .collect();
         let ticks = members
             .get("ticks.parquet")
             .ok_or_else(|| Error::invalid("missing ticks.parquet"))?;
@@ -2026,6 +2031,7 @@ impl StorageReader {
         )?;
         Ok(Self {
             metadata,
+            member_sizes,
             tick_hashes,
             units,
             projectiles,
@@ -2038,6 +2044,10 @@ impl StorageReader {
 
     pub(crate) const fn metadata(&self) -> &StoredMetadata {
         &self.metadata
+    }
+
+    pub(crate) const fn member_sizes(&self) -> &BTreeMap<String, u64> {
+        &self.member_sizes
     }
 
     pub(crate) fn tick_hash(&self, tick: u32) -> Result<[u8; canonical::HASH_BYTES]> {

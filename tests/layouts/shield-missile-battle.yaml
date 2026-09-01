@@ -3,24 +3,26 @@ round: 1
 sides:
   blue:
     formations:
+      - type: stormcaller
+        x: 5
+        y: -40
+    contraptions:
       - type: shield
         x: 1
         y: -81
       - type: missile
         x: 1
         y: -11
-      - type: stormcaller
-        x: 5
-        y: -40
 
   red:
     formations:
+      - type: stormcaller
+        x: 5
+        y: -40
+    contraptions:
       - type: shield
         x: 1
         y: -81
       - type: missile
         x: 1
         y: -11
-      - type: stormcaller
-        x: 5
-        y: -40

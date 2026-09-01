@@ -1,4 +1,5 @@
 mod adapter;
+mod layout;
 mod mcfr;
 mod mcp;
 mod sim;
@@ -8,6 +9,7 @@ use std::process::ExitCode;
 fn usage(program: &str) {
     eprintln!("usage: {program} mcp");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
+    eprintln!("       {program} layout verify <layout.yaml>");
     eprintln!(
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
     );
@@ -29,6 +31,13 @@ fn main() -> ExitCode {
             Ok(false) => ExitCode::FAILURE,
             Err(error) => {
                 eprintln!("mechcore mcfr: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Some("layout") => match layout::run(arguments) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("mechcore layout: {error}");
                 ExitCode::FAILURE
             }
         },

@@ -36,6 +36,12 @@ fn writes_and_reads_v4_tracks() {
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
     assert_eq!(reader.hashes(), &hashes);
+    assert_eq!(
+        reader.file_size_bytes(),
+        std::fs::metadata(&path).unwrap().len()
+    );
+    assert_eq!(reader.member_sizes_bytes().len(), 7);
+    assert!(reader.member_sizes_bytes().values().all(|size| *size > 0));
     assert_eq!(reader.state(0).unwrap(), initial);
     assert_eq!(reader.state(1).unwrap(), final_state);
     assert_eq!(reader.events(1).unwrap(), events);
@@ -85,6 +91,23 @@ fn writes_and_reads_v4_tracks() {
         .unwrap();
     assert!(events_jsonl.ends_with('\n'));
     assert!(events_jsonl.contains("\"damage\""));
+}
+
+#[test]
+fn hash_only_timeline_matches_published_mcfr_hashes_without_creating_storage() {
+    let directory = tempfile::tempdir().unwrap();
+    let initial = state(100);
+    let final_state = state(75);
+    let events = damage_events();
+    let mut hash_only = McfrWriter::hash_only(&context()).unwrap();
+    hash_only.set_initial_state(initial.clone()).unwrap();
+    hash_only.append_tick(final_state.clone(), &events).unwrap();
+    let hashes = hash_only.finish().unwrap();
+    assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
+
+    let path = directory.path().join("battle.mcfr");
+    let published = write_battle(&path, "build-a", &context(), initial, final_state, &events);
+    assert_eq!(hashes, published);
 }
 
 #[test]

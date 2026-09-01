@@ -15,9 +15,10 @@ sides:
 
   red:
     formations:
-      - type: shield
-        x: -56
-        y: -82
       - type: sledgehammer
         x: 5
         y: -100
+    contraptions:
+      - type: shield
+        x: -56
+        y: -82

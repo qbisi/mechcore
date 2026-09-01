@@ -11,7 +11,7 @@ mod rvo;
 
 use std::{
     fmt, fs,
-    path::{Path, PathBuf},
+    path::Path,
     process,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -43,18 +43,18 @@ impl From<mechcore_mcfr::Error> for Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-/// Simulates a supported layout and writes an MCFR recording.
+/// Simulates a supported layout and optionally writes an MCFR recording.
 ///
-/// When `seed` is `None`, a seed is generated and returned in the report so
-/// the run can be reproduced with an explicit seed.
+/// A supplied `seed` overrides `layout.seed`. An effective seed of zero asks
+/// the simulator to generate and report a system-random seed.
 ///
 /// # Errors
 ///
 /// Returns an error for unsupported layout features, invalid files, an
-/// existing output, simulation failure, or MCFR write/reopen failure.
+/// existing requested output, simulation failure, or MCFR generation failure.
 pub fn simulate_layout(
     layout_path: impl AsRef<Path>,
-    output_path: impl AsRef<Path>,
+    output_path: Option<&Path>,
     seed: Option<i32>,
 ) -> Result<SimulationResult> {
     simulate_layout_with_config(layout_path, output_path, seed, None)
@@ -70,25 +70,22 @@ pub fn simulate_layout(
 /// and validation failures.
 pub fn simulate_layout_with_config(
     layout_path: impl AsRef<Path>,
-    output_path: impl AsRef<Path>,
+    output_path: Option<&Path>,
     seed: Option<i32>,
     config_directory: Option<&Path>,
 ) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
-    let output_path = output_path.as_ref();
     let config = rules::SimulationConfig::load(config_directory)?;
-    let layout = layout::load(layout_path, &config.units)?;
-    let (seed, source) = match seed {
-        Some(seed) => (seed, "external"),
-        None => (generate_seed(layout_path)?, "generated"),
+    let (layout_seed, layout) = layout::load(layout_path, &config.units)?;
+    let requested_seed = seed.unwrap_or(layout_seed);
+    let (seed, source) = if requested_seed == 0 {
+        (generate_seed(layout_path)?, "generated")
+    } else if seed.is_some() {
+        (requested_seed, "external")
+    } else {
+        (requested_seed, "layout")
     };
     kernel::run(&layout, &config, seed, source, output_path)
-}
-
-/// Returns the default sibling `.mcfr` output path for a layout.
-#[must_use]
-pub fn default_output_path(layout_path: &Path) -> PathBuf {
-    layout_path.with_extension("mcfr")
 }
 
 fn generate_seed(layout_path: &Path) -> Result<i32> {

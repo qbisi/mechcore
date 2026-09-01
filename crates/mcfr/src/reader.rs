@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::{
     DurableContext, Error, Hashes, MCFR_FORMAT, Result, TickSlice, TransitionEvents, WorldSnapshot,
@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub struct McfrReader {
+    file_size_bytes: u64,
     game_build: String,
     context: DurableContext,
     tick_count: u32,
@@ -24,13 +25,16 @@ impl McfrReader {
     /// Returns an error for I/O failures, unsupported formats, malformed metadata, invalid
     /// Parquet tracks, or canonical hash mismatches.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
-        let storage = StorageReader::open(path.as_ref())?;
+        let path = path.as_ref();
+        let file_size_bytes = fs::metadata(path)?.len();
+        let storage = StorageReader::open(path)?;
         let game_build = storage.metadata().game_build.clone();
         let context = storage.metadata().context.clone();
         let tick_count = storage.metadata().tick_count;
         let terminal_tick = storage.metadata().terminal_tick;
         let hashes = storage.metadata().hashes.clone();
         let reader = Self {
+            file_size_bytes,
             game_build,
             context,
             tick_count,
@@ -66,6 +70,16 @@ impl McfrReader {
     #[must_use]
     pub const fn terminal_tick(&self) -> u32 {
         self.terminal_tick
+    }
+
+    #[must_use]
+    pub const fn file_size_bytes(&self) -> u64 {
+        self.file_size_bytes
+    }
+
+    #[must_use]
+    pub const fn member_sizes_bytes(&self) -> &BTreeMap<String, u64> {
+        self.storage.member_sizes()
     }
 
     /// Returns one tick hash as canonical lowercase hexadecimal.

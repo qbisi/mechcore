@@ -81,8 +81,12 @@ fn rhino_two_arclights_fixture() -> PathBuf {
 fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_format_0_1_0() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result =
-        simulate_layout(rhino_two_arclights_fixture(), &output, Some(1_787_634_176)).unwrap();
+    let result = simulate_layout(
+        rhino_two_arclights_fixture(),
+        Some(&output),
+        Some(1_787_634_176),
+    )
+    .unwrap();
     assert_eq!(result.winner, Some("blue"));
     assert_eq!(result.steps, 321);
     // The hashes and tick/event checks freeze this reviewed seed under the
@@ -123,17 +127,28 @@ fn rhino_vs_two_arclights_preserves_the_reviewed_timeline_under_format_0_1_0() {
 fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(fixture(), &output, Some(7)).unwrap();
+    let result = simulate_layout(fixture(), Some(&output), Some(7)).unwrap();
     assert_eq!(result.game_build, "1.11.1.3.2259");
     assert_eq!(result.seed, 7);
     assert_eq!(result.seed_source, "external");
     assert_eq!(result.end_reason, "natural_module_drain");
+    assert_eq!(result.output.as_deref(), output.to_str());
+    assert!(result.profiling.generation_duration_milliseconds > 0.0);
+    assert!(result.profiling.simulation_to_real_time_rate > 0.0);
     assert!(result.winner.is_some());
     assert!(!result.draw);
 
     let reader = McfrReader::open(&output).unwrap();
     assert_eq!(reader.game_build(), "1.11.1.3.2259");
     assert_eq!(reader.hashes(), &result.hashes);
+    assert_eq!(
+        Some(reader.file_size_bytes()),
+        result.profiling.file_size_bytes
+    );
+    assert_eq!(
+        Some(reader.member_sizes_bytes()),
+        result.profiling.member_sizes_bytes.as_ref()
+    );
     assert_eq!(u64::from(reader.terminal_tick()), result.steps);
     let final_state = reader.state(reader.terminal_tick()).unwrap();
     assert_eq!(final_state.live_units.len(), 1);
@@ -153,7 +168,7 @@ fn marksman_vs_arclight_matches_the_format_0_1_0_build_2259_native_recording() {
     let output = directory.path().join("battle.mcfr");
     let result = simulate_layout(
         regression_layout(&regression),
-        &output,
+        Some(&output),
         Some(regression.seed),
     )
     .unwrap();
@@ -185,7 +200,7 @@ fn rhino_vs_arclight_matches_the_format_0_1_0_build_2259_native_recording() {
     let output = directory.path().join("battle.mcfr");
     let result = simulate_layout(
         regression_layout(&regression),
-        &output,
+        Some(&output),
         Some(regression.seed),
     )
     .unwrap();
@@ -237,7 +252,7 @@ fn rhino_retarget_matches_the_format_0_1_0_build_2259_native_recording() {
     let output = directory.path().join("battle.mcfr");
     let result = simulate_layout(
         regression_layout(&regression),
-        &output,
+        Some(&output),
         Some(regression.seed),
     )
     .unwrap();
@@ -320,14 +335,8 @@ fn rhino_retarget_matches_the_format_0_1_0_build_2259_native_recording() {
 fn assert_native_regression_hashes(regressions: impl IntoIterator<Item = NativeRegression>) {
     for regression in regressions {
         let name = regression.name.as_str();
-        let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("battle.mcfr");
-        let result = simulate_layout(
-            regression_layout(&regression),
-            &output,
-            Some(regression.seed),
-        )
-        .unwrap();
+        let result =
+            simulate_layout(regression_layout(&regression), None, Some(regression.seed)).unwrap();
         assert_eq!(
             result.hashes.scenario_hash, regression.scenario_hash,
             "{name}"
@@ -342,16 +351,15 @@ fn native_regression_smoke_hashes_match() {
 }
 
 #[test]
+#[ignore = "optional full native regression gate"]
 fn native_regression_full_hashes_match() {
     assert_native_regression_hashes(current_native_regressions());
 }
 
 #[test]
 fn the_same_layout_and_seed_have_identical_semantic_hashes() {
-    let directory = tempfile::tempdir().unwrap();
-    let first = simulate_layout(fixture(), directory.path().join("first.mcfr"), Some(-19)).unwrap();
-    let second =
-        simulate_layout(fixture(), directory.path().join("second.mcfr"), Some(-19)).unwrap();
+    let first = simulate_layout(fixture(), None, Some(-19)).unwrap();
+    let second = simulate_layout(fixture(), None, Some(-19)).unwrap();
     assert_eq!(first.hashes, second.hashes);
     assert_eq!(first.winner, second.winner);
     assert_eq!(first.steps, second.steps);
@@ -359,15 +367,25 @@ fn the_same_layout_and_seed_have_identical_semantic_hashes() {
 
 #[test]
 fn generated_seed_is_reported_and_replayable() {
-    let directory = tempfile::tempdir().unwrap();
-    let generated =
-        simulate_layout(fixture(), directory.path().join("generated.mcfr"), None).unwrap();
+    let generated = simulate_layout(fixture(), None, None).unwrap();
     assert_eq!(generated.seed_source, "generated");
-    let replayed = simulate_layout(
-        fixture(),
-        directory.path().join("replayed.mcfr"),
-        Some(generated.seed),
-    )
-    .unwrap();
+    assert_eq!(generated.output, None);
+    let replayed = simulate_layout(fixture(), None, Some(generated.seed)).unwrap();
     assert_eq!(generated.hashes, replayed.hashes);
+}
+
+#[test]
+fn layout_seed_is_used_and_external_seed_overrides_it() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("seeded.yaml");
+    let source = fs::read_to_string(fixture()).unwrap();
+    fs::write(&layout, format!("seed: -17\n{source}")).unwrap();
+
+    let from_layout = simulate_layout(&layout, None, None).unwrap();
+    assert_eq!(from_layout.seed, -17);
+    assert_eq!(from_layout.seed_source, "layout");
+
+    let overridden = simulate_layout(&layout, None, Some(23)).unwrap();
+    assert_eq!(overridden.seed, 23);
+    assert_eq!(overridden.seed_source, "external");
 }

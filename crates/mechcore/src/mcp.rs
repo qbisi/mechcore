@@ -503,7 +503,11 @@ impl MechcoreMcp {
     ) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(
             self.shared
-                .apply_layout(json!({"round": parameters.round, "sides": parameters.sides}))
+                .apply_layout(json!({
+                    "seed": parameters.seed,
+                    "round": parameters.round,
+                    "sides": parameters.sides
+                }))
                 .await,
         ))
     }
@@ -1003,6 +1007,7 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(parameters.round, 3);
+        assert_eq!(parameters.seed, 0);
     }
 
     #[tokio::test]
@@ -1022,7 +1027,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_layout_tool_schema_describes_both_sides_and_formations() {
+    fn apply_layout_tool_schema_describes_seed_formations_and_contraptions() {
         let shared = Shared::new();
         let tool = MechcoreMcp::new(shared)
             .tool_router
@@ -1048,6 +1053,17 @@ mod tests {
                 .pointer("/$defs/Side/properties/formations")
                 .is_some()
         );
+        assert!(
+            schema
+                .pointer("/$defs/Side/properties/contraptions")
+                .is_some()
+        );
+        assert!(schema.pointer("/properties/seed").is_some());
         assert!(schema.pointer("/$defs/Formation/properties/type").is_some());
+        assert!(
+            schema
+                .pointer("/$defs/Contraption/properties/type")
+                .is_some()
+        );
     }
 }

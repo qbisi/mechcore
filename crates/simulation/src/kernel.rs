@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::BTreeMap};
+use std::{cmp::Ordering, collections::BTreeMap, path::Path, time::Instant};
 
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
@@ -1012,14 +1012,26 @@ pub struct SimulationResult {
     pub game_build: String,
     pub seed: i32,
     pub seed_source: &'static str,
-    pub output: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
     pub end_reason: &'static str,
     pub steps: u64,
-    pub elapsed_milliseconds: u64,
+    pub simulated_duration_milliseconds: u64,
     pub winner: Option<&'static str>,
     pub draw: bool,
     pub teams: Vec<TeamResult>,
     pub hashes: Hashes,
+    pub profiling: SimulationProfile,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulationProfile {
+    pub generation_duration_milliseconds: f64,
+    pub simulation_to_real_time_rate: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_size_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_sizes_bytes: Option<BTreeMap<String, u64>>,
 }
 
 struct Simulation {
@@ -4296,8 +4308,9 @@ pub(crate) fn run(
     config: &SimulationConfig,
     seed: i32,
     seed_source: &'static str,
-    output: &std::path::Path,
+    output: Option<&Path>,
 ) -> Result<SimulationResult> {
+    let generation_started = Instant::now();
     let divisor = gcd(LOGIC_TICK_TIME_UNITS, TIME_UNITS_PER_SECOND);
     let context = DurableContext {
         logic_step: Rational {
@@ -4313,7 +4326,10 @@ pub(crate) fn run(
     };
     let mut simulation =
         Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
-    let mut writer = McfrWriter::create(output, &config.game_build, &context)?;
+    let mut writer = match output {
+        Some(path) => McfrWriter::create(path, &config.game_build, &context)?,
+        None => McfrWriter::hash_only(&context)?,
+    };
     writer.set_initial_state(simulation.snapshot())?;
     simulation.initialize_presearch_targets()?;
     let mut steps = 0;
@@ -4332,23 +4348,35 @@ pub(crate) fn run(
         }
     };
     let hashes = writer.finish()?;
-    let published = mechcore_mcfr::McfrReader::open(output)?;
-    if published.hashes() != &hashes {
-        return Err(Error::new("published MCFR hashes changed after reopening"));
-    }
+    let (file_size_bytes, member_sizes_bytes) = if let Some(path) = output {
+        let published = mechcore_mcfr::McfrReader::open(path)?;
+        if published.hashes() != &hashes {
+            return Err(Error::new("published MCFR hashes changed after reopening"));
+        }
+        (
+            Some(published.file_size_bytes()),
+            Some(published.member_sizes_bytes().clone()),
+        )
+    } else {
+        (None, None)
+    };
+    let generation_duration = generation_started.elapsed();
+    let simulated_duration_milliseconds = steps
+        .saturating_mul(LOGIC_TICK_TIME_UNITS)
+        .saturating_mul(1_000)
+        / TIME_UNITS_PER_SECOND;
+    let simulation_to_real_time_rate =
+        simulated_duration_milliseconds as f64 / generation_duration.as_secs_f64() / 1_000.0;
     let winner = simulation.winner().map(team_name);
     Ok(SimulationResult {
-        schema: "mechcore.simulation-result.v1",
+        schema: "mechcore.simulation-result.v2",
         game_build: config.game_build.clone(),
         seed,
         seed_source,
-        output: output.display().to_string(),
+        output: output.map(|path| path.display().to_string()),
         end_reason,
         steps,
-        elapsed_milliseconds: steps
-            .saturating_mul(LOGIC_TICK_TIME_UNITS)
-            .saturating_mul(1_000)
-            / TIME_UNITS_PER_SECOND,
+        simulated_duration_milliseconds,
         winner,
         draw: winner.is_none(),
         teams: simulation
@@ -4363,6 +4391,12 @@ pub(crate) fn run(
             })
             .collect(),
         hashes,
+        profiling: SimulationProfile {
+            generation_duration_milliseconds: generation_duration.as_secs_f64() * 1_000.0,
+            simulation_to_real_time_rate,
+            file_size_bytes,
+            member_sizes_bytes,
+        },
     })
 }
 

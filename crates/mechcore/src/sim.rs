@@ -1,15 +1,12 @@
 use std::{ffi::OsString, path::PathBuf};
 
-use mechcore_simulation::{default_output_path, simulate_layout_with_config};
+use mechcore_simulation::simulate_layout_with_config;
 
 pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let options = Options::parse(arguments)?;
-    let output = options
-        .output
-        .unwrap_or_else(|| default_output_path(&options.layout));
     let result = simulate_layout_with_config(
         &options.layout,
-        &output,
+        options.output.as_deref(),
         options.seed,
         options.config.as_deref(),
     )

@@ -14,10 +14,10 @@ use crate::{
 };
 
 pub struct McfrWriter {
-    target: PathBuf,
-    temporary: TempPath,
+    target: Option<PathBuf>,
+    temporary: Option<TempPath>,
     storage: Option<StorageWriter>,
-    game_build: String,
+    game_build: Option<String>,
     context_bytes: Vec<u8>,
     initial_state_bytes: Option<Vec<u8>>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
@@ -58,11 +58,30 @@ impl McfrWriter {
             .into_temp_path();
         let storage = StorageWriter::create(parent)?;
         Ok(Self {
-            target,
-            temporary,
+            target: Some(target),
+            temporary: Some(temporary),
             storage: Some(storage),
-            game_build: game_build.to_owned(),
+            game_build: Some(game_build.to_owned()),
             context_bytes,
+            initial_state_bytes: None,
+            tick_hashes: Vec::new(),
+            poisoned: false,
+        })
+    }
+
+    /// Starts a canonical hash-only timeline without creating MCFR storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the durable context is invalid or cannot be encoded.
+    pub fn hash_only(context: &DurableContext) -> Result<Self> {
+        context.validate()?;
+        Ok(Self {
+            target: None,
+            temporary: None,
+            storage: None,
+            game_build: None,
+            context_bytes: canonical::encode(context)?,
             initial_state_bytes: None,
             tick_hashes: Vec::new(),
             poisoned: false,
@@ -83,10 +102,9 @@ impl McfrWriter {
         IdentityAllocator::from_initial(&state)?;
         let state_bytes = canonical::encode(&state)?;
         self.poisoned = true;
-        self.storage
-            .as_mut()
-            .ok_or_else(|| Error::invalid("writer storage is unavailable"))?
-            .append_initial_state(&state);
+        if let Some(storage) = &mut self.storage {
+            storage.append_initial_state(&state);
+        }
         self.initial_state_bytes = Some(state_bytes);
         self.poisoned = false;
         Ok(())
@@ -116,10 +134,9 @@ impl McfrWriter {
         let event_bytes = canonical::encode(events)?;
         let hash = canonical::tick_hash(tick, &state_bytes, &event_bytes);
         self.poisoned = true;
-        self.storage
-            .as_mut()
-            .ok_or_else(|| Error::invalid("writer storage is unavailable"))?
-            .append_tick(tick, &state, events, hash)?;
+        if let Some(storage) = &mut self.storage {
+            storage.append_tick(tick, &state, events, hash)?;
+        }
         self.tick_hashes.push(hash);
         self.poisoned = false;
         Ok(canonical::hex(&hash))
@@ -154,13 +171,20 @@ impl McfrWriter {
         let scenario = scenario_hasher.finalize();
         let result = canonical::result_hash(&scenario, &self.tick_hashes);
         let hashes = Hashes::from_raw(scenario, result);
-        let directory = self
-            .storage
-            .take()
-            .ok_or_else(|| Error::invalid("writer storage is unavailable"))?
-            .finish(&self.game_build, &self.context_bytes, &hashes)?;
-        parquet_storage::package_members(directory.path(), &self.temporary)?;
-        let verified = McfrReader::open(&self.temporary)?;
+        let Some(storage) = self.storage.take() else {
+            return Ok(hashes);
+        };
+        let game_build = self
+            .game_build
+            .as_deref()
+            .ok_or_else(|| Error::invalid("writer game build is unavailable"))?;
+        let temporary = self
+            .temporary
+            .as_ref()
+            .ok_or_else(|| Error::invalid("writer temporary output is unavailable"))?;
+        let directory = storage.finish(game_build, &self.context_bytes, &hashes)?;
+        parquet_storage::package_members(directory.path(), temporary)?;
+        let verified = McfrReader::open(temporary)?;
         if verified.hashes() != &hashes {
             return Err(Error::invalid(
                 "published MCFR hashes differ after structural verification",
@@ -168,7 +192,13 @@ impl McfrWriter {
         }
         drop(verified);
         self.temporary
-            .persist_noclobber(&self.target)
+            .take()
+            .ok_or_else(|| Error::invalid("writer temporary output is unavailable"))?
+            .persist_noclobber(
+                self.target
+                    .as_ref()
+                    .ok_or_else(|| Error::invalid("writer target is unavailable"))?,
+            )
             .map_err(|error| Error::Io(error.error))?;
         Ok(hashes)
     }

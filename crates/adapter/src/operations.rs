@@ -736,6 +736,7 @@ fn apply_layout_stage(
             "round": expected_round,
             "target_round": plan.round,
             "formation_count": plan.formation_count(),
+            "contraption_count": plan.contraption_count(),
             "cleared": {"cleared": true, "both_sides": true},
         }));
     }
@@ -774,6 +775,7 @@ fn apply_layout_stage(
         "round": expected_round,
         "target_round": plan.round,
         "formation_count": plan.formation_count(),
+        "contraption_count": plan.contraption_count(),
         "sides": {
             "blue": blue,
             "red": red
@@ -801,7 +803,7 @@ fn restore_player_after_error(
 
 fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<(), OperationError> {
     let config = config_instance(runtime)?;
-    for placement in &side.formations {
+    for placement in side.formations.iter().chain(&side.contraptions) {
         let (method, mut id) = match placement.native {
             NativeFormation::Unit(id) => ("GetUnitData", id),
             NativeFormation::Construction(id) => ("GetConstructionData", id),
@@ -990,7 +992,13 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     for placement in &plan.blue.formations {
         layout_world_position(placement, false)?;
     }
+    for placement in &plan.blue.contraptions {
+        layout_world_position(placement, false)?;
+    }
     for placement in &plan.red.formations {
+        layout_world_position(placement, true)?;
+    }
+    for placement in &plan.red.contraptions {
         layout_world_position(placement, true)?;
     }
     for skill in &plan.blue.battle_skills {
@@ -1025,6 +1033,13 @@ fn apply_side_layout_stage(
         rotate_to_world,
         placement_stage,
     )?;
+    let contraptions = apply_formations(
+        runtime,
+        current,
+        &side.contraptions,
+        rotate_to_world,
+        placement_stage,
+    )?;
     let result = match stage {
         LayoutExecutionStage::Prepare => unreachable!("prepare returned before side application"),
         LayoutExecutionStage::PreActivation => json!({"formations": formations}),
@@ -1033,6 +1048,7 @@ fn apply_side_layout_stage(
             "research_center": apply_research_center(runtime, &side.research_center)?,
             "energy_tower": apply_energy_tower(runtime, &side.energy_tower)?,
             "formations": formations,
+            "contraptions": contraptions,
             "battle_skills": apply_battle_skills(
                 runtime,
                 &side.battle_skills,
@@ -1782,8 +1798,13 @@ fn verify_unit_readback(
 }
 
 fn describe_placement(placement: &Placement) -> String {
+    let kind = if matches!(placement.native, NativeFormation::Contraption(_)) {
+        "contraption"
+    } else {
+        "formation"
+    };
     format!(
-        "formation type {:?} at local position ({}, {})",
+        "{kind} type {:?} at local position ({}, {})",
         placement.type_name, placement.position.x, placement.position.y
     )
 }

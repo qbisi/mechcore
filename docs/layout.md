@@ -7,14 +7,20 @@ Training Ground scene. It describes game state, not the actions used to create
 that state.
 
 The top-level `round` selects the deployment round in which the complete layout
-becomes active. The document does not contain `reactor_core`, `supply`, game
-startup parameters, capture settings, or exit behavior.
+becomes active. The top-level `seed` selects the native or simulated match seed;
+`0` asks the executor to use a system-random seed. The document does not contain
+`reactor_core`, `supply`, capture settings, or exit behavior.
 
 The same layout is also the input to the bounded deterministic simulator:
 
 ```text
 mechcore sim layout.yaml [--seed <i32>] [--output battle.mcfr] [--config <directory>]
+mechcore layout verify layout.yaml
 ```
+
+`mechcore sim` returns hashes, terminal battle structure, and generation profiling
+without generating MCFR storage by default. `--output` additionally serializes,
+validates, and publishes an MCFR at the requested path.
 
 Unit combat values are resolved from the typed, one-file-per-unit
 [unit configuration contract](unit-rules.md), not stored in the layout. The current
@@ -27,6 +33,7 @@ A layout contains exactly two player sides, `blue` and `red`. Persistent Officer
 and unit-technology state is grouped under each side's `techs` object.
 
 ```yaml
+seed: 0
 round: 3
 
 sides:
@@ -60,6 +67,7 @@ sides:
         x: 140
         y: -105
 
+    contraptions:
       - type: interceptor
         x: 5
         y: -95
@@ -88,6 +96,7 @@ sides:
         x: 0
         y: -100
 
+    contraptions: []
     battle_skills: []
 ```
 
@@ -100,6 +109,21 @@ shape, its static legality rules, and normalized execution plan. MCP uses its
 compiler before contacting the game; the Adapter consumes the same plan, while
 the Simulator adds only its narrower feature-support and configuration checks.
 Runtime catalog availability and native readback remain Adapter-owned.
+
+`mechcore layout verify layout.yaml` runs this shared static compiler without
+starting the game or Simulator. A successful JSON report includes the normalized
+seed, activation round, formation count, and contraption count.
+
+## Seed
+
+`seed` is an optional signed 32-bit integer and defaults to `0`. A nonzero value
+requests that exact match seed. Zero requests a system-random seed whose resolved
+`i32` value is reported by the executor and persisted in MCFR
+`DurableContext.match_seed`.
+
+For `mechcore sim`, an explicit `--seed` replaces the layout value. The effective
+value is therefore `--seed` when present and `layout.seed` otherwise; if that
+effective value is zero, the Simulator generates a seed before execution.
 
 ## Activation round
 
@@ -175,6 +199,7 @@ when omitted:
 - `energy_tower.strength_level` defaults to `0`.
 - `energy_tower.range_enhancement` defaults to `false`.
 - `energy_tower.movement_enhancement` defaults to `false`.
+- `contraptions` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
 - A unit formation's `level` defaults to `1`.
 - A unit formation's `rotated` defaults to `false`.
@@ -317,7 +342,7 @@ applies the complete Energy Tower state in the activation round.
 
 ### `formations`
 
-`formations` is a union of units, constructions, and contraptions. Each entry
+`formations` is a union of units and constructions. Each entry
 uses one semantic `type` instead of exposing a catalog category and numeric ID:
 
 ```yaml
@@ -326,9 +351,9 @@ uses one semantic `type` instead of exposing a catalog category and numeric ID:
   y: -50
 ```
 
-- `type` is the lower `snake_case` form of the unit, construction, shield,
-  interceptor, or missile's English in-game name. It selects both the native
-  catalog and the valid type-specific fields.
+- `type` is the lower `snake_case` form of the unit or construction's English
+  in-game name. It selects both the native catalog and the valid type-specific
+  fields.
 - `x` and `y` are required exact signed coordinates in the owning side's fixed
   local frame defined above, not native world or screen pixels.
 
@@ -462,8 +487,7 @@ most one equipment slot, so this field is singular rather than an array.
 effect only for an ambush-zone unit: `true` requires that the unit be first
 deployed during the activation round, while `false` requires deployment in the
 immediately preceding round. `travelling: true` is invalid outside the ambush
-zones. Constructions and contraptions must not declare `equipment` or
-`travelling`.
+zones. Constructions must not declare `equipment` or `travelling`.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
@@ -487,17 +511,19 @@ field because the current native release action takes none of these values. The
 executor resolves its English type to the native `ConstructionData`, performs
 the placement check, releases it once, and verifies its type and exact position.
 
-#### Contraption
+### `contraptions`
 
 ```yaml
-- type: interceptor
-  x: 5
-  y: -95
+contraptions:
+  - type: interceptor
+    x: 5
+    y: -95
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
-contraption kind. A contraption accepts no `level`, `rotated`, `equipment`, or
-`travelling` field, and none of these three types requires an extra position.
+contraption kind. `contraptions` is parallel to `formations` under one side and
+defaults to `[]`. A contraption entry contains exactly `type`, `x`, and `y`; none
+of these three types requires an extra position.
 The executor performs the native placement check, releases the contraption once,
 and verifies its type and exact position through authoritative recorder
 readback.
@@ -626,7 +652,7 @@ request:
 
 1. require round-one Training Ground deployment;
 2. compile the complete layout and resolve every Officer, unit technology,
-   formation, fixed tower, required blueprint, Energy Tower skill, and battle
+   formation, contraption, fixed tower, required blueprint, Energy Tower skill, and battle
    skill through each side's runtime catalog before mutation;
 3. clear both sides in round 1 without placing combat formations;
 4. start each earlier empty round and wait for the game to advance it naturally,
@@ -655,10 +681,11 @@ sides. It rejects tower levels outside `0..=2`, unknown formation footprints,
 formation collisions where applicable, and contraptions outside their target
 regions. Unsupported state is never silently ignored.
 
-The compiler owns the activation round and total formation count. A successful
-`apply_layout` response includes them as `round` and `formation_count`, plus the
-completed `stages` and `skipped_rounds`; callers do not recount the input or
-returned arrays to establish completeness.
+The compiler owns the activation round and the separate formation and
+contraption counts. A successful `apply_layout` response includes them as
+`round`, `formation_count`, and `contraption_count`, plus the completed `stages`
+and `skipped_rounds`; callers do not recount the input or returned arrays to
+establish completeness.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is
@@ -718,7 +745,8 @@ Red releases `mobile_beacon` at local positions `(-55,-60)`, `(-105,-90)`, and
 `(105,-20)`: the selected Fang first retreats briefly away from the adjacent
 Wasp and strike point, then advances on the displaced line.
 
-`start_test` takes no arguments. It always creates the Training
+`start_test` accepts the effective layout seed. Zero or omission requests a
+system-random native seed. It creates the Training
 Ground used by `apply_layout`, with advanced teams, reinforcements, and unit
 reinforcements disabled. Native constructions remain enabled while the room is
 created so that round one uses the standard 300 m-deep main deployment regions;

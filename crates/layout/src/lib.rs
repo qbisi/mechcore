@@ -6,6 +6,8 @@ use serde_json::Value;
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
+    #[serde(default)]
+    pub seed: i32,
     #[schemars(range(min = 1, max = 15))]
     pub round: i32,
     pub sides: Sides,
@@ -28,6 +30,8 @@ pub struct Side {
     #[serde(default)]
     pub energy_tower: EnergyTower,
     pub formations: Vec<Formation>,
+    #[serde(default)]
+    pub contraptions: Vec<Contraption>,
     #[serde(default)]
     pub battle_skills: Vec<BattleSkillDefinition>,
 }
@@ -67,6 +71,15 @@ pub struct Formation {
     pub rotated: Option<bool>,
     pub equipment: Option<i32>,
     pub travelling: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Contraption {
+    #[serde(rename = "type")]
+    pub type_name: String,
+    pub x: i32,
+    pub y: i32,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
@@ -129,11 +142,13 @@ pub struct SidePlan {
     pub research_center: ResearchCenter,
     pub energy_tower: EnergyTower,
     pub formations: Vec<Placement>,
+    pub contraptions: Vec<Placement>,
     pub battle_skills: Vec<BattleSkill>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Plan {
+    pub seed: i32,
     pub round: i32,
     pub blue: SidePlan,
     pub red: SidePlan,
@@ -187,6 +202,11 @@ impl Plan {
     pub fn formation_count(&self) -> usize {
         self.blue.formations.len() + self.red.formations.len()
     }
+
+    #[must_use]
+    pub fn contraption_count(&self) -> usize {
+        self.blue.contraptions.len() + self.red.contraptions.len()
+    }
 }
 
 /// Deserializes, validates, and normalizes a JSON layout into an execution plan.
@@ -216,8 +236,11 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     let red = compile_side("red", layout.sides.red, layout.round)?;
     validate_formation_footprints("blue", &blue.formations)?;
     validate_formation_footprints("red", &red.formations)?;
-    validate_formation_collisions(&blue.formations, &red.formations)?;
+    validate_formation_footprints("blue", &blue.contraptions)?;
+    validate_formation_footprints("red", &red.contraptions)?;
+    validate_formation_collisions(&blue, &red)?;
     Ok(Plan {
+        seed: layout.seed,
         round: layout.round,
         blue,
         red,
@@ -232,15 +255,18 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         research_center,
         energy_tower,
         formations,
+        contraptions,
         battle_skills,
     } = side;
     let formations = compile_formations(side_name, formations, round)?;
+    let contraptions = compile_contraptions(side_name, contraptions)?;
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     Ok(SidePlan {
         techs,
         research_center,
         energy_tower,
         formations,
+        contraptions,
         battle_skills,
     })
 }
@@ -264,7 +290,13 @@ fn compile_formations(
                 travelling,
             } = formation;
             let position = Position { x, y };
-            let spec = resolve_type(&type_name).ok_or_else(|| {
+            let spec = resolve_formation_type(&type_name).ok_or_else(|| {
+                if resolve_contraption_type(&type_name).is_some() {
+                    return format!(
+                        "side {side_name} formation type {type_name:?} at ({}, {}) belongs in contraptions",
+                        position.x, position.y
+                    );
+                }
                 format!(
                     "side {side_name} formation type {type_name:?} at ({}, {}) is unknown",
                     position.x, position.y
@@ -328,28 +360,7 @@ fn compile_formations(
                         stage: PlacementStage::Activation,
                     })
                 }
-                NativeFormation::Contraption(id) => {
-                    reject_unit_fields(
-                        side_name,
-                        &type_name,
-                        position,
-                        level,
-                        rotated,
-                        equipment,
-                        travelling,
-                    )?;
-                    Ok(Placement {
-                        type_name,
-                        native: NativeFormation::Contraption(id),
-                        footprint: spec.footprint,
-                        position,
-                        level: None,
-                        rotated: false,
-                        equipment: None,
-                        travelling: false,
-                        stage: PlacementStage::Activation,
-                    })
-                }
+                NativeFormation::Contraption(_) => unreachable!("formation resolver returned contraption"),
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -362,6 +373,36 @@ fn compile_formations(
         ));
     }
     Ok(placements)
+}
+
+fn compile_contraptions(
+    side_name: &str,
+    definitions: Vec<Contraption>,
+) -> Result<Vec<Placement>, String> {
+    definitions
+        .into_iter()
+        .map(|definition| {
+            let Contraption { type_name, x, y } = definition;
+            let position = Position { x, y };
+            let spec = resolve_contraption_type(&type_name).ok_or_else(|| {
+                format!(
+                    "side {side_name} contraption type {type_name:?} at ({}, {}) is unknown",
+                    position.x, position.y
+                )
+            })?;
+            Ok(Placement {
+                type_name,
+                native: spec.native,
+                footprint: spec.footprint,
+                position,
+                level: None,
+                rotated: false,
+                equipment: None,
+                travelling: false,
+                stage: PlacementStage::Activation,
+            })
+        })
+        .collect()
 }
 
 fn compile_battle_skills(
@@ -744,10 +785,17 @@ fn grid_center_remainder(extent: i64) -> Option<i64> {
     }
 }
 
-fn validate_formation_collisions(blue: &[Placement], red: &[Placement]) -> Result<(), String> {
-    let mut world = Vec::with_capacity(blue.len() + red.len());
+fn validate_formation_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), String> {
+    let mut world = Vec::with_capacity(
+        blue.formations.len()
+            + blue.contraptions.len()
+            + red.formations.len()
+            + red.contraptions.len(),
+    );
     world.extend(
-        blue.iter()
+        blue.formations
+            .iter()
+            .chain(&blue.contraptions)
             .filter(|placement| participates_in_collision(placement))
             .map(|placement| {
                 (
@@ -759,7 +807,9 @@ fn validate_formation_collisions(blue: &[Placement], red: &[Placement]) -> Resul
             }),
     );
     world.extend(
-        red.iter()
+        red.formations
+            .iter()
+            .chain(&red.contraptions)
             .filter(|placement| participates_in_collision(placement))
             .map(|placement| {
                 (
@@ -894,7 +944,7 @@ const fn construction_spec(id: i32, width: i64, height: i64) -> FormationSpec {
     formation_spec(NativeFormation::Construction(id), Some((width, height)))
 }
 
-const fn resolve_type(type_name: &str) -> Option<FormationSpec> {
+const fn resolve_formation_type(type_name: &str) -> Option<FormationSpec> {
     match type_name.as_bytes() {
         b"fortress" => Some(unit_spec(1, 40, 40)),
         b"marksman" => Some(unit_spec(2, 20, 20)),
@@ -932,6 +982,12 @@ const fn resolve_type(type_name: &str) -> Option<FormationSpec> {
         b"anti_armor_turret" => Some(construction_spec(2, 20, 20)),
         b"rapid_fire_turret" => Some(construction_spec(3, 20, 20)),
         b"magnetic_barrier" => Some(construction_spec(4, 50, 10)),
+        _ => None,
+    }
+}
+
+const fn resolve_contraption_type(type_name: &str) -> Option<FormationSpec> {
+    match type_name.as_bytes() {
         b"shield" => Some(formation_spec(NativeFormation::Contraption(10001), None)),
         b"missile" => Some(formation_spec(NativeFormation::Contraption(20001), None)),
         b"interceptor" => Some(formation_spec(
@@ -1208,6 +1264,26 @@ mod tests {
     }
 
     #[test]
+    fn defaults_seed_to_zero_and_preserves_an_explicit_seed() {
+        let layout = |seed| {
+            let mut value = json!({
+                "round": 1,
+                "sides": {
+                    "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
+                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                }
+            });
+            if let Some(seed) = seed {
+                value["seed"] = json!(seed);
+            }
+            value
+        };
+
+        assert_eq!(compile(&layout(None)).unwrap().seed, 0);
+        assert_eq!(compile(&layout(Some(-17))).unwrap().seed, -17);
+    }
+
+    #[test]
     fn compiles_formations_into_pre_activation_and_activation_stages() {
         let plan = compile(&json!({
             "round": 3,
@@ -1215,7 +1291,8 @@ mod tests {
                 "blue": {"formations": [
                     {"type": "marksman", "x": 0, "y": -50},
                     {"type": "marksman", "x": -310, "y": 20},
-                    {"type": "arclight", "x": 310, "y": 20, "travelling": true},
+                    {"type": "arclight", "x": 310, "y": 20, "travelling": true}
+                ], "contraptions": [
                     {"type": "interceptor", "x": 5, "y": -85}
                 ]},
                 "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
@@ -1229,7 +1306,7 @@ mod tests {
         assert!(!plan.blue.formations[1].travelling);
         assert_eq!(plan.blue.formations[2].stage, PlacementStage::Activation);
         assert!(plan.blue.formations[2].travelling);
-        assert_eq!(plan.blue.formations[3].stage, PlacementStage::Activation);
+        assert_eq!(plan.blue.contraptions[0].stage, PlacementStage::Activation);
     }
 
     #[test]
@@ -1693,7 +1770,7 @@ mod tests {
         ];
         for &(type_names, footprint) in groups {
             for &type_name in type_names {
-                let spec = resolve_type(type_name).unwrap();
+                let spec = resolve_formation_type(type_name).unwrap();
                 assert!(matches!(spec.native, NativeFormation::Unit(_)));
                 assert_eq!(spec.footprint, Some(footprint));
             }
@@ -1712,20 +1789,20 @@ mod tests {
             ("rapid_fire_turret", (20, 20)),
             ("magnetic_barrier", (50, 10)),
         ] {
-            let spec = resolve_type(type_name).unwrap();
+            let spec = resolve_formation_type(type_name).unwrap();
             assert!(matches!(spec.native, NativeFormation::Construction(_)));
             assert_eq!(spec.footprint, Some(footprint));
         }
     }
 
     #[test]
-    fn formation_specs_cover_contraption_footprints() {
+    fn contraption_specs_cover_all_public_types() {
         assert_eq!(
-            resolve_type("interceptor").unwrap().footprint,
+            resolve_contraption_type("interceptor").unwrap().footprint,
             Some((30, 30))
         );
-        assert_eq!(resolve_type("shield").unwrap().footprint, None);
-        assert_eq!(resolve_type("missile").unwrap().footprint, None);
+        assert_eq!(resolve_contraption_type("shield").unwrap().footprint, None);
+        assert_eq!(resolve_contraption_type("missile").unwrap().footprint, None);
     }
 
     #[test]
@@ -1734,10 +1811,10 @@ mod tests {
             json!({
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [
-                        {"type": "marksman", "x": 0, "y": -100},
-                        {"type": "interceptor", "x": 5, "y": interceptor_y}
-                    ]},
+                    "blue": {
+                        "formations": [{"type": "marksman", "x": 0, "y": -100}],
+                        "contraptions": [{"type": "interceptor", "x": 5, "y": interceptor_y}]
+                    },
                     "red": {"formations": [{
                         "type": "marksman", "x": 0, "y": -50
                     }]}
@@ -1753,11 +1830,11 @@ mod tests {
 
         let plan = compile(&layout(-125)).unwrap();
         assert_eq!(
-            plan.blue.formations[1].native,
+            plan.blue.contraptions[0].native,
             NativeFormation::Contraption(30001)
         );
-        assert_eq!(plan.blue.formations[1].level, None);
-        assert!(!plan.blue.formations[1].rotated);
+        assert_eq!(plan.blue.contraptions[0].level, None);
+        assert!(!plan.blue.contraptions[0].rotated);
     }
 
     #[test]
@@ -1765,8 +1842,9 @@ mod tests {
         let plan = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [
-                    {"type": "marksman", "x": 0, "y": -100},
+                "blue": {
+                    "formations": [{"type": "marksman", "x": 0, "y": -100}],
+                    "contraptions": [
                     {"type": "shield", "x": 1, "y": -101},
                     {"type": "missile", "x": 1, "y": -101}
                 ]},
@@ -1777,15 +1855,15 @@ mod tests {
         }))
         .unwrap();
 
-        assert_eq!(plan.formation_count(), 4);
+        assert_eq!(plan.formation_count(), 2);
+        assert_eq!(plan.contraption_count(), 2);
         assert_eq!(
             plan.blue
-                .formations
+                .contraptions
                 .iter()
                 .map(|placement| placement.native)
                 .collect::<Vec<_>>(),
             [
-                NativeFormation::Unit(2),
                 NativeFormation::Contraption(10001),
                 NativeFormation::Contraption(20001),
             ]
@@ -1798,10 +1876,10 @@ mod tests {
             json!({
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [
-                        {"type": "marksman", "x": 0, "y": -150},
-                        {"type": "shield", "x": x, "y": y}
-                    ]},
+                    "blue": {
+                        "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                        "contraptions": [{"type": "shield", "x": x, "y": y}]
+                    },
                     "red": {"formations": [{
                         "type": "marksman", "x": 0, "y": -150
                     }]}
@@ -1824,10 +1902,10 @@ mod tests {
             json!({
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [
-                        {"type": "marksman", "x": 0, "y": -150},
-                        {"type": "missile", "x": x, "y": y}
-                    ]},
+                    "blue": {
+                        "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                        "contraptions": [{"type": "missile", "x": x, "y": y}]
+                    },
                     "red": {"formations": [{
                         "type": "marksman", "x": 0, "y": -150
                     }]}
@@ -2153,21 +2231,30 @@ mod tests {
 
     #[test]
     fn resolves_representative_public_formation_types() {
-        let expected = [
+        let formations = [
             ("fortress", NativeFormation::Unit(1)),
             ("mountain", NativeFormation::Unit(2002)),
             ("defensive_wall", NativeFormation::Construction(1)),
             ("magnetic_barrier", NativeFormation::Construction(4)),
+        ];
+        for (type_name, native) in formations {
+            assert_eq!(
+                resolve_formation_type(type_name).map(|spec| spec.native),
+                Some(native)
+            );
+        }
+        let contraptions = [
             ("shield", NativeFormation::Contraption(10001)),
             ("missile", NativeFormation::Contraption(20001)),
             ("interceptor", NativeFormation::Contraption(30001)),
         ];
-        for (type_name, native) in expected {
+        for (type_name, native) in contraptions {
             assert_eq!(
-                resolve_type(type_name).map(|spec| spec.native),
+                resolve_contraption_type(type_name).map(|spec| spec.native),
                 Some(native)
             );
         }
-        assert_eq!(resolve_type("unit"), None);
+        assert_eq!(resolve_formation_type("unit"), None);
+        assert_eq!(resolve_contraption_type("unit"), None);
     }
 }

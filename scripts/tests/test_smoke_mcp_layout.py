@@ -43,6 +43,38 @@ class SmokeMcpLayoutCliTests(unittest.TestCase):
         self.assertEqual(cases[0].output, output.resolve())
         self.assertEqual(cases[0].seed, 1787720817)
 
+    def test_single_layout_seed_is_used_and_zero_override_requests_random(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            layout = root / "layout.yaml"
+            layout.write_text(
+                """seed: -17
+round: 1
+sides:
+  blue: {formations: [{type: marksman, x: 0, y: -50}]}
+  red: {formations: [{type: arclight, x: 0, y: -50}]}
+""",
+                encoding="utf-8",
+            )
+            inherited = smoke.cases_from_args(
+                smoke.build_parser().parse_args(
+                    [str(layout), "--output", str(root / "inherited.mcfr")]
+                )
+            )
+            randomized = smoke.cases_from_args(
+                smoke.build_parser().parse_args(
+                    [
+                        str(layout),
+                        "--output",
+                        str(root / "random.mcfr"),
+                        "--seed",
+                        "0",
+                    ]
+                )
+            )
+        self.assertEqual(inherited[0].seed, -17)
+        self.assertIsNone(randomized[0].seed)
+
     def test_default_manifest_builds_full_batch_with_manifest_seeds(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             arguments = smoke.build_parser().parse_args(
