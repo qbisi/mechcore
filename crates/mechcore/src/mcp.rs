@@ -53,6 +53,17 @@ struct RecordBattleParameters {
     instrumentation: Option<RecordBattleInstrumentationParameters>,
 }
 
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct RecordReplayRoundParameters {
+    /// Absolute path to the source `.grbr` replay.
+    grbr: PathBuf,
+    /// One-based combat round to capture.
+    round: i32,
+    /// Absolute destination path for the new `.mcfr` file.
+    output: PathBuf,
+}
+
 #[derive(Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct RecordBattleInstrumentationParameters {
@@ -107,10 +118,10 @@ impl Shared {
         let client = adapter.as_mut().ok_or_else(|| {
             "game adapter is not connected; call connect_adapter first".to_owned()
         })?;
-        let request_timeout = if operation == Operation::RecordBattle {
-            Duration::from_secs(180)
-        } else {
-            ADAPTER_REQUEST_TIMEOUT
+        let request_timeout = match operation {
+            Operation::RecordBattle => Duration::from_secs(180),
+            Operation::RecordReplayRound => Duration::from_secs(330),
+            _ => ADAPTER_REQUEST_TIMEOUT,
         };
         match tokio::time::timeout(request_timeout, client.request(operation, arguments)).await {
             Ok(Ok(value)) => Ok(value),
@@ -350,6 +361,56 @@ impl Shared {
         self.leave_active_match().await
     }
 
+    async fn record_replay_round(
+        &self,
+        grbr: PathBuf,
+        round: i32,
+        output: PathBuf,
+    ) -> Result<Value, String> {
+        let _operation = self.operation.lock().await;
+        self.require_status("main_menu").await?;
+        if !grbr.is_absolute() {
+            return Err("record_replay_round grbr must be an absolute path".into());
+        }
+        if grbr.extension().and_then(|value| value.to_str()) != Some("grbr") {
+            return Err("record_replay_round input must use the .grbr extension".into());
+        }
+        if !grbr.is_file() {
+            return Err(format!("replay file does not exist: {}", grbr.display()));
+        }
+        if !(1..=mechcore_protocol::MAX_ACTIVATION_ROUND).contains(&round) {
+            return Err(format!(
+                "record_replay_round round must be between 1 and {}",
+                mechcore_protocol::MAX_ACTIVATION_ROUND
+            ));
+        }
+        if !output.is_absolute()
+            || output.extension().and_then(|value| value.to_str()) != Some("mcfr")
+            || output.exists()
+        {
+            return Err("record_replay_round output must be a new absolute .mcfr path".into());
+        }
+        *self.last_applied_layout.lock().await = None;
+        let result = self
+            .adapter_request(
+                Operation::RecordReplayRound,
+                json!({"grbr": grbr, "round": round, "output": output}),
+            )
+            .await?;
+        if result.get("recorded").and_then(Value::as_bool) != Some(true) {
+            return Err(format!(
+                "adapter did not confirm replay round recording: {result}"
+            ));
+        }
+        let status = self.refresh_status().await?;
+        if !is_status(&status, "main_menu") {
+            return Err(format!(
+                "record_replay_round completed outside main_menu: {status}"
+            ));
+        }
+        Ok(json!({"operation": result, "status": status}))
+    }
+
     async fn toggle_fight(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         let before = self.refresh_status().await?;
@@ -536,6 +597,20 @@ impl MechcoreMcp {
         ))
     }
 
+    #[tool(
+        description = "Load a GRBR replay from main_menu, jump to a one-based round, capture its native fighting-to-over MCFR with fast deployment and battle speed-up, then exit the replay and return only from main_menu"
+    )]
+    async fn record_replay_round(
+        &self,
+        Parameters(parameters): Parameters<RecordReplayRoundParameters>,
+    ) -> Result<CallToolResult, ErrorData> {
+        Ok(tool_result(
+            self.shared
+                .record_replay_round(parameters.grbr, parameters.round, parameters.output)
+                .await,
+        ))
+    }
+
     #[tool(description = "Start the current Training Ground fight and wait for the transition")]
     async fn toggle_fight(&self) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(self.shared.toggle_fight().await))
@@ -569,7 +644,7 @@ impl ServerHandler for MechcoreMcp {
                 .enable_resources_subscribe()
                 .build(),
             instructions: Some(
-                "Launch Mechabellum with the Adapter outside MCP and call connect_adapter. Each capture uses start_test, apply_layout, then record_battle; a successful record_battle guarantees main_menu without quitting the game, so start_test may begin the next capture. Use quit_match only to leave a manually active test/replay or to recover a reported cleanup obligation, and use quit_game only when the capture session ends. Subscribe to mechcore://status for state changes."
+                "Launch Mechabellum with the Adapter outside MCP and call connect_adapter. Synthetic captures use start_test, apply_layout, then record_battle. Native replay captures use record_replay_round directly from main_menu. Both recording tools return only from main_menu without quitting the game. Use quit_match only to leave a manually active test/replay or to recover a reported cleanup obligation, and use quit_game only when the capture session ends. Subscribe to mechcore://status for state changes."
                     .into(),
             ),
             server_info: Implementation {
@@ -922,6 +997,7 @@ mod tests {
                 "quit_game",
                 "quit_match",
                 "record_battle",
+                "record_replay_round",
                 "speed_up",
                 "start_test",
                 "status",
@@ -943,6 +1019,26 @@ mod tests {
         assert!(description.contains("main_menu"));
         assert!(description.contains("never quits the game"));
         assert!(description.contains("continuous captures"));
+    }
+
+    #[test]
+    fn record_replay_round_exposes_closed_transaction_inputs() {
+        let shared = Shared::new();
+        let tool = MechcoreMcp::new(shared)
+            .tool_router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name == "record_replay_round")
+            .expect("record_replay_round tool exists");
+        let description = tool.description.expect("tool has a description");
+        assert!(description.contains("main_menu"));
+        assert!(description.contains("fast deployment"));
+        assert!(description.contains("battle speed-up"));
+        let schema = Value::Object(tool.input_schema.as_ref().clone());
+        assert_eq!(
+            schema.get("required"),
+            Some(&json!(["grbr", "round", "output"]))
+        );
     }
 
     #[test]

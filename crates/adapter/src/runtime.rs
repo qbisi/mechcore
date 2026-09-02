@@ -2,7 +2,7 @@ use crate::capture::{self, CaptureMessage};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
-use mechcore_protocol::{Hello, Operation, Request, Response};
+use mechcore_protocol::{Hello, MAX_ACTIVATION_ROUND, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::Value;
 use std::env;
@@ -23,6 +23,7 @@ const LAYOUT_STATUS_INTERVAL: Duration = Duration::from_millis(50);
 const LAYOUT_DEPLOYMENT_STABLE_SAMPLES: usize = 3;
 const RECORDING_TIMEOUT: Duration = Duration::from_secs(175);
 const RECORDING_POLL_INTERVAL: Duration = Duration::from_millis(5);
+const REPLAY_LOAD_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -32,6 +33,14 @@ struct RecordBattleArguments {
     video_output: Option<PathBuf>,
     #[serde(default)]
     instrumentation: Option<RecordBattleInstrumentationArguments>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RecordReplayRoundArguments {
+    grbr: PathBuf,
+    round: i32,
+    output: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -143,6 +152,14 @@ struct RuntimeLoadInvocation {
     result: Option<Result<Box<Runtime>, RuntimeError>>,
 }
 
+struct ReplayLoadInvocation {
+    runtime: *mut Runtime,
+    request_id: u64,
+    path: *const PathBuf,
+    native_start_round: i32,
+    response: Option<Response<Value>>,
+}
+
 extern "C" fn load_runtime_on_main(context: *mut c_void) {
     // SAFETY: dispatch_sync_f invokes this callback before returning, while the
     // stack-owned invocation remains alive.
@@ -152,6 +169,20 @@ extern "C" fn load_runtime_on_main(context: *mut c_void) {
         capture::initialize(&mut runtime);
         runtime
     }));
+}
+
+extern "C" fn load_replay_on_main(context: *mut c_void) {
+    // SAFETY: dispatch_sync_f invokes this callback before returning, while the
+    // stack-owned invocation, runtime and path remain alive.
+    let invocation = unsafe { &mut *context.cast::<ReplayLoadInvocation>() };
+    let runtime = unsafe { &mut *invocation.runtime };
+    let path = unsafe { &*invocation.path };
+    invocation.response = Some(operations::load_replay(
+        runtime,
+        invocation.request_id,
+        path,
+        invocation.native_start_round,
+    ));
 }
 
 extern "C" fn invoke_on_main(context: *mut c_void) {
@@ -216,6 +247,43 @@ fn execute_layout_stage_on_main(
         Some(plan),
         MainAction::Layout(stage),
     )
+}
+
+fn execute_replay_load_on_main(
+    runtime: &mut Runtime,
+    request_id: u64,
+    path: &PathBuf,
+    native_start_round: i32,
+) -> Response<Value> {
+    let mut invocation = ReplayLoadInvocation {
+        runtime,
+        request_id,
+        path,
+        native_start_round,
+        response: None,
+    };
+    #[cfg(target_os = "macos")]
+    {
+        // SAFETY: queue is the process main queue and the callback/context obey
+        // dispatch_sync_f's synchronous lifetime contract.
+        unsafe {
+            dispatch_sync_f(
+                (&raw const _dispatch_main_q).cast_mut(),
+                std::ptr::from_mut(&mut invocation).cast(),
+                load_replay_on_main,
+            );
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    load_replay_on_main(std::ptr::from_mut(&mut invocation).cast());
+
+    invocation.response.unwrap_or_else(|| {
+        Response::failure(
+            request_id,
+            "main_thread_dispatch_failed",
+            "main-thread replay load returned no response",
+        )
+    })
 }
 
 fn execute_action_on_main(
@@ -399,15 +467,220 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
         };
         let response = match request.operation {
             Operation::ApplyLayout => execute_layout_series(runtime, &request),
-            Operation::RecordBattle => execute_recording_series(runtime, &request),
+            Operation::RecordBattle => execute_recording_series(
+                runtime,
+                &request,
+                capture::CaptureStartMode::TrainingGround,
+            ),
+            Operation::RecordReplayRound => execute_replay_recording_series(runtime, &request),
             _ => execute_on_main(runtime, &request),
         };
         write_json_line(&mut stream, &response)?;
     }
 }
 
+fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let arguments: RecordReplayRoundArguments =
+        match serde_json::from_value(request.arguments.clone()) {
+            Ok(arguments) => arguments,
+            Err(error) => {
+                return Response::failure(request.id, "invalid_arguments", error.to_string());
+            }
+        };
+    if !arguments.grbr.is_absolute() {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            "record_replay_round grbr must be absolute",
+        );
+    }
+    if arguments.grbr.extension().and_then(|value| value.to_str()) != Some("grbr") {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            "record_replay_round input must use the .grbr extension",
+        );
+    }
+    if !arguments.grbr.is_file() {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            format!("replay file does not exist: {}", arguments.grbr.display()),
+        );
+    }
+    if !(1..=MAX_ACTIVATION_ROUND).contains(&arguments.round) {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            format!("record_replay_round round must be between 1 and {MAX_ACTIVATION_ROUND}"),
+        );
+    }
+    if !arguments.output.is_absolute()
+        || arguments
+            .output
+            .extension()
+            .and_then(|value| value.to_str())
+            != Some("mcfr")
+        || arguments.output.exists()
+    {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            "record_replay_round output must be a new absolute .mcfr path",
+        );
+    }
+    let before = match successful_result(execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::Status,
+    )) {
+        Ok(status) => status,
+        Err(response) => return response,
+    };
+    if before.get("status").and_then(Value::as_str) != Some("main_menu") {
+        return Response::failure(
+            request.id,
+            "invalid_game_state",
+            format!("record_replay_round requires main_menu: {before}"),
+        );
+    }
+
+    let native_start_round = arguments.round;
+    if let Err(response) = successful_result(execute_replay_load_on_main(
+        runtime,
+        request.id,
+        &arguments.grbr,
+        native_start_round,
+    )) {
+        return replay_failure_after_cleanup(runtime, request.id, response);
+    }
+    let load_deadline = Instant::now() + REPLAY_LOAD_TIMEOUT;
+    if let Err(response) = wait_layout_status(
+        runtime,
+        request.id,
+        load_deadline,
+        &format!("replay round {} deployment", arguments.round),
+        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+        |status| is_replay_state(status, arguments.round, true, false),
+    ) {
+        return replay_failure_after_cleanup(runtime, request.id, response);
+    }
+
+    let capture_request = Request {
+        id: request.id,
+        operation: Operation::RecordBattle,
+        arguments: serde_json::json!({"output": arguments.output}),
+    };
+    let mut capture_response =
+        execute_recording_series(runtime, &capture_request, capture::CaptureStartMode::Replay);
+    if !capture_response.ok {
+        return replay_failure_after_cleanup(runtime, request.id, capture_response);
+    }
+    let cleanup = match finish_replay_to_main_menu(runtime, request.id) {
+        Ok(status) => status,
+        Err(response) => {
+            let output = arguments.output.display();
+            let message = response
+                .error
+                .as_ref()
+                .map(|error| error.message.as_str())
+                .unwrap_or("unknown cleanup error");
+            return Response::failure(
+                request.id,
+                "replay_cleanup_failed",
+                format!("recorded {output}, but could not return replay to main_menu: {message}"),
+            );
+        }
+    };
+    let mut result = capture_response
+        .result
+        .take()
+        .and_then(|value| value.as_object().cloned())
+        .unwrap_or_default();
+    result.insert("grbr".into(), serde_json::json!(arguments.grbr));
+    result.insert("round".into(), serde_json::json!(arguments.round));
+    result.insert(
+        "fast_deployment".into(),
+        serde_json::json!({"is_real_time": false, "step_time": 0.0}),
+    );
+    result.insert("cleanup".into(), serde_json::json!({"match_exited": true}));
+    result.insert("status".into(), cleanup);
+    Response::success(request.id, Value::Object(result))
+}
+
+fn replay_failure_after_cleanup(
+    runtime: &mut Runtime,
+    request_id: u64,
+    response: Response<Value>,
+) -> Response<Value> {
+    let code = response
+        .error
+        .as_ref()
+        .map(|error| error.code.clone())
+        .unwrap_or_else(|| "record_replay_round_failed".into());
+    let message = response
+        .error
+        .as_ref()
+        .map(|error| error.message.clone())
+        .unwrap_or_else(|| "record_replay_round failed without an error body".into());
+    match finish_replay_to_main_menu(runtime, request_id) {
+        Ok(_) => Response::failure(request_id, code, message),
+        Err(cleanup) => {
+            let cleanup = cleanup
+                .error
+                .as_ref()
+                .map(|error| error.message.as_str())
+                .unwrap_or("unknown cleanup error");
+            Response::failure(
+                request_id,
+                code,
+                format!("{message}; replay cleanup also failed: {cleanup}"),
+            )
+        }
+    }
+}
+
+fn finish_replay_to_main_menu(
+    runtime: &mut Runtime,
+    request_id: u64,
+) -> Result<Value, Response<Value>> {
+    let status = successful_result(execute_internal_on_main(
+        runtime,
+        request_id,
+        operations::InternalOperation::Status,
+    ))?;
+    if status.get("status").and_then(Value::as_str) == Some("main_menu") {
+        return Ok(status);
+    }
+    if status.get("status").and_then(Value::as_str) != Some("replay") {
+        return Err(Response::failure(
+            request_id,
+            "replay_cleanup_failed",
+            format!("cannot exit replay from status {status}"),
+        ));
+    }
+    let quit = Request {
+        id: request_id,
+        operation: Operation::QuitMatch,
+        arguments: serde_json::json!({}),
+    };
+    successful_result(execute_on_main(runtime, &quit))?;
+    wait_layout_status(
+        runtime,
+        request_id,
+        Instant::now() + REPLAY_LOAD_TIMEOUT,
+        "main_menu after replay exit",
+        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+        |value| value.get("status").and_then(Value::as_str) == Some("main_menu"),
+    )
+}
+
 #[allow(clippy::too_many_lines)]
-fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+fn execute_recording_series(
+    runtime: &mut Runtime,
+    request: &Request,
+    mode: capture::CaptureStartMode,
+) -> Response<Value> {
     let arguments: RecordBattleArguments = match serde_json::from_value(request.arguments.clone()) {
         Ok(arguments) => arguments,
         Err(error) => return Response::failure(request.id, "invalid_arguments", error.to_string()),
@@ -509,6 +782,7 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
         runtime,
         request.id,
         operations::InternalOperation::StartCapture {
+            mode,
             visual: arguments.video_output.is_some(),
             instrumentation_profile: arguments
                 .instrumentation
@@ -516,6 +790,16 @@ fn execute_recording_series(runtime: &mut Runtime, request: &Request) -> Respons
                 .map(|value| value.profile),
         },
     )) {
+        return response;
+    }
+    if mode == capture::CaptureStartMode::Replay
+        && let Err(response) = successful_result(execute_internal_on_main(
+            runtime,
+            request.id,
+            operations::InternalOperation::ReplayFastDeployment,
+        ))
+    {
+        stop_capture_after_failure(runtime, request.id);
         return response;
     }
     let deadline = Instant::now() + RECORDING_TIMEOUT;
@@ -1111,6 +1395,13 @@ fn wait_layout_status(
 
 fn is_training_state(status: &Value, round: i32, deploying: bool, fighting: bool) -> bool {
     status.get("status").and_then(Value::as_str) == Some("training_ground")
+        && status.get("round_count").and_then(Value::as_i64) == Some(i64::from(round))
+        && status.get("deploying").and_then(Value::as_bool) == Some(deploying)
+        && status.get("fighting").and_then(Value::as_bool) == Some(fighting)
+}
+
+fn is_replay_state(status: &Value, round: i32, deploying: bool, fighting: bool) -> bool {
+    status.get("status").and_then(Value::as_str) == Some("replay")
         && status.get("round_count").and_then(Value::as_i64) == Some(i64::from(round))
         && status.get("deploying").and_then(Value::as_bool) == Some(deploying)
         && status.get("fighting").and_then(Value::as_bool) == Some(fighting)

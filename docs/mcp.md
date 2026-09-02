@@ -61,6 +61,8 @@ capture 1: start_test -> apply_layout -> record_battle -> main_menu
 capture 2: start_test -> apply_layout -> record_battle -> main_menu
 ...
 
+native replay capture: record_replay_round -> main_menu
+
 session end: quit_game -> game_off
 ```
 
@@ -81,7 +83,7 @@ reported recovery obligation; it is not part of the successful capture path.
 
 ## Tools
 
-The MCP server exposes exactly nine tools.
+The MCP server exposes exactly ten tools.
 
 ### apply_layout
 
@@ -140,6 +142,22 @@ cleanup outcome and legal next session actions. A partial failure is not retry-s
 whether `quit_match` recovery or external process resolution remains required.
 The returned video metadata identifies `view: "calibration_topdown"` and includes the fixed projection
 and camera parameters needed to reproduce this calibration in another renderer.
+
+### record_replay_round
+
+Input is
+`{"grbr":"/absolute/path/battle.grbr","round":6,"output":"/absolute/path/round-6.mcfr"}`.
+The source must be an existing absolute `.grbr` file, `round` is one-based and
+must be in `1..=15`, and `output` must be a new absolute `.mcfr` path. The call
+starts only from `main_menu` and needs no preceding `start_test` or
+`apply_layout`.
+
+The Adapter jumps directly to the requested native replay round, enables
+zero-delay deployment playback, arms MCFR capture at completed deployment,
+requests native combat speed-up after the fighting boundary, records through
+the over boundary, verifies the file, and exits the replay. MCP returns success
+only after a fresh `main_menu` status readback. The game process remains alive
+for another capture.
 
 ### quit_match
 

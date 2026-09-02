@@ -1297,7 +1297,7 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
         1_200_003 => Some("wasp_swarm"),
         1_200_004 => Some("mobilize_battleship"),
         1_200_005 => Some("vulcans_descent"),
-        1_500_002 => Some("mobile_beacon"),
+        1_500_001 | 1_500_002 => Some("mobile_beacon"),
         _ => None,
     }
 }
@@ -2204,6 +2204,13 @@ sides:
                 id
             );
         }
+        assert_eq!(battle_skill_type_from_id(1_500_001), Some("mobile_beacon"));
+        assert_eq!(
+            resolve_battle_skill_type(battle_skill_type_from_id(1_500_001).unwrap())
+                .unwrap()
+                .commander_skill_id,
+            1_500_002
+        );
         assert_eq!(battle_skill_type_from_id(0), None);
     }
 

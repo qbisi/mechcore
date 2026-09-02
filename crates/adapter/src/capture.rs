@@ -448,6 +448,12 @@ pub(crate) enum CaptureMessage {
     Failure(String),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CaptureStartMode {
+    TrainingGround,
+    Replay,
+}
+
 enum PendingVisualMessage {
     Initial {
         game_build: String,
@@ -677,6 +683,7 @@ struct CaptureState {
     initialized: bool,
     entered_fighting: bool,
     speed_up_requested: bool,
+    await_replay_deployment: bool,
     last_native_tick: Option<u64>,
     native_tick_step: Option<u64>,
     deployment_layout_yaml: Option<String>,
@@ -735,6 +742,7 @@ impl CaptureState {
         self.initialized = false;
         self.entered_fighting = false;
         self.speed_up_requested = false;
+        self.await_replay_deployment = false;
         self.last_native_tick = None;
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
@@ -1378,6 +1386,7 @@ static CAPTURE: OnceLock<Mutex<CaptureState>> = OnceLock::new();
 static RUNTIME: AtomicPtr<Runtime> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_MATCH_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_PLAYER_FINISH_DEPLOY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_POST_RENDER: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_CREATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -1518,6 +1527,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .map_err(|error| error.to_string())?;
         let match_update = api
             .method(match_client, "Update", 0)
+            .map_err(|error| error.to_string())?;
+        let player_finish_deploy = api
+            .class("GRCore.dll", "GameRiver", "PlayerController")
+            .and_then(|class| api.method(class, "FinishDeploy", 0))
             .map_err(|error| error.to_string())?;
         let camera = api
             .class("UnityEngine.CoreModule.dll", "UnityEngine", "Camera")
@@ -1696,6 +1709,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_fight_crystal_on_dead_hook(api, fight_crystal_on_dead)?;
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
+        install_player_finish_deploy_hook(api, player_finish_deploy)?;
         install_post_render_hook(api, post_render)?;
         let (rvo, rvo_error) = match initialize_rvo_instrumentation(api) {
             Ok(metadata) => (Some(metadata), None),
@@ -1987,6 +2001,7 @@ fn initialize_rvo_instrumentation(api: Api) -> Result<RvoMetadata, String> {
 
 pub(crate) fn start(
     runtime: &Runtime,
+    mode: CaptureStartMode,
     visual: bool,
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
 ) -> Result<(), String> {
@@ -2025,16 +2040,22 @@ pub(crate) fn start(
         .invoke_value::<bool>(fight, "IsFighting", &mut [])
         .map_err(|error| error.to_string())?;
     if !deploying || fighting {
-        return Err("recording requires Training Ground deployment before fighting".into());
+        return Err("recording requires deployment before fighting".into());
     }
     let current_match = runtime.current_match();
     if current_match.is_null() {
         return Err("active match disappeared before recording started".into());
     }
-    let (_, context) = recording_context(runtime)?;
-    let layout_yaml = read_native_layout(runtime, &context)?;
+    let layout_yaml = match mode {
+        CaptureStartMode::TrainingGround => {
+            let (_, context) = recording_context(runtime)?;
+            Some(read_native_layout(runtime, &context, false)?)
+        }
+        CaptureStartMode::Replay => None,
+    };
     state.reset_session();
-    state.deployment_layout_yaml = Some(layout_yaml);
+    state.deployment_layout_yaml = layout_yaml;
+    state.await_replay_deployment = mode == CaptureStartMode::Replay;
     RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
     RVO_SOURCE_CALL_ORDINAL.store(0, Ordering::Release);
     RVO_VO_CALL_ORDINAL.store(0, Ordering::Release);
@@ -2049,9 +2070,10 @@ pub(crate) fn start(
     state.armed = true;
     drop(state);
 
-    if let Err(error) = runtime
-        .api
-        .invoke_void(current_match, "ChangeProcessState", &mut [])
+    if mode == CaptureStartMode::TrainingGround
+        && let Err(error) = runtime
+            .api
+            .invoke_void(current_match, "ChangeProcessState", &mut [])
     {
         let message = format!("cannot start fight: {error}");
         abort(&message);
@@ -2186,6 +2208,7 @@ pub(crate) fn abort(reason: &str) {
 
 type UpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type MatchUpdateFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type PlayerFinishDeployFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type PostRenderFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type ProjectileCreateFn = unsafe extern "C" fn(
     *mut Object,
@@ -3400,6 +3423,41 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             return;
         }
         let result = (|| {
+            if state.await_replay_deployment {
+                let fight = runtime.current_fight();
+                if fight.is_null() {
+                    return Err("fight controller disappeared during replay deployment".into());
+                }
+                let fighting = runtime
+                    .api
+                    .invoke_value::<bool>(fight, "IsFighting", &mut [])
+                    .map_err(|error| error.to_string())?;
+                if fighting {
+                    return Err(
+                        "replay entered fighting before its completed deployment could be sampled"
+                            .into(),
+                    );
+                }
+                let current = runtime.current_match();
+                if current.is_null() {
+                    return Err("active replay disappeared during deployment".into());
+                }
+                let player_manager = invoke_object(runtime.api, current, "GetPlayerManager")?;
+                let prepared = runtime
+                    .api
+                    .invoke_value::<bool>(player_manager, "IsAllPlayerPrepareOver", &mut [])
+                    .map_err(|error| error.to_string())?;
+                if !prepared {
+                    state.in_update = false;
+                    return Ok(());
+                }
+                if state.deployment_layout_yaml.is_none() {
+                    let (_, context) = recording_context(runtime)?;
+                    state.deployment_layout_yaml =
+                        Some(read_native_layout(runtime, &context, true)?);
+                }
+                state.await_replay_deployment = false;
+            }
             let initial = snapshot(runtime, &mut state, true)?;
             let (game_build, context) = recording_context(runtime)?;
             let layout_yaml = state
@@ -3462,14 +3520,40 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 .invoke_value::<bool>(controller, "IsFighting", &mut [])
                 .map_err(|error| error.to_string())?;
             if !state.initialized {
-                if fighting {
+                if fighting && state.await_replay_deployment {
+                    if state.visual.is_some() {
+                        return Err("replay S(0) fallback does not support visual capture".into());
+                    }
+                    let (game_build, context) = recording_context(runtime)?;
+                    let layout_yaml = read_native_layout(runtime, &context, true)?;
+                    let initial = snapshot(runtime, &mut state, true)?;
+                    if initial.native_tick != 0 {
+                        return Err(format!(
+                            "replay first became observable in fighting at native tick {}; S(0) was missed",
+                            initial.native_tick
+                        ));
+                    }
+                    state.await_replay_deployment = false;
+                    state.initialized = true;
+                    state.entered_fighting = true;
+                    state.last_native_tick = Some(initial.native_tick);
+                    state.push(CaptureMessage::Initial {
+                        game_build,
+                        context,
+                        layout_yaml,
+                        state: initial.world,
+                        instrumentation: initial.instrumentation,
+                        frame: None,
+                    })?;
+                } else if fighting {
                     return Err(
                         "fight entered during FightController.Update before S(0) could be sampled"
                             .into(),
                     );
+                } else {
+                    state.traces.clear();
+                    return Ok(());
                 }
-                state.traces.clear();
-                return Ok(());
             }
             if fighting && state.visual.is_none() && !state.speed_up_requested {
                 let current_match = runtime.current_match();
@@ -3599,6 +3683,110 @@ unsafe extern "C" fn match_update_hook(current: *mut Object, method: *const Meth
             state.fail(error);
         }
     }));
+}
+
+unsafe extern "C" fn player_finish_deploy_hook(player: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_PLAYER_FINISH_DEPLOY.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || !state.await_replay_deployment {
+            return;
+        }
+        let result = capture_replay_initial_before_final_deploy(runtime, &mut state, player);
+        if let Err(error) = result {
+            state.fail(error);
+        }
+    }));
+    // SAFETY: the installer stores the trampoline for this exact no-argument void ABI, and
+    // player and MethodInfo are forwarded unchanged from IL2CPP exactly once.
+    let original: PlayerFinishDeployFn = unsafe { std::mem::transmute(original) };
+    unsafe { original(player, method) };
+}
+
+fn capture_replay_initial_before_final_deploy(
+    runtime: &Runtime,
+    state: &mut CaptureState,
+    player: *mut Object,
+) -> Result<(), String> {
+    if !is_final_player_finish_deploy(runtime, player)? {
+        return Ok(());
+    }
+    if state.visual.is_some() {
+        return Err("replay deployment-boundary S(0) does not support visual capture".into());
+    }
+    let (game_build, context) = recording_context(runtime)?;
+    let layout_yaml = read_native_layout(runtime, &context, true)?;
+    state.traces.clear();
+    let initial = snapshot(runtime, state, true)?;
+    if initial.native_tick != 0 {
+        return Err(format!(
+            "final replay deployment reached native tick {}; S(0) was missed",
+            initial.native_tick
+        ));
+    }
+    state.await_replay_deployment = false;
+    state.initialized = true;
+    state.last_native_tick = Some(initial.native_tick);
+    state.push(CaptureMessage::Initial {
+        game_build,
+        context,
+        layout_yaml,
+        state: initial.world,
+        instrumentation: initial.instrumentation,
+        frame: None,
+    })
+}
+
+fn is_final_player_finish_deploy(runtime: &Runtime, player: *mut Object) -> Result<bool, String> {
+    if player.is_null() {
+        return Err("PlayerController.FinishDeploy received a null player".into());
+    }
+    let current = runtime.current_match();
+    if current.is_null() {
+        return Err("active replay disappeared while finishing deployment".into());
+    }
+    let player_manager = invoke_object(runtime.api, current, "GetPlayerManager")?;
+    let controllers = invoke_object(runtime.api, player_manager, "GetPlayerControllers")?;
+    let count = list_count(runtime.api, controllers, 16)?;
+    if count < 2 {
+        return Err(format!(
+            "replay deployment requires at least two player controllers, found {count}"
+        ));
+    }
+    let mut found_player = false;
+    for index in 0..count {
+        let controller = list_item(runtime.api, controllers, index)?;
+        if controller.is_null() {
+            return Err(format!("player controller {index} is null"));
+        }
+        let deployed = runtime
+            .api
+            .invoke_value::<bool>(controller, "IsDeployOver", &mut [])
+            .map_err(|error| error.to_string())?;
+        if controller == player {
+            found_player = true;
+            if deployed {
+                return Ok(false);
+            }
+        } else if !deployed {
+            return Ok(false);
+        }
+    }
+    if !found_player {
+        return Err("FinishDeploy player is absent from PlayerManager".into());
+    }
+    Ok(true)
 }
 
 unsafe extern "C" fn post_render_hook(camera: *mut Object, method: *const MethodInfo) {
@@ -4370,7 +4558,11 @@ struct CapturedSnapshot {
 /// `ConstructionElement` retain the side-local placement, level, rotation and equipment data
 /// that the fight representation no longer exposes directly. The caller caches the resulting
 /// YAML before `Match.ChangeProcessState` consumes the deployment state.
-fn read_native_layout(runtime: &Runtime, context: &DurableContext) -> Result<String, String> {
+fn read_native_layout(
+    runtime: &Runtime,
+    context: &DurableContext,
+    allow_unit_index_gaps: bool,
+) -> Result<String, String> {
     let current = runtime.current_match();
     if current.is_null() {
         return Err("active match disappeared while reading the embedded layout".into());
@@ -4394,8 +4586,14 @@ fn read_native_layout(runtime: &Runtime, context: &DurableContext) -> Result<Str
             return Err(format!("duplicate native team index {team}"));
         }
         sides[team] = Some(
-            read_native_side(runtime.api, player_controller, super_deployment, team)
-                .map_err(|error| format!("team {team}: {error}"))?,
+            read_native_side(
+                runtime.api,
+                player_controller,
+                super_deployment,
+                team,
+                allow_unit_index_gaps,
+            )
+            .map_err(|error| format!("team {team}: {error}"))?,
         );
     }
     let layout = Layout {
@@ -4418,6 +4616,7 @@ fn read_native_side(
     controller: *mut Object,
     super_deployment: *mut Object,
     team: usize,
+    allow_unit_index_gaps: bool,
 ) -> Result<Side, String> {
     let unit_manager = invoke_object(api, controller, "GetUnitManager")?;
     let elements = invoke_object(api, unit_manager, "GetUnits")?;
@@ -4470,14 +4669,11 @@ fn read_native_side(
         ));
     }
     indexed_units.sort_by_key(|(index, _)| *index);
-    for (expected, (native_index, _)) in indexed_units.iter().enumerate() {
-        let expected = i32::try_from(expected).map_err(|_| "unit index overflow".to_owned())?;
-        if *native_index != expected {
-            return Err(format!(
-                "native unit indices must be contiguous from zero; expected {expected}, found {native_index}"
-            ));
-        }
-    }
+    let native_indices = indexed_units
+        .iter()
+        .map(|(index, _)| *index)
+        .collect::<Vec<_>>();
+    validate_native_unit_indices(&native_indices, allow_unit_index_gaps)?;
     let formations = indexed_units
         .into_iter()
         .map(|(_, formation)| formation)
@@ -4500,7 +4696,6 @@ fn read_native_side(
             y,
         });
     }
-
     Ok(Side {
         techs: Techs {
             officers: read_native_officers(api, controller)?,
@@ -4515,6 +4710,26 @@ fn read_native_side(
         terrains: Vec::new(),
         battle_skills: read_native_battle_skills(api, controller, team)?,
     })
+}
+
+fn validate_native_unit_indices(indices: &[i32], allow_gaps: bool) -> Result<(), String> {
+    let mut previous = None;
+    for (expected, native_index) in indices.iter().copied().enumerate() {
+        if native_index < 0 {
+            return Err(format!("native unit index is negative: {native_index}"));
+        }
+        if previous == Some(native_index) {
+            return Err(format!("duplicate native unit index {native_index}"));
+        }
+        previous = Some(native_index);
+        let expected = i32::try_from(expected).map_err(|_| "unit index overflow".to_owned())?;
+        if !allow_gaps && native_index != expected {
+            return Err(format!(
+                "native unit indices must be contiguous from zero; expected {expected}, found {native_index}"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn find_match_module(
@@ -4749,11 +4964,6 @@ fn read_native_battle_skills(
             continue;
         }
         let id = invoke_value::<i32>(api, skill, "GetID")?;
-        if !seen.insert(id) {
-            return Err(format!("duplicate active commander skill ID {id}"));
-        }
-        let type_name = battle_skill_type_from_id(id)
-            .ok_or_else(|| format!("unknown active build-2259 commander skill ID {id}"))?;
         let mut release_data: *mut Object = ptr::null_mut();
         let found = api
             .invoke_value::<bool>(
@@ -4763,8 +4973,13 @@ fn read_native_battle_skills(
             )
             .map_err(|error| error.to_string())?;
         if !found || release_data.is_null() {
-            return Err(format!("active commander skill {id} has no release data"));
+            continue;
         }
+        if !seen.insert(id) {
+            return Err(format!("duplicate released commander skill ID {id}"));
+        }
+        let type_name = battle_skill_type_from_id(id)
+            .ok_or_else(|| format!("unknown released build-2259 commander skill ID {id}"))?;
         let release_skill = api
             .invoke(
                 release_data,
@@ -7325,6 +7540,22 @@ fn install_match_update_hook(api: Api, method: *const MethodInfo) -> Result<(), 
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_player_finish_deploy_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
+    const EXPECTED: [u8; 16] = [
+        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
+        0xaa,
+    ];
+    install_inline_hook(
+        api,
+        method,
+        &EXPECTED,
+        player_finish_deploy_hook as *const c_void,
+        &ORIGINAL_PLAYER_FINISH_DEPLOY,
+        "PlayerController.FinishDeploy",
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_post_render_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
     const EXPECTED: [u8; 16] = [
         0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00,
@@ -7635,6 +7866,14 @@ mod tests {
         [const { AtomicU64::new(0) }; RVO_HOOK_COUNT];
     static TEST_HOOK_ARGUMENTS: [[AtomicU64; 4]; RVO_HOOK_COUNT] =
         [const { [const { AtomicU64::new(0) }; 4] }; RVO_HOOK_COUNT];
+
+    #[test]
+    fn replay_unit_indices_allow_stable_gaps_but_not_invalid_identity() {
+        assert!(validate_native_unit_indices(&[0, 1, 3, 7], true).is_ok());
+        assert!(validate_native_unit_indices(&[0, 1, 3], false).is_err());
+        assert!(validate_native_unit_indices(&[0, 1, 1], true).is_err());
+        assert!(validate_native_unit_indices(&[-1, 0], true).is_err());
+    }
 
     #[test]
     fn research_blueprint_chain_decodes_replaced_native_slots() {

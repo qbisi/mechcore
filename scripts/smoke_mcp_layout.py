@@ -25,6 +25,7 @@ EXPECTED_TOOLS = {
     "apply_layout",
     "connect_adapter",
     "record_battle",
+    "record_replay_round",
     "quit_game",
     "quit_match",
     "speed_up",

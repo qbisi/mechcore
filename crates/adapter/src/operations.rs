@@ -7,6 +7,7 @@ use crate::runtime::Runtime;
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::path::Path;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -63,10 +64,12 @@ pub(crate) enum LayoutExecutionStage {
 pub(crate) enum InternalOperation {
     Status,
     StartCapture {
+        mode: crate::capture::CaptureStartMode,
         visual: bool,
         instrumentation_profile: Option<crate::capture::CaptureInstrumentationProfile>,
     },
     StopCapture,
+    ReplayFastDeployment,
     ExpireDeployment(i32),
     ResetDeployment(i32),
     FinishPreparation(i32),
@@ -84,14 +87,16 @@ pub(crate) fn execute_internal(
     let result = match operation {
         InternalOperation::Status => Ok(status(runtime)),
         InternalOperation::StartCapture {
+            mode,
             visual,
             instrumentation_profile,
-        } => crate::capture::start(runtime, visual, instrumentation_profile)
+        } => crate::capture::start(runtime, mode, visual, instrumentation_profile)
             .map(|()| json!({"started": true}))
             .map_err(OperationError::InvalidState),
         InternalOperation::StopCapture => crate::capture::stop()
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
+        InternalOperation::ReplayFastDeployment => replay_fast_deployment(runtime),
         InternalOperation::ExpireDeployment(round) => expire_deployment(runtime, round),
         InternalOperation::ResetDeployment(round) => reset_deployment(runtime, round),
         InternalOperation::FinishPreparation(round) => finish_preparation(runtime, round),
@@ -177,6 +182,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         Operation::RecordBattle => Err(OperationError::InvalidState(
             "record_battle requires the runtime capture coordinator".into(),
         )),
+        Operation::RecordReplayRound => Err(OperationError::InvalidState(
+            "record_replay_round requires the runtime capture coordinator".into(),
+        )),
         Operation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
         Operation::SpeedUp => speed_up(runtime),
         Operation::QuitMatch => quit_match(runtime),
@@ -199,39 +207,44 @@ fn status(runtime: &Runtime) -> Value {
             GameStatus::Unknown
         }
     } else if classify_replay(api, current_match) == Some(true) {
-        GameStatus::Replay
+        return match_status(runtime, current_match, GameStatus::Replay);
     } else if api
         .invoke_value::<bool>(current_match, "IsTestMatch", &mut [])
         .ok()
         == Some(true)
     {
-        let fight = runtime.current_fight();
-        let deploying = (!fight.is_null())
-            .then(|| api.invoke_value::<bool>(fight, "IsDeploying", &mut []).ok())
-            .flatten();
-        let fighting = (!fight.is_null())
-            .then(|| api.invoke_value::<bool>(fight, "IsFighting", &mut []).ok())
-            .flatten();
-        let round_count = api
-            .invoke_value::<i32>(current_match, "get_RoundCount", &mut [])
-            .ok();
-        let match_seed = api
-            .invoke(current_match, "GetRandom", &mut [])
-            .ok()
-            .filter(|random| !random.is_null())
-            .and_then(|random| api.invoke_value::<i32>(random, "GetSeed", &mut []).ok());
-        return json!({
-            "status": GameStatus::TrainingGround,
-            "round_count": round_count,
-            "deploying": deploying,
-            "fighting": fighting,
-            "match_seed": match_seed
-        });
+        return match_status(runtime, current_match, GameStatus::TrainingGround);
     } else {
         GameStatus::Unknown
     };
 
     json!({"status": status})
+}
+
+fn match_status(runtime: &Runtime, current_match: *mut Object, status: GameStatus) -> Value {
+    let api = runtime.api;
+    let fight = runtime.current_fight();
+    let deploying = (!fight.is_null())
+        .then(|| api.invoke_value::<bool>(fight, "IsDeploying", &mut []).ok())
+        .flatten();
+    let fighting = (!fight.is_null())
+        .then(|| api.invoke_value::<bool>(fight, "IsFighting", &mut []).ok())
+        .flatten();
+    let round_count = api
+        .invoke_value::<i32>(current_match, "get_RoundCount", &mut [])
+        .ok();
+    let match_seed = api
+        .invoke(current_match, "GetRandom", &mut [])
+        .ok()
+        .filter(|random| !random.is_null())
+        .and_then(|random| api.invoke_value::<i32>(random, "GetSeed", &mut []).ok());
+    json!({
+        "status": status,
+        "round_count": round_count,
+        "deploying": deploying,
+        "fighting": fighting,
+        "match_seed": match_seed
+    })
 }
 
 fn is_main_menu_scene(scene: &str) -> bool {
@@ -370,6 +383,64 @@ fn require_match(runtime: &Runtime) -> Result<*mut Object, OperationError> {
     }
 }
 
+pub(crate) fn load_replay(
+    runtime: &Runtime,
+    request_id: u64,
+    path: &Path,
+    native_start_round: i32,
+) -> Response<Value> {
+    operation_response(
+        request_id,
+        load_replay_inner(runtime, path, native_start_round),
+    )
+}
+
+fn load_replay_inner(
+    runtime: &Runtime,
+    path: &Path,
+    native_start_round: i32,
+) -> Result<Value, OperationError> {
+    if !runtime.current_match().is_null() {
+        return Err(OperationError::InvalidState(
+            "record_replay_round requires main_menu with no active match".into(),
+        ));
+    }
+    let path = path
+        .to_str()
+        .ok_or_else(|| OperationError::InvalidArguments("grbr path is not valid UTF-8".into()))?;
+    let api = runtime.api;
+    let managed_path = api.string(path)?;
+    let utility = api.class("GRCore.dll", "GameRiver", "MatchUtility")?;
+    let load = api.class_method_with_parameter_types(utility, "LoadReplay", &["System.String"])?;
+    let replay = api.invoke_raw(
+        load,
+        std::ptr::null_mut(),
+        &mut [object_argument(managed_path)],
+    )?;
+    if replay.is_null() {
+        return Err(OperationError::Rejected(format!(
+            "the game could not load replay {path}"
+        )));
+    }
+    let command_class = api.class("GRClient.dll", "GameRiver.Client", "PlayReplayCommand")?;
+    let command = api.new_object(command_class)?;
+    let execute = api.method_with_parameter_types(
+        command,
+        "Execute",
+        &["GameRiver.IReplay", "System.Int32"],
+    )?;
+    let mut start_round = native_start_round;
+    api.invoke_raw(
+        execute,
+        command.cast(),
+        &mut [object_argument(replay), argument(&mut start_round)],
+    )?;
+    Ok(json!({
+        "loaded": true,
+        "native_start_round": native_start_round,
+    }))
+}
+
 fn player_controller(
     runtime: &Runtime,
     current_match: *mut Object,
@@ -485,6 +556,32 @@ fn speed_up(runtime: &Runtime) -> Result<Value, OperationError> {
         .api
         .invoke_void(controller, "RequestSpeedUp", &mut [])?;
     Ok(json!({"requested": true}))
+}
+
+fn replay_fast_deployment(runtime: &Runtime) -> Result<Value, OperationError> {
+    let current = require_match(runtime)?;
+    if classify_replay(runtime.api, current) != Some(true) {
+        return Err(OperationError::InvalidState(
+            "fast deployment requires an active replay".into(),
+        ));
+    }
+    let method = runtime.api.method_with_parameter_types(
+        current,
+        "SetReplayTime",
+        &["System.Boolean", "System.Single"],
+    )?;
+    let mut is_real_time = false;
+    let mut step_time = 0.0_f32;
+    runtime.api.invoke_raw(
+        method,
+        current.cast(),
+        &mut [argument(&mut is_real_time), argument(&mut step_time)],
+    )?;
+    Ok(json!({
+        "enabled": true,
+        "is_real_time": false,
+        "step_time": 0.0,
+    }))
 }
 
 fn quit_match(runtime: &Runtime) -> Result<Value, OperationError> {

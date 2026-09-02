@@ -59,6 +59,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
     "start_test",
     "apply_layout",
     "record_battle",
+    "record_replay_round",
     "toggle_fight",
     "speed_up",
     "quit_match",
@@ -90,7 +91,9 @@ automatically retried.
 
 The adapter returns after the native call or readback completes. `apply_layout`
 also waits until the requested activation-round deployment is stable.
-`record_battle` remains active through the complete logic-tick capture and atomic MCFR publication. Other
+`record_battle` remains active through the complete logic-tick capture and atomic MCFR publication.
+`record_replay_round` additionally owns replay loading, round selection, accelerated deployment,
+capture, and return to the main menu. Other
 cross-scene readiness belongs to `mechcore mcp`, which observes the status
 stream before returning from lifecycle tools.
 
@@ -228,6 +231,44 @@ layouts. In those recordings all four terrain types were present in `terrains.pa
 application lists referenced the affected enemy units. Oil populated the sparse
 `remaining_rounds` field; fire, acid, and fog used null.
 
+### record_replay_round
+
+Input identifies an existing native replay, a one-based combat round, and a new
+MCFR destination:
+
+```json
+{
+  "grbr": "/absolute/path/battle.grbr",
+  "round": 6,
+  "output": "/absolute/path/round-6.mcfr"
+}
+```
+
+The Adapter requires `main_menu` and passes the requested round unchanged to
+the native `PlayReplayCommand.Execute(IReplay, startRound)` argument. Replay
+`Match.get_RoundCount()` must read back the same value before capture is armed.
+`ReplayMatchBase.SetReplayTime(false, 0)` then removes recorded deployment
+delays. The capture hook reads the embedded layout and S(0) at entry to the
+final player's `PlayerController.FinishDeploy()`, before the native transition
+can initialize fighting. Earlier players are rejected unless every other
+player has already completed deployment, so a partially replayed deployment
+cannot be published. Once fighting begins, the normal native
+`RequestSpeedUp()` path accelerates combat; the existing fighting-to-over edge
+terminates MCFR recording.
+
+Replay formations remain ordered by their stable native unit index, but unlike
+a newly applied Training Ground layout those indices may contain gaps left by
+units removed in earlier rounds. Negative and duplicate indices still fail
+closed. Active commander abilities enter `battle_skills` only when native
+`TryGetReleaseCommanderSkillData` supplies positional release data; active
+non-release abilities are outside that layout field.
+
+The operation reopens and verifies the MCFR, exits the replay through the native
+match quit path, and returns success only after stable `main_menu` status. It
+never quits the game process. Invalid input, unavailable rounds, capture
+failure, and timeout paths also attempt replay cleanup before returning an
+error.
+
 ### quit_match
 
 Input is an empty object.
@@ -297,9 +338,9 @@ Training Ground output:
 ```
 
 `status` is exactly one of `main_menu`, `training_ground`, `replay`, or
-`unknown`. Training Ground additionally reports `round_count`, `deploying`,
-`fighting`, and the effective `match_seed` read from the native match random
-stream; a temporarily unavailable native detail is `null`.
+`unknown`. Training Ground and replay status additionally report `round_count`,
+`deploying`, `fighting`, and the effective `match_seed` read from the native
+match random stream; a temporarily unavailable native detail is `null`.
 
 ### toggle_fight
 
