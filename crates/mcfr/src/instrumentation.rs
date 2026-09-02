@@ -60,18 +60,18 @@ pub struct InstrumentationWriter {
 }
 
 impl InstrumentationWriter {
-    /// Creates an instrumentation sidecar bound to a formal MCFR scenario hash.
+    /// Creates an instrumentation sidecar bound to a formal MCFR result hash.
     ///
     /// # Errors
     ///
     /// Returns an error for invalid metadata, an existing target, or HDF5/I/O failure.
     pub fn create(
         path: impl AsRef<Path>,
-        scenario_hash: &str,
+        result_hash: &str,
         profile: &str,
         producer: &str,
     ) -> Result<Self> {
-        canonical::parse_hex(scenario_hash, "scenario_hash")?;
+        canonical::parse_hex(result_hash, "result_hash")?;
         require_name(profile, "instrumentation profile")?;
         require_name(producer, "instrumentation producer")?;
         let target = path.as_ref().to_path_buf();
@@ -94,7 +94,7 @@ impl InstrumentationWriter {
             "container_version",
             &INSTRUMENTATION_CONTAINER_VERSION.to_string(),
         )?;
-        file.set_attr_string("scenario_hash", scenario_hash)?;
+        file.set_attr_string("result_hash", result_hash)?;
         file.set_attr_string("profile", profile)?;
         file.set_attr_string("producer", producer)?;
         let records = file.create_group("records")?;
@@ -208,7 +208,7 @@ impl InstrumentationSink for InstrumentationWriter {
 
 pub struct InstrumentationReader {
     _file: H5File,
-    scenario_hash: String,
+    result_hash: String,
     profile: String,
     producer: String,
     steps: Vec<u64>,
@@ -232,8 +232,8 @@ impl InstrumentationReader {
             "container_version",
             &INSTRUMENTATION_CONTAINER_VERSION.to_string(),
         )?;
-        let scenario_hash = file.attr_string("scenario_hash")?;
-        canonical::parse_hex(&scenario_hash, "scenario_hash")?;
+        let result_hash = file.attr_string("result_hash")?;
+        canonical::parse_hex(&result_hash, "result_hash")?;
         let profile = file.attr_string("profile")?;
         let producer = file.attr_string("producer")?;
         require_name(&profile, "instrumentation profile")?;
@@ -268,7 +268,7 @@ impl InstrumentationReader {
         }
         Ok(Self {
             _file: file,
-            scenario_hash,
+            result_hash,
             profile,
             producer,
             steps,
@@ -280,8 +280,8 @@ impl InstrumentationReader {
     }
 
     #[must_use]
-    pub fn scenario_hash(&self) -> &str {
-        &self.scenario_hash
+    pub fn result_hash(&self) -> &str {
+        &self.result_hash
     }
 
     #[must_use]

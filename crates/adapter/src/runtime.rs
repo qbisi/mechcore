@@ -41,13 +41,41 @@ struct RecordReplayRoundArguments {
     grbr: PathBuf,
     round: i32,
     output: PathBuf,
+    instrumentation: Option<RecordBattleInstrumentationArguments>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct RecordBattleInstrumentationArguments {
     output: PathBuf,
     profile: capture::CaptureInstrumentationProfile,
+    rvo_scope: Option<capture::RvoCaptureScope>,
+}
+
+fn validate_instrumentation_arguments(
+    instrumentation: Option<&RecordBattleInstrumentationArguments>,
+    output: &Path,
+    video_output: Option<&Path>,
+) -> Result<(), String> {
+    let Some(instrumentation) = instrumentation else {
+        return Ok(());
+    };
+    if let Some(scope) = &instrumentation.rvo_scope {
+        scope.validate(instrumentation.profile)?;
+    }
+    if !instrumentation.output.is_absolute()
+        || instrumentation
+            .output
+            .extension()
+            .and_then(|value| value.to_str())
+            != Some("h5")
+        || instrumentation.output.exists()
+        || instrumentation.output == output
+        || video_output == Some(instrumentation.output.as_path())
+    {
+        return Err("instrumentation output must be a new, distinct absolute .h5 path".into());
+    }
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -140,7 +168,7 @@ struct MainInvocation {
     response: Option<Response<Value>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum MainAction {
     Public,
     Internal(operations::InternalOperation),
@@ -192,7 +220,7 @@ extern "C" fn invoke_on_main(context: *mut c_void) {
     // SAFETY: pointers are supplied by execute_action_on_main and remain valid
     // for the synchronous callback duration of the action that uses them.
     let runtime = unsafe { &mut *invocation.runtime };
-    invocation.response = Some(match invocation.action {
+    invocation.response = Some(match invocation.action.clone() {
         MainAction::Public => {
             // SAFETY: public actions always carry their live wire request.
             let request = unsafe { &*invocation.request };
@@ -487,6 +515,13 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
                 return Response::failure(request.id, "invalid_arguments", error.to_string());
             }
         };
+    if let Err(error) = validate_instrumentation_arguments(
+        arguments.instrumentation.as_ref(),
+        &arguments.output,
+        None,
+    ) {
+        return Response::failure(request.id, "invalid_arguments", error);
+    }
     if !arguments.grbr.is_absolute() {
         return Response::failure(
             request.id,
@@ -569,7 +604,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
     let capture_request = Request {
         id: request.id,
         operation: Operation::RecordBattle,
-        arguments: serde_json::json!({"output": arguments.output}),
+        arguments: serde_json::json!({"output": arguments.output, "instrumentation": arguments.instrumentation}),
     };
     let mut capture_response =
         execute_recording_series(runtime, &capture_request, capture::CaptureStartMode::Replay);
@@ -741,42 +776,12 @@ fn execute_recording_series(
             );
         }
     }
-    if let Some(instrumentation) = &arguments.instrumentation {
-        if !instrumentation.output.is_absolute() {
-            return Response::failure(
-                request.id,
-                "invalid_arguments",
-                "record_battle instrumentation output must be absolute",
-            );
-        }
-        if instrumentation
-            .output
-            .extension()
-            .and_then(|value| value.to_str())
-            != Some("h5")
-        {
-            return Response::failure(
-                request.id,
-                "invalid_arguments",
-                "record_battle instrumentation output must use the .h5 extension",
-            );
-        }
-        if instrumentation.output == arguments.output
-            || arguments.video_output.as_ref() == Some(&instrumentation.output)
-        {
-            return Response::failure(
-                request.id,
-                "invalid_arguments",
-                "record_battle output paths must differ",
-            );
-        }
-        if instrumentation.output.exists() {
-            return Response::failure(
-                request.id,
-                "invalid_arguments",
-                format!("refusing to overwrite {}", instrumentation.output.display()),
-            );
-        }
+    if let Err(error) = validate_instrumentation_arguments(
+        arguments.instrumentation.as_ref(),
+        &arguments.output,
+        arguments.video_output.as_deref(),
+    ) {
+        return Response::failure(request.id, "invalid_arguments", error);
     }
     if let Err(response) = successful_result(execute_internal_on_main(
         runtime,
@@ -788,6 +793,10 @@ fn execute_recording_series(
                 .instrumentation
                 .as_ref()
                 .map(|value| value.profile),
+            rvo_scope: arguments
+                .instrumentation
+                .as_ref()
+                .and_then(|value| value.rvo_scope.clone()),
         },
     )) {
         return response;
@@ -806,6 +815,7 @@ fn execute_recording_series(
     let mut writer = None;
     let mut video = None;
     let mut instrumentation_records = Vec::new();
+    let mut recorded_tick = 0_u64;
     loop {
         if Instant::now() >= deadline {
             return recording_failure(
@@ -820,28 +830,17 @@ fn execute_recording_series(
                 game_build,
                 context,
                 layout_yaml,
-                state,
-                instrumentation,
-                frame,
             }) => {
                 if writer.is_some() {
                     return recording_failure(
                         runtime,
                         request.id,
                         "capture_failed",
-                        "capture emitted more than one initial snapshot".into(),
+                        "capture emitted more than one recording header".into(),
                     );
                 }
                 if let Some(video_output) = arguments.video_output.as_ref() {
-                    let Some(frame) = frame.as_deref() else {
-                        return recording_failure(
-                            runtime,
-                            request.id,
-                            "capture_failed",
-                            "visual capture omitted the initial logic frame".into(),
-                        );
-                    };
-                    let mut created =
+                    let created =
                         match crate::video::MovWriter::create(video_output, context.logic_step) {
                             Ok(created) => created,
                             Err(error) => {
@@ -853,48 +852,14 @@ fn execute_recording_series(
                                 );
                             }
                         };
-                    if let Err(error) = created.append_jpeg(frame) {
-                        return recording_failure(runtime, request.id, "video_error", error);
-                    }
                     video = Some(created);
-                } else if frame.is_some() {
-                    return recording_failure(
-                        runtime,
-                        request.id,
-                        "capture_failed",
-                        "visual capture produced a frame without video_output".into(),
-                    );
-                }
-                match (&arguments.instrumentation, instrumentation) {
-                    (Some(_), Some(observation)) => instrumentation_records.push(observation),
-                    (None, None) => {}
-                    (Some(_), None) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
-                            "capture_failed",
-                            "capture omitted requested instrumentation at tick zero".into(),
-                        );
-                    }
-                    (None, Some(_)) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
-                            "capture_failed",
-                            "capture produced unrequested instrumentation at tick zero".into(),
-                        );
-                    }
                 }
                 match mechcore_mcfr::McfrWriter::create(
                     &arguments.output,
                     &game_build,
                     &context,
                     &layout_yaml,
-                )
-                .and_then(|mut created| {
-                    created.set_initial_state(state)?;
-                    Ok(created)
-                }) {
+                ) {
                     Ok(created) => writer = Some(created),
                     Err(error) => {
                         return recording_failure(
@@ -918,15 +883,19 @@ fn execute_recording_series(
                         runtime,
                         request.id,
                         "capture_failed",
-                        "capture transition preceded its initial snapshot".into(),
+                        "capture tick preceded its recording header".into(),
                     );
                 };
                 if let Err(error) = active.append_tick(state, &events) {
                     return recording_failure(runtime, request.id, "mcfr_error", error.to_string());
                 }
+                recorded_tick += 1;
                 match (&arguments.instrumentation, instrumentation) {
-                    (Some(_), Some(observation)) => instrumentation_records.push(observation),
+                    (Some(_), Some(observation)) => {
+                        instrumentation_records.push((recorded_tick, observation))
+                    }
                     (None, None) => {}
+                    (Some(config), None) if config.rvo_scope.is_some() => {}
                     (Some(_), None) => {
                         return recording_failure(
                             runtime,
@@ -1012,7 +981,7 @@ fn execute_recording_series(
                         );
                     }
                     if let Some(summary) = &video_summary
-                        && summary.frame_count != u64::from(published.tick_count()) + 1
+                        && summary.frame_count != u64::from(published.tick_count())
                     {
                         remove_published(Some(&arguments.output));
                         remove_published(arguments.video_output.as_deref());
@@ -1022,13 +991,16 @@ fn execute_recording_series(
                             format!(
                                 "video frame count {} does not match MCFR state count {}",
                                 summary.frame_count,
-                                u64::from(published.tick_count()) + 1
+                                u64::from(published.tick_count())
                             ),
                         );
                     }
                     let instrumentation_result = match &arguments.instrumentation {
                         Some(instrumentation) => {
-                            if instrumentation_records.len() != published.tick_count() as usize + 1
+                            if instrumentation_records.is_empty()
+                                || (instrumentation.rvo_scope.is_none()
+                                    && instrumentation_records.len()
+                                        != published.tick_count() as usize)
                             {
                                 remove_published(Some(&arguments.output));
                                 remove_published(arguments.video_output.as_deref());
@@ -1038,22 +1010,20 @@ fn execute_recording_series(
                                     format!(
                                         "instrumentation record count {} does not match MCFR state count {}",
                                         instrumentation_records.len(),
-                                        published.tick_count() + 1
+                                        published.tick_count()
                                     ),
                                 );
                             }
                             let write_result = (|| {
                                 let mut sidecar = mechcore_mcfr::InstrumentationWriter::create(
                                     &instrumentation.output,
-                                    &hashes.scenario_hash,
+                                    &hashes.result_hash,
                                     instrumentation.profile.as_str(),
                                     "adapter",
                                 )?;
-                                for (step, observation) in
-                                    instrumentation_records.iter().enumerate()
-                                {
+                                for (tick, observation) in &instrumentation_records {
                                     sidecar.record_json(
-                                        u64::try_from(step).expect("tick count fits u64"),
+                                        *tick,
                                         instrumentation.profile.channel(),
                                         observation,
                                     )?;
@@ -1085,13 +1055,13 @@ fn execute_recording_series(
                                     );
                                 }
                             };
-                            let valid = sidecar.scenario_hash() == hashes.scenario_hash
+                            let valid = sidecar.result_hash() == hashes.result_hash
                                 && sidecar.profile() == instrumentation.profile.as_str()
                                 && sidecar.producer() == "adapter"
-                                && sidecar.len() == published.tick_count() as usize + 1
+                                && sidecar.len() == instrumentation_records.len()
                                 && (0..sidecar.len()).all(|index| {
                                     sidecar.entry(index).is_ok_and(|entry| {
-                                        entry.step == index as u64
+                                        entry.step == instrumentation_records[index].0
                                             && entry.channel == instrumentation.profile.channel()
                                             && entry.content_type == "application/json"
                                     })
@@ -1110,8 +1080,9 @@ fn execute_recording_series(
                                 "output": instrumentation.output,
                                 "profile": instrumentation.profile.as_str(),
                                 "producer": "adapter",
-                                "scenario_hash": sidecar.scenario_hash(),
+                                "result_hash": sidecar.result_hash(),
                                 "record_count": sidecar.len(),
+                                "rvo_scope": instrumentation.rvo_scope,
                             }))
                         }
                         None => None,
@@ -1224,26 +1195,9 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
     let mut skipped_rounds = Vec::new();
     let mut stages = vec![prepare];
     while current_round < target_round {
-        let is_pre_activation = is_pre_activation_round(current_round, target_round);
-        if is_pre_activation {
-            let pre_activation = execute_layout_stage_on_main(
-                runtime,
-                request.id,
-                &plan,
-                operations::LayoutExecutionStage::PreActivation,
-            );
-            match successful_result(pre_activation) {
-                Ok(result) => stages.push(result),
-                Err(response) => return response,
-            }
-        }
-        if let Err(response) = advance_layout_round(
-            runtime,
-            request.id,
-            current_round,
-            is_pre_activation,
-            deadline,
-        ) {
+        if let Err(response) =
+            advance_layout_round(runtime, request.id, current_round, false, deadline)
+        {
             return response;
         }
         skipped_rounds.push(current_round);
@@ -1299,10 +1253,6 @@ fn validate_apply_layout_support(plan: &Plan) -> Result<(), String> {
         );
     }
     Ok(())
-}
-
-const fn is_pre_activation_round(current_round: i32, target_round: i32) -> bool {
-    target_round > 2 && current_round + 1 == target_round
 }
 
 fn successful_result(response: Response<Value>) -> Result<Value, Response<Value>> {
@@ -1444,6 +1394,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn replay_instrumentation_scope_is_validated_before_loading() {
+        let arguments: RecordReplayRoundArguments = serde_json::from_value(serde_json::json!({
+            "grbr": "/tmp/source.grbr", "round": 7, "output": "/tmp/scoped-rvo.mcfr",
+            "instrumentation": {"output": "/tmp/scoped-rvo.h5", "profile": "target_refs_rvo_v1",
+                "rvo_scope": {"start_tick": 8, "end_tick": 14, "unit_ids": [124, 246]}}
+        }))
+        .unwrap();
+        assert!(
+            validate_instrumentation_arguments(
+                arguments.instrumentation.as_ref(),
+                &arguments.output,
+                None
+            )
+            .is_ok()
+        );
+        let mut config = arguments.instrumentation.unwrap();
+        config.rvo_scope.as_mut().unwrap().unit_ids.clear();
+        assert!(
+            validate_instrumentation_arguments(Some(&config), &arguments.output, None).is_err()
+        );
+        config.rvo_scope = None;
+        config.output = "relative.h5".into();
+        assert!(
+            validate_instrumentation_arguments(Some(&config), &arguments.output, None).is_err()
+        );
+    }
+
+    #[test]
     fn listener_is_private_and_connectable() {
         let path = PathBuf::from(format!(
             "/tmp/mechcore-adapter-test-{}-{}.sock",
@@ -1459,20 +1437,6 @@ mod tests {
         drop(client);
         drop(listener);
         fs::remove_file(path).unwrap();
-    }
-
-    #[test]
-    fn only_the_round_before_activation_uses_pre_activation_actions() {
-        assert!(!is_pre_activation_round(1, 1));
-        assert!(!is_pre_activation_round(1, 2));
-        for target in 3..=6 {
-            for current in 1..target {
-                assert_eq!(
-                    is_pre_activation_round(current, target),
-                    current == target - 1
-                );
-            }
-        }
     }
 
     #[test]

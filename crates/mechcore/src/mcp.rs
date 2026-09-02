@@ -62,6 +62,8 @@ struct RecordReplayRoundParameters {
     round: i32,
     /// Absolute destination path for the new `.mcfr` file.
     output: PathBuf,
+    /// Optional temporary Adapter-native research sidecar.
+    instrumentation: Option<RecordBattleInstrumentationParameters>,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema)]
@@ -71,6 +73,16 @@ struct RecordBattleInstrumentationParameters {
     output: PathBuf,
     /// Adapter-defined temporary research profile name.
     profile: String,
+    /// Bound RVO detail to selected MCFR units and combat update-start ticks.
+    rvo_scope: Option<RvoCaptureScopeParameters>,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct RvoCaptureScopeParameters {
+    start_tick: u64,
+    end_tick: u64,
+    unit_ids: Vec<u64>,
 }
 
 struct Shared {
@@ -366,6 +378,7 @@ impl Shared {
         grbr: PathBuf,
         round: i32,
         output: PathBuf,
+        instrumentation: Option<RecordBattleInstrumentationParameters>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
@@ -391,10 +404,12 @@ impl Shared {
             return Err("record_replay_round output must be a new absolute .mcfr path".into());
         }
         *self.last_applied_layout.lock().await = None;
+        validate_record_outputs(&output, None, instrumentation.as_ref())
+            .map_err(|error| error.to_string())?;
         let result = self
             .adapter_request(
                 Operation::RecordReplayRound,
-                json!({"grbr": grbr, "round": round, "output": output}),
+                json!({"grbr": grbr, "round": round, "output": output, "instrumentation": instrumentation}),
             )
             .await?;
         if result.get("recorded").and_then(Value::as_bool) != Some(true) {
@@ -606,7 +621,12 @@ impl MechcoreMcp {
     ) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(
             self.shared
-                .record_replay_round(parameters.grbr, parameters.round, parameters.output)
+                .record_replay_round(
+                    parameters.grbr,
+                    parameters.round,
+                    parameters.output,
+                    parameters.instrumentation,
+                )
                 .await,
         ))
     }
@@ -839,6 +859,26 @@ fn validate_record_outputs(
         }
     }
     if let Some(instrumentation) = instrumentation {
+        if let Some(scope) = &instrumentation.rvo_scope {
+            if instrumentation.profile != "target_refs_rvo_v1"
+                || scope.start_tick == 0
+                || scope.start_tick > scope.end_tick
+                || scope.end_tick - scope.start_tick >= 64
+                || scope.unit_ids.is_empty()
+                || scope.unit_ids.len() > 8
+                || scope.unit_ids.contains(&0)
+                || scope
+                    .unit_ids
+                    .iter()
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .len()
+                    != scope.unit_ids.len()
+            {
+                return Err(tool_error(
+                    "rvo_scope requires target_refs_rvo_v1, 1..=8 unique positive MCFR unit_ids, and 1..=64 inclusive positive MCFR ticks",
+                ));
+            }
+        }
         if instrumentation.profile.trim().is_empty() || instrumentation.profile.contains('\0') {
             return Err(tool_error(
                 "record_battle instrumentation profile is invalid",
@@ -1035,9 +1075,67 @@ mod tests {
         assert!(description.contains("fast deployment"));
         assert!(description.contains("battle speed-up"));
         let schema = Value::Object(tool.input_schema.as_ref().clone());
+        assert!(schema.pointer("/properties/instrumentation").is_some());
         assert_eq!(
             schema.get("required"),
             Some(&json!(["grbr", "round", "output"]))
+        );
+    }
+
+    #[test]
+    fn scoped_replay_instrumentation_validates_ids_ticks_and_profile() {
+        let mut parameters: RecordReplayRoundParameters = serde_json::from_value(json!({
+            "grbr": "/tmp/tuff-rvo.grbr", "round": 7, "output": "/tmp/tuff-rvo.mcfr",
+            "instrumentation": {"output": "/tmp/tuff-rvo.h5", "profile": "target_refs_rvo_v1",
+                "rvo_scope": {"start_tick": 8, "end_tick": 14, "unit_ids": [124, 246]}}
+        }))
+        .unwrap();
+        assert!(
+            validate_record_outputs(
+                &parameters.output,
+                None,
+                parameters.instrumentation.as_ref()
+            )
+            .is_ok()
+        );
+        parameters
+            .instrumentation
+            .as_mut()
+            .unwrap()
+            .rvo_scope
+            .as_mut()
+            .unwrap()
+            .unit_ids
+            .push(124);
+        assert!(
+            validate_record_outputs(
+                &parameters.output,
+                None,
+                parameters.instrumentation.as_ref()
+            )
+            .is_err()
+        );
+        let config = parameters.instrumentation.as_mut().unwrap();
+        config.rvo_scope.as_mut().unwrap().unit_ids.pop();
+        config.rvo_scope.as_mut().unwrap().end_tick = 72;
+        assert!(
+            validate_record_outputs(
+                &parameters.output,
+                None,
+                parameters.instrumentation.as_ref()
+            )
+            .is_err()
+        );
+        let config = parameters.instrumentation.as_mut().unwrap();
+        config.rvo_scope.as_mut().unwrap().end_tick = 14;
+        config.profile = "target_refs_v1".into();
+        assert!(
+            validate_record_outputs(
+                &parameters.output,
+                None,
+                parameters.instrumentation.as_ref()
+            )
+            .is_err()
         );
     }
 
@@ -1203,6 +1301,23 @@ mod tests {
         }
         assert!(schema.pointer("/properties/seed").is_some());
         assert!(schema.pointer("/$defs/Formation/properties/type").is_some());
+        assert!(
+            schema
+                .pointer("/$defs/Formation/properties/index")
+                .is_some()
+        );
+        assert!(schema.pointer("/$defs/Formation/properties/exp").is_some());
+        assert!(
+            schema
+                .pointer("/$defs/StaticPlacement/properties/index")
+                .is_none()
+        );
+        assert_eq!(
+            schema
+                .pointer("/$defs/Side/properties/constructions/items/$ref")
+                .and_then(Value::as_str),
+            Some("#/$defs/StaticPlacement")
+        );
         assert!(
             schema
                 .pointer("/$defs/StaticPlacement/properties/type")

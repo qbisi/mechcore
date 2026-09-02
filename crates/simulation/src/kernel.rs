@@ -864,21 +864,38 @@ fn initialize_actors(
 }
 
 fn initialize_buildings(training_ground: &TrainingGroundConfig) -> Result<Vec<BuildingState>> {
+    let building_key = |building: &crate::rules::BuildingConfig| {
+        (
+            building.team_id,
+            building.building_type_id,
+            building.x(),
+            building.z(),
+        )
+    };
+    let mut ordered = training_ground.buildings.iter().collect::<Vec<_>>();
+    ordered.sort_by_key(|building| building_key(building));
+    let mut normalized_ids = BTreeMap::new();
+    for (index, building) in ordered.into_iter().enumerate() {
+        let id = u64::try_from(index)
+            .map_err(|_| Error::new("training-ground building index overflow"))?
+            .saturating_add(1);
+        if normalized_ids.insert(building_key(building), id).is_some() {
+            return Err(Error::new(
+                "training-ground buildings contain duplicate identity keys",
+            ));
+        }
+    }
     training_ground
         .buildings
         .iter()
-        .enumerate()
-        .map(|(index, building)| {
-            let building_id = u64::try_from(index)
-                .map_err(|_| Error::new("training-ground building index overflow"))?
-                .saturating_add(1);
+        .map(|building| {
+            let building_id = normalized_ids[&building_key(building)];
             let radius = building.radius();
             Ok(BuildingState {
                 building_id,
                 team_id: building.team_id,
                 building_type_id: building.building_type_id,
                 position: point(building.x(), building.z()),
-                rotation: 0,
                 bounds_width: space_to_q32(radius.saturating_mul(2)),
                 bounds_height: space_to_q32(radius.saturating_mul(2)),
                 life: GaugeI32 {
@@ -1040,7 +1057,6 @@ pub struct SimulationComparison {
     pub game_build: String,
     pub seed: i32,
     pub equal: bool,
-    pub scenario_hash: String,
     pub recording: TimelineSummary,
     pub simulation: TimelineSummary,
     pub first_divergence: Option<u32>,
@@ -3240,15 +3256,9 @@ impl Simulation {
         }
 
         let mut agents = Vec::new();
-        let mut building_indices = (0..self.buildings.len()).collect::<Vec<_>>();
-        building_indices.sort_by_key(|index| {
-            let building = &self.buildings[*index];
-            (building.team_id, building.building_id)
-        });
         let (tower_layer, tower_collides_with) =
             immovable_rvo_collision_masks(CORE_TOWER_RVO_COLLIDER_PRIORITY);
-        for index in building_indices {
-            let building = &self.buildings[index];
+        for building in &self.buildings {
             if !building_alive(building) || !building.collision_enabled {
                 continue;
             }
@@ -3274,7 +3284,6 @@ impl Simulation {
                 priority: Q32_ONE,
             });
         }
-        agents.extend(crate::rvo::training_ground_static_agents());
         for (&actor_id, actor) in self.actors.iter().filter(|(_, actor)| actor.alive()) {
             let profile = rvo_profile(&actor.rules);
             let (layer, collides_with) = movable_rvo_collision_masks(profile.collider_priority);
@@ -4420,7 +4429,6 @@ pub(crate) fn compare(
     let Execution {
         writer,
         steps,
-        scenario_hash,
         first_divergence,
         divergent_tick,
         ..
@@ -4442,7 +4450,6 @@ pub(crate) fn compare(
         game_build: config.game_build.clone(),
         seed,
         equal: first_divergence.is_none(),
-        scenario_hash,
         recording: TimelineSummary {
             result_hash: Some(recording.hashes().result_hash.clone()),
             tick_count: recording.tick_count(),
@@ -4464,7 +4471,6 @@ struct Execution {
     writer: McfrWriter,
     steps: u64,
     end_reason: &'static str,
-    scenario_hash: String,
     first_divergence: Option<u32>,
     divergent_tick: Option<DivergentTick>,
 }
@@ -4507,16 +4513,6 @@ fn execute(
         }
         None => McfrWriter::hash_only(&context)?,
     };
-    writer.set_initial_state(simulation.snapshot())?;
-    let scenario_hash = writer.scenario_hash()?;
-    if let Some(recording) = recording
-        && scenario_hash != recording.hashes().scenario_hash
-    {
-        return Err(Error::new(format!(
-            "scenario_hash mismatch: recording={}, simulation={scenario_hash}",
-            recording.hashes().scenario_hash,
-        )));
-    }
     simulation.initialize_presearch_targets()?;
     let mut steps = 0;
     let mut first_divergence = None;
@@ -4582,7 +4578,6 @@ fn execute(
         writer,
         steps,
         end_reason,
-        scenario_hash,
         first_divergence,
         divergent_tick,
     })

@@ -6,9 +6,7 @@ use std::{
 use tempfile::TempPath;
 
 use crate::{
-    DurableContext, Error, Hashes, MCFR_FORMAT, McfrReader, Result, TransitionEvents,
-    WorldSnapshot,
-    canonical::{self, CanonicalHasher},
+    DurableContext, Error, Hashes, McfrReader, Result, TransitionEvents, WorldSnapshot, canonical,
     model::IdentityAllocator,
     parquet_storage::{self, StorageWriter},
 };
@@ -20,14 +18,13 @@ pub struct McfrWriter {
     game_build: Option<String>,
     layout_yaml: Option<String>,
     context_bytes: Vec<u8>,
-    initial_state_bytes: Option<Vec<u8>>,
+    identity_initialized: bool,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     poisoned: bool,
 }
 
 impl McfrWriter {
-    /// Starts an empty MCFR container. Call [`Self::set_initial_state`] once before
-    /// appending any transition tick.
+    /// Starts an empty MCFR container. The first appended state is `S(1)`.
     ///
     /// # Errors
     ///
@@ -68,7 +65,7 @@ impl McfrWriter {
         }
         let layout_yaml =
             mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
-        let context_bytes = canonical::encode(context)?;
+        let context_bytes = parquet_storage::encode_durable_context(context)?;
         let temporary = tempfile::Builder::new()
             .prefix(".mcfr-")
             .suffix(".zip.part")
@@ -82,7 +79,7 @@ impl McfrWriter {
             game_build: Some(game_build.to_owned()),
             layout_yaml: Some(layout_yaml),
             context_bytes,
-            initial_state_bytes: None,
+            identity_initialized: false,
             tick_hashes: Vec::new(),
             poisoned: false,
         })
@@ -101,55 +98,34 @@ impl McfrWriter {
             storage: None,
             game_build: None,
             layout_yaml: None,
-            context_bytes: canonical::encode(context)?,
-            initial_state_bytes: None,
+            context_bytes: parquet_storage::encode_durable_context(context)?,
+            identity_initialized: false,
             tick_hashes: Vec::new(),
             poisoned: false,
         })
     }
 
-    /// Sets the authoritative pre-advance state `S(0)`.
+    /// Appends one logical tick, where the first state and event batch are `S(1)` and `E(1)`.
     ///
     /// # Errors
     ///
-    /// Returns an error if an initial state was already written or the state is invalid.
-    pub fn set_initial_state(&mut self, mut state: WorldSnapshot) -> Result<()> {
-        if self.initial_state_bytes.is_some() || !self.tick_hashes.is_empty() {
-            return Err(Error::invalid("S(0) has already been written"));
-        }
-        state.canonicalize();
-        state.object_keys()?;
-        IdentityAllocator::from_initial(&state)?;
-        let state_bytes = canonical::encode(&state)?;
-        self.poisoned = true;
-        if let Some(storage) = &mut self.storage {
-            storage.append_initial_state(&state);
-        }
-        self.initial_state_bytes = Some(state_bytes);
-        self.poisoned = false;
-        Ok(())
-    }
-
-    /// Appends one transition `T(t)`, where the first appended transition is tick 1.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if `S(0)` is missing, the state or events are invalid, the tick count
-    /// overflows, or the backing storage cannot append the transition.
+    /// Returns an error if the state or events are invalid, the tick count overflows, or the
+    /// backing storage cannot append the tick.
     pub fn append_tick(
         &mut self,
         mut state: WorldSnapshot,
         events: &TransitionEvents,
     ) -> Result<String> {
-        if self.initial_state_bytes.is_none() {
-            return Err(Error::invalid("S(0) must be written before T(1)"));
-        }
         let tick = u32::try_from(self.tick_hashes.len())
             .map_err(|_| Error::invalid("tick count overflow"))?
             .checked_add(1)
             .ok_or_else(|| Error::invalid("tick count overflow"))?;
         state.canonicalize();
         state.object_keys()?;
+        if !self.identity_initialized {
+            IdentityAllocator::from_initial(&state)?;
+            self.identity_initialized = true;
+        }
         let state_bytes = canonical::encode(&state)?;
         let event_bytes = canonical::encode(events)?;
         let hash = canonical::tick_hash(tick, &state_bytes, &event_bytes);
@@ -160,15 +136,6 @@ impl McfrWriter {
         self.tick_hashes.push(hash);
         self.poisoned = false;
         Ok(canonical::hex(&hash))
-    }
-
-    /// Returns the canonical scenario hash after `S(0)` has been set.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the initial state is not available.
-    pub fn scenario_hash(&self) -> Result<String> {
-        Ok(canonical::hex(&self.scenario_hash_raw()?))
     }
 
     /// Finalizes the timeline hash and atomically publishes the container.
@@ -183,15 +150,11 @@ impl McfrWriter {
                 "cannot finish an MCFR after a partial write failure",
             ));
         }
-        if self.initial_state_bytes.is_none() {
-            return Err(Error::invalid("an MCFR must contain S(0)"));
-        }
         if self.tick_hashes.is_empty() {
-            return Err(Error::invalid("an MCFR must contain at least T(1)"));
+            return Err(Error::invalid("an MCFR must contain at least tick 1"));
         }
-        let scenario = self.scenario_hash_raw()?;
-        let result = canonical::result_hash(&scenario, &self.tick_hashes);
-        let hashes = Hashes::from_raw(scenario, result);
+        let result = canonical::result_hash(&self.tick_hashes);
+        let hashes = Hashes::from_raw(result);
         let Some(storage) = self.storage.take() else {
             return Ok(hashes);
         };
@@ -226,17 +189,5 @@ impl McfrWriter {
             )
             .map_err(|error| Error::Io(error.error))?;
         Ok(hashes)
-    }
-
-    fn scenario_hash_raw(&self) -> Result<[u8; canonical::HASH_BYTES]> {
-        let mut scenario = CanonicalHasher::new("scenario-0.1.0");
-        scenario.update(MCFR_FORMAT.as_bytes());
-        scenario.update(&self.context_bytes);
-        scenario.update(
-            self.initial_state_bytes
-                .as_deref()
-                .ok_or_else(|| Error::invalid("an MCFR must contain tick zero"))?,
-        );
-        Ok(scenario.finalize())
     }
 }

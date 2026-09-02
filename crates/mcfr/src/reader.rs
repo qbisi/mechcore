@@ -1,10 +1,8 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::{
-    DurableContext, Error, Hashes, MCFR_FORMAT, Result, TickSlice, TransitionEvents, WorldSnapshot,
-    canonical::{self, CanonicalHasher},
-    model::IdentityAllocator,
-    parquet_storage::StorageReader,
+    DurableContext, Error, Hashes, Result, TickSlice, TransitionEvents, WorldSnapshot, canonical,
+    model::IdentityAllocator, parquet_storage::StorageReader,
 };
 
 pub struct McfrReader {
@@ -19,11 +17,12 @@ pub struct McfrReader {
 
 impl McfrReader {
     /// Opens an MCFR and validates its ZIP64/Parquet structure and metadata.
+    /// Persisted hashes are trusted; timeline content is not rehashed.
     ///
     /// # Errors
     ///
-    /// Returns an error for I/O failures, unsupported formats, malformed metadata, invalid
-    /// Parquet tracks, or canonical hash mismatches.
+    /// Returns an error for I/O failures, unsupported formats, malformed metadata, or invalid
+    /// Parquet tracks.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
         let file_size_bytes = fs::metadata(path)?.len();
@@ -42,8 +41,7 @@ impl McfrReader {
             hashes,
             storage,
         };
-        IdentityAllocator::from_initial(&reader.state(0)?)?;
-        reader.validate_hashes()?;
+        IdentityAllocator::from_initial(&reader.state(1)?)?;
         Ok(reader)
     }
 
@@ -115,48 +113,9 @@ impl McfrReader {
         Ok(state)
     }
 
-    fn validate_hashes(&self) -> Result<()> {
-        let context = canonical::encode(&self.context)?;
-        let initial = canonical::encode(&self.state(0)?)?;
-        let mut scenario = CanonicalHasher::new("scenario-0.1.0");
-        scenario.update(MCFR_FORMAT.as_bytes());
-        scenario.update(&context);
-        scenario.update(&initial);
-        let scenario = scenario.finalize();
-        let stored_scenario = canonical::parse_hex(&self.hashes.scenario_hash, "scenario_hash")?;
-        if scenario != stored_scenario {
-            return Err(Error::invalid(
-                "scenario_hash does not match decoded durable context and S(0)",
-            ));
-        }
-
-        let mut tick_hashes = Vec::with_capacity(
-            usize::try_from(self.tick_count)
-                .map_err(|_| Error::invalid("tick count is too large"))?,
-        );
-        for tick in 1..=self.tick_count {
-            let state = canonical::encode(&self.state(tick)?)?;
-            let events = canonical::encode(&self.events(tick)?)?;
-            let actual = canonical::tick_hash(tick, &state, &events);
-            if actual != self.storage.tick_hash(tick)? {
-                return Err(Error::invalid(format!(
-                    "tick_hash({tick}) does not match decoded S({tick}) and E({tick})"
-                )));
-            }
-            tick_hashes.push(actual);
-        }
-        let result = canonical::result_hash(&scenario, &tick_hashes);
-        let stored_result = canonical::parse_hex(&self.hashes.result_hash, "result_hash")?;
-        if result != stored_result {
-            return Err(Error::invalid(
-                "result_hash does not match the decoded tick hash sequence",
-            ));
-        }
-        Ok(())
-    }
-
     /// Reads the native event batch associated with one tick. Events at tick
-    /// `t > 0` occurred while advancing from `S(t-1)` to `S(t)`.
+    /// `t > 1` occurred while advancing from `S(t-1)` to `S(t)`. `E(1)` is the
+    /// first observed native update; `S(0)` is deliberately not persisted.
     ///
     /// # Errors
     ///
@@ -184,12 +143,8 @@ impl McfrReader {
     ///
     /// # Errors
     ///
-    /// Returns an error when the recordings have different scenarios or an index cannot be
-    /// represented.
+    /// Returns an error when an index cannot be represented.
     pub fn first_divergence(&self, other: &Self) -> Result<Option<u32>> {
-        if self.hashes.scenario_hash != other.hashes.scenario_hash {
-            return Err(Error::invalid("scenario_hash mismatch"));
-        }
         for (index, (left, right)) in self
             .storage
             .tick_hashes()

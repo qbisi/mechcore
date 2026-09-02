@@ -1,9 +1,9 @@
-# MCFR v4 格式规范（format 0.1.0）
+# MCFR v5 格式规范（format 0.2.0）
 
-本文描述仓库当前实现的 MCFR v4 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
+本文描述仓库当前实现的 MCFR v5 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.1.0"
+format = "0.2.0"
 ```
 
 当前 Adapter 原生字段映射绑定游戏 build `1.11.1.3.2259`。其他 build 可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -28,11 +28,11 @@ recording.mcfr
 | --- | --- | --- | --- |
 | `layout.yaml` | 可直接重放的规范化场景布局 | 录像级 | UTF-8 YAML，LF 结尾 |
 | `ticks.parquet` | DurableContext、录像元数据、每帧摘要 | `T(1)..T(n)` | Parquet + Zstd level 6 |
-| `units.parquet` | 存活 FightMech 完整状态 | `S(0)..S(n)` | Parquet + Zstd level 6 |
-| `projectiles.parquet` | ProjectileSystem 中的弹体完整状态 | `S(0)..S(n)` | Parquet + Zstd level 6 |
-| `buildings.parquet` | 各 FightTeam 当前存活的 Crystal/Construction 状态 | `S(0)..S(n)` | Parquet + Zstd level 6 |
-| `shields.parquet` | AdvancedEnergyShieldSystem 中仍存在的战场护盾状态 | `S(0)..S(n)` | Parquet + Zstd level 6 |
-| `terrains.parquet` | RangeItemSystem 中当前存在的动态战场地形及单位作用关系 | `S(0)..S(n)` | Parquet + Zstd level 6 |
+| `units.parquet` | 存活 FightMech 完整状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `projectiles.parquet` | ProjectileSystem 中的弹体完整状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `buildings.parquet` | 各 FightTeam 当前存活的 Crystal/Construction 状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `shields.parquet` | AdvancedEnergyShieldSystem 中仍存在的战场护盾状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `terrains.parquet` | RangeItemSystem 中当前存在的动态战场地形及单位作用关系 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `events.jsonl` | 相邻快照之间的有序离散事件 | `E(1)..E(n)` | UTF-8 JSON Lines，LF 结尾 |
 
 ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。六个 Parquet 成员的 row group 按 128 个逻辑 tick 刷新，单个 row group 的行数上限为 1,000,000。状态表按 `(tick, object_id)` 排序，事件按 `(tick, ordinal)` 排序。
@@ -49,17 +49,16 @@ ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。六个 Parq
 布局采用规范 YAML：显式记录 `seed`，省略原生值为格式默认值的字段，并按原生 Unit index
 保留 `formations` 声明顺序；四种初始防御建筑按 manager 顺序记录在同级
 `constructions`。`mechcore layout verify/format` 和 Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
-`mechcore sim compare`，不进入 `scenario_hash`、`tick_hash` 或 `result_hash`。
+`mechcore sim compare`，不直接进入 `tick_hash` 或 `result_hash`。
 
 逻辑时间线为：
 
 ```text
-scenario = { D, S(0) }
 T(t)     = { S(t), E(t), tick_hash(t) }, 1 <= t <= n
-S(t-1) --E(t)--> S(t)
+S(1)     = 第一次原生逻辑更新完成后的状态
 ```
 
-`S(0)` 写入五个状态 Parquet 的 tick 0 行。`ticks.parquet` 和 `events.jsonl` 从 tick 1 开始。`tick_count` 至少为 1，`terminal_tick` 等于 `tick_count`。
+所有状态、事件和逐 tick 摘要都从 tick 1 开始；部署完成后的 `S(0)` 不落盘。`tick_count` 至少为 1，`terminal_tick` 等于 `tick_count`。
 
 ---
 
@@ -84,12 +83,11 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.1.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.2.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `scenario_hash` | 64 位小写十六进制 | `format`、DurableContext 与 `S(0)` 的摘要 |
-| `result_hash` | 64 位小写十六进制 | `scenario_hash` 与全部 `tick_hash` 的摘要 |
-| `tick_count` | `u32` 规范十进制 | `S(0)` 后记录的推进次数 |
+| `result_hash` | 64 位小写十六进制 | 全部 `tick_hash` 的有序摘要 |
+| `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
 
 ## 1.4 DurableContext 字段
@@ -99,9 +97,8 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `logic_step` | `Rational<u32>`，分子分母均大于 0 | 每次逻辑推进的秒数 | 当前 Adapter 固定为 `1/20` |
 | `time_units_per_second` | `u32 > 0` | 原生离散时间单位密度 | build 2259 固定为 `2000` |
 | `combat_round` | `u32 > 0` | 当前战斗回合 | `CurrentMatch.get_RoundCount()` |
-| `match_seed` | `i32` | 原生战斗随机种子 | `CurrentMatch.GetRandom().GetSeed()` |
 
-`durable_context` 的完整 canonical JSON 是场景哈希输入。`game_build` 作为独立文件 metadata 描述采集来源，使同一逻辑场景在不同等价 build 下保持相同摘要。
+`match_seed` 不写入 `ticks.parquet`。Writer 仍用调用方提供的 seed 校验嵌入布局，Reader 则从规范化 `layout.yaml.seed` 恢复公开 `DurableContext.match_seed`。`game_build` 作为独立文件 metadata 描述采集来源。
 
 ---
 
@@ -116,7 +113,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.1.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.2.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -294,11 +291,10 @@ FightTeam.constructions
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `building_id` | `UINT64 required` | Building namespace 内稳定 ID | 初始按 `(team_id, building_index)` 分配，动态对象顺序追加 |
+| `building_id` | `UINT64 required` | Building namespace 内稳定 ID | 初始按下述采集正则化顺序分配，动态对象顺序追加 |
 | `team_id` | `UINT32 required` | 建筑所属队伍 | 当前 FightTeam controller index |
 | `building_type_id` | `UINT32 required` | 原生建筑类型 | `FightCrystal.GetBuildingType()` |
 | `position` | `QVec3 required` | 世界坐标 | FightTransform `GetPositionInt3D()` |
-| `rotation` | `INT64 required` | 朝向，Q32.32 raw | FightTransform `GetRotationInt()` |
 | `bounds_width` | `INT64 required` | 边界宽度，Q32.32 raw | `GetBoundsRect().size.x` |
 | `bounds_height` | `INT64 required` | 边界高度，Q32.32 raw | `GetBoundsRect().size.y` |
 | `life` | `GaugeI32 required` | 当前/最大生命 | `GetLife()` / `GetMaxLife()` |
@@ -307,6 +303,9 @@ FightTeam.constructions
 | `collision_enabled` | `BOOLEAN required` | 建筑数据启用碰撞 | `GetBuildingData().get_EnableCollision()` |
 
 该 Part 的集合定义同时给出了 v4 中 “building” 的合法来源：队伍演化列表内、当前存活、可分配稳定 Building ID 的对象。
+
+Building 不记录 `rotation`；该字段不在 JSON 状态或 Parquet schema 中，也不参与
+canonical tick/result hash。Unit 的 `body_rotation` 与武器姿态的 `rotation` 不受影响。
 
 ---
 
@@ -323,7 +322,7 @@ FightTeam.constructions
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `shield_id` | `UINT64 required` | Shield namespace 内稳定 ID | 初始按队伍与全量集合顺序分配，动态对象顺序追加 |
+| `shield_id` | `UINT64 required` | Shield namespace 内稳定 ID | S(1) 按队伍和 active_order 一次性分配，inactive/首 tick 已移除项按确定性键随后分配；动态对象顺序追加 |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `GetTeamController().GetTeamIndex()` |
 | `source_kind` | `UINT8 required` | 数据源种类 | `get_EnergyShieldData()` 的运行时类型 |
 | `owner` | nullable `ObjectRef` | 绑定的 FightActor；定点部署盾为 null | `GetOwner()` |
@@ -340,7 +339,7 @@ FightTeam.constructions
 
 ## 5.3 活跃顺序与约束
 
-原生系统分别维护全量集合与活跃集合。开战时两者使用同一排序，但 `ActiveEnergyShield()` 会把战斗中重新激活的对象追加到活跃集合。因此 `active_order` 不能由 `shield_id` 与 `active` 一般性推导。
+原生系统分别维护全量集合与活跃集合。`ActiveEnergyShield()` 会把重新激活的对象追加到活跃集合，包括跨回合重新激活的既存盾。因此两种集合的顺序可以不同，`active_order` 不能由 `shield_id` 与 `active` 一般性推导。
 
 合法状态满足：
 
@@ -486,14 +485,13 @@ Writer 的公开生命周期为：
 
 ```text
 create(game_build, context, layout_yaml)
-set_initial_state(S(0))
 append_tick(S(1), E(1))
 ...
 append_tick(S(n), E(n))
 finish()
 ```
 
-Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet footer、JSONL、ZIP 封装后，以 `McfrReader` 重新打开并复核结构与哈希，最后通过 `persist_noclobber` 发布目标文件。目标路径在创建时保持空闲，发布具有防覆盖语义。
+Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet footer、JSONL、ZIP 封装后，以 `McfrReader` 重新打开并复核结构及持久化哈希元数据，最后通过 `persist_noclobber` 发布目标文件。目标路径在创建时保持空闲，发布具有防覆盖语义。
 
 每次写入前，WorldSnapshot 先按规范顺序 canonicalize，再执行对象 ID、列表顺序、状态 bit 和 modifier 约束校验。一次局部写入失败会使 Writer 进入 poisoned 状态，完整文件只由成功的 `finish()` 发布。
 
@@ -502,14 +500,16 @@ Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet foot
 Reader 在打开容器时验证：
 
 - ZIP 成员集合、STORE method、ZIP64 可读性与成员唯一性；
-- `layout.yaml` 的 UTF-8、共享结构、规范化表示以及 seed/round 与 DurableContext 一致性；
+- `layout.yaml` 的 UTF-8、共享结构、规范化表示以及 round 与 DurableContext 一致性；
 - 六个 Parquet schema、required/nullable 结构及 Zstd column compression；
 - `game_build`、DurableContext canonical JSON、元数据类型和格式标识；
 - tick 连续性、状态表排序、事件排序与 ordinal 连续性；
 - ObjectRef、enum tag、初始身份顺序、列表顺序、`status_mask` 保留位和 modifier 分量；
-- `scenario_hash`、全部 `tick_hash` 与 `result_hash` 的重新计算结果。
+- `tick_hash` 行的连续性、宽度和编码，以及 `result_hash` 的编码。
 
-合法录像具有一个 `S(0)`、至少一个 `T(1)`，并在 `terminal_tick` 处完整结束。
+Reader 信任 MCFR 自身持久化的 `tick_hash` 与 `result_hash`。`McfrReader::open()` 不会为了校验哈希而逐 tick 重建 `S(t)`/`E(t)`，也不重新计算整条时间线的哈希；`first_divergence()` 直接比较持久化的 `tick_hash`。定位差异后，调用方可按需读取对应 tick 的内容。
+
+合法录像至少具有一个 `T(1)`，不存在 tick 0 状态或事件，并在 `terminal_tick` 处完整结束。
 
 ---
 
@@ -556,7 +556,7 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.1.0 身份规则
+## B.1 format 0.2.0 身份规则
 
 format `0.1.0` 固定采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
@@ -568,7 +568,15 @@ format `0.1.0` 固定采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id,
 成员散布使用 `match_seed + unit_index`。动态 Unit、Projectile 和 Building 在各自 namespace
 中按首次观察顺序追加。ID 生命周期覆盖其退出快照后的历史引用。
 
-初始 Building 按 `(team_id, native building_index)` 排序后分配。初始 Shield 按 `(team_id, native full-list index)` 分配，战斗中新进入全量集合的 Shield 按首次观察顺序追加。初始 Terrain 按 `(terrain_type, native controller item index)` 分配，动态 Terrain 按首次观察顺序追加。Shield 与 Terrain 从各自权威集合移除后，原生指针进入 tombstone 并保持历史 ID 唯一。
+初始 Building 按 `(team_id, building_type_id, position.x, position.y, position.z)`
+严格升序分配 `building_id = 1..N`，位置使用 Q32.32 raw 整数；相同键的多个对象使
+采集失败，不能用原生指针或创建计数器作为不稳定的 tie-breaker。一项 construction
+可对应多段城墙，每段按自己的位置获得独立 ID。layout 不保存 construction index；
+原生 building/construction index 和 layout 声明顺序都不参与 MCFR Building ID 分配。
+两种游戏模式采用同一规则。分配后的 ID 及所有 ObjectRef 在整场保持稳定，动态对象
+按首次观察时的同一排序追加；死亡或移位不会重新编号。
+
+初始 Shield 在 S(1) 按队伍分组：活跃盾按 `active_order` 升序，同队 inactive 盾随后。首 tick 已移除但事件仍可能引用的盾排在全部 S(1) 对象之后，再按队伍分组，确保初始状态中的 ID 从 1 连续。inactive/已移除组内按 `(source_kind, owner, position.x/y/z, radius, round_policy, energy.maximum, energy.current)` 排序，已移除项使用最后观测状态；无法区分的相同键使采集失败。编号仅规范化一次，并同步转换 E(1) 与缓存引用，不能每 tick 用 active_order 重新编号。此后新盾按首次观察顺序追加，ID 不因失活、重激活或 active_order 变化而改变。初始 Terrain 按 `(terrain_type, native controller item index)` 分配，动态 Terrain 按首次观察顺序追加。Shield 与 Terrain 从各自权威集合移除后，原生指针进入 tombstone 并保持历史 ID 唯一。
 
 状态快照最终统一按对象 ID 排序；`skill_dynamic_modifiers` 按 `skill_slot`，`weapon_aims` 按 `(skill_slot, weapon_index)`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序。
 
@@ -584,23 +592,21 @@ Canonical JSON 使用 UTF-8、递归字典序排列 object key、紧凑编码和
 LE_u64(byte_length) || bytes
 ```
 
-Hasher 为 BLAKE3，并以固定前缀 `mechcore.mcfr.canonical\0` 开始。三个 domain 为：
+Hasher 为 BLAKE3，并以固定前缀 `mechcore.mcfr.canonical\0` 开始。两个 domain 为：
 
 ```text
-scenario-0.1.0
-tick-0.1.0
-result-0.1.0
+tick-0.2.0
+result-0.2.0
 ```
 
 摘要定义：
 
 ```text
-scenario_hash = H_s(format, DurableContext, S(0))
 tick_hash(t)  = H_t(LE_u32(t), S(t), E(t))
-result_hash   = H_r(scenario_hash, LE_u32(tick_count), tick_hash(1)..tick_hash(n))
+result_hash   = H_r(LE_u32(tick_count), tick_hash(1)..tick_hash(n))
 ```
 
-元数据中的 scenario/result hash 使用 64 位小写十六进制；`ticks.parquet.tick_hash` 保存原始 32 bytes。
+元数据中的 `result_hash` 使用 64 位小写十六进制；`ticks.parquet.tick_hash` 保存原始 32 bytes。
 
 # 附录 D — 物理编码约定
 

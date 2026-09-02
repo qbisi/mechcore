@@ -108,17 +108,34 @@ fields.
 Typical output:
 
 ```json
-{"applied":true,"round":3,"formation_count":12,"construction_count":1,"contraption_count":0,"skipped_rounds":[1,2],"stages":[{"stage":"prepare"},{"stage":"pre_activation"},{"stage":"activation"}]}
+{"applied":true,"round":3,"formation_count":12,"construction_count":1,"contraption_count":0,"skipped_rounds":[1,2],"stages":[{"stage":"prepare"},{"stage":"activation"}]}
 ```
 
 The operation begins only during first-round Training Ground deployment. It
 compiles and validates the complete layout before mutation, clears both sides,
-and expires earlier empty deployment states synchronously. Non-travelling
-ambush units are placed in the round immediately before activation; only that
-round uses the private Training Ground finish-fight action if battle begins.
-Every remaining formation, construction, contraption, and modifier is applied in the activation round,
-whose deployment timer is then reset. The operation returns only after
-authoritative readback and stable activation-round deployment status.
+and expires earlier empty deployment states synchronously. Every formation is
+created in declaration/index order after the activation round begins, with its
+index set directly through `MAD_AddUnit.UIDX`; missing indices remain absent
+without creating/removing placeholder units. The
+Adapter sets `MechTeam` experience, explicitly corrects a mismatching native
+travelling state, and requires authoritative experience and
+`SuperDeploymentSystem.IsTravellingUnit` readback after the final move.
+Same-seed opening constructions are retained when `(type, position)` matches
+and otherwise removed. Missing constructions are applied in declaration order
+with native-allocated indices, without index placeholders. Contraptions and modifiers are then applied in the activation
+round, whose deployment timer is reset before the operation returns.
+
+Prepare also deactivates and hides the neutral scene FightCrystals, clears their
+global BuildingSystem indexes and removes their owner registrations before the
+first fight. The global list must contain only plain FightCrystals with null
+current/original teams; mixed ownership fails closed. Team towers and deployed
+constructions are not in that cleanup list. This path never runs in replay mode.
+
+Replay and Training Ground capture allocate MCFR Building IDs by
+`(team_id, building_type_id, position.x, position.y, position.z)` using raw Q32.32
+coordinates; duplicate keys fail closed. Native construction/building counters
+and layout order do not determine these IDs. Existing IDs and target/event
+references remain stable after allocation, including after object removal.
 
 A structurally valid layout may contain `sides.<side>.terrains` for readback and
 offline verification. The Adapter rejects any non-empty terrain list before the
@@ -171,15 +188,14 @@ that following update therefore captures a completed render of the pending MCFR 
 the state being advanced.
 The normal screen-space UI is included. The terminal snapshot is not returned until its completed
 render has also been captured. Frames are JPEG-encoded and written as a QuickTime Motion JPEG stream
-whose sample duration equals `D.logic_step`; frame count must equal MCFR tick count plus the `S(0)`
-frame. Screen and camera
+whose sample duration equals `D.logic_step`; frame count must equal MCFR tick count. Screen and camera
 controller state and the original target frame rate are restored after terminal capture or failure,
 and partial media remains unpublished.
 The result reports `view`, `projection`, camera position/rotation, and field of view alongside the media
 dimensions so a renderer can reconstruct the same world-to-screen calibration.
 
 The operation is valid only after layout completion in Training Ground deployment. It arms native
-capture, starts combat, records `S(0)` before the first combat update, and captures every subsequent
+capture, starts combat, and records from `S(1)` after the first combat update through every subsequent
 `FightController.Update` boundary through the unique fighting-to-over transition. When video capture
 is disabled, the adapter calls native `RequestSpeedUp` once on the first update that reports
 `IsFighting=true`; requesting it during the preceding process-state transition is too early and has no
@@ -216,6 +232,27 @@ events are generated from authoritative changes in full-list membership at conse
 snapshot boundaries; the current removal source proves destruction but not a narrower cause, so
 `shield_destroyed.reason` is `unknown`.
 
+Embedded layout contraptions are read from current native inventory, not
+`GetFightObjectRecorder().GeRecords()`: full contraption shields (including
+inactive reset-next-round objects), `TeamMineManager.GetLandMines()`, and the
+live interceptor subset of `TeamInterceptSourceManager` sources. This retains
+earlier-round objects without resurrecting consumed missiles or destroyed
+interceptors. Unit interception sources are not layout contraptions. Layout
+retains native full-list shield order at deployment and is not delayed or
+reordered from S(1).
+
+Native hooks use temporary Shield IDs before S(1). At the first advancing combat
+snapshot, initial IDs are assigned once in `(team_id, active_order)` order, with
+inactive shields following each team's active shields. First-tick-removed
+shields follow all S(1) rows, grouped by team, keeping persisted IDs contiguous.
+Those fallback groups sort by source kind, owner reference, position X/Y/Z,
+radius, round policy, maximum energy and current energy; indistinguishable keys
+fail closed. Cached references and first-tick traces are remapped before state,
+projectile, instrumentation and event references are finalized. Removed objects
+retain identities for E(1). After that boundary, IDs remain pointer-stable even
+when active order changes; later new shields append IDs without reuse.
+The layout still uses only `type`, `x`, `y` and ordinary placement bounds.
+
 Dynamic terrain is enumerated by the six native `RangeItemType` controllers. A controller or item
 list that has not been instantiated contributes an empty collection; each member returned by
 `RangeItemController.GetItems()` is active and receives a stable Terrain ID. The Adapter reads its
@@ -244,22 +281,61 @@ MCFR destination:
 }
 ```
 
+Both `record_replay_round` and `record_battle` accept an optional research-only
+`instrumentation` object. A bounded RVO request is:
+
+```json
+{
+  "output": "/absolute/path/round-7-rvo.h5",
+  "profile": "target_refs_rvo_v1",
+  "rvo_scope": {
+    "start_tick": 8,
+    "end_tick": 14,
+    "unit_ids": [124, 282, 363, 246]
+  }
+}
+```
+
+`rvo_scope` requires 1–8 unique positive **MCFR unit IDs**, not formation indices,
+and an inclusive window of at most 64 positive **MCFR combat ticks**.
+Build 2259 advances `FightController.get_Tick` by 100 per combat tick; the
+Adapter converts the window accordingly (8–14 selects native 800–1400).
+It filters RVO detail before reading agent state, neighbours, or VO buffers.
+Only selected sources are captured; their full neighbour lists may reference
+other units/buildings/internal agents. Agent `ordinal` remains the original
+simulator-list index, not the index in the filtered result. Updates are selected
+by their start tick; publication after the window is still drained and
+identified by `publish_native_tick`. Observation `start_native_tick` and
+`publish_native_tick` retain native counter values. `agents` holds the pre-solve snapshot,
+`published_agents` the state at the native publication boundary; both retain
+raw Q32.32 integers. Internal-agent ordinals are capture-local, not normalized
+cross-recording identities.
+
+Scoped sidecars are sparse: `records.steps` holds actual MCFR ticks and must not
+be replaced by row number. They remain result-hash-bound, non-hashed research
+evidence; formal MCFR still records the complete battle. Omitting `rvo_scope`
+retains the existing full instrumentation profile. Invalid scope/output is
+rejected before replay loading. No Simulator closure is implied.
+
 The Adapter requires `main_menu` and passes the requested round unchanged to
 the native `PlayReplayCommand.Execute(IReplay, startRound)` argument. Replay
 `Match.get_RoundCount()` must read back the same value before capture is armed.
 `ReplayMatchBase.SetReplayTime(false, 0)` then removes recorded deployment
-delays. The capture hook reads the embedded layout and S(0) at entry to the
+delays. The capture hook reads the embedded layout at entry to the
 final player's `PlayerController.FinishDeploy()`, before the native transition
-can initialize fighting. Earlier players are rejected unless every other
+can initialize fighting, but does not persist that pre-update state. `S(1)` is the first state row. Earlier players are rejected unless every other
 player has already completed deployment, so a partially replayed deployment
 cannot be published. Once fighting begins, the normal native
 `RequestSpeedUp()` path accelerates combat; the existing fighting-to-over edge
 terminates MCFR recording.
 
-Replay formations remain ordered by their stable native unit index, but unlike
-a newly applied Training Ground layout those indices may contain gaps left by
-units removed in earlier rounds. Negative and duplicate indices still fail
-closed. Active commander abilities enter `battle_skills` only when native
+Replay formations remain ordered by and export their stable native unit index,
+but those indices may contain gaps left by units removed in earlier rounds.
+Each formation also exports its integer `MechTeam` experience. Replay
+constructions export only `type/x/y`, sorted by that tuple, without native
+construction indices. Negative and duplicate unit indices and negative experience fail
+closed. Active commander
+abilities enter `battle_skills` only when native
 `TryGetReleaseCommanderSkillData` supplies positional release data; active
 non-release abilities are outside that layout field.
 

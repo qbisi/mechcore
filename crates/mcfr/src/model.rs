@@ -4,30 +4,24 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.1.0";
+pub const MCFR_FORMAT: &str = "0.2.0";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
-pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 1;
+pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Hashes {
-    pub scenario_hash: String,
     pub result_hash: String,
 }
 
 impl Hashes {
-    pub(crate) fn from_raw(
-        scenario: [u8; canonical::HASH_BYTES],
-        result: [u8; canonical::HASH_BYTES],
-    ) -> Self {
+    pub(crate) fn from_raw(result: [u8; canonical::HASH_BYTES]) -> Self {
         Self {
-            scenario_hash: canonical::hex(&scenario),
             result_hash: canonical::hex(&result),
         }
     }
 
     pub(crate) fn validate_encoding(&self) -> Result<()> {
-        canonical::parse_hex(&self.scenario_hash, "scenario_hash")?;
         canonical::parse_hex(&self.result_hash, "result_hash")?;
         Ok(())
     }
@@ -35,8 +29,8 @@ impl Hashes {
 
 /// One end-of-logical-tick comparison unit.
 ///
-/// `events` are the native events observed while advancing from the preceding
-/// snapshot to this tick's `state`. Tick zero therefore has an empty event batch.
+/// `events` are the native events observed while advancing to this tick's
+/// `state`. MCFR begins at tick one; `S(0)` and `E(0)` are not stored.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TickSlice {
@@ -552,7 +546,7 @@ pub struct LiveUnitState {
     pub weapon_aims: Vec<WeaponAimState>,
 }
 
-/// Compares initial units in format 0.1.0 identity order.
+/// Compares initial units in format 0.2.0 identity order.
 ///
 /// Teams are visited first; members within one team use ascending world `z`, then ascending
 /// world `x`. Equal positions within one team are not ordered by a synthetic tie-breaker.
@@ -853,7 +847,6 @@ pub struct BuildingState {
     pub team_id: u32,
     pub building_type_id: u32,
     pub position: QVec3,
-    pub rotation: i64,
     pub bounds_width: i64,
     pub bounds_height: i64,
     pub life: GaugeI32,

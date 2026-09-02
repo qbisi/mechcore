@@ -132,7 +132,7 @@ Y/Z offsets aim at the battlefield origin and preserve approximately the previou
 scale. Perspective rendering avoids the opaque black tower-shadow quads produced by the native decal
 shader under an orthographic camera, while the disabled controllers prevent external mouse drift. One
 completed screen frame, including the normal game UI, is captured for each MCFR snapshot before the
-next logic update may advance; this includes `S(0)` and the rendered terminal snapshot. The MOV uses the MCFR
+next logic update may advance; this begins at `S(1)` and includes the rendered terminal snapshot. The MOV uses the MCFR
 logic step as its sample duration, and publication fails unless its frame count exactly matches the
 MCFR tick count.
 Callers do not issue `toggle_fight`, `speed_up`, or other Training Ground state controls while this
@@ -158,6 +158,17 @@ requests native combat speed-up after the fighting boundary, records through
 the over boundary, verifies the file, and exits the replay. MCP returns success
 only after a fresh `main_menu` status readback. The game process remains alive
 for another capture.
+
+Replay capture also accepts the same optional `instrumentation` object as
+`record_battle`. For local RVO research, use profile `target_refs_rvo_v1` with
+`rvo_scope: {start_tick: 8, end_tick: 14, unit_ids: [124, 282, 363, 246]}`
+and a new absolute `.h5` output. Scope allows 1–8 unique positive MCFR unit IDs
+and at most 64 inclusive positive MCFR ticks; these are not formation indices or
+wall-clock frames. Build 2259's native counter advances by 100 per MCFR tick.
+The filter selects update-start ticks and retains their
+later publication. Scoped sidecar rows are sparse and use actual MCFR tick
+numbers. The formal `.mcfr` remains full-round. See `docs/adapter.md` for the
+diagnostic fields and identity limitations.
 
 ### quit_match
 

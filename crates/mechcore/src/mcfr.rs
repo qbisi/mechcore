@@ -7,13 +7,6 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
     let options = Options::parse(arguments)?;
     let left = McfrReader::open(&options.left).map_err(|error| error.to_string())?;
     let right = McfrReader::open(&options.right).map_err(|error| error.to_string())?;
-    if left.hashes().scenario_hash != right.hashes().scenario_hash {
-        return Err(format!(
-            "scenario_hash mismatch: left={}, right={}",
-            left.hashes().scenario_hash,
-            right.hashes().scenario_hash,
-        ));
-    }
     let first_divergence = left
         .first_divergence(&right)
         .map_err(|error| error.to_string())?;
@@ -32,7 +25,6 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
     let report = CompareReport {
         schema: "mechcore.mcfr-compare-result.v1",
         equal,
-        scenario_hash: &left.hashes().scenario_hash,
         left: RecordingSummary {
             result_hash: &left.hashes().result_hash,
             tick_count: left.tick_count(),
@@ -93,7 +85,6 @@ impl Options {
 struct CompareReport<'a> {
     schema: &'static str,
     equal: bool,
-    scenario_hash: &'a str,
     left: RecordingSummary<'a>,
     right: RecordingSummary<'a>,
     first_divergence: Option<u32>,

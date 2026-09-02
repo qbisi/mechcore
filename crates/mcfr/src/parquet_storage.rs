@@ -23,6 +23,7 @@ use parquet::{
     },
     schema::types::ColumnPath,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
@@ -51,6 +52,33 @@ pub(crate) const MEMBER_NAMES: [&str; 8] = [
 const TICKS_PER_ROW_GROUP: u64 = 128;
 const ROWS_PER_TICK_GROUP: usize = 128;
 const MAX_LAYOUT_BYTES: u64 = 1024 * 1024;
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StoredDurableContext {
+    logic_step: crate::Rational,
+    time_units_per_second: u32,
+    combat_round: u32,
+}
+
+impl StoredDurableContext {
+    fn with_match_seed(self, match_seed: i32) -> DurableContext {
+        DurableContext {
+            logic_step: self.logic_step,
+            time_units_per_second: self.time_units_per_second,
+            combat_round: self.combat_round,
+            match_seed,
+        }
+    }
+}
+
+pub(crate) fn encode_durable_context(context: &DurableContext) -> Result<Vec<u8>> {
+    canonical::encode(&StoredDurableContext {
+        logic_step: context.logic_step,
+        time_units_per_second: context.time_units_per_second,
+        combat_round: context.combat_round,
+    })
+}
 
 pub(crate) struct StorageWriter {
     directory: TempDir,
@@ -113,10 +141,6 @@ impl StorageWriter {
             event_rows: Vec::new(),
             tick_hashes: Vec::new(),
         })
-    }
-
-    pub(crate) fn append_initial_state(&mut self, state: &WorldSnapshot) {
-        self.append_state(0, state);
     }
 
     fn append_state(&mut self, tick: u32, state: &WorldSnapshot) {
@@ -204,7 +228,6 @@ impl StorageWriter {
             ("format".to_owned(), MCFR_FORMAT.to_owned()),
             ("game_build".to_owned(), game_build.to_owned()),
             ("durable_context".to_owned(), context_json.to_owned()),
-            ("scenario_hash".to_owned(), hashes.scenario_hash.clone()),
             ("result_hash".to_owned(), hashes.result_hash.clone()),
             ("tick_count".to_owned(), tick_count.to_string()),
             ("terminal_tick".to_owned(), terminal_tick.to_string()),
@@ -474,7 +497,6 @@ fn building_batch(rows: &[(u32, BuildingState)]) -> Result<Option<RecordBatch>> 
             u32_values(values.iter().map(|row| row.team_id)),
             u32_values(values.iter().map(|row| row.building_type_id)),
             vec3_values(values.iter().map(|row| row.position)),
-            i64_values(values.iter().map(|row| row.rotation)),
             i64_values(values.iter().map(|row| row.bounds_width)),
             i64_values(values.iter().map(|row| row.bounds_height)),
             gauge_values(values.iter().map(|row| row.life)),
@@ -1098,7 +1120,6 @@ fn building_schema() -> SchemaRef {
         Field::new("team_id", DataType::UInt32, false),
         Field::new("building_type_id", DataType::UInt32, false),
         struct_field("position", vec3_fields(), false),
-        Field::new("rotation", DataType::Int64, false),
         Field::new("bounds_width", DataType::Int64, false),
         Field::new("bounds_height", DataType::Int64, false),
         struct_field("life", gauge_fields(), false),
@@ -1315,7 +1336,7 @@ fn write_events_jsonl(path: &Path, rows: &[(u32, u32, Event)]) -> Result<()> {
     Ok(())
 }
 
-fn read_layout_yaml(member: &MemberSlice, context: &DurableContext) -> Result<String> {
+fn read_layout_yaml(member: &MemberSlice, combat_round: u32) -> Result<(String, i32)> {
     if member.len() == 0 || member.len() > MAX_LAYOUT_BYTES {
         return Err(Error::invalid(format!(
             "layout.yaml size must be within 1..={MAX_LAYOUT_BYTES} bytes"
@@ -1331,23 +1352,18 @@ fn read_layout_yaml(member: &MemberSlice, context: &DurableContext) -> Result<St
     let text = std::str::from_utf8(&bytes)
         .map_err(|_| Error::invalid("layout.yaml is not valid UTF-8"))?;
     let layout = mechcore_layout::parse_embedded_yaml(&bytes).map_err(Error::invalid)?;
-    if layout.seed != context.match_seed {
-        return Err(Error::invalid(format!(
-            "layout.yaml seed {} differs from durable context match_seed {}",
-            layout.seed, context.match_seed
-        )));
-    }
-    if u32::try_from(layout.round).ok() != Some(context.combat_round) {
+    if u32::try_from(layout.round).ok() != Some(combat_round) {
         return Err(Error::invalid(format!(
             "layout.yaml round {} differs from durable context combat_round {}",
-            layout.round, context.combat_round
+            layout.round, combat_round
         )));
     }
+    let match_seed = layout.seed;
     let canonical = mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
     if text != canonical {
         return Err(Error::invalid("layout.yaml is not canonical"));
     }
-    Ok(canonical)
+    Ok((canonical, match_seed))
 }
 
 fn read_events_jsonl(member: &MemberSlice) -> Result<Vec<(u32, u32, Event)>> {
@@ -2012,6 +2028,14 @@ pub(crate) struct StoredMetadata {
     pub(crate) hashes: Hashes,
 }
 
+struct TickMetadata {
+    game_build: String,
+    context: StoredDurableContext,
+    tick_count: u32,
+    terminal_tick: u32,
+    hashes: Hashes,
+}
+
 pub(crate) struct StorageReader {
     metadata: StoredMetadata,
     layout_yaml: String,
@@ -2035,9 +2059,19 @@ impl StorageReader {
         let ticks = members
             .get("ticks.parquet")
             .ok_or_else(|| Error::invalid("missing ticks.parquet"))?;
-        let (metadata, tick_hashes) = read_ticks(ticks.clone())?;
-        let layout_yaml = read_layout_yaml(&member(&members, "layout.yaml")?, &metadata.context)?;
-        let tick_count = metadata.tick_count;
+        let (tick_metadata, tick_hashes) = read_ticks(ticks.clone())?;
+        let (layout_yaml, match_seed) = read_layout_yaml(
+            &member(&members, "layout.yaml")?,
+            tick_metadata.context.combat_round,
+        )?;
+        let tick_count = tick_metadata.tick_count;
+        let metadata = StoredMetadata {
+            game_build: tick_metadata.game_build,
+            context: tick_metadata.context.with_match_seed(match_seed),
+            tick_count,
+            terminal_tick: tick_metadata.terminal_tick,
+            hashes: tick_metadata.hashes,
+        };
         let units = group_state_rows(
             read_units(member(&members, "units.parquet")?)?,
             tick_count,
@@ -2125,7 +2159,7 @@ impl StorageReader {
 
     pub(crate) fn events(&self, tick: u32) -> Result<TransitionEvents> {
         if tick == 0 {
-            return Err(Error::invalid("E(0) does not exist in format 0.1.0"));
+            return Err(Error::invalid("E(0) does not exist in format 0.2.0"));
         }
         let index = state_tick_index(tick, self.metadata.tick_count)?;
         Ok(TransitionEvents {
@@ -2142,13 +2176,13 @@ fn member(members: &BTreeMap<String, MemberSlice>, name: &str) -> Result<MemberS
 }
 
 fn state_tick_index(tick: u32, tick_count: u32) -> Result<usize> {
-    if tick > tick_count {
+    if tick == 0 || tick > tick_count {
         return Err(Error::invalid(format!("tick {tick} is out of range")));
     }
     usize::try_from(tick).map_err(|_| Error::invalid("tick index is too large"))
 }
 
-fn read_ticks(member: MemberSlice) -> Result<(StoredMetadata, Vec<[u8; canonical::HASH_BYTES]>)> {
+fn read_ticks(member: MemberSlice) -> Result<(TickMetadata, Vec<[u8; canonical::HASH_BYTES]>)> {
     let builder = checked_builder(member, &Schema::new(tick_fields()), "ticks")?;
     let metadata = builder.schema().metadata();
     let format = required_metadata(metadata, "format")?;
@@ -2157,9 +2191,14 @@ fn read_ticks(member: MemberSlice) -> Result<(StoredMetadata, Vec<[u8; canonical
             "unsupported MCFR format {format:?}"
         )));
     }
+    if metadata.contains_key("scenario_hash") {
+        return Err(Error::invalid(
+            "format 0.2.0 ticks.parquet must not contain scenario_hash",
+        ));
+    }
     let context_bytes = required_metadata(metadata, "durable_context")?.as_bytes();
-    let context: DurableContext = canonical::decode(context_bytes, "durable context")?;
-    context.validate()?;
+    let context: StoredDurableContext = canonical::decode(context_bytes, "durable context")?;
+    context.clone().with_match_seed(0).validate()?;
     let game_build = required_metadata(metadata, "game_build")?.to_owned();
     if game_build.trim().is_empty() {
         return Err(Error::invalid(
@@ -2167,7 +2206,6 @@ fn read_ticks(member: MemberSlice) -> Result<(StoredMetadata, Vec<[u8; canonical
         ));
     }
     let hashes = Hashes {
-        scenario_hash: required_metadata(metadata, "scenario_hash")?.to_owned(),
         result_hash: required_metadata(metadata, "result_hash")?.to_owned(),
     };
     hashes.validate_encoding()?;
@@ -2206,7 +2244,7 @@ fn read_ticks(member: MemberSlice) -> Result<(StoredMetadata, Vec<[u8; canonical
         )));
     }
     Ok((
-        StoredMetadata {
+        TickMetadata {
             game_build,
             context,
             tick_count,
@@ -2544,7 +2582,6 @@ fn read_buildings(member: MemberSlice) -> Result<Vec<(u32, BuildingState)>> {
         let team = column::<UInt32Array>(&batch, "team_id")?;
         let type_id = column::<UInt32Array>(&batch, "building_type_id")?;
         let position = struct_column(&batch, "position")?;
-        let rotation = column::<Int64Array>(&batch, "rotation")?;
         let width = column::<Int64Array>(&batch, "bounds_width")?;
         let height = column::<Int64Array>(&batch, "bounds_height")?;
         let life = struct_column(&batch, "life")?;
@@ -2559,7 +2596,6 @@ fn read_buildings(member: MemberSlice) -> Result<Vec<(u32, BuildingState)>> {
                     team_id: team.value(index),
                     building_type_id: type_id.value(index),
                     position: read_vec3(position, index)?,
-                    rotation: rotation.value(index),
                     bounds_width: width.value(index),
                     bounds_height: height.value(index),
                     life: read_gauge(life, index)?,

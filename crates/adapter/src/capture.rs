@@ -46,7 +46,7 @@ pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
 pub(crate) const CALIBRATION_CAMERA_PITCH_DEGREES: f32 = 45.0;
 pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum CaptureInstrumentationProfile {
     TargetRefsV1,
@@ -91,6 +91,39 @@ impl CaptureInstrumentationProfile {
 
     const fn includes_selector_score(self) -> bool {
         matches!(self, Self::SelectorScoreV1 | Self::SelectorScoreRvoV1)
+    }
+}
+
+/// Research-only filter using one-based MCFR combat ticks. In build 2259,
+/// FightController.Update advances the native time counter by 100 per tick.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RvoCaptureScope {
+    pub(crate) start_tick: u64,
+    pub(crate) end_tick: u64,
+    pub(crate) unit_ids: Vec<u64>,
+}
+
+impl RvoCaptureScope {
+    pub(crate) fn validate(&self, profile: CaptureInstrumentationProfile) -> Result<(), String> {
+        if profile != CaptureInstrumentationProfile::TargetRefsRvoV1 {
+            return Err("rvo_scope requires target_refs_rvo_v1".into());
+        }
+        if self.start_tick == 0
+            || self.start_tick > self.end_tick
+            || self.end_tick - self.start_tick >= 64
+            || self.unit_ids.is_empty()
+            || self.unit_ids.len() > 8
+            || self.unit_ids.contains(&0)
+            || self.unit_ids.iter().copied().collect::<BTreeSet<_>>().len() != self.unit_ids.len()
+        {
+            return Err("rvo_scope requires 1..=8 unique positive MCFR unit_ids and an inclusive window of 1..=64 positive MCFR ticks".into());
+        }
+        Ok(())
+    }
+
+    fn includes_native_tick(&self, tick: u64) -> bool {
+        tick.is_multiple_of(100) && (self.start_tick..=self.end_tick).contains(&(tick / 100))
     }
 }
 
@@ -212,8 +245,10 @@ pub(crate) struct RvoUpdateObservation {
     pub(crate) start_native_tick: u64,
     pub(crate) publish_native_tick: u64,
     pub(crate) double_buffering: bool,
+    pub(crate) multithreaded: bool,
     pub(crate) symmetry_breaking_bias_raw: i64,
     pub(crate) agents: Vec<RvoAgentObservation>,
+    pub(crate) published_agents: Vec<RvoAgentObservation>,
     pub(crate) neighbour_sets: Vec<RvoNeighbourSetObservation>,
     pub(crate) vo_buffers: Vec<RvoVoBufferObservation>,
     pub(crate) opponent_vos: Vec<RvoOpponentVoObservation>,
@@ -434,9 +469,6 @@ pub(crate) enum CaptureMessage {
         game_build: String,
         context: DurableContext,
         layout_yaml: String,
-        state: WorldSnapshot,
-        instrumentation: Option<CaptureInstrumentationObservation>,
-        frame: Option<Vec<u8>>,
     },
     Transition {
         events: TransitionEvents,
@@ -455,13 +487,6 @@ pub(crate) enum CaptureStartMode {
 }
 
 enum PendingVisualMessage {
-    Initial {
-        game_build: String,
-        context: DurableContext,
-        layout_yaml: String,
-        state: WorldSnapshot,
-        instrumentation: Option<CaptureInstrumentationObservation>,
-    },
     Transition {
         events: TransitionEvents,
         state: WorldSnapshot,
@@ -621,6 +646,7 @@ struct RvoMetadata {
 
 #[derive(Clone, Copy, Default)]
 struct NativeRvoAgentState {
+    ordinal: u32,
     pointer: usize,
     radius_inner: FixedPoint,
     size: i32,
@@ -679,6 +705,7 @@ struct CaptureState {
     availability: Option<String>,
     metadata: Metadata,
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
+    rvo_scope: Option<RvoCaptureScope>,
     armed: bool,
     initialized: bool,
     entered_fighting: bool,
@@ -692,6 +719,7 @@ struct CaptureState {
     building_ids: BTreeMap<usize, u64>,
     projectile_ids: BTreeMap<usize, u64>,
     shield_ids: BTreeMap<usize, u64>,
+    shield_ids_finalized: bool,
     terrain_ids: BTreeMap<usize, u64>,
     live_shield_pointers: BTreeSet<usize>,
     retired_shield_pointers: BTreeSet<usize>,
@@ -724,6 +752,7 @@ struct CaptureState {
     completed_checker_calls: Vec<CompletedCheckerCall>,
     rvo_neighbour_sets: Vec<NativeRvoNeighbourSet>,
     rvo_agent_sets: BTreeMap<u64, Vec<NativeRvoAgentState>>,
+    rvo_published_agent_sets: BTreeMap<u64, Vec<NativeRvoAgentState>>,
     rvo_vo_buffers: Vec<NativeRvoVoBuffer>,
     opponent_vos: Vec<NativeOpponentVo>,
     rvo_update_modes: BTreeMap<u64, bool>,
@@ -747,11 +776,13 @@ impl CaptureState {
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
         self.instrumentation_profile = None;
+        self.rvo_scope = None;
         self.queue.clear();
         self.unit_ids.clear();
         self.building_ids.clear();
         self.projectile_ids.clear();
         self.shield_ids.clear();
+        self.shield_ids_finalized = false;
         self.terrain_ids.clear();
         self.live_shield_pointers.clear();
         self.retired_shield_pointers.clear();
@@ -784,6 +815,7 @@ impl CaptureState {
         self.completed_checker_calls.clear();
         self.rvo_neighbour_sets.clear();
         self.rvo_agent_sets.clear();
+        self.rvo_published_agent_sets.clear();
         self.rvo_vo_buffers.clear();
         self.opponent_vos.clear();
         self.rvo_update_modes.clear();
@@ -2004,6 +2036,7 @@ pub(crate) fn start(
     mode: CaptureStartMode,
     visual: bool,
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
+    rvo_scope: Option<RvoCaptureScope>,
 ) -> Result<(), String> {
     let mut state = capture_state()
         .lock()
@@ -2015,6 +2048,9 @@ pub(crate) fn start(
         return Err("a battle recording is already active".into());
     }
     validate_checker_profile_start(instrumentation_profile)?;
+    if let Some(scope) = &rvo_scope {
+        scope.validate(instrumentation_profile.ok_or("rvo_scope requires instrumentation")?)?;
+    }
     if instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_target_refs)
         && (state.metadata.fight_skill_class.is_none()
             || state.metadata.fight_skill_lock_target.is_none()
@@ -2049,7 +2085,7 @@ pub(crate) fn start(
     let layout_yaml = match mode {
         CaptureStartMode::TrainingGround => {
             let (_, context) = recording_context(runtime)?;
-            Some(read_native_layout(runtime, &context, false)?)
+            Some(read_native_layout(runtime, &context, &state.metadata)?)
         }
         CaptureStartMode::Replay => None,
     };
@@ -2064,6 +2100,7 @@ pub(crate) fn start(
     CURRENT_RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
     RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
     state.instrumentation_profile = instrumentation_profile;
+    state.rvo_scope = rvo_scope;
     if visual {
         state.visual = Some(VisualCapture::new(runtime)?);
     }
@@ -2175,6 +2212,7 @@ fn reject_pending_checker_calls(state: &mut CaptureState, boundary: &str) -> Res
 fn clear_pending_rvo_state(state: &mut CaptureState) {
     state.rvo_neighbour_sets.clear();
     state.rvo_agent_sets.clear();
+    state.rvo_published_agent_sets.clear();
     state.rvo_vo_buffers.clear();
     state.opponent_vos.clear();
     state.rvo_update_modes.clear();
@@ -2546,7 +2584,7 @@ unsafe extern "C" fn rvo_fixed_update_hook(simulator: *mut Object, method: *cons
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     unsafe { original(simulator, method) };
     if let Some(update_ordinal) = update_ordinal {
-        finish_rvo_update(update_ordinal);
+        finish_rvo_update(update_ordinal, simulator);
     }
 }
 
@@ -2557,7 +2595,7 @@ unsafe extern "C" fn rvo_pre_calculation_hook(simulator: *mut Object, method: *c
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoPreCalculationFn = unsafe { std::mem::transmute(original) };
-    activate_rvo_update();
+    activate_rvo_update(simulator);
     // PreCalculation is called after any previous double-buffered workers were
     // joined/published and before this update's worker tasks are signalled.
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
@@ -2617,6 +2655,11 @@ unsafe extern "C" fn rvo_generate_neighbour_vos_hook(
             }
             return;
         };
+        if !rvo_update_selected(&state, update_ordinal)
+            || !rvo_source_selected(&state, agent as usize)
+        {
+            return;
+        }
         let Some(metadata) = state.metadata.rvo else {
             state.fail("RVO metadata disappeared during instrumentation".into());
             return;
@@ -2653,9 +2696,11 @@ unsafe extern "C" fn rvo_generate_opponent_vos_hook(
             && state
                 .instrumentation_profile
                 .is_some_and(CaptureInstrumentationProfile::includes_rvo)
+            && rvo_source_selected(&state, agent as usize)
+            && active_rvo_update().is_none_or(|update| rvo_update_selected(&state, update))
     };
     let update_ordinal = active_rvo_update();
-    let before = update_ordinal.and_then(|_| {
+    let before = update_ordinal.filter(|_| profile_active).and_then(|_| {
         let runtime = RUNTIME.load(Ordering::Acquire);
         if runtime.is_null() {
             return None;
@@ -2864,7 +2909,7 @@ fn managed_array_length(array: *mut Object, label: &str, cap: usize) -> Result<u
     Ok(length)
 }
 
-fn finish_rvo_update(update_ordinal: u64) {
+fn finish_rvo_update(update_ordinal: u64, simulator: *mut Object) {
     if CURRENT_RVO_FIXED_UPDATE
         .compare_exchange(
             update_ordinal,
@@ -2910,6 +2955,7 @@ fn finish_rvo_update(update_ordinal: u64) {
         return;
     }
     if !multithreaded || !double_buffering {
+        capture_rvo_published_agents(&mut state, simulator, update_ordinal);
         let Some(&publish_tick) = state.rvo_update_start_native_ticks.get(&update_ordinal) else {
             state.fail(format!(
                 "native RVO update {update_ordinal} lost its start tick"
@@ -2951,7 +2997,7 @@ fn discard_unpublished_rvo_update(state: &mut CaptureState, update_ordinal: u64)
     state.rvo_update_multithreaded.remove(&update_ordinal);
 }
 
-fn activate_rvo_update() {
+fn activate_rvo_update(simulator: *mut Object) {
     let update_ordinal = CURRENT_RVO_FIXED_UPDATE.load(Ordering::Acquire);
     if update_ordinal == u64::MAX {
         return;
@@ -2973,6 +3019,7 @@ fn activate_rvo_update() {
         return;
     }
     if active != u64::MAX {
+        capture_rvo_published_agents(&mut state, simulator, active);
         let Some(&publish_tick) = state.rvo_update_start_native_ticks.get(&update_ordinal) else {
             state.fail(format!(
                 "native RVO update {update_ordinal} lost its start tick before scheduling"
@@ -2992,6 +3039,53 @@ fn activate_rvo_update() {
 fn active_rvo_update() -> Option<u64> {
     let ordinal = ACTIVE_RVO_UPDATE.load(Ordering::Acquire);
     (ordinal != u64::MAX).then_some(ordinal)
+}
+
+fn rvo_update_selected(state: &CaptureState, ordinal: u64) -> bool {
+    state.rvo_scope.as_ref().is_none_or(|scope| {
+        state
+            .rvo_update_start_native_ticks
+            .get(&ordinal)
+            .is_some_and(|&tick| scope.includes_native_tick(tick))
+    })
+}
+
+fn rvo_source_selected(state: &CaptureState, agent: usize) -> bool {
+    state.rvo_scope.as_ref().is_none_or(|scope| {
+        let reference = state.rvo_agent_refs.get(&agent).copied().or_else(|| {
+            state
+                .rvo_agent_owners
+                .get(&agent)
+                .and_then(|&owner| object_ref_from_pointer(owner, state))
+        });
+        reference.is_some_and(|reference| {
+            reference.kind == ObjectKind::Unit && scope.unit_ids.contains(&reference.id)
+        })
+    })
+}
+
+fn capture_rvo_published_agents(state: &mut CaptureState, simulator: *mut Object, ordinal: u64) {
+    if !rvo_update_selected(state, ordinal) {
+        return;
+    }
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        state.fail("runtime disappeared at RVO publication".into());
+        return;
+    }
+    // SAFETY: runtime lives for the adapter process lifetime; publication is
+    // on the main thread after native workers have completed.
+    let runtime = unsafe { &*runtime };
+    let Some(metadata) = state.metadata.rvo else {
+        state.fail("RVO metadata disappeared at publication".into());
+        return;
+    };
+    match read_native_rvo_agent_set(runtime.api, simulator, metadata, state) {
+        Ok(agents) => {
+            state.rvo_published_agent_sets.insert(ordinal, agents);
+        }
+        Err(error) => state.fail(error),
+    }
 }
 
 fn record_rvo_neighbours(agent: *mut Object) {
@@ -3023,12 +3117,24 @@ fn record_rvo_neighbours(agent: *mut Object) {
             state.fail(error);
             return;
         };
+        if !rvo_update_selected(&state, update_ordinal)
+            || !rvo_source_selected(&state, agent as usize)
+        {
+            return;
+        }
         let Some(metadata) = state.metadata.rvo else {
             state.fail("RVO metadata disappeared during instrumentation".into());
             return;
         };
         if !state.rvo_agent_sets.contains_key(&update_ordinal) {
-            match read_native_rvo_agent_set(runtime.api, agent, metadata) {
+            let snapshot = runtime
+                .api
+                .field_value::<*mut Object>(agent, metadata.agent_simulator as *mut FieldInfo)
+                .map_err(|error| error.to_string())
+                .and_then(|simulator| {
+                    read_native_rvo_agent_set(runtime.api, simulator, metadata, &state)
+                });
+            match snapshot {
                 Ok(agents) => {
                     state.rvo_agent_sets.insert(update_ordinal, agents);
                 }
@@ -3054,13 +3160,11 @@ fn record_rvo_neighbours(agent: *mut Object) {
 
 fn read_native_rvo_agent_set(
     api: Api,
-    source: *mut Object,
+    simulator: *mut Object,
     metadata: RvoMetadata,
+    state: &CaptureState,
 ) -> Result<Vec<NativeRvoAgentState>, String> {
     const INSTRUMENTATION_AGENT_CAP: i32 = 4_096;
-    let simulator: *mut Object = api
-        .field_value(source, metadata.agent_simulator as *mut FieldInfo)
-        .map_err(|error| error.to_string())?;
     if simulator.is_null() {
         return Err("native RVO source has no simulator".into());
     }
@@ -3073,6 +3177,11 @@ fn read_native_rvo_agent_set(
         let agent = list_item(api, agents, index)?;
         if agent.is_null() {
             return Err(format!("native RVO agent {index} is null"));
+        }
+        // Keep the native list index, but never read detailed state for
+        // unselected agents. Filtering only serialized output is too late.
+        if !rvo_source_selected(state, agent as usize) {
+            continue;
         }
         let class = api
             .object_class(agent)
@@ -3158,6 +3267,7 @@ fn read_native_rvo_agent_set(
             .field_value::<FixedVec2>(agent, metadata.agent_position as *mut FieldInfo)
             .map_err(|error| error.to_string())?;
         result.push(NativeRvoAgentState {
+            ordinal: index as u32,
             pointer: agent as usize,
             radius_inner,
             size,
@@ -3409,7 +3519,6 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
     if skip_update {
         return;
     }
-    let mut defer_update_for_initial_render = false;
     let _ = catch_unwind(AssertUnwindSafe(|| {
         if runtime.is_null() {
             return;
@@ -3454,7 +3563,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 if state.deployment_layout_yaml.is_none() {
                     let (_, context) = recording_context(runtime)?;
                     state.deployment_layout_yaml =
-                        Some(read_native_layout(runtime, &context, true)?);
+                        Some(read_native_layout(runtime, &context, &state.metadata)?);
                 }
                 state.await_replay_deployment = false;
             }
@@ -3468,26 +3577,12 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             state.last_native_tick = Some(initial.native_tick);
             if let Some(visual) = state.visual.as_ref() {
                 visual.apply_calibration()?;
-                state.render_completed = false;
-                state.pending_visual = Some(PendingVisualMessage::Initial {
-                    game_build,
-                    context,
-                    layout_yaml,
-                    state: initial.world,
-                    instrumentation: initial.instrumentation,
-                });
-                state.in_update = false;
-                defer_update_for_initial_render = true;
-            } else {
-                state.push(CaptureMessage::Initial {
-                    game_build,
-                    context,
-                    layout_yaml,
-                    state: initial.world,
-                    instrumentation: initial.instrumentation,
-                    frame: None,
-                })?;
             }
+            state.push(CaptureMessage::Initial {
+                game_build,
+                context,
+                layout_yaml,
+            })?;
             Ok::<(), String>(())
         })();
         if let Err(error) = result {
@@ -3495,9 +3590,6 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             state.fail(error);
         }
     }));
-    if defer_update_for_initial_render {
-        return;
-    }
     // SAFETY: controller and MethodInfo are forwarded unchanged from IL2CPP.
     unsafe { original(controller, method) };
 
@@ -3521,15 +3613,12 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 .map_err(|error| error.to_string())?;
             if !state.initialized {
                 if fighting && state.await_replay_deployment {
-                    if state.visual.is_some() {
-                        return Err("replay S(0) fallback does not support visual capture".into());
-                    }
                     let (game_build, context) = recording_context(runtime)?;
-                    let layout_yaml = read_native_layout(runtime, &context, true)?;
+                    let layout_yaml = read_native_layout(runtime, &context, &state.metadata)?;
                     let initial = snapshot(runtime, &mut state, true)?;
                     if initial.native_tick != 0 {
                         return Err(format!(
-                            "replay first became observable in fighting at native tick {}; S(0) was missed",
+                            "replay first became observable in fighting at native tick {}; pre-fight boundary was missed",
                             initial.native_tick
                         ));
                     }
@@ -3541,13 +3630,10 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                         game_build,
                         context,
                         layout_yaml,
-                        state: initial.world,
-                        instrumentation: initial.instrumentation,
-                        frame: None,
                     })?;
                 } else if fighting {
                     return Err(
-                        "fight entered during FightController.Update before S(0) could be sampled"
+                        "fight entered during FightController.Update before its pre-fight boundary could be sampled"
                             .into(),
                     );
                 } else {
@@ -3625,6 +3711,9 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                         "native logic tick did not advance from {previous_native_tick}"
                     ));
                 }
+            }
+            if !state.shield_ids_finalized {
+                return Err("combat snapshot preceded final shield identity assignment".into());
             }
             let traces = std::mem::take(&mut state.traces);
             let events = transition_events(&traces, &state);
@@ -3722,16 +3811,13 @@ fn capture_replay_initial_before_final_deploy(
     if !is_final_player_finish_deploy(runtime, player)? {
         return Ok(());
     }
-    if state.visual.is_some() {
-        return Err("replay deployment-boundary S(0) does not support visual capture".into());
-    }
     let (game_build, context) = recording_context(runtime)?;
-    let layout_yaml = read_native_layout(runtime, &context, true)?;
+    let layout_yaml = read_native_layout(runtime, &context, &state.metadata)?;
     state.traces.clear();
     let initial = snapshot(runtime, state, true)?;
     if initial.native_tick != 0 {
         return Err(format!(
-            "final replay deployment reached native tick {}; S(0) was missed",
+            "final replay deployment reached native tick {}; pre-fight boundary was missed",
             initial.native_tick
         ));
     }
@@ -3742,9 +3828,6 @@ fn capture_replay_initial_before_final_deploy(
         game_build,
         context,
         layout_yaml,
-        state: initial.world,
-        instrumentation: initial.instrumentation,
-        frame: None,
     })
 }
 
@@ -3847,20 +3930,6 @@ fn flush_visual_frame(state: &mut CaptureState) -> Result<(), String> {
             .restore(true)?;
     }
     match pending {
-        PendingVisualMessage::Initial {
-            game_build,
-            context,
-            layout_yaml,
-            state: world,
-            instrumentation,
-        } => state.push(CaptureMessage::Initial {
-            game_build,
-            context,
-            layout_yaml,
-            state: world,
-            instrumentation,
-            frame: Some(frame),
-        }),
         PendingVisualMessage::Transition {
             events,
             state: world,
@@ -4530,8 +4599,30 @@ struct RawTargetRefs {
 struct RawBuilding {
     pointer: usize,
     rvo_agent: Option<usize>,
-    native_index: i32,
     state: BuildingState,
+}
+
+// Capture-local identity is independent of layout order and native counters.
+// Existing pointer -> ID bindings survive later snapshots and object removal.
+fn sort_buildings(buildings: &mut [RawBuilding]) -> Result<(), String> {
+    let key = |building: &RawBuilding| {
+        let state = &building.state;
+        (
+            state.team_id,
+            state.building_type_id,
+            state.position.x,
+            state.position.y,
+            state.position.z,
+        )
+    };
+    buildings.sort_by_key(key);
+    if buildings
+        .windows(2)
+        .any(|pair| key(&pair[0]) == key(&pair[1]))
+    {
+        return Err("ambiguous building identity: duplicate team/type/position".into());
+    }
+    Ok(())
 }
 
 struct RawShield {
@@ -4561,7 +4652,7 @@ struct CapturedSnapshot {
 fn read_native_layout(
     runtime: &Runtime,
     context: &DurableContext,
-    allow_unit_index_gaps: bool,
+    metadata: &Metadata,
 ) -> Result<String, String> {
     let current = runtime.current_match();
     if current.is_null() {
@@ -4572,6 +4663,12 @@ fn read_native_layout(
     let controllers = invoke_object(runtime.api, player_manager, "GetPlayerControllers")?;
     let super_deployment =
         find_match_module(runtime.api, current, "GameRiver", "SuperDeploymentSystem")?;
+    let shield_system = find_match_module(
+        runtime.api,
+        runtime.current_fight(),
+        "GameRiver.Fight",
+        "AdvancedEnergyShieldSystem",
+    )?;
     let round = i32::try_from(context.combat_round)
         .map_err(|_| format!("round {} exceeds layout range", context.combat_round))?;
     let mut sides: [Option<Side>; 2] = [None, None];
@@ -4590,8 +4687,9 @@ fn read_native_layout(
                 runtime.api,
                 player_controller,
                 super_deployment,
+                shield_system,
                 team,
-                allow_unit_index_gaps,
+                metadata,
             )
             .map_err(|error| format!("team {team}: {error}"))?,
         );
@@ -4615,8 +4713,9 @@ fn read_native_side(
     api: Api,
     controller: *mut Object,
     super_deployment: *mut Object,
+    shield_system: *mut Object,
     team: usize,
-    allow_unit_index_gaps: bool,
+    metadata: &Metadata,
 ) -> Result<Side, String> {
     let unit_manager = invoke_object(api, controller, "GetUnitManager")?;
     let elements = invoke_object(api, unit_manager, "GetUnits")?;
@@ -4633,6 +4732,8 @@ fn read_native_side(
         let displayed_level = native_level
             .checked_add(1)
             .ok_or_else(|| format!("unit type {native_id} level overflow"))?;
+        let mech_team = invoke_object(api, unit, "GetMechTeam")?;
+        let exp = invoke_value::<i32>(api, mech_team, "GetExpInt")?;
         let map_element = invoke_object(api, unit, "GetMapElement")?;
         let position = invoke_value::<MapVector>(api, map_element, "GetPosition")?;
         let rotated = invoke_value::<bool>(api, map_element, "IsRotate")?;
@@ -4659,9 +4760,11 @@ fn read_native_side(
             native_index,
             Formation {
                 type_name: type_name.to_owned(),
+                index: Some(native_index),
                 x,
                 y,
                 level: Some(displayed_level),
+                exp: Some(exp),
                 rotated: Some(rotated),
                 equipment,
                 travelling: Some(travelling),
@@ -4673,7 +4776,7 @@ fn read_native_side(
         .iter()
         .map(|(index, _)| *index)
         .collect::<Vec<_>>();
-    validate_native_unit_indices(&native_indices, allow_unit_index_gaps)?;
+    validate_native_indices("unit", &native_indices)?;
     let formations = indexed_units
         .into_iter()
         .map(|(_, formation)| formation)
@@ -4696,6 +4799,7 @@ fn read_native_side(
             y,
         });
     }
+    constructions.sort_by(|a, b| (&a.type_name, a.x, a.y).cmp(&(&b.type_name, b.x, b.y)));
     Ok(Side {
         techs: Techs {
             officers: read_native_officers(api, controller)?,
@@ -4705,29 +4809,23 @@ fn read_native_side(
         energy_tower: read_native_energy_tower(api, controller)?,
         formations,
         constructions,
-        contraptions: read_native_contraptions(api, controller, team)?,
+        contraptions: read_native_contraptions(api, controller, team, shield_system, metadata)?,
         // Native terrain readback is not part of layout capture until GRBR-derived MCFR closure.
         terrains: Vec::new(),
         battle_skills: read_native_battle_skills(api, controller, team)?,
     })
 }
 
-fn validate_native_unit_indices(indices: &[i32], allow_gaps: bool) -> Result<(), String> {
+fn validate_native_indices(kind: &str, indices: &[i32]) -> Result<(), String> {
     let mut previous = None;
-    for (expected, native_index) in indices.iter().copied().enumerate() {
+    for native_index in indices.iter().copied() {
         if native_index < 0 {
-            return Err(format!("native unit index is negative: {native_index}"));
+            return Err(format!("native {kind} index is negative: {native_index}"));
         }
         if previous == Some(native_index) {
-            return Err(format!("duplicate native unit index {native_index}"));
+            return Err(format!("duplicate native {kind} index {native_index}"));
         }
         previous = Some(native_index);
-        let expected = i32::try_from(expected).map_err(|_| "unit index overflow".to_owned())?;
-        if !allow_gaps && native_index != expected {
-            return Err(format!(
-                "native unit indices must be contiguous from zero; expected {expected}, found {native_index}"
-            ));
-        }
     }
     Ok(())
 }
@@ -4917,36 +5015,295 @@ fn read_native_contraptions(
     api: Api,
     controller: *mut Object,
     team: usize,
+    shield_system: *mut Object,
+    metadata: &Metadata,
 ) -> Result<Vec<StaticPlacement>, String> {
     let manager = invoke_object(api, controller, "GetContraptionManager")?;
-    let recorder = invoke_object(api, manager, "GetFightObjectRecorder")?;
-    let records = invoke_object(api, recorder, "GeRecords")?;
-    let mut result = Vec::new();
-    for index in 0..list_count(api, records, 10_000)? {
-        let record = list_item(api, records, index)?;
-        let source = invoke_object(api, record, "get_RecordSource")?;
-        let id = invoke_value::<i32>(api, source, "get_ID")?;
-        let type_name = contraption_type_from_id(id)
-            .ok_or_else(|| format!("unknown build-2259 contraption ID {id}"))?;
-        let positions = invoke_object(api, record, "get_Positions")?;
-        let count = list_count(api, positions, 64)?;
-        if count != 1 {
-            return Err(format!(
-                "contraption {id} release record has {count} positions; layout requires one"
-            ));
+    let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
+    let fight_team = invoke_object(api, fight_controller, "GetTeam")?;
+    let group = invoke_object(api, fight_team, "GetFightGroup")?;
+    let shields = read_team_shields(
+        api,
+        shield_system,
+        group,
+        fight_controller,
+        u32::try_from(team).map_err(|_| "layout shield team overflow")?,
+        metadata,
+    )?;
+    let mut shield_id = 10_001_i32;
+    let source = api
+        .invoke(manager, "GetContraption", &mut [argument(&mut shield_id)])
+        .map_err(|error| error.to_string())?;
+    let expected_energy = invoke_value::<i32>(api, source, "GetAdvancedEnergyShieldValue")?;
+    let mut result = layout_shield_placements(shields, team, expected_energy)?;
+
+    let mine_manager = invoke_object(api, fight_controller, "GetMineManager")?;
+    let mines = invoke_object(api, mine_manager, "GetLandMines")?;
+    let mut seen = BTreeSet::new();
+    for index in 0..list_count(api, mines, 10_000)? {
+        let mine = list_item(api, mines, index)?;
+        if !seen.insert(mine as usize) {
+            return Err("duplicate missile in the live mine list".into());
         }
-        let mut first = 0;
-        let position = api
-            .invoke_value::<MapVector>(positions, "get_Item", &mut [argument(&mut first)])
-            .map_err(|error| error.to_string())?;
-        let (x, y) = side_local_position(position, team)?;
-        result.push(StaticPlacement {
-            type_name: type_name.to_owned(),
-            x,
-            y,
-        });
+        if invoke_object(api, mine, "GetTeamController")? != fight_controller {
+            return Err("live missile belongs to a different team".into());
+        }
+        let source = invoke_object(api, mine, "GetDataSource")?;
+        let id = invoke_value::<i32>(api, source, "get_ID")?;
+        if contraption_type_from_id(id) != Some("missile") {
+            return Err(format!("unsupported live mine contraption ID {id}"));
+        }
+        let position = vec3(invoke_value::<FixedVec3>(api, mine, "GetPosition")?);
+        result.push(layout_contraption_position("missile", position, team)?);
+    }
+
+    let intercept_manager = invoke_object(api, fight_controller, "GetInterceptSourceManager")?;
+    let class = api
+        .object_class(intercept_manager)
+        .ok_or_else(|| "intercept manager has no runtime class".to_owned())?;
+    let field = api
+        .field(class, "interceptControllerRecords")
+        .map_err(|error| error.to_string())?;
+    let records: *mut Object = api
+        .field_value(intercept_manager, field)
+        .map_err(|error| error.to_string())?;
+    let sources = invoke_object(api, records, "GetValues")?;
+    let interceptor_class = api
+        .class(
+            "GRFight.dll",
+            "GameRiver.Fight",
+            "InterceptCtrGroup_Interceptor",
+        )
+        .map_err(|error| error.to_string())?;
+    for index in 0..list_count(api, sources, 10_000)? {
+        let source = list_item(api, sources, index)?;
+        if api.object_class(source) != Some(interceptor_class) {
+            continue;
+        }
+        let interceptor = invoke_object(api, source, "get_Interceptor")?;
+        if !seen.insert(interceptor as usize) {
+            return Err("duplicate interceptor in the live intercept sources".into());
+        }
+        let building = invoke_object(api, interceptor, "get_Building")?;
+        if !invoke_value::<bool>(api, building, "IsAlive")? {
+            continue;
+        }
+        if invoke_object(api, building, "GetCurrentTeamController")? != fight_controller {
+            return Err("live interceptor belongs to a different team".into());
+        }
+        let position = vec3(invoke_value::<FixedVec3>(api, interceptor, "GetPos")?);
+        result.push(layout_contraption_position("interceptor", position, team)?);
     }
     Ok(result)
+}
+
+fn layout_shield_placements(
+    shields: Vec<RawShield>,
+    team: usize,
+    expected_energy: i32,
+) -> Result<Vec<StaticPlacement>, String> {
+    let mut placements = Vec::new();
+    for shield in shields {
+        let state = shield.state;
+        if state.source_kind != ShieldSourceKind::Contraption {
+            continue;
+        }
+        if shield.owner != 0
+            || state.team_id as usize != team
+            || state.round_policy != ShieldRoundPolicy::ResetToMax
+            || state.radius != 70 * FIXED_ONE_RAW
+            || expected_energy <= 0
+            || state.energy.maximum != expected_energy
+        {
+            return Err(
+                "existing contraption shield cannot be represented by layout shield defaults"
+                    .into(),
+            );
+        }
+        placements.push(layout_contraption_position("shield", state.position, team)?);
+    }
+    Ok(placements)
+}
+
+fn layout_contraption_position(
+    type_name: &str,
+    position: QVec3,
+    team: usize,
+) -> Result<StaticPlacement, String> {
+    // Missile/interceptor placement is the XZ projection; their native object
+    // may have a built-in vertical offset. Shield sphere height is significant.
+    if (type_name == "shield" && position.y != 0)
+        || position.x % FIXED_ONE_RAW != 0
+        || position.z % FIXED_ONE_RAW != 0
+    {
+        return Err(format!(
+            "existing {type_name} center {position:?} is not an integer layout position"
+        ));
+    }
+    let (x, y) = side_local_position(
+        MapVector {
+            x: i32::try_from(position.x / FIXED_ONE_RAW).map_err(|_| "contraption x overflow")?,
+            y: i32::try_from(position.z / FIXED_ONE_RAW).map_err(|_| "contraption y overflow")?,
+        },
+        team,
+    )?;
+    Ok(StaticPlacement {
+        type_name: type_name.into(),
+        x,
+        y,
+    })
+}
+
+/// Canonicalize the temporary shield namespace once, before resolving S(1)
+/// references. Retain first-tick-removed shields so E(1) can still name them.
+fn finalize_initial_shield_ids(
+    capture: &mut CaptureState,
+    current: &[RawShield],
+) -> Result<(), String> {
+    if capture.shield_ids_finalized {
+        return Ok(());
+    }
+    let mut candidates = capture
+        .shield_last_states
+        .iter()
+        .map(|(&pointer, state)| (pointer, (state.clone(), false)))
+        .collect::<BTreeMap<_, _>>();
+    let mut seen = BTreeSet::new();
+    let mut active_orders = BTreeSet::new();
+    for raw in current {
+        if !seen.insert(raw.pointer) || capture.retired_shield_pointers.contains(&raw.pointer) {
+            return Err("duplicate or retired shield while finalizing initial identities".into());
+        }
+        let mut state = raw.state.clone();
+        if state.active != state.active_order.is_some() {
+            return Err("initial shield active flag and order disagree".into());
+        }
+        if let Some(order) = state.active_order
+            && !active_orders.insert((state.team_id, order))
+        {
+            return Err("duplicate initial shield active order within a team".into());
+        }
+        state.owner = if raw.owner == 0 {
+            None
+        } else {
+            Some(
+                object_ref_from_pointer(raw.owner, capture)
+                    .ok_or_else(|| "initial shield owner has no MCFR identity".to_owned())?,
+            )
+        };
+        candidates.insert(raw.pointer, (state, true));
+    }
+    let mut ordered = candidates
+        .iter()
+        .map(|(&pointer, (state, present))| {
+            let category = if !present {
+                2_u8
+            } else if state.active {
+                0
+            } else {
+                1
+            };
+            let key = (
+                !*present,
+                state.team_id,
+                category,
+                if category == 0 {
+                    state.active_order.unwrap_or_default()
+                } else {
+                    0
+                },
+                state.source_kind as u8,
+                state.owner,
+                [state.position.x, state.position.y, state.position.z],
+                state.radius,
+                state.round_policy as u8,
+                state.energy.maximum,
+                state.energy.current,
+            );
+            (key, pointer)
+        })
+        .collect::<Vec<_>>();
+    ordered.sort_by_key(|(key, _)| *key);
+    if ordered.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+        return Err("initial inactive/removed shield identities are indistinguishable".into());
+    }
+    let mut next_id = 1;
+    let mut ids = BTreeMap::new();
+    for (_, pointer) in ordered {
+        ids.insert(pointer, allocate(&mut next_id, "shield")?);
+    }
+    let remap = capture
+        .shield_ids
+        .iter()
+        .map(|(pointer, &old)| {
+            ids.get(pointer)
+                .copied()
+                .map(|new| (old, new))
+                .ok_or_else(|| "temporary shield identity has no captured state".to_owned())
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    let map_id = |old: u64| {
+        remap
+            .get(&old)
+            .copied()
+            .ok_or_else(|| format!("unresolved temporary shield ID {old}"))
+    };
+    let map_ref = |mut reference: ObjectRef| -> Result<ObjectRef, String> {
+        if reference.kind == ObjectKind::Shield {
+            reference.id = map_id(reference.id)?;
+        }
+        Ok(reference)
+    };
+    for state in capture.shield_last_states.values_mut() {
+        state.shield_id = map_id(state.shield_id)?;
+        state.owner = state.owner.map(map_ref).transpose()?;
+    }
+    capture.object_teams = std::mem::take(&mut capture.object_teams)
+        .into_iter()
+        .map(|(reference, team)| Ok((map_ref(reference)?, team)))
+        .collect::<Result<_, String>>()?;
+    capture.last_damage_sources = std::mem::take(&mut capture.last_damage_sources)
+        .into_iter()
+        .map(|(reference, mut attribution)| {
+            attribution.source = attribution.source.map(map_ref).transpose()?;
+            Ok((map_ref(reference)?, attribution))
+        })
+        .collect::<Result<_, String>>()?;
+    capture.emitted_deaths = std::mem::take(&mut capture.emitted_deaths)
+        .into_iter()
+        .map(map_ref)
+        .collect::<Result<_, _>>()?;
+    for reference in capture
+        .pending_projectile_absorptions
+        .values_mut()
+        .chain(capture.rvo_agent_refs.values_mut())
+    {
+        *reference = map_ref(*reference)?;
+    }
+    for trace in &mut capture.traces {
+        match trace {
+            NativeTrace::Damage { source, target, .. } => {
+                *source = source.map(map_ref).transpose()?;
+                *target = map_ref(*target)?;
+            }
+            NativeTrace::ProjectileRemoved { absorbed_by, .. } => {
+                *absorbed_by = absorbed_by.map(map_ref).transpose()?;
+            }
+            NativeTrace::UnitDied { source, .. } => {
+                *source = source.map(map_ref).transpose()?;
+            }
+            NativeTrace::ShieldCreated { shield_id, .. }
+            | NativeTrace::ShieldDestroyed { shield_id, .. } => *shield_id = map_id(*shield_id)?,
+            NativeTrace::ProjectileReleased { .. }
+            | NativeTrace::BuildingDestroyed { .. }
+            | NativeTrace::TerrainCreated { .. }
+            | NativeTrace::TerrainRemoved { .. } => {}
+        }
+    }
+    capture.shield_ids = ids;
+    capture.next_shield_id = next_id;
+    capture.shield_ids_finalized = true;
+    Ok(())
 }
 
 fn read_native_battle_skills(
@@ -5230,7 +5587,7 @@ fn snapshot(
         units.push(unit.state);
     }
 
-    raw_buildings.sort_by_key(|building| (building.state.team_id, building.native_index));
+    sort_buildings(&mut raw_buildings)?;
     let mut buildings = Vec::with_capacity(raw_buildings.len());
     for mut building in raw_buildings {
         let id = match capture.building_ids.get(&building.pointer) {
@@ -5249,6 +5606,19 @@ fn snapshot(
                 .insert(agent, ObjectRef::new(ObjectKind::Building, id));
         }
         buildings.push(building.state);
+    }
+    // Earlier snapshots establish temporary identities for native event hooks.
+    // Finalize only on the first advancing combat snapshot, not deployment or
+    // a zero/backwards clock transition. All reference resolution below then
+    // uses the final IDs, including projectiles and instrumentation.
+    if !initial
+        && !capture.shield_ids_finalized
+        && capture
+            .last_native_tick
+            .is_some_and(|previous| native_tick > previous)
+        && (capture.entered_fighting || invoke_value::<bool>(runtime.api, fight, "IsFighting")?)
+    {
+        finalize_initial_shield_ids(capture, &raw_shields)?;
     }
     let mut shields = Vec::with_capacity(raw_shields.len());
     let mut current_shield_pointers = BTreeSet::new();
@@ -5333,6 +5703,11 @@ fn snapshot(
         Some(profile) if profile.includes_target_refs() => {
             let mut observations = Vec::with_capacity(raw_target_refs.len());
             for (unit_id, refs) in raw_target_refs {
+                if capture.rvo_scope.as_ref().is_some_and(|scope| {
+                    !scope.includes_native_tick(native_tick) || !scope.unit_ids.contains(&unit_id)
+                }) {
+                    continue;
+                }
                 observations.push(UnitTargetRefsObservation {
                     unit: ObjectRef::new(ObjectKind::Unit, unit_id),
                     mech_lock_target: resolve_target_ref(
@@ -5360,8 +5735,14 @@ fn snapshot(
                 units: observations,
             };
             if profile.includes_rvo() {
-                Some(CaptureInstrumentationObservation::TargetRefsRvo(
-                    resolve_rvo_observation(target_refs, native_tick, capture)?,
+                let observation = resolve_rvo_observation(target_refs, native_tick, capture)?;
+                // Still drain pending asynchronous publications after the end
+                // of the requested start window, but omit empty sidecar rows.
+                (capture.rvo_scope.is_none()
+                    || !observation.target_refs.units.is_empty()
+                    || !observation.rvo_updates.is_empty())
+                .then_some(CaptureInstrumentationObservation::TargetRefsRvo(
+                    observation,
                 ))
             } else {
                 Some(CaptureInstrumentationObservation::TargetRefs(target_refs))
@@ -6306,8 +6687,7 @@ fn resolve_rvo_updates(
         .rvo_update_publish_native_ticks
         .iter()
         .filter_map(|(&update_ordinal, &publish_native_tick)| {
-            ready
-                .contains(&update_ordinal)
+            (ready.contains(&update_ordinal) && rvo_update_selected(capture, update_ordinal))
                 .then_some((update_ordinal, (update_ordinal, publish_native_tick)))
         })
         .map(|(update_ordinal, (_, publish_native_tick))| {
@@ -6344,8 +6724,10 @@ fn resolve_rvo_updates(
                     start_native_tick,
                     publish_native_tick,
                     double_buffering,
+                    multithreaded: capture.rvo_update_multithreaded[&update_ordinal],
                     symmetry_breaking_bias_raw,
                     agents: Vec::new(),
+                    published_agents: Vec::new(),
                     neighbour_sets: Vec::new(),
                     vo_buffers: Vec::new(),
                     opponent_vos: Vec::new(),
@@ -6360,49 +6742,27 @@ fn resolve_rvo_updates(
             continue;
         }
         let mut resolved = Vec::with_capacity(agents.len());
-        for (ordinal, agent) in agents.into_iter().enumerate() {
-            resolved.push(RvoAgentObservation {
-                ordinal: u32::try_from(ordinal)
-                    .map_err(|_| "RVO agent ordinal overflow".to_owned())?,
-                agent: resolve_rvo_agent_ref(agent.pointer, capture)?,
-                radius_inner_raw: agent.radius_inner.raw,
-                size: agent.size,
-                radius_outer_raw: agent.radius_outer.raw,
-                max_speed_raw: agent.max_speed.raw,
-                desired_speed_raw: agent.desired_speed.raw,
-                agent_time_horizon_raw: agent.agent_time_horizon.raw,
-                priority_raw: agent.priority.raw,
-                published_calculated_speed_raw: agent.published_calculated_speed.raw,
-                current_velocity_x_raw: agent.current_velocity.x.raw,
-                current_velocity_y_raw: agent.current_velocity.y.raw,
-                desired_velocity_x_raw: agent.desired_velocity.x.raw,
-                desired_velocity_y_raw: agent.desired_velocity.y.raw,
-                desired_target_x_raw: agent.desired_target.x.raw,
-                desired_target_y_raw: agent.desired_target.y.raw,
-                calculated_target_x_raw: agent.calculated_target.x.raw,
-                calculated_target_y_raw: agent.calculated_target.y.raw,
-                locked: agent.locked,
-                layer: agent.layer,
-                collides_with: agent.collides_with,
-                max_neighbours: agent.max_neighbours,
-                main_layer: agent.main_layer,
-                sync_main_layer: agent.sync_main_layer,
-                group: agent.group,
-                sync_group: agent.sync_group,
-                ignore_same_group: agent.ignore_same_group,
-                sync_ignore_same_group: agent.sync_ignore_same_group,
-                team_id: agent.team.id,
-                team_radius_raw: agent.team.radius.raw,
-                sync_team_id: agent.sync_team.id,
-                sync_team_radius_raw: agent.sync_team.radius.raw,
-                position_x_raw: agent.position.x.raw,
-                position_y_raw: agent.position.y.raw,
-            });
+        for agent in agents {
+            resolved.push(resolve_rvo_agent_state(agent, capture)?);
         }
         updates
             .get_mut(&update_ordinal)
             .ok_or_else(|| format!("unknown native RVO update {update_ordinal}"))?
             .agents = resolved;
+    }
+    for (ordinal, agents) in std::mem::take(&mut capture.rvo_published_agent_sets) {
+        if !ready.contains(&ordinal) {
+            capture.rvo_published_agent_sets.insert(ordinal, agents);
+            continue;
+        }
+        let resolved = agents
+            .into_iter()
+            .map(|agent| resolve_rvo_agent_state(agent, capture))
+            .collect::<Result<Vec<_>, _>>()?;
+        updates
+            .get_mut(&ordinal)
+            .ok_or_else(|| format!("unknown published RVO update {ordinal}"))?
+            .published_agents = resolved;
     }
     let (mut raw_neighbour_sets, pending_neighbour_sets): (Vec<_>, Vec<_>) =
         std::mem::take(&mut capture.rvo_neighbour_sets)
@@ -6512,6 +6872,48 @@ fn resolve_rvo_updates(
     Ok(updates)
 }
 
+fn resolve_rvo_agent_state(
+    agent: NativeRvoAgentState,
+    capture: &mut CaptureState,
+) -> Result<RvoAgentObservation, String> {
+    Ok(RvoAgentObservation {
+        ordinal: agent.ordinal,
+        agent: resolve_rvo_agent_ref(agent.pointer, capture)?,
+        radius_inner_raw: agent.radius_inner.raw,
+        size: agent.size,
+        radius_outer_raw: agent.radius_outer.raw,
+        max_speed_raw: agent.max_speed.raw,
+        desired_speed_raw: agent.desired_speed.raw,
+        agent_time_horizon_raw: agent.agent_time_horizon.raw,
+        priority_raw: agent.priority.raw,
+        published_calculated_speed_raw: agent.published_calculated_speed.raw,
+        current_velocity_x_raw: agent.current_velocity.x.raw,
+        current_velocity_y_raw: agent.current_velocity.y.raw,
+        desired_velocity_x_raw: agent.desired_velocity.x.raw,
+        desired_velocity_y_raw: agent.desired_velocity.y.raw,
+        desired_target_x_raw: agent.desired_target.x.raw,
+        desired_target_y_raw: agent.desired_target.y.raw,
+        calculated_target_x_raw: agent.calculated_target.x.raw,
+        calculated_target_y_raw: agent.calculated_target.y.raw,
+        locked: agent.locked,
+        layer: agent.layer,
+        collides_with: agent.collides_with,
+        max_neighbours: agent.max_neighbours,
+        main_layer: agent.main_layer,
+        sync_main_layer: agent.sync_main_layer,
+        group: agent.group,
+        sync_group: agent.sync_group,
+        ignore_same_group: agent.ignore_same_group,
+        sync_ignore_same_group: agent.sync_ignore_same_group,
+        team_id: agent.team.id,
+        team_radius_raw: agent.team.radius.raw,
+        sync_team_id: agent.sync_team.id,
+        sync_team_radius_raw: agent.sync_team.radius.raw,
+        position_x_raw: agent.position.x.raw,
+        position_y_raw: agent.position.y.raw,
+    })
+}
+
 fn rvo_vo_observation(vo: NativeRvoVo) -> RvoVoObservation {
     RvoVoObservation {
         line1_x_raw: vo.line1.x.raw,
@@ -6582,9 +6984,7 @@ fn read_building(
         transform,
         "GetPositionInt3D",
     )?);
-    let rotation = invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw;
     let bounds = invoke_value::<FixedRect>(api, building, "GetBoundsRect")?;
-    let native_index = invoke_value::<i32>(api, building, "GetBuildingIndex")?;
     let building_type = invoke_value::<i32>(api, building, "GetBuildingType")?;
     let life = invoke_value::<i32>(api, building, "GetLife")?;
     let max_life = invoke_value::<i32>(api, building, "GetMaxLife")?;
@@ -6602,14 +7002,12 @@ fn read_building(
         } else {
             None
         },
-        native_index,
         state: BuildingState {
             building_id: 0,
             team_id,
             building_type_id: u32::try_from(building_type)
                 .map_err(|_| format!("invalid building type {building_type}"))?,
             position,
-            rotation,
             bounds_width: bounds.size.x.raw,
             bounds_height: bounds.size.y.raw,
             life: GaugeI32 {
@@ -7868,11 +8266,11 @@ mod tests {
         [const { [const { AtomicU64::new(0) }; 4] }; RVO_HOOK_COUNT];
 
     #[test]
-    fn replay_unit_indices_allow_stable_gaps_but_not_invalid_identity() {
-        assert!(validate_native_unit_indices(&[0, 1, 3, 7], true).is_ok());
-        assert!(validate_native_unit_indices(&[0, 1, 3], false).is_err());
-        assert!(validate_native_unit_indices(&[0, 1, 1], true).is_err());
-        assert!(validate_native_unit_indices(&[-1, 0], true).is_err());
+    fn native_unit_indices_allow_stable_gaps_but_not_invalid_identity() {
+        assert!(validate_native_indices("unit", &[0, 1, 3, 7]).is_ok());
+        assert!(validate_native_indices("construction", &[1, 2, 3]).is_ok());
+        assert!(validate_native_indices("unit", &[0, 1, 1]).is_err());
+        assert!(validate_native_indices("construction", &[-1, 0]).is_err());
     }
 
     #[test]
@@ -8087,7 +8485,6 @@ mod tests {
             team_id: 1,
             building_type_id: 1,
             position: QVec3 { x: 0, y: 0, z: 0 },
-            rotation: 0,
             bounds_width: 1_000,
             bounds_height: 1_000,
             life: GaugeI32 {
@@ -8098,6 +8495,328 @@ mod tests {
             targetable: true,
             collision_enabled: true,
         }
+    }
+
+    #[test]
+    fn layout_shields_include_inactive_carry_over_without_release_records() {
+        let placement = |kind: &str, x, y| StaticPlacement {
+            type_name: kind.into(),
+            x,
+            y,
+        };
+        let shields = vec![
+            layout_test_shield(1, 215, 86, None),
+            layout_test_shield(2, -230, 120, Some(0)),
+            layout_test_shield(3, 106, 103, Some(1)),
+        ];
+        let layout = layout_shield_placements(shields, 1, 40_000).unwrap();
+        assert_eq!(
+            layout,
+            vec![
+                placement("shield", -215, -86),
+                placement("shield", 230, -120),
+                placement("shield", -106, -103),
+            ]
+        );
+        let inherited_only =
+            layout_shield_placements(vec![layout_test_shield(1, 215, 86, None)], 1, 40_000)
+                .unwrap();
+        assert_eq!(inherited_only, vec![placement("shield", -215, -86)]);
+    }
+
+    #[test]
+    fn layout_shields_reject_unrepresentable_energy_and_fractional_center() {
+        let mut shield = layout_test_shield(1, 215, 86, None);
+        shield.state.energy.maximum = 80_000;
+        assert!(layout_shield_placements(vec![shield], 1, 40_000).is_err());
+        let mut shield = layout_test_shield(1, 215, 86, None);
+        shield.state.position.x += 1;
+        assert!(layout_shield_placements(vec![shield], 1, 40_000).is_err());
+    }
+
+    #[test]
+    fn live_contraption_positions_share_exact_side_local_conversion() {
+        for kind in ["shield", "missile", "interceptor"] {
+            let position = QVec3 {
+                x: 215 * FIXED_ONE_RAW,
+                y: 0,
+                z: 86 * FIXED_ONE_RAW,
+            };
+            let blue = layout_contraption_position(kind, position, 0).unwrap();
+            let red = layout_contraption_position(kind, position, 1).unwrap();
+            assert_eq!((blue.x, blue.y), (215, 86));
+            assert_eq!((red.x, red.y), (-215, -86));
+            assert_eq!(red.type_name, kind);
+            assert!(
+                layout_contraption_position(
+                    kind,
+                    QVec3 {
+                        x: position.x + 1,
+                        ..position
+                    },
+                    1
+                )
+                .is_err()
+            );
+            let elevated = QVec3 {
+                y: FIXED_ONE_RAW,
+                ..position
+            };
+            assert_eq!(
+                layout_contraption_position(kind, elevated, 1).is_ok(),
+                kind != "shield"
+            );
+        }
+    }
+
+    #[test]
+    fn initial_shield_ids_use_s1_active_order_and_then_remain_stable() {
+        let mut replay = shield_identity_test_capture(&[10, 20, 30]);
+        let mut training = shield_identity_test_capture(&[20, 30, 10]);
+        let current = vec![
+            layout_test_shield(10, 215, 86, Some(2)),
+            layout_test_shield(20, -230, 120, Some(0)),
+            layout_test_shield(30, 106, 103, Some(1)),
+        ];
+        finalize_initial_shield_ids(&mut replay, &current).unwrap();
+        finalize_initial_shield_ids(&mut training, &current).unwrap();
+        assert_eq!(replay.shield_ids, training.shield_ids);
+        assert_eq!(
+            replay.shield_ids,
+            BTreeMap::from([(10, 3), (20, 1), (30, 2)])
+        );
+        assert_eq!(replay.next_shield_id, 4);
+        assert!(
+            replay
+                .shield_last_states
+                .iter()
+                .all(|(pointer, state)| { state.shield_id == replay.shield_ids[pointer] })
+        );
+        // Later reactivation/order changes must not renumber any existing shield.
+        let reordered = vec![layout_test_shield(10, 215, 86, Some(0))];
+        finalize_initial_shield_ids(&mut replay, &reordered).unwrap();
+        assert_eq!(replay.shield_ids, training.shield_ids);
+        let new_id = allocate(&mut replay.next_shield_id, "shield").unwrap();
+        assert_eq!(new_id, 4);
+        replay.reset_session();
+        assert!(!replay.shield_ids_finalized);
+        assert!(replay.shield_ids.is_empty());
+    }
+
+    #[test]
+    fn initial_shield_ids_remap_e1_caches_and_first_tick_removed_objects() {
+        let mut capture = shield_identity_test_capture(&[10, 20, 30]);
+        let shield = |id| ObjectRef::new(ObjectKind::Shield, id);
+        let unit = ObjectRef::new(ObjectKind::Unit, 1);
+        // A removed blue shield must follow all S(1) rows, including red rows,
+        // so the persisted initial namespace remains contiguous from one.
+        capture.shield_last_states.get_mut(&10).unwrap().team_id = 0;
+        capture.object_teams.insert(shield(1), 0);
+        capture.unit_ids.insert(100, 1);
+        capture.object_teams.insert(unit, 0);
+        capture.pending_projectile_absorptions.insert(8, shield(1));
+        capture.rvo_agent_refs.insert(99, shield(1));
+        capture.last_damage_sources.insert(
+            unit,
+            DamageAttribution {
+                source: Some(shield(1)),
+                source_team_id: Some(1),
+            },
+        );
+        capture.traces = vec![
+            NativeTrace::Damage {
+                source: Some(unit),
+                source_team_id: Some(0),
+                target: shield(1),
+                amount: 100,
+            },
+            NativeTrace::ProjectileRemoved {
+                projectile_id: 8,
+                owner: 100,
+                target: 10,
+                position: QVec3 { x: 0, y: 0, z: 0 },
+                intercepted: false,
+                absorbed_by: Some(shield(1)),
+            },
+            NativeTrace::ShieldDestroyed {
+                shield_id: 1,
+                position: QVec3 { x: 0, y: 0, z: 0 },
+            },
+            NativeTrace::ShieldCreated {
+                shield_id: 2,
+                team_id: 1,
+                source_kind: ShieldSourceKind::Contraption,
+                position: QVec3 { x: 0, y: 0, z: 0 },
+            },
+            NativeTrace::UnitDied {
+                unit_id: 1,
+                position: QVec3 { x: 0, y: 0, z: 0 },
+                source: Some(shield(1)),
+                source_team_id: Some(1),
+            },
+        ];
+        // Pointer 10 disappeared during E(1); its ID and event references still exist.
+        let mut blue = layout_test_shield(40, 5, -90, Some(0));
+        blue.state.team_id = 0;
+        finalize_initial_shield_ids(
+            &mut capture,
+            &[
+                layout_test_shield(20, -230, 120, Some(0)),
+                layout_test_shield(30, 106, 103, Some(1)),
+                blue,
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            capture.shield_ids,
+            BTreeMap::from([(10, 4), (20, 2), (30, 3), (40, 1)])
+        );
+        assert_eq!(capture.shield_last_states[&10].shield_id, 4);
+        assert_eq!(capture.object_teams[&shield(4)], 0);
+        assert_eq!(capture.object_teams[&unit], 0);
+        assert_eq!(capture.pending_projectile_absorptions[&8], shield(4));
+        assert_eq!(capture.rvo_agent_refs[&99], shield(4));
+        assert_eq!(capture.last_damage_sources[&unit].source, Some(shield(4)));
+        let events = transition_events(&capture.traces, &capture).events;
+        assert_eq!(events[0].target, Some(shield(4)));
+        assert_eq!(events[1].target, Some(shield(4)));
+        assert!(
+            matches!(events[1].payload, EventPayload::ProjectileRemoved {
+            absorbed_by: Some(reference), ..
+        } if reference == shield(4))
+        );
+        assert_eq!(events[2].subject, Some(shield(4)));
+        assert_eq!(events[3].subject, Some(shield(2)));
+        assert_eq!(events[4].source, Some(shield(4)));
+    }
+
+    #[test]
+    fn initial_inactive_shields_use_deterministic_keys_and_reject_ambiguity() {
+        let mut left = CaptureState::default();
+        left.reset_session();
+        let mut right = CaptureState::default();
+        right.reset_session();
+        let current = vec![
+            layout_test_shield(10, 20, 90, None),
+            layout_test_shield(20, -20, 90, None),
+        ];
+        finalize_initial_shield_ids(&mut left, &current).unwrap();
+        let reversed = vec![
+            layout_test_shield(20, -20, 90, None),
+            layout_test_shield(10, 20, 90, None),
+        ];
+        finalize_initial_shield_ids(&mut right, &reversed).unwrap();
+        assert_eq!(left.shield_ids, right.shield_ids);
+        assert_eq!(left.shield_ids[&20], 1);
+        right.reset_session();
+        assert!(
+            finalize_initial_shield_ids(
+                &mut right,
+                &[
+                    layout_test_shield(10, 20, 90, None),
+                    layout_test_shield(20, 20, 90, None),
+                ]
+            )
+            .unwrap_err()
+            .contains("indistinguishable")
+        );
+        right.reset_session();
+        assert!(
+            finalize_initial_shield_ids(
+                &mut right,
+                &[
+                    layout_test_shield(10, 20, 90, Some(0)),
+                    layout_test_shield(20, -20, 90, Some(0)),
+                ]
+            )
+            .unwrap_err()
+            .contains("duplicate initial shield active order")
+        );
+    }
+
+    fn shield_identity_test_capture(pointers: &[usize]) -> CaptureState {
+        let mut capture = CaptureState::default();
+        capture.reset_session();
+        for &pointer in pointers {
+            let mut shield = layout_test_shield(pointer, pointer as i64, 90, Some(0)).state;
+            shield.shield_id = allocate(&mut capture.next_shield_id, "shield").unwrap();
+            capture.shield_ids.insert(pointer, shield.shield_id);
+            capture
+                .object_teams
+                .insert(ObjectRef::new(ObjectKind::Shield, shield.shield_id), 1);
+            capture.shield_last_states.insert(pointer, shield);
+            capture.live_shield_pointers.insert(pointer);
+        }
+        capture
+    }
+
+    fn layout_test_shield(pointer: usize, x: i64, z: i64, active_order: Option<u32>) -> RawShield {
+        RawShield {
+            pointer,
+            owner: 0,
+            state: ShieldState {
+                shield_id: 0,
+                team_id: 1,
+                source_kind: ShieldSourceKind::Contraption,
+                owner: None,
+                position: QVec3 {
+                    x: x * FIXED_ONE_RAW,
+                    y: 0,
+                    z: z * FIXED_ONE_RAW,
+                },
+                radius: 70 * FIXED_ONE_RAW,
+                energy: GaugeI32 {
+                    current: if active_order.is_some() { 40_000 } else { 0 },
+                    maximum: 40_000,
+                },
+                round_policy: ShieldRoundPolicy::ResetToMax,
+                active: active_order.is_some(),
+                active_order,
+            },
+        }
+    }
+
+    #[test]
+    fn building_ids_ignore_native_enumeration_and_pointer_order() {
+        let ordered = |order: [usize; 4]| {
+            let mut rows = order
+                .into_iter()
+                .map(|id| {
+                    let mut state = building(0);
+                    state.team_id = if id == 3 { 0 } else { 1 };
+                    state.building_type_id = if id == 2 { 2 } else { 1 };
+                    state.position.x = id as i64;
+                    RawBuilding {
+                        pointer: 100 - id,
+                        rvo_agent: None,
+                        state,
+                    }
+                })
+                .collect::<Vec<_>>();
+            sort_buildings(&mut rows).unwrap();
+            rows.into_iter()
+                .map(|row| row.state.position.x)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(ordered([0, 1, 2, 3]), vec![3, 0, 1, 2]);
+        assert_eq!(ordered([2, 3, 1, 0]), vec![3, 0, 1, 2]);
+        let mut duplicate = [
+            RawBuilding {
+                pointer: 1,
+                rvo_agent: None,
+                state: building(0),
+            },
+            RawBuilding {
+                pointer: 2,
+                rvo_agent: None,
+                state: building(0),
+            },
+        ];
+        assert!(
+            sort_buildings(&mut duplicate)
+                .unwrap_err()
+                .contains("ambiguous building identity")
+        );
     }
 
     fn raw_target(pointer: usize, kind: ObjectKind) -> RawCheckerTarget {
@@ -8946,7 +9665,7 @@ mod tests {
         }
         writer.finish().unwrap();
         let reader = mechcore_mcfr::InstrumentationReader::open(&path).unwrap();
-        assert_eq!(reader.scenario_hash(), "11".repeat(32));
+        assert_eq!(reader.result_hash(), "11".repeat(32));
         assert_eq!(reader.profile(), "skill_attackable_checker_v1");
         assert_eq!(reader.producer(), "adapter");
         assert_eq!(reader.len(), 2);
@@ -9039,7 +9758,7 @@ mod tests {
         );
 
         let directory = tempfile::tempdir().unwrap();
-        let scenario_hash = "00".repeat(32);
+        let result_hash = "00".repeat(32);
         for (index, profile, payload, expected) in [
             (0, target_profile, &target_payload, &target_json),
             (1, rvo_profile, &rvo_payload, &rvo_json),
@@ -9048,7 +9767,7 @@ mod tests {
             let path = directory.path().join(format!("profile-{index}.h5"));
             let mut writer = mechcore_mcfr::InstrumentationWriter::create(
                 &path,
-                &scenario_hash,
+                &result_hash,
                 profile.as_str(),
                 "adapter-offline-test",
             )
@@ -9058,7 +9777,7 @@ mod tests {
                 .unwrap();
             writer.finish().unwrap();
             let reader = mechcore_mcfr::InstrumentationReader::open(path).unwrap();
-            assert_eq!(reader.scenario_hash(), scenario_hash);
+            assert_eq!(reader.result_hash(), result_hash);
             assert_eq!(reader.profile(), profile.as_str());
             assert_eq!(reader.producer(), "adapter-offline-test");
             assert_eq!(reader.len(), 1);
@@ -9109,6 +9828,109 @@ mod tests {
     }
 
     #[test]
+    fn rvo_scope_rejects_unbounded_or_ambiguous_requests() {
+        let scope = RvoCaptureScope {
+            start_tick: 8,
+            end_tick: 14,
+            unit_ids: vec![124, 282, 363, 246],
+        };
+        assert!(
+            scope
+                .validate(CaptureInstrumentationProfile::TargetRefsRvoV1)
+                .is_ok()
+        );
+        assert!(
+            scope
+                .validate(CaptureInstrumentationProfile::TargetRefsV1)
+                .is_err()
+        );
+        assert!(!scope.includes_native_tick(7));
+        assert!(!scope.includes_native_tick(700));
+        assert!(scope.includes_native_tick(800));
+        assert!(scope.includes_native_tick(1400));
+        assert!(!scope.includes_native_tick(1500));
+        for ids in [vec![], vec![0], vec![1, 1], (1..=9).collect()] {
+            assert!(
+                RvoCaptureScope {
+                    unit_ids: ids,
+                    ..scope.clone()
+                }
+                .validate(CaptureInstrumentationProfile::TargetRefsRvoV1)
+                .is_err()
+            );
+        }
+        for (start, end) in [(14, 8), (1, 65), (u64::MAX, 0)] {
+            assert!(
+                RvoCaptureScope {
+                    start_tick: start,
+                    end_tick: end,
+                    ..scope.clone()
+                }
+                .validate(CaptureInstrumentationProfile::TargetRefsRvoV1)
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn rvo_scope_filters_sources_and_drains_delayed_publication_with_native_ordinals() {
+        let mut state = CaptureState::default();
+        state.rvo_scope = Some(RvoCaptureScope {
+            start_tick: 8,
+            end_tick: 14,
+            unit_ids: vec![124],
+        });
+        state
+            .rvo_agent_refs
+            .insert(10, ObjectRef::new(ObjectKind::Unit, 124));
+        state
+            .rvo_agent_refs
+            .insert(20, ObjectRef::new(ObjectKind::Unit, 246));
+        state.unit_ids.insert(30, 124);
+        state.rvo_agent_owners.insert(40, 30);
+        assert!(rvo_source_selected(&state, 10));
+        assert!(rvo_source_selected(&state, 40));
+        assert!(!rvo_source_selected(&state, 20));
+        assert!(!rvo_source_selected(&state, 99));
+        seed_rvo_update(&mut state, 1, 700, 800, true, 0, true);
+        seed_rvo_update(&mut state, 2, 1400, 1600, true, 0, true);
+        state.rvo_agent_sets.insert(
+            2,
+            vec![NativeRvoAgentState {
+                ordinal: 501,
+                pointer: 10,
+                ..NativeRvoAgentState::default()
+            }],
+        );
+        state.rvo_published_agent_sets.insert(
+            2,
+            vec![NativeRvoAgentState {
+                ordinal: 501,
+                pointer: 10,
+                published_calculated_speed: FixedPoint {
+                    raw: 9_007_199_254_740_993,
+                },
+                ..NativeRvoAgentState::default()
+            }],
+        );
+        assert!(resolve_rvo_updates(1400, &mut state).unwrap().is_empty());
+        assert!(!state.rvo_update_modes.contains_key(&1));
+        assert!(state.rvo_published_agent_sets.contains_key(&2));
+        let updates = resolve_rvo_updates(1600, &mut state).unwrap();
+        assert_eq!(updates.len(), 1);
+        assert_eq!(updates[0].agents[0].ordinal, 501);
+        assert_eq!(updates[0].publish_native_tick, 1600);
+        assert!(updates[0].multithreaded);
+        assert_eq!(
+            updates[0].published_agents[0].published_calculated_speed_raw,
+            9_007_199_254_740_993
+        );
+        assert!(state.rvo_published_agent_sets.is_empty());
+        state.reset_session();
+        assert!(state.rvo_scope.is_none());
+    }
+
+    #[test]
     fn rvo_drain_readiness_ordering_and_source_join() {
         let mut state = CaptureState::default();
         state
@@ -9129,6 +9951,7 @@ mod tests {
                 },
                 NativeRvoAgentState {
                     pointer: 10,
+                    ordinal: 1,
                     ..NativeRvoAgentState::default()
                 },
             ],
@@ -9826,7 +10649,6 @@ mod tests {
         let layout = "seed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
         let mut writer =
             mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
-        writer.set_initial_state(state.clone()).unwrap();
         writer.append_tick(state, &events).unwrap();
         writer.finish().unwrap();
         let reader = mechcore_mcfr::McfrReader::open(path).unwrap();

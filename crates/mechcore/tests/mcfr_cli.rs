@@ -72,7 +72,7 @@ fn compare_reports_the_first_missing_tick() {
 }
 
 #[test]
-fn compare_rejects_different_scenarios() {
+fn compare_ignores_context_when_ticks_are_equal() {
     let directory = tempfile::tempdir().unwrap();
     let left = directory.path().join("left.mcfr");
     let right = directory.path().join("right.mcfr");
@@ -80,9 +80,10 @@ fn compare_rejects_different_scenarios() {
     write_recording(&right, 43, &[1]);
 
     let output = compare(&left, &right);
-    assert_eq!(output.status.code(), Some(1));
-    assert!(output.stdout.is_empty());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("scenario_hash mismatch: left="));
+    assert!(output.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["equal"], true);
+    assert!(report.get("scenario_hash").is_none());
 }
 
 fn compare(left: &Path, right: &Path) -> std::process::Output {
@@ -109,7 +110,6 @@ fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
         "seed: {seed}\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n"
     );
     let mut writer = McfrWriter::create(path, "test-build", &context, &layout).unwrap();
-    writer.set_initial_state(WorldSnapshot::default()).unwrap();
     for &damage in damages {
         writer
             .append_tick(

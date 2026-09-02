@@ -89,10 +89,14 @@ impl EnergyTower {
 pub struct Formation {
     #[serde(rename = "type")]
     pub type_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index: Option<i32>,
     pub x: i32,
     pub y: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exp: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -173,7 +177,9 @@ pub struct Placement {
     pub native: NativeFormation,
     pub footprint: Option<(i64, i64)>,
     pub position: Position,
+    pub index: Option<i32>,
     pub level: Option<i32>,
+    pub exp: Option<i32>,
     pub rotated: bool,
     pub equipment: Option<i32>,
     pub travelling: bool,
@@ -276,6 +282,9 @@ impl Layout {
             for formation in &mut side.formations {
                 if formation.level == Some(1) {
                     formation.level = None;
+                }
+                if formation.exp == Some(0) {
+                    formation.exp = None;
                 }
                 if formation.rotated == Some(false) {
                     formation.rotated = None;
@@ -457,12 +466,15 @@ fn compile_formations(
 ) -> Result<Vec<Placement>, String> {
     let placements = definitions
         .into_iter()
-        .map(|formation| {
+        .enumerate()
+        .map(|(declaration_index, formation)| {
             let Formation {
                 type_name,
+                index,
                 x,
                 y,
                 level,
+                exp,
                 rotated,
                 equipment,
                 travelling,
@@ -490,11 +502,27 @@ fn compile_formations(
                 unreachable!("unit resolver returned non-unit placement")
             };
             let level = level.unwrap_or(1);
+            let declaration_index = i32::try_from(declaration_index)
+                .map_err(|_| format!("side {side_name} formation index overflow"))?;
+            let index = index.unwrap_or(declaration_index);
+            let exp = exp.unwrap_or(0);
             let rotated = rotated.unwrap_or(false);
             let travelling = travelling.unwrap_or(false);
             if !(1..=9).contains(&level) {
                 return Err(format!(
                     "side {side_name} formation type {type_name:?} at ({}, {}) level must be 1..=9",
+                    position.x, position.y
+                ));
+            }
+            if index < 0 {
+                return Err(format!(
+                    "side {side_name} formation type {type_name:?} at ({}, {}) index must be non-negative",
+                    position.x, position.y
+                ));
+            }
+            if exp < 0 {
+                return Err(format!(
+                    "side {side_name} formation type {type_name:?} at ({}, {}) exp must be non-negative",
                     position.x, position.y
                 ));
             }
@@ -510,7 +538,9 @@ fn compile_formations(
                 native: NativeFormation::Unit(unit_id),
                 footprint: spec.footprint,
                 position,
+                index: Some(index),
                 level: Some(level),
+                exp: Some(exp),
                 rotated,
                 equipment,
                 travelling,
@@ -522,6 +552,17 @@ fn compile_formations(
         return Err(format!(
             "side {side_name} formations must contain at least one valid unit"
         ));
+    }
+    let mut previous = None;
+    for placement in &placements {
+        let index = placement.index.expect("unit placements have an index");
+        if previous.is_some_and(|previous| index <= previous) {
+            return Err(format!(
+                "side {side_name} formation indices must be strictly increasing in declaration order; found {index} after {}",
+                previous.expect("checked as some")
+            ));
+        }
+        previous = Some(index);
     }
     Ok(placements)
 }
@@ -546,7 +587,9 @@ fn compile_constructions(
                 native: spec.native,
                 footprint: spec.footprint,
                 position,
+                index: None,
                 level: None,
+                exp: None,
                 rotated: false,
                 equipment: None,
                 travelling: false,
@@ -576,7 +619,9 @@ fn compile_contraptions(
                 native: spec.native,
                 footprint: spec.footprint,
                 position,
+                index: None,
                 level: None,
+                exp: None,
                 rotated: false,
                 equipment: None,
                 travelling: false,
@@ -948,10 +993,10 @@ fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> R
 }
 
 fn validate_shield_position(side_name: &str, placement: &Placement) -> Result<(), String> {
-    let min_x = DEPLOYMENT_MIN_X + SHIELD_RADIUS + 1;
-    let max_x = DEPLOYMENT_MAX_X - SHIELD_RADIUS - 1;
-    let min_y = DEPLOYMENT_MIN_Y + SHIELD_RADIUS + 1;
-    let max_y = DEPLOYMENT_MAX_Y - SHIELD_RADIUS - 1;
+    let min_x = DEPLOYMENT_MIN_X + SHIELD_RADIUS;
+    let max_x = DEPLOYMENT_MAX_X - SHIELD_RADIUS;
+    let min_y = DEPLOYMENT_MIN_Y + SHIELD_RADIUS;
+    let max_y = DEPLOYMENT_MAX_Y - SHIELD_RADIUS;
     if position_within(placement.position, min_x, max_x, min_y, max_y) {
         Ok(())
     } else {
@@ -1126,17 +1171,7 @@ fn unit_placement_stage(
             position.x, position.y
         ));
     }
-    if round == 2 && !travelling {
-        return Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) must set travelling=true in activation round 2",
-            position.x, position.y
-        ));
-    }
-    Ok(if travelling {
-        PlacementStage::Activation
-    } else {
-        PlacementStage::PreActivation
-    })
+    Ok(PlacementStage::Activation)
 }
 
 const fn formation_spec(native: NativeFormation, footprint: Option<(i64, i64)>) -> FormationSpec {
@@ -1678,7 +1713,7 @@ sides:
     }
 
     #[test]
-    fn compiles_formations_into_pre_activation_and_activation_stages() {
+    fn compiles_formations_in_declaration_order_for_activation() {
         let plan = compile(&json!({
             "round": 3,
             "sides": {
@@ -1696,7 +1731,7 @@ sides:
 
         assert_eq!(plan.round, 3);
         assert_eq!(plan.blue.formations[0].stage, PlacementStage::Activation);
-        assert_eq!(plan.blue.formations[1].stage, PlacementStage::PreActivation);
+        assert_eq!(plan.blue.formations[1].stage, PlacementStage::Activation);
         assert!(!plan.blue.formations[1].travelling);
         assert_eq!(plan.blue.formations[2].stage, PlacementStage::Activation);
         assert!(plan.blue.formations[2].travelling);
@@ -1727,10 +1762,9 @@ sides:
                 .unwrap_err()
                 .contains("activation round 1")
         );
-        assert!(
-            compile(&layout(2, false))
-                .unwrap_err()
-                .contains("must set travelling=true")
+        assert_eq!(
+            compile(&layout(2, false)).unwrap().blue.formations[0].stage,
+            PlacementStage::Activation
         );
         let omitted = compile(&json!({
             "round": 2,
@@ -1739,15 +1773,15 @@ sides:
                 "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
             }
         }))
-        .unwrap_err();
-        assert!(omitted.contains("must set travelling=true"));
+        .unwrap();
+        assert_eq!(omitted.blue.formations[0].stage, PlacementStage::Activation);
         assert_eq!(
             compile(&layout(2, true)).unwrap().blue.formations[0].stage,
             PlacementStage::Activation
         );
         assert_eq!(
             compile(&layout(3, false)).unwrap().blue.formations[0].stage,
-            PlacementStage::PreActivation
+            PlacementStage::Activation
         );
     }
 
@@ -1835,12 +1869,59 @@ sides:
         .unwrap();
 
         assert_eq!(plan.blue.formations[0].level, Some(1));
+        assert_eq!(plan.blue.formations[0].index, Some(0));
+        assert_eq!(plan.blue.formations[0].exp, Some(0));
         assert!(!plan.blue.formations[0].rotated);
         assert_eq!(plan.blue.formations[0].equipment, None);
         assert_eq!(plan.blue.formations[0].type_name, "marksman");
         assert_eq!(plan.blue.formations[0].native, NativeFormation::Unit(2));
         assert_eq!(plan.red.formations[0].position, Position { x: 20, y: -180 });
         assert_eq!(plan.formation_count(), 2);
+    }
+
+    #[test]
+    fn compiles_stable_unit_indices_and_experience() {
+        let plan = compile(&json!({
+            "round": 1,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "marksman", "index": 0, "x": -20, "y": -50, "exp": 7},
+                    {"type": "marksman", "index": 2, "x": 20, "y": -50}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -180}]}
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(plan.blue.formations[0].index, Some(0));
+        assert_eq!(plan.blue.formations[0].exp, Some(7));
+        assert_eq!(plan.blue.formations[1].index, Some(2));
+        assert_eq!(plan.blue.formations[1].exp, Some(0));
+
+        let duplicate = compile(&json!({
+            "round": 1,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "marksman", "index": 1, "x": -20, "y": -50},
+                    {"type": "marksman", "index": 1, "x": 20, "y": -50}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -180}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(duplicate.contains("indices must be strictly increasing"));
+
+        let negative_exp = compile(&json!({
+            "round": 1,
+            "sides": {
+                "blue": {"formations": [
+                    {"type": "marksman", "x": 0, "y": -50, "exp": -1}
+                ]},
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -180}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(negative_exp.contains("exp must be non-negative"));
     }
 
     #[test]
@@ -2296,12 +2377,12 @@ sides:
             })
         };
 
-        compile(&layout(229, -81)).unwrap();
-        compile(&layout(-229, -239)).unwrap();
-        let error = compile(&layout(230, -80)).unwrap_err();
+        compile(&layout(230, -80)).unwrap();
+        compile(&layout(-230, -240)).unwrap();
+        let error = compile(&layout(231, -79)).unwrap_err();
         assert_eq!(
             error,
-            "side blue placement type \"shield\" at (230, -80) places its radius-70 edge outside the own-side deployment boundary: center must be within x=[-229,229], y=[-239,-81]"
+            "side blue placement type \"shield\" at (231, -79) places its radius-70 edge outside the own-side deployment boundary: center must be within x=[-230,230], y=[-240,-80]"
         );
     }
 
@@ -2357,6 +2438,14 @@ sides:
             plan.blue
                 .constructions
                 .iter()
+                .map(|placement| placement.index)
+                .collect::<Vec<_>>(),
+            [None, None, None, None]
+        );
+        assert_eq!(
+            plan.blue
+                .constructions
+                .iter()
                 .map(|placement| placement.native)
                 .collect::<Vec<_>>(),
             [
@@ -2366,6 +2455,31 @@ sides:
                 NativeFormation::Construction(4),
             ]
         );
+    }
+
+    #[test]
+    fn construction_layout_rejects_native_index() {
+        let mut value = json!({
+            "round": 1,
+            "sides": {
+                "blue": {
+                    "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                    "constructions": [{"type": "rapid_fire_turret", "x": 140, "y": -60}]
+                },
+                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+            }
+        });
+        let plan = compile(&value).unwrap();
+        assert_eq!(plan.blue.constructions[0].index, None);
+        let definition: Layout = serde_json::from_value(value.clone()).unwrap();
+        let encoded = serde_json::to_value(definition).unwrap();
+        assert!(
+            encoded["sides"]["blue"]["constructions"][0]
+                .get("index")
+                .is_none()
+        );
+        value["sides"]["blue"]["constructions"][0]["index"] = json!(3);
+        assert!(compile(&value).unwrap_err().contains("unknown field"));
     }
 
     #[test]

@@ -65,6 +65,7 @@ sides:
 
     constructions:
       - type: defensive_wall
+        index: 0
         x: 140
         y: -105
 
@@ -141,15 +142,12 @@ adapter's 55-second total layout timeout also covers round 15.
 The native ambush zones become available from round 2. The layout rules are:
 
 - round 1 cannot contain an ambush-zone unit;
-- round 2 cannot contain an ambush-zone unit with `travelling: false`;
-- round 3 and later accept both travelling and non-travelling ambush units.
+- round 2 and later accept both travelling and non-travelling ambush units.
 
-These rules follow from native placement timing. An ambush unit first deployed
-in the activation round has travelling state. A requested non-travelling ambush
-unit must instead be deployed in the immediately preceding round and carried
-through that round's battle. For activation round 2, the preceding round is
-round 1, where ambush deployment is still locked; this is why such a layout is
-illegal until activation round 3.
+All formations are deployed in declaration order after the activation round
+begins. An ambush unit first enters native travelling state when it is moved to
+the flank; the Adapter explicitly changes and verifies that membership when the
+layout requests `travelling: false`.
 
 ## Coordinate system
 
@@ -358,18 +356,29 @@ semantic `type` instead of exposing its native numeric ID:
 
 ```yaml
 - type: marksman
+  index: 0
   x: 0
   y: -50
+  exp: 12
 ```
 
 - `type` is the lower `snake_case` form of the unit's English in-game name. It
   selects both the native catalog and the valid unit fields.
 - `x` and `y` are required exact signed coordinates in the owning side's fixed
   local frame defined above, not native world or screen pixels.
+- `index` is the stable, non-negative native unit index. Indices must be
+  strictly increasing in formation declaration order and may contain gaps.
+  When omitted, the compiler assigns contiguous indices from zero for existing
+  hand-written layouts.
+- `exp` is the unit formation's non-negative integer experience within its
+  current level. The default is `0` and canonical YAML omits that default.
 
-A formation has no user-defined identifier. The adapter reports a failed
-formation by its `type`, `x`, and `y`; a successful placement may return the
-native runtime `unit_index`, but that transient value is not layout state.
+The Adapter creates formations in declaration/index order, assigning each
+requested index directly through `MAD_AddUnit.UIDX`. Missing indices remain
+absent; no placeholder formation is created or removed. It writes experience through the
+formation's native `MechTeam.SetExpInt` and verifies both index lookup and
+`GetExpInt` readback before combat. Replay capture always exports native
+`index`; it exports non-zero `exp` after canonical default elision.
 
 The layout compiler resolves every unit, construction, and interceptor
 deployment footprint and rejects positive-area overlap before any game
@@ -412,9 +421,9 @@ Shields and missiles use their native contraption target regions instead of
 the deployment footprint rules above. Neither has a modulo-10 requirement or a
 collision footprint. A missile's center must lie in
 `x=[-300,300], y=[-310,-10]`. A shield has a 70 m radius, and the native check
-requires its complete edge to be strictly inside the same own-side region. For
-integer layout coordinates, its center must therefore lie in
-`x=[-229,229], y=[-239,-81]`.
+allows its complete edge to touch the same own-side boundary. For integer
+layout coordinates, its center must therefore lie in
+`x=[-230,230], y=[-240,-80]`.
 
 The footprint provider covers all 32 public ordinary units validated against
 the build `1.11.1.3.2259` card catalog, the four ordinary opening constructions,
@@ -463,24 +472,26 @@ following values form the closed public `type` vocabulary for each field:
 
 ```yaml
 - type: marksman
+  index: 0
   x: 0
   y: -50
+  exp: 12
   equipment: 13030001
   travelling: false
 ```
 
-The adapter resolves `type` to a native `CardData.ID`; neither that ID nor the
-runtime formation index is public layout state. `level` is the optional
-displayed level, defaults to `1`, and must be in `1..=9`. `rotated` is an
-optional boolean, defaults to `false`, and declares the native unit-orientation
-flag; the owning map region's facing still contributes to its world footprint.
+The adapter resolves `type` to a native `CardData.ID`; that catalog ID is not
+public layout state. `index` is the optional stable native formation index and
+defaults to declaration order. `level` is the optional displayed level,
+defaults to `1`, and must be in `1..=9`. `exp` is optional, defaults to `0`,
+and records the formation's current-level experience. `rotated` is an optional
+boolean, defaults to `false`, and declares the native unit-orientation flag;
+the owning map region's facing still contributes to its world footprint.
 `equipment` is an optional positive native `EquipmentData.ID`. A unit has at
 most one equipment slot, so this field is singular rather than an array.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
-effect only for an ambush-zone unit: `true` requires that the unit be first
-deployed during the activation round, while `false` requires deployment in the
-immediately preceding round. `travelling: true` is invalid outside the ambush
-zones.
+effect only for an ambush-zone unit. `travelling: true` is invalid outside the
+ambush zones.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
@@ -501,10 +512,25 @@ constructions:
 ```
 
 `constructions` is parallel to `formations` under one side and defaults to
-`[]`. Each entry contains exactly `type`, `x`, and `y`. The executor resolves
-its English type to the native `ConstructionData`, performs the placement
-check, releases it once, and verifies its type and exact position. A successful
-placement may return the transient runtime `construction_index`.
+`[]`. Each entry contains only `type`, `x`, and `y`. Native construction indices
+are not layout data; an `index` field is rejected. Formation `index` is unchanged.
+
+At prepare time, the executor first reconciles the same-seed Training Ground
+opening constructions by `(type, position)`: exact matches are retained,
+while entries absent from or different in the target layout are removed. At
+activation it applies only missing constructions in declaration order, letting
+the native action allocate its own index. There are no index placeholders or
+explicit-index recreation actions. Retention, creation, and removal are checked
+through `ConstructionManager` lookup/count readback. Replay capture exports
+constructions sorted by `(type, x, y)`, without native indices. MCFR building IDs
+are normalized independently at the capture boundary.
+
+Both replay and Training Ground MCFR capture derive construction Building IDs
+from this same index plus `FightConstruction.GetConstructionChildIndex`, joined
+through `ConstructionElement.GetFightConstructions`. A wall placement may own
+several Building rows: layout `index` is the per-side deployment identity, not
+the global MCFR `building_id`. Native `GetBuildingIndex()` is not used to order
+those construction rows, because its allocation can differ between the modes.
 
 ### `contraptions`
 
@@ -519,7 +545,22 @@ contraptions:
 contraption kind. `contraptions` is parallel to `formations` and
 `constructions` under one side and defaults to `[]`. A contraption entry
 contains exactly `type`, `x`, and `y`; none of these three types requires an
-extra position.
+extra position. Replay export describes the contraptions still present at the
+deployment boundary, including objects retained from earlier rounds; it is not
+a list of this round's release operations. Export reads the full contraption
+shield collection, `TeamMineManager.GetLandMines()`, and live
+`InterceptCtrGroup_Interceptor` sources. Removed missiles and destroyed
+interceptors are excluded; inactive reset-next-round shields are included.
+Export orders categories as shield, missile, interceptor, preserving native
+order within each category. Shields retain full-list order; layout is captured
+before combat and is not reordered using S(1). MCFR Shield IDs are normalized
+separately and are not inferred from layout entry order.
+Ordinary shield radius and effective maximum energy must match native placement
+defaults; otherwise export fails rather than silently losing state. Deployment
+bounds and the three-field schema remain unchanged.
+For missile/interceptor objects, export projects native world X/Z onto the
+layout plane; native object height is not a placement coordinate. Fractional
+planar coordinates are rejected rather than rounded.
 The executor performs the native placement check, releases the contraption once,
 and verifies its type and exact position through authoritative recorder
 readback.
@@ -693,14 +734,11 @@ request:
 3. clear both sides in round 1 without placing combat formations;
 4. start each earlier empty round and wait for the game to advance it naturally,
    polling authoritative status until the next deployment is stable;
-5. in the round immediately before activation, deploy ambush units whose
-   requested activation state is `travelling: false`; if that round enters
-   battle, finish it immediately with the private Training Ground process-state
-   action;
-6. in the activation round, apply every remaining unit and construction,
+5. in the activation round, apply every unit in formation declaration order and construction,
    Officers, unit technologies, Research Center and Energy Tower state, shields,
-   missiles, interceptors, and battle skills, then return while the game is
-   still deploying.
+   missiles, interceptors, and battle skills; after each unit's final move,
+   explicitly correct and verify any mismatching travelling state, then return
+   while the game is still deploying.
 
 The adapter keeps the selected side across layout stages instead of restoring
 it after every catalog or mutation pass. A stage applies the currently selected

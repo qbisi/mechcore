@@ -66,19 +66,15 @@ fn feed(hasher: &mut blake3::Hasher, bytes: &[u8]) {
 }
 
 pub(crate) fn tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("tick-0.1.0");
+    let mut hasher = CanonicalHasher::new("tick-0.2.0");
     hasher.update(&tick.to_le_bytes());
     hasher.update(state);
     hasher.update(events);
     hasher.finalize()
 }
 
-pub(crate) fn result_hash(
-    scenario: &[u8; HASH_BYTES],
-    tick_hashes: &[[u8; HASH_BYTES]],
-) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("result-0.1.0");
-    hasher.update(scenario);
+pub(crate) fn result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
+    let mut hasher = CanonicalHasher::new("result-0.2.0");
     let tick_count = u32::try_from(tick_hashes.len()).expect("tick hash count exceeds u32");
     hasher.update(&tick_count.to_le_bytes());
     for tick_hash in tick_hashes {

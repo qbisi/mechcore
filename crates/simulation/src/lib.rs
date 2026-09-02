@@ -92,12 +92,12 @@ pub fn simulate_layout_with_config(
 /// directly without creating another recording.
 ///
 /// Comparison stops after the first unequal or missing tick. The recording and
-/// simulation must have the same game build and scenario hash.
+/// simulation must have the same game build.
 ///
 /// # Errors
 ///
-/// Returns an error for an invalid layout or config, a build or scenario
-/// mismatch, or a simulation/MCFR failure.
+/// Returns an error for an invalid layout or config, a build mismatch, or a
+/// simulation/MCFR failure.
 pub fn compare_recording_with_config(
     recording: &mechcore_mcfr::McfrReader,
     config_directory: Option<&Path>,

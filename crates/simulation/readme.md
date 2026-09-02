@@ -17,10 +17,10 @@ full 门禁覆盖当前格式的全部 manifest 条目，包含 smoke 条目。
 
 ## 输出与 profiling
 
-`mechcore sim <layout>` 默认只计算逐 tick hash、`scenario_hash`、`result_hash`，并向
+`mechcore sim <layout>` 默认只计算逐 tick hash 和 `result_hash`，并向
 标准输出返回终局战斗结构和 profiling，不生成 MCFR 存储。指定
 `--output <battle.mcfr>` 时才序列化、验证并发布文件。
-`result_hash` 由 `scenario_hash`、tick 数量和有序的全部 `tick_hash` 计算，因此默认
+`result_hash` 由 tick 数量和有序的全部 `tick_hash` 计算，因此默认
 路径不依赖 Parquet 或 JSONL 存储。
 
 `profiling.generation_duration_milliseconds` 统计从初始化战斗到完成 hash 生成的现实时间；
@@ -40,7 +40,7 @@ mechcore sim compare work/captures/*.mcfr
 比较在首个 hash 不同或一侧缺失的 tick 停止，JSON 同时返回该 tick 的
 `recording` 与 `simulation` 数据；全程不生成 Simulator MCFR。多个输入逐份返回结果，
 任一录像存在差异时进程退出码为非零。可用 `--config` 指定外部 Simulator 配置目录。
-录像与 Simulator 的 `game_build` 以及模拟得到的 `scenario_hash` 必须一致。提前停止时
+录像与 Simulator 的 `game_build` 必须一致。提前停止时
 `simulation.complete=false`，其 `tick_count` 表示已经生成并比较到的 tick 数量。
 
 ## 机制与数值的证据门禁
@@ -127,16 +127,16 @@ Idle due/null/dead 入口；Prepare/Attack 中的 quick-switch 子分支仍保�
 ### 闭合单元与目标
 
 最小研究单元是固定的 `(game_build, layout, seed, MCFR schema)`。同一单元内只研究
-一个具体 layout，并从 tick 0 开始反复执行“假设—对比—审查”，不得跳过尚未解释的
+一个具体 layout，并从 tick 1 开始反复执行“假设—对比—审查”，不得跳过尚未解释的
 首个分歧 tick 去拟合后续结果。
 
 一个单元只有同时满足以下条件才是**完整闭合**：
 
-1. Adapter 与 Simulator 的 `scenario_hash` 相同；
-2. 两者 tick 数量、`terminal_tick`、每个 `tick_hash` 和 `result_hash` 全部相同；
-3. 该 layout 实际经过的机制在声明适用域内达到 `proven` 或
+1. Adapter 与 Simulator 的 tick 数量、`terminal_tick`、每个 `tick_hash` 和
+   `result_hash` 全部相同；
+2. 该 layout 实际经过的机制在声明适用域内达到 `proven` 或
    `strongly_supported`，且使用的每个具体数值均通过数值门禁；
-4. 审查 Agent 明确接受结论，并记录实现状态、置信度、适用范围和 `reopen_when`。
+3. 审查 Agent 明确接受结论，并记录实现状态、置信度、适用范围和 `reopen_when`。
 
 这里的 `closed`/完整闭合是 layout case 的管线状态，不是把其中
 `strongly_supported` 的机制改写为 `complete` 或 `proven`。
@@ -183,7 +183,7 @@ Agent 与审查 Agent 必须使用不同上下文分别工作；审查输入包�
 3. **模拟输出**：执行 `mechcore sim layout.yaml --seed ... --config ...`，取得 Simulator
    hash、结构化战斗结果和 profiling。
 4. **规范对比**：执行 `mechcore sim compare native.mcfr --config ...`。命令先验证
-   `game_build` 和 `scenario_hash`，再在内存逐 tick 比较规范化 hash；遇到首个不同或
+   `game_build`，再在内存逐 tick 比较规范化 hash；遇到首个不同或
    缺失 tick 即停止，只返回该 tick 两侧的 `S`、有序 `E` 和 `tick_hash`。
 5. **单一假设**：假设 Agent 只针对这个首个分歧提出一个机制或数值解释，并记录：
    反编译 selector/地址、调用链、关键分支或字段、原始数值、换算过程、预计改变的
@@ -313,7 +313,7 @@ Unit 的最小 layout 不得从已满足攻击条件的位置开始，而必须�
 
 上述运动学 obligation 不能只由 manifest 中的人工 `closed` 标签通过。每项关闭必须
 绑定到固定原生 MCFR、文件 hash、源单位身份、Adapter/MCP 返回的原始 layout input、
-该 Unit config 的攻击范围和独立审查产物。校验器可以从 `S(0)` 及后续原生快照直接复验
+该 Unit config 的攻击范围和独立审查产物。校验器可以从 `S(1)` 及后续原生快照直接复验
 初始碰撞体分离、声明对象对的范围外几何、源单位实际位移、首次攻击前非零转角、声明
 对象对首次越过阈值，以及 `Moving -> Attacking` 的相邻状态迁移。距离边界使用整数平方
 比较，并为 MCFR 毫米量化保留拒绝歧义带；不得以浮点拟合或相邻状态差分生成新的 MCFR
@@ -325,7 +325,7 @@ Unit 的最小 layout 不得从已满足攻击条件的位置开始，而必须�
 或 Construction。关闭 `target_acquisition`、`approach_with_valid_target`、
 `start_outside_native_engagement_threshold` 和 `first_engagement_transition_tick` 时，
 必须使用 Adapter 在同一逻辑 tick 直接读取这些原生字段的临时 `I` sidecar，并把 sidecar
-绑定到正式 MCFR `scenario_hash`。临时 `I` 不进入正式 result hash，研究结束后可删除其
+绑定到正式 MCFR 文件及 `result_hash`。临时 `I` 不进入正式 result hash，研究结束后可删除其
 Adapter profile 实现。
 
 攻击路径、武器拓扑与效果拓扑是三个正交门禁。带范围效果的 Unit 除完成其原生投射物
@@ -417,7 +417,7 @@ sampled-RVO 登记只接受已经通过数值门禁的单位参数。比如
 | 攻击间隔随机流 | `FightTeam.RefreshRandomData` 为每队建立 `GRRandom`，seed 为 `(round + teamIndex) * 4444`；当前单成员场景消费结果已对齐 | 多成员、多个技能的队内刷新顺序 |
 | 攻击调度 | `RefreshAttackInterval` 的逻辑步换算、至少一 tick 下界，以及首次进入 Attack 后下一次更新才可释放 | 其它技能状态机分支 |
 | 基础方向 | 不存在额外的 `aim_tolerance: 20` 转向死区；当前场景部署方向已对齐 | `Normalize -> Angle -> RawAcos` 全方向和边界舍入 |
-| Normal 目标评分与开战前索敌 | build2259 在可见、全旋转、未分裂四叉树且唯一最优的当前普通地面目标集合中，以 Q32 边缘距离、最小射程严格排除、角度因子、射程外惩罚和严格最小分数选择目标；`FightPrepareState` 在 S(0) 前完成首次索敌并同步初始朝向 | 分裂四叉树、同分候选、建筑胜出、移动候选重插入和其它 selector mode |
+| Normal 目标评分与开战前索敌 | build2259 在可见、全旋转、未分裂四叉树且唯一最优的当前普通地面目标集合中，以 Q32 边缘距离、最小射程严格排除、角度因子、射程外惩罚和严格最小分数选择目标；`FightPrepareState` 在首个持久化状态 S(1) 前完成首次索敌并同步初始朝向 | 分裂四叉树、同分候选、建筑胜出、移动候选重插入和其它 selector mode |
 | 普通投射物 | `Init/Update/Move` 的 Q32.32 移动、活动时 `released=false`、默认 rotation 和实际 transform 移除位置；build2259 长弓/弧光普通单投射物在 `isLockTarget=true`、目标存活且移动、`randomTargetRange=0`/offset=0 分支逐 tick 刷新目标 root Q32 位置 | 非锁定、目标死亡、非零随机 offset、拦截及其它投射物类型 |
 | 伤害与死亡 | `ReduceLife` 将实际扣血裁剪为 `min(currentLife, incomingDamage)`；Adapter 的 Damage hook 直接记录原生 performer 返回值。build2259 level-1 弧光在无科技/装备/动态 buff/护盾干预的当前地面单位范围中，以投射物 transform 为作用中心选择半径内目标，并将各目标实际扣血之和记录为主目标的一条 Damage 事件。犀牛主技能 5001 在同类基线约束的当前单目标直接效果中，经 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty` 得到 nominal 3560，末击按剩余生命裁剪 | 建筑溅射、范围边界与顺序、修正链、护盾和其它 provider/目标域 |
 | 个人护盾基线 | 无护盾单位的 `EnergyShieldController.enabled=true` 初始状态 | 实际护盾激活、吸收和销毁生命周期 |

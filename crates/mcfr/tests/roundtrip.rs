@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 
 use bytes::Bytes;
 use mechcore_mcfr::{
@@ -17,7 +17,7 @@ use serde_json::json;
 const LAYOUT_YAML: &str = "seed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
 
 #[test]
-fn writes_and_reads_v4_tracks() {
+fn writes_and_reads_v5_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
     let initial = state(100);
@@ -33,10 +33,11 @@ fn writes_and_reads_v4_tracks() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.1.0");
+    assert_eq!(MCFR_FORMAT, "0.2.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
+    assert_eq!(reader.context().match_seed, 42);
     assert_eq!(reader.layout_yaml(), LAYOUT_YAML);
     assert_eq!(reader.hashes(), &hashes);
     assert_eq!(
@@ -45,7 +46,7 @@ fn writes_and_reads_v4_tracks() {
     );
     assert_eq!(reader.member_sizes_bytes().len(), 8);
     assert!(reader.member_sizes_bytes().values().all(|size| *size > 0));
-    assert_eq!(reader.state(0).unwrap(), initial);
+    assert!(reader.state(0).is_err());
     assert_eq!(reader.state(1).unwrap(), final_state);
     assert_eq!(reader.events(1).unwrap(), events);
 
@@ -84,10 +85,13 @@ fn writes_and_reads_v4_tracks() {
                 json!({
                     "combat_round": 1,
                     "logic_step": {"denominator": 10, "numerator": 1},
-                    "match_seed": 42,
                     "time_units_per_second": 10
                 })
             );
+            assert!(!metadata.contains_key("scenario_hash"));
+        } else if name == "buildings.parquet" {
+            let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
+            assert!(builder.schema().field_with_name("rotation").is_err());
         } else if name == "terrains.parquet" {
             let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
             assert!(builder.schema().field_with_name("active").is_err());
@@ -104,13 +108,69 @@ fn writes_and_reads_v4_tracks() {
 }
 
 #[test]
+fn building_state_has_no_rotation_in_canonical_hash_input() {
+    let mut value = serde_json::to_value(&state(100).buildings[0]).unwrap();
+    assert!(value.get("rotation").is_none());
+    value["rotation"] = json!(24273083116_i64);
+    assert!(serde_json::from_value::<BuildingState>(value).is_err());
+}
+
+#[test]
+fn reader_open_and_comparison_trust_persisted_hashes() {
+    let directory = tempfile::tempdir().unwrap();
+    let original_path = directory.path().join("original.mcfr");
+    write_battle(
+        &original_path,
+        "build-a",
+        &context(),
+        state(100),
+        state(75),
+        &damage_events(),
+    );
+    let changed_path = directory.path().join("changed-events.mcfr");
+    let mut original = zip::ZipArchive::new(std::fs::File::open(&original_path).unwrap()).unwrap();
+    let mut changed = zip::ZipWriter::new(std::fs::File::create(&changed_path).unwrap());
+    for index in 0..original.len() {
+        let mut member = original.by_index(index).unwrap();
+        if member.name() == "events.jsonl" {
+            let mut events = String::new();
+            member.read_to_string(&mut events).unwrap();
+            assert!(events.contains("\"amount\":25"));
+            changed
+                .start_file(
+                    "events.jsonl",
+                    zip::write::SimpleFileOptions::default()
+                        .compression_method(zip::CompressionMethod::Stored)
+                        .large_file(true),
+                )
+                .unwrap();
+            changed
+                .write_all(events.replace("\"amount\":25", "\"amount\":24").as_bytes())
+                .unwrap();
+        } else {
+            changed.raw_copy_file(member).unwrap();
+        }
+    }
+    changed.finish().unwrap();
+
+    let original = McfrReader::open(original_path).unwrap();
+    let changed = McfrReader::open(changed_path).unwrap();
+    assert_ne!(original.events(1).unwrap(), changed.events(1).unwrap());
+    assert_eq!(original.hashes(), changed.hashes());
+    assert_eq!(
+        original.tick_hash(1).unwrap(),
+        changed.tick_hash(1).unwrap()
+    );
+    assert_eq!(original.first_divergence(&changed).unwrap(), None);
+}
+
+#[test]
 fn hash_only_timeline_matches_published_mcfr_hashes_without_creating_storage() {
     let directory = tempfile::tempdir().unwrap();
     let initial = state(100);
     let final_state = state(75);
     let events = damage_events();
     let mut hash_only = McfrWriter::hash_only(&context()).unwrap();
-    hash_only.set_initial_state(initial.clone()).unwrap();
     hash_only.append_tick(final_state.clone(), &events).unwrap();
     let hashes = hash_only.finish().unwrap();
     assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
@@ -121,7 +181,7 @@ fn hash_only_timeline_matches_published_mcfr_hashes_without_creating_storage() {
 }
 
 #[test]
-fn game_build_metadata_preserves_scenario_hashes() {
+fn game_build_metadata_does_not_change_result_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let events = damage_events();
     let left = write_battle(
@@ -158,7 +218,6 @@ fn embedded_layout_is_not_a_hash_input() {
     );
     let path = directory.path().join("right.mcfr");
     let mut writer = McfrWriter::create(&path, "build-a", &context(), OTHER_LAYOUT).unwrap();
-    writer.set_initial_state(state(100)).unwrap();
     writer.append_tick(state(75), &events).unwrap();
     let right = writer.finish().unwrap();
     assert_eq!(left, right);
@@ -166,17 +225,13 @@ fn embedded_layout_is_not_a_hash_input() {
 }
 
 #[test]
-fn embedded_layout_preserves_adapter_optional_field_gaps() {
-    const PARTIAL_LAYOUT: &str = "seed: 42\nround: 2\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: -310\n      y: 20\n  red:\n    formations:\n    - type: arclight\n      x: -310\n      y: 20\n";
+fn embedded_layout_preserves_adapter_state_outside_public_legality() {
+    const PARTIAL_LAYOUT: &str = "seed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: -310\n      y: 20\n  red:\n    formations:\n    - type: arclight\n      x: -310\n      y: 20\n";
     assert!(mechcore_layout::parse_yaml(PARTIAL_LAYOUT.as_bytes()).is_err());
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("partial-layout.mcfr");
-    let context = DurableContext {
-        combat_round: 2,
-        ..context()
-    };
+    let context = context();
     let mut writer = McfrWriter::create(&path, "build-a", &context, PARTIAL_LAYOUT).unwrap();
-    writer.set_initial_state(state(100)).unwrap();
     writer
         .append_tick(state(75), &TransitionEvents { events: Vec::new() })
         .unwrap();
@@ -195,7 +250,9 @@ fn writer_rejects_initial_formation_ids_outside_zx_first_appearance_order() {
     invalid.live_units[0].formation_id = 2;
     invalid.live_units[1].formation_id = 1;
     let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
-    let error = writer.set_initial_state(invalid).unwrap_err();
+    let error = writer
+        .append_tick(invalid, &TransitionEvents { events: Vec::new() })
+        .unwrap_err();
     assert!(
         error
             .to_string()
@@ -211,7 +268,11 @@ fn writer_rejects_reserved_status_bits() {
     let mut invalid = state(100);
     invalid.live_units[0].status_mask = 1 << 4;
     let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
-    assert!(writer.set_initial_state(invalid).is_err());
+    assert!(
+        writer
+            .append_tick(invalid, &TransitionEvents { events: Vec::new() })
+            .is_err()
+    );
     assert!(!path.exists());
 }
 
@@ -220,7 +281,6 @@ fn writer_rejects_partial_projectile_channel() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-event.mcfr");
     let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
-    writer.set_initial_state(state(100)).unwrap();
     let events = TransitionEvents {
         events: vec![Event {
             subject: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
@@ -288,7 +348,6 @@ fn writer_rejects_terrain_created_source() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-terrain-source.mcfr");
     let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
-    writer.set_initial_state(state(100)).unwrap();
     let events = TransitionEvents {
         events: vec![Event {
             subject: Some(ObjectRef::new(ObjectKind::Terrain, 1)),
@@ -367,7 +426,11 @@ fn writer_rejects_inconsistent_shield_active_order() {
     let mut invalid = state(100);
     invalid.shields[0].active_order = None;
     let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
-    assert!(writer.set_initial_state(invalid).is_err());
+    assert!(
+        writer
+            .append_tick(invalid, &TransitionEvents { events: Vec::new() })
+            .is_err()
+    );
     assert!(!path.exists());
 }
 
@@ -393,7 +456,11 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
         spawn_containing_shields: vec![ObjectRef::new(ObjectKind::Building, 1)],
     });
     let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
-    assert!(writer.set_initial_state(invalid).is_err());
+    assert!(
+        writer
+            .append_tick(invalid, &TransitionEvents { events: Vec::new() })
+            .is_err()
+    );
     assert!(!path.exists());
 }
 
@@ -410,7 +477,7 @@ fn instrumentation_sidecar_supports_json_and_binary_channels() {
     );
     let sidecar = directory.path().join("battle.targeting.mcfr-i");
     let mut writer =
-        InstrumentationWriter::create(&sidecar, &hashes.scenario_hash, "targeting-v1", "adapter")
+        InstrumentationWriter::create(&sidecar, &hashes.result_hash, "targeting-v1", "adapter")
             .unwrap();
     writer
         .record_json(0, "target_candidates", &json!({"ids": [2, 1]}))
@@ -426,7 +493,7 @@ fn instrumentation_sidecar_supports_json_and_binary_channels() {
     writer.finish().unwrap();
 
     let reader = InstrumentationReader::open(&sidecar).unwrap();
-    assert_eq!(reader.scenario_hash(), hashes.scenario_hash);
+    assert_eq!(reader.result_hash(), hashes.result_hash);
     assert_eq!(reader.len(), 2);
     assert_eq!(reader.entry(1).unwrap().payload, [1, 2, 3, 4]);
 }
@@ -435,12 +502,11 @@ fn write_battle(
     path: &std::path::Path,
     game_build: &str,
     context: &DurableContext,
-    initial: WorldSnapshot,
+    _initial: WorldSnapshot,
     final_state: WorldSnapshot,
     events: &TransitionEvents,
 ) -> Hashes {
     let mut writer = McfrWriter::create(path, game_build, context, LAYOUT_YAML).unwrap();
-    writer.set_initial_state(initial).unwrap();
     writer.append_tick(final_state, events).unwrap();
     writer.finish().unwrap()
 }
@@ -466,7 +532,6 @@ fn state(enemy_life: i32) -> WorldSnapshot {
             team_id: 1,
             building_type_id: 7,
             position: QVec3 { x: -10, y: 4, z: 2 },
-            rotation: 90,
             bounds_width: 12,
             bounds_height: 8,
             life: GaugeI32 {

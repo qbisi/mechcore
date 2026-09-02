@@ -24,8 +24,10 @@ struct FPoint(i64);
 struct UnitReadback {
     id: i32,
     level: i32,
+    exp: i32,
     position: MapVector,
     rotated: bool,
+    travelling: bool,
 }
 
 struct ContraptionReleaseBaseline {
@@ -60,13 +62,14 @@ pub(crate) enum LayoutExecutionStage {
     Activation,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) enum InternalOperation {
     Status,
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
         instrumentation_profile: Option<crate::capture::CaptureInstrumentationProfile>,
+        rvo_scope: Option<crate::capture::RvoCaptureScope>,
     },
     StopCapture,
     ReplayFastDeployment,
@@ -90,7 +93,8 @@ pub(crate) fn execute_internal(
             mode,
             visual,
             instrumentation_profile,
-        } => crate::capture::start(runtime, mode, visual, instrumentation_profile)
+            rvo_scope,
+        } => crate::capture::start(runtime, mode, visual, instrumentation_profile, rvo_scope)
             .map(|()| json!({"started": true}))
             .map_err(OperationError::InvalidState),
         InternalOperation::StopCapture => crate::capture::stop()
@@ -731,6 +735,7 @@ fn create_unit(
     current: *mut Object,
     unit_id: i32,
     displayed_level: i32,
+    unit_index: i32,
 ) -> Result<i32, OperationError> {
     if !(1..=9).contains(&displayed_level) {
         return Err(OperationError::InvalidArguments(
@@ -740,26 +745,11 @@ fn create_unit(
     let api = runtime.api;
     let controller = player_controller(runtime, current)?;
     let player = api.invoke(controller, "GetPlayer", &mut [])?;
-    let manager = api.invoke(controller, "GetUnitManager", &mut [])?;
     let territory = api.invoke(controller, "GetTerritoryManager", &mut [])?;
     let region = api.invoke(territory, "GetFocusRegion", &mut [])?;
-    let units = api.invoke(manager, "GetUnits", &mut [])?;
     let mut player_index = api.invoke_value::<i32>(player, "GetRoomIndex", &mut [])?;
     let mut region_id = api.invoke_value::<i32>(region, "get_ID", &mut [])?;
-    let count = api.invoke_value::<i32>(units, "get_Count", &mut [])?;
-    if !(0..=1024).contains(&count) {
-        return Err(OperationError::InvalidState(
-            "invalid deployed unit count".into(),
-        ));
-    }
-    let mut unit_index = 0;
-    for item_index in 0..count {
-        let mut item_index = item_index;
-        let unit = api.invoke(units, "get_Item", &mut [argument(&mut item_index)])?;
-        let existing =
-            api.invoke_value::<i32>(manager, "GetUnitIndex", &mut [object_argument(unit)])?;
-        unit_index = unit_index.max(existing + 1);
-    }
+    let mut unit_index = unit_index;
     let action = core_action(api, "MAD_AddUnit")?;
     let mut unit_id = unit_id;
     let mut level = displayed_level - 1;
@@ -788,13 +778,54 @@ fn add_unit(
     runtime: &Runtime,
     unit_id: i32,
     level: i32,
+    unit_index: i32,
     position: MapVector,
     rotate: bool,
 ) -> Result<i32, OperationError> {
     let current = require_match(runtime)?;
-    let index = create_unit(runtime, current, unit_id, level)?;
+    let index = create_unit(runtime, current, unit_id, level, unit_index)?;
     move_unit(runtime, index, position, rotate)?;
     Ok(index)
+}
+
+fn set_unit_travelling(
+    runtime: &Runtime,
+    mut unit_index: i32,
+    position: MapVector,
+    mut travelling: bool,
+) -> Result<(), OperationError> {
+    let current = require_match(runtime)?;
+    let controller = player_controller(runtime, current)?;
+    let (_manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
+    let territory_manager = runtime
+        .api
+        .invoke(controller, "GetTerritoryManager", &mut [])?;
+    let territory = runtime
+        .api
+        .invoke(territory_manager, "GetTerritory", &mut [])?;
+    let mut position = position;
+    let region = runtime.api.invoke(
+        territory,
+        "GetRegionForPosition",
+        &mut [argument(&mut position)],
+    )?;
+    if region.is_null() {
+        return Err(OperationError::InvalidState(
+            "final unit position has no map region".into(),
+        ));
+    }
+    let mut auto_refresh = false;
+    runtime.api.invoke_void(
+        territory_manager,
+        "RefreshSuperDeploymentStatus",
+        &mut [
+            object_argument(unit),
+            object_argument(region),
+            argument(&mut auto_refresh),
+            argument(&mut travelling),
+        ],
+    )?;
+    Ok(())
 }
 
 fn apply_layout_stage(
@@ -817,17 +848,19 @@ fn apply_layout_stage(
 
     if stage == LayoutExecutionStage::Prepare {
         validate_layout_positions(plan)?;
+        let neutral_crystals = clear_neutral_crystals(runtime)?;
         let current = require_match(runtime)?;
         validate_side_layout_catalog(runtime, &plan.blue)?;
-        clear_current_side(runtime, current)?;
+        clear_current_side(runtime, current, &plan.blue.constructions, false)?;
         switch_player(runtime, current)?;
         let red = (|| {
             validate_side_layout_catalog(runtime, &plan.red)?;
-            clear_current_side(runtime, current)
+            clear_current_side(runtime, current, &plan.red.constructions, true)
         })();
         if let Err(error) = red {
             return Err(restore_player_after_error(runtime, current, error));
         }
+        switch_player(runtime, current)?;
         return Ok(json!({
             "stage": "prepare",
             "round": expected_round,
@@ -835,34 +868,25 @@ fn apply_layout_stage(
             "formation_count": plan.formation_count(),
             "construction_count": plan.construction_count(),
             "contraption_count": plan.contraption_count(),
-            "cleared": {"cleared": true, "both_sides": true},
+            "cleared": {
+                "cleared": true,
+                "both_sides": true,
+                "constructions": "reconciled",
+                "neutral_crystals": neutral_crystals
+            },
         }));
     }
 
     let current = require_match(runtime)?;
-    let current_is_red = stage == LayoutExecutionStage::PreActivation || plan.round <= 2;
-    let (blue, red) = if current_is_red {
-        let red = match apply_side_layout_stage(runtime, current, &plan.red, true, stage) {
-            Ok(red) => red,
-            Err(error) => {
-                return Err(restore_player_after_error(runtime, current, error));
-            }
-        };
-        switch_player(runtime, current)?;
-        let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
-        (blue, red)
-    } else {
-        let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
-        switch_player(runtime, current)?;
-        let red = match apply_side_layout_stage(runtime, current, &plan.red, true, stage) {
-            Ok(red) => red,
-            Err(error) => {
-                return Err(restore_player_after_error(runtime, current, error));
-            }
-        };
-        switch_player(runtime, current)?;
-        (blue, red)
+    let blue = apply_side_layout_stage(runtime, current, &plan.blue, false, stage)?;
+    switch_player(runtime, current)?;
+    let red = match apply_side_layout_stage(runtime, current, &plan.red, true, stage) {
+        Ok(red) => red,
+        Err(error) => {
+            return Err(restore_player_after_error(runtime, current, error));
+        }
     };
+    switch_player(runtime, current)?;
 
     Ok(json!({
         "stage": match stage {
@@ -880,6 +904,86 @@ fn apply_layout_stage(
             "red": red
         }
     }))
+}
+
+// Remove Training Ground scene owners before the first fight, not agents inside
+// the RVO solver. Replay captures never execute this deployment path.
+fn clear_neutral_crystals(runtime: &Runtime) -> Result<Value, OperationError> {
+    require_layout_deployment(runtime, 1)?;
+    let api = runtime.api;
+    let system = find_match_module(
+        runtime,
+        runtime.current_fight(),
+        "GameRiver.Fight",
+        "BuildingSystem",
+    )?;
+    let buildings = api.invoke(system, "GetBuildings", &mut [])?;
+    let crystal_class = api.class("GRFight.dll", "GameRiver.Fight", "FightCrystal")?;
+    let team_field = api.field(crystal_class, "currentTeamController")?;
+    let origin_field = api.field(crystal_class, "originTeamController")?;
+    let count = list_count(api, buildings)?;
+    let mut targets = Vec::new();
+    let mut rvo_controller_count = 0;
+    for index in 0..count {
+        let crystal = list_item(api, buildings, index)?;
+        let team: *mut Object = api.field_value(crystal, team_field)?;
+        let origin: *mut Object = api.field_value(crystal, origin_field)?;
+        // The global scene list is expected to contain only plain neutral
+        // crystals. Reject mixed ownership before changing any object/index.
+        if api.object_class(crystal) != Some(crystal_class) || !team.is_null() || !origin.is_null()
+        {
+            return Err(OperationError::InvalidState(
+                "neutral crystal cleanup found a non-neutral or derived global building".into(),
+            ));
+        }
+        let controller = api.invoke(crystal, "GetRVOController", &mut [])?;
+        rvo_controller_count += usize::from(!controller.is_null());
+        targets.push((crystal, controller));
+    }
+    let system_class = api.object_class(system).ok_or_else(|| {
+        OperationError::InvalidState("BuildingSystem has no runtime class".into())
+    })?;
+    let mut indexes = Vec::new();
+    for name in ["collideController", "damageController", "quadtree"] {
+        let object: *mut Object = api.field_value(system, api.field(system_class, name)?)?;
+        if object.is_null() {
+            return Err(OperationError::InvalidState(format!(
+                "BuildingSystem.{name} is null"
+            )));
+        }
+        indexes.push(object);
+    }
+    for (crystal, controller) in targets {
+        api.invoke_void(crystal, "Deactive", &mut [])?;
+        let mut hidden = 3_i32; // build-2259 ActorVisibility.Hide
+        api.invoke_void(crystal, "SetVisibility", &mut [argument(&mut hidden)])?;
+        if !controller.is_null() {
+            let class = api.object_class(controller).ok_or_else(|| {
+                OperationError::InvalidState("crystal RVO controller has no class".into())
+            })?;
+            let agent: *mut Object =
+                api.field_value(controller, api.field(class, "<rvoAgent>k__BackingField")?)?;
+            if !agent.is_null() || api.invoke_value::<bool>(controller, "IsActive", &mut [])? {
+                return Err(OperationError::InvalidState(
+                    "neutral crystal RVO remains active".into(),
+                ));
+            }
+        }
+    }
+    // Native Clear also unregisters BuildingFunctionController destruction
+    // listeners. All owners were checked above, so no team index is cleared.
+    for index in indexes {
+        api.invoke_void(index, "Clear", &mut [])?;
+    }
+    api.invoke_void(buildings, "Clear", &mut [])?;
+    if list_count(api, api.invoke(system, "GetBuildings", &mut [])?)? != 0 {
+        return Err(OperationError::InvalidState(
+            "neutral crystal owners remain registered".into(),
+        ));
+    }
+    Ok(
+        json!({"removed_count": count, "remaining_count": 0, "rvo_controller_count": rvo_controller_count}),
+    )
 }
 
 fn switch_player(runtime: &Runtime, current: *mut Object) -> Result<(), OperationError> {
@@ -1734,27 +1838,34 @@ fn apply_formations(
     rotate_to_world: bool,
     stage: PlacementStage,
 ) -> Result<Vec<Value>, OperationError> {
-    placements
-        .iter()
-        .filter(|placement| placement.stage == stage)
-        .map(|placement| apply_formation(runtime, placement, rotate_to_world))
-        .collect::<Result<Vec<Value>, OperationError>>()
-        .map_err(|error| {
-            error.context(if rotate_to_world {
-                "apply red side"
-            } else {
-                "apply blue side"
-            })
+    let result: Result<Vec<Value>, OperationError> = (|| -> Result<Vec<Value>, OperationError> {
+        let mut applied = Vec::new();
+        for placement in placements
+            .iter()
+            .filter(|placement| placement.stage == stage)
+        {
+            // MAD_AddUnit.UIDX assigns the requested index directly. Missing
+            // indices do not create temporary units or native RVO agents.
+            applied.push(apply_formation(runtime, placement, rotate_to_world)?);
+        }
+        Ok(applied)
+    })()
+    .map_err(|error| {
+        error.context(if rotate_to_world {
+            "apply red side"
+        } else {
+            "apply blue side"
         })
-        .and_then(|formations| {
-            if runtime.current_match() == current {
-                Ok(formations)
-            } else {
-                Err(OperationError::InvalidState(
-                    "active match changed while applying layout".into(),
-                ))
-            }
-        })
+    });
+    result.and_then(|formations| {
+        if runtime.current_match() == current {
+            Ok(formations)
+        } else {
+            Err(OperationError::InvalidState(
+                "active match changed while applying layout".into(),
+            ))
+        }
+    })
 }
 
 fn apply_formation(
@@ -1788,10 +1899,57 @@ fn apply_unit_formation(
             describe_placement(placement)
         ))
     })?;
-    let unit_index = add_unit(runtime, unit_id, level, world_position, placement.rotated)
-        .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
-    let readback = unit_status(runtime, unit_index)
+    let unit_index = placement.index.ok_or_else(|| {
+        OperationError::InvalidState(format!(
+            "{} has no stable unit index",
+            describe_placement(placement)
+        ))
+    })?;
+    let exp = placement.exp.ok_or_else(|| {
+        OperationError::InvalidState(format!(
+            "{} has no unit experience",
+            describe_placement(placement)
+        ))
+    })?;
+    let created_index = add_unit(
+        runtime,
+        unit_id,
+        level,
+        unit_index,
+        world_position,
+        placement.rotated,
+    )
+    .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
+    if created_index != unit_index {
+        return Err(OperationError::Rejected(format!(
+            "{} requested unit index {unit_index}, created {created_index}",
+            describe_placement(placement)
+        )));
+    }
+    let mut readback = unit_status(runtime, unit_index)
         .map_err(|error| error.context(&format!("read {}", describe_placement(placement))))?;
+    let mut changed = false;
+    if readback.travelling != placement.travelling {
+        set_unit_travelling(runtime, unit_index, world_position, placement.travelling).map_err(
+            |error| {
+                error.context(&format!(
+                    "set travelling for {}",
+                    describe_placement(placement)
+                ))
+            },
+        )?;
+        changed = true;
+    }
+    if readback.exp != exp {
+        set_unit_exp(runtime, unit_index, exp).map_err(|error| {
+            error.context(&format!("set exp for {}", describe_placement(placement)))
+        })?;
+        changed = true;
+    }
+    if changed {
+        readback = unit_status(runtime, unit_index)
+            .map_err(|error| error.context(&format!("read {}", describe_placement(placement))))?;
+    }
     verify_unit_readback(placement, unit_id, level, world_position, &readback)?;
     if let Some(equipment_id) = placement.equipment {
         add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
@@ -1807,9 +1965,11 @@ fn apply_unit_formation(
         "type": placement.type_name,
         "unit_index": unit_index,
         "level": level,
+        "exp": readback.exp,
         "x": placement.position.x,
         "y": placement.position.y,
         "rotated": placement.rotated,
+        "travelling": readback.travelling,
         "equipment": placement.equipment
     }))
 }
@@ -1820,13 +1980,49 @@ fn apply_construction_formation(
     construction_id: i32,
     world_position: MapVector,
 ) -> Result<Value, OperationError> {
-    let construction_index = construction(runtime, construction_id, world_position)
-        .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
+    let current = require_training_deploying(runtime)?;
+    let controller = player_controller(runtime, current)?;
+    let manager = runtime
+        .api
+        .invoke(controller, "GetConstructionManager", &mut [])?;
+    let elements = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let mut retained_index = None;
+    for offset in 0..list_count(runtime.api, elements)? {
+        let element = list_item(runtime.api, elements, offset)?;
+        let data = runtime
+            .api
+            .invoke(element, "GetConstructionData", &mut [])?;
+        let id = runtime.api.invoke_value::<i32>(data, "GetID", &mut [])?;
+        let position = runtime
+            .api
+            .invoke_value::<MapVector>(element, "GetPosition", &mut [])?;
+        if id == construction_id && position == world_position {
+            let index = runtime.api.invoke_value::<i32>(
+                manager,
+                "GetConstructionIndex",
+                &mut [object_argument(element)],
+            )?;
+            if index < 0 || retained_index.replace(index).is_some() {
+                return Err(OperationError::Rejected(
+                    "ambiguous retained construction".into(),
+                ));
+            }
+        }
+    }
+    let retained = retained_index.is_some();
+    let construction_index = match retained_index {
+        Some(index) => index,
+        None => construction(runtime, construction_id, world_position)
+            .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?,
+    };
     Ok(json!({
         "type": placement.type_name,
         "construction_index": construction_index,
         "x": placement.position.x,
-        "y": placement.position.y
+        "y": placement.position.y,
+        "retained": retained
     }))
 }
 
@@ -1903,8 +2099,10 @@ fn verify_unit_readback(
 ) -> Result<(), OperationError> {
     let matches = readback.id == unit_id
         && readback.level == level - 1
+        && readback.exp == placement.exp.unwrap_or(0)
         && readback.position == world_position
-        && readback.rotated == placement.rotated;
+        && readback.rotated == placement.rotated
+        && readback.travelling == placement.travelling;
     if matches {
         Ok(())
     } else {
@@ -1984,6 +2182,10 @@ fn unit_status(runtime: &Runtime, mut unit_index: i32) -> Result<UnitReadback, O
     let (_manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
     let id = runtime.api.invoke_value::<i32>(unit, "GetID", &mut [])?;
     let level = runtime.api.invoke_value::<i32>(unit, "GetLevel", &mut [])?;
+    let mech_team = runtime.api.invoke(unit, "GetMechTeam", &mut [])?;
+    let exp = runtime
+        .api
+        .invoke_value::<i32>(mech_team, "GetExpInt", &mut [])?;
     let element = runtime.api.invoke(unit, "GetMapElement", &mut [])?;
     let position = runtime
         .api
@@ -1991,19 +2193,80 @@ fn unit_status(runtime: &Runtime, mut unit_index: i32) -> Result<UnitReadback, O
     let rotated = runtime
         .api
         .invoke_value::<bool>(element, "IsRotate", &mut [])?;
+    let super_deployment =
+        find_match_module(runtime, current, "GameRiver", "SuperDeploymentSystem")?;
+    let travelling = runtime.api.invoke_value::<bool>(
+        super_deployment,
+        "IsTravellingUnit",
+        &mut [object_argument(unit)],
+    )?;
     Ok(UnitReadback {
         id,
         level,
+        exp,
         position,
         rotated,
+        travelling,
     })
 }
 
-fn clear_current_side(runtime: &Runtime, current: *mut Object) -> Result<(), OperationError> {
+fn set_unit_exp(
+    runtime: &Runtime,
+    mut unit_index: i32,
+    mut exp: i32,
+) -> Result<(), OperationError> {
+    let current = require_match(runtime)?;
+    let controller = player_controller(runtime, current)?;
+    let (_manager, unit) = find_unit(runtime, controller, &mut unit_index)?;
+    let mech_team = runtime.api.invoke(unit, "GetMechTeam", &mut [])?;
+    runtime
+        .api
+        .invoke_void(mech_team, "SetExpInt", &mut [argument(&mut exp)])?;
+    Ok(())
+}
+
+fn find_match_module(
+    runtime: &Runtime,
+    current: *mut Object,
+    namespace: &str,
+    name: &str,
+) -> Result<*mut Object, OperationError> {
+    let modules = runtime.api.invoke(current, "GetModules", &mut [])?;
+    let mut found: *mut Object = std::ptr::null_mut();
+    for index in 0..list_count(runtime.api, modules)? {
+        let module = list_item(runtime.api, modules, index)?;
+        let class = runtime.api.object_class(module).ok_or_else(|| {
+            OperationError::InvalidState("match module has no runtime class".into())
+        })?;
+        if runtime.api.class_namespace(class) != namespace || runtime.api.class_name(class) != name
+        {
+            continue;
+        }
+        if !found.is_null() {
+            return Err(OperationError::InvalidState(format!(
+                "duplicate match module {namespace}.{name}"
+            )));
+        }
+        found = module;
+    }
+    if found.is_null() {
+        Err(OperationError::InvalidState(format!(
+            "match module {namespace}.{name} is absent"
+        )))
+    } else {
+        Ok(found)
+    }
+}
+
+fn clear_current_side(
+    runtime: &Runtime,
+    current: *mut Object,
+    desired_constructions: &[Placement],
+    rotate_to_world: bool,
+) -> Result<(), OperationError> {
     let controller = player_controller(runtime, current)?;
     for class in [
         "MAD_ClearUnit",
-        "MAD_ClearConstruction",
         "MAD_ClearContraptionEffect",
         "MAD_ClearEquipment",
         "MAD_ClearCommanderSkillEffect",
@@ -2024,25 +2287,83 @@ fn clear_current_side(runtime: &Runtime, current: *mut Object) -> Result<(), Ope
         .map_err(|error| OperationError::from(error).context("configure MAD_ClearOfficer"))?;
     perform_test(runtime.api, current, officer)
         .map_err(|error| error.context("perform MAD_ClearOfficer"))?;
-    let construction_manager = runtime
+    reconcile_opening_constructions(runtime, controller, desired_constructions, rotate_to_world)
+}
+
+fn reconcile_opening_constructions(
+    runtime: &Runtime,
+    controller: *mut Object,
+    desired: &[Placement],
+    rotate_to_world: bool,
+) -> Result<(), OperationError> {
+    let manager = runtime
         .api
         .invoke(controller, "GetConstructionManager", &mut [])?;
-    if construction_manager.is_null() {
+    if manager.is_null() {
         return Err(OperationError::InvalidState(
-            "ConstructionManager is unavailable after clearing".into(),
+            "ConstructionManager is unavailable while reconciling opening state".into(),
         ));
     }
-    let constructions =
-        runtime
+    let elements = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let mut existing = Vec::new();
+    for list_index in 0..list_count(runtime.api, elements)? {
+        let element = list_item(runtime.api, elements, list_index)?;
+        let index = runtime.api.invoke_value::<i32>(
+            manager,
+            "GetConstructionIndex",
+            &mut [object_argument(element)],
+        )?;
+        if index < 0 || existing.iter().any(|(seen, _, _)| *seen == index) {
+            return Err(OperationError::Rejected(format!(
+                "opening construction index {index} is invalid or duplicated"
+            )));
+        }
+        let data = runtime
             .api
-            .invoke(construction_manager, "GetConstructionElements", &mut [])?;
-    let construction_count =
-        runtime
+            .invoke(element, "GetConstructionData", &mut [])?;
+        let id = runtime.api.invoke_value::<i32>(data, "GetID", &mut [])?;
+        let position = runtime
             .api
-            .invoke_value::<i32>(constructions, "get_Count", &mut [])?;
-    if construction_count != 0 {
+            .invoke_value::<MapVector>(element, "GetPosition", &mut [])?;
+        existing.push((index, id, position));
+    }
+    existing.sort_by_key(|(index, _, _)| *index);
+
+    let desired = desired
+        .iter()
+        .map(|placement| {
+            let NativeFormation::Construction(id) = placement.native else {
+                return Err(OperationError::InvalidState(
+                    "expected construction placement".into(),
+                ));
+            };
+            Ok((id, layout_world_position(placement, rotate_to_world)?))
+        })
+        .collect::<Result<Vec<_>, OperationError>>()?;
+    let mut retained = 0_i32;
+    for (index, id, position) in existing {
+        if desired.contains(&(id, position)) {
+            retained += 1;
+        } else {
+            remove_construction(runtime, index).map_err(|error| {
+                error.context(&format!(
+                    "remove unmatched opening construction index {index}"
+                ))
+            })?;
+        }
+    }
+
+    let remaining = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let remaining_count = runtime
+        .api
+        .invoke_value::<i32>(remaining, "get_Count", &mut [])?;
+    if remaining_count != retained {
         return Err(OperationError::Rejected(format!(
-            "construction clear left {construction_count} elements"
+            "opening construction reconciliation retained {remaining_count}, expected {retained}"
         )));
     }
     Ok(())
@@ -2635,6 +2956,47 @@ fn verify_construction_readback(
     }
 }
 
+fn remove_construction(
+    runtime: &Runtime,
+    mut construction_index: i32,
+) -> Result<(), OperationError> {
+    let current = require_match(runtime)?;
+    let controller = player_controller(runtime, current)?;
+    let manager = runtime
+        .api
+        .invoke(controller, "GetConstructionManager", &mut [])?;
+    let before_elements = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let before_count = runtime
+        .api
+        .invoke_value::<i32>(before_elements, "get_Count", &mut [])?;
+    let action = new_player_test_action(runtime.api, "MAD_RemoveConstruction", controller)?;
+    runtime
+        .api
+        .invoke_void(action, "set_IDX", &mut [argument(&mut construction_index)])?;
+    perform_test(runtime.api, current, action)?;
+
+    let mut removed: *mut Object = std::ptr::null_mut();
+    let found = runtime.api.invoke_value::<bool>(
+        manager,
+        "TryGetConstructionElement",
+        &mut [argument(&mut construction_index), argument(&mut removed)],
+    )?;
+    let after_elements = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let after_count = runtime
+        .api
+        .invoke_value::<i32>(after_elements, "get_Count", &mut [])?;
+    if found || !removed.is_null() || after_count != before_count - 1 {
+        return Err(OperationError::Rejected(format!(
+            "removed construction index {construction_index} remains deployed"
+        )));
+    }
+    Ok(())
+}
+
 fn release_battle_skill(
     runtime: &Runtime,
     mut id: i32,
@@ -2869,7 +3231,9 @@ mod tests {
                 x: i32::MIN,
                 y: -50,
             },
+            index: Some(0),
             level: Some(1),
+            exp: Some(0),
             rotated: false,
             equipment: None,
             travelling: false,

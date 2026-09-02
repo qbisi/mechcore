@@ -68,7 +68,7 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
     let report: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
     assert_eq!(report["schema"], "mechcore.simulation-result.v2");
     assert!(report.get("output").is_none());
-    assert!(report["hashes"]["scenario_hash"].is_string());
+    assert!(report["hashes"].get("scenario_hash").is_none());
     assert!(report["hashes"]["result_hash"].is_string());
     assert!(report["teams"].is_array());
     assert!(report["profiling"]["generation_duration_milliseconds"].is_number());
@@ -111,9 +111,6 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
         recording.layout_yaml(),
     )
     .unwrap();
-    writer
-        .set_initial_state(recording.state(0).unwrap())
-        .unwrap();
     for tick in 1..=recording.tick_count() {
         let mut slice = recording.tick(tick).unwrap();
         if tick == 1 {
@@ -122,10 +119,6 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
         writer.append_tick(slice.state, &slice.events).unwrap();
     }
     let divergent_hashes = writer.finish().unwrap();
-    assert_eq!(
-        divergent_hashes.scenario_hash,
-        recording.hashes().scenario_hash
-    );
     assert_ne!(divergent_hashes.result_hash, recording.hashes().result_hash);
 
     drop(recording);
