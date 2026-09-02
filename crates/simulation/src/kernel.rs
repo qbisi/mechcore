@@ -1086,7 +1086,10 @@ struct Simulation {
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     identities: IdentityAllocator,
     rvo_counter: u8,
-    rvo_solver_started: bool,
+    // Native Agent::.ctor stores its initial position in the public backing
+    // buffer. The internal position read by the first BuildQuadtree remains
+    // zero until the subsequent BufferSwitch.
+    rvo_first_tree_pending: bool,
     terminal_drain_pending: bool,
     late_building_events_pending: bool,
 }
@@ -1158,7 +1161,7 @@ impl Simulation {
             target_quadtrees,
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
-            rvo_solver_started: false,
+            rvo_first_tree_pending: true,
             terminal_drain_pending: false,
             late_building_events_pending: false,
         })
@@ -3222,6 +3225,7 @@ impl Simulation {
             return Ok(());
         }
         self.rvo_counter = 0;
+        let first_tree = self.rvo_first_tree_pending;
         for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
             if actor.rvo_stopped_snap_since_boundary
                 && actor.motion == MotionState::Moving
@@ -3242,19 +3246,6 @@ impl Simulation {
                 );
         }
 
-        // Native's first four-tick boundary only primes the double buffer.
-        // The first sampled-RVO solve occurs after that straight desired
-        // publication, and its result becomes visible four ticks later.
-        if !self.rvo_solver_started {
-            for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
-                actor.solver_target_x_q32 = actor.next_target_x_q32;
-                actor.solver_target_z_q32 = actor.next_target_z_q32;
-                actor.solver_speed_q32 = actor.next_speed_q32;
-            }
-            self.rvo_solver_started = true;
-            return Ok(());
-        }
-
         let mut agents = Vec::new();
         let (tower_layer, tower_collides_with) =
             immovable_rvo_collision_masks(CORE_TOWER_RVO_COLLIDER_PRIORITY);
@@ -3270,7 +3261,11 @@ impl Simulation {
                 collides_with: tower_collides_with,
                 group: i32::try_from(building.team_id).unwrap_or(i32::MAX),
                 locked: true,
-                tree_position: rvo_position(building.position.x, building.position.z),
+                tree_position: if first_tree {
+                    FixedVec2::ZERO
+                } else {
+                    rvo_position(building.position.x, building.position.z)
+                },
                 position: rvo_position(building.position.x, building.position.z),
                 current_velocity: FixedVec2::ZERO,
                 desired_velocity: FixedVec2::ZERO,
@@ -3303,7 +3298,11 @@ impl Simulation {
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
                 locked: false,
-                tree_position: rvo_position(actor.rvo_tree_x_q32, actor.rvo_tree_z_q32),
+                tree_position: if first_tree {
+                    FixedVec2::ZERO
+                } else {
+                    rvo_position(actor.rvo_tree_x_q32, actor.rvo_tree_z_q32)
+                },
                 position: rvo_position(actor.x_q32, actor.z_q32),
                 current_velocity: FixedVec2 {
                     x: actor.current_velocity_x_q32,
@@ -3326,6 +3325,7 @@ impl Simulation {
 
         let inverse_delta_time = q32_div(Q32_ONE, NATIVE_LOGIC_DELTA_Q32.saturating_mul(4));
         let solutions = crate::rvo::solve_agents(&agents, inverse_delta_time);
+        self.rvo_first_tree_pending = false;
         for (&actor_id, actor) in self.actors.iter_mut().filter(|(_, actor)| actor.alive()) {
             let solution = solutions
                 .get(&RvoAgentKey::Unit(actor_id))
@@ -5244,7 +5244,7 @@ mod tests {
             target_quadtrees,
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
-            rvo_solver_started: false,
+            rvo_first_tree_pending: true,
             terminal_drain_pending: false,
             late_building_events_pending: false,
         }
@@ -5466,7 +5466,7 @@ mod tests {
                 target_quadtrees,
                 identities: IdentityAllocator::new(),
                 rvo_counter: 0,
-                rvo_solver_started: false,
+                rvo_first_tree_pending: true,
                 terminal_drain_pending: false,
                 late_building_events_pending: false,
             }
@@ -5618,7 +5618,7 @@ mod tests {
             target_quadtrees,
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
-            rvo_solver_started: false,
+            rvo_first_tree_pending: true,
             terminal_drain_pending: false,
             late_building_events_pending: false,
         };
@@ -7073,7 +7073,6 @@ mod tests {
         source.next_target_z_q32 = target_position.1;
         source.next_speed_q32 = space_to_q32(source.rules.move_speed());
         source.next_max_speed_q32 = source.next_speed_q32;
-        simulation.rvo_solver_started = true;
         simulation.rvo_counter = 3;
         simulation.step_rvo().unwrap();
         assert!(simulation.actors[&1].solver_speed_q32 > 0);
@@ -7132,7 +7131,6 @@ mod tests {
         source.next_target_z_q32 = target_position.1;
         source.next_speed_q32 = space_to_q32(source.rules.move_speed());
         source.next_max_speed_q32 = source.next_speed_q32;
-        simulation.rvo_solver_started = true;
         simulation.rvo_counter = 3;
         simulation.step_rvo().unwrap();
         assert!(simulation.actors[&1].solver_speed_q32 > 0);
@@ -7821,7 +7819,6 @@ mod tests {
         actor.solver_target_x_q32 = 1_717_060_204_994;
         actor.solver_target_z_q32 = 1_696_431_970_300;
         actor.solver_speed_q32 = 0;
-        simulation.rvo_solver_started = true;
         simulation.rvo_counter = 3;
 
         simulation.step_rvo().unwrap();
@@ -8042,6 +8039,66 @@ mod tests {
                 assert_ne!(arclight.body_rotation, initial.body_rotation);
             }
         }
+    }
+
+    #[test]
+    fn first_rvo_solve_avoids_same_formation_at_tick_eight() {
+        let config = SimulationConfig::load(None).unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/layouts/steel-balls-vs-steel-balls.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_831_322,
+        )
+        .unwrap();
+
+        for step in 0..8 {
+            simulation.step(step).unwrap();
+        }
+
+        assert_eq!(
+            snapshot_velocity_q32(&simulation.actors[&1]),
+            (-3_142_838_517, 68_510_718_647)
+        );
+        assert_eq!(
+            snapshot_velocity_q32(&simulation.actors[&2]),
+            (-1_768_777_992, 61_456_524_119)
+        );
+        assert_eq!(
+            snapshot_velocity_q32(&simulation.actors[&3]),
+            (2_054_176_502, 68_688_002_951)
+        );
+    }
+
+    #[test]
+    fn first_split_rvo_tree_uses_the_zero_position_buffer() {
+        let config = SimulationConfig::load(None).unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/layouts/rhino-vs-crawlers.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation = Simulation::new(
+            &layout,
+            &config.units,
+            &config.training_ground,
+            1_787_748_319,
+        )
+        .unwrap();
+
+        for step in 0..8 {
+            simulation.step(step).unwrap();
+        }
+
+        assert_eq!(
+            snapshot_velocity_q32(&simulation.actors[&11]),
+            (10_146_579_184, -67_965_446_880)
+        );
     }
 
     #[test]

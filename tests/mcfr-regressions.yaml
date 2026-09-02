@@ -506,10 +506,10 @@
   smoke: true
   layout: tests/layouts/steel-balls-vs-steel-balls.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.2.0
   seed: 1787831322
-  tick_count: 302
-  result_hash: cdea90ec7e19e936d0a37dfc08fdd4a11e97927e1240a4d6edfac971f8b5bc01
+  tick_count: 300
+  result_hash: 018285974b426cab6ad86fe000643632652e39684daf85850b28525f98fef34a
 
 - name: crawler-vs-rotated-01
   smoke: true
