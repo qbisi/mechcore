@@ -14,7 +14,7 @@ struct NativeRegression {
     format: String,
     seed: i32,
     tick_count: u32,
-    result_hash: String,
+    physics_result_hash: String,
 }
 
 fn repository() -> PathBuf {
@@ -320,7 +320,10 @@ fn assert_native_regression_hashes(regressions: impl IntoIterator<Item = NativeR
         let name = regression.name.as_str();
         let result =
             simulate_layout(regression_layout(&regression), None, Some(regression.seed)).unwrap();
-        assert_eq!(result.hashes.result_hash, regression.result_hash, "{name}");
+        assert_eq!(
+            result.hashes.physics_result_hash, regression.physics_result_hash,
+            "{name}"
+        );
     }
 }
 

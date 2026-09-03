@@ -86,13 +86,22 @@ impl McfrReader {
         self.storage.member_sizes()
     }
 
-    /// Returns one tick hash as canonical lowercase hexadecimal.
+    /// Returns one stable battle-physics tick hash as canonical lowercase hexadecimal.
     ///
     /// # Errors
     ///
     /// Returns an error when `tick` is out of range.
-    pub fn tick_hash(&self, tick: u32) -> Result<String> {
-        Ok(canonical::hex(&self.storage.tick_hash(tick)?))
+    pub fn physics_tick_hash(&self, tick: u32) -> Result<String> {
+        Ok(canonical::hex(&self.storage.physics_tick_hash(tick)?))
+    }
+
+    /// Returns one format-scoped complete-content tick hash as canonical lowercase hexadecimal.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `tick` is out of range.
+    pub fn content_tick_hash(&self, tick: u32) -> Result<String> {
+        Ok(canonical::hex(&self.storage.content_tick_hash(tick)?))
     }
 
     /// Reads one authoritative snapshot.
@@ -134,11 +143,12 @@ impl McfrReader {
             tick,
             state: self.state(tick)?,
             events: self.events(tick)?,
-            tick_hash: self.tick_hash(tick)?,
+            physics_tick_hash: self.physics_tick_hash(tick)?,
+            content_tick_hash: self.content_tick_hash(tick)?,
         })
     }
 
-    /// Returns the first unequal tick hash. A prefix-only length difference
+    /// Returns the first unequal stable battle-physics tick hash. A prefix-only length difference
     /// diverges at the first missing tick.
     ///
     /// # Errors
@@ -147,9 +157,9 @@ impl McfrReader {
     pub fn first_divergence(&self, other: &Self) -> Result<Option<u32>> {
         for (index, (left, right)) in self
             .storage
-            .tick_hashes()
+            .physics_tick_hashes()
             .iter()
-            .zip(other.storage.tick_hashes())
+            .zip(other.storage.physics_tick_hashes())
             .enumerate()
         {
             if left != right {

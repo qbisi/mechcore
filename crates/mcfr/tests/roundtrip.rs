@@ -2,14 +2,15 @@ use std::io::{Read, Write};
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
-    InstrumentationReader, InstrumentationRecord, InstrumentationSink, InstrumentationWriter,
-    LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, QVec3, RateModifier, Rational, ShieldDestroyedReason, ShieldRoundPolicy,
-    ShieldSourceKind, ShieldState, SkillDynamicModifierSet, SkillNumericModifierState,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitDynamicModifierSet,
-    Visibility, WeaponAimState, WorldSnapshot,
+    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, Domain, DurableContext, Event,
+    EventPayload, GaugeI32, Hashes, InstrumentationReader, InstrumentationRecord,
+    InstrumentationSink, InstrumentationWriter, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
+    MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, QVec3,
+    RateModifier, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
+    ShieldState, SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
+    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
+    TerrainType, TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState,
+    WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -17,7 +18,7 @@ use serde_json::json;
 const LAYOUT_YAML: &str = "seed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
 
 #[test]
-fn writes_and_reads_v5_tracks() {
+fn writes_and_reads_v6_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
     let initial = state(100);
@@ -33,7 +34,7 @@ fn writes_and_reads_v5_tracks() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.2.0");
+    assert_eq!(MCFR_FORMAT, "0.3.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -88,6 +89,23 @@ fn writes_and_reads_v5_tracks() {
                     "time_units_per_second": 10
                 })
             );
+            assert_eq!(
+                metadata.get("physics_hash_profile").map(String::as_str),
+                Some(PHYSICS_HASH_PROFILE)
+            );
+            assert_eq!(
+                metadata.get("content_hash_profile").map(String::as_str),
+                Some(CONTENT_HASH_PROFILE)
+            );
+            assert_eq!(
+                metadata.get("physics_result_hash"),
+                Some(&hashes.physics_result_hash)
+            );
+            assert_eq!(
+                metadata.get("content_result_hash"),
+                Some(&hashes.content_result_hash)
+            );
+            assert!(!metadata.contains_key("result_hash"));
             assert!(!metadata.contains_key("scenario_hash"));
         } else if name == "buildings.parquet" {
             let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
@@ -158,8 +176,12 @@ fn reader_open_and_comparison_trust_persisted_hashes() {
     assert_ne!(original.events(1).unwrap(), changed.events(1).unwrap());
     assert_eq!(original.hashes(), changed.hashes());
     assert_eq!(
-        original.tick_hash(1).unwrap(),
-        changed.tick_hash(1).unwrap()
+        original.physics_tick_hash(1).unwrap(),
+        changed.physics_tick_hash(1).unwrap()
+    );
+    assert_eq!(
+        original.content_tick_hash(1).unwrap(),
+        changed.content_tick_hash(1).unwrap()
     );
     assert_eq!(original.first_divergence(&changed).unwrap(), None);
 }
@@ -201,6 +223,144 @@ fn game_build_metadata_does_not_change_result_hashes() {
         &events,
     );
     assert_eq!(left, right);
+}
+
+#[test]
+fn physics_hash_ignores_nonphysical_details_while_content_hash_detects_them() {
+    let events = damage_events();
+    let baseline = hash_tick(&context(), state(75), &events);
+    let mut changed = state(75);
+    changed.live_units[0].motion_state = MotionState::Attacking;
+    changed.live_units[0].mech_lock_target = Some(ObjectRef::new(ObjectKind::Unit, 2));
+    changed.live_units[0].status_mask = 1;
+    changed.live_units[0].unit_dynamic_modifiers.gf_range_value += 1;
+    changed.live_units[0].weapon_aims[0].attack_target = Some(ObjectRef::new(ObjectKind::Unit, 2));
+    let changed = hash_tick(&context(), changed, &events);
+    assert_eq!(baseline.physics_result_hash, changed.physics_result_hash);
+    assert_ne!(baseline.content_result_hash, changed.content_result_hash);
+}
+
+#[test]
+fn battle_physics_v1_has_a_golden_result_hash() {
+    let hashes = hash_tick(&context(), state(75), &damage_events());
+    assert_eq!(
+        hashes.physics_result_hash,
+        "40efd7bd0c03b9430a9d2f3b868260e123ee67003c63c24cc6044fe837e348b4"
+    );
+}
+
+#[test]
+fn physics_hash_is_sensitive_to_time_motion_vitals_and_damage() {
+    let baseline_state = state(75);
+    let baseline_events = damage_events();
+    let baseline = hash_tick(&context(), baseline_state.clone(), &baseline_events);
+
+    for mutate in [
+        |state: &mut WorldSnapshot| state.live_units[0].position.x += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].body_rotation += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].velocity.z += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].life.current -= 1,
+    ] {
+        let mut changed = baseline_state.clone();
+        mutate(&mut changed);
+        assert_ne!(
+            baseline.physics_result_hash,
+            hash_tick(&context(), changed, &baseline_events).physics_result_hash
+        );
+    }
+
+    let mut changed_events = baseline_events.clone();
+    changed_events.events[0].payload = EventPayload::Damage { amount: 24 };
+    assert_ne!(
+        baseline.physics_result_hash,
+        hash_tick(&context(), baseline_state.clone(), &changed_events).physics_result_hash
+    );
+
+    let mut changed_context = context();
+    changed_context.logic_step = Rational {
+        numerator: 1,
+        denominator: 20,
+    };
+    let changed = hash_tick(&changed_context, baseline_state, &baseline_events);
+    assert_ne!(baseline.physics_result_hash, changed.physics_result_hash);
+    assert_eq!(baseline.content_result_hash, changed.content_result_hash);
+}
+
+#[test]
+fn physics_angles_are_normalized_without_weakening_content_hashes() {
+    let baseline = hash_tick(&context(), state(75), &damage_events());
+    let mut equivalent = state(75);
+    equivalent.live_units[0].body_rotation = 360_i64 << 32;
+    let equivalent = hash_tick(&context(), equivalent, &damage_events());
+    assert_eq!(baseline.physics_result_hash, equivalent.physics_result_hash);
+    assert_ne!(baseline.content_result_hash, equivalent.content_result_hash);
+}
+
+#[test]
+fn physics_time_ratio_is_reduced_to_a_canonical_value() {
+    let baseline = hash_tick(&context(), state(75), &damage_events());
+    let mut equivalent_context = context();
+    equivalent_context.logic_step = Rational {
+        numerator: 2,
+        denominator: 20,
+    };
+    let equivalent = hash_tick(&equivalent_context, state(75), &damage_events());
+    assert_eq!(baseline.physics_result_hash, equivalent.physics_result_hash);
+    assert_eq!(baseline.content_result_hash, equivalent.content_result_hash);
+}
+
+#[test]
+fn physics_hash_preserves_native_event_order() {
+    let mut ordered = damage_events();
+    ordered.events.push(Event {
+        subject: None,
+        source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
+        source_team_id: Some(1),
+        target: Some(ObjectRef::new(ObjectKind::Unit, 1)),
+        payload: EventPayload::Healing { amount: 10 },
+    });
+    let baseline = hash_tick(&context(), state(75), &ordered);
+    ordered.events.reverse();
+    let reversed = hash_tick(&context(), state(75), &ordered);
+    assert_ne!(baseline.physics_result_hash, reversed.physics_result_hash);
+    assert_ne!(baseline.content_result_hash, reversed.content_result_hash);
+}
+
+#[test]
+fn physics_hash_ignores_event_provenance_annotations() {
+    let event = Event {
+        subject: Some(ObjectRef::new(ObjectKind::Shield, 2)),
+        source: None,
+        source_team_id: None,
+        target: None,
+        payload: EventPayload::ShieldCreated {
+            team_id: 2,
+            source_kind: ShieldSourceKind::CommanderSkill,
+            position: QVec3 { x: 7, y: 8, z: 9 },
+        },
+    };
+    let baseline = hash_tick(
+        &context(),
+        state(75),
+        &TransitionEvents {
+            events: vec![event.clone()],
+        },
+    );
+    let mut changed = event;
+    changed.payload = EventPayload::ShieldCreated {
+        team_id: 2,
+        source_kind: ShieldSourceKind::SpawnedTemporary,
+        position: QVec3 { x: 7, y: 8, z: 9 },
+    };
+    let changed = hash_tick(
+        &context(),
+        state(75),
+        &TransitionEvents {
+            events: vec![changed],
+        },
+    );
+    assert_eq!(baseline.physics_result_hash, changed.physics_result_hash);
+    assert_ne!(baseline.content_result_hash, changed.content_result_hash);
 }
 
 #[test]
@@ -476,9 +636,13 @@ fn instrumentation_sidecar_supports_json_and_binary_channels() {
         &damage_events(),
     );
     let sidecar = directory.path().join("battle.targeting.mcfr-i");
-    let mut writer =
-        InstrumentationWriter::create(&sidecar, &hashes.result_hash, "targeting-v1", "adapter")
-            .unwrap();
+    let mut writer = InstrumentationWriter::create(
+        &sidecar,
+        &hashes.physics_result_hash,
+        "targeting-v1",
+        "adapter",
+    )
+    .unwrap();
     writer
         .record_json(0, "target_candidates", &json!({"ids": [2, 1]}))
         .unwrap();
@@ -493,7 +657,7 @@ fn instrumentation_sidecar_supports_json_and_binary_channels() {
     writer.finish().unwrap();
 
     let reader = InstrumentationReader::open(&sidecar).unwrap();
-    assert_eq!(reader.result_hash(), hashes.result_hash);
+    assert_eq!(reader.physics_result_hash(), hashes.physics_result_hash);
     assert_eq!(reader.len(), 2);
     assert_eq!(reader.entry(1).unwrap().payload, [1, 2, 3, 4]);
 }
@@ -508,6 +672,12 @@ fn write_battle(
 ) -> Hashes {
     let mut writer = McfrWriter::create(path, game_build, context, LAYOUT_YAML).unwrap();
     writer.append_tick(final_state, events).unwrap();
+    writer.finish().unwrap()
+}
+
+fn hash_tick(context: &DurableContext, state: WorldSnapshot, events: &TransitionEvents) -> Hashes {
+    let mut writer = McfrWriter::hash_only(context).unwrap();
+    writer.append_tick(state, events).unwrap();
     writer.finish().unwrap()
 }
 

@@ -2,718 +2,718 @@
   smoke: true
   layout: tests/layouts/marksman-vs-arclight.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787720817
   tick_count: 91
-  result_hash: 3b414561d10e2221bd5dc720e9812d7fbaffd6c9e2137828e577de6551ab0540
+  physics_result_hash: d9f9fa3a648ef2630baa1b5f2b7a4aab1208230939cac204ac535c5f0115dbaa
 
 - name: rhino-vs-arclight
   smoke: true
   layout: tests/layouts/rhino-vs-arclight.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787720897
   tick_count: 235
-  result_hash: e886185705d1dc06366734888af4e5c7a5daf7caaa3546c3115f86b85729af0a
+  physics_result_hash: 413f804cbd6efbc465ee5644f8d5d4a317e45a3644cfbae4616e5a22aea03239
 
 - name: rhino-retarget
   smoke: true
   layout: tests/layouts/rhino-retarget-vs-arclights.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787720956
   tick_count: 336
-  result_hash: 941011391070383db3cb117dd5e7f30513c4cd3a379e7162a4f7a88fda21296f
+  physics_result_hash: 835cd9cb09ef87425c38edba8c460b266efc79ec5e73c4f43c980877e63d69d6
 
 - name: rhino-vs-crawlers-01
   smoke: true
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787748319
   tick_count: 377
-  result_hash: 18c0c61963f2633a7bc8bdbaa16f2546ec0c821d678f797e4cbefeb65aa18a5a
+  physics_result_hash: 1b8910631f3a583471462b8370cbf1ce23fe845d43e326147e8765e77062478f
 
 - name: rhino-vs-crawlers-02
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748346
   tick_count: 312
-  result_hash: 6222e0d39d404ec25fbe9e06a41e1cf27d8f33f32c365d9db7e1f648c5e33f85
+  physics_result_hash: 0091b0b9f813070bddb940a6a4882791a7f8ef677c9dd6387a2a12be65cf830c
 
 - name: rhino-vs-crawlers-03
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748375
   tick_count: 278
-  result_hash: 07cb295c3c6ced5f5ca11b0555e5154f87e95545c97303c9c8235b8b3b1acc36
+  physics_result_hash: a08a2dc0dfc8bd6611bc381683ec74f49e42207870b6453dc8aeadc3e3d204e1
 
 - name: rhino-vs-crawlers-04
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748402
   tick_count: 360
-  result_hash: ae11329f9f74821680b1f15e8bb6cae8f36082296f15b8a85e04c4075529dd7c
+  physics_result_hash: 53821a3e7311d74ac7680a3ad2e7a5b9273bb9f82521a3921c9944c0f0b5be9d
 
 - name: rhino-vs-crawlers-05
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748432
   tick_count: 325
-  result_hash: 356d89a5c2d2fc0c7dedc8bbcbfe3a77c94e99cdde96e222299983db3d138919
+  physics_result_hash: a0d6966e263e6487f0ac476c735e2878e9cb9330cc02026bd192910659fbdaa1
 
 - name: rhino-vs-crawlers-06
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748486
   tick_count: 382
-  result_hash: 1309e189075b659ba1927e019b5d23b6622cc094f4c34e1fbfaa5bbf9b0c9206
+  physics_result_hash: 3ed5d752d3e3f518c598c5c371fa053c7ec59c9c7e41d999165bd85cf1f66bbc
 
 - name: rhino-vs-crawlers-07
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748526
   tick_count: 317
-  result_hash: 8011fc78633b39c115c125250e7a06ed3224dec1872c892973c13389027e350d
+  physics_result_hash: 68ece30a29c8f7bbbb3c24fe62bbc7a8a7d131fa8c9752e67bf7bede0e688358
 
 - name: rhino-vs-crawlers-08
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748558
   tick_count: 325
-  result_hash: ebc794a0f336211ba58458ec7c69dce36c0fa77749e46da971c967c2663ab89f
+  physics_result_hash: ec629690de5c8d3b619c6281abb961666aeb247709d72ea3a6f2365f21a75f3e
 
 - name: rhino-vs-crawlers-09
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748599
   tick_count: 360
-  result_hash: 616075813efbc084f7ffbe6e858fac9a84918c7ef65aece3d823e0705ec700f7
+  physics_result_hash: ab2c8ac88c597ee0545809686d08f01dc4b538770cbf7d792a3d4ddd437c70ae
 
 - name: rhino-vs-crawlers-10
   smoke: false
   layout: tests/layouts/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787748638
   tick_count: 236
-  result_hash: 60c031d9db26af4910ac98c22f6b96f2a67f166b58f7e627a5ed5ac0fe2cf068
+  physics_result_hash: 43b80158f97adb1af4aeb3fedaa24ee0e69914163b8b14a5c779ebd4cf6d4098
 
 - name: crawlers-vs-rhino-01
   smoke: true
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787757964
   tick_count: 280
-  result_hash: f6d7e4ecbc25c0bd1fb86ca015f4940f2199a4b7f234f41756b31e8bc6251a57
+  physics_result_hash: 10cccb0014d346c4bd9c8a33cae6a39a73158bbea72dd9686bb6aaa655136a3b
 
 - name: crawlers-vs-rhino-02
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758008
   tick_count: 301
-  result_hash: 52c5b6220b0d97936bf164bdb8248b572c077b59f53396812bcb3c43ab912fea
+  physics_result_hash: a7c6443ca34ec2835023c0195782c24d18c3c91482cde9d04850101c5e68f672
 
 - name: crawlers-vs-rhino-03
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758042
   tick_count: 308
-  result_hash: 2c981607ec838e94ef7a130e8ed6750f0ed940374624e038c36fc1d092e73d30
+  physics_result_hash: 15703fd7fc557a65820b4e9a4fbbb1f17d50f03287892b7d2137dd81525ffbf8
 
 - name: crawlers-vs-rhino-04
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758104
   tick_count: 364
-  result_hash: 9b70ce7ab8961cb9e7d107980f967378636acd53e519deda3d5b47a8cb2ff2e7
+  physics_result_hash: af327619530b7c1816294e2e83d73f2255f7878b42cb799b42d218412d0a5d85
 
 - name: crawlers-vs-rhino-05
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758157
   tick_count: 321
-  result_hash: 3f0ff5fbb2d3966b3fd336bdc6f1aea9b6bf42263efb879c962af692133c9da9
+  physics_result_hash: 9cbccc27adc89182f9af90a56b5e0bd865af4a9ba79b6cbdea65713febb31e5c
 
 - name: crawlers-vs-rhino-06
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758202
   tick_count: 264
-  result_hash: b0e01bf7ca0f052248d38b8d4a45f1aeacdc9e131d36ac94cfe4ac9ffd0a98a1
+  physics_result_hash: a658c451c4cb66b38577144f79d9cd82d9dd7732d7714cc017ab8a2a0cded576
 
 - name: crawlers-vs-rhino-07
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758244
   tick_count: 298
-  result_hash: 19ffae06173d417a7a6c63fe60e4c4bc6752b0e16a529a4526c791850a9203ce
+  physics_result_hash: b821c152fcbe83b260e10f55a6b6faade160a636126d1a5c7ac4d7eece372fc2
 
 - name: crawlers-vs-rhino-08
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758281
   tick_count: 279
-  result_hash: 218c10c32df5acd0918bbf375b76b0915b84861a19dd69333fd1612bd6f0bff3
+  physics_result_hash: 69faba7a191ebd776cd3c10ebe287037ef8e93a438e4e26c74cffa334e1e2c18
 
 - name: crawlers-vs-rhino-09
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758328
   tick_count: 295
-  result_hash: 421c495cf64146e3c9be07d21a3188bc6b99d3687d242491fd58cfe39e660557
+  physics_result_hash: 85df8badd09c37e20583aa3251ba6a3a91c1547c60ffe2f579976cc4f1264df6
 
 - name: crawlers-vs-rhino-10
   smoke: false
   layout: tests/layouts/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787758384
   tick_count: 307
-  result_hash: 32cea219d667c78e237caa0854275bde21e762d0e40e56652f820fcaa0326768
+  physics_result_hash: 226a5fdebfcadfdd522cd260ab9397cca8bb2c7ddbd3e45beb0500c95503beba
 
 - name: crawlers-vs-crawlers-01
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787778788
   tick_count: 351
-  result_hash: 8e20314a219c2eed185effed4ebb2b4520e9d1ef08ea89f8ef7e4ca4d74c211b
+  physics_result_hash: 170584578238606f566a70d875466851380ec0f87b79e5081abc1b771abcb5bc
 
 - name: crawlers-vs-crawlers-05
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787778960
   tick_count: 371
-  result_hash: 61af2b956991716e7f5cab0440f1a27e7379db326e57794ce4b66f2b88540209
+  physics_result_hash: 1a36a80e0f42c95283f7018747acddd8fad516d7e13af54ac87155958738abc8
 
 - name: crawlers-vs-crawlers-09
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787791755
   tick_count: 403
-  result_hash: aac2c94ff6826f930317eb21fe26b8be2e3b491a0ffbe22db901e8945040da16
+  physics_result_hash: d8a23ee2b182a7d3f0f2ff0fc99073ed0f8f4ddd75c969ec9950aa7580ca479b
 
 - name: crawlers-vs-crawlers-13
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787799499
   tick_count: 379
-  result_hash: 3bf332bdd92efac9311c0eb282f4b08a7b3ffa749d2b15c7331d29daf7d55315
+  physics_result_hash: ac3b65a1930378c931bdc65856145a5d74959523aee1b1030223b3d6e8d38b23
 
 - name: crawlers-vs-crawlers-17
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787799748
   tick_count: 381
-  result_hash: e4610a527e526bb7f2eb6c334b7a4595918b992d1881df5d92f5a39c2f6c2fb5
+  physics_result_hash: 9b757363c2b04606340055602b26718f437793dce6edf28829c0e350d6dc2c40
 
 - name: crawlers-vs-crawlers-21
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787800633
   tick_count: 377
-  result_hash: 9924970401a1976125c8304d32c80528f43dbc444bb5def8f98cd49ad3e64ca4
+  physics_result_hash: 66ad27ff0b6878e6c478253dc18044982c64892b92b0407090f3cc5a7b8fad67
 
 - name: crawlers-vs-crawlers-25
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787800781
   tick_count: 366
-  result_hash: 22644091b492360944a3c81cb190543f6e3525b831296271db78d284a029cb5f
+  physics_result_hash: 006490dabb34d94966e84699678ae80893e95fc35a4f82bb045722614a884487
 
 - name: crawlers-vs-crawlers-29
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787801010
   tick_count: 317
-  result_hash: 28bbcb45434119b36221f77f2c95859aee779eeedd6ab3ac5d7ee17e260dcea1
+  physics_result_hash: f2d9b3206505b5c451e4fb8b00bedeac4938648fb606e136dc4a199b6b2d0477
 
 - name: crawlers-vs-crawlers-33
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787802518
   tick_count: 439
-  result_hash: 1a4b49b75aee74aa31a90674d8d0f58d38baacb4fda6be9f4105a57b4eefb89b
+  physics_result_hash: 13320d6cf88b526ff3ff6d81ea84f0dcd9c65100f6062e83b640c39ea0ae3612
 
 - name: crawlers-vs-crawlers-37
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787803517
   tick_count: 356
-  result_hash: 1b9d6e76ffa9c451f596ce66fa21ae73f931200d8c2859cacf7607fc34e91890
+  physics_result_hash: 4c55c8bdbf927b4b3aa8a675cb5f932f3e8536a808b5ab6a2cad725ce1afca36
 
 - name: crawlers-vs-crawlers-41
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787803732
-  tick_count: 353
-  result_hash: 97a41087db333813546983166a7caeb41bc2037ddc81bbecd3436658a20cd848
+  tick_count: 351
+  physics_result_hash: 160ea665811efdf5869df7fee94e0d2be6a2b62b208dd9e42fc5aadb217de2c7
 
 - name: crawlers-vs-crawlers-45
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787803881
   tick_count: 300
-  result_hash: 84847463f97fbc7bb7c154be1a1ba041ea8c857c3e6a79c417ea041502328455
+  physics_result_hash: 2671ff2481aa0647469ee31e940edb358c8813f11dda82ada6ce95a4b7c04e0a
 
 - name: crawlers-vs-crawlers-49
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787804531
   tick_count: 389
-  result_hash: 91e7641a43b279eaf46d5b8e345c02a9f0c93be669f5bca387a08657a2bbeef2
+  physics_result_hash: 913edef0d23cb92802d66e0a91c8a0a72cf1953ad89c49ff81e1225db5125526
 
 - name: crawlers-vs-crawlers-53
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787805016
   tick_count: 350
-  result_hash: 66d21a6f8fe9132dce004a4d64e9b04e80afcdf01a242fd9c21604ef4c8c64aa
+  physics_result_hash: 6807823d105c2287d0ad847ea694f3b1b753e234a33997170ac0e2dba8fb6960
 
 - name: crawlers-vs-crawlers-54
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787805051
   tick_count: 349
-  result_hash: 654c71b388ae13be613b1e0737e568d7c294287294514ef1735c54ca9444e399
+  physics_result_hash: 4f888961f529804d911fdb5b9a707effbfffd214cd2c494f8c2f3044869690f1
 
 - name: crawlers-vs-crawlers-55
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787805107
   tick_count: 368
-  result_hash: fb9ea8ef8b1edb8ad44bbcd6b944f4fb254f33795227218446f64801b4f8d4de
+  physics_result_hash: 9d3f1f6def5ad3dbd3c15b0a21214ec06f31f0ef474a8a388fa0be5e0d3c3145
 
 - name: crawlers-vs-crawlers-60
   smoke: true
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787805959
   tick_count: 342
-  result_hash: e1d5aeeb39465465e0abfdba76f3601ace6bb69c62837832252dd8c291720fa8
+  physics_result_hash: ebaec77d0af726720bddf5e494dd27fe0536b933674fbc84f6169cee7fdc1289
 
 - name: crawlers-vs-crawlers-65
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787806536
   tick_count: 334
-  result_hash: b35778803e7fbbe1447b8ef0c7d225503ef8dd4d36d2824d54163d4c4c50a352
+  physics_result_hash: 6edb61894cf36314a6a4442e5c87e34e88e141632982c7b7155275d6c196cbd2
 
 - name: crawlers-vs-crawlers-68
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787806713
   tick_count: 404
-  result_hash: 868673865e6be5f147e122ab5e3d7fa1c7ea2b5a8a9c419b5798a06c639fc888
+  physics_result_hash: 9718d7ec47b6a94732cfe9b6e66989219529f9e55ef1377c6f0486133ecbfc08
 
 - name: crawlers-vs-crawlers-70
   smoke: false
   layout: tests/layouts/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787806795
   tick_count: 295
-  result_hash: e9702a8100350b46cf9d121a3abfc39aea377142436f50f2916717d081fbf2b3
+  physics_result_hash: 9777613536571cdc0e624e42d11e96c5eb8d4daade9b03f0462604ec2ed9033c
 
 - name: fangs-vs-fangs-01
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787808873
   tick_count: 344
-  result_hash: 6974dd26ee85c8f0655732eff13474728bd6d472b7197b0bc499326abfbb6e01
+  physics_result_hash: 2e719bb7903aa82b2d121883d8bdec4c4735421af3905d5c905d008b1e317b1d
 
 - name: fangs-vs-fangs-02
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787808906
   tick_count: 392
-  result_hash: 49b114b6ec0e7dffb440af722b45a46a35644abd85b76d6eec2faf7fc130857e
+  physics_result_hash: acf8107bbf0a77021e6c42b9ab3b0ca59a8546d24998fb2856be8b12b930a0d6
 
 - name: fangs-vs-fangs-03
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787808949
   tick_count: 350
-  result_hash: 55a259d1cd953253768a22e37daffc7f1d486007bf24d6da6c9a4ab035159178
+  physics_result_hash: cfdbe795973e21b3d99385f14d993fbcd7bd8b7e8452fc6223bede026d8a62fa
 
 - name: fangs-vs-fangs-04
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787808985
   tick_count: 337
-  result_hash: 7360a679906d0b18221e799014a46e8e4f4d1d179d6f630fc42cedb7cb9fe3a3
+  physics_result_hash: 4751ad2ef999e5e3adb8a848420fd98de6d6b7ad0ce00ed0b721bbc8a22812c2
 
 - name: fangs-vs-fangs-05
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787809018
   tick_count: 366
-  result_hash: c2a018978f0a85fe43b19ef89a0f410bc47dc26f92651b0802dff82f93ddede4
+  physics_result_hash: 30efb44cc9b8caee6848a8ba62f9675db4c0811ebda4102f62837b299639c4ed
 
 - name: fangs-vs-fangs-06
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787816186
   tick_count: 363
-  result_hash: 13cb119619e87ce3146d0b7a12e4547851663e2eb376ce44dbaf88fdf02c2388
+  physics_result_hash: 8ad27cb51b822ff28744219605e289cfc1943f0ef02dd59c0484fd8541a58c4f
 
 - name: fangs-vs-fangs-07
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787816925
   tick_count: 347
-  result_hash: 0aa0f97218307bcd015208f78c25445997578f93f220845cb240ddd28f2ff812
+  physics_result_hash: bb8db8334d1b94f1d12b5cd8f140faed9bea628d0407284d6bc9203776dfe4dc
 
 - name: fangs-vs-fangs-08
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787817059
   tick_count: 348
-  result_hash: 22624b1fd091fc4da05846e0da90812e46109c0c3b2664cc5419ac0a21e158dc
+  physics_result_hash: c6cf3a54dea29f31ebfad5a16817da8183e236e65773ff9d87ecfea297e30301
 
 - name: fangs-vs-fangs-09
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787818397
   tick_count: 343
-  result_hash: 2a3941c6ae44e4c10776bb60512b428a6990184cdb510df14789a89e07b39fc3
+  physics_result_hash: f4c688f057e7cefd215d19705d397efd22edd35d000e7b81b6679cf4ecbd2d75
 
 - name: fangs-vs-fangs-10
   smoke: false
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787818488
   tick_count: 337
-  result_hash: dabbecd5f96aebd84bda471c7b98866422ab476a5afd4fd1787b917bee3044fd
+  physics_result_hash: f95d9929682b381384fce3daf9d6c2f96f17928c36e9667b7313d01cf607a5fa
 
 - name: fangs-vs-fangs-11
   smoke: true
   layout: tests/layouts/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787819220
   tick_count: 329
-  result_hash: ad8b7ede8ce04fd4f32f9f9ccf38e4eb0e370f5ca3ed20162072127c272699fe
+  physics_result_hash: 78af2014979dcf60740a1ff2a76fad6b4fa860f4ce4d3ad305b0df132646f48e
 
 - name: mustangs-vs-mustangs-01
   smoke: true
   layout: tests/layouts/mustangs-vs-mustangs.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787823221
   tick_count: 254
-  result_hash: 0a65952931cf342ad8f3ca71dec2048b998fd4e35db205dc02ac2cb29612abd1
+  physics_result_hash: 16d2c115ba361a31aa8d088e1c07a07c86b06e17e84a5e32c667a946c581bc83
 
 - name: wasps-vs-wasps-01
   smoke: true
   layout: tests/layouts/wasps-vs-wasps.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787829131
   tick_count: 196
-  result_hash: c0dd9549527237a75d58138c2e544a6a425d834d44be578b7dd4ffe7f4fa4390
+  physics_result_hash: 4cdc6ee6a32ab751e96b224df2a25bc73f9033e5919b260dcb613206e085b172
 
 - name: steel-balls-vs-steel-balls-01
   smoke: true
   layout: tests/layouts/steel-balls-vs-steel-balls.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787831322
   tick_count: 300
-  result_hash: 018285974b426cab6ad86fe000643632652e39684daf85850b28525f98fef34a
+  physics_result_hash: 8db52ff5709f2ccaf66c472f3e4a2a76009476de4befc4796e82c5dd983e7c2b
 
 - name: crawler-vs-rotated-01
   smoke: true
   layout: tests/layouts/crawler-vs-rotated.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787833929
   tick_count: 271
-  result_hash: 7cc3ab87cc32925c37771c8fa5477b5c0f99493cd679442ce61a42e168f02238
+  physics_result_hash: f3b9070838f76b6da63afcac8bd0253737d10dfd28ae429e9455608e176ac959
 
 - name: arclight-splash-01
   smoke: true
   layout: tests/layouts/arclight-splash.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787837829
   tick_count: 497
-  result_hash: 2bac3a7601cba0e1b7dda3328b6f71bf65720d082510e59e04896538b0ed7ea8
+  physics_result_hash: 90efaebab48b5e99d794b31ed4efb4934c9006b66f1a59c0c5da9f47643e3523
 
 - name: wraith-group-attack-01
   smoke: true
   layout: tests/layouts/wraith-group-attack.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787857041
   tick_count: 647
-  result_hash: 4b1694c4e04a3f1e9051d6bcd1d9215f8654446c4eb247e7bcd1467581282d97
+  physics_result_hash: 7dbc9b1f09d984ab6883befe5a294f435471dcf40e019991b8f9eb44ef51b4dd
 
 - name: stormcaller-vs-self-01
   smoke: true
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.2.0
+  format: 0.3.0
   seed: 1787887280
   tick_count: 763
-  result_hash: c08fa9838125b137c1ecd3145e5ce334ac419d63ecbb2bad9a24ea940c4f4c0a
+  physics_result_hash: dd30e3dfe3b9af90735b5c512863b8c3491eb7b73172f0f7d1bf3f02a48b02f5
 
 - name: stormcaller-vs-self-02
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787863348
   tick_count: 498
-  result_hash: 6a49ae22d06a297efcfb17d3c2345186a10d22b0fd81a0ebc2808e6b63f97e35
+  physics_result_hash: f0846615bb4e01b0024281bc78443cd883a7fe78c270220d130672c31f8415da
 
 - name: stormcaller-vs-self-03
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787863396
   tick_count: 502
-  result_hash: 8d064a91636cf37658e2124b3c829bb699dd16e577aceca3c233468f8e82a5ab
+  physics_result_hash: 6078273322037f0cb3991a36aa20232c968c1fcf908bec9585e578ee81128928
 
 - name: stormcaller-vs-self-04
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787863436
   tick_count: 514
-  result_hash: f7144c5d3f75abb59e6287566b019d2eb714416e76e0f22a665be8df55c472b2
+  physics_result_hash: 8391fa0c83f1f24caafe11c74f82eea08f32e37da979f525df885238ca1fe115
 
 - name: stormcaller-vs-self-05
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787863478
   tick_count: 595
-  result_hash: 5d152749a5edfeb3b6c917b995caef6870558a0d831dc7253ad1dbd8062e62d6
+  physics_result_hash: 5d8efbb9b6e2ddf20ec7c4409929a560a558de8136e584fc49252247319c3770
 
 - name: stormcaller-vs-self-06
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787863515
   tick_count: 630
-  result_hash: b9cac66def6adf7965d793ef00bdf7b994e0bfeb3aa7ed15121d46328eb8c16d
+  physics_result_hash: f3b5d45c712fdb81f6c87b88300e916cf4cdbfbd18c727945a9b52a283644bc0
 
 - name: stormcaller-vs-self-07
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887111
   tick_count: 609
-  result_hash: 596704d7d4f396e45f2316bed165528ddf17c24e9d9a05ddc601b4a1e907f8fe
+  physics_result_hash: 76b402571d6328228de2b441b3949311ea02d83eddfdc52e11d47e0ac3381cdb
 
 - name: stormcaller-vs-self-08
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887134
   tick_count: 503
-  result_hash: 6c61ae8e9262455720ab3d3a24e46aedba93353116151d83fde275dc5ab9fa59
+  physics_result_hash: b2f98979b91eac57005321cabd173533c4ae234a63a6e0e61d5ff70eece91fe3
 
 - name: stormcaller-vs-self-09
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887155
   tick_count: 596
-  result_hash: 94485177f111ffc05c8c210059957192c8792cd6fa1e3e1c22b3c56dd87e9ae8
+  physics_result_hash: 73a21d9f8c2e7aa90d4968366ab61c44da95f619a21da9c84add4bd5cb5bcce8
 
 - name: stormcaller-vs-self-10
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887178
   tick_count: 614
-  result_hash: 487e860002843df02cfc9b76c9df9906ab10294e485c81c1f5b4166492f4bcb2
+  physics_result_hash: 4cebf8b702b6e56e323792a438c120053c76ec45a5a1b53ce38bad3aa0058bd4
 
 - name: stormcaller-vs-self-11
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887201
   tick_count: 634
-  result_hash: 83ee78056de064a6fa9e23f490888ba371f19bd0df2ea17c45f2dcbab710cb2d
+  physics_result_hash: c4d480b167ccc5d9d2449631181c62eec0ef42fb9e507546bf9bf84013110df9
 
 - name: stormcaller-vs-self-12
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887304
   tick_count: 430
-  result_hash: 946175703a2f2ec0791a2001c4976d6c404158ea500fb57db67509d45b917a92
+  physics_result_hash: 040324d3e84d57dc1fc125505d43cca0d42d7f1814467a0c0881992b7984dea0
 
 - name: stormcaller-vs-self-13
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887323
   tick_count: 547
-  result_hash: 74d8ddfc9a09162f4041f7cff687a968b45dcc9bc7e47aab61cb386eda90f804
+  physics_result_hash: 723327acb25b8631d504609e79e5735a961cb00c69f8ba3719e7169ddf6ce78e
 
 - name: stormcaller-vs-self-14
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887345
   tick_count: 627
-  result_hash: e145037c3b364246728787aa85cb1d5f103daab6bd75a6573aa6ea3cbbf310c0
+  physics_result_hash: 4f4e66df262b818607f68983d664952f2fdebf38e789eaa83108222f9174d6f7
 
 - name: stormcaller-vs-self-15
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787887368
   tick_count: 503
-  result_hash: 9778834e43f88f10543e1a6a7583857f2c217c24738ef9c2e82a9550887c05db
+  physics_result_hash: d90a4408cf88205e56d66511d5111b5929b1227aa8cccb0f6b73dd6be4160283
 
 - name: stormcaller-vs-self-16
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787884975
   tick_count: 518
-  result_hash: d4f2e5b6cea4c57332a250c836a7c835b89e08c906f3f20571610325760473b6
+  physics_result_hash: 925be09e70c55630194ff8e9bea06a61dee2d2534d60eee5ccdecee1cf218912
 
 - name: stormcaller-vs-self-17
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787882500
   tick_count: 637
-  result_hash: b186b912c7f94b655d7f904c0f2e5f059c428abeda39c3729332eda1696403b6
+  physics_result_hash: 8ff55644b1365dae1db061625490a0ccea8a7e6321542d7557aae50cb9f754d2
 
 - name: stormcaller-vs-self-18
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787881295
   tick_count: 992
-  result_hash: f9926abe04d6e3718aa4df7d583b526c5d7d12c09eac0eeb87b9859ae478b7b8
+  physics_result_hash: 92196100686c705da3e40343e8d4db194d62e762194805c995c5b75f8e06a2ed
 
 - name: stormcaller-vs-self-19
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787880738
   tick_count: 571
-  result_hash: 0117bcf703d68d3e0574a8150dcdb000b61e584482ebf70d47952307752e739a
+  physics_result_hash: 729f6a7d761c6b2951edfa90ee0806535fa9fa2f1f86625a7bf809929df991cb
 
 - name: stormcaller-vs-self-20
   smoke: false
   layout: tests/layouts/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
-  format: 0.1.0
+  format: 0.3.0
   seed: 1787869558
   tick_count: 599
-  result_hash: 779d3f8aa7baeca447e6540b569d289409fb528e1b2f28f9c32829271554dfc1
+  physics_result_hash: cbe0c96d44022e238b887d4db0c2f8a9488087a1054f73c8de1259428017af76

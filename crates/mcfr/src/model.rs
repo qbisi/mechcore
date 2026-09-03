@@ -4,25 +4,33 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.2.0";
+pub const MCFR_FORMAT: &str = "0.3.0";
+pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v1";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.3.0";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
-pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 2;
+pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Hashes {
-    pub result_hash: String,
+    pub physics_result_hash: String,
+    pub content_result_hash: String,
 }
 
 impl Hashes {
-    pub(crate) fn from_raw(result: [u8; canonical::HASH_BYTES]) -> Self {
+    pub(crate) fn from_raw(
+        physics: [u8; canonical::HASH_BYTES],
+        content: [u8; canonical::HASH_BYTES],
+    ) -> Self {
         Self {
-            result_hash: canonical::hex(&result),
+            physics_result_hash: canonical::hex(&physics),
+            content_result_hash: canonical::hex(&content),
         }
     }
 
     pub(crate) fn validate_encoding(&self) -> Result<()> {
-        canonical::parse_hex(&self.result_hash, "result_hash")?;
+        canonical::parse_hex(&self.physics_result_hash, "physics_result_hash")?;
+        canonical::parse_hex(&self.content_result_hash, "content_result_hash")?;
         Ok(())
     }
 }
@@ -37,7 +45,15 @@ pub struct TickSlice {
     pub tick: u32,
     pub state: WorldSnapshot,
     pub events: TransitionEvents,
-    pub tick_hash: String,
+    pub physics_tick_hash: String,
+    pub content_tick_hash: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TickHashes {
+    pub physics_tick_hash: String,
+    pub content_tick_hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -546,7 +562,7 @@ pub struct LiveUnitState {
     pub weapon_aims: Vec<WeaponAimState>,
 }
 
-/// Compares initial units in format 0.2.0 identity order.
+/// Compares initial units in format 0.3.0 identity order.
 ///
 /// Teams are visited first; members within one team use ascending world `z`, then ascending
 /// world `x`. Equal positions within one team are not ordered by a synthetic tie-breaker.

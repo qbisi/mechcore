@@ -443,7 +443,7 @@ def initialize_client(client: McpClient) -> None:
         {
             "protocolVersion": "2025-03-26",
             "capabilities": {},
-            "clientInfo": {"name": "mechcore-layout-smoke", "version": "0.2.0"},
+            "clientInfo": {"name": "mechcore-layout-smoke", "version": "0.3.0"},
         },
         10,
     )
@@ -577,7 +577,8 @@ def record_case(client: McpClient, case: CaptureCase) -> None:
             )
     print(
         f"ok: recorded {case.name}: output={case.output} tick_count={tick_count} "
-        f"scenario_hash={hashes.get('scenario_hash')} result_hash={hashes.get('result_hash')}"
+        f"physics_result_hash={hashes.get('physics_result_hash')} "
+        f"content_result_hash={hashes.get('content_result_hash')}"
     )
 
 

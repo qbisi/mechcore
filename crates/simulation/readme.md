@@ -17,10 +17,11 @@ full 门禁覆盖当前格式的全部 manifest 条目，包含 smoke 条目。
 
 ## 输出与 profiling
 
-`mechcore sim <layout>` 默认只计算逐 tick hash 和 `result_hash`，并向
+`mechcore sim <layout>` 默认只计算逐 tick 的稳定物理/完整内容双层 hash，以及
+`physics_result_hash`/`content_result_hash`，并向
 标准输出返回终局战斗结构和 profiling，不生成 MCFR 存储。指定
 `--output <battle.mcfr>` 时才序列化、验证并发布文件。
-`result_hash` 由 tick 数量和有序的全部 `tick_hash` 计算，因此默认
+两个 result hash 均由 tick 数量和各自有序的全部 tick hash 计算，因此默认
 路径不依赖 Parquet 或 JSONL 存储。
 
 `profiling.generation_duration_milliseconds` 统计从初始化战斗到完成 hash 生成的现实时间；
@@ -36,12 +37,13 @@ mechcore sim compare work/captures/*.mcfr
 ```
 
 命令直接读取每份录像内嵌的 `layout.yaml` 和 seed，然后在内存中逐 tick 生成 Simulator
-的规范化状态、事件和 `tick_hash`。
-比较在首个 hash 不同或一侧缺失的 tick 停止，JSON 同时返回该 tick 的
+的规范化状态、事件、`physics_tick_hash` 和 `content_tick_hash`。
+比较以 `battle-physics-v1` 为回归依据，在首个物理 hash 不同或一侧缺失的 tick 停止，JSON 同时返回该 tick 的
 `recording` 与 `simulation` 数据；全程不生成 Simulator MCFR。多个输入逐份返回结果，
 任一录像存在差异时进程退出码为非零。可用 `--config` 指定外部 Simulator 配置目录。
 录像与 Simulator 的 `game_build` 必须一致。提前停止时
-`simulation.complete=false`，其 `tick_count` 表示已经生成并比较到的 tick 数量。
+`simulation.complete=false`，其 `tick_count` 表示已经生成并比较到的 tick 数量。完整
+物理时间线一致时另以 `content_equal` 报告 format 0.3.0 全字段内容是否也一致。
 
 ## 机制与数值的证据门禁
 
@@ -132,8 +134,8 @@ Idle due/null/dead 入口；Prepare/Attack 中的 quick-switch 子分支仍保�
 
 一个单元只有同时满足以下条件才是**完整闭合**：
 
-1. Adapter 与 Simulator 的 tick 数量、`terminal_tick`、每个 `tick_hash` 和
-   `result_hash` 全部相同；
+1. Adapter 与 Simulator 的 tick 数量、`terminal_tick`、每个 `physics_tick_hash` 和
+   `physics_result_hash` 全部相同；`content_equal` 作为同格式完整内容诊断单独报告；
 2. 该 layout 实际经过的机制在声明适用域内达到 `proven` 或
    `strongly_supported`，且使用的每个具体数值均通过数值门禁；
 3. 审查 Agent 明确接受结论，并记录实现状态、置信度、适用范围和 `reopen_when`。
@@ -184,7 +186,7 @@ Agent 与审查 Agent 必须使用不同上下文分别工作；审查输入包�
    hash、结构化战斗结果和 profiling。
 4. **规范对比**：执行 `mechcore sim compare native.mcfr --config ...`。命令先验证
    `game_build`，再在内存逐 tick 比较规范化 hash；遇到首个不同或
-   缺失 tick 即停止，只返回该 tick 两侧的 `S`、有序 `E` 和 `tick_hash`。
+   缺失 tick 即停止，只返回该 tick 两侧的 `S`、有序 `E` 和双层 tick hash。
 5. **单一假设**：假设 Agent 只针对这个首个分歧提出一个机制或数值解释，并记录：
    反编译 selector/地址、调用链、关键分支或字段、原始数值、换算过程、预计改变的
    首个 tick/字段，以及能够排除的竞争解释。若当前 layout 无法产生区分性预测，必须
@@ -325,7 +327,7 @@ Unit 的最小 layout 不得从已满足攻击条件的位置开始，而必须�
 或 Construction。关闭 `target_acquisition`、`approach_with_valid_target`、
 `start_outside_native_engagement_threshold` 和 `first_engagement_transition_tick` 时，
 必须使用 Adapter 在同一逻辑 tick 直接读取这些原生字段的临时 `I` sidecar，并把 sidecar
-绑定到正式 MCFR 文件及 `result_hash`。临时 `I` 不进入正式 result hash，研究结束后可删除其
+绑定到正式 MCFR 文件及 `physics_result_hash`。临时 `I` 不进入正式物理或内容 result hash，研究结束后可删除其
 Adapter profile 实现。
 
 攻击路径、武器拓扑与效果拓扑是三个正交门禁。带范围效果的 Unit 除完成其原生投射物

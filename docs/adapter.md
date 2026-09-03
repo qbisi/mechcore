@@ -312,7 +312,7 @@ raw Q32.32 integers. Internal-agent ordinals are capture-local, not normalized
 cross-recording identities.
 
 Scoped sidecars are sparse: `records.steps` holds actual MCFR ticks and must not
-be replaced by row number. They remain result-hash-bound, non-hashed research
+be replaced by row number. They remain `physics_result_hash`-bound, non-hashed research
 evidence; formal MCFR still records the complete battle. Omitting `rvo_scope`
 retains the existing full instrumentation profile. Invalid scope/output is
 rejected before replay loading. No Simulator closure is implied.

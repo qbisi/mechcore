@@ -43,7 +43,7 @@ fn run_compare(options: CompareOptions) -> Result<bool, String> {
         .iter()
         .all(|comparison| comparison.comparison.equal);
     let report = CompareReport {
-        schema: "mechcore.sim-compare-batch-result.v1",
+        schema: "mechcore.sim-compare-batch-result.v2",
         equal,
         comparisons,
     };

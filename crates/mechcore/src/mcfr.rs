@@ -10,8 +10,12 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
     let first_divergence = left
         .first_divergence(&right)
         .map_err(|error| error.to_string())?;
-    if first_divergence.is_none() && left.hashes().result_hash != right.hashes().result_hash {
-        return Err("result hashes differ although every stored tick hash matches".into());
+    if first_divergence.is_none()
+        && left.hashes().physics_result_hash != right.hashes().physics_result_hash
+    {
+        return Err(
+            "physics result hashes differ although every stored physics tick hash matches".into(),
+        );
     }
     let divergent_ticks = if let Some(tick) = first_divergence {
         Some(DivergentTicks {
@@ -22,15 +26,19 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
         None
     };
     let equal = first_divergence.is_none();
+    let content_equal = left.hashes().content_result_hash == right.hashes().content_result_hash;
     let report = CompareReport {
-        schema: "mechcore.mcfr-compare-result.v1",
+        schema: "mechcore.mcfr-compare-result.v2",
         equal,
+        content_equal,
         left: RecordingSummary {
-            result_hash: &left.hashes().result_hash,
+            physics_result_hash: &left.hashes().physics_result_hash,
+            content_result_hash: &left.hashes().content_result_hash,
             tick_count: left.tick_count(),
         },
         right: RecordingSummary {
-            result_hash: &right.hashes().result_hash,
+            physics_result_hash: &right.hashes().physics_result_hash,
+            content_result_hash: &right.hashes().content_result_hash,
             tick_count: right.tick_count(),
         },
         first_divergence,
@@ -85,6 +93,7 @@ impl Options {
 struct CompareReport<'a> {
     schema: &'static str,
     equal: bool,
+    content_equal: bool,
     left: RecordingSummary<'a>,
     right: RecordingSummary<'a>,
     first_divergence: Option<u32>,
@@ -93,7 +102,8 @@ struct CompareReport<'a> {
 
 #[derive(Serialize)]
 struct RecordingSummary<'a> {
-    result_hash: &'a str,
+    physics_result_hash: &'a str,
+    content_result_hash: &'a str,
     tick_count: u32,
 }
 

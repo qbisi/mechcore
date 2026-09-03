@@ -6,7 +6,8 @@ use std::{
 use tempfile::TempPath;
 
 use crate::{
-    DurableContext, Error, Hashes, McfrReader, Result, TransitionEvents, WorldSnapshot, canonical,
+    DurableContext, Error, Hashes, McfrReader, Result, TickHashes, TransitionEvents, WorldSnapshot,
+    canonical,
     model::IdentityAllocator,
     parquet_storage::{self, StorageWriter},
 };
@@ -17,9 +18,11 @@ pub struct McfrWriter {
     storage: Option<StorageWriter>,
     game_build: Option<String>,
     layout_yaml: Option<String>,
+    context: DurableContext,
     context_bytes: Vec<u8>,
     identity_initialized: bool,
-    tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
+    physics_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
+    content_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     poisoned: bool,
 }
 
@@ -78,9 +81,11 @@ impl McfrWriter {
             storage: Some(storage),
             game_build: Some(game_build.to_owned()),
             layout_yaml: Some(layout_yaml),
+            context: context.clone(),
             context_bytes,
             identity_initialized: false,
-            tick_hashes: Vec::new(),
+            physics_tick_hashes: Vec::new(),
+            content_tick_hashes: Vec::new(),
             poisoned: false,
         })
     }
@@ -98,9 +103,11 @@ impl McfrWriter {
             storage: None,
             game_build: None,
             layout_yaml: None,
+            context: context.clone(),
             context_bytes: parquet_storage::encode_durable_context(context)?,
             identity_initialized: false,
-            tick_hashes: Vec::new(),
+            physics_tick_hashes: Vec::new(),
+            content_tick_hashes: Vec::new(),
             poisoned: false,
         })
     }
@@ -115,8 +122,8 @@ impl McfrWriter {
         &mut self,
         mut state: WorldSnapshot,
         events: &TransitionEvents,
-    ) -> Result<String> {
-        let tick = u32::try_from(self.tick_hashes.len())
+    ) -> Result<TickHashes> {
+        let tick = u32::try_from(self.physics_tick_hashes.len())
             .map_err(|_| Error::invalid("tick count overflow"))?
             .checked_add(1)
             .ok_or_else(|| Error::invalid("tick count overflow"))?;
@@ -128,14 +135,19 @@ impl McfrWriter {
         }
         let state_bytes = canonical::encode(&state)?;
         let event_bytes = canonical::encode(events)?;
-        let hash = canonical::tick_hash(tick, &state_bytes, &event_bytes);
+        let physics_hash = canonical::physics_tick_hash(&self.context, tick, &state, events);
+        let content_hash = canonical::content_tick_hash(tick, &state_bytes, &event_bytes);
         self.poisoned = true;
         if let Some(storage) = &mut self.storage {
-            storage.append_tick(tick, &state, events, hash)?;
+            storage.append_tick(tick, &state, events, physics_hash, content_hash)?;
         }
-        self.tick_hashes.push(hash);
+        self.physics_tick_hashes.push(physics_hash);
+        self.content_tick_hashes.push(content_hash);
         self.poisoned = false;
-        Ok(canonical::hex(&hash))
+        Ok(TickHashes {
+            physics_tick_hash: canonical::hex(&physics_hash),
+            content_tick_hash: canonical::hex(&content_hash),
+        })
     }
 
     /// Finalizes the timeline hash and atomically publishes the container.
@@ -150,11 +162,17 @@ impl McfrWriter {
                 "cannot finish an MCFR after a partial write failure",
             ));
         }
-        if self.tick_hashes.is_empty() {
+        if self.physics_tick_hashes.is_empty() {
             return Err(Error::invalid("an MCFR must contain at least tick 1"));
         }
-        let result = canonical::result_hash(&self.tick_hashes);
-        let hashes = Hashes::from_raw(result);
+        debug_assert_eq!(
+            self.physics_tick_hashes.len(),
+            self.content_tick_hashes.len()
+        );
+        let hashes = Hashes::from_raw(
+            canonical::physics_result_hash(&self.physics_tick_hashes),
+            canonical::content_result_hash(&self.content_tick_hashes),
+        );
         let Some(storage) = self.storage.take() else {
             return Ok(hashes);
         };

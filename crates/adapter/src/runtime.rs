@@ -1017,7 +1017,7 @@ fn execute_recording_series(
                             let write_result = (|| {
                                 let mut sidecar = mechcore_mcfr::InstrumentationWriter::create(
                                     &instrumentation.output,
-                                    &hashes.result_hash,
+                                    &hashes.physics_result_hash,
                                     instrumentation.profile.as_str(),
                                     "adapter",
                                 )?;
@@ -1055,7 +1055,7 @@ fn execute_recording_series(
                                     );
                                 }
                             };
-                            let valid = sidecar.result_hash() == hashes.result_hash
+                            let valid = sidecar.physics_result_hash() == hashes.physics_result_hash
                                 && sidecar.profile() == instrumentation.profile.as_str()
                                 && sidecar.producer() == "adapter"
                                 && sidecar.len() == instrumentation_records.len()
@@ -1080,7 +1080,7 @@ fn execute_recording_series(
                                 "output": instrumentation.output,
                                 "profile": instrumentation.profile.as_str(),
                                 "producer": "adapter",
-                                "result_hash": sidecar.result_hash(),
+                                "physics_result_hash": sidecar.physics_result_hash(),
                                 "record_count": sidecar.len(),
                                 "rvo_scope": instrumentation.rvo_scope,
                             }))

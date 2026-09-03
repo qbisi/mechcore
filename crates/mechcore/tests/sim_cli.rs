@@ -66,10 +66,11 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
         String::from_utf8_lossy(&command.stderr)
     );
     let report: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.simulation-result.v2");
+    assert_eq!(report["schema"], "mechcore.simulation-result.v3");
     assert!(report.get("output").is_none());
     assert!(report["hashes"].get("scenario_hash").is_none());
-    assert!(report["hashes"]["result_hash"].is_string());
+    assert!(report["hashes"]["physics_result_hash"].is_string());
+    assert!(report["hashes"]["content_result_hash"].is_string());
     assert!(report["teams"].is_array());
     assert!(report["profiling"]["generation_duration_milliseconds"].is_number());
     assert!(report["profiling"]["simulation_to_real_time_rate"].is_number());
@@ -119,7 +120,10 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
         writer.append_tick(slice.state, &slice.events).unwrap();
     }
     let divergent_hashes = writer.finish().unwrap();
-    assert_ne!(divergent_hashes.result_hash, recording.hashes().result_hash);
+    assert_ne!(
+        divergent_hashes.physics_result_hash,
+        recording.hashes().physics_result_hash
+    );
 
     drop(recording);
 
@@ -135,8 +139,12 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     assert!(!compared.status.success());
     assert!(compared.stderr.is_empty());
     let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.sim-compare-batch-result.v1");
+    assert_eq!(report["schema"], "mechcore.sim-compare-batch-result.v2");
     assert_eq!(report["equal"], false);
+    assert_eq!(
+        report["comparisons"][0]["schema"],
+        "mechcore.sim-compare-result.v2"
+    );
     assert_eq!(report["comparisons"][0]["equal"], true);
     assert!(report["comparisons"][0]["first_divergence"].is_null());
     assert_eq!(report["comparisons"][1]["equal"], false);

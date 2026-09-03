@@ -9665,7 +9665,7 @@ mod tests {
         }
         writer.finish().unwrap();
         let reader = mechcore_mcfr::InstrumentationReader::open(&path).unwrap();
-        assert_eq!(reader.result_hash(), "11".repeat(32));
+        assert_eq!(reader.physics_result_hash(), "11".repeat(32));
         assert_eq!(reader.profile(), "skill_attackable_checker_v1");
         assert_eq!(reader.producer(), "adapter");
         assert_eq!(reader.len(), 2);
@@ -9758,7 +9758,7 @@ mod tests {
         );
 
         let directory = tempfile::tempdir().unwrap();
-        let result_hash = "00".repeat(32);
+        let physics_result_hash = "00".repeat(32);
         for (index, profile, payload, expected) in [
             (0, target_profile, &target_payload, &target_json),
             (1, rvo_profile, &rvo_payload, &rvo_json),
@@ -9767,7 +9767,7 @@ mod tests {
             let path = directory.path().join(format!("profile-{index}.h5"));
             let mut writer = mechcore_mcfr::InstrumentationWriter::create(
                 &path,
-                &result_hash,
+                &physics_result_hash,
                 profile.as_str(),
                 "adapter-offline-test",
             )
@@ -9777,7 +9777,7 @@ mod tests {
                 .unwrap();
             writer.finish().unwrap();
             let reader = mechcore_mcfr::InstrumentationReader::open(path).unwrap();
-            assert_eq!(reader.result_hash(), result_hash);
+            assert_eq!(reader.physics_result_hash(), physics_result_hash);
             assert_eq!(reader.profile(), profile.as_str());
             assert_eq!(reader.producer(), "adapter-offline-test");
             assert_eq!(reader.len(), 1);

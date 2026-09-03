@@ -1,12 +1,12 @@
 use std::{path::Path, process::Command};
 
 use mechcore_mcfr::{
-    DurableContext, Event, EventPayload, McfrWriter, ObjectKind, ObjectRef, Rational,
-    TransitionEvents, WorldSnapshot,
+    DurableContext, Event, EventPayload, McfrWriter, ObjectKind, ObjectRef, QVec3, Rational,
+    ShieldSourceKind, TransitionEvents, WorldSnapshot,
 };
 
 #[test]
-fn compare_reports_equal_result_hashes() {
+fn compare_reports_equal_physics_result_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
     write_recording(&path, 42, &[1]);
@@ -14,13 +14,38 @@ fn compare_reports_equal_result_hashes() {
     let output = compare(&path, &path);
     assert!(output.status.success());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.mcfr-compare-result.v1");
+    assert_eq!(report["schema"], "mechcore.mcfr-compare-result.v2");
     assert_eq!(report["equal"], true);
     assert!(report["first_divergence"].is_null());
     assert!(report["divergent_ticks"].is_null());
     assert_eq!(
-        report["left"]["result_hash"],
-        report["right"]["result_hash"]
+        report["left"]["physics_result_hash"],
+        report["right"]["physics_result_hash"]
+    );
+    assert_eq!(report["content_equal"], true);
+}
+
+#[test]
+fn compare_reports_content_differences_outside_the_physics_projection() {
+    let directory = tempfile::tempdir().unwrap();
+    let left = directory.path().join("left.mcfr");
+    let right = directory.path().join("right.mcfr");
+    write_shield_recording(&left, ShieldSourceKind::CommanderSkill);
+    write_shield_recording(&right, ShieldSourceKind::SpawnedTemporary);
+
+    let output = compare(&left, &right);
+    assert!(output.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["equal"], true);
+    assert_eq!(report["content_equal"], false);
+    assert!(report["first_divergence"].is_null());
+    assert_eq!(
+        report["left"]["physics_result_hash"],
+        report["right"]["physics_result_hash"]
+    );
+    assert_ne!(
+        report["left"]["content_result_hash"],
+        report["right"]["content_result_hash"]
     );
 }
 
@@ -40,16 +65,16 @@ fn compare_reports_the_first_divergent_tick_and_fails() {
     assert_eq!(report["divergent_ticks"]["left"]["tick"], 1);
     assert_eq!(report["divergent_ticks"]["right"]["tick"], 1);
     assert_ne!(
-        report["divergent_ticks"]["left"]["tick_hash"],
-        report["divergent_ticks"]["right"]["tick_hash"]
+        report["divergent_ticks"]["left"]["physics_tick_hash"],
+        report["divergent_ticks"]["right"]["physics_tick_hash"]
     );
     assert_ne!(
         report["divergent_ticks"]["left"]["events"],
         report["divergent_ticks"]["right"]["events"]
     );
     assert_ne!(
-        report["left"]["result_hash"],
-        report["right"]["result_hash"]
+        report["left"]["physics_result_hash"],
+        report["right"]["physics_result_hash"]
     );
 }
 
@@ -126,5 +151,38 @@ fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
             )
             .unwrap();
     }
+    writer.finish().unwrap();
+}
+
+fn write_shield_recording(path: &Path, source_kind: ShieldSourceKind) {
+    let context = DurableContext {
+        logic_step: Rational {
+            numerator: 1,
+            denominator: 20,
+        },
+        time_units_per_second: 2_000,
+        combat_round: 1,
+        match_seed: 42,
+    };
+    let layout = "seed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
+    let mut writer = McfrWriter::create(path, "build-test", &context, layout).unwrap();
+    writer
+        .append_tick(
+            WorldSnapshot::default(),
+            &TransitionEvents {
+                events: vec![Event {
+                    subject: Some(ObjectRef::new(ObjectKind::Shield, 1)),
+                    source: None,
+                    source_team_id: None,
+                    target: None,
+                    payload: EventPayload::ShieldCreated {
+                        team_id: 1,
+                        source_kind,
+                        position: QVec3 { x: 1, y: 2, z: 3 },
+                    },
+                }],
+            },
+        )
+        .unwrap();
     writer.finish().unwrap();
 }
