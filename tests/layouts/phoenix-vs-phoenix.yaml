@@ -1,0 +1,14 @@
+round: 1
+
+sides:
+  blue:
+    formations:
+      - type: phoenix
+        x: 10
+        y: -100
+
+  red:
+    formations:
+      - type: phoenix
+        x: 10
+        y: -100
