@@ -1309,6 +1309,22 @@ mod tests {
         assert!(schema.pointer("/$defs/Formation/properties/exp").is_some());
         assert!(
             schema
+                .pointer("/$defs/ContraptionPlacement/properties/isairdrop")
+                .is_some()
+        );
+        assert!(
+            schema
+                .pointer("/$defs/StaticPlacement/properties/isairdrop")
+                .is_none()
+        );
+        assert_eq!(
+            schema
+                .pointer("/$defs/Side/properties/contraptions/items/$ref")
+                .and_then(Value::as_str),
+            Some("#/$defs/ContraptionPlacement")
+        );
+        assert!(
+            schema
                 .pointer("/$defs/StaticPlacement/properties/index")
                 .is_none()
         );

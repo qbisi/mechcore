@@ -33,7 +33,7 @@ pub struct Side {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub contraptions: Vec<StaticPlacement>,
+    pub contraptions: Vec<ContraptionPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub terrains: Vec<Terrain>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -116,6 +116,17 @@ pub struct StaticPlacement {
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct ContraptionPlacement {
+    #[serde(rename = "type")]
+    pub type_name: String,
+    pub x: i32,
+    pub y: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isairdrop: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct BattleSkillDefinition {
     #[serde(rename = "type")]
     pub type_name: String,
@@ -183,6 +194,7 @@ pub struct Placement {
     pub rotated: bool,
     pub equipment: Option<i32>,
     pub travelling: bool,
+    pub isairdrop: bool,
     pub stage: PlacementStage,
 }
 
@@ -544,6 +556,7 @@ fn compile_formations(
                 rotated,
                 equipment,
                 travelling,
+                isairdrop: false,
                 stage,
             })
         })
@@ -593,6 +606,7 @@ fn compile_constructions(
                 rotated: false,
                 equipment: None,
                 travelling: false,
+                isairdrop: false,
                 stage: PlacementStage::Activation,
             })
         })
@@ -601,12 +615,17 @@ fn compile_constructions(
 
 fn compile_contraptions(
     side_name: &str,
-    definitions: Vec<StaticPlacement>,
+    definitions: Vec<ContraptionPlacement>,
 ) -> Result<Vec<Placement>, String> {
     definitions
         .into_iter()
         .map(|definition| {
-            let StaticPlacement { type_name, x, y } = definition;
+            let ContraptionPlacement {
+                type_name,
+                x,
+                y,
+                isairdrop,
+            } = definition;
             let position = Position { x, y };
             let spec = resolve_contraption_type(&type_name).ok_or_else(|| {
                 format!(
@@ -614,6 +633,11 @@ fn compile_contraptions(
                     position.x, position.y
                 )
             })?;
+            if isairdrop.is_some() && spec.native != NativeFormation::Contraption(10001) {
+                return Err(format!(
+                    "side {side_name} contraption {type_name:?}: isairdrop is only valid for shield"
+                ));
+            }
             Ok(Placement {
                 type_name,
                 native: spec.native,
@@ -625,6 +649,7 @@ fn compile_contraptions(
                 rotated: false,
                 equipment: None,
                 travelling: false,
+                isairdrop: isairdrop.unwrap_or(false),
                 stage: PlacementStage::Activation,
             })
         })
@@ -993,6 +1018,23 @@ fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> R
 }
 
 fn validate_shield_position(side_name: &str, placement: &Placement) -> Result<(), String> {
+    // A retained airdrop is an existing world object, not a new contraption
+    // release. Its center can be outside the owning side's deployment region.
+    if placement.isairdrop {
+        return if position_within(
+            placement.position,
+            BATTLEFIELD_MIN_X,
+            BATTLEFIELD_MAX_X,
+            BATTLEFIELD_MIN_Y,
+            BATTLEFIELD_MAX_Y,
+        ) {
+            Ok(())
+        } else {
+            Err(format!(
+                "side {side_name} airdrop shield center is outside the battlefield"
+            ))
+        };
+    }
     let min_x = DEPLOYMENT_MIN_X + SHIELD_RADIUS;
     let max_x = DEPLOYMENT_MAX_X - SHIELD_RADIUS;
     let min_y = DEPLOYMENT_MIN_Y + SHIELD_RADIUS;
@@ -2358,6 +2400,49 @@ sides:
                 NativeFormation::Contraption(20001),
             ]
         );
+    }
+
+    #[test]
+    fn retained_airdrop_shields_preserve_order_and_use_battlefield_bounds() {
+        let mut value = json!({"round": 2, "sides": {
+            "blue": {"formations": [{"type":"marksman","x":0,"y":-150}],
+                "contraptions": [
+                    {"type":"shield","x":300,"y":20,"isairdrop":true},
+                    {"type":"shield","x":0,"y":-120}]},
+            "red": {"formations": [{"type":"marksman","x":0,"y":-150}]}}});
+        let plan = compile(&value).unwrap();
+        assert_eq!(
+            plan.blue
+                .contraptions
+                .iter()
+                .map(|placement| (placement.position.x, placement.isairdrop))
+                .collect::<Vec<_>>(),
+            [(300, true), (0, false)]
+        );
+        value["sides"]["blue"]["contraptions"][0]["isairdrop"] = json!(false);
+        assert!(compile(&value).is_err());
+        value["sides"]["blue"]["contraptions"][0]["isairdrop"] = json!(true);
+        value["sides"]["blue"]["contraptions"][0]["x"] = json!(401);
+        assert!(
+            compile(&value)
+                .unwrap_err()
+                .contains("outside the battlefield")
+        );
+    }
+
+    #[test]
+    fn isairdrop_is_only_a_shield_field() {
+        for kind in ["missile", "interceptor"] {
+            let value = json!({"round":1,"sides":{
+                "blue":{"formations":[{"type":"marksman","x":0,"y":-150}],
+                    "contraptions":[{"type":kind,"x":5,"y":-95,"isairdrop":false}]},
+                "red":{"formations":[{"type":"marksman","x":0,"y":-150}]}}});
+            assert!(
+                compile(&value)
+                    .unwrap_err()
+                    .contains("only valid for shield")
+            );
+        }
     }
 
     #[test]

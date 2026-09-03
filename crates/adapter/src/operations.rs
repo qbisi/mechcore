@@ -2032,6 +2032,16 @@ fn apply_contraption_formation(
     contraption_id: i32,
     world_position: MapVector,
 ) -> Result<Value, OperationError> {
+    if placement.isairdrop {
+        let order = restore_airdrop_shield(runtime, world_position)?;
+        return Ok(json!({
+            "type": placement.type_name,
+            "isairdrop": true,
+            "native_shield_order": order,
+            "x": placement.position.x,
+            "y": placement.position.y
+        }));
+    }
     let contraption_index = contraption(runtime, contraption_id, world_position, None)
         .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
     Ok(json!({
@@ -2040,6 +2050,101 @@ fn apply_contraption_formation(
         "x": placement.position.x,
         "y": placement.position.y
     }))
+}
+
+/// Construct a data source without adding inventory or scheduling a new skill.
+pub(crate) fn airdrop_shield_source(api: Api) -> Result<*mut Object, Il2CppError> {
+    let factory = api.class("GRCore.dll", "GameRiver", "CommanderSkillFactory")?;
+    let create = api.class_method_with_parameter_types(factory, "Create", &["System.Int32"])?;
+    let mut id = 800_001_i32;
+    let source = api.invoke_raw(create, std::ptr::null_mut(), &mut [argument(&mut id)])?;
+    let expected = api.class("GRCore.dll", "GameRiver", "CS_EnergyShield")?;
+    if api.object_class(source) != Some(expected)
+        || api.invoke_value::<i32>(source, "GetID", &mut [])? != id
+    {
+        return Err(Il2CppError::InvalidValue(
+            "airdrop shield data source mismatch".into(),
+        ));
+    }
+    Ok(source)
+}
+
+fn restore_airdrop_shield(runtime: &Runtime, position: MapVector) -> Result<i32, OperationError> {
+    let current = require_training_deploying(runtime)?;
+    let api = runtime.api;
+    let controller = player_controller(runtime, current)?;
+    let team_controller = api.invoke(controller, "GetFightTeamController", &mut [])?;
+    let team = api.invoke(team_controller, "GetTeam", &mut [])?;
+    let group = api.invoke(team, "GetFightGroup", &mut [])?;
+    let system = find_match_module(
+        runtime,
+        runtime.current_fight(),
+        "GameRiver.Fight",
+        "AdvancedEnergyShieldSystem",
+    )?;
+    let all = api.invoke(system, "GetEnergyShields", &mut [object_argument(group)])?;
+    let active = api.invoke(
+        system,
+        "GetActiveEnergyShields",
+        &mut [object_argument(group)],
+    )?;
+    let before_all = list_count(api, all)?;
+    let before_active = list_count(api, active)?;
+    let source = airdrop_shield_source(api)?;
+    let handle = api.gc_handle(source)?;
+    let result = (|| {
+        // FVector3 consists of three Q32.32 values; no floating-point conversion.
+        let mut center = [i64::from(position.x) << 32, 0, i64::from(position.y) << 32];
+        // This native overload registers the object, activates it with reset=true,
+        // and dispatches OnAddEnergyShield. Calling FightEnergyShield.Active alone
+        // would not insert it into the manager's active collection.
+        api.invoke_void(
+            system,
+            "Create",
+            &mut [
+                object_argument(source),
+                argument(&mut center),
+                object_argument(team_controller),
+            ],
+        )?;
+        if list_count(api, all)? != before_all + 1 || list_count(api, active)? != before_active + 1
+        {
+            return Err(OperationError::Rejected(
+                "airdrop shield was not registered and activated".into(),
+            ));
+        }
+        let shield = list_item(api, all, before_all)?;
+        let transform = api.invoke(shield, "GetFightTransform", &mut [])?;
+        let radius = api
+            .invoke_value::<FPoint>(source, "GetSubEffectRange", &mut [])?
+            .0;
+        let energy = api.invoke_value::<i32>(
+            source,
+            "GameRiver.IAdvancedEnergyShieldDataSource.GetAdvancedEnergyShieldValue",
+            &mut [],
+        )?;
+        if list_item(api, active, before_active)? != shield
+            || api.invoke(shield, "get_EnergyShieldData", &mut [])? != source
+            || api.invoke(shield, "GetTeamController", &mut [])? != team_controller
+            || !api.invoke(shield, "GetOwner", &mut [])?.is_null()
+            || !api.invoke_value::<bool>(shield, "get_IsActive", &mut [])?
+            || !api.invoke_value::<bool>(shield, "IsResetNextRound", &mut [])?
+            || api.invoke_value::<bool>(shield, "IsShortLifeTime", &mut [])?
+            || api.invoke_value::<[i64; 3]>(transform, "GetPositionInt3D", &mut [])? != center
+            || radius <= 0
+            || api.invoke_value::<FPoint>(shield, "GetRadius", &mut [])?.0 != radius
+            || energy <= 0
+            || api.invoke_value::<i32>(shield, "GetMaxEnergy", &mut [])? != energy
+            || api.invoke_value::<i32>(shield, "GetEnergy", &mut [])? != energy
+        {
+            return Err(OperationError::Rejected(
+                "airdrop shield native readback did not match".into(),
+            ));
+        }
+        Ok(before_all)
+    })();
+    api.free_gc_handle(handle);
+    result
 }
 
 fn layout_world_position(
@@ -3237,6 +3342,7 @@ mod tests {
             rotated: false,
             equipment: None,
             travelling: false,
+            isairdrop: false,
             stage: layout::PlacementStage::Activation,
         };
         let Err(error) = layout_world_position(&placement, true) else {

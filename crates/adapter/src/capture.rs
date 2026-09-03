@@ -4,9 +4,10 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_layout::{
-    BattleSkillDefinition, EnergyTower, Formation, Layout, Position, ResearchCenter, Side, Sides,
-    StaticPlacement, Techs, battle_skill_type_from_id, canonical_embedded_yaml,
-    construction_type_from_id, contraption_type_from_id, unit_type_from_id,
+    BattleSkillDefinition, ContraptionPlacement, EnergyTower, Formation, Layout, Position,
+    ResearchCenter, Side, Sides, StaticPlacement, Techs, battle_skill_type_from_id,
+    canonical_embedded_yaml, construction_type_from_id, contraption_type_from_id,
+    unit_type_from_id,
 };
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
@@ -4625,6 +4626,7 @@ fn sort_buildings(buildings: &mut [RawBuilding]) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Clone)]
 struct RawShield {
     pointer: usize,
     owner: usize,
@@ -5017,7 +5019,7 @@ fn read_native_contraptions(
     team: usize,
     shield_system: *mut Object,
     metadata: &Metadata,
-) -> Result<Vec<StaticPlacement>, String> {
+) -> Result<Vec<ContraptionPlacement>, String> {
     let manager = invoke_object(api, controller, "GetContraptionManager")?;
     let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
     let fight_team = invoke_object(api, fight_controller, "GetTeam")?;
@@ -5035,7 +5037,34 @@ fn read_native_contraptions(
         .invoke(manager, "GetContraption", &mut [argument(&mut shield_id)])
         .map_err(|error| error.to_string())?;
     let expected_energy = invoke_value::<i32>(api, source, "GetAdvancedEnergyShieldValue")?;
-    let mut result = layout_shield_placements(shields, team, expected_energy)?;
+    let mut airdrop_defaults = None;
+    for shield in &shields {
+        if shield.state.source_kind != ShieldSourceKind::CommanderSkill {
+            continue;
+        }
+        let data = invoke_object(api, shield.pointer as *mut Object, "get_EnergyShieldData")?;
+        if invoke_value::<i32>(api, data, "GetID")? != 800_001 {
+            return Err("unsupported retained commander shield source ID".into());
+        }
+        if airdrop_defaults.is_none() {
+            let source =
+                crate::operations::airdrop_shield_source(api).map_err(|error| error.to_string())?;
+            let handle = api.gc_handle(source).map_err(|error| error.to_string())?;
+            let defaults = (|| -> Result<_, String> {
+                Ok((
+                    invoke_value::<FixedPoint>(api, source, "GetSubEffectRange")?.raw,
+                    invoke_value::<i32>(
+                        api,
+                        source,
+                        "GameRiver.IAdvancedEnergyShieldDataSource.GetAdvancedEnergyShieldValue",
+                    )?,
+                ))
+            })();
+            api.free_gc_handle(handle);
+            airdrop_defaults = Some(defaults?);
+        }
+    }
+    let mut result = layout_shield_placements(shields, team, expected_energy, airdrop_defaults)?;
 
     let mine_manager = invoke_object(api, fight_controller, "GetMineManager")?;
     let mines = invoke_object(api, mine_manager, "GetLandMines")?;
@@ -5101,26 +5130,35 @@ fn layout_shield_placements(
     shields: Vec<RawShield>,
     team: usize,
     expected_energy: i32,
-) -> Result<Vec<StaticPlacement>, String> {
+    airdrop_defaults: Option<(i64, i32)>,
+) -> Result<Vec<ContraptionPlacement>, String> {
     let mut placements = Vec::new();
     for shield in shields {
         let state = shield.state;
-        if state.source_kind != ShieldSourceKind::Contraption {
-            continue;
-        }
+        let isairdrop = state.source_kind == ShieldSourceKind::CommanderSkill;
+        let (radius, energy) = match state.source_kind {
+            ShieldSourceKind::Contraption => (70 * FIXED_ONE_RAW, expected_energy),
+            ShieldSourceKind::CommanderSkill => {
+                airdrop_defaults.ok_or("airdrop shield defaults are unavailable")?
+            }
+            _ => continue,
+        };
         if shield.owner != 0
             || state.team_id as usize != team
             || state.round_policy != ShieldRoundPolicy::ResetToMax
-            || state.radius != 70 * FIXED_ONE_RAW
-            || expected_energy <= 0
-            || state.energy.maximum != expected_energy
+            || radius <= 0
+            || state.radius != radius
+            || energy <= 0
+            || state.energy.maximum != energy
         {
             return Err(
                 "existing contraption shield cannot be represented by layout shield defaults"
                     .into(),
             );
         }
-        placements.push(layout_contraption_position("shield", state.position, team)?);
+        let mut placement = layout_contraption_position("shield", state.position, team)?;
+        placement.isairdrop = isairdrop.then_some(true);
+        placements.push(placement);
     }
     Ok(placements)
 }
@@ -5129,7 +5167,7 @@ fn layout_contraption_position(
     type_name: &str,
     position: QVec3,
     team: usize,
-) -> Result<StaticPlacement, String> {
+) -> Result<ContraptionPlacement, String> {
     // Missile/interceptor placement is the XZ projection; their native object
     // may have a built-in vertical offset. Shield sphere height is significant.
     if (type_name == "shield" && position.y != 0)
@@ -5147,10 +5185,11 @@ fn layout_contraption_position(
         },
         team,
     )?;
-    Ok(StaticPlacement {
+    Ok(ContraptionPlacement {
         type_name: type_name.into(),
         x,
         y,
+        isairdrop: None,
     })
 }
 
@@ -8499,17 +8538,18 @@ mod tests {
 
     #[test]
     fn layout_shields_include_inactive_carry_over_without_release_records() {
-        let placement = |kind: &str, x, y| StaticPlacement {
+        let placement = |kind: &str, x, y| ContraptionPlacement {
             type_name: kind.into(),
             x,
             y,
+            isairdrop: None,
         };
         let shields = vec![
             layout_test_shield(1, 215, 86, None),
             layout_test_shield(2, -230, 120, Some(0)),
             layout_test_shield(3, 106, 103, Some(1)),
         ];
-        let layout = layout_shield_placements(shields, 1, 40_000).unwrap();
+        let layout = layout_shield_placements(shields, 1, 40_000, None).unwrap();
         assert_eq!(
             layout,
             vec![
@@ -8519,19 +8559,45 @@ mod tests {
             ]
         );
         let inherited_only =
-            layout_shield_placements(vec![layout_test_shield(1, 215, 86, None)], 1, 40_000)
+            layout_shield_placements(vec![layout_test_shield(1, 215, 86, None)], 1, 40_000, None)
                 .unwrap();
         assert_eq!(inherited_only, vec![placement("shield", -215, -86)]);
+    }
+
+    #[test]
+    fn layout_shields_include_airdrops_in_full_list_order() {
+        let mut airdrop = layout_test_shield(2, 300, -20, None);
+        airdrop.state.source_kind = ShieldSourceKind::CommanderSkill;
+        airdrop.state.radius = 100 * FIXED_ONE_RAW;
+        airdrop.state.energy.maximum = 90_000;
+        let defaults = Some((100 * FIXED_ONE_RAW, 90_000));
+        let placements = layout_shield_placements(
+            vec![layout_test_shield(1, 215, 86, Some(1)), airdrop.clone()],
+            1,
+            40_000,
+            defaults,
+        )
+        .unwrap();
+        assert_eq!(
+            placements
+                .iter()
+                .map(|placement| (placement.x, placement.y, placement.isairdrop))
+                .collect::<Vec<_>>(),
+            [(-215, -86, None), (-300, 20, Some(true))]
+        );
+        assert!(layout_shield_placements(vec![airdrop.clone()], 1, 40_000, None).is_err());
+        airdrop.state.round_policy = ShieldRoundPolicy::RetainState;
+        assert!(layout_shield_placements(vec![airdrop], 1, 40_000, defaults).is_err());
     }
 
     #[test]
     fn layout_shields_reject_unrepresentable_energy_and_fractional_center() {
         let mut shield = layout_test_shield(1, 215, 86, None);
         shield.state.energy.maximum = 80_000;
-        assert!(layout_shield_placements(vec![shield], 1, 40_000).is_err());
+        assert!(layout_shield_placements(vec![shield], 1, 40_000, None).is_err());
         let mut shield = layout_test_shield(1, 215, 86, None);
         shield.state.position.x += 1;
-        assert!(layout_shield_placements(vec![shield], 1, 40_000).is_err());
+        assert!(layout_shield_placements(vec![shield], 1, 40_000, None).is_err());
     }
 
     #[test]
