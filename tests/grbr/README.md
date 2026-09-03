@@ -7,6 +7,7 @@ hash identity are part of the fixture contract.
 
 | Repository file | Original Steam basename | Size | SHA-256 |
 | --- | --- | ---: | --- |
+| `2259_26-09-03__13-54-16-770_[crower]VS[电脑].grbr` | same | 109420 | `2d2cd66a5ba9b6f295bd027f2e87aec230f8d1420c1c17bbbfea1156251dc8cc` |
 | `2259_26-09-03__13-25-40-032_[crower]VS[电脑].grbr` | same | 85695 | `3757b76ac8789e8271ce8bb108c5e9bc29d9efd8b4088a1a85cee84273682c1d` |
 | `2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr` | same | 604429 | `90baee4232b812e012fd2e309a54b0bb4a8f8642731436d35622b0b67779c335` |
 | `2259_20260823--67294111_[你是蓬莱花仙]VS[crower].grbr` | same | 483172 | `d30eea2b61a7afdc101ba6391a94d67ee79cf574b7b0f46c0124f4131d7e4630` |

@@ -137,11 +137,13 @@ coordinates; duplicate keys fail closed. Native construction/building counters
 and layout order do not determine these IDs. Existing IDs and target/event
 references remain stable after allocation, including after object removal.
 
-A structurally valid layout may contain `sides.<side>.terrains` for readback and
-offline verification. The Adapter rejects any non-empty terrain list before the
-prepare stage and performs no native mutation. Native terrain application stays
-disabled until GRBR-derived rounds can be captured as MCFR and compared for
-closure.
+A structurally valid layout may contain build-2259 retained Sticky Oil Bomb
+state in `sides.<side>.terrains`. During activation the Adapter expands each
+entry's two ordered control points with the native fixed-point primitives,
+creates only the mapped active indexes through `RangeItemSystem.AddItem`, and
+restores any final clipped grids with immediate native readback. Simulator
+terrain support remains disabled; this Adapter path is validated against a
+GRBR replay-round MCFR pair as documented in `terrain.md`.
 
 ### quit_game
 

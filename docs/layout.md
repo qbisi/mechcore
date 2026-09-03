@@ -182,10 +182,10 @@ normalized to the Unity world battlefield axis: `layout.x -> world.x` and
 mapping is outside the layout schema and does not rename its fields.
 
 The same transform applies independently to every coordinate in
-`battle_skills.positions` and every `terrains` center. Terrain `grid_rows` are
+`battle_skills.positions` and every `terrains.positions` control point. Terrain `grid_rows` are
 also expressed in the owning side's local frame: rows advance along local `+y`
-and low-order bits advance along local `+x`. A future native terrain executor
-must therefore rotate both row order and bit order for the red side. A
+and low-order bits advance along local `+x`. The native terrain executor
+therefore rotates both row order and bit order for the red side. A
 180-degree transform does not change a formation's `rotated` boolean.
 Authoritative native readback remains in world coordinates; the adapter verifies
 that world state against the compiled position and returns the layout-local
@@ -587,41 +587,57 @@ authoritative recorder readback.
 ### `terrains`
 
 `terrains` records the active cross-round battlefield terrain owned by one side
-at the start of this single fight. It defaults to `[]`. Each active terrain
-point is one independent entry with exactly four required fields:
+at the start of this single fight. It defaults to `[]`. One entry represents one
+original Sticky Oil Bomb release, rather than one surviving oil circle:
 
 ```yaml
 terrains:
   - type: oil
-    x: -60
-    y: 40
-    grid_rows: []
+    positions:
+      - {x: -24, y: 11}
+      - {x: 80, y: 1}
+    grid_rows:
+      0: [240, 1020, 2046, 2046, 4095, 4095, 1023, 511, 254, 126, 60, 48]
+      1: [240, 1020, 1022, 510, 255, 127, 63, 63, 30, 30, 12, 0]
+      5: [16, 28, 30, 30, 63, 63, 127, 127, 254, 510, 1020, 240]
+      6: [48, 124, 126, 254, 255, 511, 1023, 2047, 2046, 2046, 1020, 240]
 ```
 
 - `type` currently accepts only `oil`, the native terrain type produced by the
   cross-round battlefield Sticky Oil Bomb. It does not use the producing battle
   skill name `sticky_oil_bomb`.
-- `x` and `y` are the active terrain object's center in the owning side's local
-  frame. They are not the original skill endpoints.
-- `grid_rows: []` means the complete 30 m oil circle is active.
-- A non-empty `grid_rows` is the final shield-clipped `12 x 12` occupancy mask.
-  It contains exactly 12 unsigned integer rows; within each row the low 12 bits
+- `positions` contains exactly two ordered integer control points in the owning
+  side's local frame. The first is the skill start point and the second fixes the
+  release direction. Build 2259's `CalculateAttackPositions` line branch expands
+  them into seven oil centers. Reusing the same native `FixedMath` primitives restores the
+  five intermediate centers at their original Q32.32 values without storing
+  fractional coordinates in YAML.
+- `grid_rows` is an optional map keyed by the native zero-based generated-point
+  index `0..=6`. If the map is omitted or empty, all seven points are active as
+  complete 30 m circles. If it is non-empty, its key set is the complete set of
+  surviving points: an absent key means that point was intercepted or otherwise
+  inactive.
+- A mapped empty list means that point is active as a complete circle. A mapped
+  non-empty list is the final shield-clipped `12 x 12` occupancy mask and must
+  contain exactly 12 unsigned integer rows. Within each row the low 12 bits
   represent cells in increasing local x order, and rows appear in increasing
   local y order. Bits above bit 11 are rejected, and at least one cell must be
   active.
 
-The 30 m circle must overlap the battlefield rectangle
-`x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler validates
-this bound and the structural grid rules. It deliberately does not infer the
-original `positions`, retain an `active_sub_effects` encoding, or accept a
-`remaining_rounds` field. Those are GRBR reconstruction or multi-round
-transition concerns rather than state required by one fight layout.
+The control-point path, expanded by the 30 m radius, must overlap the battlefield
+rectangle `x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler
+validates this bound, the two-point arity, native index range and grid shape. It
+does not accept `active_sub_effects` or `remaining_rounds`: the non-empty map's
+keys already encode the active set, while remaining lifetime is not meaningful
+inside a single-fight layout.
 
-This schema is currently read/format/verify only. `apply_layout` rejects any
-layout with non-empty `terrains` before native mutation, and the Simulator
-rejects it before constructing a simulated battle. Neither executor may claim
-terrain support until GRBR rounds can be captured as MCFR and compared for
-closure.
+The Simulator rejects layouts with non-empty `terrains` before constructing a
+simulated battle. Adapter execution reproduces the build-2259 line branch with
+native `FVector3`/`FPoint` operations, adds only the declared active indexes through
+`RangeItemSystem.AddItem`, then overwrites and reads back each optional
+`GridBlockInt` mask. Direct GRBR decoding is exposed as
+`mechcore_layout::terrains_from_grbr_round`; replay recording uses the
+independent live `RangeItemSystem` enumeration path and groups items by provider.
 
 ### `battle_skills`
 
@@ -755,7 +771,7 @@ request:
    polling authoritative status until the next deployment is stable;
 5. in the activation round, apply every unit in formation declaration order and construction,
    Officers, unit technologies, Research Center and Energy Tower state, shields,
-   missiles, interceptors, and battle skills; after each unit's final move,
+   missiles, interceptors, retained terrains, and battle skills; after each unit's final move,
    explicitly correct and verify any mismatching travelling state, then return
    while the game is still deploying.
 
@@ -772,17 +788,16 @@ The compiler accepts omitted fields and explicit baseline values described in
 this document, except that `formations` is mandatory and non-empty on both
 sides. It rejects tower levels outside `0..=2`, unknown deployment footprints,
 deployment collisions where applicable, and contraptions outside their target
-regions. It accepts structurally valid `terrains` for layout readback and
-verification, but `apply_layout` rejects a non-empty terrain list before its
-prepare stage. Unsupported state is never silently ignored.
+regions. It accepts structurally valid `terrains`; the Adapter restores the
+currently supported build-2259 oil form during activation. Unsupported terrain
+types or native readback mismatches fail closed and are never silently ignored.
 
 The compiler owns the activation round and the separate formation,
 construction, and contraption counts. A successful `apply_layout` response
 includes them as `round`, `formation_count`, `construction_count`, and
 `contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
 do not recount the input or returned arrays to establish completeness.
-`mechcore layout verify` additionally reports `terrain_count` even though
-non-empty terrain layouts are not executable yet.
+`mechcore layout verify` additionally reports `terrain_count`.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is

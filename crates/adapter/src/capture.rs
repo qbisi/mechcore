@@ -5,9 +5,9 @@ use crate::{
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_layout::{
     BattleSkillDefinition, ContraptionPlacement, EnergyTower, Formation, Layout, Position,
-    ResearchCenter, Side, Sides, StaticPlacement, Techs, battle_skill_type_from_id,
-    canonical_embedded_yaml, construction_type_from_id, contraption_type_from_id,
-    unit_type_from_id,
+    ResearchCenter, Side, Sides, StaticPlacement, Techs, Terrain as LayoutTerrain,
+    TerrainType as LayoutTerrainType, battle_skill_type_from_id, canonical_embedded_yaml,
+    construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
@@ -4671,6 +4671,12 @@ fn read_native_layout(
         "GameRiver.Fight",
         "AdvancedEnergyShieldSystem",
     )?;
+    let range_item_system = find_match_module(
+        runtime.api,
+        runtime.current_fight(),
+        "GameRiver.Fight",
+        "RangeItemSystem",
+    )?;
     let round = i32::try_from(context.combat_round)
         .map_err(|_| format!("round {} exceeds layout range", context.combat_round))?;
     let mut sides: [Option<Side>; 2] = [None, None];
@@ -4690,6 +4696,7 @@ fn read_native_layout(
                 player_controller,
                 super_deployment,
                 shield_system,
+                range_item_system,
                 team,
                 metadata,
             )
@@ -4716,6 +4723,7 @@ fn read_native_side(
     controller: *mut Object,
     super_deployment: *mut Object,
     shield_system: *mut Object,
+    range_item_system: *mut Object,
     team: usize,
     metadata: &Metadata,
 ) -> Result<Side, String> {
@@ -4812,10 +4820,189 @@ fn read_native_side(
         formations,
         constructions,
         contraptions: read_native_contraptions(api, controller, team, shield_system, metadata)?,
-        // Native terrain readback is not part of layout capture until GRBR-derived MCFR closure.
-        terrains: Vec::new(),
+        terrains: read_native_terrains(api, controller, range_item_system, team, metadata)?,
         battle_skills: read_native_battle_skills(api, controller, team)?,
     })
+}
+
+fn read_native_terrains(
+    api: Api,
+    player_controller: *mut Object,
+    range_item_system: *mut Object,
+    team: usize,
+    metadata: &Metadata,
+) -> Result<Vec<LayoutTerrain>, String> {
+    struct TerrainGroup {
+        point_count: usize,
+        centers: BTreeMap<u32, [i64; 3]>,
+        grid_rows: BTreeMap<u32, Vec<u32>>,
+    }
+
+    let fight_team_controller = invoke_object(api, player_controller, "GetFightTeamController")?;
+    let mut groups = Vec::<TerrainGroup>::new();
+    let mut group_by_provider = BTreeMap::<usize, usize>::new();
+    for type_tag in 0_i32..=5 {
+        let mut type_argument = type_tag;
+        let controller = api
+            .invoke(
+                range_item_system,
+                "GetRangeItemController",
+                &mut [argument(&mut type_argument)],
+            )
+            .map_err(|error| error.to_string())?;
+        if controller.is_null() {
+            continue;
+        }
+        let items = invoke_object(api, controller, "GetItems")?;
+        for index in 0..list_count(api, items, 10_000)? {
+            let item = list_item(api, items, index)?;
+            if invoke_object(api, item, "GetTeamController")? != fight_team_controller {
+                continue;
+            }
+            if type_tag != 1 {
+                return Err(format!(
+                    "unsupported retained terrain type {type_tag} for team {team}"
+                ));
+            }
+            let provider = invoke_object(api, item, "GetProvider")?;
+            if provider.is_null() || invoke_value::<i32>(api, provider, "GetID")? != 400_002 {
+                return Err("retained oil terrain provider is not Sticky Oil Bomb 400002".into());
+            }
+            let radius = invoke_value::<FixedPoint>(api, item, "GetRange")?.raw;
+            if radius != 30 * FIXED_ONE_RAW {
+                return Err(format!(
+                    "retained oil terrain has radius {radius}, expected 30 m"
+                ));
+            }
+            let round = invoke_value::<i32>(api, item, "get_Round")?;
+            let duration = invoke_value::<i32>(api, item, "GetDuration")?;
+            if round <= 0 || duration <= round {
+                return Err(format!(
+                    "retained oil terrain is not a live cross-round item: round={round}, duration={duration}"
+                ));
+            }
+            let native_index = invoke_value::<i32>(api, item, "get_Index")?;
+            let center = invoke_value::<FixedVec3>(api, item, "GetPosition")?;
+            if center.y.raw != 0 {
+                return Err(format!(
+                    "retained oil terrain has non-ground height {}",
+                    center.y.raw
+                ));
+            }
+            let point_count = invoke_value::<i32>(api, provider, "GetSubEffectCount")?;
+            if point_count != 7 || !(0..point_count).contains(&native_index) {
+                return Err(format!(
+                    "retained oil terrain has index {native_index} for point count {point_count}, expected seven points"
+                ));
+            }
+            let mut grid_rows = if invoke_value::<bool>(api, item, "IsGridMode")? {
+                let grid = read_terrain_grid(api, item, metadata)?;
+                if grid.size_x != 12 || grid.size_y != 12 || grid.rows.len() != 12 {
+                    return Err(format!(
+                        "retained oil terrain grid is {}x{}, expected 12x12",
+                        grid.size_x, grid.size_y
+                    ));
+                }
+                grid.rows
+            } else {
+                Vec::new()
+            };
+            if team != 0 {
+                grid_rows = crate::operations::rotate_terrain_grid_rows(&grid_rows);
+            }
+            let group_index =
+                if let Some(&group_index) = group_by_provider.get(&(provider as usize)) {
+                    group_index
+                } else {
+                    let group_index = groups.len();
+                    groups.push(TerrainGroup {
+                        point_count: usize::try_from(point_count)
+                            .map_err(|_| "negative oil terrain point count".to_owned())?,
+                        centers: BTreeMap::new(),
+                        grid_rows: BTreeMap::new(),
+                    });
+                    group_by_provider.insert(provider as usize, group_index);
+                    group_index
+                };
+            let point_index = u32::try_from(native_index)
+                .map_err(|_| "negative retained oil terrain index".to_owned())?;
+            if groups[group_index]
+                .centers
+                .insert(point_index, [center.x.raw, center.y.raw, center.z.raw])
+                .is_some()
+            {
+                return Err(format!(
+                    "duplicate retained oil terrain point index {native_index}"
+                ));
+            }
+            if groups[group_index]
+                .grid_rows
+                .insert(point_index, grid_rows)
+                .is_some()
+            {
+                return Err(format!(
+                    "duplicate retained oil terrain point index {native_index}"
+                ));
+            }
+        }
+    }
+    Ok(groups
+        .into_iter()
+        .map(|mut group| -> Result<LayoutTerrain, String> {
+            let start = group.centers.get(&0).ok_or_else(|| {
+                "live retained-oil export requires surviving native endpoint index 0".to_owned()
+            })?;
+            let end_index = u32::try_from(group.point_count - 1)
+                .map_err(|_| "oil terrain point count exceeds u32".to_owned())?;
+            let end = group.centers.get(&end_index).ok_or_else(|| {
+                format!(
+                    "live retained-oil export requires surviving native endpoint index {end_index}"
+                )
+            })?;
+            for (&index, center) in &group.centers {
+                for axis in [0, 2] {
+                    let delta = i128::from(end[axis]) - i128::from(start[axis]);
+                    let expected =
+                        i128::from(start[axis]) + delta * i128::from(index) / i128::from(end_index);
+                    // CalculateAttackPositions normalizes and clamps a fixed-point
+                    // vector, so its intermediate points differ slightly from
+                    // component-wise linear interpolation. This 2^-16 m bound
+                    // only rejects centers that cannot belong to the endpoint line.
+                    if (i128::from(center[axis]) - expected).abs() > 65_536 {
+                        return Err(format!(
+                            "retained oil point {index} is inconsistent with its endpoint line"
+                        ));
+                    }
+                }
+            }
+            let mut positions = Vec::with_capacity(2);
+            for (label, center) in [("start", start), ("end", end)] {
+                if center[0] % FIXED_ONE_RAW != 0 || center[2] % FIXED_ONE_RAW != 0 {
+                    return Err(format!(
+                        "retained oil {label} point is not an integer MapVector"
+                    ));
+                }
+                let world = MapVector {
+                    x: i32::try_from(center[0] / FIXED_ONE_RAW)
+                        .map_err(|_| format!("retained oil {label} x exceeds i32"))?,
+                    y: i32::try_from(center[2] / FIXED_ONE_RAW)
+                        .map_err(|_| format!("retained oil {label} y exceeds i32"))?,
+                };
+                let (x, y) = side_local_position(world, team)?;
+                positions.push(Position { x, y });
+            }
+            if group.grid_rows.len() == group.point_count
+                && group.grid_rows.values().all(Vec::is_empty)
+            {
+                group.grid_rows.clear();
+            }
+            Ok(LayoutTerrain {
+                terrain_type: LayoutTerrainType::Oil,
+                positions,
+                grid_rows: group.grid_rows,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?)
 }
 
 fn validate_native_indices(kind: &str, indices: &[i32]) -> Result<(), String> {
@@ -5930,7 +6117,7 @@ fn read_terrains(
                 .map_err(|error| format!("terrain {id} IsGridMode: {error}"))?
             {
                 Some(
-                    read_terrain_grid(api, item, capture)
+                    read_terrain_grid(api, item, &capture.metadata)
                         .map_err(|error| format!("terrain {id} grid: {error}"))?,
                 )
             } else {
@@ -6090,17 +6277,17 @@ fn read_terrain_applications(
 fn read_terrain_grid(
     api: Api,
     item: *mut Object,
-    capture: &CaptureState,
+    metadata: &Metadata,
 ) -> Result<TerrainGridState, String> {
     let grid = invoke_object(api, item, "GetGridBlock")?;
     let origin_x: FixedPoint = api
-        .field_value(grid, capture.metadata.grid_position_x as *mut FieldInfo)
+        .field_value(grid, metadata.grid_position_x as *mut FieldInfo)
         .map_err(|error| error.to_string())?;
     let origin_y: FixedPoint = api
-        .field_value(grid, capture.metadata.grid_position_y as *mut FieldInfo)
+        .field_value(grid, metadata.grid_position_y as *mut FieldInfo)
         .map_err(|error| error.to_string())?;
     let size: UnityVec2Int = api
-        .field_value(grid, capture.metadata.grid_size as *mut FieldInfo)
+        .field_value(grid, metadata.grid_size as *mut FieldInfo)
         .map_err(|error| error.to_string())?;
     let size_x =
         u32::try_from(size.x).map_err(|_| format!("invalid terrain grid width {}", size.x))?;
@@ -6110,7 +6297,7 @@ fn read_terrain_grid(
         return Err(format!("terrain grid size {size_x}x{size_y} exceeds 32x32"));
     }
     let rows_array: *mut Object = api
-        .field_value(grid, capture.metadata.grid_rows as *mut FieldInfo)
+        .field_value(grid, metadata.grid_rows as *mut FieldInfo)
         .map_err(|error| error.to_string())?;
     let columns = api
         .value_array::<u32>(rows_array, 32)
@@ -6125,7 +6312,7 @@ fn read_terrain_grid(
     })
 }
 
-fn terrain_grid_rows_from_native_columns(
+pub(crate) fn terrain_grid_rows_from_native_columns(
     columns: &[u32],
     size_x: u32,
     size_y: u32,

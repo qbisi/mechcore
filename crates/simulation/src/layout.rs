@@ -251,7 +251,7 @@ sides:
     fn rejects_persistent_terrains_outside_simulator_closure() {
         let value = LAYOUT.replace(
             "formations: [{type: marksman, x: 0, y: -50}]",
-            "formations: [{type: marksman, x: 0, y: -50}]\n    terrains: [{type: oil, x: -60, y: 40, grid_rows: []}]",
+            "formations: [{type: marksman, x: 0, y: -50}]\n    terrains: [{type: oil, positions: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),

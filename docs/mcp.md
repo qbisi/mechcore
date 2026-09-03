@@ -94,10 +94,13 @@ returns only after all setup rounds have been skipped, the adapter's staged
 native actions/readbacks succeed, and that activation round reports
 `deploying=true` and `fighting=false`.
 
-The shared layout schema accepts `sides.<side>.terrains` for offline readback and
-validation, but this tool rejects a non-empty terrain list before checking game
-state or contacting the Adapter. Terrain execution remains disabled until a
-GRBR-derived MCFR baseline exists for closure.
+The shared layout schema accepts build-2259 retained Sticky Oil Bomb terrain in
+`sides.<side>.terrains`. During activation the Adapter expands each entry's two
+control points with the same native fixed-point primitives as the replay routine, restores its active indexed
+points through `RangeItemSystem.AddItem`, and verifies any declared clipped
+grid by immediate native readback. The Simulator remains fail-closed for
+non-empty terrain layouts; this operation is native replay/Training Ground
+restoration, not simulator closure.
 
 ### connect_adapter
 

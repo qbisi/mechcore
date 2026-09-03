@@ -402,6 +402,41 @@ impl Api {
         Ok(values.to_vec())
     }
 
+    pub fn overwrite_value_array<T: Copy>(
+        self,
+        array: *mut Object,
+        values: &[T],
+    ) -> Result<(), Error> {
+        if array.is_null() {
+            return Err(Error::NullResult("value array".into()));
+        }
+        // SAFETY: array is a managed one-dimensional value-type array.
+        let length = unsafe { (self.array_length)(array) };
+        if length != values.len() {
+            return Err(Error::InvalidValue(format!(
+                "managed value array length {length} does not match replacement length {}",
+                values.len()
+            )));
+        }
+        // SAFETY: the runtime reports the byte offset from the object to the first element.
+        let offset = unsafe { (self.array_object_header_size)() };
+        if !(std::mem::size_of::<usize>() * 3..=256).contains(&offset) {
+            return Err(Error::InvalidValue(format!(
+                "invalid managed array header size {offset}"
+            )));
+        }
+        // SAFETY: T is the managed array element type selected by the caller;
+        // both slices contain exactly the runtime-reported number of elements.
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                values.as_ptr(),
+                array.cast::<u8>().add(offset).cast::<T>(),
+                length,
+            );
+        }
+        Ok(())
+    }
+
     pub fn gc_handle(self, object: *mut Object) -> Result<u32, Error> {
         if object.is_null() {
             return Err(Error::NullResult("GC handle target".into()));

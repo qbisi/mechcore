@@ -206,13 +206,50 @@ GridBlockInt.Sync
 ## 8. 单回合 Layout 表达边界
 
 `layout.yaml` 在所属 `sides.<side>.terrains` 中保存战斗开始时已经存在的跨回合地形。
-每个激活点独立表示为恰好四个字段：`type`、中心 `x/y` 和最终 `grid_rows`。当前只接受
-`type: oil`；`grid_rows: []` 表示完整 30 m 圆，非空值必须是规范的 `12 x 12`、y 行/x
-低位优先掩码。Layout 不保留 GRBR 的技能端点、`activeState` 或 `round`。
+当前每条记录对应一次 `type: oil` 的黏油弹释放，`positions` 保存两个有序整数控制点。
+build 2259 的 `CommanderSkillManager.CalculateAttackPositions` 从这两个点生成七个 Q32.32
+中心，因此无需在 YAML 中重复保存五个分数中间点。该 private 方法未出现在运行时反射表，
+Adapter 复用它所调用的原生 `FVector3`/`FPoint` 运算，以保持相同的定点舍入。
 
-这只是读取、格式化与静态验证契约。`apply_layout` 和 Simulator 都拒绝非空
-`terrains`，不得据此声明已经支持跨回合地形。完整闭合要等到 GRBR 单回合状态能够采集为
-MCFR，再用相同回合的原生 Terrain 集合对照验证。
+可选的 `grid_rows` 是 `0..=6` 原生点索引到最终占用网格的映射。省略或空 map 表示七点
+全部激活且均为完整 30 m 圆；非空 map 的键集合就是完整激活集合，缺失键表示该点未生成。
+映射值 `[]` 表示完整圆，12 个 row 的值表示护盾裁剪后的规范 `12 x 12`、y 行/x 低位优先
+掩码。Layout 不保存 `remaining_rounds`，因为它不改变本次单回合战斗的初态。
+
+Simulator 仍拒绝非空 `terrains`。Adapter 通过原生 `RangeItemSystem` 还原；完整闭合要求
+将同一 GRBR 回合和试验场复原结果采集为 MCFR，并对照其 Terrain 集合和战斗轨迹。
+
+存在两条互相校验、但不互相依赖的导出路径：
+
+1. `mechcore_layout::terrains_from_grbr_round` 直接从 GRBR 的 BinaryFormatter 包装中提取
+   `BattleRecord` XML，读取指定 `PlayerRoundRecord`，再把 `activeState` 与扁平
+   `gridInfo/ByteMask` 解码为零基激活索引和规范 y-row/x-bit 网格，同时保留原始两个
+   `positions` 控制点。这是后续
+   `mechcore grbr layout` 命令的纯文件输入函数。
+2. 录像采集当前采用 Adapter 路径：在战斗前从 `RangeItemSystem ->
+   RangeItemController.GetItems()` 枚举实际恢复后的 `RangeItem`，按共同 provider 聚合，
+   从仍存活的零号和六号端点恢复两个控制点，并按 `RangeItem.Index` 导出
+   `GridBlockInt`。回放恢复后 manager 已不再保留该 provider 的 release data，因此实时
+   路径若缺少任一端点会 fail closed；纯 GRBR 路径没有此限制。这条路径同时检查具体 build
+   的原生恢复结果。
+
+试验场恢复先用同一组原生定点运算计算七个精确中心，再按 map 的索引顺序
+调用 `RangeItemSystem.AddItem`。非空网格同时覆写原生 `Queue<ByteMask>` 和
+`GridBlockInt.grids`，并立即读回检查；不能使用只会在现有网格上继续扣除 cell 的 `Sync`
+来反序列化最终状态。值为 `[]` 的点以 `useGrid=false` 创建完整圆。
+
+直接 GRBR 样本的 `activeState=227` 解码为零基索引 `0,1,5,6`；它与四组 `gridInfo` 按
+激活索引顺序一一对应。旧的逐圆整数格式会把内部中心四舍五入，留下约 1/3 m 误差；新格式
+由原生定点算法重算后，四点中心 raw 分别为
+`(103079215104,-47244640256)`、`(28633116167,-40086361513)`、
+`(-269151279577,-11453246537)`、`(-343597383680,-4294967296)`，录像和试验场完全一致。
+
+2026-09-03 的交叉验证中，GRBR 直读 terrain 与录像实时导出的 layout 相同；录像和试验场
+MCFR 均为 192 ticks，`physics_result_hash=580891840449133a6097087973acc1aaba0fe1339c247ed1af190fff85796b26`，
+`content_result_hash=af4605b78120045edf520141c71a07802be3ba941df4a8af897e08f5455d7d60`，
+且两个 `.mcfr` 文件 SHA-256 同为
+`fb87df0265d25e3482f121e604e2a7dc51edda23a830c8f19e60501b574b64a5`。这确认本样本已闭合，
+但其它地形类型或缺少存活端点的录像仍不能由本样本外推。
 
 ## 9. 原生采集材料
 
@@ -225,6 +262,7 @@ MCFR，再用相同回合的原生 Terrain 集合对照验证。
 | 护盾边缘与黏油 | `tests/layouts/terrain-sticky-oil.yaml` | `work/captures/terrain-native-20260901/sticky-oil-red-shield-edge.mcfr` |
 | 猎犬燃烧弹 | `tests/layouts/terrain-hound-incendiary.yaml` | `work/captures/terrain-native-20260901/hound-incendiary-vs-crawlers.mcfr` |
 | 火神黏油弹 | `tests/layouts/terrain-vulcan-sticky-oil.yaml` | `work/captures/terrain-native-20260901/vulcan-sticky-oil-vs-crawlers.mcfr` |
+| GRBR 第二回合遗留黏油 | `tests/layouts/crower-computer-replay-round-2-terrain.yaml` | `work/research/grbr-round2-terrain-grouped-20260903/{replay-round-2-grouped,training-round-2-grouped}.mcfr` |
 
 以上录像均来自 build `1.11.1.3.2259`。MCFR 录像是具体运行时分支和值的证据；反编译索引用于确认静态类型、直接调用关系和候选机制。
 

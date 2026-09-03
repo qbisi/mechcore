@@ -1,0 +1,54 @@
+seed: 1788414856
+round: 2
+sides:
+  blue:
+    formations:
+      - type: crawler
+        index: 0
+        x: -50
+        y: -95
+        rotated: true
+      - type: crawler
+        index: 1
+        x: 70
+        y: -95
+        rotated: true
+    contraptions:
+      - type: shield
+        x: -33
+        y: -72
+        isairdrop: true
+      - type: shield
+        x: 62
+        y: -103
+      - type: shield
+        x: -127
+        y: -104
+      - type: shield
+        x: 165
+        y: -82
+      - type: shield
+        x: -216
+        y: -90
+  red:
+    formations:
+      - type: arclight
+        index: 1
+        x: -20
+        y: -80
+        exp: 198
+      - type: arclight
+        index: 2
+        x: 50
+        y: -80
+        exp: 186
+    terrains:
+      - type: oil
+        positions:
+          - {x: -24, y: 11}
+          - {x: 80, y: 1}
+        grid_rows:
+          0: [240, 1020, 2046, 2046, 4095, 4095, 1023, 511, 254, 126, 60, 48]
+          1: [240, 1020, 1022, 510, 255, 127, 63, 63, 30, 30, 12, 0]
+          5: [16, 28, 30, 30, 63, 63, 127, 127, 254, 510, 1020, 240]
+          6: [48, 124, 126, 254, 255, 511, 1023, 2047, 2046, 2046, 1020, 240]

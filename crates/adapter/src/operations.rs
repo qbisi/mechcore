@@ -1,7 +1,7 @@
 use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
 use crate::layout::{
     self, BattleSkill, EnergyTower, NativeFormation, Placement, PlacementStage, ResearchCenter,
-    SidePlan, Techs,
+    SidePlan, Techs, Terrain,
 };
 use crate::runtime::Runtime;
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
@@ -19,6 +19,13 @@ struct MapVector {
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 struct FPoint(i64);
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Vector2Int {
+    x: i32,
+    y: i32,
+}
 
 #[derive(Debug)]
 struct UnitReadback {
@@ -48,6 +55,13 @@ const RESEARCH_CENTER_KIND: i32 = 2;
 const RANGE_ENHANCEMENT_SKILL: i32 = 5;
 const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
+const FIXED_ONE_RAW: i64 = 1_i64 << 32;
+const OIL_COMMANDER_SKILL_ID: i32 = 400_002;
+const OIL_RANGE_ITEM_TYPE: i32 = 1;
+const OIL_RADIUS_RAW: i64 = 30 * FIXED_ONE_RAW;
+const OIL_GRID_SIZE: usize = 12;
+const OIL_GRID_MASK: u32 = (1 << OIL_GRID_SIZE) - 1;
+const RETAINED_OIL_ROUND: i32 = 1;
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -1215,6 +1229,12 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     for placement in &plan.red.contraptions {
         layout_world_position(placement, true)?;
     }
+    for terrain in &plan.blue.terrains {
+        terrain_world_positions(terrain, false)?;
+    }
+    for terrain in &plan.red.terrains {
+        terrain_world_positions(terrain, true)?;
+    }
     for skill in &plan.blue.battle_skills {
         battle_skill_world_positions(skill, false)?;
     }
@@ -1271,6 +1291,7 @@ fn apply_side_layout_stage(
             "formations": formations,
             "constructions": constructions,
             "contraptions": contraptions,
+            "terrains": apply_terrains(runtime, &side.terrains, rotate_to_world)?,
             "battle_skills": apply_battle_skills(
                 runtime,
                 &side.battle_skills,
@@ -1284,6 +1305,412 @@ fn apply_side_layout_stage(
         ));
     }
     Ok(result)
+}
+
+fn apply_terrains(
+    runtime: &Runtime,
+    terrains: &[Terrain],
+    rotate_to_world: bool,
+) -> Result<Vec<Value>, OperationError> {
+    if terrains.is_empty() {
+        return Ok(Vec::new());
+    }
+    let result = terrains
+        .iter()
+        .map(|terrain| {
+            let source = oil_terrain_source(runtime.api)?;
+            let handle = runtime.api.gc_handle(source)?;
+            let result = restore_oil_terrain(runtime, terrain, rotate_to_world, source);
+            runtime.api.free_gc_handle(handle);
+            result
+        })
+        .collect();
+    result
+}
+
+fn terrain_world_positions(
+    terrain: &Terrain,
+    rotate_to_world: bool,
+) -> Result<Vec<MapVector>, OperationError> {
+    terrain
+        .positions
+        .iter()
+        .copied()
+        .map(|position| position_to_world(position, rotate_to_world, "terrain control point"))
+        .collect()
+}
+
+pub(crate) fn rotate_terrain_grid_rows(rows: &[u32]) -> Vec<u32> {
+    rows.iter()
+        .rev()
+        .map(|row| (row & OIL_GRID_MASK).reverse_bits() >> (u32::BITS - OIL_GRID_SIZE as u32))
+        .collect()
+}
+
+fn restore_oil_terrain(
+    runtime: &Runtime,
+    terrain: &Terrain,
+    rotate_to_world: bool,
+    source: *mut Object,
+) -> Result<Value, OperationError> {
+    if terrain.terrain_type != layout::TerrainType::Oil {
+        return Err(OperationError::InvalidArguments(
+            "only oil terrain is supported by build-2259 native restoration".into(),
+        ));
+    }
+    let current = require_training_deploying(runtime)?;
+    let api = runtime.api;
+    let player = player_controller(runtime, current)?;
+    let team_controller = api.invoke(player, "GetFightTeamController", &mut [])?;
+    let control_points = terrain_world_positions(terrain, rotate_to_world)?;
+    let centers = calculate_oil_terrain_positions(api, &control_points, source)?;
+    let point_count = api.invoke_value::<i32>(source, "GetSubEffectCount", &mut [])?;
+    if point_count != 7 || centers.len() != usize::try_from(point_count).unwrap_or_default() {
+        return Err(OperationError::Rejected(format!(
+            "sticky-oil generated {} positions for native point count {point_count}, expected seven",
+            centers.len()
+        )));
+    }
+    let expected_start = [
+        i64::from(control_points[0].x) << 32,
+        0,
+        i64::from(control_points[0].y) << 32,
+    ];
+    let expected_end = [
+        i64::from(control_points[1].x) << 32,
+        0,
+        i64::from(control_points[1].y) << 32,
+    ];
+    if centers.first() != Some(&expected_start) || centers.last() != Some(&expected_end) {
+        return Err(OperationError::Rejected(format!(
+            "sticky-oil generated endpoints differ: expected {expected_start:?}..{expected_end:?}, got {:?}..{:?}",
+            centers.first(),
+            centers.last()
+        )));
+    }
+    let system = find_match_module(
+        runtime,
+        runtime.current_fight(),
+        "GameRiver.Fight",
+        "RangeItemSystem",
+    )?;
+    let mut range_item_type = OIL_RANGE_ITEM_TYPE;
+    let controller = api.invoke(
+        system,
+        "GetRangeItemController",
+        &mut [argument(&mut range_item_type)],
+    )?;
+    let items = api.invoke(controller, "GetItems", &mut [])?;
+    let active_points = if terrain.grid_rows.is_empty() {
+        (0..centers.len())
+            .map(|index| {
+                (
+                    u32::try_from(index).expect("seven points fit u32"),
+                    Vec::new(),
+                )
+            })
+            .collect::<Vec<_>>()
+    } else {
+        terrain
+            .grid_rows
+            .iter()
+            .map(|(&index, rows)| (index, rows.clone()))
+            .collect::<Vec<_>>()
+    };
+    let mut restored = Vec::with_capacity(active_points.len());
+    for (point_index, local_rows) in active_points {
+        let center_index = usize::try_from(point_index).map_err(|_| {
+            OperationError::InvalidArguments("terrain point index exceeds usize".into())
+        })?;
+        let mut center = *centers.get(center_index).ok_or_else(|| {
+            OperationError::InvalidArguments(format!(
+                "terrain point index {point_index} exceeds generated position count {}",
+                centers.len()
+            ))
+        })?;
+        if center[1] != 0 {
+            return Err(OperationError::Rejected(format!(
+                "sticky-oil generated non-ground height {} at point {point_index}",
+                center[1]
+            )));
+        }
+        let mut native_index = i32::try_from(point_index).map_err(|_| {
+            OperationError::InvalidArguments("terrain point index exceeds native i32".into())
+        })?;
+        let mut round = RETAINED_OIL_ROUND;
+        let mut use_grid = !local_rows.is_empty();
+        let no_masks: *mut Object = std::ptr::null_mut();
+        // Build 2259 exposes exactly one eight-argument AddItem overload. Its
+        // closed generic Queue<ByteMask> parameter has no stable reflection
+        // spelling through this IL2CPP runtime, so bind the unique arity.
+        let method = api.method(
+            api.object_class(system).ok_or_else(|| {
+                OperationError::InvalidState("RangeItemSystem has no runtime class".into())
+            })?,
+            "AddItem",
+            8,
+        )?;
+        let before_count = list_count(api, items)?;
+        api.invoke_raw(
+            method,
+            system.cast(),
+            &mut [
+                argument(&mut range_item_type),
+                object_argument(source),
+                argument(&mut center),
+                object_argument(team_controller),
+                argument(&mut native_index),
+                argument(&mut round),
+                object_argument(no_masks),
+                argument(&mut use_grid),
+            ],
+        )?;
+        if list_count(api, items)? != before_count + 1 {
+            return Err(OperationError::Rejected(
+                "RangeItemSystem.AddItem did not register one oil terrain".into(),
+            ));
+        }
+        let item = list_item(api, items, before_count)?;
+        if api.invoke(item, "GetProvider", &mut [])? != source
+            || api.invoke(item, "GetTeamController", &mut [])? != team_controller
+            || api.invoke_value::<i32>(item, "GetRangeItemType", &mut [])? != OIL_RANGE_ITEM_TYPE
+            || api.invoke_value::<[i64; 3]>(item, "GetPosition", &mut [])? != center
+            || api.invoke_value::<FPoint>(item, "GetRange", &mut [])?.0 != OIL_RADIUS_RAW
+            || api.invoke_value::<i32>(item, "get_Index", &mut [])? != native_index
+            || api.invoke_value::<i32>(item, "get_Round", &mut [])? != round
+            || api.invoke_value::<bool>(item, "IsGridMode", &mut [])? != use_grid
+        {
+            return Err(OperationError::Rejected(
+                "restored oil terrain native readback did not match".into(),
+            ));
+        }
+
+        let expected_rows = if rotate_to_world {
+            rotate_terrain_grid_rows(&local_rows)
+        } else {
+            local_rows.clone()
+        };
+        if use_grid {
+            overwrite_terrain_grid(api, item, &expected_rows)?;
+            let readback = read_terrain_grid_rows(api, item)?;
+            if readback != expected_rows {
+                return Err(OperationError::Rejected(format!(
+                    "restored oil terrain grid readback differs: expected {expected_rows:?}, got {readback:?}"
+                )));
+            }
+        }
+        restored.push(json!({
+            "native_index": native_index,
+            "position_raw": {"x": center[0], "y": center[2]},
+            "grid_rows": local_rows,
+        }));
+    }
+    Ok(json!({
+        "type": "oil",
+        "positions": terrain.positions.iter().map(|position| {
+            json!({"x": position.x, "y": position.y})
+        }).collect::<Vec<_>>(),
+        "active_points": restored,
+    }))
+}
+
+fn calculate_oil_terrain_positions(
+    api: Api,
+    control_points: &[MapVector],
+    source: *mut Object,
+) -> Result<Vec<[i64; 3]>, OperationError> {
+    if control_points.len() != 2 {
+        return Err(OperationError::InvalidArguments(
+            "sticky-oil terrain requires exactly two control points".into(),
+        ));
+    }
+    let point_count = api.invoke_value::<i32>(source, "GetSubEffectCount", &mut [])?;
+    if point_count != 7 {
+        return Err(OperationError::Rejected(format!(
+            "sticky-oil native point count is {point_count}, expected seven"
+        )));
+    }
+
+    // CalculateAttackPositions is private and absent from build 2259's runtime
+    // method table. Reproduce its line branch with the same public FixedMath
+    // primitives, preserving their exact Q32.32 rounding behavior.
+    let vector_class = api.class("GRUtility.dll", "FixedMath", "FVector3")?;
+    let point_class = api.class("GRUtility.dll", "FixedMath", "FPoint")?;
+    let subtract = api.class_method_with_parameter_types(
+        vector_class,
+        "op_Subtraction",
+        &["FixedMath.FVector3", "FixedMath.FVector3"],
+    )?;
+    let clamp = api.class_method_with_parameter_types(
+        vector_class,
+        "ClampMagnitude",
+        &["FixedMath.FVector3", "FixedMath.FPoint"],
+    )?;
+    let add = api.class_method_with_parameter_types(
+        vector_class,
+        "op_Addition",
+        &["FixedMath.FVector3", "FixedMath.FVector3"],
+    )?;
+    let dot = api.class_method_with_parameter_types(
+        vector_class,
+        "Dot",
+        &["FixedMath.FVector3", "FixedMath.FVector3"],
+    )?;
+    let sqrt = api.class_method_with_parameter_types(point_class, "Sqrt", &["FixedMath.FPoint"])?;
+    let divide = api.class_method_with_parameter_types(
+        point_class,
+        "op_Division",
+        &["FixedMath.FPoint", "FixedMath.FPoint"],
+    )?;
+    let mut start = [
+        i64::from(control_points[0].x) << 32,
+        0,
+        i64::from(control_points[0].y) << 32,
+    ];
+    let mut end = [
+        i64::from(control_points[1].x) << 32,
+        0,
+        i64::from(control_points[1].y) << 32,
+    ];
+    let boxed_direction = api.invoke_raw(
+        subtract,
+        std::ptr::null_mut(),
+        &mut [argument(&mut end), argument(&mut start)],
+    )?;
+    let direction = api.unbox::<[i64; 3]>(boxed_direction, "FVector3 subtraction")?;
+    let mut dot_left = direction;
+    let mut dot_right = direction;
+    let boxed_squared = api.invoke_raw(
+        dot,
+        std::ptr::null_mut(),
+        &mut [argument(&mut dot_left), argument(&mut dot_right)],
+    )?;
+    let mut squared = api.unbox::<FPoint>(boxed_squared, "FVector3 dot")?;
+    let boxed_magnitude =
+        api.invoke_raw(sqrt, std::ptr::null_mut(), &mut [argument(&mut squared)])?;
+    let magnitude = api.unbox::<FPoint>(boxed_magnitude, "FPoint square root")?;
+    let mut magnitude_argument = magnitude;
+    let mut divisor = FPoint(i64::from(point_count - 1) << 32);
+    let boxed_step = api.invoke_raw(
+        divide,
+        std::ptr::null_mut(),
+        &mut [argument(&mut magnitude_argument), argument(&mut divisor)],
+    )?;
+    let step = api.unbox::<FPoint>(boxed_step, "FPoint division")?;
+
+    let mut centers = Vec::with_capacity(usize::try_from(point_count).unwrap_or_default());
+    for index in 0..point_count {
+        let mut direction_argument = direction;
+        let mut max_length = FPoint(step.0.checked_mul(i64::from(index)).ok_or_else(|| {
+            OperationError::InvalidArguments("sticky-oil step length overflows Q32.32".into())
+        })?);
+        let boxed_offset = api.invoke_raw(
+            clamp,
+            std::ptr::null_mut(),
+            &mut [argument(&mut direction_argument), argument(&mut max_length)],
+        )?;
+        let mut offset = api.unbox::<[i64; 3]>(boxed_offset, "FVector3 clamp")?;
+        let boxed_center = api.invoke_raw(
+            add,
+            std::ptr::null_mut(),
+            &mut [argument(&mut start), argument(&mut offset)],
+        )?;
+        centers.push(api.unbox::<[i64; 3]>(boxed_center, "FVector3 addition")?);
+    }
+    Ok(centers)
+}
+
+fn oil_terrain_source(api: Api) -> Result<*mut Object, OperationError> {
+    let factory = api.class("GRCore.dll", "GameRiver", "CommanderSkillFactory")?;
+    let create = api.class_method_with_parameter_types(factory, "Create", &["System.Int32"])?;
+    let mut id = OIL_COMMANDER_SKILL_ID;
+    let source = api.invoke_raw(create, std::ptr::null_mut(), &mut [argument(&mut id)])?;
+    let expected = api.class("GRCore.dll", "GameRiver", "CS_Oil")?;
+    if api.object_class(source) != Some(expected)
+        || api.invoke_value::<i32>(source, "GetID", &mut [])? != id
+        || api.invoke_value::<i32>(source, "GetRangeItemType", &mut [])? != OIL_RANGE_ITEM_TYPE
+        || api
+            .invoke_value::<FPoint>(source, "GetSubEffectRange", &mut [])?
+            .0
+            != OIL_RADIUS_RAW
+    {
+        return Err(OperationError::Rejected(
+            "sticky-oil range item provider readback did not match".into(),
+        ));
+    }
+    Ok(source)
+}
+
+fn overwrite_terrain_grid(api: Api, item: *mut Object, rows: &[u32]) -> Result<(), OperationError> {
+    let grid = api.invoke(item, "GetGridBlock", &mut [])?;
+    let class = api
+        .object_class(grid)
+        .ok_or_else(|| OperationError::InvalidState("terrain grid has no runtime class".into()))?;
+    let size = api.invoke_value::<Vector2Int>(grid, "get_Size", &mut [])?;
+    if size
+        != (Vector2Int {
+            x: OIL_GRID_SIZE as i32,
+            y: OIL_GRID_SIZE as i32,
+        })
+    {
+        return Err(OperationError::Rejected(format!(
+            "native oil terrain grid is {}x{}, expected {OIL_GRID_SIZE}x{OIL_GRID_SIZE}",
+            size.x, size.y
+        )));
+    }
+    // Keep the RangeItem's serialized mask queue in sync as well as its live
+    // GridBlock, so a later native round snapshot would preserve this shape.
+    let masks = api.invoke(item, "get_DetailMasks", &mut [])?;
+    if masks.is_null() {
+        return Err(OperationError::Rejected(
+            "grid-mode oil terrain has no native DetailMasks queue".into(),
+        ));
+    }
+    api.invoke_void(masks, "Clear", &mut [])?;
+    let mask_class = api.class("GRUtility.dll", "GameRiver", "ByteMask")?;
+    let mut mask = api.new_object(mask_class)?;
+    api.invoke_void(masks, "Enqueue", &mut [object_argument(mask)])?;
+    for x in 0..OIL_GRID_SIZE {
+        for row in rows.iter().take(OIL_GRID_SIZE) {
+            if api.invoke_value::<bool>(mask, "IsFull", &mut [])? {
+                mask = api.new_object(mask_class)?;
+                api.invoke_void(masks, "Enqueue", &mut [object_argument(mask)])?;
+            }
+            let mut active = row & (1_u32 << x) != 0;
+            api.invoke_void(mask, "Push", &mut [argument(&mut active)])?;
+        }
+    }
+    let mut columns = vec![0_u32; 32];
+    for (x, column) in columns.iter_mut().take(OIL_GRID_SIZE).enumerate() {
+        for (y, row) in rows.iter().enumerate() {
+            if row & (1_u32 << x) != 0 {
+                *column |= 1_u32 << (u32::BITS as usize - 1 - y);
+            }
+        }
+    }
+    let columns_array: *mut Object = api.field_value(grid, api.field(class, "grids")?)?;
+    api.overwrite_value_array(columns_array, &columns)?;
+    Ok(())
+}
+
+fn read_terrain_grid_rows(api: Api, item: *mut Object) -> Result<Vec<u32>, OperationError> {
+    let grid = api.invoke(item, "GetGridBlock", &mut [])?;
+    let class = api
+        .object_class(grid)
+        .ok_or_else(|| OperationError::InvalidState("terrain grid has no runtime class".into()))?;
+    let size = api.invoke_value::<Vector2Int>(grid, "get_Size", &mut [])?;
+    let columns_array: *mut Object = api.field_value(grid, api.field(class, "grids")?)?;
+    let columns = api.value_array::<u32>(columns_array, 32)?;
+    crate::capture::terrain_grid_rows_from_native_columns(
+        &columns,
+        u32::try_from(size.x).map_err(|_| {
+            OperationError::InvalidState(format!("negative terrain grid width {}", size.x))
+        })?,
+        u32::try_from(size.y).map_err(|_| {
+            OperationError::InvalidState(format!("negative terrain grid height {}", size.y))
+        })?,
+    )
+    .map_err(OperationError::Rejected)
 }
 
 fn apply_battle_skills(
@@ -3349,5 +3776,27 @@ mod tests {
             panic!("red coordinate rotation unexpectedly succeeded")
         };
         assert!(error.to_string().contains("cannot be rotated"));
+    }
+
+    #[test]
+    fn terrain_grid_rotation_is_a_twelve_bit_involution() {
+        let rows = [
+            0b0000_0000_0001,
+            0b0000_0000_0011,
+            0b0000_0000_0111,
+            0b0000_0000_1111,
+            0b0000_0001_1111,
+            0b0000_0011_1111,
+            0b0000_0111_1111,
+            0b0000_1111_1111,
+            0b0001_1111_1111,
+            0b0011_1111_1111,
+            0b0111_1111_1111,
+            0b1111_1111_1111,
+        ];
+        let rotated = rotate_terrain_grid_rows(&rows);
+        assert_eq!(rotate_terrain_grid_rows(&rotated), rows);
+        assert_eq!(rotated[0], 0x0fff);
+        assert_eq!(rotated[11], 0x0800);
     }
 }
