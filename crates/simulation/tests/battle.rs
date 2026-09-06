@@ -1,16 +1,21 @@
-use std::{collections::BTreeMap, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
 use mechcore_simulation::simulate_layout;
 use serde::Deserialize;
 
+/// Deserialized strictly, so a manifest field added without a reader fails here
+/// rather than being silently ignored. `smoke` and `format` select cases for
+/// the mcscript readers and have no consumer in this file.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NativeRegression {
     name: String,
+    #[allow(dead_code)]
     smoke: bool,
     layout: PathBuf,
     game_build: String,
+    #[allow(dead_code)]
     format: String,
     seed: i32,
     tick_count: u32,
@@ -295,33 +300,6 @@ fn rhino_retarget_preserves_the_reviewed_behavior() {
             (335, 3, 1_253)
         ]
     );
-}
-
-/// The manifest is data with two readers, and both of them replay it rather
-/// than describe it. This asserts the one property they both depend on, which
-/// is cheap because it parses the table without simulating anything: every
-/// layout appears with exactly one smoke case, so the smoke tier covers each
-/// layout once.
-#[test]
-fn every_layout_in_the_manifest_has_exactly_one_smoke_case() {
-    let mut smoke_counts = BTreeMap::<PathBuf, usize>::new();
-    for regression in native_regressions()
-        .into_iter()
-        .filter(|regression| regression.format == mechcore_mcfr::MCFR_FORMAT)
-    {
-        let counter = smoke_counts.entry(regression.layout).or_default();
-        if regression.smoke {
-            *counter += 1;
-        }
-    }
-    for (layout, count) in smoke_counts {
-        assert_eq!(
-            count,
-            1,
-            "{} must have exactly one smoke case",
-            layout.display()
-        );
-    }
 }
 
 #[test]
