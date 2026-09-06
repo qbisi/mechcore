@@ -1,4 +1,3 @@
-use mechcore_protocol::MAX_ACTIVATION_ROUND;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -12,7 +11,7 @@ pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 pub struct Layout {
     #[serde(default)]
     pub seed: i32,
-    #[schemars(range(min = 1, max = 15))]
+    #[schemars(range(min = 1))]
     pub round: i32,
     pub sides: Sides,
 }
@@ -431,10 +430,8 @@ pub fn compile(value: &Value) -> Result<Plan, String> {
 ///
 /// Returns an error when the layout violates any shared static layout rule.
 pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
-    if !(1..=MAX_ACTIVATION_ROUND).contains(&layout.round) {
-        return Err(format!(
-            "layout round must be within 1..={MAX_ACTIVATION_ROUND}"
-        ));
+    if layout.round < 1 {
+        return Err("layout round must be at least 1".to_owned());
     }
     let blue = compile_side("blue", layout.sides.blue, layout.round)?;
     let red = compile_side("red", layout.sides.red, layout.round)?;
@@ -1684,7 +1681,7 @@ mod tests {
     }
 
     #[test]
-    fn requires_a_bounded_activation_round() {
+    fn requires_a_positive_activation_round() {
         let missing = compile(&json!({
             "sides": {
                 "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
@@ -1702,17 +1699,22 @@ mod tests {
             }
         }))
         .unwrap_err();
-        assert_eq!(invalid, "layout round must be within 1..=15");
+        assert_eq!(invalid, "layout round must be at least 1");
 
-        let invalid = compile(&json!({
-            "round": 16,
-            "sides": {
-                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
-            }
-        }))
-        .unwrap_err();
-        assert_eq!(invalid, "layout round must be within 1..=15");
+        // The staging budget belongs to the executor, so the schema accepts a
+        // round that no Training Ground run can reach.
+        assert_eq!(
+            compile(&json!({
+                "round": 40,
+                "sides": {
+                    "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
+                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                }
+            }))
+            .unwrap()
+            .round,
+            40
+        );
     }
 
     #[test]

@@ -133,11 +133,26 @@ effective value is zero, the Simulator generates a seed before execution.
 
 ## Activation round
 
-`round` is a required integer in `1..=15`. It names the Training Ground round
-whose deployment phase is returned by a successful `apply_layout` call. Earlier
-rounds are setup rounds owned by the adapter; callers do not submit or observe
-separate partial layouts. These empty setup rounds are advanced quickly, so the
-adapter's 55-second total layout timeout also covers round 15.
+`round` is a required integer of at least `1`. It names the Training Ground
+round whose deployment phase is returned by a successful `apply_layout` call.
+Earlier rounds are setup rounds owned by the adapter; callers do not submit or
+observe separate partial layouts.
+
+The schema has no upper bound. Training Ground and ranked matches both run past
+round 15, so a layout captured from a later round is valid data that this
+executor happens to be unable to stage. Validation and staging are therefore
+separate checks:
+
+- `mechcore layout verify` and every other schema consumer accept any positive
+  round;
+- `apply_layout` additionally refuses a round above `MAX_STAGED_ROUND`, which is
+  `15`, because it advances through every earlier setup round inside the
+  adapter's 55-second total layout timeout.
+
+`MAX_STAGED_ROUND` is that timeout budget, not a game rule. It lives in the
+adapter protocol and constrains only the staging path. Replay decoding through
+`record_replay_round` is not bounded by it either, since reading round `N` out
+of a GRBR has nothing to do with advancing a live match to round `N`.
 
 The native ambush zones become available from round 2. The layout rules are:
 

@@ -2,7 +2,7 @@ use crate::capture::{self, CaptureMessage};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
-use mechcore_protocol::{Busy, Hello, MAX_ACTIVATION_ROUND, Operation, Request, Response};
+use mechcore_protocol::{Busy, Hello, MAX_STAGED_ROUND, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::Value;
 use std::env;
@@ -591,11 +591,11 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
             format!("replay file does not exist: {}", arguments.grbr.display()),
         );
     }
-    if !(1..=MAX_ACTIVATION_ROUND).contains(&arguments.round) {
+    if arguments.round < 1 {
         return Response::failure(
             request.id,
             "invalid_arguments",
-            format!("record_replay_round round must be between 1 and {MAX_ACTIVATION_ROUND}"),
+            "record_replay_round round must be at least 1",
         );
     }
     if !arguments.output.is_absolute()
@@ -1245,6 +1245,17 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
         Ok(plan) => plan,
         Err(error) => return Response::failure(request.id, "invalid_arguments", error),
     };
+    if plan.round > MAX_STAGED_ROUND {
+        return Response::failure(
+            request.id,
+            "unsupported",
+            format!(
+                "apply_layout advances through every earlier round inside one timeout budget \
+                 and stages at most round {MAX_STAGED_ROUND}, so round {} cannot be reached",
+                plan.round
+            ),
+        );
+    }
     let deadline = Instant::now() + LAYOUT_SERIES_TIMEOUT;
     let prepare = execute_layout_stage_on_main(
         runtime,

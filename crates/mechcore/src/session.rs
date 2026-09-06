@@ -268,6 +268,14 @@ impl Session {
         seed: Option<i32>,
     ) -> Result<Value, String> {
         let plan = mechcore_layout::compile(&layout)?;
+        if plan.round > mechcore_protocol::MAX_STAGED_ROUND {
+            return Err(format!(
+                "apply_layout advances through every earlier round inside one timeout budget \
+                 and stages at most round {}, so round {} cannot be reached",
+                mechcore_protocol::MAX_STAGED_ROUND,
+                plan.round
+            ));
+        }
         let activation_round = i64::from(plan.round);
         let seed = seed.unwrap_or(plan.seed);
         let _operation = self.operation.lock().await;
@@ -443,11 +451,8 @@ impl Session {
         if !grbr.is_file() {
             return Err(format!("replay file does not exist: {}", grbr.display()));
         }
-        if !(1..=mechcore_protocol::MAX_ACTIVATION_ROUND).contains(&round) {
-            return Err(format!(
-                "record_replay_round round must be between 1 and {}",
-                mechcore_protocol::MAX_ACTIVATION_ROUND
-            ));
+        if round < 1 {
+            return Err("record_replay_round round must be at least 1".into());
         }
         if !output.is_absolute()
             || output.extension().and_then(|value| value.to_str()) != Some("mcfr")

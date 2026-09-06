@@ -114,8 +114,11 @@ stream before returning from a lifecycle operation.
 ### apply_layout
 
 Input is the complete layout object defined by [layout.md](layout.md), with a
-top-level activation `round` in `1..=15` and `sides.blue` and `sides.red`
-fields.
+positive top-level activation `round` and `sides.blue` and `sides.red` fields.
+A layout is valid at any round, but this operation stages every earlier setup
+round inside one timeout budget, so it refuses a `round` above
+`MAX_STAGED_ROUND`, which is `15`. That budget is an executor limit, not a game
+rule or a schema rule.
 
 Typical output:
 
@@ -297,7 +300,8 @@ application lists referenced the affected enemy units. Oil populated the sparse
 ### record_replay_round
 
 Input identifies an existing native replay, a one-based combat round, and a new
-MCFR destination:
+MCFR destination. The round has no upper bound: reading round `N` out of a
+replay is decoding, not staging, so `MAX_STAGED_ROUND` does not apply here.
 
 ```json
 {

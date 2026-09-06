@@ -2,7 +2,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub const PROTOCOL: &str = "mechcore.adapter.v1";
-pub const MAX_ACTIVATION_ROUND: i32 = 15;
+/// Highest round `apply_layout` will stage.
+///
+/// This is the executor's timeout budget for advancing through every earlier
+/// setup round, not a game rule. Training Ground and ranked matches both run
+/// past it, so layout validation, replay decoding, and any recorded round
+/// number must not be bounded by this value.
+pub const MAX_STAGED_ROUND: i32 = 15;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
