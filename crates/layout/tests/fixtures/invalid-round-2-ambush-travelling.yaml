@@ -1,0 +1,14 @@
+round: 2
+
+sides:
+  blue:
+    formations:
+      - type: marksman
+        x: -310
+        y: 20
+
+  red:
+    formations:
+      - type: marksman
+        x: 0
+        y: -50

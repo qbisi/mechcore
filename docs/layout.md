@@ -142,12 +142,28 @@ adapter's 55-second total layout timeout also covers round 15.
 The native ambush zones become available from round 2. The layout rules are:
 
 - round 1 cannot contain an ambush-zone unit;
-- round 2 and later accept both travelling and non-travelling ambush units.
+- round 2 requires `travelling: true` on every ambush-zone unit;
+- round 3 and later accept both travelling and non-travelling ambush units.
+
+A unit enters native travelling state when it is first moved to the flank, and
+leaves that state in a later round. Round 1 admits no ambush unit at all, so
+every round 2 ambush unit is necessarily a first flank deployment and cannot
+already have settled. That makes the round 2 case decidable from one layout
+alone, so the compiler rejects a round 2 ambush unit that is not travelling.
+From round 3 the same question needs the previous round's state, which a layout
+does not carry, so both values are accepted there.
+
+`travelling: false` on a settled ambush unit is applied through a direct native
+call rather than by replaying the arrival. The Adapter explicitly changes and
+verifies that membership. A layout can therefore still describe a settled
+ambush unit in a round where a real match could not have produced one, for
+example a round 3 unit that no round 2 deployment placed. Reproducing a battle
+does not require that its deployment be reachable by play, and the sandbox
+deliberately keeps that freedom. A consumer that needs reachability rather than
+reproducibility must check it against the preceding state, outside this schema.
 
 All formations are deployed in declaration order after the activation round
-begins. An ambush unit first enters native travelling state when it is moved to
-the flank; the Adapter explicitly changes and verifies that membership when the
-layout requests `travelling: false`.
+begins.
 
 ## Coordinate system
 
@@ -455,6 +471,12 @@ Tracked negative fixtures cover the spatial rejection cases:
 - `crates/layout/tests/fixtures/invalid-unit-construction-collision.yaml`: a
   `20 x 20` Marksman overlaps a `60 x 10` Defensive Wall.
 
+One further negative fixture covers the round 2 ambush rule rather than a
+spatial rule:
+
+- `crates/layout/tests/fixtures/invalid-round-2-ambush-travelling.yaml`: a
+  round 2 ambush Marksman that omits `travelling`.
+
 Native catalog IDs are adapter details and do not appear in a layout. The
 following values form the closed public `type` vocabulary for each field:
 
@@ -491,7 +513,8 @@ the owning map region's facing still contributes to its world footprint.
 most one equipment slot, so this field is singular rather than an array.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
 effect only for an ambush-zone unit. `travelling: true` is invalid outside the
-ambush zones.
+ambush zones, and `travelling: false` is invalid for an ambush-zone unit in
+activation round 2.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and

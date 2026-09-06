@@ -1263,6 +1263,12 @@ fn unit_placement_stage(
             position.x, position.y
         ));
     }
+    if round == 2 && !travelling {
+        return Err(format!(
+            "side {side_name} formation type {type_name:?} at ({}, {}) must set travelling=true: an activation round 2 ambush unit is always a first flank deployment",
+            position.x, position.y
+        ));
+    }
     Ok(PlacementStage::Activation)
 }
 
@@ -1861,9 +1867,10 @@ sides:
                 .unwrap_err()
                 .contains("activation round 1")
         );
-        assert_eq!(
-            compile(&layout(2, false)).unwrap().blue.formations[0].stage,
-            PlacementStage::Activation
+        assert!(
+            compile(&layout(2, false))
+                .unwrap_err()
+                .contains("first flank deployment")
         );
         let omitted = compile(&json!({
             "round": 2,
@@ -1872,8 +1879,8 @@ sides:
                 "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
             }
         }))
-        .unwrap();
-        assert_eq!(omitted.blue.formations[0].stage, PlacementStage::Activation);
+        .unwrap_err();
+        assert!(omitted.contains("first flank deployment"));
         assert_eq!(
             compile(&layout(2, true)).unwrap().blue.formations[0].stage,
             PlacementStage::Activation
@@ -1881,6 +1888,18 @@ sides:
         assert_eq!(
             compile(&layout(3, false)).unwrap().blue.formations[0].stage,
             PlacementStage::Activation
+        );
+    }
+
+    #[test]
+    fn rejects_round_2_ambush_fixture_that_omits_travelling() {
+        let value = yaml_fixture(include_str!(
+            "../tests/fixtures/invalid-round-2-ambush-travelling.yaml"
+        ));
+        let error = compile(&value).unwrap_err();
+        assert_eq!(
+            error,
+            "side blue formation type \"marksman\" at (-310, 20) must set travelling=true: an activation round 2 ambush unit is always a first flank deployment"
         );
     }
 
