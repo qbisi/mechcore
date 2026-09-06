@@ -5,8 +5,25 @@ use serde::Serialize;
 
 pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     let options = Options::parse(arguments)?;
-    let left = McfrReader::open(&options.left).map_err(|error| error.to_string())?;
-    let right = McfrReader::open(&options.right).map_err(|error| error.to_string())?;
+    let (equal, report) = compare(&options.left, &options.right)?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report)
+            .map_err(|error| format!("cannot serialize comparison: {error}"))?
+    );
+    Ok(equal)
+}
+
+/// Compare two recordings, returning the verdict and the structured report.
+///
+/// Shared with `mechcore run`, whose `compare` step asserts on the same fields
+/// the CLI prints.
+pub(crate) fn compare(
+    left_path: &std::path::Path,
+    right_path: &std::path::Path,
+) -> Result<(bool, serde_json::Value), String> {
+    let left = McfrReader::open(left_path).map_err(|error| error.to_string())?;
+    let right = McfrReader::open(right_path).map_err(|error| error.to_string())?;
     let first_divergence = left
         .first_divergence(&right)
         .map_err(|error| error.to_string())?;
@@ -44,12 +61,9 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
         first_divergence,
         divergent_ticks,
     };
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&report)
-            .map_err(|error| format!("cannot serialize comparison: {error}"))?
-    );
-    Ok(equal)
+    let report = serde_json::to_value(&report)
+        .map_err(|error| format!("cannot serialize comparison: {error}"))?;
+    Ok((equal, report))
 }
 
 fn read_tick(reader: &McfrReader, tick: u32) -> Result<Option<TickSlice>, String> {

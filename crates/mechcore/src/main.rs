@@ -3,6 +3,7 @@ mod adapter;
 mod layout;
 mod mcfr;
 mod mcp;
+mod script;
 mod session;
 mod shell;
 mod sim;
@@ -11,6 +12,7 @@ use std::process::ExitCode;
 
 fn usage(program: &str) {
     eprintln!("usage: {program} shell [--launch | --attach]");
+    eprintln!("       {program} run <script.mcscript> [--check]");
     eprintln!("       {program} mcp");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} layout verify <layout.yaml>");
@@ -37,6 +39,14 @@ fn main() -> ExitCode {
             Err(error) => {
                 eprintln!("mechcore shell: {error}");
                 ExitCode::from(2)
+            }
+        },
+        Some("run") => match script::run(arguments) {
+            Ok(true) => ExitCode::SUCCESS,
+            Ok(false) => ExitCode::FAILURE,
+            Err(error) => {
+                eprintln!("mechcore run: {error}");
+                ExitCode::FAILURE
             }
         },
         Some("mcp") if arguments.next().is_none() => match mcp::run() {

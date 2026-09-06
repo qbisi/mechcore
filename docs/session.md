@@ -16,11 +16,11 @@ from attach to launch, and no operation silently starts a game.
 | --- | --- |
 | Adapter socket contract, `busy` greeting | implemented |
 | Detection signals and state matrix | specified here; consumed by `session.rs` |
-| `mechcore shell` acquisition flags | planned |
-| `mechcore run` `game:` declaration | planned |
+| `mechcore shell` acquisition flags | implemented |
+| `mechcore run` `game:` declaration | implemented |
 
-The adapter side is authoritative today. The two frontends are being built
-against this document rather than the reverse.
+Both frontends were built against this document; every state in the matrix
+below except **F** has been exercised against the real game.
 
 ## Who owns the socket file
 
@@ -125,15 +125,16 @@ steps:
   - record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
 ```
 
-An offline script is the normal case for simulator work:
+An offline script is the normal case for comparison work:
 
 ```yaml
 steps:
-  - sim: {layout: tests/layouts/phoenix-vs-phoenix.yaml, seed: 1787720817,
-          output: $out/sim.mcfr}
-  - compare: {left: $out/sim.mcfr, right: $native}
+  - compare: {left: $simulated, right: $native}
     expect: {equal: true}
 ```
+
+See [mcscript.md](mcscript.md) for the full document shape and the operations
+each mode admits.
 
 **Static rule.** A script that omits `game:` and uses any native operation is
 rejected before execution, without probing or launching anything. `mechcore run
