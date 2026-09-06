@@ -8,7 +8,6 @@
 use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::Operation;
-use rmcp::schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
@@ -23,7 +22,6 @@ use tokio::{
 
 pub(crate) const STATUS_INTERVAL: Duration = Duration::from_millis(100);
 pub(crate) const ADAPTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
-pub(crate) const CONNECT_TIMEOUT: Duration = Duration::from_secs(60);
 pub(crate) const TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 /// A cold start must reach the main menu within this budget.
 const READY_TIMEOUT: Duration = Duration::from_secs(180);
@@ -34,10 +32,7 @@ pub(crate) fn error_body(error: impl Into<String>) -> Value {
 }
 
 /// Research-only instrumentation request accepted by the recording operations.
-///
-/// The `JsonSchema` derive exists only so the MCP frontend can publish a tool
-/// schema; it is removed together with that frontend.
-#[derive(Deserialize, Serialize, JsonSchema)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct RecordBattleInstrumentationParameters {
     /// Absolute destination path for the new HDF5 instrumentation sidecar.
@@ -48,7 +43,7 @@ pub(crate) struct RecordBattleInstrumentationParameters {
     pub(crate) rvo_scope: Option<RvoCaptureScopeParameters>,
 }
 
-#[derive(Deserialize, Serialize, JsonSchema)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct RvoCaptureScopeParameters {
     pub(crate) start_tick: u64,
@@ -96,10 +91,6 @@ impl Session {
         self.status.borrow().clone()
     }
 
-    /// Watch the published status stream without exposing the sender.
-    pub(crate) fn subscribe_status(&self) -> watch::Receiver<Value> {
-        self.status.subscribe()
-    }
 
     /// Whether an Adapter connection is currently held.
     pub(crate) async fn is_connected(&self) -> bool {
@@ -124,7 +115,7 @@ impl Session {
     ) -> Result<Value, String> {
         let mut adapter = self.adapter.lock().await;
         let client = adapter.as_mut().ok_or_else(|| {
-            "game adapter is not connected; call connect_adapter first".to_owned()
+            "game adapter is not connected; acquire the game with launch or attach".to_owned()
         })?;
         let request_timeout = match operation {
             Operation::RecordBattle => Duration::from_secs(180),
@@ -247,33 +238,6 @@ impl Session {
         Ok(json!({"connected": true, "status": status}))
     }
 
-    pub(crate) async fn connect_adapter(&self) -> Result<Value, String> {
-        let _operation = self.operation.lock().await;
-        if self.adapter.lock().await.is_some() {
-            return Err("game adapter is already connected".into());
-        }
-        let deadline = Instant::now() + CONNECT_TIMEOUT;
-        loop {
-            let attempt = tokio::time::timeout(
-                Duration::from_secs(1),
-                adapter::Client::connect(&self.socket_path),
-            )
-            .await;
-            if let Ok(Ok(client)) = attempt {
-                *self.adapter.lock().await = Some(client);
-                break;
-            }
-            if Instant::now() >= deadline {
-                return Err(format!(
-                    "timed out waiting for the Adapter at {}",
-                    self.socket_path.display()
-                ));
-            }
-            sleep(STATUS_INTERVAL).await;
-        }
-        let status = self.refresh_status().await?;
-        Ok(json!({"connected": true, "status": status}))
-    }
 
     pub(crate) async fn start_test(&self, seed: Option<i32>) -> Result<Value, String> {
         let _operation = self.operation.lock().await;

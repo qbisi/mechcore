@@ -33,17 +33,24 @@ The default Steam game executable is home-relative:
 Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum
 ```
 
-The controlling Agent, not MCP, resolves those two roots and launches the game
-outside the MCP sandbox:
+`mechcore` launches the game itself. It resolves the Adapter as a sibling of
+its own executable and injects it, so no caller assembles that command:
+
+```sh
+mechcore shell --launch
+```
+
+The equivalent by hand, for a game this tool will later `attach` to:
 
 ```sh
 DYLD_INSERT_LIBRARIES="$PWD/target/release/libmechcore_adapter.dylib" \
   "$HOME/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum"
 ```
 
-For the MCP workflow, leave `MECHCORE_ADAPTER_SOCKET` unset so both processes
-use `/tmp/mechcore-adapter-<uid>.sock`. A custom socket remains available to
-other Adapter clients, but MCP does not discover custom endpoints.
+[session.md](session.md) defines which of the two applies, what each verb
+refuses, and where the launched game's output is written. Both sides resolve
+`MECHCORE_ADAPTER_SOCKET` the same way, so an override moves the endpoint for
+the Adapter and every client together.
 
 The Adapter reports failures it cannot answer over the socket, such as a
 rejected peer or a dropped client, on the game process's standard error.
@@ -99,8 +106,8 @@ also waits until the requested activation-round deployment is stable.
 `record_battle` remains active through the complete logic-tick capture and atomic MCFR publication.
 `record_replay_round` additionally owns replay loading, round selection, accelerated deployment,
 capture, and return to the main menu. Other
-cross-scene readiness belongs to `mechcore mcp`, which observes the status
-stream before returning from lifecycle tools.
+cross-scene readiness belongs to the session layer, which observes the status
+stream before returning from a lifecycle operation.
 
 ## Operations
 

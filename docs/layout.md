@@ -803,16 +803,19 @@ The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is
 already present immediately before its add action.
 
-The live regression script reads YAML and sends the resulting object to this
-operation:
+A script reads the YAML and sends the resulting object to this operation. The
+layout carries its own seed and activation round, so applying it is one step:
 
-```sh
-scripts/smoke_training_ground.py tests/layouts/six-unit.yaml
-scripts/smoke_training_ground.py tests/layouts/construction-battle.yaml
-scripts/smoke_training_ground.py tests/layouts/interceptor-battle.yaml
-scripts/smoke_training_ground.py tests/layouts/shield-missile-battle.yaml
-scripts/smoke_training_ground.py tests/layouts/crawler-in-face.yaml
+```yaml
+game: launch
+steps:
+  - let:
+      layout: read_yaml(tests/layouts/construction-battle.yaml)
+  - apply_layout: $layout
 ```
+
+See [mcscript.md](mcscript.md); `mechcore shell` applies the same layout
+interactively with `apply_layout <layout.yaml>`.
 
 `construction-battle.yaml` reproduces build 2227 opening construction group 28
 with the `reverse_x` transform observed in replay R002. In blue's side-local
