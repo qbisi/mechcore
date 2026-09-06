@@ -114,7 +114,7 @@ stream before returning from a lifecycle operation.
 ### apply_layout
 
 Input is the complete layout object defined by [layout.md](layout.md), with a
-positive top-level activation `round` and `sides.blue` and `sides.red` fields.
+positive top-level `round` and `sides.blue` and `sides.red` fields.
 A layout is valid at any round, but this operation stages every earlier setup
 round inside one timeout budget, so it refuses a `round` above
 `MAX_STAGED_ROUND`, which is `15`. That budget is an executor limit, not a game

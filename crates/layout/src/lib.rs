@@ -1253,13 +1253,13 @@ fn validate_unit_placement(
     }
     if round == 1 {
         return Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) cannot occupy an ambush zone in activation round 1",
+            "side {side_name} formation type {type_name:?} at ({}, {}) cannot occupy an ambush zone in round 1",
             position.x, position.y
         ));
     }
     if round == 2 && !travelling {
         return Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) must set travelling=true: an activation round 2 ambush unit is always a first flank deployment",
+            "side {side_name} formation type {type_name:?} at ({}, {}) must set travelling=true: a round 2 ambush unit is always a first flank deployment",
             position.x, position.y
         ));
     }
@@ -1678,7 +1678,7 @@ mod tests {
     }
 
     #[test]
-    fn requires_a_positive_activation_round() {
+    fn requires_a_positive_round() {
         let missing = compile(&json!({
             "sides": {
                 "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
@@ -1852,7 +1852,7 @@ sides:
     }
 
     #[test]
-    fn enforces_activation_round_rules_for_ambush_units() {
+    fn enforces_round_rules_for_ambush_units() {
         let layout = |round, travelling| {
             json!({
                 "round": round,
@@ -1868,12 +1868,12 @@ sides:
         assert!(
             compile(&layout(1, false))
                 .unwrap_err()
-                .contains("activation round 1")
+                .contains("in round 1")
         );
         assert!(
             compile(&layout(1, true))
                 .unwrap_err()
-                .contains("activation round 1")
+                .contains("in round 1")
         );
         assert!(
             compile(&layout(2, false))
@@ -1901,7 +1901,7 @@ sides:
         let error = compile(&value).unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"marksman\" at (-310, 20) must set travelling=true: an activation round 2 ambush unit is always a first flank deployment"
+            "side blue formation type \"marksman\" at (-310, 20) must set travelling=true: a round 2 ambush unit is always a first flank deployment"
         );
     }
 

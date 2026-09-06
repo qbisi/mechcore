@@ -116,7 +116,7 @@ Runtime catalog availability and native readback remain Adapter-owned.
 
 `mechcore layout verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. A successful JSON report includes the normalized
-seed, activation round, formation count, construction count, and contraption
+seed, round, formation count, construction count, and contraption
 count.
 
 ## Seed
@@ -142,23 +142,31 @@ real parameter, which is why one layout can be recorded under many seeds:
 - an MCFR always embeds a layout whose `seed` is the resolved value, and a
   recording whose embedded layout has no seed is refused.
 
-## Activation round
+## Round
 
-`round` is a required integer of at least `1`. It names the Training Ground
-round whose deployment phase is returned by a successful `apply_layout` call.
-Earlier rounds are setup rounds owned by the adapter; callers do not submit or
-observe separate partial layouts.
+`round` is a required integer of at least `1`. It is the match round this
+layout describes, counted the way the game counts it and read back from
+`Match.get_RoundCount()` during capture. It is game state, not a directive: it
+says when this deployment happened, and the rules the game applies at that
+point follow from it.
 
-The schema has no upper bound. Training Ground and ranked matches both run past
-round 15, so a layout captured from a later round is valid data that this
-executor happens to be unable to stage. Validation and staging are therefore
+The round is what makes the rest of the document decidable: ambush availability
+and the travelling rules below are both functions of it.
+
+`apply_layout` additionally treats it as an activation round, because staging a
+Training Ground to this state means advancing through every earlier round. That
+is a property of that operation, not of the field. Earlier rounds are setup
+rounds owned by the adapter; callers do not submit or observe separate partial
+layouts.
+
+The two readings pull apart at the upper end, so validation and staging are
 separate checks:
 
 - `mechcore layout verify` and every other schema consumer accept any positive
-  round;
-- `apply_layout` additionally refuses a round above `MAX_STAGED_ROUND`, which is
-  `15`, because it advances through every earlier setup round inside the
-  adapter's 55-second total layout timeout.
+  round, since Training Ground and ranked matches both run past round 15;
+- `apply_layout` refuses a round above `MAX_STAGED_ROUND`, which is `15`,
+  because it advances through every earlier setup round inside the adapter's
+  55-second total layout timeout.
 
 `MAX_STAGED_ROUND` is that timeout budget, not a game rule. It lives in the
 adapter protocol and constrains only the staging path. Replay decoding through
@@ -540,7 +548,7 @@ most one equipment slot, so this field is singular rather than an array.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
 effect only for an ambush-zone unit. `travelling: true` is invalid outside the
 ambush zones, and `travelling: false` is invalid for an ambush-zone unit in
-activation round 2.
+round 2.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
@@ -841,7 +849,7 @@ regions. It accepts structurally valid `terrains`; the Adapter restores the
 currently supported build-2259 oil form during activation. Unsupported terrain
 types or native readback mismatches fail closed and are never silently ignored.
 
-The compiler owns the activation round and the separate formation,
+The compiler owns the round and the separate formation,
 construction, and contraption counts. A successful `apply_layout` response
 includes them as `round`, `formation_count`, `construction_count`, and
 `contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
@@ -853,7 +861,7 @@ each side. Application also rejects a declared Officer or technology that is
 already present immediately before its add action.
 
 A script reads the YAML and sends the resulting object to this operation. The
-layout carries its own seed and activation round, so applying it is one step:
+layout carries its own seed and round, so applying it is one step:
 
 ```yaml
 game: launch
