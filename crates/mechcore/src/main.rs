@@ -2,6 +2,7 @@ mod adapter;
 mod layout;
 mod mcfr;
 mod mcp;
+mod session;
 mod sim;
 
 use std::process::ExitCode;
