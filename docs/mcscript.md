@@ -53,6 +53,7 @@ through `quit_game`; an attached game is left running.
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
 | `compare` | no | `left`, `right`; same report as `mechcore mcfr compare` |
+| `sim` | no | `layout`, optional `seed`, `output`, `config`; same report as `mechcore sim` |
 | `status` | yes | current status snapshot |
 | `start_test` | yes | `seed`; rarely needed, see `apply_layout` |
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
@@ -62,6 +63,12 @@ through `quit_game`; an attached game is left running.
 | `speed_up` | yes | standalone operation, distinct from the recording field |
 | `quit_match` | yes | |
 | `quit_game` | yes | |
+
+`sim` runs the deterministic simulator on a layout and returns the same result
+object `mechcore sim` prints, so `expect` can assert `seed_source`, `steps`, or
+a dotted path like `hashes.physics_result_hash`. It needs no game, which is
+what lets `scripts/simulate-regressions.mcscript` drive the whole regression
+manifest offline. Omit `output` unless the run should also publish an MCFR.
 
 `apply_layout` owns the whole transaction from the main menu: it creates the
 Training Ground itself and brings it to the layout's activation round. A layout

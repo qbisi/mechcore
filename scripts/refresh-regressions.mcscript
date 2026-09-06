@@ -1,9 +1,9 @@
 # Re-record the native regression samples in tests/mcfr-regressions.yaml.
 #
 # The manifest stays the data; this script is one of its two readers. The other
-# is crates/simulation/tests/battle.rs, which uses the same table to check the
-# simulator offline. Nothing here writes the manifest back: a refresh produces
-# values, and updating the table is a deliberate, reviewable edit.
+# is scripts/simulate-regressions.mcscript, which replays the same table through
+# the simulator offline. Nothing here writes the manifest back: a refresh
+# produces values, and updating the table is a deliberate, reviewable edit.
 #
 #   mechcore run scripts/refresh-regressions.mcscript --check   validate offline
 #   mechcore run scripts/refresh-regressions.mcscript           record

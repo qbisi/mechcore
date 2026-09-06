@@ -33,36 +33,6 @@ fn native_regression(name: &str) -> NativeRegression {
         .unwrap_or_else(|| panic!("missing native MCFR regression {name}"))
 }
 
-fn current_native_regressions() -> Vec<NativeRegression> {
-    native_regressions()
-        .into_iter()
-        .filter(|regression| regression.format == mechcore_mcfr::MCFR_FORMAT)
-        .collect()
-}
-
-fn smoke_native_regressions() -> Vec<NativeRegression> {
-    let regressions = current_native_regressions();
-    let mut smoke_counts = BTreeMap::<PathBuf, usize>::new();
-    for regression in &regressions {
-        smoke_counts.entry(regression.layout.clone()).or_default();
-        if regression.smoke {
-            *smoke_counts.entry(regression.layout.clone()).or_default() += 1;
-        }
-    }
-    for (layout, count) in smoke_counts {
-        assert_eq!(
-            count,
-            1,
-            "{} must have exactly one smoke case",
-            layout.display()
-        );
-    }
-    regressions
-        .into_iter()
-        .filter(|regression| regression.smoke)
-        .collect()
-}
-
 fn regression_layout(regression: &NativeRegression) -> PathBuf {
     repository().join(&regression.layout)
 }
@@ -161,6 +131,10 @@ fn marksman_vs_arclight_preserves_the_reviewed_behavior() {
     )
     .unwrap();
     assert_eq!(result.game_build, regression.game_build);
+    assert_eq!(
+        result.hashes.physics_result_hash,
+        regression.physics_result_hash
+    );
     let reader = McfrReader::open(output).unwrap();
     assert_eq!(reader.tick_count(), regression.tick_count);
     let terminal = reader.state(reader.terminal_tick()).unwrap();
@@ -190,6 +164,10 @@ fn rhino_vs_arclight_preserves_the_reviewed_behavior() {
     )
     .unwrap();
     assert_eq!(result.game_build, regression.game_build);
+    assert_eq!(
+        result.hashes.physics_result_hash,
+        regression.physics_result_hash
+    );
     assert_eq!(result.winner, Some("blue"));
     assert_eq!(result.steps, u64::from(regression.tick_count));
     let reader = McfrReader::open(output).unwrap();
@@ -238,6 +216,10 @@ fn rhino_retarget_preserves_the_reviewed_behavior() {
     )
     .unwrap();
     assert_eq!(result.game_build, regression.game_build);
+    assert_eq!(
+        result.hashes.physics_result_hash,
+        regression.physics_result_hash
+    );
     assert_eq!(result.winner, Some("blue"));
     assert_eq!(result.steps, 336);
     let reader = McfrReader::open(output).unwrap();
@@ -315,27 +297,31 @@ fn rhino_retarget_preserves_the_reviewed_behavior() {
     );
 }
 
-fn assert_native_regression_hashes(regressions: impl IntoIterator<Item = NativeRegression>) {
-    for regression in regressions {
-        let name = regression.name.as_str();
-        let result =
-            simulate_layout(regression_layout(&regression), None, Some(regression.seed)).unwrap();
+/// The manifest is data with two readers, and both of them replay it rather
+/// than describe it. This asserts the one property they both depend on, which
+/// is cheap because it parses the table without simulating anything: every
+/// layout appears with exactly one smoke case, so the smoke tier covers each
+/// layout once.
+#[test]
+fn every_layout_in_the_manifest_has_exactly_one_smoke_case() {
+    let mut smoke_counts = BTreeMap::<PathBuf, usize>::new();
+    for regression in native_regressions()
+        .into_iter()
+        .filter(|regression| regression.format == mechcore_mcfr::MCFR_FORMAT)
+    {
+        let counter = smoke_counts.entry(regression.layout).or_default();
+        if regression.smoke {
+            *counter += 1;
+        }
+    }
+    for (layout, count) in smoke_counts {
         assert_eq!(
-            result.hashes.physics_result_hash, regression.physics_result_hash,
-            "{name}"
+            count,
+            1,
+            "{} must have exactly one smoke case",
+            layout.display()
         );
     }
-}
-
-#[test]
-fn native_regression_smoke_hashes_match() {
-    assert_native_regression_hashes(smoke_native_regressions());
-}
-
-#[test]
-#[ignore = "optional full native regression gate"]
-fn native_regression_full_hashes_match() {
-    assert_native_regression_hashes(current_native_regressions());
 }
 
 #[test]

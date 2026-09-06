@@ -31,7 +31,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const OFFLINE: &[&str] = &["let", "compare"];
+const OFFLINE: &[&str] = &["let", "compare", "sim"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -554,6 +554,7 @@ async fn perform(
             let (_, report) = mcfr::compare(&left, &right)?;
             Ok(report)
         }
+        "sim" => simulate(arguments, scope),
         "status" => Ok(session.current_status()),
         "start_test" => {
             let seed = arguments
@@ -681,6 +682,48 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
     }
 }
 
+/// Runs the deterministic simulator without a game, returning the same result
+/// object `mechcore sim` prints so `expect` can assert any of its fields.
+fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
+    let fields = arguments
+        .as_object()
+        .ok_or("sim takes a mapping with layout and optional seed, output and config")?;
+    for key in fields.keys() {
+        if !matches!(key.as_str(), "layout" | "seed" | "output" | "config") {
+            return Err(format!(
+                "sim accepts only layout, seed, output and config, got {key}"
+            ));
+        }
+    }
+    let layout = scope.path(fields.get("layout").ok_or("sim needs layout")?, "sim layout")?;
+    let seed = match fields.get("seed") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(
+            value
+                .as_i64()
+                .and_then(|seed| i32::try_from(seed).ok())
+                .ok_or("sim seed must be a signed 32-bit integer")?,
+        ),
+    };
+    let output = match fields.get("output") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(scope.path(value, "sim output")?),
+    };
+    let config = match fields.get("config") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(scope.path(value, "sim config")?),
+    };
+    let result = mechcore_simulation::simulate_layout_with_config(
+        &layout,
+        output.as_deref(),
+        seed,
+        config.as_deref(),
+    )
+    .map_err(|error| format!("{}: {error}", layout.display()))?;
+    serde_json::to_value(result)
+        .map_err(|error| format!("cannot serialize the simulation result: {error}"))
+}
+
 /// Every declared field must be present and equal; extra result fields are fine.
 fn check_expectations(expect: &Map<String, Value>, result: &Value) -> Result<(), String> {
     for (key, wanted) in expect {
@@ -750,6 +793,11 @@ mod tests {
     fn offline_scripts_accept_offline_operations() {
         let script =
             Script::parse("steps:\n  - compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
+        assert!(script.check().is_ok());
+        assert!(script.game.is_none());
+
+        let script =
+            Script::parse("steps:\n  - sim: {layout: a.yaml, seed: 7}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
     }
