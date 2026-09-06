@@ -19,8 +19,8 @@ from attach to launch, and no operation silently starts a game.
 | `mechcore shell` acquisition flags | implemented |
 | `mechcore run` `game:` declaration | implemented |
 
-Both frontends were built against this document; every state in the matrix
-below except **F** has been exercised against the real game.
+Both frontends were built against this document, and every state in the
+matrix below has been exercised against the real game.
 
 ## Who owns the socket file
 
@@ -76,6 +76,13 @@ A `busy` greeting is peer-verified like any other connection and is followed by
 an immediate close. A greeting timeout after a successful connect is therefore
 **not** normal occupancy; it indicates an unresponsive Adapter and must be
 reported as such.
+
+The two are distinguishable precisely because answering `busy` requires the
+greeter to run. State **F** is reproduced by stopping the game process: the
+kernel still completes the connection from its listen backlog, but no thread
+writes a greeting, and `attach` reports `adapter_unresponsive` at the deadline.
+Continuing the process restores `busy`, so **F** is a momentary reading rather
+than a latched state.
 
 ## State matrix
 
