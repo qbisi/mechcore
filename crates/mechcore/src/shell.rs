@@ -1,0 +1,376 @@
+//! Interactive REPL frontend.
+//!
+//! The shell owns the game process when it launched one, and never when it
+//! attached to one. Acquisition is declared up front with `--launch` or
+//! `--attach`, or performed later from the prompt; a shell started with
+//! neither is offline and refuses native commands. See `docs/session.md`.
+
+use crate::acquire::{self, Mode, Ownership};
+use crate::session::{RecordBattleInstrumentationParameters, Session};
+use serde_json::Value;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+const HELP: &str = "\
+acquisition
+  launch                          start a game and own it
+  attach                          join a running game, leaving it to its owner
+  detach                          release an attached game
+native
+  status                          current status snapshot
+  start_test [seed]               create the layout-test Training Ground
+  apply_layout <layout.yaml>      apply a layout and advance to its round
+  record_battle <out.mcfr> [--video <out.mov>]
+  record_replay_round <in.grbr> <round> <out.mcfr>
+  toggle_fight                    start the current fight
+  speed_up                        request battle speed-up
+  quit_match                      leave the active test or replay
+  quit_game                       shut the game down
+shell
+  help                            this list
+  quit | exit                     leave the shell";
+
+pub(crate) fn run(mode: Option<Mode>) -> Result<(), String> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| format!("cannot create async runtime: {error}"))?
+        .block_on(run_async(mode))
+}
+
+async fn run_async(mode: Option<Mode>) -> Result<(), String> {
+    let session = Session::new();
+    let monitor = tokio::spawn(Session::monitor_status(session.clone()));
+    let mut ownership: Option<Ownership> = None;
+
+    let mut out = tokio::io::stdout();
+    if let Some(mode) = mode {
+        match acquire_into(&session, mode).await {
+            Ok(owned) => {
+                write(&mut out, &banner(&owned, &session)).await;
+                ownership = Some(owned);
+            }
+            Err(failure) => {
+                monitor.abort();
+                return Err(failure);
+            }
+        }
+    } else {
+        write(
+            &mut out,
+            "offline shell; `launch` or `attach` to acquire a game, `help` for commands\n",
+        )
+        .await;
+    }
+
+    // Never leave this function without running shut_down: an owned game is
+    // only shut down here, and a dropped Child does not terminate it.
+    let looped = repl(&session, &mut ownership, &mut out).await;
+    let closed = shut_down(ownership, &session).await;
+    monitor.abort();
+    looped.and(closed)
+}
+
+async fn repl(
+    session: &Arc<Session>,
+    ownership: &mut Option<Ownership>,
+    out: &mut tokio::io::Stdout,
+) -> Result<(), String> {
+    let mut lines = BufReader::new(tokio::io::stdin()).lines();
+    loop {
+        write(out, &prompt(ownership, session)).await;
+        let Some(line) = lines
+            .next_line()
+            .await
+            .map_err(|error| format!("cannot read input: {error}"))?
+        else {
+            return Ok(());
+        };
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        match dispatch(line, session, ownership, out).await {
+            Flow::Continue => {}
+            Flow::Quit => return Ok(()),
+        }
+    }
+}
+
+enum Flow {
+    Continue,
+    Quit,
+}
+
+async fn dispatch(
+    line: &str,
+    session: &Arc<Session>,
+    ownership: &mut Option<Ownership>,
+    out: &mut tokio::io::Stdout,
+) -> Flow {
+    let mut words = line.split_whitespace();
+    let command = words.next().unwrap_or_default();
+    let arguments: Vec<&str> = words.collect();
+
+    match command {
+        "help" => {
+            write(out, &format!("{HELP}\n")).await;
+            return Flow::Continue;
+        }
+        "quit" | "exit" => return Flow::Quit,
+        "launch" | "attach" => {
+            let mode = if command == "launch" {
+                Mode::Launch
+            } else {
+                Mode::Attach
+            };
+            if ownership.is_some() {
+                write(out, "already holding a game; detach or quit first\n").await;
+                return Flow::Continue;
+            }
+            match acquire_into(session, mode).await {
+                Ok(owned) => {
+                    write(out, &banner(&owned, session)).await;
+                    *ownership = Some(owned);
+                }
+                Err(failure) => write(out, &format!("{failure}\n")).await,
+            }
+            return Flow::Continue;
+        }
+        "detach" => {
+            match ownership.take() {
+                None => write(out, "not holding a game\n").await,
+                Some(Ownership::Owned(child)) => {
+                    // Refuse silently dropping a game we started: quitting is
+                    // the explicit path, so the user cannot orphan it here.
+                    *ownership = Some(Ownership::Owned(child));
+                    write(
+                        out,
+                        "this shell owns the game; use quit_game then quit, or quit to shut it down\n",
+                    )
+                    .await;
+                }
+                Some(Ownership::Attached) => {
+                    session.disconnect_adapter().await;
+                    write(out, "detached; the game keeps running\n").await;
+                }
+            }
+            return Flow::Continue;
+        }
+        _ => {}
+    }
+
+    if ownership.is_none() {
+        write(
+            out,
+            &format!("{command} needs a game; run `launch` or `attach` first\n"),
+        )
+        .await;
+        return Flow::Continue;
+    }
+
+    let result = native(command, &arguments, session).await;
+    match result {
+        Ok(value) => write(out, &format!("{}\n", render(&value))).await,
+        Err(message) => write(out, &format!("error: {message}\n")).await,
+    }
+    Flow::Continue
+}
+
+async fn native(
+    command: &str,
+    arguments: &[&str],
+    session: &Arc<Session>,
+) -> Result<Value, String> {
+    match command {
+        "status" => Ok(session.current_status()),
+        "start_test" => {
+            let seed = match arguments {
+                [] => None,
+                [value] => Some(
+                    value
+                        .parse::<i32>()
+                        .map_err(|_| format!("seed must be a signed 32-bit integer: {value}"))?,
+                ),
+                _ => return Err("usage: start_test [seed]".into()),
+            };
+            session.start_test(seed).await
+        }
+        "apply_layout" => {
+            let [path] = arguments else {
+                return Err("usage: apply_layout <layout.yaml>".into());
+            };
+            let text = std::fs::read_to_string(path)
+                .map_err(|error| format!("cannot read {path}: {error}"))?;
+            let layout: Value = serde_yaml::from_str(&text)
+                .map_err(|error| format!("cannot parse {path}: {error}"))?;
+            session.apply_layout(layout).await
+        }
+        "record_battle" => {
+            let (output, video) = parse_record_battle(arguments)?;
+            session
+                .record_battle(output, video, None::<RecordBattleInstrumentationParameters>)
+                .await
+                .map_err(|value| render(&value))
+        }
+        "record_replay_round" => {
+            let [grbr, round, output] = arguments else {
+                return Err("usage: record_replay_round <in.grbr> <round> <out.mcfr>".into());
+            };
+            let round = round
+                .parse::<i32>()
+                .map_err(|_| format!("round must be an integer: {round}"))?;
+            session
+                .record_replay_round(PathBuf::from(grbr), round, PathBuf::from(output), None)
+                .await
+        }
+        "toggle_fight" => session.toggle_fight().await,
+        "speed_up" => session.speed_up().await,
+        "quit_match" => session.quit_match().await,
+        "quit_game" => session.quit_game().await,
+        other => Err(format!("unknown command {other}; try `help`")),
+    }
+}
+
+fn parse_record_battle(arguments: &[&str]) -> Result<(PathBuf, Option<PathBuf>), String> {
+    match arguments {
+        [output] => Ok((PathBuf::from(output), None)),
+        [output, "--video", video] => {
+            Ok((PathBuf::from(output), Some(PathBuf::from(video))))
+        }
+        _ => Err("usage: record_battle <out.mcfr> [--video <out.mov>]".into()),
+    }
+}
+
+async fn acquire_into(session: &Arc<Session>, mode: Mode) -> Result<Ownership, String> {
+    let (client, ownership) = acquire::acquire(mode, session.endpoint())
+        .await
+        .map_err(|failure| format!("{} refused, {failure}", mode.as_str()))?;
+    session.install_client(client).await?;
+    Ok(ownership)
+}
+
+/// Shut down according to ownership, never terminating someone else's game.
+async fn shut_down(ownership: Option<Ownership>, session: &Arc<Session>) -> Result<(), String> {
+    match ownership {
+        None | Some(Ownership::Attached) => Ok(()),
+        Some(Ownership::Owned(mut child)) => {
+            let quit = session.quit_game().await;
+            match child.wait().await {
+                Ok(status) if status.success() => quit.map(drop),
+                Ok(status) => Err(format!("game exited with {status}")),
+                Err(error) => Err(format!("cannot await the game process: {error}")),
+            }
+        }
+    }
+}
+
+fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
+    let endpoint = session.endpoint().display();
+    if ownership.is_owned() {
+        format!("launched game at {endpoint} (owned); quit will shut it down\n")
+    } else {
+        format!("attached at {endpoint} (not owned); quit leaves it running\n")
+    }
+}
+
+/// The prompt doubles as the status display, so no polling command is needed.
+fn prompt(ownership: &Option<Ownership>, session: &Arc<Session>) -> String {
+    let Some(ownership) = ownership else {
+        return "offline> ".into();
+    };
+    let status = session.current_status();
+    let state = status
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let mut label = state.to_owned();
+    if state == "training_ground" {
+        if let Some(round) = status.get("round_count").and_then(Value::as_i64) {
+            label.push_str(&format!(" r{round}"));
+        }
+        if status.get("fighting").and_then(Value::as_bool) == Some(true) {
+            label.push_str(" fight");
+        } else if status.get("deploying").and_then(Value::as_bool) == Some(true) {
+            label.push_str(" deploy");
+        }
+    }
+    if !ownership.is_owned() {
+        label.push('*');
+    }
+    format!("{label}> ")
+}
+
+fn render(value: &Value) -> String {
+    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
+}
+
+async fn write(out: &mut tokio::io::Stdout, text: &str) {
+    let _ = out.write_all(text.as_bytes()).await;
+    let _ = out.flush().await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn offline_prompt_does_not_claim_a_game() {
+        let session = Session::new();
+        assert_eq!(prompt(&None, &session), "offline> ");
+    }
+
+    #[test]
+    fn prompt_reports_training_phase_and_marks_attached_sessions() {
+        let session = Session::new();
+        session.publish(json!({
+            "status": "training_ground", "round_count": 2,
+            "deploying": true, "fighting": false
+        }));
+        assert_eq!(
+            prompt(&Some(Ownership::Attached), &session),
+            "training_ground r2 deploy*> "
+        );
+        session.publish(json!({
+            "status": "training_ground", "round_count": 2,
+            "deploying": false, "fighting": true
+        }));
+        assert_eq!(
+            prompt(&Some(Ownership::Attached), &session),
+            "training_ground r2 fight*> "
+        );
+    }
+
+    #[test]
+    fn record_battle_arguments_accept_only_the_documented_forms() {
+        assert_eq!(
+            parse_record_battle(&["/tmp/a.mcfr"]).unwrap(),
+            (PathBuf::from("/tmp/a.mcfr"), None)
+        );
+        assert_eq!(
+            parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov"]).unwrap(),
+            (PathBuf::from("/tmp/a.mcfr"), Some(PathBuf::from("/tmp/a.mov")))
+        );
+        assert!(parse_record_battle(&[]).is_err());
+        assert!(parse_record_battle(&["/tmp/a.mcfr", "--video"]).is_err());
+    }
+
+    #[test]
+    fn help_lists_every_native_command_the_shell_dispatches() {
+        for command in [
+            "status",
+            "start_test",
+            "apply_layout",
+            "record_battle",
+            "record_replay_round",
+            "toggle_fight",
+            "speed_up",
+            "quit_match",
+            "quit_game",
+        ] {
+            assert!(HELP.contains(command), "{command} missing from help");
+        }
+    }
+}

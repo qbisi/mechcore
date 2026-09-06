@@ -73,6 +73,22 @@ impl Session {
         })
     }
 
+    /// Poll the Adapter's status until the connection drops.
+    ///
+    /// Every frontend needs the same stream, so it lives here rather than in
+    /// whichever frontend happens to spawn it.
+    pub(crate) async fn monitor_status(self: Arc<Self>) {
+        loop {
+            if self.is_connected().await {
+                match self.adapter_request(Operation::Status, json!({})).await {
+                    Ok(status) => self.publish(status),
+                    Err(_) => self.disconnect_adapter().await,
+                }
+            }
+            sleep(STATUS_INTERVAL).await;
+        }
+    }
+
     pub(crate) fn current_status(&self) -> Value {
         self.status.borrow().clone()
     }
@@ -159,6 +175,27 @@ impl Session {
                 })?
                 .map_err(|_| "status monitor stopped".to_owned())?;
         }
+    }
+
+    /// The endpoint this session resolves to.
+    pub(crate) fn endpoint(&self) -> &Path {
+        &self.socket_path
+    }
+
+    /// Adopt a client that acquisition already connected and greeted.
+    ///
+    /// Acquisition must keep the connection it probed with: dropping it and
+    /// reconnecting would race another client into the single serving slot.
+    pub(crate) async fn install_client(&self, client: adapter::Client) -> Result<Value, String> {
+        let _operation = self.operation.lock().await;
+        let mut adapter = self.adapter.lock().await;
+        if adapter.is_some() {
+            return Err("game adapter is already connected".into());
+        }
+        *adapter = Some(client);
+        drop(adapter);
+        let status = self.refresh_status().await?;
+        Ok(json!({"connected": true, "status": status}))
     }
 
     pub(crate) async fn connect_adapter(&self) -> Result<Value, String> {
@@ -672,7 +709,17 @@ pub(crate) fn record_battle_failure(
         "retry_safe": false,
     })
 }
+/// `MECHCORE_ADAPTER_SOCKET`, then the user-scoped default.
+///
+/// Both sides resolve the endpoint the same way, so an override moves the
+/// Adapter and every client together. See `docs/session.md`.
 pub(crate) fn default_adapter_socket() -> PathBuf {
+    if let Some(configured) = std::env::var_os("MECHCORE_ADAPTER_SOCKET") {
+        let path = PathBuf::from(configured);
+        if path.is_absolute() && path.as_os_str().as_encoded_bytes().len() <= 100 {
+            return path;
+        }
+    }
     // SAFETY: geteuid has no preconditions.
     let uid = unsafe { libc::geteuid() };
     PathBuf::from(format!("/tmp/mechcore-adapter-{uid}.sock"))

@@ -1,5 +1,4 @@
 use crate::session::{self, Session};
-use mechcore_protocol::Operation;
 use rmcp::{
     ErrorData, RoleServer, ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -23,7 +22,6 @@ use std::{
 use tokio::{
     sync::Mutex,
     task::JoinHandle,
-    time::sleep,
 };
 
 const STATUS_URI: &str = "mechcore://status";
@@ -293,7 +291,7 @@ pub fn run() -> Result<(), String> {
 
 async fn run_async() -> Result<(), String> {
     let shared = Session::new();
-    let monitor = tokio::spawn(monitor(shared.clone()));
+    let monitor = tokio::spawn(Session::monitor_status(shared.clone()));
     let server = MechcoreMcp::new(shared.clone())
         .serve(stdio())
         .await
@@ -304,21 +302,6 @@ async fn run_async() -> Result<(), String> {
         .map_err(|error| format!("MCP service failed: {error}"));
     monitor.abort();
     result.map(drop)
-}
-
-async fn monitor(shared: Arc<Session>) {
-    loop {
-        let connected = shared.is_connected().await;
-        if connected {
-            match shared.adapter_request(Operation::Status, json!({})).await {
-                Ok(status) => shared.publish(status),
-                Err(_) => {
-                    shared.disconnect_adapter().await;
-                }
-            }
-        }
-        sleep(session::STATUS_INTERVAL).await;
-    }
 }
 
 fn tool_result(result: Result<Value, String>) -> CallToolResult {
