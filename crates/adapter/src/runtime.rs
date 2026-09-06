@@ -6,7 +6,7 @@ use mechcore_protocol::{Busy, Hello, MAX_ACTIVATION_ROUND, Operation, Request, R
 use serde::Deserialize;
 use serde_json::Value;
 use std::env;
-use std::ffi::c_void;
+use std::ffi::{CString, c_void};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::os::fd::AsRawFd;
@@ -14,7 +14,7 @@ use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, OnceLock, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -401,6 +401,7 @@ fn run() -> Result<(), RuntimeError> {
     let mut runtime = load_runtime_on_main_thread(api)?;
     let endpoint = socket_path()?;
     let listener = bind_listener(&endpoint)?;
+    arm_endpoint_cleanup(&endpoint);
     let _cleanup = SocketCleanup(endpoint);
 
     let serving = Arc::new(AtomicBool::new(false));
@@ -1413,7 +1414,45 @@ struct SocketCleanup(PathBuf);
 
 impl Drop for SocketCleanup {
     fn drop(&mut self) {
+        // Disarm first: once we remove the endpoint ourselves, the exit handler
+        // must not unlink a path another adapter may have rebound since.
+        ENDPOINT_ARMED.store(false, Ordering::SeqCst);
         let _ = fs::remove_file(&self.0);
+    }
+}
+
+/// Endpoint to unlink when the hosting process exits.
+///
+/// The adapter runs on a detached thread inside the game, so a Unity shutdown
+/// tears the process down without unwinding us and `SocketCleanup` never runs.
+/// An exit handler makes the endpoint's lifetime equal the process lifetime,
+/// which also covers the player closing the window. Deleting it earlier, from
+/// `quit_game`, would leave a window where the game is still alive with no
+/// endpoint, which a client cannot distinguish from an uninjected game.
+static ENDPOINT_PATH: OnceLock<CString> = OnceLock::new();
+static ENDPOINT_ARMED: AtomicBool = AtomicBool::new(false);
+
+extern "C" fn remove_endpoint_at_exit() {
+    if !ENDPOINT_ARMED.load(Ordering::SeqCst) {
+        return;
+    }
+    if let Some(path) = ENDPOINT_PATH.get() {
+        // SAFETY: the stored CString is NUL-terminated and lives for the whole
+        // process, so the pointer stays valid during teardown.
+        unsafe { libc::unlink(path.as_ptr()) };
+    }
+}
+
+fn arm_endpoint_cleanup(endpoint: &Path) {
+    let Ok(path) = CString::new(endpoint.as_os_str().as_encoded_bytes()) else {
+        return;
+    };
+    let first = ENDPOINT_PATH.set(path).is_ok();
+    ENDPOINT_ARMED.store(true, Ordering::SeqCst);
+    if first {
+        // SAFETY: the handler is a plain extern "C" fn with no arguments and
+        // touches only process-lifetime statics.
+        unsafe { libc::atexit(remove_endpoint_at_exit) };
     }
 }
 
@@ -1465,6 +1504,28 @@ mod tests {
         drop(client);
         drop(listener);
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn socket_cleanup_removes_the_endpoint_and_disarms_the_exit_handler() {
+        let path = PathBuf::from(format!(
+            "/tmp/mechcore-adapter-cleanup-{}.sock",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&path);
+        let listener = bind_listener(&path).unwrap();
+        assert!(path.exists());
+
+        // Arm as the runtime would, then let the RAII guard run.
+        ENDPOINT_ARMED.store(true, Ordering::SeqCst);
+        drop(SocketCleanup(path.clone()));
+
+        assert!(!path.exists(), "cleanup must remove the endpoint");
+        assert!(
+            !ENDPOINT_ARMED.load(Ordering::SeqCst),
+            "cleanup must disarm the exit handler so it cannot unlink a rebound path"
+        );
+        drop(listener);
     }
 
     #[test]

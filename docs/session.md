@@ -32,6 +32,17 @@ On bind the Adapter refuses to replace a non-socket or a socket owned by
 another UID, refuses to replace an endpoint that is still live, and otherwise
 unlinks the stale file before binding.
 
+**The endpoint exists exactly as long as the hosting process.** The Adapter
+runs on a detached thread, so a Unity shutdown tears the process down without
+unwinding it; a process exit handler therefore unlinks the endpoint. This also
+covers the player closing the window. Deleting the endpoint earlier, when
+`quit_game` is handled, would leave a window in which the game is still alive
+with no endpoint, which a client cannot distinguish from state **C**.
+
+An exit handler does not run on `SIGKILL`, `abort()`, or `_exit()`, so a
+crashed or force-killed game still leaves state **B** behind. That is a
+recoverable state, not a leak: the next bind clears it.
+
 `mechcore` never creates, unlinks, or chmods that path. A stale endpoint is
 resolved by the next Adapter bind, not by the client.
 
