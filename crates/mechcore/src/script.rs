@@ -33,7 +33,8 @@ const NATIVE: &[&str] = &[
 /// Operations that run without a game.
 const OFFLINE: &[&str] = &["let", "compare"];
 
-const RESERVED: &[&str] = &["expect", "bind"];
+/// Step keys that are structure rather than an operation name.
+const RESERVED: &[&str] = &["expect", "steps", "where"];
 
 pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     let options = Options::parse(arguments)?;
@@ -102,10 +103,29 @@ struct Script {
 }
 
 #[cfg_attr(test, derive(Debug))]
-struct Step {
+enum Step {
+    Call(Call),
+    ForEach(ForEach),
+}
+
+#[cfg_attr(test, derive(Debug))]
+struct Call {
     operation: String,
     arguments: Value,
     expect: Option<Map<String, Value>>,
+}
+
+/// Repeat a body once per item of a list, binding the item to a name.
+///
+/// The body is the unit of failure: a case that fails stops the run, because a
+/// step that depends on a failed predecessor cannot produce a meaningful
+/// result.
+#[cfg_attr(test, derive(Debug))]
+struct ForEach {
+    binding: String,
+    source: Value,
+    filter: Option<Map<String, Value>>,
+    body: Vec<Step>,
 }
 
 impl Script {
@@ -156,16 +176,13 @@ impl Script {
 
     /// Reject a script before it runs, without probing or launching anything.
     fn check(&self) -> Result<(), String> {
-        for step in &self.steps {
-            let known =
-                NATIVE.contains(&step.operation.as_str()) || OFFLINE.contains(&step.operation.as_str());
-            if !known {
-                return Err(format!("unknown operation {}", step.operation));
+        for operation in self.steps.iter().flat_map(Step::operations) {
+            if !NATIVE.contains(&operation) && !OFFLINE.contains(&operation) {
+                return Err(format!("unknown operation {operation}"));
             }
-            if self.game.is_none() && NATIVE.contains(&step.operation.as_str()) {
+            if self.game.is_none() && NATIVE.contains(&operation) {
                 return Err(format!(
-                    "{} needs a game, but the script declares no `game:` key",
-                    step.operation
+                    "{operation} needs a game, but the script declares no `game:` key"
                 ));
             }
         }
@@ -192,12 +209,82 @@ impl Step {
             Some(Value::Object(fields)) => Some(fields.clone()),
             Some(other) => return Err(format!("expect must be a mapping, got {other}")),
         };
-        Ok(Self {
-            operation: (*operation).clone(),
-            arguments: mapping[operation.as_str()].clone(),
-            expect,
-        })
+        let arguments = mapping[operation.as_str()].clone();
+
+        if operation.as_str() != "foreach" {
+            for key in ["steps", "where"] {
+                if mapping.contains_key(key) {
+                    return Err(format!("{key} belongs to foreach, not to {operation}"));
+                }
+            }
+            return Ok(Self::Call(Call {
+                operation: (*operation).clone(),
+                arguments,
+                expect,
+            }));
+        }
+
+        if expect.is_some() {
+            return Err("expect asserts on one operation's result; put it on a body step".into());
+        }
+        let binding = {
+            let fields = arguments
+                .as_object()
+                .ok_or("foreach takes one mapping of binding name to list")?;
+            let [name] = fields.keys().collect::<Vec<_>>()[..] else {
+                return Err("foreach binds exactly one name".into());
+            };
+            name.clone()
+        };
+        let source = arguments[binding.as_str()].clone();
+        let filter = match mapping.get("where") {
+            None => None,
+            Some(Value::Object(fields)) => Some(fields.clone()),
+            Some(other) => return Err(format!("where must be a mapping, got {other}")),
+        };
+        let body = mapping
+            .get("steps")
+            .ok_or("foreach needs steps")?
+            .as_array()
+            .ok_or("foreach steps must be a list")?
+            .iter()
+            .map(Self::parse)
+            .collect::<Result<Vec<_>, _>>()?;
+        if body.is_empty() {
+            return Err("foreach needs at least one body step".into());
+        }
+        if body.iter().any(|step| matches!(step, Self::ForEach(_))) {
+            return Err("nested foreach is not supported".into());
+        }
+        Ok(Self::ForEach(ForEach {
+            binding,
+            source,
+            filter,
+            body,
+        }))
     }
+
+    /// Every operation this step can reach, loop bodies included, so the
+    /// offline rule cannot be evaded by hiding a native call in a loop.
+    fn operations(&self) -> Vec<&str> {
+        match self {
+            Self::Call(call) => vec![call.operation.as_str()],
+            Self::ForEach(loop_) => loop_.body.iter().flat_map(Self::operations).collect(),
+        }
+    }
+}
+
+fn is_reference_char(character: char) -> bool {
+    character.is_alphanumeric() || character == '_' || character == '.'
+}
+
+/// The reference when `text` is nothing but one, in either spelling.
+fn whole_reference(text: &str) -> Option<&str> {
+    let rest = text.strip_prefix('$')?;
+    if let Some(inner) = rest.strip_prefix('{') {
+        return inner.strip_suffix('}').filter(|inner| !inner.is_empty());
+    }
+    (!rest.is_empty() && rest.chars().all(is_reference_char)).then_some(rest)
 }
 
 /// Variable scope; values are whatever a step bound or a var declared.
@@ -226,13 +313,12 @@ impl Scope {
 
     /// A string that is exactly one reference keeps the referenced type;
     /// a reference inside longer text is stringified and spliced.
+    ///
+    /// `${name.field}` delimits explicitly, which a bare `$name.field` cannot
+    /// do when the value is followed by more path: `$out/${case.name}.mcfr`
+    /// would otherwise read `name.mcfr` as a field lookup.
     fn expand(&self, text: &str) -> Result<Value, String> {
-        if let Some(reference) = text.strip_prefix('$')
-            && reference
-                .chars()
-                .all(|character| character.is_alphanumeric() || character == '_' || character == '.')
-            && !reference.is_empty()
-        {
+        if let Some(reference) = whole_reference(text) {
             return self.lookup(reference);
         }
         let mut out = String::new();
@@ -240,17 +326,22 @@ impl Scope {
         while let Some(index) = rest.find('$') {
             out.push_str(&rest[..index]);
             let tail = &rest[index + 1..];
-            let length = tail
-                .find(|character: char| {
-                    !(character.is_alphanumeric() || character == '_' || character == '.')
-                })
-                .unwrap_or(tail.len());
-            if length == 0 {
-                out.push('$');
-                rest = tail;
-                continue;
-            }
-            let (reference, remainder) = tail.split_at(length);
+            let (reference, remainder) = if let Some(braced) = tail.strip_prefix('{') {
+                let end = braced
+                    .find('}')
+                    .ok_or_else(|| format!("unterminated ${{ in {text}"))?;
+                (&braced[..end], &braced[end + 1..])
+            } else {
+                let length = tail
+                    .find(|character: char| !is_reference_char(character))
+                    .unwrap_or(tail.len());
+                if length == 0 {
+                    out.push('$');
+                    rest = tail;
+                    continue;
+                }
+                tail.split_at(length)
+            };
             let value = self.lookup(reference.trim_end_matches('.'))?;
             match value {
                 Value::String(text) => out.push_str(&text),
@@ -327,32 +418,110 @@ async fn run_steps(
         let resolved = scope.resolve(value)?;
         scope.values.insert(name.clone(), resolved);
     }
-    for (index, step) in script.steps.iter().enumerate() {
-        let arguments = scope.resolve(&step.arguments)?;
-        let started = std::time::Instant::now();
-        let result = perform(step, &arguments, scope, session)
-            .await
-            .map_err(|error| format!("step {} ({}): {error}", index + 1, step.operation))?;
-        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-        if let Some(expect) = &step.expect {
-            check_expectations(expect, &result)
-                .map_err(|error| format!("step {} ({}): {error}", index + 1, step.operation))?;
+    run_body(&script.steps, scope, session, None).await
+}
+
+/// Execute one list of steps. `iteration` labels output produced inside a loop.
+async fn run_body(
+    steps: &[Step],
+    scope: &mut Scope,
+    session: &Arc<Session>,
+    iteration: Option<usize>,
+) -> Result<(), String> {
+    for (index, step) in steps.iter().enumerate() {
+        let position = index + 1;
+        match step {
+            Step::Call(call) => {
+                run_call(call, position, scope, session, iteration).await?;
+            }
+            Step::ForEach(loop_) => {
+                run_loop(loop_, position, scope, session).await?;
+            }
         }
-        println!(
-            "{}",
-            json!({
-                "step": index + 1,
-                "operation": step.operation,
-                "elapsed_ms": elapsed_ms,
-                "result": result,
-            })
-        );
     }
     Ok(())
 }
 
+async fn run_call(
+    call: &Call,
+    position: usize,
+    scope: &mut Scope,
+    session: &Arc<Session>,
+    iteration: Option<usize>,
+) -> Result<(), String> {
+    let label = |error: String| match iteration {
+        Some(index) => format!("step {position} ({}) in iteration {index}: {error}", call.operation),
+        None => format!("step {position} ({}): {error}", call.operation),
+    };
+    let arguments = scope.resolve(&call.arguments).map_err(label)?;
+    let started = std::time::Instant::now();
+    let result = perform(call, &arguments, scope, session).await.map_err(label)?;
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    if let Some(expect) = &call.expect {
+        let expect = scope
+            .resolve(&Value::Object(expect.clone()))
+            .map_err(label)?;
+        let expect = expect
+            .as_object()
+            .ok_or_else(|| label("expect did not resolve to a mapping".into()))?;
+        check_expectations(expect, &result).map_err(label)?;
+    }
+    let mut line = json!({
+        "step": position,
+        "operation": call.operation,
+        "elapsed_ms": elapsed_ms,
+        "result": result,
+    });
+    if let Some(index) = iteration {
+        line["iteration"] = json!(index);
+    }
+    println!("{line}");
+    Ok(())
+}
+
+async fn run_loop(
+    loop_: &ForEach,
+    position: usize,
+    scope: &mut Scope,
+    session: &Arc<Session>,
+) -> Result<(), String> {
+    let label = |error: String| format!("step {position} (foreach): {error}");
+    let source = scope.resolve(&loop_.source).map_err(&label)?;
+    let items = source
+        .as_array()
+        .ok_or_else(|| label(format!("foreach source is not a list: {source}")))?;
+    let started = std::time::Instant::now();
+    let mut executed = 0;
+    for item in items {
+        if let Some(filter) = &loop_.filter
+            && check_expectations(filter, item).is_err()
+        {
+            continue;
+        }
+        // Each iteration gets its own bindings: the loop variable and anything
+        // the body binds must not leak into the next case or past the loop.
+        let outer = scope.values.clone();
+        scope.values.insert(loop_.binding.clone(), item.clone());
+        let outcome = Box::pin(run_body(&loop_.body, scope, session, Some(executed))).await;
+        scope.values = outer;
+        outcome?;
+        executed += 1;
+    }
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    println!(
+        "{}",
+        json!({
+            "step": position,
+            "operation": "foreach",
+            "elapsed_ms": elapsed_ms,
+            "result": {"iterations": executed, "considered": items.len()},
+        })
+    );
+    Ok(())
+}
+
 async fn perform(
-    step: &Step,
+    step: &Call,
     arguments: &Value,
     scope: &mut Scope,
     session: &Arc<Session>,
@@ -515,14 +684,19 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
 /// Every declared field must be present and equal; extra result fields are fine.
 fn check_expectations(expect: &Map<String, Value>, result: &Value) -> Result<(), String> {
     for (key, wanted) in expect {
-        let actual = result
-            .get(key)
+        let actual = field_at(result, key)
             .ok_or_else(|| format!("expected {key}={wanted}, but the result has no {key}"))?;
         if actual != wanted {
             return Err(format!("expected {key}={wanted}, got {actual}"));
         }
     }
     Ok(())
+}
+
+/// Follow a dotted key into a result. The interesting values are nested:
+/// a recording reports `operation.tick_count`, not `tick_count`.
+fn field_at<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
+    key.split('.').try_fold(value, |current, part| current.get(part))
 }
 
 #[cfg(test)]
@@ -598,8 +772,11 @@ mod tests {
         let script =
             Script::parse("game: attach\nsteps:\n  - status: {}\n    expect: {status: main_menu}\n")
                 .unwrap();
-        assert_eq!(script.steps[0].operation, "status");
-        assert!(script.steps[0].expect.is_some());
+        let Step::Call(call) = &script.steps[0] else {
+            panic!("expected a plain operation");
+        };
+        assert_eq!(call.operation, "status");
+        assert!(call.expect.is_some());
     }
 
     #[test]
@@ -620,6 +797,67 @@ mod tests {
         assert!(Script::parse("nope: 1\nsteps: []\n").is_err());
         let script = Script::parse("steps:\n  - frobnicate: {}\n").unwrap();
         assert!(script.check().unwrap_err().contains("frobnicate"));
+    }
+
+    #[test]
+    fn a_braced_reference_delimits_a_path_that_text_would_swallow() {
+        let scope = scope_with(&[("out", json!("work/x")), ("case", json!({"name": "rhino"}))]);
+        assert_eq!(
+            scope.expand("$out/${case.name}.mcfr").unwrap(),
+            json!("work/x/rhino.mcfr"),
+            "a bare $case.name.mcfr would look up a field named mcfr"
+        );
+        // The braced spelling also survives as a whole-string reference.
+        assert_eq!(scope.expand("${case.name}").unwrap(), json!("rhino"));
+    }
+
+    #[test]
+    fn expectations_follow_dotted_paths_into_the_result() {
+        let expect: Map<String, Value> =
+            serde_json::from_value(json!({"operation.tick_count": 91})).unwrap();
+        let result = json!({"operation": {"tick_count": 91}});
+        assert!(check_expectations(&expect, &result).is_ok());
+        let wrong = json!({"operation": {"tick_count": 92}});
+        assert!(check_expectations(&expect, &wrong).is_err());
+    }
+
+    #[test]
+    fn a_loop_body_cannot_smuggle_a_native_operation_past_the_offline_rule() {
+        let script = Script::parse(
+            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - record_battle: {output: a}\n",
+        )
+        .unwrap();
+        let error = script.check().unwrap_err();
+        assert!(error.contains("record_battle"), "{error}");
+        assert!(error.contains("game:"), "{error}");
+    }
+
+    #[test]
+    fn foreach_requires_one_binding_and_a_body() {
+        assert!(
+            Script::parse("steps:\n  - foreach: {a: $x, b: $y}\n    steps:\n      - status: {}\n")
+                .is_err()
+        );
+        assert!(Script::parse("game: attach\nsteps:\n  - foreach: {case: $c}\n").is_err());
+        assert!(
+            Script::parse("game: attach\nsteps:\n  - foreach: {case: $c}\n    steps: []\n").is_err()
+        );
+    }
+
+    #[test]
+    fn nested_loops_are_refused() {
+        let error = Script::parse(
+            "steps:\n  - foreach: {a: $x}\n    steps:\n      - foreach: {b: $y}\n        steps:\n          - compare: {left: a, right: b}\n",
+        )
+        .unwrap_err();
+        assert!(error.contains("nested foreach"), "{error}");
+    }
+
+    #[test]
+    fn loop_only_keys_are_refused_on_a_plain_operation() {
+        let error =
+            Script::parse("game: attach\nsteps:\n  - status: {}\n    steps: []\n").unwrap_err();
+        assert!(error.contains("belongs to foreach"), "{error}");
     }
 
     #[test]
