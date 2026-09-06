@@ -38,6 +38,10 @@ struct StartTestParameters {
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct RecordBattleParameters {
+    /// Request native combat speed-up. Defaults to true, with or without
+    /// `video_output`.
+    #[serde(default)]
+    speed_up: Option<bool>,
     /// Absolute destination path for the new `.mcfr` file.
     output: PathBuf,
     /// Optional absolute destination for a logic-frame-aligned `QuickTime` MJPEG `.mov`.
@@ -49,6 +53,9 @@ struct RecordBattleParameters {
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct RecordReplayRoundParameters {
+    /// Request native combat speed-up. Defaults to true.
+    #[serde(default)]
+    speed_up: Option<bool>,
     /// Absolute path to the source `.grbr` replay.
     grbr: PathBuf,
     /// One-based combat round to capture.
@@ -127,6 +134,7 @@ impl MechcoreMcp {
                 .record_battle(
                     parameters.output,
                     parameters.video_output,
+                    parameters.speed_up,
                     parameters.instrumentation,
                 )
                 .await,
@@ -146,6 +154,7 @@ impl MechcoreMcp {
                     parameters.grbr,
                     parameters.round,
                     parameters.output,
+                    parameters.speed_up,
                     parameters.instrumentation,
                 )
                 .await,

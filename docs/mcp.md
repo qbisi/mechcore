@@ -123,11 +123,15 @@ Input is `{"output":"/absolute/path/battle.mcfr"}`. The path must be absolute, m
 `.mcfr` suffix, and must not already exist. An optional
 `"video_output":"/absolute/path/battle.mov"` enables a QuickTime Motion JPEG sidecar. It is
 disabled by default; its path must be absolute, new, distinct from `output`, and use `.mov`.
+An optional `"speed_up"` boolean requests native combat speed-up; it defaults to `true` and is
+accepted with or without `video_output`. Only a boolean is accepted: the native mechanism is a
+per-user vote, not a multiplier, so there is no rate to select.
 The call requires completed Training Ground deployment.
 It owns the complete recording transaction: the adapter starts combat, requests the wall-clock-only
 speed-up vote for MCFR-only capture, and returns only after the adapter captures the fighting-to-over
-boundary, publishes the MCFR, and reopens its structure. Video capture disables speed-up, temporarily
-sets the Unity target frame rate to 20 fps, and uses a main-camera post-render barrier. When video is
+boundary, publishes the MCFR, and reopens its structure. Video capture temporarily sets the Unity
+target frame rate to 20 fps and uses a main-camera post-render barrier; speed-up remains available
+alongside it. When video is
 enabled, `calibration_topdown` suspends the
 native camera input/Cinemachine controllers and fixes the main camera at world `(0,1070,-1070)`,
 45-degree rotation `(45,0,0)`, perspective field of view `20` degrees, and 1920x1080 output. The equal

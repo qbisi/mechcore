@@ -33,6 +33,10 @@ struct RecordBattleArguments {
     output: PathBuf,
     #[serde(default)]
     video_output: Option<PathBuf>,
+    /// Request native combat speed-up. Defaults to true, with or without a
+    /// visual recording.
+    #[serde(default)]
+    speed_up: Option<bool>,
     #[serde(default)]
     instrumentation: Option<RecordBattleInstrumentationArguments>,
 }
@@ -43,6 +47,8 @@ struct RecordReplayRoundArguments {
     grbr: PathBuf,
     round: i32,
     output: PathBuf,
+    #[serde(default)]
+    speed_up: Option<bool>,
     instrumentation: Option<RecordBattleInstrumentationArguments>,
 }
 
@@ -646,7 +652,11 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
     let capture_request = Request {
         id: request.id,
         operation: Operation::RecordBattle,
-        arguments: serde_json::json!({"output": arguments.output, "instrumentation": arguments.instrumentation}),
+        arguments: serde_json::json!({
+            "output": arguments.output,
+            "speed_up": arguments.speed_up,
+            "instrumentation": arguments.instrumentation,
+        }),
     };
     let mut capture_response =
         execute_recording_series(runtime, &capture_request, capture::CaptureStartMode::Replay);
@@ -826,12 +836,19 @@ fn execute_recording_series(
         return Response::failure(request.id, "invalid_arguments", error);
     }
     let visual = arguments.video_output.is_some();
+    // Speed-up and video coexist. The render barrier holds the logic update
+    // until the frame is captured, so a sped-up game cannot outrun the encoder
+    // and cannot drop a frame; measured runs produce the same frame count and a
+    // bit-identical MCFR. Its benefit is small under video because the barrier,
+    // not the simulation rate, sets the pace.
+    let speed_up = arguments.speed_up.unwrap_or(true);
     if let Err(response) = successful_result(execute_internal_on_main(
         runtime,
         request.id,
         operations::InternalOperation::StartCapture {
             mode,
             visual,
+            speed_up,
             instrumentation_profile: arguments
                 .instrumentation
                 .as_ref()

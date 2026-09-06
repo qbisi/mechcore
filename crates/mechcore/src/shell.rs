@@ -5,7 +5,7 @@
 //! `--attach`, or performed later from the prompt; a shell started with
 //! neither is offline and refuses native commands. See `docs/session.md`.
 
-use crate::acquire::{self, Mode, Ownership};
+use crate::acquire::{Mode, Ownership};
 use crate::session::{RecordBattleInstrumentationParameters, Session};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -21,7 +21,7 @@ native
   status                          current status snapshot
   start_test [seed]               create the layout-test Training Ground
   apply_layout <layout.yaml>      apply a layout and advance to its round
-  record_battle <out.mcfr> [--video <out.mov>]
+  record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]
   record_replay_round <in.grbr> <round> <out.mcfr>
   toggle_fight                    start the current fight
   speed_up                        request battle speed-up
@@ -46,7 +46,7 @@ async fn run_async(mode: Option<Mode>) -> Result<(), String> {
 
     let mut out = tokio::io::stdout();
     if let Some(mode) = mode {
-        match acquire_into(&session, mode).await {
+        match session.acquire(mode).await {
             Ok(owned) => {
                 write(&mut out, &banner(&owned, &session)).await;
                 ownership = Some(owned);
@@ -67,7 +67,7 @@ async fn run_async(mode: Option<Mode>) -> Result<(), String> {
     // Never leave this function without running shut_down: an owned game is
     // only shut down here, and a dropped Child does not terminate it.
     let looped = repl(&session, &mut ownership, &mut out).await;
-    let closed = shut_down(ownership, &session).await;
+    let closed = session.release(ownership).await;
     monitor.abort();
     looped.and(closed)
 }
@@ -79,7 +79,7 @@ async fn repl(
 ) -> Result<(), String> {
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
     loop {
-        write(out, &prompt(ownership, session)).await;
+        write(out, &prompt(ownership.as_ref(), session)).await;
         let Some(line) = lines
             .next_line()
             .await
@@ -129,7 +129,7 @@ async fn dispatch(
                 write(out, "already holding a game; detach or quit first\n").await;
                 return Flow::Continue;
             }
-            match acquire_into(session, mode).await {
+            match session.acquire(mode).await {
                 Ok(owned) => {
                     write(out, &banner(&owned, session)).await;
                     *ownership = Some(owned);
@@ -208,9 +208,14 @@ async fn native(
             session.apply_layout(layout).await
         }
         "record_battle" => {
-            let (output, video) = parse_record_battle(arguments)?;
+            let (output, video, speed_up) = parse_record_battle(arguments)?;
             session
-                .record_battle(output, video, None::<RecordBattleInstrumentationParameters>)
+                .record_battle(
+                    output,
+                    video,
+                    speed_up,
+                    None::<RecordBattleInstrumentationParameters>,
+                )
                 .await
                 .map_err(|value| render(&value))
         }
@@ -222,7 +227,13 @@ async fn native(
                 .parse::<i32>()
                 .map_err(|_| format!("round must be an integer: {round}"))?;
             session
-                .record_replay_round(PathBuf::from(grbr), round, PathBuf::from(output), None)
+                .record_replay_round(
+                    PathBuf::from(grbr),
+                    round,
+                    PathBuf::from(output),
+                    None,
+                    None,
+                )
                 .await
         }
         "toggle_fight" => session.toggle_fight().await,
@@ -233,37 +244,29 @@ async fn native(
     }
 }
 
-fn parse_record_battle(arguments: &[&str]) -> Result<(PathBuf, Option<PathBuf>), String> {
-    match arguments {
-        [output] => Ok((PathBuf::from(output), None)),
-        [output, "--video", video] => {
-            Ok((PathBuf::from(output), Some(PathBuf::from(video))))
-        }
-        _ => Err("usage: record_battle <out.mcfr> [--video <out.mov>]".into()),
-    }
-}
+type RecordBattleArgs = (PathBuf, Option<PathBuf>, Option<bool>);
 
-async fn acquire_into(session: &Arc<Session>, mode: Mode) -> Result<Ownership, String> {
-    let (client, ownership) = acquire::acquire(mode, session.endpoint())
-        .await
-        .map_err(|failure| format!("{} refused, {failure}", mode.as_str()))?;
-    session.install_client(client).await?;
-    Ok(ownership)
-}
-
-/// Shut down according to ownership, never terminating someone else's game.
-async fn shut_down(ownership: Option<Ownership>, session: &Arc<Session>) -> Result<(), String> {
-    match ownership {
-        None | Some(Ownership::Attached) => Ok(()),
-        Some(Ownership::Owned(mut child)) => {
-            let quit = session.quit_game().await;
-            match child.wait().await {
-                Ok(status) if status.success() => quit.map(drop),
-                Ok(status) => Err(format!("game exited with {status}")),
-                Err(error) => Err(format!("cannot await the game process: {error}")),
+/// `record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]`
+///
+/// The two options are independent: video and speed-up coexist.
+fn parse_record_battle(arguments: &[&str]) -> Result<RecordBattleArgs, String> {
+    const USAGE: &str = "usage: record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]";
+    let [output, rest @ ..] = arguments else {
+        return Err(USAGE.into());
+    };
+    let mut video = None;
+    let mut speed_up = None;
+    let mut rest = rest.iter();
+    while let Some(argument) = rest.next() {
+        match *argument {
+            "--video" if video.is_none() => {
+                video = Some(PathBuf::from(rest.next().ok_or(USAGE)?));
             }
+            "--no-speed-up" if speed_up.is_none() => speed_up = Some(false),
+            _ => return Err(USAGE.into()),
         }
     }
+    Ok((PathBuf::from(output), video, speed_up))
 }
 
 fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
@@ -276,7 +279,7 @@ fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
 }
 
 /// The prompt doubles as the status display, so no polling command is needed.
-fn prompt(ownership: &Option<Ownership>, session: &Arc<Session>) -> String {
+fn prompt(ownership: Option<&Ownership>, session: &Arc<Session>) -> String {
     let Some(ownership) = ownership else {
         return "offline> ".into();
     };
@@ -288,7 +291,8 @@ fn prompt(ownership: &Option<Ownership>, session: &Arc<Session>) -> String {
     let mut label = state.to_owned();
     if state == "training_ground" {
         if let Some(round) = status.get("round_count").and_then(Value::as_i64) {
-            label.push_str(&format!(" r{round}"));
+            use std::fmt::Write;
+            let _ = write!(label, " r{round}");
         }
         if status.get("fighting").and_then(Value::as_bool) == Some(true) {
             label.push_str(" fight");
@@ -319,7 +323,7 @@ mod tests {
     #[test]
     fn offline_prompt_does_not_claim_a_game() {
         let session = Session::new();
-        assert_eq!(prompt(&None, &session), "offline> ");
+        assert_eq!(prompt(None, &session), "offline> ");
     }
 
     #[test]
@@ -330,7 +334,7 @@ mod tests {
             "deploying": true, "fighting": false
         }));
         assert_eq!(
-            prompt(&Some(Ownership::Attached), &session),
+            prompt(Some(&Ownership::Attached), &session),
             "training_ground r2 deploy*> "
         );
         session.publish(json!({
@@ -338,21 +342,37 @@ mod tests {
             "deploying": false, "fighting": true
         }));
         assert_eq!(
-            prompt(&Some(Ownership::Attached), &session),
+            prompt(Some(&Ownership::Attached), &session),
             "training_ground r2 fight*> "
         );
     }
 
     #[test]
     fn record_battle_arguments_accept_only_the_documented_forms() {
+        // Omitting the flag leaves the default to the adapter, which speeds up.
         assert_eq!(
             parse_record_battle(&["/tmp/a.mcfr"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None)
+            (PathBuf::from("/tmp/a.mcfr"), None, None)
+        );
+        assert_eq!(
+            parse_record_battle(&["/tmp/a.mcfr", "--no-speed-up"]).unwrap(),
+            (PathBuf::from("/tmp/a.mcfr"), None, Some(false))
         );
         assert_eq!(
             parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), Some(PathBuf::from("/tmp/a.mov")))
+            (PathBuf::from("/tmp/a.mcfr"), Some(PathBuf::from("/tmp/a.mov")), None)
         );
+        // The options are independent, in either order.
+        assert_eq!(
+            parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov", "--no-speed-up"])
+                .unwrap(),
+            (
+                PathBuf::from("/tmp/a.mcfr"),
+                Some(PathBuf::from("/tmp/a.mov")),
+                Some(false)
+            )
+        );
+        assert!(parse_record_battle(&["/tmp/a.mcfr", "--no-speed-up", "--no-speed-up"]).is_err());
         assert!(parse_record_battle(&[]).is_err());
         assert!(parse_record_battle(&["/tmp/a.mcfr", "--video"]).is_err());
     }

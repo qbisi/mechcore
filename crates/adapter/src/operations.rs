@@ -82,6 +82,7 @@ pub(crate) enum InternalOperation {
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
+        speed_up: bool,
         instrumentation_profile: Option<crate::capture::CaptureInstrumentationProfile>,
         rvo_scope: Option<crate::capture::RvoCaptureScope>,
     },
@@ -106,9 +107,17 @@ pub(crate) fn execute_internal(
         InternalOperation::StartCapture {
             mode,
             visual,
+            speed_up,
             instrumentation_profile,
             rvo_scope,
-        } => crate::capture::start(runtime, mode, visual, instrumentation_profile, rvo_scope)
+        } => crate::capture::start(
+            runtime,
+            mode,
+            visual,
+            speed_up,
+            instrumentation_profile,
+            rvo_scope,
+        )
             .map(|()| json!({"started": true}))
             .map_err(OperationError::InvalidState),
         InternalOperation::StopCapture => crate::capture::stop()

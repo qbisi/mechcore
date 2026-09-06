@@ -167,14 +167,22 @@ Input contains one absolute, non-existing destination with a `.mcfr` suffix:
 {"output":"/absolute/path/battle.mcfr"}
 ```
 
-An optional `video_output` enables the logic-frame visual sidecar:
+An optional `video_output` enables the logic-frame visual sidecar, and an optional `speed_up`
+selects native combat speed-up:
 
 ```json
 {
   "output":"/absolute/path/battle.mcfr",
-  "video_output":"/absolute/path/battle.mov"
+  "video_output":"/absolute/path/battle.mov",
+  "speed_up":true
 }
 ```
+
+`speed_up` defaults to `true` and applies with or without `video_output`. It is a boolean because
+the native path is a per-user vote (`RequestSpeedUp` -> `MH_SpeedUp` -> `MiscManager.ActiveSpeedUp`)
+carrying no rate; the only numeric multiplier in the game belongs to the separate automatic
+`FightSpeedUpController`, which this operation does not drive. `record_replay_round` accepts the
+same field.
 
 The optional path must be absolute, non-existing, distinct from `output`, and use `.mov`. With no
 `video_output`, no screenshot metadata is resolved, the camera is untouched, and no visual encoding
@@ -187,8 +195,9 @@ earlier 2560x1600 render while horizontal coverage is wider, so frames from the 
 not pixel-comparable. Native perspective rendering is used so tower shadow decals do not become
 opaque black quads. A renderer reproduces the calibration from the reported camera position,
 rotation, field of view and media dimensions rather than from a fixed scale factor. A visual
-recording temporarily sets `Application.targetFrameRate` to 20 and does not request native
-speed-up. A main-camera post-render hook releases the next `FightController.Update`; pixel readback at
+recording temporarily sets `Application.targetFrameRate` to 20. It may still request native
+speed-up: the render barrier below paces the logic update, so a sped-up game produces the same frame
+count and a bit-identical MCFR, and the gain is small. A main-camera post-render hook releases the next `FightController.Update`; pixel readback at
 that following update therefore captures a completed render of the pending MCFR snapshot rather than
 the state being advanced.
 The normal screen-space UI is included. The terminal snapshot is not returned until its completed

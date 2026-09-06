@@ -5,6 +5,7 @@
 //! speaks only `serde_json::Value` and `String`, so no frontend protocol
 //! leaks into it. See `docs/session.md` for the acquisition contract.
 
+use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::Operation;
 use rmcp::schemars::JsonSchema;
@@ -24,6 +25,8 @@ pub(crate) const STATUS_INTERVAL: Duration = Duration::from_millis(100);
 pub(crate) const ADAPTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 pub(crate) const CONNECT_TIMEOUT: Duration = Duration::from_secs(60);
 pub(crate) const TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
+/// A cold start must reach the main menu within this budget.
+const READY_TIMEOUT: Duration = Duration::from_secs(180);
 
 /// Structured error body carried by a failed operation result.
 pub(crate) fn error_body(error: impl Into<String>) -> Value {
@@ -182,6 +185,52 @@ impl Session {
         &self.socket_path
     }
 
+    /// Acquire the game as declared and wait until it can accept work.
+    ///
+    /// A launched game's endpoint appears well before the title finishes
+    /// booting, so connecting is not readiness. Every native operation begins
+    /// at the main menu; returning earlier would let a caller's first step race
+    /// the loading screen.
+    pub(crate) async fn acquire(self: &Arc<Self>, mode: Mode) -> Result<Ownership, String> {
+        let (client, ownership) = acquire::acquire(mode, self.endpoint())
+            .await
+            .map_err(|failure| format!("{} refused, {failure}", mode.as_str()))?;
+        self.install_client(client).await?;
+        self.wait_status("the main menu", READY_TIMEOUT, |status| {
+            is_status(status, "main_menu")
+        })
+        .await?;
+        Ok(ownership)
+    }
+
+    /// Release the game according to ownership.
+    ///
+    /// An attached game is left to its owner. An owned game is asked to quit
+    /// and then awaited; if the request itself failed the game was never told
+    /// to exit, so awaiting it would hang and it is terminated instead.
+    pub(crate) async fn release(&self, ownership: Option<Ownership>) -> Result<(), String> {
+        let Some(Ownership::Owned(mut child)) = ownership else {
+            return Ok(());
+        };
+        match self.quit_game().await {
+            Ok(_) => match child.wait().await {
+                Ok(status) if status.success() => Ok(()),
+                Ok(status) => Err(format!("game exited with {status}")),
+                Err(error) => Err(format!("cannot await the game process: {error}")),
+            },
+            Err(error) => {
+                let killed = child.kill().await;
+                Err(format!(
+                    "quit_game failed ({error}); the launched game was terminated{}",
+                    match killed {
+                        Ok(()) => String::new(),
+                        Err(problem) => format!(" unsuccessfully: {problem}"),
+                    }
+                ))
+            }
+        }
+    }
+
     /// Adopt a client that acquisition already connected and greeted.
     ///
     /// Acquisition must keep the connection it probed with: dropping it and
@@ -276,6 +325,7 @@ impl Session {
         &self,
         output: PathBuf,
         video_output: Option<PathBuf>,
+        speed_up: Option<bool>,
         instrumentation: Option<RecordBattleInstrumentationParameters>,
     ) -> Result<Value, Value> {
         let _operation = self.operation.lock().await;
@@ -302,6 +352,7 @@ impl Session {
                 json!({
                     "output": output,
                     "video_output": video_output,
+                    "speed_up": speed_up,
                     "instrumentation": instrumentation,
                 }),
             )
@@ -386,6 +437,7 @@ impl Session {
         grbr: PathBuf,
         round: i32,
         output: PathBuf,
+        speed_up: Option<bool>,
         instrumentation: Option<RecordBattleInstrumentationParameters>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
@@ -417,7 +469,13 @@ impl Session {
         let result = self
             .adapter_request(
                 Operation::RecordReplayRound,
-                json!({"grbr": grbr, "round": round, "output": output, "instrumentation": instrumentation}),
+                json!({
+                    "grbr": grbr,
+                    "round": round,
+                    "output": output,
+                    "speed_up": speed_up,
+                    "instrumentation": instrumentation,
+                }),
             )
             .await?;
         if result.get("recorded").and_then(Value::as_bool) != Some(true) {

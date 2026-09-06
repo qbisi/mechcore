@@ -738,6 +738,8 @@ struct CaptureState {
     armed: bool,
     initialized: bool,
     entered_fighting: bool,
+    /// Whether the caller asked for native combat speed-up.
+    speed_up_allowed: bool,
     speed_up_requested: bool,
     await_replay_deployment: bool,
     last_native_tick: Option<u64>,
@@ -799,6 +801,7 @@ impl CaptureState {
         self.armed = false;
         self.initialized = false;
         self.entered_fighting = false;
+        self.speed_up_allowed = false;
         self.speed_up_requested = false;
         self.await_replay_deployment = false;
         self.last_native_tick = None;
@@ -2061,6 +2064,7 @@ pub(crate) fn start(
     runtime: &Runtime,
     mode: CaptureStartMode,
     visual: bool,
+    speed_up: bool,
     instrumentation_profile: Option<CaptureInstrumentationProfile>,
     rvo_scope: Option<RvoCaptureScope>,
 ) -> Result<(), String> {
@@ -2117,6 +2121,7 @@ pub(crate) fn start(
     };
     state.reset_session();
     state.deployment_layout_yaml = layout_yaml;
+    state.speed_up_allowed = speed_up;
     state.await_replay_deployment = mode == CaptureStartMode::Replay;
     RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
     RVO_SOURCE_CALL_ORDINAL.store(0, Ordering::Release);
@@ -3667,7 +3672,11 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                     return Ok(());
                 }
             }
-            if fighting && state.visual.is_none() && !state.speed_up_requested {
+            if fighting
+                && state.speed_up_allowed
+                && state.visual.is_none()
+                && !state.speed_up_requested
+            {
                 let current_match = runtime.current_match();
                 if current_match.is_null() {
                     return Err("active match disappeared before recording speed-up".into());
