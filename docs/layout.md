@@ -756,6 +756,28 @@ placement is the deliberate contrast: `MechPositionManager` builds a fresh
 `GRRandom` per call, so declaration order does not affect where a formation
 lands.
 
+The order that matters is the order the skills are released, not the order the
+player acquired them. Only the first is something a player varies within a
+round, so the distinction decides whether this array is an action or a record
+of fixed state. Every collection on the consuming path is built per release: a
+release action reaches `ReleaseSkillAtFightPhase`, which appends one controller
+to `releaseControllers` with `AddWithResize`, and `CSRC_Common.OnFightStart`
+computes positions per controller in that list order. The owned-skill list,
+which `CommanderSkillManager` keeps separately at field offset `0x28`, is never
+iterated on that path; the by-skill lookup `TryGetReleaseCommanderSkillData` is
+reached only from cancelling and clearing; and the deferred deployment handler
+`OnPlayerReleaseSkillAtPreparePhase` is unimplemented, so a controller is
+created when the player releases rather than replayed at fight start.
+
+That last step is a negative result read from an indexed call graph rather than
+a loop read directly, and no capture can currently separate the two orders,
+because the executor provisions and releases in one pass over this array.
+Distinguishing them by experiment would need an Adapter that can order
+provisioning and release independently, which is not worth building for this
+question alone. The consequence for the schema is that this array's order is
+the release order, and that acquisition order is not layout state: a skill slot
+or acquisition index would record something no outcome depends on.
+
 `skill-order-orbital-first.yaml` and `skill-order-lightning-first.yaml` hold
 the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover.
