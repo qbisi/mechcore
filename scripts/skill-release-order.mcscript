@@ -1,0 +1,70 @@
+# Does the release order of two battle skills change the battle?
+#
+# Decompilation says yes: FightTeam holds one GRRandom at field offset 0x68,
+# reset every deployment by BattleSystem.OnEnterDeployment, and the fight-side
+# CommanderSkillManager.CalculateAttackPositions draws from exactly that stream
+# through teamController.fightTeam.random. Two skills that scatter would then
+# consume it in release order. This capture turns that reading into a fact.
+#
+#   mechcore run scripts/skill-release-order.mcscript --check   validate offline
+#   mechcore run scripts/skill-release-order.mcscript           record
+#
+# The two layouts hold the same pair of releases at the same two positions and
+# differ only in which one is declared first. Orbital Bombardment and Lightning
+# Storm are the only two random-circle skills in the catalogue, so they are the
+# pair most likely to draw. Both land on the same twelve-Crawler block, so a
+# different scatter changes who dies.
+#
+# Three recordings, because a bare difference proves nothing on its own:
+#
+#   ab-1, ab-2   the same layout twice, which must compare equal
+#   ba           the swapped order, compared against ab-1
+#
+# The control carries an expect and stops the run if it fails, since a
+# non-reproducible pipeline would make the third recording meaningless. The
+# decisive comparison carries no expect: the script succeeds either way and the
+# answer is the `equal` field it prints. False means release order is semantic
+# and normalization must never sort battle_skills. True across both `equal` and
+# `content_equal` means the order is free within this test's sensitivity.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/skill-release-order
+  seed: 20260907
+
+steps:
+  - let:
+      orbital_first: read_yaml(tests/layouts/skill-order-orbital-first.yaml)
+      lightning_first: read_yaml(tests/layouts/skill-order-lightning-first.yaml)
+
+  - apply_layout:
+      layout: $orbital_first
+      seed: $seed
+  - record_battle:
+      output: ${out}/ab-1.mcfr
+
+  - apply_layout:
+      layout: $orbital_first
+      seed: $seed
+  - record_battle:
+      output: ${out}/ab-2.mcfr
+
+  - apply_layout:
+      layout: $lightning_first
+      seed: $seed
+  - record_battle:
+      output: ${out}/ba.mcfr
+
+  - compare:
+      left: ${out}/ab-1.mcfr
+      right: ${out}/ab-2.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  - compare:
+      left: ${out}/ab-1.mcfr
+      right: ${out}/ba.mcfr

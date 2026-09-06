@@ -1,0 +1,112 @@
+seed: 20260907
+round: 1
+sides:
+  blue:
+    formations:
+    - type: crawler
+      index: 0
+      x: -55
+      y: -250
+    - type: crawler
+      index: 1
+      x: 5
+      y: -250
+    - type: crawler
+      index: 2
+      x: 65
+      y: -250
+    - type: crawler
+      index: 3
+      x: -55
+      y: -230
+    - type: crawler
+      index: 4
+      x: 5
+      y: -230
+    - type: crawler
+      index: 5
+      x: 65
+      y: -230
+    - type: crawler
+      index: 6
+      x: -55
+      y: -210
+    - type: crawler
+      index: 7
+      x: 5
+      y: -210
+    - type: crawler
+      index: 8
+      x: 65
+      y: -210
+    - type: crawler
+      index: 9
+      x: -55
+      y: -190
+    - type: crawler
+      index: 10
+      x: 5
+      y: -190
+    - type: crawler
+      index: 11
+      x: 65
+      y: -190
+    battle_skills:
+    - type: orbital_bombardment
+      positions:
+      - x: -20
+        y: 140
+    - type: lightning_storm
+      positions:
+      - x: 20
+        y: 150
+  red:
+    formations:
+    - type: crawler
+      index: 0
+      x: -55
+      y: -170
+    - type: crawler
+      index: 1
+      x: 5
+      y: -170
+    - type: crawler
+      index: 2
+      x: 65
+      y: -170
+    - type: crawler
+      index: 3
+      x: -55
+      y: -150
+    - type: crawler
+      index: 4
+      x: 5
+      y: -150
+    - type: crawler
+      index: 5
+      x: 65
+      y: -150
+    - type: crawler
+      index: 6
+      x: -55
+      y: -130
+    - type: crawler
+      index: 7
+      x: 5
+      y: -130
+    - type: crawler
+      index: 8
+      x: 65
+      y: -130
+    - type: crawler
+      index: 9
+      x: -55
+      y: -110
+    - type: crawler
+      index: 10
+      x: 5
+      y: -110
+    - type: crawler
+      index: 11
+      x: 65
+      y: -110

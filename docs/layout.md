@@ -743,6 +743,29 @@ second ends the intermediate segment, and the third is the final endpoint.
 Position order must be preserved through the side-local to world-coordinate
 transform and native release action.
 
+The order of the entries themselves is also semantic, and a normalizing
+consumer must never sort `battle_skills`. One side's skills draw from a single
+`GRRandom` that `FightTeam` holds at field offset `0x68`, reached from the
+fight-side `CommanderSkillManager` through `teamController.fightTeam.random`
+and consumed by `CalculateAttackPositions`, so scattering skills take their
+values in release order. Two properties bound the effect: the stream belongs to
+one team, so blue's order and red's order are independent, and
+`BattleSystem.OnEnterDeployment` resets it every deployment, so nothing carries
+across rounds and a single-round layout still reproduces the battle. Formation
+placement is the deliberate contrast: `MechPositionManager` builds a fresh
+`GRRandom` per call, so declaration order does not affect where a formation
+lands.
+
+`skill-order-orbital-first.yaml` and `skill-order-lightning-first.yaml` hold
+the same pair of releases at the same two positions and differ only in which is
+declared first, over a twelve-Crawler block that both circles cover.
+`scripts/skill-release-order.mcscript` records three battles from them. Under
+build `1.11.1.3.2259` and seed `20260907`, the same order recorded twice gave
+byte-identical hashes at 415 ticks, while the swapped order diverged at tick 63
+and ended at 416. They are not in the regression manifest, because its offline
+reader simulates every case and the Simulator has no battle-skill feature slice
+yet.
+
 Before any mutation, the compiler applies the build-pinned geometry and map
 rule from the battle-skill index against the `800 x 700` battlefield bound
 `x=[-400,400], y=[-350,350]`. Circle and line footprints use their documented
