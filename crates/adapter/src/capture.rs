@@ -4738,7 +4738,7 @@ fn read_native_layout(
         );
     }
     let layout = Layout {
-        seed: context.match_seed,
+        seed: Some(context.match_seed),
         round,
         sides: Sides {
             blue: sides[0]

@@ -4517,7 +4517,7 @@ fn execute(
                     .as_bytes(),
             )
             .map_err(Error::new)?;
-            replay_layout.seed = seed;
+            replay_layout.seed = Some(seed);
             let replay_layout =
                 mechcore_layout::canonical_yaml(replay_layout).map_err(Error::new)?;
             McfrWriter::create(path, &config.game_build, &context, &replay_layout)?

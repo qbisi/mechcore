@@ -371,3 +371,24 @@ fn layout_seed_is_used_and_external_seed_overrides_it() {
     assert_eq!(overridden.seed, 23);
     assert_eq!(overridden.seed_source, "external");
 }
+
+#[test]
+fn the_zero_seed_sentinel_is_refused_from_either_source() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("zero.yaml");
+    let source = fs::read_to_string(fixture()).unwrap();
+    fs::write(&layout, format!("seed: 0\n{source}")).unwrap();
+    assert!(
+        simulate_layout(&layout, None, None)
+            .unwrap_err()
+            .to_string()
+            .contains("native system-random request")
+    );
+
+    assert!(
+        simulate_layout(fixture(), None, Some(0))
+            .unwrap_err()
+            .to_string()
+            .contains("system-random request")
+    );
+}

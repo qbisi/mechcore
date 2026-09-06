@@ -9,8 +9,8 @@ pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
-    #[serde(default)]
-    pub seed: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<i32>,
     #[schemars(range(min = 1))]
     pub round: i32,
     pub sides: Sides,
@@ -215,7 +215,7 @@ pub struct SidePlan {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Plan {
-    pub seed: i32,
+    pub seed: Option<i32>,
     pub round: i32,
     pub blue: SidePlan,
     pub red: SidePlan,
@@ -390,8 +390,8 @@ fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
 
 /// Serializes a validated layout into the canonical YAML representation.
 ///
-/// Canonical layout YAML always includes `seed`, preserves declaration order,
-/// omits default-valued optional syntax, and ends with one newline.
+/// Canonical layout YAML omits an unspecified `seed`, preserves declaration
+/// order, omits default-valued optional syntax, and ends with one newline.
 ///
 /// # Errors
 ///
@@ -432,6 +432,13 @@ pub fn compile(value: &Value) -> Result<Plan, String> {
 pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     if layout.round < 1 {
         return Err("layout round must be at least 1".to_owned());
+    }
+    if layout.seed == Some(0) {
+        return Err(
+            "layout seed 0 is the native system-random request, not a match seed: omit the field \
+             to ask for a generated seed"
+                .to_owned(),
+        );
     }
     let blue = compile_side("blue", layout.sides.blue, layout.round)?;
     let red = compile_side("red", layout.sides.red, layout.round)?;
@@ -1718,7 +1725,7 @@ mod tests {
     }
 
     #[test]
-    fn defaults_seed_to_zero_and_preserves_an_explicit_seed() {
+    fn leaves_an_unspecified_seed_absent_and_rejects_the_zero_sentinel() {
         let layout = |seed| {
             let mut value = json!({
                 "round": 1,
@@ -1733,8 +1740,13 @@ mod tests {
             value
         };
 
-        assert_eq!(compile(&layout(None)).unwrap().seed, 0);
-        assert_eq!(compile(&layout(Some(-17))).unwrap().seed, -17);
+        assert_eq!(compile(&layout(None)).unwrap().seed, None);
+        assert_eq!(compile(&layout(Some(-17))).unwrap().seed, Some(-17));
+        assert!(
+            compile(&layout(Some(0)))
+                .unwrap_err()
+                .contains("native system-random request")
+        );
     }
 
     #[test]

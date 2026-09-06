@@ -277,7 +277,7 @@ impl Session {
             ));
         }
         let activation_round = i64::from(plan.round);
-        let seed = seed.unwrap_or(plan.seed);
+        let seed = seed.or(plan.seed);
         let _operation = self.operation.lock().await;
         let status = self.current_status();
         if !is_status(&status, "main_menu") {

@@ -80,7 +80,8 @@ one layout under several seeds, use the wrapper form:
 
 A layout's top-level keys are closed to `seed`, `round` and `sides`, so the
 wrapper is never mistaken for a layout. The override wins over the layout's own
-`seed`; `0` still means system-random.
+`seed`. A layout cannot carry `0`, which the schema rejects; omit `seed` on both
+to let the game generate one.
 
 ## Variables
 

@@ -412,7 +412,10 @@ Input optionally specifies the native match seed:
 
 Omitting `seed`, or passing `0`, preserves the game's system-generated seed
 behavior. Any nonzero signed 32-bit value is written to `BattleSetting.SystemSeed`
-before host creation.
+before host creation. This operation is the native boundary, so `0` keeps its
+native meaning here. The layout schema does not: it rejects `seed: 0` and
+expresses the same request by omitting the field, because a document has to
+denote one scenario.
 
 Typical output:
 

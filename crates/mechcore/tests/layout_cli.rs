@@ -43,6 +43,29 @@ sides:
 }
 
 #[test]
+fn layout_verify_rejects_the_zero_seed_sentinel() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("layout.yaml");
+    fs::write(
+        &layout,
+        "seed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+    )
+    .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["layout", "verify"])
+        .arg(&layout)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("native system-random request"),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
 fn layout_verify_rejects_contraptions_in_formations() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
@@ -96,7 +119,8 @@ sides:
         .unwrap();
     assert!(output.status.success());
     let canonical = String::from_utf8(output.stdout).unwrap();
-    assert!(canonical.starts_with("seed: 0\nround: 1\n"));
+    assert!(canonical.starts_with("round: 1\n"));
+    assert!(!canonical.contains("seed:"));
     assert!(!canonical.contains("level:"));
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
@@ -127,7 +151,7 @@ fn layout_diff_compares_normalized_fields() {
     .unwrap();
     fs::write(
         &right,
-        "seed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
     )
     .unwrap();
 
@@ -145,7 +169,7 @@ fn layout_diff_compares_normalized_fields() {
 
     fs::write(
         &right,
-        "seed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 20, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 20, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))

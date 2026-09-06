@@ -54,11 +54,19 @@ impl McfrWriter {
         context.validate()?;
         let layout =
             mechcore_layout::parse_embedded_yaml(layout_yaml.as_bytes()).map_err(Error::invalid)?;
-        if layout.seed != context.match_seed {
-            return Err(Error::invalid(format!(
-                "layout seed {} differs from durable context match_seed {}",
-                layout.seed, context.match_seed
-            )));
+        match layout.seed {
+            None => {
+                return Err(Error::invalid(
+                    "layout has no seed; a recording embeds the resolved match seed",
+                ));
+            }
+            Some(seed) if seed != context.match_seed => {
+                return Err(Error::invalid(format!(
+                    "layout seed {seed} differs from durable context match_seed {}",
+                    context.match_seed
+                )));
+            }
+            Some(_) => {}
         }
         if u32::try_from(layout.round).ok() != Some(context.combat_round) {
             return Err(Error::invalid(format!(

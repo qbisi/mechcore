@@ -27,7 +27,10 @@ pub(crate) struct CompiledLayout {
     pub(crate) placements: Vec<Placement>,
 }
 
-pub(crate) fn load(path: &Path, units: &UnitConfigs) -> Result<(i32, CompiledLayout, String)> {
+pub(crate) fn load(
+    path: &Path,
+    units: &UnitConfigs,
+) -> Result<(Option<i32>, CompiledLayout, String)> {
     let bytes = fs::read(path)
         .map_err(|error| Error::new(format!("failed to read {}: {error}", path.display())))?;
     let (seed, layout) = compile_with_seed(&bytes, units).map_err(|error| {
@@ -49,7 +52,7 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 pub(crate) fn compile_with_seed(
     bytes: &[u8],
     units: &UnitConfigs,
-) -> Result<(i32, CompiledLayout)> {
+) -> Result<(Option<i32>, CompiledLayout)> {
     let layout = mechcore_layout::parse_yaml(bytes).map_err(Error::new)?;
     let plan = mechcore_layout::compile_layout(layout).map_err(Error::new)?;
     let mut placements = compile_side("blue", 0, &plan.blue, units)?;

@@ -77,13 +77,15 @@ pub fn simulate_layout_with_config(
     let layout_path = layout_path.as_ref();
     let config = rules::SimulationConfig::load(config_directory)?;
     let (layout_seed, layout, replay_layout) = layout::load(layout_path, &config.units)?;
-    let requested_seed = seed.unwrap_or(layout_seed);
-    let (seed, source) = if requested_seed == 0 {
-        (generate_seed(layout_path)?, "generated")
-    } else if seed.is_some() {
-        (requested_seed, "external")
-    } else {
-        (requested_seed, "layout")
+    let (seed, source) = match (seed, layout_seed) {
+        (Some(0), _) => {
+            return Err(Error::new(
+                "seed 0 is the system-random request, not a match seed: omit the seed to generate one",
+            ));
+        }
+        (Some(seed), _) => (seed, "external"),
+        (None, Some(seed)) => (seed, "layout"),
+        (None, None) => (generate_seed(layout_path)?, "generated"),
     };
     kernel::run(&layout, &config, seed, source, output_path, &replay_layout)
 }
@@ -106,6 +108,9 @@ pub fn compare_recording_with_config(
     let (seed, layout) =
         layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
             .map_err(|error| Error::new(format!("cannot simulate embedded layout: {error}")))?;
+    let seed = seed.ok_or_else(|| {
+        Error::new("embedded layout has no seed, so the recording cannot be reproduced")
+    })?;
     kernel::compare(&layout, &config, seed, recording)
 }
 
@@ -125,5 +130,8 @@ fn generate_seed(layout_path: &Path) -> Result<i32> {
         layout_path.display()
     );
     let hash = blake3::hash(material.as_bytes());
-    Ok(i32::from_le_bytes(hash.as_bytes()[..4].try_into().unwrap()))
+    let seed = i32::from_le_bytes(hash.as_bytes()[..4].try_into().unwrap());
+    // A recording embeds its resolved seed, and a layout cannot carry 0, so a
+    // generated seed must never land on the sentinel.
+    Ok(if seed == 0 { 1 } else { seed })
 }

@@ -1403,7 +1403,9 @@ fn read_layout_yaml(member: &MemberSlice, combat_round: u32) -> Result<(String, 
             layout.round, combat_round
         )));
     }
-    let match_seed = layout.seed;
+    let match_seed = layout.seed.ok_or_else(|| {
+        Error::invalid("layout.yaml has no seed; a recording embeds the resolved match seed")
+    })?;
     let canonical = mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
     if text != canonical {
         return Err(Error::invalid("layout.yaml is not canonical"));

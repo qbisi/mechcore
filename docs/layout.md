@@ -7,9 +7,9 @@ Training Ground scene. It describes game state, not the actions used to create
 that state.
 
 The top-level `round` selects the deployment round in which the complete layout
-becomes active. The top-level `seed` selects the native or simulated match seed;
-`0` asks the executor to use a system-random seed. The document does not contain
-`reactor_core`, `supply`, capture settings, or exit behavior.
+becomes active. The optional top-level `seed` selects the native or simulated
+match seed; omitting it asks the executor to generate one. The document does
+not contain `reactor_core`, `supply`, capture settings, or exit behavior.
 
 The same layout is also the input to the bounded deterministic simulator:
 
@@ -33,7 +33,6 @@ A layout contains exactly two player sides, `blue` and `red`. Persistent Officer
 and unit-technology state is grouped under each side's `techs` object.
 
 ```yaml
-seed: 0
 round: 3
 
 sides:
@@ -122,14 +121,26 @@ count.
 
 ## Seed
 
-`seed` is an optional signed 32-bit integer and defaults to `0`. A nonzero value
-requests that exact match seed. Zero requests a system-random seed whose resolved
-`i32` value is reported by the executor and persisted in MCFR
-`DurableContext.match_seed`.
+`seed` is an optional signed 32-bit integer. When present it requests that exact
+match seed. When absent it requests a generated seed, whose resolved `i32` value
+is reported by the executor and persisted in MCFR `DurableContext.match_seed`.
 
-For `mechcore sim`, an explicit `--seed` replaces the layout value. The effective
-value is therefore `--seed` when present and `layout.seed` otherwise; if that
-effective value is zero, the Simulator generates a seed before execution.
+The value `0` is rejected. It is the native `set_SystemSeed` request for a
+system-generated seed, so a layout carrying it would denote every scenario at
+once rather than one, and no recorded match seed can equal it. Absence already
+expresses that request, and it expresses it without pretending to be a value.
+
+A seed is therefore not a state field with a baseline. It is an argument of the
+battle, and the layout only supplies a default for it. The call site holds the
+real parameter, which is why one layout can be recorded under many seeds:
+
+- `mechcore sim` resolves `--seed`, then `layout.seed`, then a generated seed,
+  and reports which of the three it used; `--seed 0` is refused for the same
+  reason the field is, and a generated seed never lands on `0`;
+- `apply_layout` resolves its own optional `seed`, then `layout.seed`, and
+  otherwise lets the game generate one;
+- an MCFR always embeds a layout whose `seed` is the resolved value, and a
+  recording whose embedded layout has no seed is refused.
 
 ## Activation round
 
