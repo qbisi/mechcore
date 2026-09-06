@@ -130,9 +130,10 @@ boundary, publishes the MCFR, and reopens its structure. Video capture disables 
 sets the Unity target frame rate to 20 fps, and uses a main-camera post-render barrier. When video is
 enabled, `calibration_topdown` suspends the
 native camera input/Cinemachine controllers and fixes the main camera at world `(0,1070,-1070)`,
-45-degree rotation `(45,0,0)`, perspective field of view `20` degrees, and 2560x1600 output. The equal
-Y/Z offsets aim at the battlefield origin and preserve approximately the previous 1.5x center-plane
-scale. Perspective rendering avoids the opaque black tower-shadow quads produced by the native decal
+45-degree rotation `(45,0,0)`, perspective field of view `20` degrees, and 1920x1080 output. The equal
+Y/Z offsets aim at the battlefield origin. The vertical field of view is unchanged from the earlier
+2560x1600 render, so vertical coverage matches while horizontal coverage is wider; frames from the
+two resolutions are not pixel-comparable. Perspective rendering avoids the opaque black tower-shadow quads produced by the native decal
 shader under an orthographic camera, while the disabled controllers prevent external mouse drift. One
 completed screen frame, including the normal game UI, is captured for each MCFR snapshot before the
 next logic update may advance; this begins at `S(1)` and includes the rendered terminal snapshot. The MOV uses the MCFR

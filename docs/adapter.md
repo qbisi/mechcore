@@ -182,9 +182,12 @@ work occurs. With it enabled, the adapter uses the deterministic `calibration_to
 Cinemachine and mouse/keyboard pan, orbit, and zoom controllers are suspended; the main camera is
 fixed at world `(0,1070,-1070)`, rotated to `(45,0,0)`, and given a perspective field of view of
 `20` degrees. It points at the battlefield origin along equal Y and Z offsets. The render is fixed at
-2560x1600; the distance and field of view preserve approximately the previous 1.5x center-plane scale
-while using native perspective rendering so tower shadow decals do not become opaque black quads. A
-visual recording temporarily sets `Application.targetFrameRate` to 20 and does not request native
+1920x1080. Because the field of view is vertical and unchanged, vertical coverage is the same as the
+earlier 2560x1600 render while horizontal coverage is wider, so frames from the two resolutions are
+not pixel-comparable. Native perspective rendering is used so tower shadow decals do not become
+opaque black quads. A renderer reproduces the calibration from the reported camera position,
+rotation, field of view and media dimensions rather than from a fixed scale factor. A visual
+recording temporarily sets `Application.targetFrameRate` to 20 and does not request native
 speed-up. A main-camera post-render hook releases the next `FightController.Update`; pixel readback at
 that following update therefore captures a completed render of the pending MCFR snapshot rather than
 the state being advanced.

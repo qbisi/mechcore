@@ -825,12 +825,13 @@ fn execute_recording_series(
     ) {
         return Response::failure(request.id, "invalid_arguments", error);
     }
+    let visual = arguments.video_output.is_some();
     if let Err(response) = successful_result(execute_internal_on_main(
         runtime,
         request.id,
         operations::InternalOperation::StartCapture {
             mode,
-            visual: arguments.video_output.is_some(),
+            visual,
             instrumentation_profile: arguments
                 .instrumentation
                 .as_ref()
@@ -955,9 +956,22 @@ fn execute_recording_series(
                         );
                     }
                 }
-                match (video.as_mut(), frame.as_deref()) {
+                match (video.as_mut(), frame.as_ref()) {
                     (Some(active), Some(frame)) => {
-                        if let Err(error) = active.append_jpeg(frame) {
+                        // Encoding runs here, on the socket thread, so the game's
+                        // main thread is free to render the next logic frame.
+                        let jpeg = match frame.encode_jpeg() {
+                            Ok(jpeg) => jpeg,
+                            Err(error) => {
+                                return recording_failure(
+                                    runtime,
+                                    request.id,
+                                    "video_error",
+                                    error,
+                                );
+                            }
+                        };
+                        if let Err(error) = active.append_jpeg(&jpeg) {
                             return recording_failure(runtime, request.id, "video_error", error);
                         }
                     }

@@ -33,8 +33,8 @@ use std::{
 
 const QUEUE_CAPACITY: usize = 4096;
 const TIME_UNITS_PER_SECOND: u32 = 2_000;
-const CAPTURE_WIDTH: u16 = 2_560;
-const CAPTURE_HEIGHT: u16 = 1_600;
+const CAPTURE_WIDTH: u16 = 1_920;
+const CAPTURE_HEIGHT: u16 = 1_080;
 const CAPTURE_FRAME_RATE: i32 = 20;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
 const ENERGY_TOWER_KIND: i32 = 1;
@@ -465,6 +465,34 @@ struct UnityRect {
 }
 
 #[derive(Clone)]
+/// Rendered pixels as Unity returns them: bottom-up rows, 3 or 4 channels.
+pub(crate) struct RawFrame {
+    pixels: Vec<u8>,
+    width: u16,
+    height: u16,
+    channels: usize,
+}
+
+impl RawFrame {
+    /// Flip to top-down, drop any alpha, and encode. Called off the Unity main
+    /// thread by the recording loop.
+    pub(crate) fn encode_jpeg(&self) -> Result<Vec<u8>, String> {
+        let row_bytes = usize::from(self.width) * self.channels;
+        let pixels = usize::from(self.width) * usize::from(self.height);
+        let mut rgb = Vec::with_capacity(pixels * 3);
+        for row in self.pixels.chunks_exact(row_bytes).rev() {
+            for pixel in row.chunks_exact(self.channels) {
+                rgb.extend_from_slice(&pixel[..3]);
+            }
+        }
+        let mut jpeg = Vec::new();
+        Encoder::new(&mut jpeg, 90)
+            .encode(&rgb, self.width, self.height, ColorType::Rgb)
+            .map_err(|error| format!("cannot encode captured JPEG: {error}"))?;
+        Ok(jpeg)
+    }
+}
+
 pub(crate) enum CaptureMessage {
     Initial {
         game_build: String,
@@ -476,7 +504,7 @@ pub(crate) enum CaptureMessage {
         state: WorldSnapshot,
         instrumentation: Option<CaptureInstrumentationObservation>,
         terminal: bool,
-        frame: Option<Vec<u8>>,
+        frame: Option<RawFrame>,
     },
     Failure(String),
 }
@@ -1033,7 +1061,10 @@ impl VisualCapture {
             .map_err(|error| error.to_string())
     }
 
-    fn frame(&mut self) -> Result<Vec<u8>, String> {
+    /// Read the rendered pixels. Conversion and JPEG encoding deliberately
+    /// happen on the consumer thread; doing them here blocked the render
+    /// barrier and dominated per-frame cost.
+    fn frame(&mut self) -> Result<RawFrame, String> {
         self.ensure_capture_texture()?;
         let texture = self
             .api
@@ -1093,18 +1124,12 @@ impl VisualCapture {
                     raw.len()
                 )
             })?;
-        let row_bytes = usize::from(width) * channels;
-        let mut rgb = Vec::with_capacity(pixels * 3);
-        for row in raw.chunks_exact(row_bytes).rev() {
-            for pixel in row.chunks_exact(channels) {
-                rgb.extend_from_slice(&pixel[..3]);
-            }
-        }
-        let mut jpeg = Vec::new();
-        Encoder::new(&mut jpeg, 90)
-            .encode(&rgb, width, height, ColorType::Rgb)
-            .map_err(|error| format!("cannot encode captured JPEG: {error}"))?;
-        Ok(jpeg)
+        Ok(RawFrame {
+            pixels: raw,
+            width,
+            height,
+            channels,
+        })
     }
 
     fn restore(mut self, restore_camera: bool) -> Result<(), String> {
