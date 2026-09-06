@@ -45,6 +45,11 @@ For the MCP workflow, leave `MECHCORE_ADAPTER_SOCKET` unset so both processes
 use `/tmp/mechcore-adapter-<uid>.sock`. A custom socket remains available to
 other Adapter clients, but MCP does not discover custom endpoints.
 
+The Adapter reports failures it cannot answer over the socket, such as a
+rejected peer or a dropped client, on the game process's standard error.
+See [session.md](session.md#diagnostics) for where that stream lands and
+how it differs from Unity's own `Player.log`.
+
 ## Wire protocol
 
 Messages are UTF-8 JSON, one object per line, with a maximum encoded size of

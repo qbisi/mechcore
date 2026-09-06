@@ -141,10 +141,10 @@ async fn dispatch(
         "detach" => {
             match ownership.take() {
                 None => write(out, "not holding a game\n").await,
-                Some(Ownership::Owned(child)) => {
+                Some(owned @ Ownership::Owned { .. }) => {
                     // Refuse silently dropping a game we started: quitting is
                     // the explicit path, so the user cannot orphan it here.
-                    *ownership = Some(Ownership::Owned(child));
+                    *ownership = Some(owned);
                     write(
                         out,
                         "this shell owns the game; use quit_game then quit, or quit to shut it down\n",
@@ -271,10 +271,13 @@ fn parse_record_battle(arguments: &[&str]) -> Result<RecordBattleArgs, String> {
 
 fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
     let endpoint = session.endpoint().display();
-    if ownership.is_owned() {
-        format!("launched game at {endpoint} (owned); quit will shut it down\n")
-    } else {
-        format!("attached at {endpoint} (not owned); quit leaves it running\n")
+    match ownership.log() {
+        Some(log) => format!(
+            "launched game at {endpoint} (owned); quit will shut it down\n\
+             game output: {}\n",
+            log.display()
+        ),
+        None => format!("attached at {endpoint} (not owned); quit leaves it running\n"),
     }
 }
 

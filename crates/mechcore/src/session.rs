@@ -209,7 +209,7 @@ impl Session {
     /// and then awaited; if the request itself failed the game was never told
     /// to exit, so awaiting it would hang and it is terminated instead.
     pub(crate) async fn release(&self, ownership: Option<Ownership>) -> Result<(), String> {
-        let Some(Ownership::Owned(mut child)) = ownership else {
+        let Some(Ownership::Owned { mut child, .. }) = ownership else {
             return Ok(());
         };
         match self.quit_game().await {

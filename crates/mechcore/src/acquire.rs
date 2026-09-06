@@ -40,15 +40,25 @@ impl Mode {
 /// Whether this process is responsible for shutting the game down.
 ///
 /// Never inferred: `launch` owns the process it started, `attach` never owns
-/// the process it found.
+/// the process it found. A launched game also carries the log its output was
+/// redirected to; an attached one does not, because another launcher chose
+/// where that went.
 pub(crate) enum Ownership {
-    Owned(Child),
+    Owned { child: Child, log: PathBuf },
     Attached,
 }
 
 impl Ownership {
     pub(crate) const fn is_owned(&self) -> bool {
-        matches!(self, Self::Owned(_))
+        matches!(self, Self::Owned { .. })
+    }
+
+    /// Where a launched game's own output was sent.
+    pub(crate) fn log(&self) -> Option<&Path> {
+        match self {
+            Self::Owned { log, .. } => Some(log),
+            Self::Attached => None,
+        }
     }
 }
 
@@ -168,12 +178,27 @@ pub(crate) async fn acquire(
 async fn launch(endpoint: &Path) -> Result<(Client, Ownership), Box<Failure>> {
     let dylib = adapter_dylib()?;
     let game = game_executable()?;
+    // Discarding this stream hid every Adapter diagnostic, which are written to
+    // fd 2 and never reach Unity's own Player.log. Keep them on disk instead.
+    let log = game_log_path();
+    let file = std::fs::File::create(&log).map_err(|error| {
+        Box::new(Failure::new(
+            "launch_failed",
+            format!("cannot create {}: {error}", log.display()),
+        ))
+    })?;
+    let errors = file.try_clone().map_err(|error| {
+        Box::new(Failure::new(
+            "launch_failed",
+            format!("cannot open {} for stderr: {error}", log.display()),
+        ))
+    })?;
     let child = Command::new(&game)
         .env("DYLD_INSERT_LIBRARIES", &dylib)
         .env("MECHCORE_ADAPTER_SOCKET", endpoint)
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::from(file))
+        .stderr(Stdio::from(errors))
         .spawn()
         .map_err(|error| {
             Box::new(Failure::new(
@@ -185,7 +210,7 @@ async fn launch(endpoint: &Path) -> Result<(Client, Ownership), Box<Failure>> {
     let deadline = tokio::time::Instant::now() + LAUNCH_TIMEOUT;
     loop {
         match probe_endpoint(endpoint).await {
-            Probe::Idle(client) => return Ok((*client, Ownership::Owned(child))),
+            Probe::Idle(client) => return Ok((*client, Ownership::Owned { child, log })),
             Probe::Protocol(detail) => {
                 return Err(Box::new(Failure::new("protocol_mismatch", detail)));
             }
@@ -254,6 +279,18 @@ fn adapter_dylib() -> Result<PathBuf, Box<Failure>> {
         )));
     }
     Ok(dylib)
+}
+
+/// Where a launched game's stdout and stderr are sent.
+///
+/// Deliberately beside the endpoint in `/tmp` rather than in `TMPDIR`, whose
+/// macOS value is an opaque per-user path nobody can type while debugging.
+/// User-scoped for the same reason the endpoint is: only one game can hold the
+/// endpoint at a time. Truncated on each launch.
+fn game_log_path() -> PathBuf {
+    // SAFETY: geteuid has no preconditions.
+    let uid = unsafe { libc::geteuid() };
+    PathBuf::from(format!("/tmp/mechcore-game-{uid}.log"))
 }
 
 /// `MECHCORE_GAME`, then the default Steam location.

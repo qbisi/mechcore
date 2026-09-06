@@ -191,6 +191,32 @@ Resolving the dylib as a sibling of the executable keeps a built `target/release
 directory relocatable as a unit. A `launch_failed` error names every path it
 tried.
 
+## Diagnostics
+
+Two log channels carry native-side detail, and they are separate. Neither
+appears in a frontend's own output, so both are worth naming before a capture
+is investigated.
+
+| Log | Written by | Contains |
+| --- | --- | --- |
+| `/tmp/mechcore-game-<uid>.log` | this tool, per launch | the game process's stdout and stderr, including every Adapter `eprintln!` |
+| `~/Library/Logs/GameRiver/Mechabellum/Player.log` | Unity, always | engine startup, IL2CPP, and game-side exceptions |
+
+**These do not overlap.** Unity writes `Player.log` through its own file
+handle, not through file descriptor 2, so Adapter diagnostics never reach it;
+conversely the game's own engine logging never reaches the launch log. A failed
+capture usually needs both.
+
+`Player.log` is truncated on each game start and the previous run is kept as
+`Player-prev.log`, which is the copy to read after a failure that has already
+been followed by another launch. Its directory is the Unity company and product
+name, chosen by the game rather than by this tool, so an update may move it.
+
+The launch log sits beside the endpoint, user-scoped for the same reason and
+truncated on each launch. Its path is reported
+in the shell banner. An **attached** session has no launch log: whoever started
+that game chose where its output went.
+
 A non-default `MECHCORE_ADAPTER_SOCKET` moves the endpoint for both the Adapter
 and the client. A game launched with a custom endpoint while the client probes
 the default one is indistinguishable from state **C**; pass the same override to
