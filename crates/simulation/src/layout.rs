@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use mechcore_layout::{NativeFormation, PlacementStage, SidePlan};
+use mechcore_layout::{NativeFormation, SidePlan};
 
 use crate::{
     Error, Result,
@@ -127,7 +127,6 @@ fn compile_formation(
         || formation.level != Some(1)
         || formation.equipment.is_some()
         || formation.travelling
-        || formation.stage != PlacementStage::Activation
     {
         return Err(Error::new(format!(
             "side {side_name} requires level-one, unequipped, non-travelling formations"

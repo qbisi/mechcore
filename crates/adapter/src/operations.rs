@@ -1,6 +1,6 @@
 use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
 use crate::layout::{
-    self, BattleSkill, EnergyTower, NativeFormation, Placement, PlacementStage, ResearchCenter,
+    self, BattleSkill, EnergyTower, NativeFormation, Placement, ResearchCenter,
     SidePlan, Techs, Terrain,
 };
 use crate::runtime::Runtime;
@@ -72,7 +72,6 @@ struct StartTestArguments {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum LayoutExecutionStage {
     Prepare,
-    PreActivation,
     Activation,
 }
 
@@ -856,15 +855,8 @@ fn apply_layout_stage(
     plan: &layout::Plan,
     stage: LayoutExecutionStage,
 ) -> Result<Value, OperationError> {
-    if stage == LayoutExecutionStage::PreActivation && plan.round <= 2 {
-        return Err(OperationError::InvalidState(format!(
-            "pre-activation deployment is not part of activation round {}",
-            plan.round
-        )));
-    }
     let expected_round = match stage {
         LayoutExecutionStage::Prepare => 1,
-        LayoutExecutionStage::PreActivation => plan.round - 1,
         LayoutExecutionStage::Activation => plan.round,
     };
     require_layout_deployment(runtime, expected_round)?;
@@ -914,7 +906,6 @@ fn apply_layout_stage(
     Ok(json!({
         "stage": match stage {
             LayoutExecutionStage::Prepare => "prepare",
-            LayoutExecutionStage::PreActivation => "pre_activation",
             LayoutExecutionStage::Activation => "activation",
         },
         "round": expected_round,
@@ -1260,39 +1251,16 @@ fn apply_side_layout_stage(
     rotate_to_world: bool,
     stage: LayoutExecutionStage,
 ) -> Result<Value, OperationError> {
-    let placement_stage = match stage {
-        LayoutExecutionStage::Prepare => {
-            return Err(OperationError::InvalidState(
-                "prepare stage cannot apply side layout state".into(),
-            ));
-        }
-        LayoutExecutionStage::PreActivation => PlacementStage::PreActivation,
-        LayoutExecutionStage::Activation => PlacementStage::Activation,
-    };
-    let formations = apply_formations(
-        runtime,
-        current,
-        &side.formations,
-        rotate_to_world,
-        placement_stage,
-    )?;
-    let constructions = apply_formations(
-        runtime,
-        current,
-        &side.constructions,
-        rotate_to_world,
-        placement_stage,
-    )?;
-    let contraptions = apply_formations(
-        runtime,
-        current,
-        &side.contraptions,
-        rotate_to_world,
-        placement_stage,
-    )?;
+    if stage == LayoutExecutionStage::Prepare {
+        return Err(OperationError::InvalidState(
+            "prepare stage cannot apply side layout state".into(),
+        ));
+    }
+    let formations = apply_formations(runtime, current, &side.formations, rotate_to_world)?;
+    let constructions = apply_formations(runtime, current, &side.constructions, rotate_to_world)?;
+    let contraptions = apply_formations(runtime, current, &side.contraptions, rotate_to_world)?;
     let result = match stage {
         LayoutExecutionStage::Prepare => unreachable!("prepare returned before side application"),
-        LayoutExecutionStage::PreActivation => json!({"formations": formations}),
         LayoutExecutionStage::Activation => json!({
             "techs": apply_techs(runtime, current, &side.techs)?,
             "research_center": apply_research_center(runtime, &side.research_center)?,
@@ -2272,14 +2240,10 @@ fn apply_formations(
     current: *mut Object,
     placements: &[Placement],
     rotate_to_world: bool,
-    stage: PlacementStage,
 ) -> Result<Vec<Value>, OperationError> {
     let result: Result<Vec<Value>, OperationError> = (|| -> Result<Vec<Value>, OperationError> {
         let mut applied = Vec::new();
-        for placement in placements
-            .iter()
-            .filter(|placement| placement.stage == stage)
-        {
+        for placement in placements {
             // MAD_AddUnit.UIDX assigns the requested index directly. Missing
             // indices do not create temporary units or native RVO agents.
             applied.push(apply_formation(runtime, placement, rotate_to_world)?);
@@ -3779,7 +3743,6 @@ mod tests {
             equipment: None,
             travelling: false,
             isairdrop: false,
-            stage: layout::PlacementStage::Activation,
         };
         let Err(error) = layout_world_position(&placement, true) else {
             panic!("red coordinate rotation unexpectedly succeeded")

@@ -165,12 +165,6 @@ struct FormationSpec {
     footprint: Option<(i64, i64)>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PlacementStage {
-    PreActivation,
-    Activation,
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Position {
@@ -198,7 +192,6 @@ pub struct Placement {
     pub equipment: Option<i32>,
     pub travelling: bool,
     pub isairdrop: bool,
-    pub stage: PlacementStage,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -561,7 +554,7 @@ fn compile_formations(
                     position.x, position.y
                 ));
             }
-            let stage = unit_placement_stage(side_name, &type_name, position, travelling, round)?;
+            validate_unit_placement(side_name, &type_name, position, travelling, round)?;
             Ok(Placement {
                 type_name,
                 native: NativeFormation::Unit(unit_id),
@@ -574,7 +567,6 @@ fn compile_formations(
                 equipment,
                 travelling,
                 isairdrop: false,
-                stage,
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -624,7 +616,6 @@ fn compile_constructions(
                 equipment: None,
                 travelling: false,
                 isairdrop: false,
-                stage: PlacementStage::Activation,
             })
         })
         .collect()
@@ -667,7 +658,6 @@ fn compile_contraptions(
                 equipment: None,
                 travelling: false,
                 isairdrop: isairdrop.unwrap_or(false),
-                stage: PlacementStage::Activation,
             })
         })
         .collect()
@@ -1244,13 +1234,13 @@ fn is_ambush_unit(placement: &Placement) -> bool {
         && i64::from(placement.position.y) >= AMBUSH_MIN_Y
 }
 
-fn unit_placement_stage(
+fn validate_unit_placement(
     side_name: &str,
     type_name: &str,
     position: Position,
     travelling: bool,
     round: i32,
-) -> Result<PlacementStage, String> {
+) -> Result<(), String> {
     let in_ambush = i64::from(position.y) >= AMBUSH_MIN_Y;
     if travelling && !in_ambush {
         return Err(format!(
@@ -1259,7 +1249,7 @@ fn unit_placement_stage(
         ));
     }
     if !in_ambush {
-        return Ok(PlacementStage::Activation);
+        return Ok(());
     }
     if round == 1 {
         return Err(format!(
@@ -1273,7 +1263,7 @@ fn unit_placement_stage(
             position.x, position.y
         ));
     }
-    Ok(PlacementStage::Activation)
+    Ok(())
 }
 
 const fn formation_spec(native: NativeFormation, footprint: Option<(i64, i64)>) -> FormationSpec {
@@ -1832,7 +1822,7 @@ sides:
     }
 
     #[test]
-    fn compiles_formations_in_declaration_order_for_activation() {
+    fn compiles_formations_in_declaration_order() {
         let plan = compile(&json!({
             "round": 3,
             "sides": {
@@ -1849,12 +1839,16 @@ sides:
         .unwrap();
 
         assert_eq!(plan.round, 3);
-        assert_eq!(plan.blue.formations[0].stage, PlacementStage::Activation);
-        assert_eq!(plan.blue.formations[1].stage, PlacementStage::Activation);
+        let types = plan
+            .blue
+            .formations
+            .iter()
+            .map(|placement| placement.type_name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(types, ["marksman", "marksman", "arclight"]);
         assert!(!plan.blue.formations[1].travelling);
-        assert_eq!(plan.blue.formations[2].stage, PlacementStage::Activation);
         assert!(plan.blue.formations[2].travelling);
-        assert_eq!(plan.blue.contraptions[0].stage, PlacementStage::Activation);
+        assert_eq!(plan.blue.contraptions[0].type_name, "interceptor");
     }
 
     #[test]
@@ -1895,14 +1889,8 @@ sides:
         }))
         .unwrap_err();
         assert!(omitted.contains("first flank deployment"));
-        assert_eq!(
-            compile(&layout(2, true)).unwrap().blue.formations[0].stage,
-            PlacementStage::Activation
-        );
-        assert_eq!(
-            compile(&layout(3, false)).unwrap().blue.formations[0].stage,
-            PlacementStage::Activation
-        );
+        assert!(compile(&layout(2, true)).unwrap().blue.formations[0].travelling);
+        assert!(!compile(&layout(3, false)).unwrap().blue.formations[0].travelling);
     }
 
     #[test]
