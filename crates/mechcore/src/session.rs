@@ -292,12 +292,40 @@ impl Session {
         Ok(json!({"operation": result, "status": status}))
     }
 
-    pub(crate) async fn apply_layout(&self, layout: Value) -> Result<Value, String> {
+    /// Create the Training Ground and bring it to the layout's activation round.
+    ///
+    /// This owns the whole transaction from the main menu, because a layout
+    /// already carries the seed and the round that `start_test` would otherwise
+    /// be handed separately. `seed` overrides the layout's own value, which is
+    /// what lets one layout be recorded under many seeds.
+    pub(crate) async fn apply_layout(
+        &self,
+        layout: Value,
+        seed: Option<i32>,
+    ) -> Result<Value, String> {
         let plan = mechcore_layout::compile(&layout)?;
         let activation_round = i64::from(plan.round);
+        let seed = seed.unwrap_or(plan.seed);
         let _operation = self.operation.lock().await;
-        self.require_training_deployment(1).await?;
+        let status = self.current_status();
+        if !is_status(&status, "main_menu") {
+            return Err(format!(
+                "apply_layout creates the Training Ground itself and starts from the main menu, \
+                 so it must not follow start_test; observed {status}"
+            ));
+        }
         *self.last_applied_layout.lock().await = None;
+
+        let created = self
+            .adapter_request(Operation::StartTest, json!({"seed": seed}))
+            .await?;
+        self.wait_status(
+            "round-one deployment after start_test",
+            TRANSITION_TIMEOUT,
+            |value| is_training_state(value, 1, true, false),
+        )
+        .await?;
+
         let result = self
             .adapter_request(Operation::ApplyLayout, layout.clone())
             .await?;
@@ -318,7 +346,7 @@ impl Session {
             ));
         }
         *self.last_applied_layout.lock().await = Some(layout.clone());
-        Ok(json!({"operation": result, "status": status}))
+        Ok(json!({"operation": result, "test": created, "status": status}))
     }
 
     pub(crate) async fn record_battle(
@@ -593,16 +621,6 @@ impl Session {
         }
     }
 
-    pub(crate) async fn require_training_deployment(&self, expected_round: i64) -> Result<Value, String> {
-        let status = self.refresh_status().await?;
-        if is_training_state(&status, expected_round, true, false) {
-            Ok(status)
-        } else {
-            Err(format!(
-                "operation requires round-{expected_round} Training Ground deployment: {status}"
-            ))
-        }
-    }
 }
 
 pub(crate) fn validate_record_outputs(
@@ -849,7 +867,7 @@ mod tests {
                     "blue": {"formations": [{"type": "unknown", "x": 0, "y": -50}]},
                     "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
                 }
-            }))
+            }), None)
             .await
             .unwrap_err();
 
@@ -871,13 +889,15 @@ mod tests {
                     },
                     "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
                 }
-            }))
+            }), None)
             .await
             .unwrap_err();
 
-        assert_eq!(
-            error,
-            "game adapter is not connected; call connect_adapter first"
+        // Reaching the game-state check is the point: a non-empty terrain list
+        // is compiled, not rejected as unsupported.
+        assert!(
+            error.contains("starts from the main menu"),
+            "expected the state precondition, got {error}"
         );
     }
 }

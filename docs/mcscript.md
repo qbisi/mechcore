@@ -54,8 +54,8 @@ through `quit_game`; an attached game is left running.
 | `let` | no | binds names; see built-ins below |
 | `compare` | no | `left`, `right`; same report as `mechcore mcfr compare` |
 | `status` | yes | current status snapshot |
-| `start_test` | yes | `seed` |
-| `apply_layout` | yes | takes the layout object, not a path |
+| `start_test` | yes | `seed`; rarely needed, see `apply_layout` |
+| `apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `record_battle` | yes | `output`, optional `video_output`, optional `speed_up` |
 | `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up` |
 | `toggle_fight` | yes | |
@@ -63,8 +63,24 @@ through `quit_game`; an attached game is left running.
 | `quit_match` | yes | |
 | `quit_game` | yes | |
 
-`apply_layout` takes a layout object. Read one from disk with `read_yaml`, or
-take the authoritative one out of a replay recording with `embedded_layout`.
+`apply_layout` owns the whole transaction from the main menu: it creates the
+Training Ground itself and brings it to the layout's activation round. A layout
+already carries both the seed and the round, so nothing needs threading through
+a separate `start_test`, and calling `start_test` first is refused.
+
+It takes a layout object. Read one from disk with `read_yaml`, or take the
+authoritative one out of a replay recording with `embedded_layout`. To record
+one layout under several seeds, use the wrapper form:
+
+```yaml
+- apply_layout:
+    layout: $layout
+    seed: 1787720817
+```
+
+A layout's top-level keys are closed to `seed`, `round` and `sides`, so the
+wrapper is never mistaken for a layout. The override wins over the layout's own
+`seed`; `0` still means system-random.
 
 ## Variables
 
@@ -74,8 +90,8 @@ A string that is **exactly** one reference keeps the referenced value's type; a
 reference embedded in longer text is stringified and spliced:
 
 ```yaml
-- start_test: {seed: $layout.seed}          # stays a number
-- record_battle: {output: $out/battle.mcfr} # becomes a path string
+- apply_layout: {layout: $layout, seed: $case.seed}  # stays a number
+- record_battle: {output: $out/battle.mcfr}          # becomes a path string
 ```
 
 An undefined reference fails the step by name before the operation runs.
@@ -148,8 +164,6 @@ steps:
       output: $out/replay.mcfr
   - let:
       layout: embedded_layout($out/replay.mcfr)
-  - start_test:
-      seed: $layout.seed
   - apply_layout: $layout
   - record_battle:
       output: $out/training.mcfr

@@ -20,7 +20,8 @@ acquisition
 native
   status                          current status snapshot
   start_test [seed]               create the layout-test Training Ground
-  apply_layout <layout.yaml>      apply a layout and advance to its round
+  apply_layout <layout.yaml> [seed]
+                                  create the test and reach the layout's round
   record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]
   record_replay_round <in.grbr> <round> <out.mcfr>
   toggle_fight                    start the current fight
@@ -198,14 +199,21 @@ async fn native(
             session.start_test(seed).await
         }
         "apply_layout" => {
-            let [path] = arguments else {
-                return Err("usage: apply_layout <layout.yaml>".into());
+            let (path, seed) = match arguments {
+                [path] => (path, None),
+                [path, seed] => (
+                    path,
+                    Some(seed.parse::<i32>().map_err(|_| {
+                        format!("seed must be a signed 32-bit integer: {seed}")
+                    })?),
+                ),
+                _ => return Err("usage: apply_layout <layout.yaml> [seed]".into()),
             };
             let text = std::fs::read_to_string(path)
                 .map_err(|error| format!("cannot read {path}: {error}"))?;
             let layout: Value = serde_yaml::from_str(&text)
                 .map_err(|error| format!("cannot parse {path}: {error}"))?;
-            session.apply_layout(layout).await
+            session.apply_layout(layout, seed).await
         }
         "record_battle" => {
             let (output, video, speed_up) = parse_record_battle(arguments)?;

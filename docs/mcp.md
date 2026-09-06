@@ -57,8 +57,8 @@ The controlling Agent must execute calls in this order:
 ```text
 session: launch game with Adapter outside MCP -> connect_adapter
 
-capture 1: start_test -> apply_layout -> record_battle -> main_menu
-capture 2: start_test -> apply_layout -> record_battle -> main_menu
+capture 1: apply_layout -> record_battle -> main_menu
+capture 2: apply_layout -> record_battle -> main_menu
 ...
 
 native replay capture: record_replay_round -> main_menu
@@ -87,12 +87,13 @@ The MCP server exposes exactly ten tools.
 
 ### apply_layout
 
-Input is the layout object from [layout.md](layout.md), not a path and not a
-nested `layout` wrapper. Its required top-level `round` selects the activation
-round and must be in `1..=15`. The call requires first-round deployment and
-returns only after all setup rounds have been skipped, the adapter's staged
-native actions/readbacks succeed, and that activation round reports
-`deploying=true` and `fighting=false`.
+Input is the layout object from [layout.md](layout.md), not a path. Its
+required top-level `round` selects the activation round and must be in
+`1..=15`, and its `seed` selects the match seed. The call starts from
+`main_menu` and creates the Training Ground itself, so it must not follow
+`start_test`. It returns only after all setup rounds have been skipped, the
+adapter's staged native actions/readbacks succeed, and that activation round
+reports `deploying=true` and `fighting=false`.
 
 The shared layout schema accepts build-2259 retained Sticky Oil Bomb terrain in
 `sides.<side>.terrains`. During activation the Adapter expands each entry's two

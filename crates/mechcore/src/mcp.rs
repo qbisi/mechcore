@@ -113,11 +113,14 @@ impl MechcoreMcp {
     ) -> Result<CallToolResult, ErrorData> {
         Ok(tool_result(
             self.shared
-                .apply_layout(json!({
-                    "seed": parameters.seed,
-                    "round": parameters.round,
-                    "sides": parameters.sides
-                }))
+                .apply_layout(
+                    json!({
+                        "seed": parameters.seed,
+                        "round": parameters.round,
+                        "sides": parameters.sides
+                    }),
+                    None,
+                )
                 .await,
         ))
     }

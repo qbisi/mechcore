@@ -396,7 +396,10 @@ async fn perform(
                 .map_err(|_| "seed must fit in a signed 32-bit integer".to_string())?;
             session.start_test(seed).await
         }
-        "apply_layout" => session.apply_layout(arguments.clone()).await,
+        "apply_layout" => {
+            let (layout, seed) = split_layout_arguments(arguments)?;
+            session.apply_layout(layout, seed).await
+        }
         "record_battle" => {
             let fields = arguments.as_object().ok_or("record_battle takes a mapping")?;
             let output = scope.path(
@@ -442,6 +445,31 @@ async fn perform(
         "quit_game" => session.quit_game().await,
         other => Err(format!("unknown operation {other}")),
     }
+}
+
+/// Split `apply_layout` arguments into the layout and an optional seed override.
+///
+/// A layout's top-level keys are closed to `seed`, `round` and `sides`, so a
+/// `layout` key can only be the wrapper form and never a layout itself.
+fn split_layout_arguments(arguments: &Value) -> Result<(Value, Option<i32>), String> {
+    let Some(wrapped) = arguments.get("layout") else {
+        return Ok((arguments.clone(), None));
+    };
+    let seed = match arguments.get("seed") {
+        None => None,
+        Some(value) => Some(
+            value
+                .as_i64()
+                .and_then(|seed| i32::try_from(seed).ok())
+                .ok_or("apply_layout seed must be a signed 32-bit integer")?,
+        ),
+    };
+    for key in arguments.as_object().map(|fields| fields.keys()).into_iter().flatten() {
+        if !matches!(key.as_str(), "layout" | "seed") {
+            return Err(format!("apply_layout accepts only layout and seed, got {key}"));
+        }
+    }
+    Ok((wrapped.clone(), seed))
 }
 
 /// Read an optional boolean field, refusing anything that is not a boolean.
