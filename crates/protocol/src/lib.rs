@@ -80,6 +80,27 @@ impl Hello {
     }
 }
 
+/// Greeting sent when the endpoint is already serving another client.
+///
+/// The accept loop serves one client at a time, so a second connection would
+/// otherwise wait in the backlog and be indistinguishable from an unresponsive
+/// adapter. Answering explicitly keeps occupancy a protocol fact.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Busy {
+    pub kind: String,
+    pub protocol: String,
+}
+
+impl Busy {
+    #[must_use]
+    pub fn current() -> Self {
+        Self {
+            kind: "busy".into(),
+            protocol: PROTOCOL.into(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {

@@ -13,6 +13,37 @@ pub struct Client {
     next_id: u64,
 }
 
+/// Why an endpoint could not be turned into a live client.
+///
+/// The variants map onto the states in `docs/session.md`; callers must keep
+/// `Busy` and `Unresponsive` distinct, because only the latter indicates a
+/// wedged adapter.
+pub enum ConnectError {
+    /// No listener: the endpoint is absent or stale.
+    Unavailable(String),
+    /// The adapter is already serving another client.
+    Busy,
+    /// Connected, but no greeting arrived.
+    Unresponsive(String),
+    /// Greeting arrived but did not match this build's contract.
+    Protocol(String),
+}
+
+impl std::fmt::Display for ConnectError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unavailable(message) => {
+                write!(formatter, "cannot connect to adapter: {message}")
+            }
+            Self::Busy => formatter.write_str("adapter is already serving another client"),
+            Self::Unresponsive(message) => {
+                write!(formatter, "adapter sent no greeting: {message}")
+            }
+            Self::Protocol(message) => formatter.write_str(message),
+        }
+    }
+}
+
 pub struct RequestError {
     message: String,
     fatal: bool,
@@ -45,35 +76,44 @@ impl std::fmt::Display for RequestError {
 }
 
 impl Client {
-    pub async fn connect(path: &Path) -> Result<Self, String> {
+    pub async fn connect(path: &Path) -> Result<Self, ConnectError> {
         let stream = UnixStream::connect(path)
             .await
-            .map_err(|error| format!("cannot connect to adapter: {error}"))?;
+            .map_err(|error| ConnectError::Unavailable(error.to_string()))?;
         let (reader, writer) = stream.into_split();
         let mut client = Self {
             reader: BufReader::new(reader),
             writer,
             next_id: 1,
         };
-        let hello: Hello = client.read_line().await?;
+        let greeting: Value = client
+            .read_line()
+            .await
+            .map_err(ConnectError::Unresponsive)?;
+        let kind = greeting.get("kind").and_then(Value::as_str).unwrap_or("");
+        if kind == "busy" {
+            return Err(ConnectError::Busy);
+        }
+        let hello: Hello = serde_json::from_value(greeting)
+            .map_err(|error| ConnectError::Protocol(format!("cannot decode greeting: {error}")))?;
         if hello.kind != "hello" {
-            return Err(format!(
-                "adapter sent unexpected hello kind {:?}",
+            return Err(ConnectError::Protocol(format!(
+                "adapter sent unexpected greeting kind {:?}",
                 hello.kind
-            ));
+            )));
         }
         if hello.protocol != PROTOCOL {
-            return Err(format!(
+            return Err(ConnectError::Protocol(format!(
                 "adapter protocol mismatch: expected {PROTOCOL}, got {}",
                 hello.protocol
-            ));
+            )));
         }
         if hello.capabilities != Operation::ALL {
-            return Err(format!(
+            return Err(ConnectError::Protocol(format!(
                 "adapter capability mismatch: expected {:?}, got {:?}",
                 Operation::ALL,
                 hello.capabilities
-            ));
+            )));
         }
         Ok(client)
     }

@@ -2,7 +2,7 @@ use crate::capture::{self, CaptureMessage};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
-use mechcore_protocol::{Hello, MAX_ACTIVATION_ROUND, Operation, Request, Response};
+use mechcore_protocol::{Busy, Hello, MAX_ACTIVATION_ROUND, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::Value;
 use std::env;
@@ -13,6 +13,8 @@ use std::os::fd::AsRawFd;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -401,18 +403,57 @@ fn run() -> Result<(), RuntimeError> {
     let listener = bind_listener(&endpoint)?;
     let _cleanup = SocketCleanup(endpoint);
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                if let Err(error) = serve_client(&mut runtime, stream) {
-                    eprintln!("mechcore-adapter: client disconnected: {error}");
-                }
-            }
-            Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
-            Err(error) => return Err(error.into()),
+    let serving = Arc::new(AtomicBool::new(false));
+    let (sender, receiver) = mpsc::sync_channel::<UnixStream>(0);
+    thread::spawn({
+        let serving = Arc::clone(&serving);
+        move || greet_clients(&listener, &serving, &sender)
+    });
+
+    for stream in receiver {
+        let result = serve_client(&mut runtime, stream);
+        serving.store(false, Ordering::SeqCst);
+        if let Err(error) = result {
+            eprintln!("mechcore-adapter: client disconnected: {error}");
         }
     }
     Ok(())
+}
+
+/// Accepts connections and hands the single serving slot to the worker loop.
+///
+/// The worker serves one client at a time, so a connection arriving while the
+/// slot is taken would otherwise wait in the backlog and look identical to an
+/// unresponsive adapter. Answering `busy` here keeps occupancy a protocol fact.
+fn greet_clients(
+    listener: &UnixListener,
+    serving: &AtomicBool,
+    sender: &mpsc::SyncSender<UnixStream>,
+) {
+    for stream in listener.incoming() {
+        let mut stream = match stream {
+            Ok(stream) => stream,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => {
+                eprintln!("mechcore-adapter: accept failed: {error}");
+                return;
+            }
+        };
+        if let Err(error) = verify_peer(&stream) {
+            eprintln!("mechcore-adapter: rejected peer: {error}");
+            continue;
+        }
+        if serving.swap(true, Ordering::SeqCst) {
+            if let Err(error) = write_json_line(&mut stream, &Busy::current()) {
+                eprintln!("mechcore-adapter: cannot answer busy: {error}");
+            }
+            continue;
+        }
+        if sender.send(stream).is_err() {
+            serving.store(false, Ordering::SeqCst);
+            return;
+        }
+    }
 }
 
 fn socket_path() -> Result<PathBuf, RuntimeError> {
@@ -1424,5 +1465,55 @@ mod tests {
         drop(client);
         drop(listener);
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn second_client_is_answered_busy_while_the_slot_is_taken() {
+        let path = PathBuf::from(format!(
+            "/tmp/mechcore-adapter-busy-{}.sock",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&path);
+        let listener = bind_listener(&path).unwrap();
+        let serving = Arc::new(AtomicBool::new(false));
+        let (sender, receiver) = mpsc::sync_channel::<UnixStream>(0);
+        let greeter = thread::spawn({
+            let serving = Arc::clone(&serving);
+            move || greet_clients(&listener, &serving, &sender)
+        });
+
+        // The first client takes the single serving slot and holds it.
+        let first = UnixStream::connect(&path).unwrap();
+        let held = receiver.recv().unwrap();
+        assert!(serving.load(Ordering::SeqCst));
+
+        // A second client must be told so, not left waiting in the backlog.
+        let second = UnixStream::connect(&path).unwrap();
+        let mut line = String::new();
+        BufReader::new(&second).read_line(&mut line).unwrap();
+        let greeting: Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(greeting["kind"], "busy");
+        assert_eq!(greeting["protocol"], mechcore_protocol::PROTOCOL);
+
+        // Releasing the slot lets the next client be served normally.
+        drop(held);
+        serving.store(false, Ordering::SeqCst);
+        let third = UnixStream::connect(&path).unwrap();
+        let served = receiver.recv().unwrap();
+        assert!(serving.load(Ordering::SeqCst));
+
+        drop(first);
+        drop(second);
+        drop(third);
+        drop(served);
+
+        // Free the slot, close the channel, then knock once: the greeter
+        // observes the dropped receiver on its next send and returns. Without
+        // the knock it would stay blocked in accept forever.
+        serving.store(false, Ordering::SeqCst);
+        drop(receiver);
+        let _ = UnixStream::connect(&path);
+        let _ = greeter.join();
+        let _ = fs::remove_file(path);
     }
 }
