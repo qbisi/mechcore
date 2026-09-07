@@ -19,47 +19,39 @@ sides:
     formations:
       - type: arclight
         index: 0
-        x: 100
-        y: -80
+        position: {x: 100, y: -80}
 
       - type: sabertooth
         index: 1
-        x: -205
-        y: -295
+        position: {x: -205, y: -295}
         equipment: 1305003
 
       - type: crawler
         index: 2
-        x: 310
-        y: 285
+        position: {x: 310, y: 285}
         travelling: true
 
       # Declared after Arclight at the same y to distinguish native z/x order
       # from YAML declaration order in the formation_id audit.
       - type: mustang
         index: 3
-        x: -275
-        y: -80
+        position: {x: -275, y: -80}
 
     constructions:
       - type: rapid_fire_turret
         index: 0
-        x: 140
-        y: -140
+        position: {x: 140, y: -140}
 
     contraptions:
       - type: shield
         index: 0
-        x: 180
-        y: -120
+        position: {x: 180, y: -120}
       - type: missile
         index: 1
-        x: 0
-        y: -20
+        position: {x: 0, y: -20}
       - type: interceptor
         index: 2
-        x: -105
-        y: -105
+        position: {x: -105, y: -105}
 
     battle_skills:
       - type: sticky_oil_bomb
@@ -71,11 +63,9 @@ sides:
     formations:
       - type: steel_ball
         index: 0
-        x: -205
-        y: -100
+        position: {x: -205, y: -100}
 
     constructions:
       - type: anti_armor_turret
         index: 0
-        x: 140
-        y: -140
+        position: {x: 140, y: -140}

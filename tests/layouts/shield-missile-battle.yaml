@@ -5,30 +5,24 @@ sides:
     formations:
       - type: stormcaller
         index: 0
-        x: 5
-        y: -40
+        position: {x: 5, y: -40}
     contraptions:
       - type: shield
         index: 0
-        x: 1
-        y: -81
+        position: {x: 1, y: -81}
       - type: missile
         index: 1
-        x: 1
-        y: -11
+        position: {x: 1, y: -11}
 
   red:
     formations:
       - type: stormcaller
         index: 0
-        x: 5
-        y: -40
+        position: {x: 5, y: -40}
     contraptions:
       - type: shield
         index: 0
-        x: 1
-        y: -81
+        position: {x: 1, y: -81}
       - type: missile
         index: 1
-        x: 1
-        y: -11
+        position: {x: 1, y: -11}

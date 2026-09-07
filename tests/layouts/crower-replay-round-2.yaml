@@ -6,8 +6,7 @@ sides:
     formations:
     - type: crawler
       index: 0
-      x: -275
-      y: -40
+      position: {x: -275, y: -40}
     airdrop_shields:
     - x: -285
       y: -22
@@ -15,6 +14,5 @@ sides:
     formations:
     - type: arclight
       index: 0
-      x: 220
-      y: -110
+      position: {x: 220, y: -110}
       exp: 192

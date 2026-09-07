@@ -11,14 +11,12 @@ sides:
     constructions:
       - type: rapid_fire_turret
         index: 0
-        x: 140
-        y: -140
+        position: {x: 140, y: -140}
 
     formations:
       - type: sabertooth
         index: 0
-        x: -205
-        y: -295
+        position: {x: -205, y: -295}
         equipment: 1305003
 
   red:
@@ -28,10 +26,8 @@ sides:
     formations:
       - type: marksman
         index: 0
-        x: 200
-        y: -100
+        position: {x: 200, y: -100}
 
       - type: steel_ball
         index: 1
-        x: -205
-        y: -100
+        position: {x: -205, y: -100}

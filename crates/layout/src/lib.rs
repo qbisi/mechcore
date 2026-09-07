@@ -98,8 +98,7 @@ pub struct Formation {
     #[serde(rename = "type")]
     pub type_name: String,
     pub index: i32,
-    pub x: i32,
-    pub y: i32,
+    pub position: Position,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -118,8 +117,7 @@ pub struct StaticPlacement {
     #[serde(rename = "type")]
     pub type_name: String,
     pub index: i32,
-    pub x: i32,
-    pub y: i32,
+    pub position: Position,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -128,8 +126,7 @@ pub struct ContraptionPlacement {
     #[serde(rename = "type")]
     pub type_name: String,
     pub index: i32,
-    pub x: i32,
-    pub y: i32,
+    pub position: Position,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -153,7 +150,7 @@ pub enum TerrainType {
 pub struct Terrain {
     #[serde(rename = "type")]
     pub terrain_type: TerrainType,
-    pub positions: Vec<Position>,
+    pub control_points: Vec<Position>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub grid_rows: BTreeMap<u32, Vec<u32>>,
 }
@@ -322,7 +319,7 @@ impl Layout {
                 (
                     terrain.terrain_type,
                     terrain
-                        .positions
+                        .control_points
                         .iter()
                         .map(|position| (position.x, position.y))
                         .collect::<Vec<_>>(),
@@ -444,7 +441,56 @@ pub fn canonical_yaml(layout: Layout) -> Result<String, String> {
 pub fn canonical_embedded_yaml(layout: Layout) -> Result<String, String> {
     validate_embedded_categories(&layout)?;
     let layout = layout.normalized();
-    serde_yaml::to_string(&layout).map_err(|error| format!("cannot serialize layout YAML: {error}"))
+    let yaml = serde_yaml::to_string(&layout)
+        .map_err(|error| format!("cannot serialize layout YAML: {error}"))?;
+    Ok(collapse_placement_positions(&yaml))
+}
+
+/// Rewrites each placement's block-style `position` map onto one line.
+///
+/// A placement's coordinate pair is one value, so spending three lines on it
+/// buries the fields that distinguish one placement from another. `serde_yaml`
+/// has no per-field flow style, so the emitted document is folded afterwards.
+/// Only the `position` key is folded: it always holds exactly `x` and `y`, so
+/// the fold is total, whereas the lists of bare positions vary in length.
+fn collapse_placement_positions(yaml: &str) -> String {
+    let lines: Vec<&str> = yaml.lines().collect();
+    let mut out = String::with_capacity(yaml.len());
+    let mut index = 0;
+    while index < lines.len() {
+        let line = lines[index];
+        if let Some(indent) = line
+            .strip_suffix("position:")
+            .filter(|indent| indent.chars().all(|character| character == ' ') && !indent.is_empty())
+        {
+            let field = |offset: usize, name: &str| {
+                lines
+                    .get(index + offset)
+                    .and_then(|line| line.strip_prefix(indent))
+                    .and_then(|line| line.strip_prefix("  "))
+                    .and_then(|line| line.strip_prefix(name))
+                    .filter(|value| {
+                        value
+                            .strip_prefix('-')
+                            .unwrap_or(value)
+                            .chars()
+                            .all(|character| character.is_ascii_digit())
+                            && !value.is_empty()
+                    })
+            };
+            if let (Some(x), Some(y)) = (field(1, "x: "), field(2, "y: ")) {
+                use std::fmt::Write as _;
+                writeln!(out, "{indent}position: {{x: {x}, y: {y}}}")
+                    .expect("writing to a String cannot fail");
+                index += 3;
+                continue;
+            }
+        }
+        out.push_str(line);
+        out.push('\n');
+        index += 1;
+    }
+    out
 }
 
 /// Deserializes, validates, and normalizes a JSON layout into an execution plan.
@@ -541,15 +587,13 @@ fn compile_formations(
             let Formation {
                 type_name,
                 index,
-                x,
-                y,
+                position,
                 level,
                 exp,
                 rotated,
                 equipment,
                 travelling,
             } = formation;
-            let position = Position { x, y };
             let spec = resolve_unit_type(&type_name).ok_or_else(|| {
                 if resolve_construction_type(&type_name).is_some() {
                     return format!(
@@ -662,10 +706,8 @@ fn compile_constructions(
             let StaticPlacement {
                 type_name,
                 index,
-                x,
-                y,
+                position,
             } = definition;
-            let position = Position { x, y };
             let spec = resolve_construction_type(&type_name).ok_or_else(|| {
                 format!(
                     "side {side_name} construction type {type_name:?} at ({}, {}) is unknown",
@@ -702,10 +744,8 @@ fn compile_contraptions(
             let ContraptionPlacement {
                 type_name,
                 index,
-                x,
-                y,
+                position,
             } = definition;
-            let position = Position { x, y };
             let spec = resolve_contraption_type(&type_name).ok_or_else(|| {
                 format!(
                     "side {side_name} contraption type {type_name:?} at ({}, {}) is unknown",
@@ -760,35 +800,35 @@ fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terra
         let type_name = match terrain.terrain_type {
             TerrainType::Oil => "oil",
         };
-        if terrain.positions.len() != 2 {
+        if terrain.control_points.len() != 2 {
             return Err(format!(
-                "side {side_name} terrain[{terrain_index}] type {type_name:?} positions must contain exactly two control points"
+                "side {side_name} terrain[{terrain_index}] type {type_name:?} control_points must contain exactly two points"
             ));
         }
         let min_x = terrain
-            .positions
+            .control_points
             .iter()
             .map(|position| i64::from(position.x))
             .min()
-            .expect("two positions");
+            .expect("two control points");
         let max_x = terrain
-            .positions
+            .control_points
             .iter()
             .map(|position| i64::from(position.x))
             .max()
-            .expect("two positions");
+            .expect("two control points");
         let min_y = terrain
-            .positions
+            .control_points
             .iter()
             .map(|position| i64::from(position.y))
             .min()
-            .expect("two positions");
+            .expect("two control points");
         let max_y = terrain
-            .positions
+            .control_points
             .iter()
             .map(|position| i64::from(position.y))
             .max()
-            .expect("two positions");
+            .expect("two control points");
         if max_x + OIL_TERRAIN_RADIUS < BATTLEFIELD_MIN_X
             || min_x - OIL_TERRAIN_RADIUS > BATTLEFIELD_MAX_X
             || max_y + OIL_TERRAIN_RADIUS < BATTLEFIELD_MIN_Y
@@ -1727,11 +1767,11 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{"type": type_name, "positions": positions}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         })
@@ -1742,11 +1782,11 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}],
                     "terrains": terrains
                 },
                 "red": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         })
@@ -1756,8 +1796,8 @@ mod tests {
     fn requires_a_positive_round() {
         let missing = compile(&json!({
             "sides": {
-                "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -1766,8 +1806,8 @@ mod tests {
         let invalid = compile(&json!({
             "round": 0,
             "sides": {
-                "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -1779,8 +1819,8 @@ mod tests {
             compile(&json!({
                 "round": 40,
                 "sides": {
-                    "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
-                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                    "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
+                    "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             }))
             .unwrap()
@@ -1797,21 +1837,21 @@ mod tests {
                 "blue": {
                     "techs": {"officers": [20039, 10014], "units": [10202, 10101]},
                     "formations": [
-                        {"index": 4, "type": "marksman", "x": 40, "y": -50, "level": 1},
-                        {"index": 1, "type": "marksman", "x": 0, "y": -50,
+                        {"index": 4, "type": "marksman", "position": {"x": 40, "y": -50}, "level": 1},
+                        {"index": 1, "type": "marksman", "position": {"x": 0, "y": -50},
                          "exp": 0, "rotated": false, "travelling": false}
                     ],
                     "contraptions": [
-                        {"index": 3, "type": "shield", "x": 0, "y": -120},
-                        {"index": 2, "type": "shield", "x": 100, "y": -120}
+                        {"index": 3, "type": "shield", "position": {"x": 0, "y": -120}},
+                        {"index": 2, "type": "shield", "position": {"x": 100, "y": -120}}
                     ],
                     "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}],
                     "terrains": [
-                        {"type": "oil", "positions": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]},
-                        {"type": "oil", "positions": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
+                        {"type": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]},
+                        {"type": "oil", "control_points": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
                     ]
                 },
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
@@ -1846,7 +1886,7 @@ mod tests {
                 .blue
                 .terrains
                 .iter()
-                .map(|terrain| terrain.positions[0].x)
+                .map(|terrain| terrain.control_points[0].x)
                 .collect::<Vec<_>>(),
             [-100, 100]
         );
@@ -1893,8 +1933,8 @@ mod tests {
     #[test]
     fn map_id_is_optional_positive_and_preserved() {
         let mut value = json!({"round": 1, "sides": {
-            "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
-            "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+            "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
+            "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
         }});
         assert_eq!(compile(&value).unwrap().map_id, None);
         for id in [1001, 1021] {
@@ -1922,8 +1962,8 @@ mod tests {
             let mut value = json!({
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
-                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                    "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
+                    "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             });
             if let Some(seed) = seed {
@@ -1944,8 +1984,8 @@ mod tests {
     #[test]
     fn compiles_and_counts_valid_oil_terrain_state() {
         let plan = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]},
-            {"type": "oil", "positions": [{"x": -60, "y": 40}, {"x": 60, "y": 40}], "grid_rows": {"0": [], "1": vec![0x0fff_u32; 12]}}
+            {"type": "oil", "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]},
+            {"type": "oil", "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}], "grid_rows": {"0": [], "1": vec![0x0fff_u32; 12]}}
         ])))
         .unwrap();
 
@@ -1960,43 +2000,43 @@ mod tests {
     #[test]
     fn terrain_fields_and_grid_shape_are_fail_closed() {
         let unknown = compile(&layout_with_blue_terrains(json!([
-            {"type": "fire", "positions": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
+            {"type": "fire", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(unknown.contains("unknown variant `fire`, expected `oil`"));
 
         let outside = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": 431, "y": 0}, {"x": 500, "y": 0}]}
+            {"type": "oil", "control_points": [{"x": 431, "y": 0}, {"x": 500, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(outside.contains("does not overlap the battlefield"));
 
         let wrong_count = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": 0, "y": 0}]}
+            {"type": "oil", "control_points": [{"x": 0, "y": 0}]}
         ])))
         .unwrap_err();
-        assert!(wrong_count.contains("exactly two control points"));
+        assert!(wrong_count.contains("control_points must contain exactly two points"));
 
         let wrong_height = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![1_u32; 11]}}
+            {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![1_u32; 11]}}
         ])))
         .unwrap_err();
         assert!(wrong_height.contains("exactly 12 rows"));
 
         let outside_width = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0x1000_u32; 12]}}
+            {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0x1000_u32; 12]}}
         ])))
         .unwrap_err();
         assert!(outside_width.contains("uses bits outside width 12"));
 
         let empty_grid = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0_u32; 12]}}
+            {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0_u32; 12]}}
         ])))
         .unwrap_err();
         assert!(empty_grid.contains("must activate at least one cell"));
 
         let outside_index = compile(&layout_with_blue_terrains(json!([
-            {"type": "oil", "positions": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"7": []}}
+            {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"7": []}}
         ])))
         .unwrap_err();
         assert!(outside_index.contains("point index 7 must be within 0..6"));
@@ -2010,10 +2050,10 @@ round: 1
 sides:
   blue:
     formations:
-      - {type: defensive_wall, index: 0, x: 140, y: -105}
+      - {type: defensive_wall, index: 0, position: {x: 140, y: -105}}
   red:
     formations:
-      - {type: marksman, index: 0, x: 0, y: -50}
+      - {type: marksman, index: 0, position: {x: 0, y: -50}}
 "#,
         )
         .unwrap_err();
@@ -2029,13 +2069,13 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {"index": 0, "type": "marksman", "x": 0, "y": -50},
-                    {"index": 1, "type": "marksman", "x": -310, "y": 20},
-                    {"index": 2, "type": "arclight", "x": 310, "y": 20, "travelling": true}
+                    {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}},
+                    {"index": 1, "type": "marksman", "position": {"x": -310, "y": 20}},
+                    {"index": 2, "type": "arclight", "position": {"x": 310, "y": 20}, "travelling": true}
                 ], "contraptions": [
-                    {"index": 0, "type": "interceptor", "x": 5, "y": -85}
+                    {"index": 0, "type": "interceptor", "position": {"x": 5, "y": -85}}
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
@@ -2060,9 +2100,9 @@ sides:
                 "round": round,
                 "sides": {
                     "blue": {"formations": [
-                        {"index": 0, "type": "marksman", "x": -310, "y": 20, "travelling": travelling}
+                        {"index": 0, "type": "marksman", "position": {"x": -310, "y": 20}, "travelling": travelling}
                     ]},
-                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                    "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             })
         };
@@ -2085,8 +2125,8 @@ sides:
         let omitted = compile(&json!({
             "round": 2,
             "sides": {
-                "blue": {"formations": [{"index": 0, "type": "marksman", "x": -310, "y": 20}]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": -310, "y": 20}}]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -2113,9 +2153,9 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {"index": 0, "type": "marksman", "x": 0, "y": -50, "travelling": true}
+                    {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}, "travelling": true}
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -2128,9 +2168,9 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {"index": 0, "type": "marksman", "x": -300, "y": 20, "travelling": true}
+                    {"index": 0, "type": "marksman", "position": {"x": -300, "y": 20}, "travelling": true}
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -2144,11 +2184,11 @@ sides:
             "sides": {
                 "blue": {"formations": [
                     {"index": 0,
-                        "type": "crawler", "x": 325, "y": 60,
+                        "type": "crawler", "position": {"x": 325, "y": 60},
                         "rotated": true, "travelling": true
                     }
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
@@ -2162,11 +2202,11 @@ sides:
             "sides": {
                 "blue": {"formations": [
                     {"index": 0,
-                        "type": "crawler", "x": 310, "y": 65,
+                        "type": "crawler", "position": {"x": 310, "y": 65},
                         "rotated": true, "travelling": true
                     }
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -2180,11 +2220,11 @@ sides:
             "sides": {
                 "blue": {"formations": [{"index": 0,
                     "type": "marksman",
-                    "x": -20, "y": -50
+                    "position": {"x": -20, "y": -50}
                 }]},
                 "red": {"formations": [{"index": 0,
                     "type": "marksman",
-                    "x": 20, "y": -180
+                    "position": {"x": 20, "y": -180}
                 }]}
             }
         }))
@@ -2207,10 +2247,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "index": 0, "x": -20, "y": -50, "exp": 7},
-                    {"type": "marksman", "index": 2, "x": 20, "y": -50}
+                    {"type": "marksman", "index": 0, "position": {"x": -20, "y": -50}, "exp": 7},
+                    {"type": "marksman", "index": 2, "position": {"x": 20, "y": -50}}
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -180}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap();
@@ -2224,10 +2264,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "index": 1, "x": -20, "y": -50},
-                    {"type": "marksman", "index": 1, "x": 20, "y": -50}
+                    {"type": "marksman", "index": 1, "position": {"x": -20, "y": -50}},
+                    {"type": "marksman", "index": 1, "position": {"x": 20, "y": -50}}
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -180}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap_err();
@@ -2237,9 +2277,9 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [
-                    {"index": 0, "type": "marksman", "x": 0, "y": -50, "exp": -1}
+                    {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}, "exp": -1}
                 ]},
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -180}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap_err();
@@ -2252,11 +2292,11 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50,
+                    "type": "marksman", "position": {"x": 0, "y": -50},
                     "equipment": 13_030_001
                 }]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2272,12 +2312,12 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 100, "y": -50}],
-                    "constructions": [{"index": 0, "type": "defensive_wall", "x": 0, "y": -55,
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 100, "y": -50}}],
+                    "constructions": [{"index": 0, "type": "defensive_wall", "position": {"x": 0, "y": -55},
                      "equipment": 13_030_001}]
                 },
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2292,10 +2332,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50, "equipment": 0
+                    "type": "marksman", "position": {"x": 0, "y": -50}, "equipment": 0
                 }]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2314,10 +2354,10 @@ sides:
             "sides": {
                 "blue": {
                     "techs": {"officers": [30602], "units": [10202]},
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         }))
@@ -2329,10 +2369,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"techs": {"units": [10202, 10202]}, "formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2343,10 +2383,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"techs": {"officers": [0]}, "formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2364,10 +2404,10 @@ sides:
             "sides": {
                 "blue": {
                     "research_center": {"attack_level": 3},
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         }))
@@ -2382,10 +2422,10 @@ sides:
             "sides": {
                 "blue": {"formations": [{"index": 0,
                     "type": "defensive_wall",
-                    "x": 0, "y": -55
+                    "position": {"x": 0, "y": -55}
                 }]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2403,7 +2443,7 @@ sides:
             "sides": {
                 "blue": {},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2415,7 +2455,7 @@ sides:
             "sides": {
                 "blue": {"formations": []},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2430,11 +2470,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {"formations": [
-                        {"index": 0, "type": "marksman", "x": 0, "y": -50},
-                        {"index": 1, "type": "arclight", "x": second_x, "y": -50}
+                        {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}},
+                        {"index": 1, "type": "arclight", "position": {"x": second_x, "y": -50}}
                     ]},
                     "red": {"formations": [{"index": 0,
-                        "type": "marksman", "x": 0, "y": -50
+                        "type": "marksman", "position": {"x": 0, "y": -50}
                     }]}
                 }
             })
@@ -2489,10 +2529,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 5, "y": -50
+                    "type": "marksman", "position": {"x": 5, "y": -50}
                 }]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2624,11 +2664,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -100}],
-                        "contraptions": [{"index": 0, "type": "interceptor", "x": 5, "y": interceptor_y}]
+                        "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -100}}],
+                        "contraptions": [{"index": 0, "type": "interceptor", "position": {"x": 5, "y": interceptor_y}}]
                     },
                     "red": {"formations": [{"index": 0,
-                        "type": "marksman", "x": 0, "y": -50
+                        "type": "marksman", "position": {"x": 0, "y": -50}
                     }]}
                 }
             })
@@ -2655,13 +2695,13 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -100}],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -100}}],
                     "contraptions": [
-                    {"index": 0, "type": "shield", "x": 1, "y": -101},
-                    {"index": 1, "type": "missile", "x": 1, "y": -101}
+                    {"index": 0, "type": "shield", "position": {"x": 1, "y": -101}},
+                    {"index": 1, "type": "missile", "position": {"x": 1, "y": -101}}
                 ]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -100
+                    "type": "marksman", "position": {"x": 0, "y": -100}
                 }]}
             }
         }))
@@ -2685,10 +2725,10 @@ sides:
     #[test]
     fn retained_airdrop_shields_are_their_own_collection() {
         let mut value = json!({"round": 2, "sides": {
-            "blue": {"formations": [{"index": 0, "type":"marksman","x":0,"y":-150}],
-                "contraptions": [{"index": 0, "type":"shield","x":0,"y":-120}],
+            "blue": {"formations": [{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}],
+                "contraptions": [{"index": 0, "type":"shield","position": {"x": 0, "y": -120}}],
                 "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
-            "red": {"formations": [{"index": 0, "type":"marksman","x":0,"y":-150}]}}});
+            "red": {"formations": [{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}]}}});
         let plan = compile(&value).unwrap();
         assert_eq!(plan.blue.contraptions.len(), 1);
         assert_eq!(plan.airdrop_shield_count(), 2);
@@ -2711,9 +2751,9 @@ sides:
     fn contraptions_reject_the_retired_isairdrop_field() {
         for kind in ["shield", "missile", "interceptor"] {
             let value = json!({"round":1,"sides":{
-                "blue":{"formations":[{"index": 0, "type":"marksman","x":0,"y":-150}],
-                    "contraptions":[{"index": 0, "type":kind,"x":5,"y":-95,"isairdrop":false}]},
-                "red":{"formations":[{"index": 0, "type":"marksman","x":0,"y":-150}]}}});
+                "blue":{"formations":[{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}],
+                    "contraptions":[{"index": 0, "type":kind,"position": {"x": 5, "y": -95},"isairdrop":false}]},
+                "red":{"formations":[{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}]}}});
             assert!(compile(&value).unwrap_err().contains("unknown field"));
         }
     }
@@ -2725,11 +2765,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
-                        "contraptions": [{"index": 0, "type": "shield", "x": x, "y": y}]
+                        "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -150}}],
+                        "contraptions": [{"index": 0, "type": "shield", "position": {"x": x, "y": y}}]
                     },
                     "red": {"formations": [{"index": 0,
-                        "type": "marksman", "x": 0, "y": -150
+                        "type": "marksman", "position": {"x": 0, "y": -150}
                     }]}
                 }
             })
@@ -2751,11 +2791,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
-                        "contraptions": [{"index": 0, "type": "missile", "x": x, "y": y}]
+                        "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -150}}],
+                        "contraptions": [{"index": 0, "type": "missile", "position": {"x": x, "y": y}}]
                     },
                     "red": {"formations": [{"index": 0,
-                        "type": "marksman", "x": 0, "y": -150
+                        "type": "marksman", "position": {"x": 0, "y": -150}
                     }]}
                 }
             })
@@ -2776,15 +2816,15 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -150}}],
                     "constructions": [
-                    {"index": 0, "type": "rapid_fire_turret", "x": 140, "y": -60},
-                    {"index": 1, "type": "defensive_wall", "x": 140, "y": -105},
-                    {"index": 2, "type": "anti_armor_turret", "x": -140, "y": -60},
-                    {"index": 3, "type": "magnetic_barrier", "x": -165, "y": -105}
+                    {"index": 0, "type": "rapid_fire_turret", "position": {"x": 140, "y": -60}},
+                    {"index": 1, "type": "defensive_wall", "position": {"x": 140, "y": -105}},
+                    {"index": 2, "type": "anti_armor_turret", "position": {"x": -140, "y": -60}},
+                    {"index": 3, "type": "magnetic_barrier", "position": {"x": -165, "y": -105}}
                 ]},
                 "red": {"formations": [{"index": 0,
-                    "type": "marksman", "x": 0, "y": -50
+                    "type": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
@@ -2822,18 +2862,16 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
+                        "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -150}}],
                         "constructions": constructions,
                         "contraptions": contraptions
                     },
-                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                    "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             })
         };
-        let wall =
-            |index: i32| json!({"index": index, "type": "defensive_wall", "x": 140, "y": -105});
-        let shield =
-            |index: i32, x: i32| json!({"index": index, "type": "shield", "x": x, "y": -95});
+        let wall = |index: i32| json!({"index": index, "type": "defensive_wall", "position": {"x": 140, "y": -105}});
+        let shield = |index: i32, x: i32| json!({"index": index, "type": "shield", "position": {"x": x, "y": -95}});
 
         let plan = compile(&layout(
             json!([wall(7)]),
@@ -2857,7 +2895,7 @@ sides:
         let encoded = serde_json::to_value(definition).unwrap();
         assert_eq!(encoded["sides"]["blue"]["constructions"][0]["index"], 7);
 
-        let missing = json!({"type": "defensive_wall", "x": 140, "y": -105});
+        let missing = json!({"type": "defensive_wall", "position": {"x": 140, "y": -105}});
         assert!(
             compile(&layout(json!([missing]), json!([])))
                 .unwrap_err()
@@ -2881,14 +2919,14 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
                         "type": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"index": 0, "type": "fang", "x": -55, "y": -60}],
+                    "formations": [{"index": 0, "type": "fang", "position": {"x": -55, "y": -60}}],
                     "battle_skills": [{
                         "type": "mobile_beacon",
                         "positions": [
@@ -3069,10 +3107,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
                         "type": "rhino_assault",
                         "positions": [{"x": -300, "y": 170}]
@@ -3107,11 +3145,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
+                        "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}],
                         "battle_skills": battle_skills
                     },
                     "red": {
-                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
+                        "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                     }
                 }
             })

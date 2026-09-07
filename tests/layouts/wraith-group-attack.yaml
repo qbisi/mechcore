@@ -5,32 +5,26 @@ sides:
     formations:
       - type: wraith
         index: 0
-        x: -5
-        y: -95
+        position: {x: -5, y: -95}
       - type: crawler
         index: 1
         rotated: true
-        x: 0
-        y: -135
+        position: {x: 0, y: -135}
       - type: steel_ball
         index: 2
         rotated: true
-        x: 20
-        y: -135
+        position: {x: 20, y: -135}
 
   red:
     formations:
       - type: wraith
         index: 0
-        x: -5
-        y: -95
+        position: {x: -5, y: -95}
       - type: crawler
         index: 1
         rotated: true
-        x: 0
-        y: -135
+        position: {x: 0, y: -135}
       - type: steel_ball
         index: 2
         rotated: true
-        x: 20
-        y: -135
+        position: {x: 20, y: -135}

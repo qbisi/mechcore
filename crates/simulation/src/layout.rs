@@ -191,9 +191,9 @@ mod tests {
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, x: 0, y: -50}]
+    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
-    formations: [{type: arclight, index: 0, x: 0, y: -50}]
+    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
 ";
 
     fn compile_default(value: &str) -> Result<CompiledLayout> {
@@ -215,8 +215,8 @@ sides:
     #[test]
     fn formation_index_preserves_native_declaration_order_before_seeded_generation() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]",
-            "formations:\n      - {type: arclight, index: 0, x: 20, y: -100}\n      - {type: rhino, index: 1, x: -15, y: -105}",
+            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "formations:\n      - {type: arclight, index: 0, position: {x: 20, y: -100}}\n      - {type: rhino, index: 1, position: {x: -15, y: -105}}",
         );
         let layout = compile_default(&value).unwrap();
         assert_eq!(layout.placements.len(), 3);
@@ -236,8 +236,8 @@ sides:
     #[test]
     fn rejects_features_not_owned_by_this_slice() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]",
-            "techs: {units: [10202]}\n    formations: [{type: marksman, index: 0, x: 0, y: -50}]",
+            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "techs: {units: [10202]}\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
         );
         assert!(compile_default(&value).is_err());
     }
@@ -245,8 +245,8 @@ sides:
     #[test]
     fn rejects_constructions_outside_the_baseline_slice() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]",
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]\n    constructions: [{type: defensive_wall, index: 0, x: 140, y: -105}]",
+            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n    constructions: [{type: defensive_wall, index: 0, position: {x: 140, y: -105}}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
@@ -257,8 +257,8 @@ sides:
     #[test]
     fn rejects_persistent_terrains_outside_simulator_closure() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]",
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]\n    terrains: [{type: oil, positions: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
+            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n    terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
@@ -269,8 +269,8 @@ sides:
     #[test]
     fn compiles_multi_member_formations_as_one_deployment_placement() {
         let value = LAYOUT.replace(
-            "{type: marksman, index: 0, x: 0, y: -50}",
-            "{type: crawler, index: 0, x: 5, y: -50}",
+            "{type: marksman, index: 0, position: {x: 0, y: -50}}",
+            "{type: crawler, index: 0, position: {x: 5, y: -50}}",
         );
         let layout = compile_default(&value).unwrap();
         assert_eq!(layout.placements.len(), 2);
@@ -280,8 +280,8 @@ sides:
     #[test]
     fn rotated_formation_swaps_config_footprint_without_rotating_unit_facing() {
         let value = LAYOUT.replace(
-            "{type: arclight, index: 0, x: 0, y: -50}",
-            "{type: crawler, index: 0, rotated: true, x: 0, y: -105}",
+            "{type: arclight, index: 0, position: {x: 0, y: -50}}",
+            "{type: crawler, index: 0, rotated: true, position: {x: 0, y: -105}}",
         );
         let layout = compile_default(&value).unwrap();
         let red = &layout.placements[1];

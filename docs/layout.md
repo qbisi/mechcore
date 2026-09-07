@@ -54,27 +54,23 @@ sides:
     formations:
       - type: marksman
         index: 0
-        x: 0
-        y: -50
+        position: {x: 0, y: -50}
         equipment: 13030001
 
       - type: arclight
         index: 1
-        x: -310
-        y: 20
+        position: {x: -310, y: 20}
         travelling: true
 
     constructions:
       - type: defensive_wall
         index: 0
-        x: 140
-        y: -105
+        position: {x: 140, y: -105}
 
     contraptions:
       - type: interceptor
         index: 0
-        x: 5
-        y: -95
+        position: {x: 5, y: -95}
 
     airdrop_shields: []
     terrains: []
@@ -101,8 +97,7 @@ sides:
     formations:
       - type: marksman
         index: 0
-        x: 0
-        y: -100
+        position: {x: 0, y: -100}
 
     contraptions: []
     airdrop_shields: []
@@ -138,6 +133,13 @@ admits rather than over the states today's rules can reach.
 so two documents that denote the same state compare equal. Normalizing an
 already-normal document changes nothing. A hand-written layout may still state a
 default explicitly, which is valid and merely not normal.
+
+Every coordinate pair in the schema is one `{x, y}` value rather than two
+sibling fields. `formations`, `constructions` and `contraptions` carry it as
+`position`; `airdrop_shields`, `terrains.control_points` and
+`battle_skills.positions` are lists of the same value. The canonical writer folds
+a placement's `position` onto one line, since spending three lines on one value
+would bury the fields that tell two placements apart.
 
 The `mechcore-layout` crate is the authoritative implementation of this public
 shape, its static legality rules, and normalized execution plan. MCP uses its
@@ -287,7 +289,7 @@ normalized to the Unity world battlefield axis: `layout.x -> world.x` and
 mapping is outside the layout schema and does not rename its fields.
 
 The same transform applies independently to every coordinate in
-`battle_skills.positions` and every `terrains.positions` control point. Terrain `grid_rows` are
+`battle_skills.positions` and every `terrains.control_points` entry. Terrain `grid_rows` are
 also expressed in the owning side's local frame: rows advance along local `+y`
 and low-order bits advance along local `+x`. The native terrain executor
 therefore rotates both row order and bit order for the red side. A
@@ -466,15 +468,15 @@ semantic `type` instead of exposing its native numeric ID:
 ```yaml
 - type: marksman
   index: 0
-  x: 0
-  y: -50
+  position: {x: 0, y: -50}
   exp: 12
 ```
 
 - `type` is the lower `snake_case` form of the unit's English in-game name. It
   selects both the native catalog and the valid unit fields.
-- `x` and `y` are required exact signed coordinates in the owning side's fixed
-  local frame defined above, not native world or screen pixels.
+- `position` is the required `{x, y}` center in the owning side's fixed local
+  frame defined above, not native world or screen pixels. Both are exact signed
+  integers, and the pair is one field because it is one value.
 - `index` is the required stable, non-negative native unit index. Indices must
   be strictly increasing in formation declaration order and may contain gaps.
 - `exp` is the unit formation's non-negative integer experience within its
@@ -600,8 +602,7 @@ following values form the closed public `type` vocabulary for each field:
 ```yaml
 - type: marksman
   index: 0
-  x: 0
-  y: -50
+  position: {x: 0, y: -50}
   exp: 12
   equipment: 13030001
   travelling: false
@@ -638,12 +639,11 @@ ownership readback. Available IDs and effects are listed in the
 constructions:
   - type: defensive_wall
     index: 0
-    x: 140
-    y: -105
+    position: {x: 140, y: -105}
 ```
 
 `constructions` is parallel to `formations` under one side and defaults to
-`[]`. Each entry requires `type`, `index`, `x`, and `y`.
+`[]`. Each entry requires `type`, `index`, and `position`.
 
 `index` is the construction's deployment identity, allocated in release order by
 `ConstructionManager` and stable for as long as the object lives. It is never
@@ -683,18 +683,16 @@ the capture boundary.
 contraptions:
   - type: interceptor
     index: 0
-    x: 5
-    y: -95
+    position: {x: 5, y: -95}
   - type: shield
     index: 3
-    x: 275
-    y: 20
+    position: {x: 275, y: 20}
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
 contraption kind. `contraptions` is parallel to `formations` and
 `constructions` under one side and defaults to `[]`. A contraption entry
-requires `type`, `index`, `x`, and `y`, and none of these types requires an extra
+requires `type`, `index`, and `position`, and none of these types requires an extra
 position.
 
 `index` is the contraption's deployment identity, allocated in release order by
@@ -781,7 +779,7 @@ center. Entry order therefore carries nothing, and canonical layouts sort it:
 ```yaml
 terrains:
   - type: oil
-    positions:
+    control_points:
       - {x: -24, y: 11}
       - {x: 80, y: 1}
     grid_rows:
@@ -794,12 +792,16 @@ terrains:
 - `type` currently accepts only `oil`, the native terrain type produced by the
   cross-round battlefield Sticky Oil Bomb. It does not use the producing battle
   skill name `sticky_oil_bomb`.
-- `positions` contains exactly two ordered integer control points in the owning
+- `control_points` contains exactly two ordered integer points in the owning
   side's local frame. The first is the skill start point and the second fixes the
-  release direction. Build 2259's `CalculateAttackPositions` line branch expands
-  them into seven oil centers. Reusing the same native `FixedMath` primitives restores the
-  five intermediate centers at their original Q32.32 values without storing
-  fractional coordinates in YAML.
+  release direction. It is named apart from `positions` because `grid_rows` is
+  keyed over a different sequence: the seven generated centers, not these two.
+  Build 2259's `CalculateAttackPositions` line branch expands them into seven oil
+  centers. Only these two endpoints are integers. The step length divides the
+  path magnitude by six through a fixed-point square root, so the five
+  intermediate centers land on fractional Q32.32 values and cannot be written as
+  layout coordinates. Reusing the same native `FixedMath` primitives restores
+  them exactly instead.
 - `grid_rows` is an optional map keyed by the native zero-based generated-point
   index `0..=6`. If the map is omitted or empty, all seven points are active as
   complete 30 m circles. If it is non-empty, its key set is the complete set of
@@ -957,7 +959,7 @@ Applying a layout is fail-closed:
 5. Every mutation is followed by authoritative native readback.
 6. A rejected action, missing catalog entry, ambiguous tower, transport error,
    or readback mismatch stops the application. Formation failures identify the
-   declared `type`, `x`, and `y`; battle-skill failures identify the declared
+   declared `type` and `position`; battle-skill failures identify the declared
    `type` and ordered `positions`. Mutations are never retried automatically.
 7. Success means that the game is in the requested activation-round deployment
    and both sides match all state defined in this document; an accepted native

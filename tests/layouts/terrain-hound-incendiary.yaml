@@ -8,20 +8,16 @@ sides:
     formations:
       - type: hound
         index: 0
-        x: 0
-        y: -80
+        position: {x: 0, y: -80}
 
   red:
     formations:
       - type: crawler
         index: 0
-        x: -45
-        y: -60
+        position: {x: -45, y: -60}
       - type: crawler
         index: 1
-        x: 5
-        y: -60
+        position: {x: 5, y: -60}
       - type: crawler
         index: 2
-        x: 55
-        y: -60
+        position: {x: 55, y: -60}

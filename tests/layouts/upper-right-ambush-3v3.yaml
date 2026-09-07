@@ -5,32 +5,26 @@ sides:
     formations:
       - type: crawler
         index: 0
-        x: 310
-        y: 285
+        position: {x: 310, y: 285}
         travelling: true
       - type: phantom_ray
         index: 1
-        x: 330
-        y: 285
+        position: {x: 330, y: 285}
       - type: typhoon
         index: 2
-        x: 350
-        y: 290
+        position: {x: 350, y: 290}
 
   red:
     formations:
       - type: typhoon
         index: 0
-        x: -250
-        y: -290
+        position: {x: -250, y: -290}
         rotated: true
       - type: phantom_ray
         index: 1
-        x: -270
-        y: -285
+        position: {x: -270, y: -285}
         rotated: true
       - type: crawler
         index: 2
-        x: -290
-        y: -285
+        position: {x: -290, y: -285}
         rotated: true

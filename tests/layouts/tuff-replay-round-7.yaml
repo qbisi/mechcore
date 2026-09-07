@@ -24,125 +24,102 @@ sides:
     formations:
     - type: vortex
       index: 1
-      x: -160
-      y: -100
+      position: {x: -160, y: -100}
       level: 2
       exp: 615
     - type: vortex
       index: 2
-      x: -250
-      y: -120
+      position: {x: -250, y: -120}
       level: 3
     - type: fire_badger
       index: 3
-      x: -210
-      y: -125
+      position: {x: -210, y: -125}
       level: 2
       rotated: true
     - type: fire_badger
       index: 4
-      x: 105
-      y: -120
+      position: {x: 105, y: -120}
       level: 2
       exp: 1164
     - type: crawler
       index: 5
-      x: -140
-      y: -135
+      position: {x: -140, y: -135}
       exp: 450
       rotated: true
     - type: crawler
       index: 6
-      x: 120
-      y: -185
+      position: {x: 120, y: -185}
       exp: 450
       rotated: true
     - type: crawler
       index: 8
-      x: -140
-      y: -205
+      position: {x: -140, y: -205}
       exp: 450
       rotated: true
     - type: vortex
       index: 10
-      x: 40
-      y: -120
+      position: {x: 40, y: -120}
       exp: 697
     - type: melting_point
       index: 12
-      x: 150
-      y: -110
+      position: {x: 150, y: -110}
       exp: 1400
     - type: melting_point
       index: 13
-      x: -280
-      y: -130
+      position: {x: -280, y: -130}
       exp: 1400
     - type: mustang
       index: 14
-      x: 85
-      y: -190
+      position: {x: 85, y: -190}
       level: 2
       exp: 1762
     - type: mustang
       index: 15
-      x: -225
-      y: -190
+      position: {x: -225, y: -190}
       level: 2
     - type: melting_point
       index: 16
-      x: -80
-      y: -130
+      position: {x: -80, y: -130}
       exp: 1400
     - type: typhoon
       index: 17
-      x: -350
-      y: 290
+      position: {x: -350, y: 290}
       level: 3
       exp: 281
     - type: phantom_ray
       index: 18
-      x: -330
-      y: 285
+      position: {x: -330, y: 285}
       level: 2
     - type: fire_badger
       index: 19
-      x: -120
-      y: -115
+      position: {x: -120, y: -115}
       exp: 348
       rotated: true
     - type: mustang
       index: 20
-      x: -75
-      y: -200
+      position: {x: -75, y: -200}
       exp: 1190
     - type: crawler
       index: 21
-      x: -310
-      y: 245
+      position: {x: -310, y: 245}
       travelling: true
     - type: vortex
       index: 22
-      x: -50
-      y: -120
+      position: {x: -50, y: -120}
     - type: vortex
       index: 23
-      x: -10
-      y: -120
+      position: {x: -10, y: -120}
     constructions:
     - type: defensive_wall
       index: 0
-      x: 140
-      y: -55
+      position: {x: 140, y: -55}
     - type: rapid_fire_turret
       index: 1
-      x: -140
-      y: -100
+      position: {x: -140, y: -100}
     contraptions:
     - type: shield
       index: 0
-      x: -98
-      y: -143
+      position: {x: -98, y: -143}
     battle_skills:
     - type: electromagnetic_impact
       positions:
@@ -167,170 +144,140 @@ sides:
     formations:
     - type: crawler
       index: 0
-      x: 135
-      y: -190
+      position: {x: 135, y: -190}
       exp: 450
     - type: crawler
       index: 1
-      x: 190
-      y: -135
+      position: {x: 190, y: -135}
       exp: 173
       rotated: true
     - type: crawler
       index: 2
-      x: 100
-      y: -135
+      position: {x: 100, y: -135}
       exp: 450
       rotated: true
     - type: tarantula
       index: 3
-      x: 195
-      y: -95
+      position: {x: 195, y: -95}
       level: 2
       exp: 1048
     - type: tarantula
       index: 4
-      x: 95
-      y: -95
+      position: {x: 95, y: -95}
       level: 3
       exp: 4871
     - type: fang
       index: 5
-      x: 140
-      y: -225
+      position: {x: 140, y: -225}
       exp: 600
       rotated: true
     - type: crawler
       index: 6
-      x: 260
-      y: -285
+      position: {x: 260, y: -285}
       exp: 450
       rotated: true
     - type: tarantula
       index: 7
-      x: 285
-      y: -95
+      position: {x: 285, y: -95}
       level: 3
       exp: 104
       equipment: 13030002
     - type: tarantula
       index: 8
-      x: -65
-      y: -95
+      position: {x: -65, y: -95}
       level: 2
     - type: fang
       index: 9
-      x: -160
-      y: -175
+      position: {x: -160, y: -175}
       exp: 275
       rotated: true
     - type: fang
       index: 10
-      x: -30
-      y: -55
+      position: {x: -30, y: -55}
       exp: 508
       rotated: true
     - type: fang
       index: 11
-      x: 230
-      y: -55
+      position: {x: 230, y: -55}
       exp: 600
       rotated: true
     - type: wasp
       index: 12
-      x: -85
-      y: -210
+      position: {x: -85, y: -210}
       exp: 182
     - type: wasp
       index: 13
-      x: 205
-      y: -210
+      position: {x: 205, y: -210}
       level: 2
     - type: crawler
       index: 14
-      x: -60
-      y: -135
+      position: {x: -60, y: -135}
       exp: 162
       rotated: true
     - type: wasp
       index: 15
-      x: 55
-      y: -210
+      position: {x: 55, y: -210}
       level: 2
     - type: crawler
       index: 16
-      x: 5
-      y: -210
+      position: {x: 5, y: -210}
       exp: 122
     - type: crawler
       index: 17
-      x: 290
-      y: -135
+      position: {x: 290, y: -135}
       exp: 438
       rotated: true
     - type: wasp
       index: 18
-      x: 290
-      y: -185
+      position: {x: 290, y: -185}
       level: 2
       rotated: true
     - type: crawler
       index: 19
-      x: 310
-      y: 35
+      position: {x: 310, y: 35}
     - type: marksman
       index: 20
-      x: 190
-      y: -170
+      position: {x: 190, y: -170}
       level: 4
       exp: 2915
     - type: marksman
       index: 21
-      x: 100
-      y: -170
+      position: {x: 100, y: -170}
       level: 4
       exp: 2513
     - type: fang
       index: 22
-      x: 120
-      y: -55
+      position: {x: 120, y: -55}
       exp: 4
       rotated: true
     - type: tarantula
       index: 23
-      x: 35
-      y: -95
+      position: {x: 35, y: -95}
       exp: 74
     - type: tarantula
       index: 24
-      x: 145
-      y: -95
+      position: {x: 145, y: -95}
       level: 2
       exp: 440
     - type: tarantula
       index: 25
-      x: 235
-      y: -95
+      position: {x: 235, y: -95}
       level: 2
     - type: tarantula
       index: 26
-      x: 285
-      y: -255
+      position: {x: 285, y: -255}
       level: 3
     - type: tarantula
       index: 27
-      x: -5
-      y: -95
+      position: {x: -5, y: -95}
       level: 2
     contraptions:
     - type: shield
       index: 0
-      x: 229
-      y: -113
+      position: {x: 229, y: -113}
     - type: shield
       index: 1
-      x: 90
-      y: -108
+      position: {x: 90, y: -108}
     battle_skills:
     - type: mobile_beacon
       positions:

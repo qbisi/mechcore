@@ -5,12 +5,10 @@ sides:
     formations:
       - type: crawler
         index: 0
-        x: 5
-        y: -100
+        position: {x: 5, y: -100}
 
   red:
     formations:
       - type: rhino
         index: 0
-        x: 5
-        y: -105
+        position: {x: 5, y: -105}

@@ -900,8 +900,8 @@ mod tests {
                 json!({
                     "round": 1,
                     "sides": {
-                        "blue": {"formations": [{"type": "unknown", "index": 0, "x": 0, "y": -50}]},
-                        "red": {"formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}]}
+                        "blue": {"formations": [{"type": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
+                        "red": {"formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                     }
                 }),
                 None,
@@ -920,13 +920,13 @@ mod tests {
                     "round": 1,
                     "sides": {
                         "blue": {
-                            "formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}],
+                            "formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
                             "terrains": [{
                                 "type": "oil",
-                                "positions": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
+                                "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
                             }]
                         },
-                        "red": {"formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}]}
+                        "red": {"formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                     }
                 }),
                 None,

@@ -5,8 +5,7 @@ sides:
     formations:
       - type: arclight
         index: 0
-        x: 0
-        y: -280
+        position: {x: 0, y: -280}
 
     battle_skills:
       - type: sticky_oil_bomb
@@ -18,10 +17,8 @@ sides:
     formations:
       - type: sledgehammer
         index: 0
-        x: 5
-        y: -100
+        position: {x: 5, y: -100}
     contraptions:
       - type: shield
         index: 0
-        x: -56
-        y: -82
+        position: {x: -56, y: -82}

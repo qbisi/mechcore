@@ -5,12 +5,10 @@ sides:
     formations:
       - type: wasp
         index: 0
-        x: 5
-        y: -100
+        position: {x: 5, y: -100}
 
   red:
     formations:
       - type: wasp
         index: 0
-        x: 5
-        y: -100
+        position: {x: 5, y: -100}

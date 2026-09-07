@@ -9,44 +9,35 @@ sides:
     formations:
     - type: vortex
       index: 0
-      x: -120
-      y: -100
+      position: {x: -120, y: -100}
     - type: vortex
       index: 1
-      x: -160
-      y: -100
+      position: {x: -160, y: -100}
     - type: vortex
       index: 2
-      x: -250
-      y: -120
+      position: {x: -250, y: -120}
     - type: fire_badger
       index: 3
-      x: -210
-      y: -125
+      position: {x: -210, y: -125}
       rotated: true
     - type: fire_badger
       index: 4
-      x: 105
-      y: -120
+      position: {x: 105, y: -120}
     - type: crawler
       index: 5
-      x: -140
-      y: -135
+      position: {x: -140, y: -135}
       rotated: true
     - type: crawler
       index: 6
-      x: 120
-      y: -185
+      position: {x: 120, y: -185}
       rotated: true
     constructions:
     - type: defensive_wall
       index: 0
-      x: 140
-      y: -55
+      position: {x: 140, y: -55}
     - type: rapid_fire_turret
       index: 1
-      x: -140
-      y: -100
+      position: {x: -140, y: -100}
   red:
     techs:
       officers:
@@ -54,38 +45,30 @@ sides:
     formations:
     - type: crawler
       index: 0
-      x: 135
-      y: -190
+      position: {x: 135, y: -190}
     - type: crawler
       index: 1
-      x: 190
-      y: -135
+      position: {x: 190, y: -135}
       rotated: true
     - type: crawler
       index: 2
-      x: 100
-      y: -135
+      position: {x: 100, y: -135}
       rotated: true
     - type: tarantula
       index: 3
-      x: 195
-      y: -95
+      position: {x: 195, y: -95}
     - type: tarantula
       index: 4
-      x: 95
-      y: -95
+      position: {x: 95, y: -95}
     - type: fang
       index: 5
-      x: 140
-      y: -225
+      position: {x: 140, y: -225}
       rotated: true
     - type: crawler
       index: 6
-      x: 260
-      y: -285
+      position: {x: 260, y: -285}
       rotated: true
     constructions:
     - type: defensive_wall
       index: 0
-      x: -140
-      y: -55
+      position: {x: -140, y: -55}

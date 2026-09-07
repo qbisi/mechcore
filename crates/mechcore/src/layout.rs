@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn placement_diff_aligns_by_deployment_index() {
-        let entry = |index: i32, x: i32| serde_json::json!({"index": index, "x": x});
+        let entry = |index: i32, x: i32| serde_json::json!({"index": index, "position": {"x": x}});
         let left = serde_json::json!({"formations": [entry(0, 0), entry(3, 40), entry(7, 80)]});
         let right = serde_json::json!({"formations": [entry(0, 0), entry(7, 85), entry(9, 120)]});
         let mut differences = Vec::new();
@@ -242,19 +242,20 @@ mod tests {
         assert_eq!(differences.len(), 3);
         assert_eq!(differences[0].path, "/formations/index=3");
         assert!(differences[0].right.is_none());
-        assert_eq!(differences[1].path, "/formations/index=7/x");
+        assert_eq!(differences[1].path, "/formations/index=7/position/x");
         assert_eq!(differences[2].path, "/formations/index=9");
         assert!(differences[2].left.is_none());
     }
 
     #[test]
     fn placement_diff_falls_back_to_position_without_usable_indices() {
-        let repeated = serde_json::json!({"index": 0, "x": 0});
+        let repeated = serde_json::json!({"index": 0, "position": {"x": 0}});
         let left = serde_json::json!({"formations": [repeated, repeated]});
-        let right = serde_json::json!({"formations": [repeated, {"index": 0, "x": 5}]});
+        let right =
+            serde_json::json!({"formations": [repeated, {"index": 0, "position": {"x": 5}}]});
         let mut differences = Vec::new();
         collect_differences("", Some(&left), Some(&right), &mut differences);
         assert_eq!(differences.len(), 1);
-        assert_eq!(differences[0].path, "/formations/1/x");
+        assert_eq!(differences[0].path, "/formations/1/position/x");
     }
 }

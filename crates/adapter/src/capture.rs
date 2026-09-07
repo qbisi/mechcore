@@ -4878,8 +4878,7 @@ fn read_native_side(
             Formation {
                 type_name: type_name.to_owned(),
                 index: native_index,
-                x,
-                y,
+                position: Position { x, y },
                 level: Some(displayed_level),
                 exp: Some(exp),
                 rotated: Some(rotated),
@@ -5068,7 +5067,7 @@ fn read_native_terrains(
                     }
                 }
             }
-            let mut positions = Vec::with_capacity(2);
+            let mut control_points = Vec::with_capacity(2);
             for (label, center) in [("start", start), ("end", end)] {
                 if center[0] % FIXED_ONE_RAW != 0 || center[2] % FIXED_ONE_RAW != 0 {
                     return Err(format!(
@@ -5082,7 +5081,7 @@ fn read_native_terrains(
                         .map_err(|_| format!("retained oil {label} y exceeds i32"))?,
                 };
                 let (x, y) = side_local_position(world, team)?;
-                positions.push(Position { x, y });
+                control_points.push(Position { x, y });
             }
             if group.grid_rows.len() == group.point_count
                 && group.grid_rows.values().all(Vec::is_empty)
@@ -5091,7 +5090,7 @@ fn read_native_terrains(
             }
             Ok(LayoutTerrain {
                 terrain_type: LayoutTerrainType::Oil,
-                positions,
+                control_points,
                 grid_rows: group.grid_rows,
             })
         })
@@ -5415,8 +5414,7 @@ fn read_native_constructions(
         constructions.push(StaticPlacement {
             type_name: type_name.to_owned(),
             index: native_index,
-            x,
-            y,
+            position: Position { x, y },
         });
     }
     constructions.sort_by_key(|construction| construction.index);
@@ -5626,8 +5624,8 @@ fn layout_shield_placements(
             // has no contraption index.
             let placement = layout_contraption_position("shield", 0, state.position, team)?;
             airdrops.push(Position {
-                x: placement.x,
-                y: placement.y,
+                x: placement.position.x,
+                y: placement.position.y,
             });
         } else {
             let index =
@@ -5669,8 +5667,7 @@ fn layout_contraption_position(
     Ok(ContraptionPlacement {
         type_name: type_name.into(),
         index,
-        x,
-        y,
+        position: Position { x, y },
     })
 }
 
@@ -9155,8 +9152,7 @@ mod tests {
         let placement = |kind: &str, index, x, y| ContraptionPlacement {
             type_name: kind.into(),
             index,
-            x,
-            y,
+            position: Position { x, y },
         };
         let shields = vec![
             layout_test_shield(1, 215, 86, None),
@@ -9219,7 +9215,7 @@ mod tests {
         assert_eq!(
             placements
                 .iter()
-                .map(|placement| (placement.index, placement.x, placement.y))
+                .map(|placement| (placement.index, placement.position.x, placement.position.y))
                 .collect::<Vec<_>>(),
             [(3, -215, -86)]
         );
@@ -9269,8 +9265,8 @@ mod tests {
             };
             let blue = layout_contraption_position(kind, 0, position, 0).unwrap();
             let red = layout_contraption_position(kind, 0, position, 1).unwrap();
-            assert_eq!((blue.x, blue.y), (215, 86));
-            assert_eq!((red.x, red.y), (-215, -86));
+            assert_eq!((blue.position.x, blue.position.y), (215, 86));
+            assert_eq!((red.position.x, red.position.y), (-215, -86));
             assert_eq!(red.type_name, kind);
             assert!(
                 layout_contraption_position(
@@ -11372,7 +11368,7 @@ mod tests {
             combat_round: 1,
             match_seed: 0,
         };
-        let layout = "seed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      index: 0\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      index: 0\n      x: 0\n      y: -50\n";
+        let layout = "seed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      index: 0\n      position: {x: 0, y: -50}\n  red:\n    formations:\n    - type: arclight\n      index: 0\n      position: {x: 0, y: -50}\n";
         let mut writer =
             mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
         writer.append_tick(state, &events).unwrap();

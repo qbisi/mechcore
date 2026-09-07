@@ -5,22 +5,18 @@ sides:
     formations:
       - type: stormcaller
         index: 0
-        x: 5
-        y: -120
+        position: {x: 5, y: -120}
     contraptions:
       - type: interceptor
         index: 0
-        x: 5
-        y: -85
+        position: {x: 5, y: -85}
 
   red:
     formations:
       - type: stormcaller
         index: 0
-        x: 5
-        y: -120
+        position: {x: 5, y: -120}
     contraptions:
       - type: interceptor
         index: 0
-        x: 5
-        y: -85
+        position: {x: 5, y: -85}

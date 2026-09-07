@@ -5,8 +5,7 @@ sides:
     formations:
       - type: arclight
         index: 0
-        x: 0
-        y: -280
+        position: {x: 0, y: -280}
 
     battle_skills:
       - type: acid_blast
@@ -18,5 +17,4 @@ sides:
     formations:
       - type: sledgehammer
         index: 0
-        x: 5
-        y: -100
+        position: {x: 5, y: -100}

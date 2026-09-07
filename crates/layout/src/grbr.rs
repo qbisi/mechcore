@@ -104,7 +104,7 @@ pub fn terrains_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundTerr
                         rows,
                     );
                 }
-                let positions = positions
+                let control_points = positions
                     .into_iter()
                     .map(|mut point| {
                         if team != 0 {
@@ -125,7 +125,7 @@ pub fn terrains_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundTerr
                 }
                 sides[team].push(Terrain {
                     terrain_type: TerrainType::Oil,
-                    positions,
+                    control_points,
                     grid_rows,
                 });
             }
@@ -286,7 +286,7 @@ mod tests {
         assert!(terrains.blue.is_empty());
         assert_eq!(terrains.red.len(), 1);
         assert_eq!(
-            terrains.red[0].positions,
+            terrains.red[0].control_points,
             [Position { x: -24, y: 11 }, Position { x: 80, y: 1 }]
         );
         assert_eq!(terrains.red[0].terrain_type, TerrainType::Oil);

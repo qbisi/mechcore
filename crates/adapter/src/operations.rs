@@ -1324,7 +1324,7 @@ fn terrain_world_positions(
     rotate_to_world: bool,
 ) -> Result<Vec<MapVector>, OperationError> {
     terrain
-        .positions
+        .control_points
         .iter()
         .copied()
         .map(|position| position_to_world(position, rotate_to_world, "terrain control point"))
@@ -1498,7 +1498,7 @@ fn restore_oil_terrain(
     }
     Ok(json!({
         "type": "oil",
-        "positions": terrain.positions.iter().map(|position| {
+        "control_points": terrain.control_points.iter().map(|position| {
             json!({"x": position.x, "y": position.y})
         }).collect::<Vec<_>>(),
         "active_points": restored,
@@ -3745,10 +3745,10 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {"formations": [{
-                    "type": "marksman", "index": 0, "x": 20, "y": -50
+                    "type": "marksman", "index": 0, "position": {"x": 20, "y": -50}
                 }]},
                 "red": {"formations": [{
-                    "type": "marksman", "index": 0, "x": 20, "y": -50
+                    "type": "marksman", "index": 0, "position": {"x": 20, "y": -50}
                 }]}
             }
         }))
@@ -3770,14 +3770,14 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}],
+                    "formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
                         "type": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"type": "fang", "index": 0, "x": -55, "y": -60}],
+                    "formations": [{"type": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
                     "battle_skills": [{
                         "type": "mobile_beacon",
                         "positions": [

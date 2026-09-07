@@ -5,12 +5,10 @@ sides:
     formations:
       - type: marksman
         index: 0
-        x: -310
-        y: 20
+        position: {x: -310, y: 20}
 
   red:
     formations:
       - type: marksman
         index: 0
-        x: 0
-        y: -50
+        position: {x: 0, y: -50}

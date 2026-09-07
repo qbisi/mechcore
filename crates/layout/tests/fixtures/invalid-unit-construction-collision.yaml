@@ -5,17 +5,14 @@ sides:
     formations:
       - type: marksman
         index: 0
-        x: 140
-        y: -100
+        position: {x: 140, y: -100}
     constructions:
       - type: defensive_wall
         index: 0
-        x: 140
-        y: -105
+        position: {x: 140, y: -105}
 
   red:
     formations:
       - type: marksman
         index: 0
-        x: 0
-        y: -50
+        position: {x: 0, y: -50}
