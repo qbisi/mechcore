@@ -335,6 +335,7 @@ impl Session {
             )));
         }
         validate_record_outputs(
+            "record_battle",
             &output,
             video_output.as_deref(),
             instrumentation.as_ref(),
@@ -465,8 +466,14 @@ impl Session {
             return Err("record_replay_round output must be an absolute .mcfr path".into());
         }
         *self.last_applied_layout.lock().await = None;
-        validate_record_outputs(&output, None, instrumentation.as_ref(), force)
-            .map_err(|error| error.to_string())?;
+        validate_record_outputs(
+            "record_replay_round",
+            &output,
+            None,
+            instrumentation.as_ref(),
+            force,
+        )
+        .map_err(|error| error.to_string())?;
         let result = self
             .adapter_request(
                 Operation::RecordReplayRound,
@@ -622,37 +629,40 @@ fn remove_existing_output(path: &Path, force: bool, what: &str) -> Result<(), Va
 /// Adapter, which keeps refusing to overwrite. Deleting is the caller's
 /// declared intent; overwriting would be the Adapter deciding on its own.
 pub(crate) fn validate_record_outputs(
+    operation: &str,
     output: &Path,
     video_output: Option<&Path>,
     instrumentation: Option<&RecordBattleInstrumentationParameters>,
     force: bool,
 ) -> Result<(), Value> {
     if !output.is_absolute() {
-        return Err(error_body("record_battle output must be an absolute path"));
+        return Err(error_body(format!(
+            "{operation} output must be an absolute path"
+        )));
     }
     if output.extension().and_then(|value| value.to_str()) != Some("mcfr") {
-        return Err(error_body(
-            "record_battle output must use the .mcfr extension",
-        ));
+        return Err(error_body(format!(
+            "{operation} output must use the .mcfr extension"
+        )));
     }
-    remove_existing_output(output, force, "record_battle output")?;
+    remove_existing_output(output, force, &format!("{operation} output"))?;
     if let Some(video_output) = video_output {
         if !video_output.is_absolute() {
-            return Err(error_body(
-                "record_battle video_output must be an absolute path",
-            ));
+            return Err(error_body(format!(
+                "{operation} video_output must be an absolute path"
+            )));
         }
         if video_output.extension().and_then(|value| value.to_str()) != Some("mov") {
-            return Err(error_body(
-                "record_battle video_output must use the .mov extension",
-            ));
+            return Err(error_body(format!(
+                "{operation} video_output must use the .mov extension"
+            )));
         }
         if video_output == output {
-            return Err(error_body(
-                "record_battle output and video_output must differ",
-            ));
+            return Err(error_body(format!(
+                "{operation} output and video_output must differ"
+            )));
         }
-        remove_existing_output(video_output, force, "record_battle video_output")?;
+        remove_existing_output(video_output, force, &format!("{operation} video_output"))?;
     }
     if let Some(instrumentation) = instrumentation {
         if let Some(scope) = &instrumentation.rvo_scope
@@ -858,7 +868,8 @@ mod tests {
         let output = directory.path().join("battle.mcfr");
         std::fs::write(&output, b"existing").unwrap();
 
-        let refused = validate_record_outputs(&output, None, None, false).unwrap_err();
+        let refused =
+            validate_record_outputs("record_battle", &output, None, None, false).unwrap_err();
         assert!(
             refused["error"]
                 .as_str()
@@ -868,7 +879,7 @@ mod tests {
         );
         assert!(output.exists(), "a refusal must leave the file alone");
 
-        validate_record_outputs(&output, None, None, true).unwrap();
+        validate_record_outputs("record_battle", &output, None, None, true).unwrap();
         assert!(!output.exists(), "force removes the destination up front");
     }
 

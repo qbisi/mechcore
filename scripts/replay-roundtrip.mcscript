@@ -1,0 +1,56 @@
+# Replay a real match round, export its layout, rebuild it in the Training
+# Ground, and compare the two recordings.
+#
+#   mechcore run scripts/replay-roundtrip.mcscript --check   validate offline
+#   mechcore run scripts/replay-roundtrip.mcscript           record
+#
+# This is the end-to-end check that the layout schema carries everything a
+# battle needs. record_replay_round reads the round straight from the native
+# replay and embeds the layout it exported; apply_layout builds that same state
+# from nothing in the Training Ground; the comparison says whether the two
+# battles are the same fight.
+#
+# Two rounds, chosen for what they exercise rather than for coverage. Round 2 is
+# nearly bare, so a difference there is a defect in the basics. Round 7 carries
+# technologies, tower levels, constructions, contraptions and battle skills, so
+# it is the round where every ordered collection in the schema is non-empty at
+# once, which is what makes it the test of the ordering rules.
+#
+# Neither comparison carries an expect. A mismatch is a finding to read, not a
+# script failure, and its first divergent tick is the useful part.
+#
+# Re-running asks before replacing each recording; `mechcore run --force`
+# answers yes up front. Both paths must be absolute.
+
+game: launch
+
+vars:
+  out: /Users/qbisi/mechcore-v2/work/research/replay-roundtrip
+  grbr: /Users/qbisi/mechcore-v2/tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr
+
+steps:
+  - record_replay_round:
+      grbr: $grbr
+      round: 2
+      output: ${out}/replay-r2.mcfr
+  - let:
+      layout_r2: embedded_layout(${out}/replay-r2.mcfr)
+  - apply_layout: $layout_r2
+  - record_battle:
+      output: ${out}/training-r2.mcfr
+  - compare:
+      left: ${out}/replay-r2.mcfr
+      right: ${out}/training-r2.mcfr
+
+  - record_replay_round:
+      grbr: $grbr
+      round: 7
+      output: ${out}/replay-r7.mcfr
+  - let:
+      layout_r7: embedded_layout(${out}/replay-r7.mcfr)
+  - apply_layout: $layout_r7
+  - record_battle:
+      output: ${out}/training-r7.mcfr
+  - compare:
+      left: ${out}/replay-r7.mcfr
+      right: ${out}/training-r7.mcfr

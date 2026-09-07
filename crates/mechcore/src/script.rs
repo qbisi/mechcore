@@ -11,11 +11,13 @@
 
 use crate::acquire::Mode;
 use crate::mcfr;
-use crate::session::Session;
+use crate::session::{RecordBattleInstrumentationParameters, Session};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 /// Operations that require an acquired game.
 const NATIVE: &[&str] = &[
@@ -59,7 +61,15 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
         .enable_all()
         .build()
         .map_err(|error| format!("cannot create async runtime: {error}"))?
-        .block_on(execute(script, base()))
+        .block_on(execute(
+            script,
+            base(),
+            if options.force {
+                Overwrite::Always
+            } else {
+                Overwrite::Ask
+            },
+        ))
 }
 
 /// Relative paths resolve against the working directory, matching every other
@@ -71,15 +81,30 @@ fn base() -> PathBuf {
 struct Options {
     script: PathBuf,
     check_only: bool,
+    force: bool,
+}
+
+/// What a recording step does when its destination already exists.
+///
+/// Overwriting is an invocation decision, not something a script declares: the
+/// same script is re-run to replace its outputs and run once to produce them.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Overwrite {
+    /// Ask, when there is a terminal to ask on. Refuse otherwise.
+    Ask,
+    /// `--force`: replace without asking.
+    Always,
 }
 
 impl Options {
     fn parse(arguments: impl Iterator<Item = String>) -> Result<Self, String> {
         let mut script = None;
         let mut check_only = false;
+        let mut force = false;
         for argument in arguments {
             match argument.as_str() {
                 "--check" => check_only = true,
+                "-f" | "--force" => force = true,
                 other if other.starts_with("--") => {
                     return Err(format!("unexpected option {other}"));
                 }
@@ -88,8 +113,9 @@ impl Options {
             }
         }
         Ok(Self {
-            script: script.ok_or("usage: mechcore run <script.mcscript> [--check]")?,
+            script: script.ok_or("usage: mechcore run <script.mcscript> [--check] [--force]")?,
             check_only,
+            force,
         })
     }
 }
@@ -290,6 +316,7 @@ fn whole_reference(text: &str) -> Option<&str> {
 struct Scope {
     values: BTreeMap<String, Value>,
     base: PathBuf,
+    overwrite: Overwrite,
 }
 
 impl Scope {
@@ -382,7 +409,7 @@ impl Scope {
     }
 }
 
-async fn execute(script: Script, base: PathBuf) -> Result<bool, String> {
+async fn execute(script: Script, base: PathBuf, overwrite: Overwrite) -> Result<bool, String> {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
     let mut ownership = None;
@@ -399,6 +426,7 @@ async fn execute(script: Script, base: PathBuf) -> Result<bool, String> {
     let mut scope = Scope {
         values: BTreeMap::new(),
         base,
+        overwrite,
     };
     let outcome = run_steps(&script, &mut scope, &session).await;
     let closed = session.release(ownership).await;
@@ -588,9 +616,20 @@ async fn perform(
                 .map(|value| scope.path(value, "record_battle video_output"))
                 .transpose()?;
             let speed_up = optional_flag(fields.get("speed_up"), "record_battle speed_up")?;
-            let force = optional_flag(fields.get("force"), "record_battle force")?;
+            if fields.contains_key("force") {
+                return Err("force is not a script field; pass --force to mechcore run".to_string());
+            }
+            let mut destinations = vec![output.as_path()];
+            destinations.extend(video.as_deref());
+            let force = confirm_overwrite(scope, &destinations).await?;
             session
-                .record_battle(output, video, speed_up, force.unwrap_or(false), None)
+                .record_battle(
+                    output.clone(),
+                    video.clone(),
+                    speed_up,
+                    force,
+                    instrumentation(fields.get("instrumentation"), scope)?,
+                )
                 .await
                 .map_err(|value| value.to_string())
         }
@@ -614,9 +653,19 @@ async fn perform(
                 .and_then(|value| i32::try_from(value).ok())
                 .ok_or("record_replay_round needs an integer round")?;
             let speed_up = optional_flag(fields.get("speed_up"), "record_replay_round speed_up")?;
-            let force = optional_flag(fields.get("force"), "record_replay_round force")?;
+            if fields.contains_key("force") {
+                return Err("force is not a script field; pass --force to mechcore run".to_string());
+            }
+            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
             session
-                .record_replay_round(grbr, round, output, speed_up, force.unwrap_or(false), None)
+                .record_replay_round(
+                    grbr,
+                    round,
+                    output.clone(),
+                    speed_up,
+                    force,
+                    instrumentation(fields.get("instrumentation"), scope)?,
+                )
                 .await
         }
         "toggle_fight" => session.toggle_fight().await,
@@ -625,6 +674,51 @@ async fn perform(
         "quit_game" => session.quit_game().await,
         other => Err(format!("unknown operation {other}")),
     }
+}
+
+/// Decide whether a recording may replace the destinations it would publish.
+///
+/// `--force` answers yes without asking. Otherwise an existing destination is a
+/// question for whoever started the run, so it is asked once, naming every file
+/// at stake. With no terminal to ask on there is nobody to answer, and the
+/// answer is no: the session then refuses and says which file blocked it.
+async fn confirm_overwrite(scope: &Scope, destinations: &[&Path]) -> Result<bool, String> {
+    if scope.overwrite == Overwrite::Always {
+        return Ok(true);
+    }
+    let existing = destinations
+        .iter()
+        .filter(|path| path.exists())
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>();
+    if existing.is_empty() || !std::io::stdin().is_terminal() {
+        return Ok(false);
+    }
+    let mut out = tokio::io::stdout();
+    out.write_all(format!("replace {}? [y/N] ", existing.join(", ")).as_bytes())
+        .await
+        .map_err(|error| format!("cannot prompt: {error}"))?;
+    out.flush()
+        .await
+        .map_err(|error| format!("cannot prompt: {error}"))?;
+    let mut answer = String::new();
+    BufReader::new(tokio::io::stdin())
+        .read_line(&mut answer)
+        .await
+        .map_err(|error| format!("cannot read the answer: {error}"))?;
+    Ok(matches!(answer.trim(), "y" | "Y" | "yes"))
+}
+
+fn instrumentation(
+    value: Option<&Value>,
+    scope: &Scope,
+) -> Result<Option<RecordBattleInstrumentationParameters>, String> {
+    let Some(value) = value else { return Ok(None) };
+    let mut parameters: RecordBattleInstrumentationParameters =
+        serde_json::from_value(value.clone())
+            .map_err(|error| format!("invalid instrumentation: {error}"))?;
+    parameters.output = scope.path(&json!(parameters.output), "instrumentation output")?;
+    Ok(Some(parameters))
 }
 
 /// Split `apply_layout` arguments into the layout and an optional seed override.
@@ -767,8 +861,23 @@ fn field_at<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn recording_instrumentation_resolves_paths_and_preserves_scope() {
+        let scope = scope_with(&[]);
+        assert!(instrumentation(None, &scope).unwrap().is_none());
+        let value = json!({"output":"local.h5", "profile":"target_refs_rvo_v1",
+            "rvo_scope":{"start_tick":4,"end_tick":12,"unit_ids":[72,117]}});
+        let parsed = instrumentation(Some(&value), &scope).unwrap().unwrap();
+        assert_eq!(parsed.output, PathBuf::from("/base/local.h5"));
+        assert_eq!(parsed.rvo_scope.unwrap().unit_ids, vec![72, 117]);
+        let mut invalid = value;
+        invalid["unknown"] = json!(true);
+        assert!(instrumentation(Some(&invalid), &scope).is_err());
+    }
+
     fn scope_with(values: &[(&str, Value)]) -> Scope {
         Scope {
+            overwrite: Overwrite::Ask,
             values: values
                 .iter()
                 .map(|(name, value)| ((*name).to_string(), value.clone()))
@@ -800,6 +909,38 @@ mod tests {
     fn undefined_references_are_reported_by_name() {
         let scope = scope_with(&[]);
         assert!(scope.expand("$missing").unwrap_err().contains("$missing"));
+    }
+
+    #[test]
+    fn run_accepts_force_in_either_spelling_and_defaults_to_asking() {
+        let plain = Options::parse(["a.mcscript".to_string()].into_iter()).unwrap();
+        assert!(!plain.force);
+        assert!(!plain.check_only);
+        for spelling in ["-f", "--force"] {
+            let forced =
+                Options::parse(["a.mcscript".to_string(), spelling.to_string()].into_iter())
+                    .unwrap();
+            assert!(forced.force, "{spelling}");
+        }
+        assert!(
+            Options::parse(["a.mcscript".to_string(), "--clobber".to_string()].into_iter())
+                .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn a_script_that_still_declares_force_is_told_where_it_moved() {
+        let session = Session::new();
+        let mut scope = scope_with(&[]);
+        let call = Call {
+            operation: "record_battle".into(),
+            arguments: json!({"output": "/tmp/a.mcfr", "force": true}),
+            expect: None,
+        };
+        let error = perform(&call, &call.arguments.clone(), &mut scope, &session)
+            .await
+            .unwrap_err();
+        assert!(error.contains("--force"), "{error}");
     }
 
     #[test]

@@ -11,7 +11,7 @@ use std::process::ExitCode;
 
 fn usage(program: &str) {
     eprintln!("usage: {program} shell [--launch | --attach]");
-    eprintln!("       {program} run <script.mcscript> [--check]");
+    eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} layout verify <layout.yaml>");
     eprintln!("       {program} layout format <layout.yaml> [--write]");
@@ -20,6 +20,11 @@ fn usage(program: &str) {
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
     );
     eprintln!("       {program} sim compare <recording.mcfr>... [--config <directory>]");
+    eprintln!();
+    eprintln!("run --check validates a script offline, without touching the game;");
+    eprintln!("--force replaces existing recordings instead of asking about each.");
+    eprintln!("Script steps and their options are documented in docs/mcscript.md;");
+    eprintln!("shell commands are listed by `help` inside the shell.");
 }
 
 fn main() -> ExitCode {

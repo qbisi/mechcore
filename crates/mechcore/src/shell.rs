@@ -22,8 +22,9 @@ native
   start_test [seed]               create the layout-test Training Ground
   apply_layout <layout.yaml> [seed]
                                   create the test and reach the layout's round
-  record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]
-  record_replay_round <in.grbr> <round> <out.mcfr>
+  record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f]
+                                  -f replaces an existing destination
+  record_replay_round <in.grbr> <round> <out.mcfr> [-f]
   toggle_fight                    start the current fight
   speed_up                        request battle speed-up
   quit_match                      leave the active test or replay

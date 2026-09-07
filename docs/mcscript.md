@@ -57,18 +57,37 @@ through `quit_game`; an attached game is left running.
 | `status` | yes | current status snapshot |
 | `start_test` | yes | `seed`; rarely needed, see `apply_layout` |
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `force` |
-| `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `force` |
+| `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
+| `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
 | `toggle_fight` | yes | |
 | `speed_up` | yes | standalone operation, distinct from the recording field |
 | `quit_match` | yes | |
 | `quit_game` | yes | |
 
-A recording refuses to overwrite its destination. `force: true` deletes the
-existing file first, which is a decision the caller declares rather than one the
-Adapter makes: the Adapter still refuses to write over anything, and the client
-removes the file before asking. It is what makes a capture script re-runnable
-without hand-clearing its output directory between runs.
+A recording refuses to overwrite its destination, and a script does not declare
+otherwise. Whether to replace an existing recording is a property of the run,
+not of the script: the same document is run once to produce its outputs and
+again to replace them. `mechcore run --force` answers yes for the whole run.
+Without it, an existing destination is asked about once, naming every file at
+stake, and a run with no terminal to ask on refuses as before.
+
+The deletion happens in the client either way. The Adapter still refuses to
+write over anything; the caller removes the file before asking, so the
+fail-closed rule keeps protecting a recording in flight.
+
+Both recording operations accept a research-only HDF5 sidecar request:
+
+```yaml
+instrumentation:
+  output: $out/rvo.h5
+  profile: target_refs_rvo_v1
+  rvo_scope: {start_tick: 4, end_tick: 12, unit_ids: [72, 117, 257, 405]}
+```
+
+The sidecar path resolves like the recording output and must be new (even with
+`force: true`). RVO scope selects 1–8 unique positive MCFR unit IDs and at most
+64 ticks of update starts; delayed publications can appear after `end_tick`.
+This instrumentation is separate from MCFR and does not participate in its hash.
 
 `compare` returns the verdict, the two recording summaries, and the first
 divergent tick. It omits the divergent tick states unless `verbose: true`,
