@@ -18,8 +18,7 @@ const LAUNCH_TIMEOUT: Duration = Duration::from_secs(60);
 const LAUNCH_POLL_INTERVAL: Duration = Duration::from_millis(200);
 const ADAPTER_DYLIB: &str = "libmechcore_adapter.dylib";
 const GAME_ENV: &str = "MECHCORE_GAME";
-const DEFAULT_GAME_SUFFIX: &str =
-    "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
+const DEFAULT_GAME_SUFFIX: &str = "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
 
 /// Which acquisition the caller declared.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,10 +110,7 @@ pub(crate) async fn acquire(
         // adapter stopped answering. Neither verb may proceed.
         (_, _, Probe::Busy) => Err(Box::new(Failure::new(
             "adapter_busy",
-            format!(
-                "another mechcore process is serving {}",
-                endpoint.display()
-            ),
+            format!("another mechcore process is serving {}", endpoint.display()),
         ))),
         (_, _, Probe::Unresponsive(detail)) => Err(Box::new(Failure::new(
             "adapter_unresponsive",
@@ -124,9 +120,7 @@ pub(crate) async fn acquire(
                 GREETING_DEADLINE.as_secs()
             ),
         ))),
-        (_, _, Probe::Protocol(detail)) => {
-            Err(Box::new(Failure::new("protocol_mismatch", detail)))
-        }
+        (_, _, Probe::Protocol(detail)) => Err(Box::new(Failure::new("protocol_mismatch", detail))),
 
         // C: a game the player started, with no adapter injected. Injection is
         // impossible after start, and a second instance would corrupt both.
@@ -354,7 +348,9 @@ fn all_pids() -> Vec<u32> {
         return Vec::new();
     };
     pids.truncate(written / std::mem::size_of::<libc::c_int>());
-    pids.into_iter().filter_map(|pid| u32::try_from(pid).ok()).collect()
+    pids.into_iter()
+        .filter_map(|pid| u32::try_from(pid).ok())
+        .collect()
 }
 
 fn process_path(pid: u32) -> Option<PathBuf> {

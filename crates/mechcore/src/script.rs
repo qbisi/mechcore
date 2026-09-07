@@ -92,7 +92,6 @@ impl Options {
             check_only,
         })
     }
-
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -450,12 +449,17 @@ async fn run_call(
     iteration: Option<usize>,
 ) -> Result<(), String> {
     let label = |error: String| match iteration {
-        Some(index) => format!("step {position} ({}) in iteration {index}: {error}", call.operation),
+        Some(index) => format!(
+            "step {position} ({}) in iteration {index}: {error}",
+            call.operation
+        ),
         None => format!("step {position} ({}): {error}", call.operation),
     };
     let arguments = scope.resolve(&call.arguments).map_err(label)?;
     let started = std::time::Instant::now();
-    let result = perform(call, &arguments, scope, session).await.map_err(label)?;
+    let result = perform(call, &arguments, scope, session)
+        .await
+        .map_err(label)?;
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     if let Some(expect) = &call.expect {
         let expect = scope
@@ -571,7 +575,9 @@ async fn perform(
             session.apply_layout(layout, seed).await
         }
         "record_battle" => {
-            let fields = arguments.as_object().ok_or("record_battle takes a mapping")?;
+            let fields = arguments
+                .as_object()
+                .ok_or("record_battle takes a mapping")?;
             let output = scope.path(
                 fields.get("output").ok_or("record_battle needs output")?,
                 "record_battle output",
@@ -595,7 +601,9 @@ async fn perform(
                 "record_replay_round grbr",
             )?;
             let output = scope.path(
-                fields.get("output").ok_or("record_replay_round needs output")?,
+                fields
+                    .get("output")
+                    .ok_or("record_replay_round needs output")?,
                 "record_replay_round output",
             )?;
             let round = fields
@@ -603,8 +611,7 @@ async fn perform(
                 .and_then(Value::as_i64)
                 .and_then(|value| i32::try_from(value).ok())
                 .ok_or("record_replay_round needs an integer round")?;
-            let speed_up =
-                optional_flag(fields.get("speed_up"), "record_replay_round speed_up")?;
+            let speed_up = optional_flag(fields.get("speed_up"), "record_replay_round speed_up")?;
             session
                 .record_replay_round(grbr, round, output, speed_up, None)
                 .await
@@ -634,9 +641,16 @@ fn split_layout_arguments(arguments: &Value) -> Result<(Value, Option<i32>), Str
                 .ok_or("apply_layout seed must be a signed 32-bit integer")?,
         ),
     };
-    for key in arguments.as_object().map(|fields| fields.keys()).into_iter().flatten() {
+    for key in arguments
+        .as_object()
+        .map(|fields| fields.keys())
+        .into_iter()
+        .flatten()
+    {
         if !matches!(key.as_str(), "layout" | "seed") {
-            return Err(format!("apply_layout accepts only layout and seed, got {key}"));
+            return Err(format!(
+                "apply_layout accepts only layout and seed, got {key}"
+            ));
         }
     }
     Ok((wrapped.clone(), seed))
@@ -695,7 +709,10 @@ fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
             ));
         }
     }
-    let layout = scope.path(fields.get("layout").ok_or("sim needs layout")?, "sim layout")?;
+    let layout = scope.path(
+        fields.get("layout").ok_or("sim needs layout")?,
+        "sim layout",
+    )?;
     let seed = match fields.get("seed") {
         None | Some(Value::Null) => None,
         Some(value) => Some(
@@ -739,7 +756,8 @@ fn check_expectations(expect: &Map<String, Value>, result: &Value) -> Result<(),
 /// Follow a dotted key into a result. The interesting values are nested:
 /// a recording reports `operation.tick_count`, not `tick_count`.
 fn field_at<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
-    key.split('.').try_fold(value, |current, part| current.get(part))
+    key.split('.')
+        .try_fold(value, |current, part| current.get(part))
 }
 
 #[cfg(test)]
@@ -791,13 +809,11 @@ mod tests {
 
     #[test]
     fn offline_scripts_accept_offline_operations() {
-        let script =
-            Script::parse("steps:\n  - compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
+        let script = Script::parse("steps:\n  - compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
 
-        let script =
-            Script::parse("steps:\n  - sim: {layout: a.yaml, seed: 7}\n").unwrap();
+        let script = Script::parse("steps:\n  - sim: {layout: a.yaml, seed: 7}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
     }
@@ -817,9 +833,10 @@ mod tests {
 
     #[test]
     fn expect_is_not_mistaken_for_an_operation() {
-        let script =
-            Script::parse("game: attach\nsteps:\n  - status: {}\n    expect: {status: main_menu}\n")
-                .unwrap();
+        let script = Script::parse(
+            "game: attach\nsteps:\n  - status: {}\n    expect: {status: main_menu}\n",
+        )
+        .unwrap();
         let Step::Call(call) = &script.steps[0] else {
             panic!("expected a plain operation");
         };
@@ -888,7 +905,8 @@ mod tests {
         );
         assert!(Script::parse("game: attach\nsteps:\n  - foreach: {case: $c}\n").is_err());
         assert!(
-            Script::parse("game: attach\nsteps:\n  - foreach: {case: $c}\n    steps: []\n").is_err()
+            Script::parse("game: attach\nsteps:\n  - foreach: {case: $c}\n    steps: []\n")
+                .is_err()
         );
     }
 
@@ -911,7 +929,10 @@ mod tests {
     #[test]
     fn speed_up_must_be_a_boolean() {
         assert_eq!(optional_flag(None, "x").unwrap(), None);
-        assert_eq!(optional_flag(Some(&json!(false)), "x").unwrap(), Some(false));
+        assert_eq!(
+            optional_flag(Some(&json!(false)), "x").unwrap(),
+            Some(false)
+        );
         assert_eq!(optional_flag(Some(&json!(true)), "x").unwrap(), Some(true));
         // A multiplier is not a thing the native vote can express, so a number
         // must be refused rather than silently treated as "on".

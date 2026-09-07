@@ -203,9 +203,10 @@ async fn native(
                 [path] => (path, None),
                 [path, seed] => (
                     path,
-                    Some(seed.parse::<i32>().map_err(|_| {
-                        format!("seed must be a signed 32-bit integer: {seed}")
-                    })?),
+                    Some(
+                        seed.parse::<i32>()
+                            .map_err(|_| format!("seed must be a signed 32-bit integer: {seed}"))?,
+                    ),
                 ),
                 _ => return Err("usage: apply_layout <layout.yaml> [seed]".into()),
             };
@@ -371,7 +372,11 @@ mod tests {
         );
         assert_eq!(
             parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), Some(PathBuf::from("/tmp/a.mov")), None)
+            (
+                PathBuf::from("/tmp/a.mcfr"),
+                Some(PathBuf::from("/tmp/a.mov")),
+                None
+            )
         );
         // The options are independent, in either order.
         assert_eq!(

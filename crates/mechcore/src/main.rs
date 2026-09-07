@@ -79,9 +79,7 @@ fn main() -> ExitCode {
 }
 
 /// Acquisition is declared, never inferred: at most one of the two flags.
-fn shell_mode(
-    arguments: impl Iterator<Item = String>,
-) -> Result<Option<acquire::Mode>, String> {
+fn shell_mode(arguments: impl Iterator<Item = String>) -> Result<Option<acquire::Mode>, String> {
     let mut mode = None;
     for argument in arguments {
         let requested = match argument.as_str() {
