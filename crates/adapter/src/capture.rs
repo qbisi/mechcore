@@ -742,6 +742,7 @@ struct CaptureState {
     speed_up_allowed: bool,
     speed_up_requested: bool,
     await_replay_deployment: bool,
+    replay_playback: bool,
     last_native_tick: Option<u64>,
     native_tick_step: Option<u64>,
     deployment_layout_yaml: Option<String>,
@@ -804,6 +805,7 @@ impl CaptureState {
         self.speed_up_allowed = false;
         self.speed_up_requested = false;
         self.await_replay_deployment = false;
+        self.replay_playback = false;
         self.last_native_tick = None;
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
@@ -1465,7 +1467,7 @@ static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::n
 /// The RVO hooks stay installed for the process, but they are only useful to a
 /// capture that requested the profile. Without this, every hooked call still
 /// took the capture-state mutex just to discover it had nothing to do, and
-/// GenerateOpponentVOs runs once per agent pair per tick, so an ordinary
+/// `GenerateOpponentVOs` runs once per agent pair per tick, so an ordinary
 /// recording paid instrumentation lock traffic proportional to unit count.
 static RVO_INSTRUMENTATION_ACTIVE: AtomicBool = AtomicBool::new(false);
 
@@ -2138,6 +2140,7 @@ pub(crate) fn start(
     state.deployment_layout_yaml = layout_yaml;
     state.speed_up_allowed = speed_up;
     state.await_replay_deployment = mode == CaptureStartMode::Replay;
+    state.replay_playback = mode == CaptureStartMode::Replay;
     RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
     RVO_SOURCE_CALL_ORDINAL.store(0, Ordering::Release);
     RVO_VO_CALL_ORDINAL.store(0, Ordering::Release);
@@ -3742,12 +3745,16 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 if current_match.is_null() {
                     return Err("active match disappeared before recording speed-up".into());
                 }
-                let action_controller =
-                    invoke_object(runtime.api, current_match, "GetMatchActionController")?;
-                runtime
-                    .api
-                    .invoke_void(action_controller, "RequestSpeedUp", &mut [])
-                    .map_err(|error| format!("cannot request recording speed-up: {error}"))?;
+                if state.replay_playback {
+                    request_replay_speed_up(runtime, current_match)?;
+                } else {
+                    let action_controller =
+                        invoke_object(runtime.api, current_match, "GetMatchActionController")?;
+                    runtime
+                        .api
+                        .invoke_void(action_controller, "RequestSpeedUp", &mut [])
+                        .map_err(|error| format!("cannot request recording speed-up: {error}"))?;
+                }
                 state.speed_up_requested = true;
             }
             let next = snapshot(runtime, &mut state, false)?;
@@ -5110,6 +5117,34 @@ fn validate_native_indices(kind: &str, indices: &[i32]) -> Result<(), String> {
             return Err(format!("duplicate native {kind} index {native_index}"));
         }
         previous = Some(native_index);
+    }
+    Ok(())
+}
+
+/// A replay ignores the match speed-up vote: playback rate lives on TimeSystem.
+///
+/// Two multiplies real time without letting the game outrun the capture queue,
+/// which is bounded and fails the recording when it overflows. The readback is
+/// fail-closed so a clamp reports the value the game will actually accept
+/// instead of silently recording at a different rate than requested.
+const REPLAY_PLAYBACK_SPEED: f32 = 2.0;
+
+fn request_replay_speed_up(runtime: &Runtime, current_match: *mut Object) -> Result<(), String> {
+    let time_system =
+        find_match_module(runtime.api, current_match, "GameRiver.Client", "TimeSystem")?;
+    let mut speed = REPLAY_PLAYBACK_SPEED;
+    runtime
+        .api
+        .invoke_void(time_system, "ChangePlaySpeed", &mut [argument(&mut speed)])
+        .map_err(|error| format!("cannot set replay playback speed: {error}"))?;
+    let observed = runtime
+        .api
+        .invoke_value::<f32>(time_system, "GetSpeed", &mut [])
+        .map_err(|error| format!("cannot read replay playback speed: {error}"))?;
+    if (observed - REPLAY_PLAYBACK_SPEED).abs() > f32::EPSILON {
+        return Err(format!(
+            "replay playback speed {REPLAY_PLAYBACK_SPEED} was not accepted; the game reports {observed}"
+        ));
     }
     Ok(())
 }
