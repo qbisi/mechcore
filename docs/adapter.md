@@ -324,7 +324,10 @@ lifetime, and the controller's direct unit applications. `affectedUnits` is join
 `affectedUnitTimes` and positive `effectTimeDuration` provide an optional periodic clock.
 Terrain creation and removal events follow authoritative item-list membership changes at consecutive
 snapshot boundaries. Removed pointers are tombstoned, and the current removal source records
-`terrain_removed.reason=unknown`.
+`terrain_removed.reason=unknown`. These snapshot-difference events are synthesized,
+not native callback traces: creation events are appended first, then removal
+events, with each batch ordered by stable Terrain ID rather than process-local
+pointer address. Previously captured combat callbacks retain their original order.
 
 Native build `1.11.1.3.2259` capture coverage includes `oil`, `fire`, `acid`, and `fog` battle-skill
 layouts. In those recordings all four terrain types were present in `terrains.parquet` and their

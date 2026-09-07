@@ -6318,14 +6318,45 @@ fn read_terrains(
             terrains.push(state);
         }
     }
+    record_terrain_lifecycle(capture, current_pointers, initial)?;
+    terrains.sort_by_key(|terrain| terrain.terrain_id);
+    Ok(terrains)
+}
+
+// These events are synthesized from snapshot differences, not native callback
+// order. Pointer order varies between processes; stable terrain IDs must define
+// order within each lifecycle batch. Leave earlier combat traces untouched.
+fn record_terrain_lifecycle(
+    capture: &mut CaptureState,
+    current_pointers: BTreeSet<usize>,
+    initial: bool,
+) -> Result<(), String> {
     if initial {
         capture.live_terrain_pointers = current_pointers;
     } else {
-        for pointer in current_pointers.difference(&capture.live_terrain_pointers) {
-            let state = capture
-                .terrain_last_states
-                .get(pointer)
-                .ok_or_else(|| "new terrain is missing its captured state".to_owned())?;
+        let mut created = current_pointers
+            .difference(&capture.live_terrain_pointers)
+            .map(|pointer| {
+                capture
+                    .terrain_last_states
+                    .get(pointer)
+                    .ok_or_else(|| "new terrain is missing its captured state".to_owned())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut removed = capture
+            .live_terrain_pointers
+            .difference(&current_pointers)
+            .map(|pointer| {
+                capture
+                    .terrain_last_states
+                    .get(pointer)
+                    .map(|state| (*pointer, state))
+                    .ok_or_else(|| "removed terrain is missing its last state".to_owned())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        created.sort_by_key(|state| state.terrain_id);
+        removed.sort_by_key(|(_, state)| state.terrain_id);
+        for state in created {
             capture.traces.push(NativeTrace::TerrainCreated {
                 terrain_id: state.terrain_id,
                 team_id: state.team_id,
@@ -6334,21 +6365,16 @@ fn read_terrains(
                 radius: state.radius,
             });
         }
-        for pointer in capture.live_terrain_pointers.difference(&current_pointers) {
-            let state = capture
-                .terrain_last_states
-                .get(pointer)
-                .ok_or_else(|| "removed terrain is missing its last state".to_owned())?;
+        for (pointer, state) in removed {
             capture.traces.push(NativeTrace::TerrainRemoved {
                 terrain_id: state.terrain_id,
                 position: state.position,
             });
-            capture.retired_terrain_pointers.insert(*pointer);
+            capture.retired_terrain_pointers.insert(pointer);
         }
         capture.live_terrain_pointers = current_pointers;
     }
-    terrains.sort_by_key(|terrain| terrain.terrain_id);
-    Ok(terrains)
+    Ok(())
 }
 
 fn read_terrain_applications(
@@ -8614,6 +8640,113 @@ fn set_code_bytes(address: *mut c_void, bytes: &[u8]) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn lifecycle_terrain(id: u64) -> TerrainState {
+        TerrainState {
+            terrain_id: id,
+            team_id: Some(1),
+            terrain_type: TerrainType::Oil,
+            position: QVec3 {
+                x: id as i64,
+                y: 0,
+                z: 7,
+            },
+            radius: 123,
+            grid: None,
+            remaining_rounds: None,
+            logic_lifetime: None,
+            applications: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn terrain_lifecycle_order_is_independent_of_pointer_order() {
+        for pointers in [[90, 10, 70, 20, 50], [100, 300, 200, 500, 400]] {
+            let mut capture = CaptureState::default();
+            for (index, pointer) in pointers.iter().enumerate() {
+                capture
+                    .terrain_last_states
+                    .insert(*pointer, lifecycle_terrain(index as u64 + 1));
+            }
+            let previous = BTreeSet::from([pointers[0], pointers[1], pointers[4]]);
+            record_terrain_lifecycle(&mut capture, previous, true).unwrap();
+            assert!(
+                capture.traces.is_empty(),
+                "initial snapshot is not a creation batch"
+            );
+            capture.traces.push(NativeTrace::TerrainRemoved {
+                terrain_id: 99,
+                position: lifecycle_terrain(99).position,
+            });
+            let current = BTreeSet::from([pointers[2], pointers[3], pointers[4]]);
+            record_terrain_lifecycle(&mut capture, current.clone(), false).unwrap();
+            let events: Vec<_> = capture
+                .traces
+                .iter()
+                .map(|trace| match trace {
+                    NativeTrace::TerrainCreated {
+                        terrain_id,
+                        position,
+                        radius,
+                        team_id,
+                        terrain_type,
+                    } => {
+                        assert_eq!(*radius, 123);
+                        assert_eq!(*team_id, Some(1));
+                        assert_eq!(*terrain_type, TerrainType::Oil);
+                        ("created", *terrain_id, *position)
+                    }
+                    NativeTrace::TerrainRemoved {
+                        terrain_id,
+                        position,
+                    } => ("removed", *terrain_id, *position),
+                    _ => panic!("unexpected trace"),
+                })
+                .collect();
+            let expected: Vec<_> = [
+                ("removed", 99),
+                ("created", 3),
+                ("created", 4),
+                ("removed", 1),
+                ("removed", 2),
+            ]
+            .into_iter()
+            .map(|(kind, id)| (kind, id, lifecycle_terrain(id).position))
+            .collect();
+            assert_eq!(
+                events, expected,
+                "existing traces stay in place; each new batch sorts by ID"
+            );
+            assert_eq!(
+                capture.retired_terrain_pointers,
+                BTreeSet::from([pointers[0], pointers[1]])
+            );
+            assert_eq!(capture.live_terrain_pointers, current);
+            record_terrain_lifecycle(&mut capture, current, false).unwrap();
+            assert_eq!(
+                capture.traces.len(),
+                5,
+                "unchanged snapshots emit no extra events"
+            );
+        }
+    }
+
+    #[test]
+    fn terrain_lifecycle_rejects_missing_state_without_partial_events() {
+        for (previous, current) in [
+            (BTreeSet::new(), BTreeSet::from([10])),
+            (BTreeSet::from([10]), BTreeSet::new()),
+        ] {
+            let mut capture = CaptureState {
+                live_terrain_pointers: previous.clone(),
+                ..CaptureState::default()
+            };
+            assert!(record_terrain_lifecycle(&mut capture, current, false).is_err());
+            assert!(capture.traces.is_empty());
+            assert!(capture.retired_terrain_pointers.is_empty());
+            assert_eq!(capture.live_terrain_pointers, previous);
+        }
+    }
 
     static RVO_GLOBAL_TEST_LOCK: Mutex<()> = Mutex::new(());
     static TEST_HOOK_CALLS: [AtomicU64; RVO_HOOK_COUNT] =
