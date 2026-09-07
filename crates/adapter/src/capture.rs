@@ -27,7 +27,7 @@ use std::{
     ptr,
     sync::{
         Mutex, OnceLock,
-        atomic::{AtomicPtr, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicPtr, AtomicU64, Ordering},
     },
 };
 
@@ -808,6 +808,7 @@ impl CaptureState {
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
         self.instrumentation_profile = None;
+        RVO_INSTRUMENTATION_ACTIVE.store(false, Ordering::Release);
         self.rvo_scope = None;
         self.queue.clear();
         self.unit_ids.clear();
@@ -1459,6 +1460,15 @@ static ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED: AtomicPtr<c_void> =
 static ORIGINAL_ADVANCED_SHIELD_DAMAGE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_MECH_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+/// Whether this capture asked for RVO instrumentation.
+///
+/// The RVO hooks stay installed for the process, but they are only useful to a
+/// capture that requested the profile. Without this, every hooked call still
+/// took the capture-state mutex just to discover it had nothing to do, and
+/// GenerateOpponentVOs runs once per agent pair per tick, so an ordinary
+/// recording paid instrumentation lock traffic proportional to unit count.
+static RVO_INSTRUMENTATION_ACTIVE: AtomicBool = AtomicBool::new(false);
+
 static ORIGINAL_RVO_CONTROLLER_ACTIVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_ADD_AGENT_FIXED: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RVO_FIXED_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -1547,6 +1557,11 @@ enum NativeTrace {
         building_id: u64,
         position: QVec3,
     },
+}
+
+/// Read without the capture-state lock: the hooks are on the game's hot path.
+fn rvo_instrumentation_active() -> bool {
+    RVO_INSTRUMENTATION_ACTIVE.load(Ordering::Acquire)
 }
 
 fn capture_state() -> &'static Mutex<CaptureState> {
@@ -2130,6 +2145,10 @@ pub(crate) fn start(
     CURRENT_RVO_FIXED_UPDATE.store(u64::MAX, Ordering::Release);
     CURRENT_RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
     RVO_ACTIVATION_COUNT.store(0, Ordering::Release);
+    RVO_INSTRUMENTATION_ACTIVE.store(
+        instrumentation_profile.is_some_and(CaptureInstrumentationProfile::includes_rvo),
+        Ordering::Release,
+    );
     state.instrumentation_profile = instrumentation_profile;
     state.rvo_scope = rvo_scope;
     if visual {
@@ -2213,6 +2232,7 @@ pub(crate) fn stop() -> Result<(), String> {
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     state.armed = false;
+    RVO_INSTRUMENTATION_ACTIVE.store(false, Ordering::Release);
     state.pending_visual = None;
     state.traces.clear();
     clear_pending_rvo_state(&mut state);
@@ -2506,6 +2526,12 @@ unsafe extern "C" fn rvo_controller_active_hook(
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoControllerActiveFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        unsafe { original(controller, method) };
+        return;
+    }
     let previous = ACTIVE_RVO_CONTROLLER.with(|active| active.replace(controller as usize));
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     unsafe { original(controller, method) };
@@ -2524,6 +2550,11 @@ unsafe extern "C" fn rvo_add_agent_fixed_hook(
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoAddAgentFixedFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        return unsafe { original(simulator, agent, method) };
+    }
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     let added = unsafe { original(simulator, agent, method) };
     ACTIVE_RVO_CONTROLLER.with(|active| {
@@ -2611,6 +2642,12 @@ unsafe extern "C" fn rvo_fixed_update_hook(simulator: *mut Object, method: *cons
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoFixedUpdateFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        unsafe { original(simulator, method) };
+        return;
+    }
     let update_ordinal = begin_rvo_update(simulator);
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     unsafe { original(simulator, method) };
@@ -2626,6 +2663,12 @@ unsafe extern "C" fn rvo_pre_calculation_hook(simulator: *mut Object, method: *c
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoPreCalculationFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        unsafe { original(simulator, method) };
+        return;
+    }
     activate_rvo_update(simulator);
     // PreCalculation is called after any previous double-buffered workers were
     // joined/published and before this update's worker tasks are signalled.
@@ -2640,6 +2683,12 @@ unsafe extern "C" fn rvo_calculate_neighbours_hook(agent: *mut Object, method: *
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoCalculateNeighboursFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        unsafe { original(agent, method) };
+        return;
+    }
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     unsafe { original(agent, method) };
     record_rvo_neighbours(agent);
@@ -2656,6 +2705,12 @@ unsafe extern "C" fn rvo_generate_neighbour_vos_hook(
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoGenerateNeighbourVosFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        unsafe { original(agent, vos, method) };
+        return;
+    }
     let update_ordinal = active_rvo_update();
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     unsafe { original(agent, vos, method) };
@@ -2719,6 +2774,12 @@ unsafe extern "C" fn rvo_generate_opponent_vos_hook(
     }
     // SAFETY: the installer stores the trampoline for this exact method ABI.
     let original: RvoGenerateOpponentVosFn = unsafe { std::mem::transmute(original) };
+    // Forward untouched unless this capture asked for RVO instrumentation.
+    if !rvo_instrumentation_active() {
+        // SAFETY: arguments are forwarded unchanged from IL2CPP.
+        unsafe { original(agent, vos, other, method) };
+        return;
+    }
     let profile_active = {
         let state = capture_state()
             .lock()
