@@ -15,6 +15,7 @@ sides:
 
     formations:
       - type: sabertooth
+        index: 0
         x: -205
         y: -295
         equipment: 1305003
@@ -25,9 +26,11 @@ sides:
 
     formations:
       - type: marksman
+        index: 0
         x: 200
         y: -100
 
       - type: steel_ball
+        index: 1
         x: -205
         y: -100

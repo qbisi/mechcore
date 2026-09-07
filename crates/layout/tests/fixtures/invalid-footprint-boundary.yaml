@@ -4,11 +4,13 @@ sides:
   blue:
     formations:
       - type: sledgehammer
+        index: 0
         x: 285
         y: -60
 
   red:
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -50

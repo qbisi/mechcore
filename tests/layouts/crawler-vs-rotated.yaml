@@ -4,12 +4,14 @@ sides:
   blue:
     formations:
       - type: crawler
+        index: 0
         x: 5
         y: -100
 
   red:
     formations:
       - type: crawler
+        index: 0
         rotated: true
         x: 0
         y: -105

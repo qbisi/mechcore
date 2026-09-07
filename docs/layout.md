@@ -53,18 +53,19 @@ sides:
 
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -50
         equipment: 13030001
 
       - type: arclight
+        index: 1
         x: -310
         y: 20
         travelling: true
 
     constructions:
       - type: defensive_wall
-        index: 0
         x: 140
         y: -105
 
@@ -96,6 +97,7 @@ sides:
       movement_enhancement: false
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -100
 
@@ -260,6 +262,7 @@ when omitted:
 - `contraptions` defaults to `[]`.
 - `terrains` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
+- A unit formation's `index` is required and has no default.
 - A unit formation's `level` defaults to `1`.
 - A unit formation's `rotated` defaults to `false`.
 - A unit formation's `equipment` defaults to no equipment.
@@ -416,12 +419,19 @@ semantic `type` instead of exposing its native numeric ID:
   selects both the native catalog and the valid unit fields.
 - `x` and `y` are required exact signed coordinates in the owning side's fixed
   local frame defined above, not native world or screen pixels.
-- `index` is the stable, non-negative native unit index. Indices must be
-  strictly increasing in formation declaration order and may contain gaps.
-  When omitted, the compiler assigns contiguous indices from zero for existing
-  hand-written layouts.
+- `index` is the required stable, non-negative native unit index. Indices must
+  be strictly increasing in formation declaration order and may contain gaps.
 - `exp` is the unit formation's non-negative integer experience within its
   current level. The default is `0` and canonical YAML omits that default.
+
+A unit index is an identity, not a position in this array. It is allocated once
+when the unit is bought and survives every later round the unit lives through,
+so the same number names the same unit across a whole match, and selling a unit
+retires its index rather than freeing it for reuse. That is why the field is
+required: a document that leaves it to declaration order cannot say which unit
+it is describing, and inserting or removing an entry would silently rename
+every unit after it. Since indices must also increase in declaration order,
+requiring them makes array order redundant: the index determines it.
 
 The Adapter creates formations in declaration/index order, assigning each
 requested index directly through `MAD_AddUnit.UIDX`. Missing indices remain
@@ -537,8 +547,8 @@ following values form the closed public `type` vocabulary for each field:
 ```
 
 The adapter resolves `type` to a native `CardData.ID`; that catalog ID is not
-public layout state. `index` is the optional stable native formation index and
-defaults to declaration order. `level` is the optional displayed level,
+public layout state. `index` is the required stable native formation index.
+`level` is the optional displayed level,
 defaults to `1`, and must be in `1..=9`. `exp` is optional, defaults to `0`,
 and records the formation's current-level experience. `rotated` is an optional
 boolean, defaults to `false`, and declares the native unit-orientation flag;

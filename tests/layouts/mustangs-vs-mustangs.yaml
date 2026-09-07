@@ -4,11 +4,13 @@ sides:
   blue:
     formations:
       - type: mustang
+        index: 0
         x: 5
         y: -100
 
   red:
     formations:
       - type: mustang
+        index: 0
         x: 5
         y: -100

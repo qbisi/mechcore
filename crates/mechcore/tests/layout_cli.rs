@@ -11,12 +11,12 @@ seed: -17
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, x: 0, y: -50}]
+    formations: [{type: marksman, index: 0, x: 0, y: -50}]
     constructions: [{type: defensive_wall, x: 140, y: -105}]
     contraptions: [{type: interceptor, x: 35, y: -85}]
     terrains: [{type: oil, positions: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
-    formations: [{type: arclight, x: 0, y: -50}]
+    formations: [{type: arclight, index: 0, x: 0, y: -50}]
 "#,
     )
     .unwrap();
@@ -48,7 +48,7 @@ fn layout_verify_rejects_the_zero_seed_sentinel() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        "seed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+        "seed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, index: 0, x: 0, y: -50}]\n",
     )
     .unwrap();
 
@@ -76,10 +76,10 @@ round: 1
 sides:
   blue:
     formations:
-      - {type: marksman, x: 0, y: -50}
-      - {type: shield, x: 0, y: -100}
+      - {type: marksman, index: 0, x: 0, y: -50}
+      - {type: shield, index: 1, x: 0, y: -100}
   red:
-    formations: [{type: arclight, x: 0, y: -50}]
+    formations: [{type: arclight, index: 0, x: 0, y: -50}]
 "#,
     )
     .unwrap();
@@ -104,10 +104,10 @@ fn layout_format_emits_canonical_defaults_and_supports_in_place_write() {
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, x: 0, y: -50, level: 1, rotated: false}]
+    formations: [{type: marksman, index: 0, x: 0, y: -50, level: 1, rotated: false}]
     terrains: [{type: oil, positions: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
-    formations: [{type: arclight, x: 0, y: -50, travelling: false}]
+    formations: [{type: arclight, index: 0, x: 0, y: -50, travelling: false}]
 "#,
     )
     .unwrap();
@@ -146,12 +146,12 @@ fn layout_diff_compares_normalized_fields() {
     let right = directory.path().join("right.yaml");
     fs::write(
         &left,
-        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 0, y: -50, level: 1}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, x: 0, y: -50, level: 1}]\n  red:\n    formations: [{type: arclight, index: 0, x: 0, y: -50}]\n",
     )
     .unwrap();
     fs::write(
         &right,
-        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, x: 0, y: -50}]\n  red:\n    formations: [{type: arclight, index: 0, x: 0, y: -50}]\n",
     )
     .unwrap();
 
@@ -169,7 +169,7 @@ fn layout_diff_compares_normalized_fields() {
 
     fs::write(
         &right,
-        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, x: 20, y: -50}]\n  red:\n    formations: [{type: arclight, x: 0, y: -50}]\n",
+        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, x: 20, y: -50}]\n  red:\n    formations: [{type: arclight, index: 0, x: 0, y: -50}]\n",
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))

@@ -12,24 +12,31 @@ sides:
 
     formations:
       - type: sledgehammer
+        index: 0
         x: -55
         y: -60
       - type: sledgehammer
+        index: 1
         x: 55
         y: -60
       - type: crawler
+        index: 2
         x: -55
         y: -100
       - type: crawler
+        index: 3
         x: 55
         y: -100
       - type: marksman
+        index: 4
         x: -90
         y: -140
       - type: marksman
+        index: 5
         x: 0
         y: -140
       - type: marksman
+        index: 6
         x: 90
         y: -140
 
@@ -50,28 +57,35 @@ sides:
 
     formations:
       - type: fang
+        index: 0
         x: -55
         y: -60
       - type: fang
+        index: 1
         x: 55
         y: -60
       - type: wasp
+        index: 2
         x: -60
         y: -95
         level: 2
         rotated: true
       - type: wasp
+        index: 3
         x: 60
         y: -95
         level: 2
         rotated: true
       - type: arclight
+        index: 4
         x: -90
         y: -140
       - type: arclight
+        index: 5
         x: 0
         y: -140
       - type: arclight
+        index: 6
         x: 90
         y: -140
 

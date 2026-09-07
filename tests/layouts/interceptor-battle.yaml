@@ -4,6 +4,7 @@ sides:
   blue:
     formations:
       - type: stormcaller
+        index: 0
         x: 5
         y: -120
     contraptions:
@@ -14,6 +15,7 @@ sides:
   red:
     formations:
       - type: stormcaller
+        index: 0
         x: 5
         y: -120
     contraptions:

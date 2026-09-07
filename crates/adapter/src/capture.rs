@@ -4804,7 +4804,7 @@ fn read_native_side(
             native_index,
             Formation {
                 type_name: type_name.to_owned(),
-                index: Some(native_index),
+                index: native_index,
                 x,
                 y,
                 level: Some(displayed_level),
@@ -10933,7 +10933,7 @@ mod tests {
             combat_round: 1,
             match_seed: 0,
         };
-        let layout = "seed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      x: 0\n      y: -50\n";
+        let layout = "seed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      index: 0\n      x: 0\n      y: -50\n  red:\n    formations:\n    - type: arclight\n      index: 0\n      x: 0\n      y: -50\n";
         let mut writer =
             mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
         writer.append_tick(state, &events).unwrap();

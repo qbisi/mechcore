@@ -4,17 +4,21 @@ sides:
   blue:
     formations:
       - type: crawler
+        index: 0
         x: 5
         y: -80
       - type: stormcaller
+        index: 1
         x: 5
         y: -120
 
   red:
     formations:
       - type: crawler
+        index: 0
         x: 5
         y: -80
       - type: stormcaller
+        index: 1
         x: 5
         y: -120

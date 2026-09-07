@@ -18,15 +18,18 @@ sides:
 
     formations:
       - type: arclight
+        index: 0
         x: 100
         y: -80
 
       - type: sabertooth
+        index: 1
         x: -205
         y: -295
         equipment: 1305003
 
       - type: crawler
+        index: 2
         x: 310
         y: 285
         travelling: true
@@ -34,6 +37,7 @@ sides:
       # Declared after Arclight at the same y to distinguish native z/x order
       # from YAML declaration order in the formation_id audit.
       - type: mustang
+        index: 3
         x: -275
         y: -80
 
@@ -62,6 +66,7 @@ sides:
   red:
     formations:
       - type: steel_ball
+        index: 0
         x: -205
         y: -100
 

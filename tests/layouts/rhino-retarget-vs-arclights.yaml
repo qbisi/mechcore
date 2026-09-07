@@ -4,14 +4,17 @@ sides:
   blue:
     formations:
       - type: rhino
+        index: 0
         x: -285
         y: -105
 
   red:
     formations:
       - type: arclight
+        index: 0
         x: 290
         y: -100
       - type: arclight
+        index: 1
         x: 190
         y: -100

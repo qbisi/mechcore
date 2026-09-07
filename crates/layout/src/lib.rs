@@ -92,8 +92,7 @@ impl EnergyTower {
 pub struct Formation {
     #[serde(rename = "type")]
     pub type_name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub index: Option<i32>,
+    pub index: i32,
     pub x: i32,
     pub y: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -488,8 +487,7 @@ fn compile_formations(
 ) -> Result<Vec<Placement>, String> {
     let placements = definitions
         .into_iter()
-        .enumerate()
-        .map(|(declaration_index, formation)| {
+        .map(|formation| {
             let Formation {
                 type_name,
                 index,
@@ -524,9 +522,6 @@ fn compile_formations(
                 unreachable!("unit resolver returned non-unit placement")
             };
             let level = level.unwrap_or(1);
-            let declaration_index = i32::try_from(declaration_index)
-                .map_err(|_| format!("side {side_name} formation index overflow"))?;
-            let index = index.unwrap_or(declaration_index);
             let exp = exp.unwrap_or(0);
             let rotated = rotated.unwrap_or(false);
             let travelling = travelling.unwrap_or(false);
@@ -1652,11 +1647,11 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
                     "battle_skills": [{"type": type_name, "positions": positions}]
                 },
                 "red": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 }
             }
         })
@@ -1667,11 +1662,11 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
                     "terrains": terrains
                 },
                 "red": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 }
             }
         })
@@ -1681,8 +1676,8 @@ mod tests {
     fn requires_a_positive_round() {
         let missing = compile(&json!({
             "sides": {
-                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap_err();
@@ -1691,8 +1686,8 @@ mod tests {
         let invalid = compile(&json!({
             "round": 0,
             "sides": {
-                "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap_err();
@@ -1704,8 +1699,8 @@ mod tests {
             compile(&json!({
                 "round": 40,
                 "sides": {
-                    "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
-                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                    "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
+                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
                 }
             }))
             .unwrap()
@@ -1720,8 +1715,8 @@ mod tests {
             let mut value = json!({
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [{"type": "marksman", "x": 0, "y": -50}]},
-                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                    "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
+                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
                 }
             });
             if let Some(seed) = seed {
@@ -1808,10 +1803,10 @@ round: 1
 sides:
   blue:
     formations:
-      - {type: defensive_wall, x: 140, y: -105}
+      - {type: defensive_wall, index: 0, x: 140, y: -105}
   red:
     formations:
-      - {type: marksman, x: 0, y: -50}
+      - {type: marksman, index: 0, x: 0, y: -50}
 "#,
         )
         .unwrap_err();
@@ -1827,13 +1822,13 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "x": 0, "y": -50},
-                    {"type": "marksman", "x": -310, "y": 20},
-                    {"type": "arclight", "x": 310, "y": 20, "travelling": true}
+                    {"index": 0, "type": "marksman", "x": 0, "y": -50},
+                    {"index": 1, "type": "marksman", "x": -310, "y": 20},
+                    {"index": 2, "type": "arclight", "x": 310, "y": 20, "travelling": true}
                 ], "contraptions": [
                     {"type": "interceptor", "x": 5, "y": -85}
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap();
@@ -1858,9 +1853,9 @@ sides:
                 "round": round,
                 "sides": {
                     "blue": {"formations": [
-                        {"type": "marksman", "x": -310, "y": 20, "travelling": travelling}
+                        {"index": 0, "type": "marksman", "x": -310, "y": 20, "travelling": travelling}
                     ]},
-                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
                 }
             })
         };
@@ -1883,8 +1878,8 @@ sides:
         let omitted = compile(&json!({
             "round": 2,
             "sides": {
-                "blue": {"formations": [{"type": "marksman", "x": -310, "y": 20}]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "blue": {"formations": [{"index": 0, "type": "marksman", "x": -310, "y": 20}]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap_err();
@@ -1911,9 +1906,9 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "x": 0, "y": -50, "travelling": true}
+                    {"index": 0, "type": "marksman", "x": 0, "y": -50, "travelling": true}
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap_err();
@@ -1926,9 +1921,9 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "x": -300, "y": 20, "travelling": true}
+                    {"index": 0, "type": "marksman", "x": -300, "y": 20, "travelling": true}
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap_err();
@@ -1941,12 +1936,12 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {
+                    {"index": 0,
                         "type": "crawler", "x": 325, "y": 60,
                         "rotated": true, "travelling": true
                     }
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap();
@@ -1959,12 +1954,12 @@ sides:
             "round": 3,
             "sides": {
                 "blue": {"formations": [
-                    {
+                    {"index": 0,
                         "type": "crawler", "x": 310, "y": 65,
                         "rotated": true, "travelling": true
                     }
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         }))
         .unwrap_err();
@@ -1976,11 +1971,11 @@ sides:
         let plan = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [{
+                "blue": {"formations": [{"index": 0,
                     "type": "marksman",
                     "x": -20, "y": -50
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman",
                     "x": 20, "y": -180
                 }]}
@@ -2008,7 +2003,7 @@ sides:
                     {"type": "marksman", "index": 0, "x": -20, "y": -50, "exp": 7},
                     {"type": "marksman", "index": 2, "x": 20, "y": -50}
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -180}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -180}]}
             }
         }))
         .unwrap();
@@ -2025,7 +2020,7 @@ sides:
                     {"type": "marksman", "index": 1, "x": -20, "y": -50},
                     {"type": "marksman", "index": 1, "x": 20, "y": -50}
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -180}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -180}]}
             }
         }))
         .unwrap_err();
@@ -2035,9 +2030,9 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "x": 0, "y": -50, "exp": -1}
+                    {"index": 0, "type": "marksman", "x": 0, "y": -50, "exp": -1}
                 ]},
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -180}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -180}]}
             }
         }))
         .unwrap_err();
@@ -2049,11 +2044,11 @@ sides:
         let plan = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [{
+                "blue": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50,
                     "equipment": 13_030_001
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2070,11 +2065,11 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 100, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 100, "y": -50}],
                     "constructions": [{"type": "defensive_wall", "x": 0, "y": -55,
                      "equipment": 13_030_001}]
                 },
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2089,10 +2084,10 @@ sides:
         let error = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [{
+                "blue": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50, "equipment": 0
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2112,10 +2107,10 @@ sides:
             "sides": {
                 "blue": {
                     "techs": {"officers": [30602], "units": [10202]},
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 },
                 "red": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 }
             }
         }))
@@ -2126,10 +2121,10 @@ sides:
         let error = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"techs": {"units": [10202, 10202]}, "formations": [{
+                "blue": {"techs": {"units": [10202, 10202]}, "formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2140,10 +2135,10 @@ sides:
         let error = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"techs": {"officers": [0]}, "formations": [{
+                "blue": {"techs": {"officers": [0]}, "formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2162,10 +2157,10 @@ sides:
             "sides": {
                 "blue": {
                     "research_center": {"attack_level": 3},
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 },
                 "red": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 }
             }
         }))
@@ -2178,11 +2173,11 @@ sides:
         let error = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [{
+                "blue": {"formations": [{"index": 0,
                     "type": "defensive_wall",
                     "x": 0, "y": -55
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2200,7 +2195,7 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2212,7 +2207,7 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": []},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2228,10 +2223,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {"formations": [
-                        {"type": "marksman", "x": 0, "y": -50},
-                        {"type": "arclight", "x": second_x, "y": -50}
+                        {"index": 0, "type": "marksman", "x": 0, "y": -50},
+                        {"index": 1, "type": "arclight", "x": second_x, "y": -50}
                     ]},
-                    "red": {"formations": [{
+                    "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -50
                     }]}
                 }
@@ -2286,10 +2281,10 @@ sides:
         let error = compile(&json!({
             "round": 1,
             "sides": {
-                "blue": {"formations": [{
+                "blue": {"formations": [{"index": 0,
                     "type": "marksman", "x": 5, "y": -50
                 }]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2422,10 +2417,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"type": "marksman", "x": 0, "y": -100}],
+                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -100}],
                         "contraptions": [{"type": "interceptor", "x": 5, "y": interceptor_y}]
                     },
-                    "red": {"formations": [{
+                    "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -50
                     }]}
                 }
@@ -2453,12 +2448,12 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -100}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -100}],
                     "contraptions": [
                     {"type": "shield", "x": 1, "y": -101},
                     {"type": "missile", "x": 1, "y": -101}
                 ]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -100
                 }]}
             }
@@ -2483,11 +2478,11 @@ sides:
     #[test]
     fn retained_airdrop_shields_preserve_order_and_use_battlefield_bounds() {
         let mut value = json!({"round": 2, "sides": {
-            "blue": {"formations": [{"type":"marksman","x":0,"y":-150}],
+            "blue": {"formations": [{"index": 0, "type":"marksman","x":0,"y":-150}],
                 "contraptions": [
                     {"type":"shield","x":300,"y":20,"isairdrop":true},
                     {"type":"shield","x":0,"y":-120}]},
-            "red": {"formations": [{"type":"marksman","x":0,"y":-150}]}}});
+            "red": {"formations": [{"index": 0, "type":"marksman","x":0,"y":-150}]}}});
         let plan = compile(&value).unwrap();
         assert_eq!(
             plan.blue
@@ -2512,9 +2507,9 @@ sides:
     fn isairdrop_is_only_a_shield_field() {
         for kind in ["missile", "interceptor"] {
             let value = json!({"round":1,"sides":{
-                "blue":{"formations":[{"type":"marksman","x":0,"y":-150}],
+                "blue":{"formations":[{"index": 0, "type":"marksman","x":0,"y":-150}],
                     "contraptions":[{"type":kind,"x":5,"y":-95,"isairdrop":false}]},
-                "red":{"formations":[{"type":"marksman","x":0,"y":-150}]}}});
+                "red":{"formations":[{"index": 0, "type":"marksman","x":0,"y":-150}]}}});
             assert!(
                 compile(&value)
                     .unwrap_err()
@@ -2530,10 +2525,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
                         "contraptions": [{"type": "shield", "x": x, "y": y}]
                     },
-                    "red": {"formations": [{
+                    "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -150
                     }]}
                 }
@@ -2556,10 +2551,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
                         "contraptions": [{"type": "missile", "x": x, "y": y}]
                     },
-                    "red": {"formations": [{
+                    "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -150
                     }]}
                 }
@@ -2581,14 +2576,14 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
                     "constructions": [
                     {"type": "rapid_fire_turret", "x": 140, "y": -60},
                     {"type": "defensive_wall", "x": 140, "y": -105},
                     {"type": "anti_armor_turret", "x": -140, "y": -60},
                     {"type": "magnetic_barrier", "x": -165, "y": -105}
                 ]},
-                "red": {"formations": [{
+                "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
                 }]}
             }
@@ -2626,10 +2621,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -150}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
                     "constructions": [{"type": "rapid_fire_turret", "x": 140, "y": -60}]
                 },
-                "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
         });
         let plan = compile(&value).unwrap();
@@ -2651,14 +2646,14 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
                     "battle_skills": [{
                         "type": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"type": "fang", "x": -55, "y": -60}],
+                    "formations": [{"index": 0, "type": "fang", "x": -55, "y": -60}],
                     "battle_skills": [{
                         "type": "mobile_beacon",
                         "positions": [
@@ -2839,10 +2834,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                 },
                 "red": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
                     "battle_skills": [{
                         "type": "rhino_assault",
                         "positions": [{"x": -300, "y": 170}]
@@ -2877,11 +2872,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}],
                         "battle_skills": battle_skills
                     },
                     "red": {
-                        "formations": [{"type": "marksman", "x": 0, "y": -50}]
+                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]
                     }
                 }
             })

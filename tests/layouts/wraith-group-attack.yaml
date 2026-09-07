@@ -4,13 +4,16 @@ sides:
   blue:
     formations:
       - type: wraith
+        index: 0
         x: -5
         y: -95
       - type: crawler
+        index: 1
         rotated: true
         x: 0
         y: -135
       - type: steel_ball
+        index: 2
         rotated: true
         x: 20
         y: -135
@@ -18,13 +21,16 @@ sides:
   red:
     formations:
       - type: wraith
+        index: 0
         x: -5
         y: -95
       - type: crawler
+        index: 1
         rotated: true
         x: 0
         y: -135
       - type: steel_ball
+        index: 2
         rotated: true
         x: 20
         y: -135

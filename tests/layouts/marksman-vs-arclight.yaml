@@ -4,11 +4,13 @@ sides:
   blue:
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -50
 
   red:
     formations:
       - type: arclight
+        index: 0
         x: 0
         y: -50

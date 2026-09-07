@@ -4,6 +4,7 @@ sides:
   blue:
     formations:
       - type: arclight
+        index: 0
         x: 0
         y: -280
 
@@ -16,6 +17,7 @@ sides:
   red:
     formations:
       - type: sledgehammer
+        index: 0
         x: 5
         y: -100
     contraptions:

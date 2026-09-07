@@ -91,7 +91,6 @@ impl Session {
         self.status.borrow().clone()
     }
 
-
     /// Whether an Adapter connection is currently held.
     pub(crate) async fn is_connected(&self) -> bool {
         self.adapter.lock().await.is_some()
@@ -237,7 +236,6 @@ impl Session {
         let status = self.refresh_status().await?;
         Ok(json!({"connected": true, "status": status}))
     }
-
 
     pub(crate) async fn start_test(&self, seed: Option<i32>) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
@@ -589,7 +587,6 @@ impl Session {
             ))
         }
     }
-
 }
 
 pub(crate) fn validate_record_outputs(
@@ -780,7 +777,12 @@ pub(crate) fn is_training_deployment(value: &Value) -> bool {
         && value.get("fighting").and_then(Value::as_bool) == Some(false)
 }
 
-pub(crate) fn is_training_state(value: &Value, round: i64, deploying: bool, fighting: bool) -> bool {
+pub(crate) fn is_training_state(
+    value: &Value,
+    round: i64,
+    deploying: bool,
+    fighting: bool,
+) -> bool {
     is_status(value, "training_ground")
         && value.get("round_count").and_then(Value::as_i64) == Some(round)
         && value.get("deploying").and_then(Value::as_bool) == Some(deploying)
@@ -830,13 +832,16 @@ mod tests {
     #[tokio::test]
     async fn apply_layout_runs_shared_validation_before_game_state_checks() {
         let error = Session::new()
-            .apply_layout(json!({
-                "round": 1,
-                "sides": {
-                    "blue": {"formations": [{"type": "unknown", "x": 0, "y": -50}]},
-                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
-                }
-            }), None)
+            .apply_layout(
+                json!({
+                    "round": 1,
+                    "sides": {
+                        "blue": {"formations": [{"type": "unknown", "index": 0, "x": 0, "y": -50}]},
+                        "red": {"formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}]}
+                    }
+                }),
+                None,
+            )
             .await
             .unwrap_err();
 
@@ -846,19 +851,22 @@ mod tests {
     #[tokio::test]
     async fn apply_layout_accepts_nonempty_terrains_before_game_state_checks() {
         let error = Session::new()
-            .apply_layout(json!({
-                "round": 1,
-                "sides": {
-                    "blue": {
-                        "formations": [{"type": "marksman", "x": 0, "y": -50}],
-                        "terrains": [{
-                            "type": "oil",
-                            "positions": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
-                        }]
-                    },
-                    "red": {"formations": [{"type": "marksman", "x": 0, "y": -50}]}
-                }
-            }), None)
+            .apply_layout(
+                json!({
+                    "round": 1,
+                    "sides": {
+                        "blue": {
+                            "formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}],
+                            "terrains": [{
+                                "type": "oil",
+                                "positions": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
+                            }]
+                        },
+                        "red": {"formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}]}
+                    }
+                }),
+                None,
+            )
             .await
             .unwrap_err();
 

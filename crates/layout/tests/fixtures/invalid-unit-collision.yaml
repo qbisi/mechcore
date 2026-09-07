@@ -4,9 +4,11 @@ sides:
   blue:
     formations:
       - type: sledgehammer
+        index: 0
         x: 5
         y: -100
       - type: crawler
+        index: 1
         x: 20
         y: -95
         rotated: true
@@ -14,5 +16,6 @@ sides:
   red:
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -50

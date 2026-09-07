@@ -4,9 +4,11 @@ sides:
   blue:
     formations:
       - type: arclight
+        index: 0
         x: 0
         y: -100
       - type: crawler
+        index: 1
         rotated: true
         x: 0
         y: -135
@@ -14,9 +16,11 @@ sides:
   red:
     formations:
       - type: arclight
+        index: 0
         x: 0
         y: -100
       - type: crawler
+        index: 1
         rotated: true
         x: 0
         y: -135

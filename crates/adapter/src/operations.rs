@@ -1,7 +1,7 @@
 use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
 use crate::layout::{
-    self, BattleSkill, EnergyTower, NativeFormation, Placement, ResearchCenter,
-    SidePlan, Techs, Terrain,
+    self, BattleSkill, EnergyTower, NativeFormation, Placement, ResearchCenter, SidePlan, Techs,
+    Terrain,
 };
 use crate::runtime::Runtime;
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
@@ -117,8 +117,8 @@ pub(crate) fn execute_internal(
             instrumentation_profile,
             rvo_scope,
         )
-            .map(|()| json!({"started": true}))
-            .map_err(OperationError::InvalidState),
+        .map(|()| json!({"started": true}))
+        .map_err(OperationError::InvalidState),
         InternalOperation::StopCapture => crate::capture::stop()
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
@@ -3664,10 +3664,10 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {"formations": [{
-                    "type": "marksman", "x": 20, "y": -50
+                    "type": "marksman", "index": 0, "x": 20, "y": -50
                 }]},
                 "red": {"formations": [{
-                    "type": "marksman", "x": 20, "y": -50
+                    "type": "marksman", "index": 0, "x": 20, "y": -50
                 }]}
             }
         }))
@@ -3689,14 +3689,14 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "x": 0, "y": -50}],
+                    "formations": [{"type": "marksman", "index": 0, "x": 0, "y": -50}],
                     "battle_skills": [{
                         "type": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"type": "fang", "x": -55, "y": -60}],
+                    "formations": [{"type": "fang", "index": 0, "x": -55, "y": -60}],
                     "battle_skills": [{
                         "type": "mobile_beacon",
                         "positions": [

@@ -4,6 +4,7 @@ sides:
   blue:
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -150
     constructions:
@@ -21,6 +22,7 @@ sides:
   red:
     formations:
       - type: marksman
+        index: 0
         x: 0
         y: -150
     constructions:

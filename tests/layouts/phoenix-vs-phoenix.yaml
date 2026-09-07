@@ -4,11 +4,13 @@ sides:
   blue:
     formations:
       - type: phoenix
+        index: 0
         x: 10
         y: -100
 
   red:
     formations:
       - type: phoenix
+        index: 0
         x: 10
         y: -100
