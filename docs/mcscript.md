@@ -52,17 +52,29 @@ through `quit_game`; an attached game is left running.
 | Operation | Needs a game | Notes |
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
-| `compare` | no | `left`, `right`; same report as `mechcore mcfr compare` |
+| `compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
 | `sim` | no | `layout`, optional `seed`, `output`, `config`; same report as `mechcore sim` |
 | `status` | yes | current status snapshot |
 | `start_test` | yes | `seed`; rarely needed, see `apply_layout` |
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `record_battle` | yes | `output`, optional `video_output`, optional `speed_up` |
-| `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up` |
+| `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `force` |
+| `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `force` |
 | `toggle_fight` | yes | |
 | `speed_up` | yes | standalone operation, distinct from the recording field |
 | `quit_match` | yes | |
 | `quit_game` | yes | |
+
+A recording refuses to overwrite its destination. `force: true` deletes the
+existing file first, which is a decision the caller declares rather than one the
+Adapter makes: the Adapter still refuses to write over anything, and the client
+removes the file before asking. It is what makes a capture script re-runnable
+without hand-clearing its output directory between runs.
+
+`compare` returns the verdict, the two recording summaries, and the first
+divergent tick. It omits the divergent tick states unless `verbose: true`,
+because those are whole world snapshots and a script that only wanted to know
+whether two recordings match should not carry megabytes of units through its
+log. `mechcore mcfr compare` always prints them.
 
 `sim` runs the deterministic simulator on a layout and returns the same result
 object `mechcore sim` prints, so `expect` can assert `seed_source`, `steps`, or

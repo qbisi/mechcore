@@ -5,7 +5,7 @@ use serde::Serialize;
 
 pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     let options = Options::parse(arguments)?;
-    let (equal, report) = compare(&options.left, &options.right)?;
+    let (equal, report) = compare(&options.left, &options.right, true)?;
     println!(
         "{}",
         serde_json::to_string_pretty(&report)
@@ -17,10 +17,13 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
 /// Compare two recordings, returning the verdict and the structured report.
 ///
 /// Shared with `mechcore run`, whose `compare` step asserts on the same fields
-/// the CLI prints.
+/// the CLI prints. `detailed` carries the two divergent tick states, which are
+/// whole world snapshots: useful when a person asked for them, and megabytes of
+/// noise in a script log that only wanted the verdict.
 pub(crate) fn compare(
     left_path: &std::path::Path,
     right_path: &std::path::Path,
+    detailed: bool,
 ) -> Result<(bool, serde_json::Value), String> {
     let left = McfrReader::open(left_path).map_err(|error| error.to_string())?;
     let right = McfrReader::open(right_path).map_err(|error| error.to_string())?;
@@ -34,7 +37,7 @@ pub(crate) fn compare(
             "physics result hashes differ although every stored physics tick hash matches".into(),
         );
     }
-    let divergent_ticks = if let Some(tick) = first_divergence {
+    let divergent_ticks = if let Some(tick) = first_divergence.filter(|_| detailed) {
         Some(DivergentTicks {
             left: read_tick(&left, tick)?,
             right: read_tick(&right, tick)?,

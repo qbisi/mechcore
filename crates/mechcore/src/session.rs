@@ -324,6 +324,7 @@ impl Session {
         output: PathBuf,
         video_output: Option<PathBuf>,
         speed_up: Option<bool>,
+        force: bool,
         instrumentation: Option<RecordBattleInstrumentationParameters>,
     ) -> Result<Value, Value> {
         let _operation = self.operation.lock().await;
@@ -333,7 +334,12 @@ impl Session {
                 "record_battle requires completed Training Ground deployment: {before}"
             )));
         }
-        validate_record_outputs(&output, video_output.as_deref(), instrumentation.as_ref())?;
+        validate_record_outputs(
+            &output,
+            video_output.as_deref(),
+            instrumentation.as_ref(),
+            force,
+        )?;
         let layout_input = self
             .last_applied_layout
             .lock()
@@ -436,6 +442,7 @@ impl Session {
         round: i32,
         output: PathBuf,
         speed_up: Option<bool>,
+        force: bool,
         instrumentation: Option<RecordBattleInstrumentationParameters>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
@@ -454,12 +461,11 @@ impl Session {
         }
         if !output.is_absolute()
             || output.extension().and_then(|value| value.to_str()) != Some("mcfr")
-            || output.exists()
         {
-            return Err("record_replay_round output must be a new absolute .mcfr path".into());
+            return Err("record_replay_round output must be an absolute .mcfr path".into());
         }
         *self.last_applied_layout.lock().await = None;
-        validate_record_outputs(&output, None, instrumentation.as_ref())
+        validate_record_outputs(&output, None, instrumentation.as_ref(), force)
             .map_err(|error| error.to_string())?;
         let result = self
             .adapter_request(
@@ -589,10 +595,37 @@ impl Session {
     }
 }
 
+/// Refuse an existing destination, or remove it when the caller asked to.
+fn remove_existing_output(path: &Path, force: bool, what: &str) -> Result<(), Value> {
+    if !path.exists() {
+        return Ok(());
+    }
+    if !force {
+        return Err(error_body(format!(
+            "{what} refuses to overwrite {}; pass force to replace it",
+            path.display()
+        )));
+    }
+    if !path.is_file() {
+        return Err(error_body(format!(
+            "{what} {} exists and is not a file",
+            path.display()
+        )));
+    }
+    std::fs::remove_file(path)
+        .map_err(|error| error_body(format!("cannot replace {}: {error}", path.display())))
+}
+
+/// Validate the destinations a recording will publish.
+///
+/// `force` removes an existing destination here rather than relaxing the
+/// Adapter, which keeps refusing to overwrite. Deleting is the caller's
+/// declared intent; overwriting would be the Adapter deciding on its own.
 pub(crate) fn validate_record_outputs(
     output: &Path,
     video_output: Option<&Path>,
     instrumentation: Option<&RecordBattleInstrumentationParameters>,
+    force: bool,
 ) -> Result<(), Value> {
     if !output.is_absolute() {
         return Err(error_body("record_battle output must be an absolute path"));
@@ -602,12 +635,7 @@ pub(crate) fn validate_record_outputs(
             "record_battle output must use the .mcfr extension",
         ));
     }
-    if output.exists() {
-        return Err(error_body(format!(
-            "record_battle refuses to overwrite {}",
-            output.display()
-        )));
-    }
+    remove_existing_output(output, force, "record_battle output")?;
     if let Some(video_output) = video_output {
         if !video_output.is_absolute() {
             return Err(error_body(
@@ -624,12 +652,7 @@ pub(crate) fn validate_record_outputs(
                 "record_battle output and video_output must differ",
             ));
         }
-        if video_output.exists() {
-            return Err(error_body(format!(
-                "record_battle refuses to overwrite {}",
-                video_output.display()
-            )));
-        }
+        remove_existing_output(video_output, force, "record_battle video_output")?;
     }
     if let Some(instrumentation) = instrumentation {
         if let Some(scope) = &instrumentation.rvo_scope
@@ -827,6 +850,26 @@ mod tests {
         assert!(is_training_deployment(&deployment));
         assert!(is_training_state(&deployment, 1, true, false));
         assert!(!is_training_state(&deployment, 2, true, false));
+    }
+
+    #[test]
+    fn an_existing_output_is_refused_unless_the_caller_forces_it() {
+        let directory = tempfile::tempdir().unwrap();
+        let output = directory.path().join("battle.mcfr");
+        std::fs::write(&output, b"existing").unwrap();
+
+        let refused = validate_record_outputs(&output, None, None, false).unwrap_err();
+        assert!(
+            refused["error"]
+                .as_str()
+                .unwrap()
+                .contains("refuses to overwrite"),
+            "{refused}"
+        );
+        assert!(output.exists(), "a refusal must leave the file alone");
+
+        validate_record_outputs(&output, None, None, true).unwrap();
+        assert!(!output.exists(), "force removes the destination up front");
     }
 
     #[tokio::test]

@@ -555,7 +555,8 @@ async fn perform(
                 fields.get("right").ok_or("compare needs right")?,
                 "compare right",
             )?;
-            let (_, report) = mcfr::compare(&left, &right)?;
+            let detailed = optional_flag(fields.get("verbose"), "compare verbose")?;
+            let (_, report) = mcfr::compare(&left, &right, detailed.unwrap_or(false))?;
             Ok(report)
         }
         "sim" => simulate(arguments, scope),
@@ -587,8 +588,9 @@ async fn perform(
                 .map(|value| scope.path(value, "record_battle video_output"))
                 .transpose()?;
             let speed_up = optional_flag(fields.get("speed_up"), "record_battle speed_up")?;
+            let force = optional_flag(fields.get("force"), "record_battle force")?;
             session
-                .record_battle(output, video, speed_up, None)
+                .record_battle(output, video, speed_up, force.unwrap_or(false), None)
                 .await
                 .map_err(|value| value.to_string())
         }
@@ -612,8 +614,9 @@ async fn perform(
                 .and_then(|value| i32::try_from(value).ok())
                 .ok_or("record_replay_round needs an integer round")?;
             let speed_up = optional_flag(fields.get("speed_up"), "record_replay_round speed_up")?;
+            let force = optional_flag(fields.get("force"), "record_replay_round force")?;
             session
-                .record_replay_round(grbr, round, output, speed_up, None)
+                .record_replay_round(grbr, round, output, speed_up, force.unwrap_or(false), None)
                 .await
         }
         "toggle_fight" => session.toggle_fight().await,

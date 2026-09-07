@@ -217,20 +217,29 @@ async fn native(
             session.apply_layout(layout, seed).await
         }
         "record_battle" => {
-            let (output, video, speed_up) = parse_record_battle(arguments)?;
+            let (output, video, speed_up, force) = parse_record_battle(arguments)?;
             session
                 .record_battle(
                     output,
                     video,
                     speed_up,
+                    force,
                     None::<RecordBattleInstrumentationParameters>,
                 )
                 .await
                 .map_err(|value| render(&value))
         }
         "record_replay_round" => {
-            let [grbr, round, output] = arguments else {
-                return Err("usage: record_replay_round <in.grbr> <round> <out.mcfr>".into());
+            const USAGE: &str =
+                "usage: record_replay_round <in.grbr> <round> <out.mcfr> [-f|--force]";
+            let ([grbr, round, output], rest) = match arguments {
+                [grbr, round, output, rest @ ..] => ([grbr, round, output], rest),
+                _ => return Err(USAGE.into()),
+            };
+            let force = match rest {
+                [] => false,
+                ["-f" | "--force"] => true,
+                _ => return Err(USAGE.into()),
             };
             let round = round
                 .parse::<i32>()
@@ -241,6 +250,7 @@ async fn native(
                     round,
                     PathBuf::from(output),
                     None,
+                    force,
                     None,
                 )
                 .await
@@ -253,18 +263,20 @@ async fn native(
     }
 }
 
-type RecordBattleArgs = (PathBuf, Option<PathBuf>, Option<bool>);
+type RecordBattleArgs = (PathBuf, Option<PathBuf>, Option<bool>, bool);
 
 /// `record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]`
 ///
 /// The two options are independent: video and speed-up coexist.
 fn parse_record_battle(arguments: &[&str]) -> Result<RecordBattleArgs, String> {
-    const USAGE: &str = "usage: record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]";
+    const USAGE: &str =
+        "usage: record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f|--force]";
     let [output, rest @ ..] = arguments else {
         return Err(USAGE.into());
     };
     let mut video = None;
     let mut speed_up = None;
+    let mut force = false;
     let mut rest = rest.iter();
     while let Some(argument) = rest.next() {
         match *argument {
@@ -272,10 +284,11 @@ fn parse_record_battle(arguments: &[&str]) -> Result<RecordBattleArgs, String> {
                 video = Some(PathBuf::from(rest.next().ok_or(USAGE)?));
             }
             "--no-speed-up" if speed_up.is_none() => speed_up = Some(false),
+            "-f" | "--force" if !force => force = true,
             _ => return Err(USAGE.into()),
         }
     }
-    Ok((PathBuf::from(output), video, speed_up))
+    Ok((PathBuf::from(output), video, speed_up, force))
 }
 
 fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
@@ -364,18 +377,19 @@ mod tests {
         // Omitting the flag leaves the default to the adapter, which speeds up.
         assert_eq!(
             parse_record_battle(&["/tmp/a.mcfr"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None, None)
+            (PathBuf::from("/tmp/a.mcfr"), None, None, false)
         );
         assert_eq!(
             parse_record_battle(&["/tmp/a.mcfr", "--no-speed-up"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None, Some(false))
+            (PathBuf::from("/tmp/a.mcfr"), None, Some(false), false)
         );
         assert_eq!(
             parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov"]).unwrap(),
             (
                 PathBuf::from("/tmp/a.mcfr"),
                 Some(PathBuf::from("/tmp/a.mov")),
-                None
+                None,
+                false
             )
         );
         // The options are independent, in either order.
@@ -385,10 +399,21 @@ mod tests {
             (
                 PathBuf::from("/tmp/a.mcfr"),
                 Some(PathBuf::from("/tmp/a.mov")),
-                Some(false)
+                Some(false),
+                false
             )
         );
+        // Force is independent of the other two and has both spellings.
+        assert_eq!(
+            parse_record_battle(&["/tmp/a.mcfr", "-f"]).unwrap(),
+            (PathBuf::from("/tmp/a.mcfr"), None, None, true)
+        );
+        assert_eq!(
+            parse_record_battle(&["/tmp/a.mcfr", "--force"]).unwrap(),
+            (PathBuf::from("/tmp/a.mcfr"), None, None, true)
+        );
         assert!(parse_record_battle(&["/tmp/a.mcfr", "--no-speed-up", "--no-speed-up"]).is_err());
+        assert!(parse_record_battle(&["/tmp/a.mcfr", "-f", "--force"]).is_err());
         assert!(parse_record_battle(&[]).is_err());
         assert!(parse_record_battle(&["/tmp/a.mcfr", "--video"]).is_err());
     }
