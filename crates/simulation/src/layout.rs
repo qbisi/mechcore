@@ -246,7 +246,7 @@ sides:
     fn rejects_constructions_outside_the_baseline_slice() {
         let value = LAYOUT.replace(
             "formations: [{type: marksman, index: 0, x: 0, y: -50}]",
-            "formations: [{type: marksman, index: 0, x: 0, y: -50}]\n    constructions: [{type: defensive_wall, x: 140, y: -105}]",
+            "formations: [{type: marksman, index: 0, x: 0, y: -50}]\n    constructions: [{type: defensive_wall, index: 0, x: 140, y: -105}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),

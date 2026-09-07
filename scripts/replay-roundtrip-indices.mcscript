@@ -1,0 +1,61 @@
+# Round-trip the round that carries every indexed collection at once: the replay
+# and the Training Ground must record the same fight.
+#
+#   mechcore run scripts/replay-roundtrip-indices.mcscript --check   validate offline
+#   mechcore run scripts/replay-roundtrip-indices.mcscript --force   record
+#
+# Round 2 is nearly bare, so a difference there is a defect in the basics.
+#
+# Round 7 is the coverage that matters for deployment identity. Both sides carry
+# constructions and contraptions, and the red contraption indices are 2, 3, 4,
+# 10, 11, 12, 13 and 14: five permanent gaps left by objects sold or destroyed in
+# earlier rounds. Rebuilding that state means the executor has to place each
+# object under the exact index the recorded match gave it rather than under a
+# dense renumbering, for constructions by setting the release action's IDX and
+# for contraptions by pointing the recorder's allocator at the declared index.
+#
+# The round also holds technologies, tower levels and battle skills, so it is
+# where every ordered collection in the schema is non-empty at once.
+#
+# Both comparisons carry an expect, so a mismatch fails the run.
+#
+# Both paths must be absolute.
+
+game: launch
+
+vars:
+  out: /Users/qbisi/mechcore-v2/work/research/replay-roundtrip-indices
+  grbr: /Users/qbisi/mechcore-v2/tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr
+
+steps:
+  - record_replay_round:
+      grbr: $grbr
+      round: 2
+      output: ${out}/replay-r2.mcfr
+  - let:
+      layout_r2: embedded_layout(${out}/replay-r2.mcfr)
+  - apply_layout: $layout_r2
+  - record_battle:
+      output: ${out}/training-r2.mcfr
+  - compare:
+      left: ${out}/replay-r2.mcfr
+      right: ${out}/training-r2.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  - record_replay_round:
+      grbr: $grbr
+      round: 7
+      output: ${out}/replay-r7.mcfr
+  - let:
+      layout_r7: embedded_layout(${out}/replay-r7.mcfr)
+  - apply_layout: $layout_r7
+  - record_battle:
+      output: ${out}/training-r7.mcfr
+  - compare:
+      left: ${out}/replay-r7.mcfr
+      right: ${out}/training-r7.mcfr
+    expect:
+      equal: true
+      content_equal: true

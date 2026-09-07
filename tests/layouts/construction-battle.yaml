@@ -10,12 +10,15 @@ sides:
     constructions:
       # Replay R002: build-2227 opening group 28 with reverse_x.
       - type: defensive_wall
+        index: 0
         x: -140
         y: -55
       - type: rapid_fire_turret
+        index: 1
         x: 140
         y: -100
       - type: anti_armor_turret
+        index: 2
         x: -140
         y: -100
 
@@ -28,11 +31,14 @@ sides:
     constructions:
       # R002 world coordinates converted into red's side-local frame.
       - type: defensive_wall
+        index: 0
         x: 140
         y: -55
       - type: rapid_fire_turret
+        index: 1
         x: -140
         y: -100
       - type: anti_armor_turret
+        index: 2
         x: 140
         y: -100

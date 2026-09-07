@@ -43,17 +43,21 @@ sides:
 
     constructions:
       - type: rapid_fire_turret
+        index: 0
         x: 140
         y: -140
 
     contraptions:
       - type: shield
+        index: 0
         x: 180
         y: -120
       - type: missile
+        index: 1
         x: 0
         y: -20
       - type: interceptor
+        index: 2
         x: -105
         y: -105
 
@@ -72,5 +76,6 @@ sides:
 
     constructions:
       - type: anti_armor_turret
+        index: 0
         x: 140
         y: -140

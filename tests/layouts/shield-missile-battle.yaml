@@ -9,9 +9,11 @@ sides:
         y: -40
     contraptions:
       - type: shield
+        index: 0
         x: 1
         y: -81
       - type: missile
+        index: 1
         x: 1
         y: -11
 
@@ -23,8 +25,10 @@ sides:
         y: -40
     contraptions:
       - type: shield
+        index: 0
         x: 1
         y: -81
       - type: missile
+        index: 1
         x: 1
         y: -11

@@ -131,13 +131,16 @@ sides:
       y: -120
     constructions:
     - type: defensive_wall
+      index: 0
       x: 140
       y: -55
     - type: rapid_fire_turret
+      index: 1
       x: -140
       y: -100
     contraptions:
     - type: shield
+      index: 0
       x: -98
       y: -143
     battle_skills:
@@ -321,9 +324,11 @@ sides:
       level: 2
     contraptions:
     - type: shield
+      index: 0
       x: 229
       y: -113
     - type: shield
+      index: 1
       x: 90
       y: -108
     battle_skills:

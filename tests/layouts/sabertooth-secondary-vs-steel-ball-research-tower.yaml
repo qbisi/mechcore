@@ -10,6 +10,7 @@ sides:
 
     constructions:
       - type: rapid_fire_turret
+        index: 0
         x: 140
         y: -140
 

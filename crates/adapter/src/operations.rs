@@ -2425,10 +2425,19 @@ fn apply_construction_formation(
             }
         }
     }
+    let declared_index = declared_index(placement, "construction")?;
     let retained = retained_index.is_some();
     let construction_index = match retained_index {
-        Some(index) => index,
-        None => construction(runtime, construction_id, world_position)
+        Some(index) => {
+            if index != declared_index {
+                return Err(OperationError::Rejected(format!(
+                    "retained construction {} carries native index {index}, layout declares {declared_index}",
+                    describe_placement(placement)
+                )));
+            }
+            index
+        }
+        None => construction(runtime, construction_id, world_position, declared_index)
             .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?,
     };
     Ok(json!({
@@ -2446,8 +2455,21 @@ fn apply_contraption_formation(
     contraption_id: i32,
     world_position: MapVector,
 ) -> Result<Value, OperationError> {
-    let contraption_index = contraption(runtime, contraption_id, world_position, None)
-        .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
+    let declared_index = declared_index(placement, "contraption")?;
+    let contraption_index = contraption(
+        runtime,
+        contraption_id,
+        world_position,
+        None,
+        declared_index,
+    )
+    .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
+    if contraption_index != declared_index {
+        return Err(OperationError::Rejected(format!(
+            "contraption {} was recorded under index {contraption_index}, layout declares {declared_index}",
+            describe_placement(placement)
+        )));
+    }
     Ok(json!({
         "type": placement.type_name,
         "contraption_index": contraption_index,
@@ -3079,6 +3101,7 @@ fn contraption(
     mut id: i32,
     mut position: MapVector,
     extra: Option<MapVector>,
+    mut wanted_index: i32,
 ) -> Result<i32, OperationError> {
     let has_extra = extra.is_some();
     let mut extra = extra.unwrap_or_default();
@@ -3140,6 +3163,15 @@ fn contraption(
             )));
         }
     }
+    // A contraption release carries no index of its own: the record takes
+    // whatever the recorder's allocator holds. Point the allocator at the
+    // identity the layout declares, which is also how a gap left by a sold or
+    // destroyed object is reproduced.
+    runtime.api.invoke_void(
+        baseline.recorder,
+        "set_NextObjectIndex",
+        &mut [argument(&mut wanted_index)],
+    )?;
     let action = core_action(runtime.api, "PAD_ReleaseContraption")?;
     runtime
         .api
@@ -3312,10 +3344,22 @@ fn research_blueprint(runtime: &Runtime, mut id: i32) -> Result<(bool, bool), Op
     Ok((active, researching))
 }
 
+/// The layout's declared deployment index, which is the object's cross-round
+/// identity rather than a position in the declaration list.
+fn declared_index(placement: &Placement, kind: &str) -> Result<i32, OperationError> {
+    placement.index.ok_or_else(|| {
+        OperationError::InvalidArguments(format!(
+            "{kind} {} has no declared deployment index",
+            describe_placement(placement)
+        ))
+    })
+}
+
 fn construction(
     runtime: &Runtime,
     mut id: i32,
     mut position: MapVector,
+    mut wanted_index: i32,
 ) -> Result<i32, OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
@@ -3393,10 +3437,21 @@ fn construction(
             "construction action did not preserve its type and position".into(),
         ));
     }
+    // The release controller fills IDX from the manager's allocator. A layout
+    // carries the identity the object had in the recorded match instead, and
+    // ConstructionManager keys its elements by exactly this value.
+    runtime
+        .api
+        .invoke_void(action, "set_IDX", &mut [argument(&mut wanted_index)])?;
     check_action(runtime.api, controller, action)?;
     let construction_index = runtime
         .api
         .invoke_value::<i32>(action, "get_IDX", &mut [])?;
+    if construction_index != wanted_index {
+        return Err(OperationError::Rejected(format!(
+            "construction action kept index {construction_index} after requesting {wanted_index}"
+        )));
+    }
     perform_sync(runtime.api, controller, action)?;
     verify_construction_readback(
         runtime,

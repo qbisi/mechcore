@@ -40,9 +40,11 @@ sides:
       rotated: true
     constructions:
     - type: defensive_wall
+      index: 0
       x: 140
       y: -55
     - type: rapid_fire_turret
+      index: 1
       x: -140
       y: -100
   red:
@@ -84,5 +86,6 @@ sides:
       rotated: true
     constructions:
     - type: defensive_wall
+      index: 0
       x: -140
       y: -55

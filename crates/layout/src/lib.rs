@@ -117,6 +117,7 @@ pub struct Formation {
 pub struct StaticPlacement {
     #[serde(rename = "type")]
     pub type_name: String,
+    pub index: i32,
     pub x: i32,
     pub y: i32,
 }
@@ -126,6 +127,7 @@ pub struct StaticPlacement {
 pub struct ContraptionPlacement {
     #[serde(rename = "type")]
     pub type_name: String,
+    pub index: i32,
     pub x: i32,
     pub y: i32,
 }
@@ -585,18 +587,37 @@ fn compile_formations(
             "side {side_name} formations must contain at least one valid unit"
         ));
     }
+    validate_increasing_indices(side_name, "formation", &placements)?;
+    Ok(placements)
+}
+
+/// A deployment index is a cross-round identity allocated in deployment order,
+/// so a collection is in normal form only when it is sorted by it. Indices are
+/// never reused, so a sold or destroyed object leaves a permanent gap.
+fn validate_increasing_indices(
+    side_name: &str,
+    kind: &str,
+    placements: &[Placement],
+) -> Result<(), String> {
     let mut previous = None;
-    for placement in &placements {
-        let index = placement.index.expect("unit placements have an index");
+    for placement in placements {
+        let index = placement
+            .index
+            .expect("indexed placements carry their index");
+        if index < 0 {
+            return Err(format!(
+                "side {side_name} {kind} index must be non-negative, got {index}"
+            ));
+        }
         if previous.is_some_and(|previous| index <= previous) {
             return Err(format!(
-                "side {side_name} formation indices must be strictly increasing in declaration order; found {index} after {}",
+                "side {side_name} {kind} indices must be strictly increasing in declaration order; found {index} after {}",
                 previous.expect("checked as some")
             ));
         }
         previous = Some(index);
     }
-    Ok(placements)
+    Ok(())
 }
 
 fn compile_constructions(
@@ -606,7 +627,12 @@ fn compile_constructions(
     definitions
         .into_iter()
         .map(|definition| {
-            let StaticPlacement { type_name, x, y } = definition;
+            let StaticPlacement {
+                type_name,
+                index,
+                x,
+                y,
+            } = definition;
             let position = Position { x, y };
             let spec = resolve_construction_type(&type_name).ok_or_else(|| {
                 format!(
@@ -619,7 +645,7 @@ fn compile_constructions(
                 native: spec.native,
                 footprint: spec.footprint,
                 position,
-                index: None,
+                index: Some(index),
                 level: None,
                 exp: None,
                 rotated: false,
@@ -627,7 +653,11 @@ fn compile_constructions(
                 travelling: false,
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>, String>>()
+        .and_then(|placements| {
+            validate_increasing_indices(side_name, "construction", &placements)?;
+            Ok(placements)
+        })
 }
 
 fn compile_contraptions(
@@ -637,7 +667,12 @@ fn compile_contraptions(
     definitions
         .into_iter()
         .map(|definition| {
-            let ContraptionPlacement { type_name, x, y } = definition;
+            let ContraptionPlacement {
+                type_name,
+                index,
+                x,
+                y,
+            } = definition;
             let position = Position { x, y };
             let spec = resolve_contraption_type(&type_name).ok_or_else(|| {
                 format!(
@@ -650,7 +685,7 @@ fn compile_contraptions(
                 native: spec.native,
                 footprint: spec.footprint,
                 position,
-                index: None,
+                index: Some(index),
                 level: None,
                 exp: None,
                 rotated: false,
@@ -658,7 +693,11 @@ fn compile_contraptions(
                 travelling: false,
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>, String>>()
+        .and_then(|placements| {
+            validate_increasing_indices(side_name, "contraption", &placements)?;
+            Ok(placements)
+        })
 }
 
 /// A retained Shield Airdrop is an existing world object, not a contraption
@@ -1861,7 +1900,7 @@ sides:
                     {"index": 1, "type": "marksman", "x": -310, "y": 20},
                     {"index": 2, "type": "arclight", "x": 310, "y": 20, "travelling": true}
                 ], "contraptions": [
-                    {"type": "interceptor", "x": 5, "y": -85}
+                    {"index": 0, "type": "interceptor", "x": 5, "y": -85}
                 ]},
                 "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
@@ -2101,7 +2140,7 @@ sides:
             "sides": {
                 "blue": {
                     "formations": [{"index": 0, "type": "marksman", "x": 100, "y": -50}],
-                    "constructions": [{"type": "defensive_wall", "x": 0, "y": -55,
+                    "constructions": [{"index": 0, "type": "defensive_wall", "x": 0, "y": -55,
                      "equipment": 13_030_001}]
                 },
                 "red": {"formations": [{"index": 0,
@@ -2453,7 +2492,7 @@ sides:
                 "sides": {
                     "blue": {
                         "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -100}],
-                        "contraptions": [{"type": "interceptor", "x": 5, "y": interceptor_y}]
+                        "contraptions": [{"index": 0, "type": "interceptor", "x": 5, "y": interceptor_y}]
                     },
                     "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -50
@@ -2485,8 +2524,8 @@ sides:
                 "blue": {
                     "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -100}],
                     "contraptions": [
-                    {"type": "shield", "x": 1, "y": -101},
-                    {"type": "missile", "x": 1, "y": -101}
+                    {"index": 0, "type": "shield", "x": 1, "y": -101},
+                    {"index": 1, "type": "missile", "x": 1, "y": -101}
                 ]},
                 "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -100
@@ -2514,7 +2553,7 @@ sides:
     fn retained_airdrop_shields_are_their_own_collection() {
         let mut value = json!({"round": 2, "sides": {
             "blue": {"formations": [{"index": 0, "type":"marksman","x":0,"y":-150}],
-                "contraptions": [{"type":"shield","x":0,"y":-120}],
+                "contraptions": [{"index": 0, "type":"shield","x":0,"y":-120}],
                 "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
             "red": {"formations": [{"index": 0, "type":"marksman","x":0,"y":-150}]}}});
         let plan = compile(&value).unwrap();
@@ -2540,7 +2579,7 @@ sides:
         for kind in ["shield", "missile", "interceptor"] {
             let value = json!({"round":1,"sides":{
                 "blue":{"formations":[{"index": 0, "type":"marksman","x":0,"y":-150}],
-                    "contraptions":[{"type":kind,"x":5,"y":-95,"isairdrop":false}]},
+                    "contraptions":[{"index": 0, "type":kind,"x":5,"y":-95,"isairdrop":false}]},
                 "red":{"formations":[{"index": 0, "type":"marksman","x":0,"y":-150}]}}});
             assert!(compile(&value).unwrap_err().contains("unknown field"));
         }
@@ -2554,7 +2593,7 @@ sides:
                 "sides": {
                     "blue": {
                         "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
-                        "contraptions": [{"type": "shield", "x": x, "y": y}]
+                        "contraptions": [{"index": 0, "type": "shield", "x": x, "y": y}]
                     },
                     "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -150
@@ -2580,7 +2619,7 @@ sides:
                 "sides": {
                     "blue": {
                         "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
-                        "contraptions": [{"type": "missile", "x": x, "y": y}]
+                        "contraptions": [{"index": 0, "type": "missile", "x": x, "y": y}]
                     },
                     "red": {"formations": [{"index": 0,
                         "type": "marksman", "x": 0, "y": -150
@@ -2606,10 +2645,10 @@ sides:
                 "blue": {
                     "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
                     "constructions": [
-                    {"type": "rapid_fire_turret", "x": 140, "y": -60},
-                    {"type": "defensive_wall", "x": 140, "y": -105},
-                    {"type": "anti_armor_turret", "x": -140, "y": -60},
-                    {"type": "magnetic_barrier", "x": -165, "y": -105}
+                    {"index": 0, "type": "rapid_fire_turret", "x": 140, "y": -60},
+                    {"index": 1, "type": "defensive_wall", "x": 140, "y": -105},
+                    {"index": 2, "type": "anti_armor_turret", "x": -140, "y": -60},
+                    {"index": 3, "type": "magnetic_barrier", "x": -165, "y": -105}
                 ]},
                 "red": {"formations": [{"index": 0,
                     "type": "marksman", "x": 0, "y": -50
@@ -2626,7 +2665,7 @@ sides:
                 .iter()
                 .map(|placement| placement.index)
                 .collect::<Vec<_>>(),
-            [None, None, None, None]
+            [Some(0), Some(1), Some(2), Some(3)]
         );
         assert_eq!(
             plan.blue
@@ -2644,28 +2683,63 @@ sides:
     }
 
     #[test]
-    fn construction_layout_rejects_native_index() {
-        let mut value = json!({
-            "round": 1,
-            "sides": {
-                "blue": {
-                    "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
-                    "constructions": [{"type": "rapid_fire_turret", "x": 140, "y": -60}]
-                },
-                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
-            }
-        });
-        let plan = compile(&value).unwrap();
-        assert_eq!(plan.blue.constructions[0].index, None);
-        let definition: Layout = serde_json::from_value(value.clone()).unwrap();
-        let encoded = serde_json::to_value(definition).unwrap();
-        assert!(
-            encoded["sides"]["blue"]["constructions"][0]
-                .get("index")
-                .is_none()
+    fn construction_and_contraption_indices_are_required_and_ordered() {
+        let layout = |constructions: Value, contraptions: Value| {
+            json!({
+                "round": 1,
+                "sides": {
+                    "blue": {
+                        "formations": [{"index": 0, "type": "marksman", "x": 0, "y": -150}],
+                        "constructions": constructions,
+                        "contraptions": contraptions
+                    },
+                    "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+                }
+            })
+        };
+        let wall =
+            |index: i32| json!({"index": index, "type": "defensive_wall", "x": 140, "y": -105});
+        let shield =
+            |index: i32, x: i32| json!({"index": index, "type": "shield", "x": x, "y": -95});
+
+        let plan = compile(&layout(
+            json!([wall(7)]),
+            json!([shield(2, 5), shield(9, -105)]),
+        ))
+        .unwrap();
+        assert_eq!(plan.blue.constructions[0].index, Some(7));
+        assert_eq!(
+            plan.blue
+                .contraptions
+                .iter()
+                .map(|placement| placement.index)
+                .collect::<Vec<_>>(),
+            [Some(2), Some(9)]
         );
-        value["sides"]["blue"]["constructions"][0]["index"] = json!(3);
-        assert!(compile(&value).unwrap_err().contains("unknown field"));
+
+        // An index survives serialization, because it is the object's identity
+        // rather than a position in the list.
+        let definition: Layout =
+            serde_json::from_value(layout(json!([wall(7)]), json!([]))).unwrap();
+        let encoded = serde_json::to_value(definition).unwrap();
+        assert_eq!(encoded["sides"]["blue"]["constructions"][0]["index"], 7);
+
+        let missing = json!({"type": "defensive_wall", "x": 140, "y": -105});
+        assert!(
+            compile(&layout(json!([missing]), json!([])))
+                .unwrap_err()
+                .contains("missing field `index`")
+        );
+        assert!(
+            compile(&layout(json!([]), json!([shield(9, 5), shield(2, -105)])))
+                .unwrap_err()
+                .contains("contraption indices must be strictly increasing")
+        );
+        assert!(
+            compile(&layout(json!([wall(-1)]), json!([])))
+                .unwrap_err()
+                .contains("construction index must be non-negative")
+        );
     }
 
     #[test]

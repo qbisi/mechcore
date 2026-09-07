@@ -4899,24 +4899,7 @@ fn read_native_side(
         .map(|(_, formation)| formation)
         .collect::<Vec<_>>();
 
-    let construction_manager = invoke_object(api, controller, "GetConstructionManager")?;
-    let native_constructions = invoke_object(api, construction_manager, "GetConstructionElements")?;
-    let mut constructions = Vec::new();
-    for index in 0..list_count(api, native_constructions, 10_000)? {
-        let construction = list_item(api, native_constructions, index)?;
-        let data = invoke_object(api, construction, "GetConstructionData")?;
-        let native_id = invoke_value::<i32>(api, data, "GetID")?;
-        let (type_name, _) = construction_type_from_id(native_id)
-            .ok_or_else(|| format!("unknown build-2259 construction type ID {native_id}"))?;
-        let position = invoke_value::<MapVector>(api, construction, "GetPosition")?;
-        let (x, y) = side_local_position(position, team)?;
-        constructions.push(StaticPlacement {
-            type_name: type_name.to_owned(),
-            x,
-            y,
-        });
-    }
-    constructions.sort_by(|a, b| (&a.type_name, a.x, a.y).cmp(&(&b.type_name, b.x, b.y)));
+    let constructions = read_native_constructions(api, controller, team)?;
     let (contraptions, airdrop_shields) =
         read_native_contraptions(api, controller, team, shield_system, metadata)?;
     Ok(Side {
@@ -5346,6 +5329,7 @@ fn read_native_shields(
     team: usize,
     shield_system: *mut Object,
     metadata: &Metadata,
+    record_indices: &BTreeMap<usize, i32>,
 ) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
     let manager = invoke_object(api, controller, "GetContraptionManager")?;
     let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
@@ -5391,7 +5375,120 @@ fn read_native_shields(
             airdrop_defaults = Some(defaults?);
         }
     }
-    layout_shield_placements(shields, team, expected_energy, airdrop_defaults)
+    layout_shield_placements(
+        shields,
+        team,
+        expected_energy,
+        airdrop_defaults,
+        record_indices,
+    )
+}
+
+/// Reads this side's constructions in deployment-index order.
+///
+/// `ConstructionManager` keys its elements by that index and re-sorts on every
+/// add, so the native list already arrives ordered; sorting here only states the
+/// layout rule rather than relying on that.
+fn read_native_constructions(
+    api: Api,
+    controller: *mut Object,
+    team: usize,
+) -> Result<Vec<StaticPlacement>, String> {
+    let manager = invoke_object(api, controller, "GetConstructionManager")?;
+    let elements = invoke_object(api, manager, "GetConstructionElements")?;
+    let mut constructions = Vec::new();
+    for offset in 0..list_count(api, elements, 10_000)? {
+        let construction = list_item(api, elements, offset)?;
+        let data = invoke_object(api, construction, "GetConstructionData")?;
+        let native_id = invoke_value::<i32>(api, data, "GetID")?;
+        let (type_name, _) = construction_type_from_id(native_id)
+            .ok_or_else(|| format!("unknown build-2259 construction type ID {native_id}"))?;
+        let position = invoke_value::<MapVector>(api, construction, "GetPosition")?;
+        let (x, y) = side_local_position(position, team)?;
+        let native_index = api
+            .invoke_value::<i32>(
+                manager,
+                "GetConstructionIndex",
+                &mut [object_argument(construction)],
+            )
+            .map_err(|error| error.to_string())?;
+        constructions.push(StaticPlacement {
+            type_name: type_name.to_owned(),
+            index: native_index,
+            x,
+            y,
+        });
+    }
+    constructions.sort_by_key(|construction| construction.index);
+    validate_native_indices(
+        "construction",
+        &constructions
+            .iter()
+            .map(|construction| construction.index)
+            .collect::<Vec<_>>(),
+    )?;
+    Ok(constructions)
+}
+
+/// Maps each live contraption object to the deployment index its release was
+/// recorded under.
+///
+/// `ContraptionManager`'s recorder is the only place that index exists: the
+/// released objects themselves do not carry it, and `PAD_ReleaseContraption`
+/// cannot request one. Records outlive their objects, so this reads the index
+/// for objects the live collections already decided are present, rather than
+/// enumerating records to decide what exists.
+fn read_contraption_record_indices(
+    api: Api,
+    controller: *mut Object,
+) -> Result<BTreeMap<usize, i32>, String> {
+    let manager = invoke_object(api, controller, "GetContraptionManager")?;
+    let recorder = invoke_object(api, manager, "GetFightObjectRecorder")?;
+    let mut indices = BTreeMap::new();
+    // A release from an earlier round has already been moved to the history
+    // list, and its objects can still be standing, so both lists are needed.
+    for accessor in ["GeHistorytRecords", "GeRecords"] {
+        let records = invoke_object(api, recorder, accessor)?;
+        for record_position in 0..list_count(api, records, 10_000)? {
+            let record = list_item(api, records, record_position)?;
+            let index = invoke_value::<i32>(api, record, "get_Index")?;
+            let group = invoke_object(api, record, "get_FightObjectGroup")?;
+            if group.is_null() {
+                continue;
+            }
+            let count = invoke_value::<i32>(api, group, "get_ObjectCount")?;
+            for mut object_index in 0..count {
+                let object = api
+                    .invoke(group, "GetFightObject", &mut [argument(&mut object_index)])
+                    .map_err(|error| error.to_string())?;
+                if object.is_null() {
+                    continue;
+                }
+                if indices
+                    .insert(object as usize, index)
+                    .is_some_and(|previous| previous != index)
+                {
+                    return Err(format!(
+                        "contraption object appears under two record indices, one of them {index}"
+                    ));
+                }
+            }
+        }
+    }
+    Ok(indices)
+}
+
+fn contraption_record_index(
+    indices: &BTreeMap<usize, i32>,
+    object: *mut Object,
+    type_name: &str,
+) -> Result<i32, String> {
+    indices.get(&(object as usize)).copied().ok_or_else(|| {
+        format!(
+            "live {type_name} has no contraption record among the {} recorded objects, so it has no deployment index",
+            indices.len()
+        )
+    })
 }
 
 /// Reads this side's contraptions, plus the retained Shield Airdrops that share
@@ -5405,8 +5502,15 @@ fn read_native_contraptions(
     metadata: &Metadata,
 ) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
     let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
-    let (mut result, airdrop_shields) =
-        read_native_shields(api, controller, team, shield_system, metadata)?;
+    let record_indices = read_contraption_record_indices(api, controller)?;
+    let (mut result, airdrop_shields) = read_native_shields(
+        api,
+        controller,
+        team,
+        shield_system,
+        metadata,
+        &record_indices,
+    )?;
 
     let mine_manager = invoke_object(api, fight_controller, "GetMineManager")?;
     let mines = invoke_object(api, mine_manager, "GetLandMines")?;
@@ -5425,7 +5529,10 @@ fn read_native_contraptions(
             return Err(format!("unsupported live mine contraption ID {id}"));
         }
         let position = vec3(invoke_value::<FixedVec3>(api, mine, "GetPosition")?);
-        result.push(layout_contraption_position("missile", position, team)?);
+        let index = contraption_record_index(&record_indices, mine, "missile")?;
+        result.push(layout_contraption_position(
+            "missile", index, position, team,
+        )?);
     }
 
     let intercept_manager = invoke_object(api, fight_controller, "GetInterceptSourceManager")?;
@@ -5463,8 +5570,22 @@ fn read_native_contraptions(
             return Err("live interceptor belongs to a different team".into());
         }
         let position = vec3(invoke_value::<FixedVec3>(api, interceptor, "GetPos")?);
-        result.push(layout_contraption_position("interceptor", position, team)?);
+        let index = contraption_record_index(&record_indices, interceptor, "interceptor")?;
+        result.push(layout_contraption_position(
+            "interceptor",
+            index,
+            position,
+            team,
+        )?);
     }
+    result.sort_by_key(|contraption| contraption.index);
+    validate_native_indices(
+        "contraption",
+        &result
+            .iter()
+            .map(|contraption| contraption.index)
+            .collect::<Vec<_>>(),
+    )?;
     Ok((result, airdrop_shields))
 }
 
@@ -5473,6 +5594,7 @@ fn layout_shield_placements(
     team: usize,
     expected_energy: i32,
     airdrop_defaults: Option<(i64, i32)>,
+    record_indices: &BTreeMap<usize, i32>,
 ) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
     let mut placements = Vec::new();
     let mut airdrops = Vec::new();
@@ -5499,14 +5621,23 @@ fn layout_shield_placements(
                     .into(),
             );
         }
-        let placement = layout_contraption_position("shield", state.position, team)?;
         if isairdrop {
+            // A retained airdrop belongs to the commander-skill recorder, so it
+            // has no contraption index.
+            let placement = layout_contraption_position("shield", 0, state.position, team)?;
             airdrops.push(Position {
                 x: placement.x,
                 y: placement.y,
             });
         } else {
-            placements.push(placement);
+            let index =
+                contraption_record_index(record_indices, shield.pointer as *mut Object, "shield")?;
+            placements.push(layout_contraption_position(
+                "shield",
+                index,
+                state.position,
+                team,
+            )?);
         }
     }
     Ok((placements, airdrops))
@@ -5514,6 +5645,7 @@ fn layout_shield_placements(
 
 fn layout_contraption_position(
     type_name: &str,
+    index: i32,
     position: QVec3,
     team: usize,
 ) -> Result<ContraptionPlacement, String> {
@@ -5536,6 +5668,7 @@ fn layout_contraption_position(
     )?;
     Ok(ContraptionPlacement {
         type_name: type_name.into(),
+        index,
         x,
         y,
     })
@@ -9019,8 +9152,9 @@ mod tests {
 
     #[test]
     fn layout_shields_include_inactive_carry_over_without_release_records() {
-        let placement = |kind: &str, x, y| ContraptionPlacement {
+        let placement = |kind: &str, index, x, y| ContraptionPlacement {
             type_name: kind.into(),
+            index,
             x,
             y,
         };
@@ -9029,20 +9163,39 @@ mod tests {
             layout_test_shield(2, -230, 120, Some(0)),
             layout_test_shield(3, 106, 103, Some(1)),
         ];
-        let (layout, airdrops) = layout_shield_placements(shields, 1, 40_000, None).unwrap();
+        let indices = BTreeMap::from([(1_usize, 4_i32), (2, 5), (3, 6)]);
+        let (layout, airdrops) =
+            layout_shield_placements(shields, 1, 40_000, None, &indices).unwrap();
         assert!(airdrops.is_empty());
         assert_eq!(
             layout,
             vec![
-                placement("shield", -215, -86),
-                placement("shield", 230, -120),
-                placement("shield", -106, -103),
+                placement("shield", 4, -215, -86),
+                placement("shield", 5, 230, -120),
+                placement("shield", 6, -106, -103),
             ]
         );
-        let (inherited_only, _) =
-            layout_shield_placements(vec![layout_test_shield(1, 215, 86, None)], 1, 40_000, None)
-                .unwrap();
-        assert_eq!(inherited_only, vec![placement("shield", -215, -86)]);
+        let (inherited_only, _) = layout_shield_placements(
+            vec![layout_test_shield(1, 215, 86, None)],
+            1,
+            40_000,
+            None,
+            &indices,
+        )
+        .unwrap();
+        assert_eq!(inherited_only, vec![placement("shield", 4, -215, -86)]);
+
+        // A live contraption shield with no release record has no identity.
+        assert!(
+            layout_shield_placements(
+                vec![layout_test_shield(9, 215, 86, None)],
+                1,
+                40_000,
+                None,
+                &indices,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -9052,34 +9205,58 @@ mod tests {
         airdrop.state.radius = 100 * FIXED_ONE_RAW;
         airdrop.state.energy.maximum = 90_000;
         let defaults = Some((100 * FIXED_ONE_RAW, 90_000));
+        // Only the contraption shield needs a record: the airdrop belongs to the
+        // commander-skill recorder.
+        let indices = BTreeMap::from([(1_usize, 3_i32)]);
         let (placements, airdrops) = layout_shield_placements(
             vec![layout_test_shield(1, 215, 86, Some(1)), airdrop.clone()],
             1,
             40_000,
             defaults,
+            &indices,
         )
         .unwrap();
         assert_eq!(
             placements
                 .iter()
-                .map(|placement| (placement.x, placement.y))
+                .map(|placement| (placement.index, placement.x, placement.y))
                 .collect::<Vec<_>>(),
-            [(-215, -86)]
+            [(3, -215, -86)]
         );
         assert_eq!(airdrops, vec![Position { x: -300, y: 20 }]);
-        assert!(layout_shield_placements(vec![airdrop.clone()], 1, 40_000, None).is_err());
+        assert!(
+            layout_shield_placements(vec![airdrop.clone()], 1, 40_000, None, &indices).is_err()
+        );
         airdrop.state.round_policy = ShieldRoundPolicy::RetainState;
-        assert!(layout_shield_placements(vec![airdrop], 1, 40_000, defaults).is_err());
+        assert!(layout_shield_placements(vec![airdrop], 1, 40_000, defaults, &indices).is_err());
     }
 
     #[test]
     fn layout_shields_reject_unrepresentable_energy_and_fractional_center() {
         let mut shield = layout_test_shield(1, 215, 86, None);
         shield.state.energy.maximum = 80_000;
-        assert!(layout_shield_placements(vec![shield], 1, 40_000, None).is_err());
+        assert!(
+            layout_shield_placements(
+                vec![shield],
+                1,
+                40_000,
+                None,
+                &BTreeMap::from([(1_usize, 0_i32)])
+            )
+            .is_err()
+        );
         let mut shield = layout_test_shield(1, 215, 86, None);
         shield.state.position.x += 1;
-        assert!(layout_shield_placements(vec![shield], 1, 40_000, None).is_err());
+        assert!(
+            layout_shield_placements(
+                vec![shield],
+                1,
+                40_000,
+                None,
+                &BTreeMap::from([(1_usize, 0_i32)])
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -9090,14 +9267,15 @@ mod tests {
                 y: 0,
                 z: 86 * FIXED_ONE_RAW,
             };
-            let blue = layout_contraption_position(kind, position, 0).unwrap();
-            let red = layout_contraption_position(kind, position, 1).unwrap();
+            let blue = layout_contraption_position(kind, 0, position, 0).unwrap();
+            let red = layout_contraption_position(kind, 0, position, 1).unwrap();
             assert_eq!((blue.x, blue.y), (215, 86));
             assert_eq!((red.x, red.y), (-215, -86));
             assert_eq!(red.type_name, kind);
             assert!(
                 layout_contraption_position(
                     kind,
+                    0,
                     QVec3 {
                         x: position.x + 1,
                         ..position
@@ -9111,7 +9289,7 @@ mod tests {
                 ..position
             };
             assert_eq!(
-                layout_contraption_position(kind, elevated, 1).is_ok(),
+                layout_contraption_position(kind, 0, elevated, 1).is_ok(),
                 kind != "shield"
             );
         }

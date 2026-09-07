@@ -22,5 +22,6 @@ sides:
         y: -100
     contraptions:
       - type: shield
+        index: 0
         x: -56
         y: -82

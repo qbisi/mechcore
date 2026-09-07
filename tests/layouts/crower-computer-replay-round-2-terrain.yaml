@@ -16,15 +16,19 @@ sides:
         rotated: true
     contraptions:
       - type: shield
+        index: 0
         x: 62
         y: -103
       - type: shield
+        index: 1
         x: -127
         y: -104
       - type: shield
+        index: 2
         x: 165
         y: -82
       - type: shield
+        index: 3
         x: -216
         y: -90
     airdrop_shields:

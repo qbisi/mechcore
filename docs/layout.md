@@ -66,11 +66,13 @@ sides:
 
     constructions:
       - type: defensive_wall
+        index: 0
         x: 140
         y: -105
 
     contraptions:
       - type: interceptor
+        index: 0
         x: 5
         y: -95
 
@@ -589,39 +591,56 @@ ownership readback. Available IDs and effects are listed in the
 ```yaml
 constructions:
   - type: defensive_wall
+    index: 0
     x: 140
     y: -105
 ```
 
 `constructions` is parallel to `formations` under one side and defaults to
-`[]`. Each entry contains only `type`, `x`, and `y`. Native construction indices
-are not layout data; an `index` field is rejected. Formation `index` is unchanged.
+`[]`. Each entry requires `type`, `index`, `x`, and `y`.
+
+`index` is the construction's deployment identity, allocated in release order by
+`ConstructionManager` and stable for as long as the object lives. It is never
+reused, so an earlier round's sold or destroyed construction leaves a permanent
+gap and the declared indices need not be contiguous. They must be non-negative
+and strictly increasing in declaration order, which makes index order the only
+normal form for this collection.
+
+The index is comparable between a replay and the Training Ground. The 10000
+offset visible in a Test match's `constructionIndex` snapshot field is written by
+`ConstructionManager.TakeSnapshot` and stripped again by `ApplySnapshot`; the
+live index that `GetConstructionIndex` reports is zero-based in both modes.
 
 At prepare time, the executor first reconciles the same-seed Training Ground
-opening constructions by `(type, position)`: exact matches are retained,
-while entries absent from or different in the target layout are removed. At
-activation it applies only missing constructions in declaration order, letting
-the native action allocate its own index. There are no index placeholders or
-explicit-index recreation actions. Retention, creation, and removal are checked
-through `ConstructionManager` lookup/count readback. Replay capture exports
-constructions sorted by `(type, x, y)`, without native indices. MCFR building IDs
-are normalized independently at the capture boundary.
+opening constructions by `(type, position)`: exact matches are retained, while
+entries absent from or different in the target layout are removed. A retained
+construction must already carry its declared index, otherwise application fails
+rather than proceeding with a different identity. At activation the executor
+applies the missing constructions in declaration order, setting
+`PAD_ReleaseConstruction.IDX` to the declared index instead of accepting the one
+the release controller allocated, and rejecting the release if the action does
+not keep it. Retention, creation, and removal are checked through
+`ConstructionManager` lookup/count readback. Replay capture reads the index from
+`ConstructionManager.GetConstructionIndex` and exports the collection in index
+order.
 
 Both replay and Training Ground MCFR capture derive construction Building IDs
 from this same index plus `FightConstruction.GetConstructionChildIndex`, joined
 through `ConstructionElement.GetFightConstructions`. A wall placement may own
 several Building rows: layout `index` is the per-side deployment identity, not
-the global MCFR `building_id`. Native `GetBuildingIndex()` is not used to order
-those construction rows, because its allocation can differ between the modes.
+the global MCFR `building_id`. MCFR building IDs are normalized independently at
+the capture boundary.
 
 ### `contraptions`
 
 ```yaml
 contraptions:
   - type: interceptor
+    index: 0
     x: 5
     y: -95
   - type: shield
+    index: 3
     x: 275
     y: 20
 ```
@@ -629,17 +648,29 @@ contraptions:
 `shield`, `interceptor`, and `missile` each resolve directly to their native
 contraption kind. `contraptions` is parallel to `formations` and
 `constructions` under one side and defaults to `[]`. A contraption entry
-requires `type`, `x`, and `y`, and none of these types requires an extra
-position. Replay export describes the contraptions still present at the
-deployment boundary, including objects retained from earlier rounds; it is not a
-list of this round's release operations. Export reads them from the full shield
-collection, `TeamMineManager.GetLandMines()`, and live
-`InterceptCtrGroup_Interceptor` sources. Removed missiles and destroyed
-interceptors are excluded; inactive reset-next-round shields are included.
-Export orders categories as shield, missile, interceptor, preserving native
-order within each category. Shields retain full-list order; layout is captured
-before combat and is not reordered using S(1). MCFR Shield IDs are normalized
-separately and are not inferred from layout entry order.
+requires `type`, `index`, `x`, and `y`, and none of these types requires an extra
+position.
+
+`index` is the contraption's deployment identity, allocated in release order by
+`ContraptionManager`'s object recorder and stable for as long as the object
+lives. Like a construction index it is never reused, so a sold missile or a
+destroyed interceptor leaves a permanent gap; the example above is a side whose
+indices 1 and 2 are gone. Indices must be non-negative and strictly increasing in
+declaration order. Contraptions and constructions have separate allocators, so
+the same index can appear once in each collection.
+
+Replay export describes the contraptions still present at the deployment
+boundary, including objects retained from earlier rounds; it is not a list of
+this round's release operations. Export reads which objects exist from the full
+shield collection, `TeamMineManager.GetLandMines()`, and live
+`InterceptCtrGroup_Interceptor` sources, then reads each one's index from the
+recorder's current and history records. Removed missiles and destroyed
+interceptors are excluded; inactive reset-next-round shields are included. A live
+contraption with no record fails the export rather than being given a synthetic
+identity. Layout is captured before combat and is not reordered using S(1). MCFR
+Shield IDs are normalized separately and are not inferred from layout entry
+order.
+
 Shield radius and maximum energy must match the selected native source's
 defaults; otherwise export fails rather than silently losing state. Shields keep
 their own-side radius-70 deployment bounds. Integer coordinates are converted
@@ -647,8 +678,13 @@ directly to Q32.32 without floating-point rounding.
 For missile/interceptor objects, export projects native world X/Z onto the
 layout plane; native object height is not a placement coordinate. Fractional
 planar coordinates are rejected rather than rounded.
-The executor performs the native placement check, releases the contraption once,
-and verifies its type and exact position through authoritative recorder readback.
+
+`PAD_ReleaseContraption` carries no index: a release takes whatever the
+recorder's allocator holds. The executor therefore writes the declared index into
+`FightObjectRecorder.NextObjectIndex` before each release, which is also how a
+gap is reproduced. It performs the native placement check, releases the
+contraption once, and verifies its type, exact position, and resulting index
+through authoritative recorder readback.
 
 ### `airdrop_shields`
 

@@ -9,6 +9,7 @@ sides:
         y: -100
     constructions:
       - type: defensive_wall
+        index: 0
         x: 140
         y: -105
 

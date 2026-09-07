@@ -12,8 +12,8 @@ round: 1
 sides:
   blue:
     formations: [{type: marksman, index: 0, x: 0, y: -50}]
-    constructions: [{type: defensive_wall, x: 140, y: -105}]
-    contraptions: [{type: interceptor, x: 35, y: -85}]
+    constructions: [{type: defensive_wall, index: 0, x: 140, y: -105}]
+    contraptions: [{type: interceptor, index: 0, x: 35, y: -85}]
     terrains: [{type: oil, positions: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
     formations: [{type: arclight, index: 0, x: 0, y: -50}]

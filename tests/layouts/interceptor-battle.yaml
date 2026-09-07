@@ -9,6 +9,7 @@ sides:
         y: -120
     contraptions:
       - type: interceptor
+        index: 0
         x: 5
         y: -85
 
@@ -20,5 +21,6 @@ sides:
         y: -120
     contraptions:
       - type: interceptor
+        index: 0
         x: 5
         y: -85
