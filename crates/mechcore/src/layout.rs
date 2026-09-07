@@ -1,4 +1,8 @@
-use std::{collections::BTreeSet, fs, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::PathBuf,
+};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -69,7 +73,7 @@ fn diff(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     collect_differences("", Some(&left_value), Some(&right_value), &mut differences);
     let equal = differences.is_empty();
     let report = DiffReport {
-        schema: "mechcore.layout-diff-result.v1",
+        schema: "mechcore.layout-diff-result.v2",
         equal,
         left: left_path.display().to_string(),
         right: right_path.display().to_string(),
@@ -107,6 +111,14 @@ fn reject_extra(arguments: &mut impl Iterator<Item = String>) -> Result<(), Stri
     }
 }
 
+/// Collections whose entries carry a cross-round deployment identity.
+///
+/// Aligning these by array position would report an object inserted in the
+/// middle as a change to every later entry plus one removal at the end. Keying
+/// by `index` instead reports what actually happened, which is what makes a
+/// difference correspond to a decision rather than to a shift in the list.
+const IDENTITY_KEYED_COLLECTIONS: [&str; 3] = ["formations", "constructions", "contraptions"];
+
 fn collect_differences(
     path: &str,
     left: Option<&Value>,
@@ -122,6 +134,27 @@ fn collect_differences(
                 .collect::<BTreeSet<_>>();
             for key in keys {
                 let child = format!("{path}/{}", escape_pointer(key));
+                if IDENTITY_KEYED_COLLECTIONS.contains(&key)
+                    && let (Some(Value::Array(left)), Some(Value::Array(right))) =
+                        (left.get(key), right.get(key))
+                    && let (Some(left), Some(right)) =
+                        (indexed_entries(left), indexed_entries(right))
+                {
+                    for identity in left
+                        .keys()
+                        .chain(right.keys())
+                        .copied()
+                        .collect::<BTreeSet<_>>()
+                    {
+                        collect_differences(
+                            &format!("{child}/index={identity}"),
+                            left.get(&identity).copied(),
+                            right.get(&identity).copied(),
+                            output,
+                        );
+                    }
+                    continue;
+                }
                 collect_differences(&child, left.get(key), right.get(key), output);
             }
         }
@@ -142,6 +175,20 @@ fn collect_differences(
             right: right.cloned(),
         }),
     }
+}
+
+/// Keys one collection by its entries' `index`, or gives up so the caller falls
+/// back to position. A compiled layout cannot repeat an index, so a duplicate
+/// here means the value did not come through the shared compiler.
+fn indexed_entries(entries: &[Value]) -> Option<BTreeMap<i64, &Value>> {
+    let mut keyed = BTreeMap::new();
+    for entry in entries {
+        let index = entry.get("index")?.as_i64()?;
+        if keyed.insert(index, entry).is_some() {
+            return None;
+        }
+    }
+    Some(keyed)
 }
 
 fn escape_pointer(value: &str) -> String {
@@ -180,5 +227,34 @@ mod tests {
         assert_eq!(differences[0].path, "/sides/blue/units/1");
         assert_eq!(differences[1].path, "/sides/blue/units/2");
         assert!(differences[1].left.is_none());
+    }
+
+    #[test]
+    fn placement_diff_aligns_by_deployment_index() {
+        let entry = |index: i32, x: i32| serde_json::json!({"index": index, "x": x});
+        let left = serde_json::json!({"formations": [entry(0, 0), entry(3, 40), entry(7, 80)]});
+        let right = serde_json::json!({"formations": [entry(0, 0), entry(7, 85), entry(9, 120)]});
+        let mut differences = Vec::new();
+        collect_differences("", Some(&left), Some(&right), &mut differences);
+
+        // One removal, one field change, one addition: no entry is reported as
+        // changed merely because a neighbour moved along the list.
+        assert_eq!(differences.len(), 3);
+        assert_eq!(differences[0].path, "/formations/index=3");
+        assert!(differences[0].right.is_none());
+        assert_eq!(differences[1].path, "/formations/index=7/x");
+        assert_eq!(differences[2].path, "/formations/index=9");
+        assert!(differences[2].left.is_none());
+    }
+
+    #[test]
+    fn placement_diff_falls_back_to_position_without_usable_indices() {
+        let repeated = serde_json::json!({"index": 0, "x": 0});
+        let left = serde_json::json!({"formations": [repeated, repeated]});
+        let right = serde_json::json!({"formations": [repeated, {"index": 0, "x": 5}]});
+        let mut differences = Vec::new();
+        collect_differences("", Some(&left), Some(&right), &mut differences);
+        assert_eq!(differences.len(), 1);
+        assert_eq!(differences[0].path, "/formations/1/x");
     }
 }

@@ -182,6 +182,6 @@ fn layout_diff_compares_normalized_fields() {
     let report: serde_json::Value = serde_json::from_slice(&different.stdout).unwrap();
     assert_eq!(
         report["differences"][0]["path"],
-        "/sides/blue/formations/0/x"
+        "/sides/blue/formations/index=0/x"
     );
 }

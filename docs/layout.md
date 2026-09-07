@@ -125,6 +125,17 @@ starting the game or Simulator. A successful JSON report includes the normalized
 seed, round, formation count, construction count, contraption count, and
 airdrop shield count.
 
+`mechcore layout diff left.yaml right.yaml` normalizes both documents and reports
+the fields that differ. Each difference carries a JSON pointer, except that
+`formations`, `constructions` and `contraptions` are aligned by their entries'
+`index` rather than by position, and their path segment reads `index=<value>`.
+Aligning those by position would report an object inserted or removed in the
+middle as a change to every later entry plus one addition or removal at the end;
+keying by identity reports one removal, one change and one addition instead, so a
+difference corresponds to a decision rather than to a shift in the list. A
+collection whose entries lack a usable unique `index` falls back to positional
+alignment. The report is `mechcore.layout-diff-result.v2`.
+
 ## Seed
 
 `map_id` is an optional positive integer identifying the native `MatchSetting`
