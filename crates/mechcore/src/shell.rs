@@ -19,7 +19,7 @@ acquisition
   detach                          release an attached game
 native
   status                          current status snapshot
-  start_test [seed]               create the layout-test Training Ground
+  start_test [seed] [--map-id id]  create the layout-test Training Ground
   apply_layout <layout.yaml> [seed]
                                   create the test and reach the layout's round
   record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f]
@@ -188,16 +188,33 @@ async fn native(
     match command {
         "status" => Ok(session.current_status()),
         "start_test" => {
-            let seed = match arguments {
+            let (seed_args, map_id) = match arguments {
+                [_, "--map-id", map] => (
+                    &arguments[..1],
+                    Some(
+                        map.parse::<i32>()
+                            .map_err(|_| "map_id must be an integer")?,
+                    ),
+                ),
+                ["--map-id", map] => (
+                    &arguments[..0],
+                    Some(
+                        map.parse::<i32>()
+                            .map_err(|_| "map_id must be an integer")?,
+                    ),
+                ),
+                _ => (arguments, None),
+            };
+            let seed = match seed_args {
                 [] => None,
                 [value] => Some(
                     value
                         .parse::<i32>()
                         .map_err(|_| format!("seed must be a signed 32-bit integer: {value}"))?,
                 ),
-                _ => return Err("usage: start_test [seed]".into()),
+                _ => return Err("usage: start_test [seed] [--map-id id]".into()),
             };
-            session.start_test(seed).await
+            session.start_test(seed, map_id).await
         }
         "apply_layout" => {
             let (path, seed) = match arguments {

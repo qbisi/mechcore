@@ -597,7 +597,17 @@ async fn perform(
                 .map(i32::try_from)
                 .transpose()
                 .map_err(|_| "seed must fit in a signed 32-bit integer".to_string())?;
-            session.start_test(seed).await
+            let map_id = arguments
+                .get("map_id")
+                .filter(|value| !value.is_null())
+                .map(|value| {
+                    value
+                        .as_i64()
+                        .and_then(|id| i32::try_from(id).ok())
+                        .ok_or_else(|| "map_id must be a signed 32-bit integer".to_owned())
+                })
+                .transpose()?;
+            session.start_test(seed, map_id).await
         }
         "apply_layout" => {
             let (layout, seed) = split_layout_arguments(arguments)?;
@@ -723,7 +733,7 @@ fn instrumentation(
 
 /// Split `apply_layout` arguments into the layout and an optional seed override.
 ///
-/// A layout's top-level keys are closed to `seed`, `round` and `sides`, so a
+/// A layout's top-level keys are closed to `map_id`, `seed`, `round` and `sides`, so a
 /// `layout` key can only be the wrapper form and never a layout itself.
 fn split_layout_arguments(arguments: &Value) -> Result<(Value, Option<i32>), String> {
     let Some(wrapped) = arguments.get("layout") else {

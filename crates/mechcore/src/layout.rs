@@ -21,6 +21,7 @@ fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
         "valid": true,
         "layout": path,
         "seed": plan.seed,
+        "map_id": plan.map_id,
         "round": plan.round,
         "formation_count": plan.formation_count(),
         "construction_count": plan.construction_count(),

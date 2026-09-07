@@ -55,7 +55,7 @@ through `quit_game`; an attached game is left running.
 | `compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
 | `sim` | no | `layout`, optional `seed`, `output`, `config`; same report as `mechcore sim` |
 | `status` | yes | current status snapshot |
-| `start_test` | yes | `seed`; rarely needed, see `apply_layout` |
+| `start_test` | yes | optional `seed`, `map_id`; rarely needed, see `apply_layout` |
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
 | `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |

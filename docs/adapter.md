@@ -144,8 +144,12 @@ their RVO agents and collision/query indexes. They are native scene inputs, not
 layout-side deployments: deleting them solely because they have no team can
 change RVO neighbour queries even when they are outside the deployment area.
 The prepare result reports their `retained_count` and `rvo_controller_count`
-under `retained.neutral_crystals`. This preserves the native Training Ground
-map; it does not claim that every replay map is identical to that map.
+under `retained.neutral_crystals`. The session passes optional `layout.map_id`
+to `start_test`, which validates it with `Config.GetMatchSettingOrNull` and
+sets `BattleInfo.MapID` before `CreateHost`. Without it Mechcore explicitly uses
+map 1021 rather than inheriting a mutable game default.
+Replay export reads the actual `Match.GetBattleInfo().MapID`, so replay roundtrip
+selects the source map rather than assuming the default scene is equivalent.
 
 Input is the complete layout object defined by [layout.md](layout.md), with a
 positive top-level `round` and `sides.blue` and `sides.red` fields.
@@ -174,11 +178,10 @@ and otherwise removed. Missing constructions are applied in declaration order
 with native-allocated indices, without index placeholders. Contraptions and modifiers are then applied in the activation
 round, whose deployment timer is reset before the operation returns.
 
-Prepare also deactivates and hides the neutral scene FightCrystals, clears their
-global BuildingSystem indexes and removes their owner registrations before the
-first fight. The global list must contain only plain FightCrystals with null
-current/original teams; mixed ownership fails closed. Team towers and deployed
-constructions are not in that cleanup list. This path never runs in replay mode.
+Prepare only counts neutral scene FightCrystals; it does not deactivate, hide,
+unregister or remove them. In build 2259, selecting map 1021 produces 27 neutral
+crystals with zero RVO controllers, while map 1001 produces 891 with 73 RVO
+controllers. These are map inputs, not a Training Ground cleanup category.
 
 Replay and Training Ground capture allocate MCFR Building IDs by
 `(team_id, building_type_id, position.x, position.y, position.z)` using raw Q32.32

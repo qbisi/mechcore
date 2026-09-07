@@ -4806,6 +4806,11 @@ fn read_native_layout(
         );
     }
     let layout = Layout {
+        map_id: Some(invoke_value::<i32>(
+            runtime.api,
+            invoke_object(runtime.api, current, "GetBattleInfo")?,
+            "get_MapID",
+        )?),
         seed: Some(context.match_seed),
         round,
         sides: Sides {

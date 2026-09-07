@@ -55,6 +55,7 @@ const RESEARCH_CENTER_KIND: i32 = 2;
 const RANGE_ENHANCEMENT_SKILL: i32 = 5;
 const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
+const DEFAULT_TRAINING_GROUND_MAP_ID: i32 = 1021;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
 const OIL_COMMANDER_SKILL_ID: i32 = 400_002;
 const OIL_RANGE_ITEM_TYPE: i32 = 1;
@@ -67,6 +68,7 @@ const RETAINED_OIL_ROUND: i32 = 1;
 #[serde(deny_unknown_fields)]
 struct StartTestArguments {
     seed: Option<i32>,
+    map_id: Option<i32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -304,7 +306,8 @@ fn classify_replay(api: Api, object: *mut Object) -> Option<bool> {
 }
 
 fn start_test(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
-    let requested_seed = parse_start_test_seed(arguments)?;
+    let requested = parse_start_test_arguments(arguments)?;
+    let requested_seed = requested.seed;
     if !runtime.current_match().is_null() {
         return Err(OperationError::InvalidState(
             "a match is already active".into(),
@@ -325,6 +328,20 @@ fn start_test(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationEr
         ));
     }
     let mut seed = requested_seed.unwrap_or(0);
+    let mut map_id = start_test_map_id(&requested);
+    let config = config_instance(runtime)?;
+    let map = api.invoke(
+        config,
+        "GetMatchSettingOrNull",
+        &mut [argument(&mut map_id)],
+    )?;
+    if map.is_null() {
+        return Err(OperationError::InvalidArguments(format!(
+            "unknown map_id {map_id}"
+        )));
+    }
+    api.invoke_void(setting, "set_MapID", &mut [argument(&mut map_id)])?;
+    let map_id = api.invoke_value::<i32>(setting, "get_MapID", &mut [])?;
     api.invoke_void(setting, "set_SystemSeed", &mut [argument(&mut seed)])?;
     let mut optional_features = false;
     for setter in [
@@ -361,15 +378,25 @@ fn start_test(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationEr
     Ok(json!({
         "created": true,
         "initial_supply": TRAINING_GROUND_SUPPLY,
-        "requested_seed": requested_seed
+        "requested_seed": requested_seed,
+        "map_id": map_id
     }))
 }
 
-fn parse_start_test_seed(arguments: &Value) -> Result<Option<i32>, OperationError> {
+fn parse_start_test_arguments(arguments: &Value) -> Result<StartTestArguments, OperationError> {
     let arguments = serde_json::from_value::<Option<StartTestArguments>>(arguments.clone())
         .map_err(|error| OperationError::InvalidArguments(error.to_string()))?
         .unwrap_or_default();
-    Ok(arguments.seed)
+    if arguments.map_id.is_some_and(|id| id <= 0) {
+        return Err(OperationError::InvalidArguments(
+            "map_id must be positive".into(),
+        ));
+    }
+    Ok(arguments)
+}
+
+fn start_test_map_id(arguments: &StartTestArguments) -> i32 {
+    arguments.map_id.unwrap_or(DEFAULT_TRAINING_GROUND_MAP_ID)
 }
 
 fn configure_training_ground_supply(api: Api, setting: *mut Object) -> Result<(), OperationError> {
@@ -3586,14 +3613,36 @@ mod tests {
 
     #[test]
     fn start_test_seed_is_optional_i32_with_native_zero_semantics() {
-        assert_eq!(parse_start_test_seed(&Value::Null).unwrap(), None);
-        assert_eq!(parse_start_test_seed(&json!({})).unwrap(), None);
-        assert_eq!(parse_start_test_seed(&json!({"seed": 0})).unwrap(), Some(0));
+        assert_eq!(parse_start_test_arguments(&Value::Null).unwrap().seed, None);
+        assert_eq!(parse_start_test_arguments(&json!({})).unwrap().seed, None);
         assert_eq!(
-            parse_start_test_seed(&json!({"seed": 42})).unwrap(),
+            parse_start_test_arguments(&json!({"seed": 0}))
+                .unwrap()
+                .seed,
+            Some(0)
+        );
+        assert_eq!(
+            parse_start_test_arguments(&json!({"seed": 42}))
+                .unwrap()
+                .seed,
             Some(42)
         );
-        assert!(parse_start_test_seed(&json!({"unknown": 42})).is_err());
+        assert!(parse_start_test_arguments(&json!({"unknown": 42})).is_err());
+        assert_eq!(
+            parse_start_test_arguments(&json!({"map_id": 1021}))
+                .unwrap()
+                .map_id,
+            Some(1021)
+        );
+        for id in [
+            json!(0),
+            json!(-1),
+            json!(1.5),
+            json!("1021"),
+            json!(2147483648_i64),
+        ] {
+            assert!(parse_start_test_arguments(&json!({"map_id": id})).is_err());
+        }
     }
 
     #[test]

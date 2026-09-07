@@ -237,12 +237,19 @@ impl Session {
         Ok(json!({"connected": true, "status": status}))
     }
 
-    pub(crate) async fn start_test(&self, seed: Option<i32>) -> Result<Value, String> {
+    pub(crate) async fn start_test(
+        &self,
+        seed: Option<i32>,
+        map_id: Option<i32>,
+    ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
         *self.last_applied_layout.lock().await = None;
         let result = self
-            .adapter_request(Operation::StartTest, json!({"seed": seed}))
+            .adapter_request(
+                Operation::StartTest,
+                json!({"seed": seed, "map_id": map_id}),
+            )
             .await?;
         let status = self
             .wait_status(
@@ -287,7 +294,10 @@ impl Session {
         *self.last_applied_layout.lock().await = None;
 
         let created = self
-            .adapter_request(Operation::StartTest, json!({"seed": seed}))
+            .adapter_request(
+                Operation::StartTest,
+                json!({"seed": seed, "map_id": plan.map_id}),
+            )
             .await?;
         self.wait_status(
             "round-one deployment after start_test",

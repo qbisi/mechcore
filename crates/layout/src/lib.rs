@@ -10,6 +10,9 @@ pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 #[serde(deny_unknown_fields)]
 pub struct Layout {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub map_id: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seed: Option<i32>,
     #[schemars(range(min = 1))]
     pub round: i32,
@@ -207,6 +210,7 @@ pub struct SidePlan {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Plan {
+    pub map_id: Option<i32>,
     pub seed: Option<i32>,
     pub round: i32,
     pub blue: SidePlan,
@@ -441,7 +445,11 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     validate_placement_footprints("blue", &blue.contraptions)?;
     validate_placement_footprints("red", &red.contraptions)?;
     validate_placement_collisions(&blue, &red)?;
+    if layout.map_id.is_some_and(|id| id <= 0) {
+        return Err("layout map_id must be positive".into());
+    }
     Ok(Plan {
+        map_id: layout.map_id,
         seed: layout.seed,
         round: layout.round,
         blue,
@@ -1707,6 +1715,32 @@ mod tests {
             .round,
             40
         );
+    }
+
+    #[test]
+    fn map_id_is_optional_positive_and_preserved() {
+        let mut value = json!({"round": 1, "sides": {
+            "blue": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]},
+            "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+        }});
+        assert_eq!(compile(&value).unwrap().map_id, None);
+        for id in [1001, 1021] {
+            value["map_id"] = json!(id);
+            assert_eq!(compile(&value).unwrap().map_id, Some(id));
+            let layout: Layout = serde_json::from_value(value.clone()).unwrap();
+            let yaml = canonical_yaml(layout).unwrap();
+            assert!(yaml.contains(&format!("map_id: {id}")));
+        }
+        for id in [
+            json!(0),
+            json!(-1),
+            json!(1.5),
+            json!("1021"),
+            json!(2147483648_i64),
+        ] {
+            value["map_id"] = id;
+            assert!(compile(&value).is_err());
+        }
     }
 
     #[test]

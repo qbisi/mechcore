@@ -123,6 +123,18 @@ count.
 
 ## Seed
 
+`map_id` is an optional positive integer identifying the native `MatchSetting`
+map (not the game mode). Native replay export records `BattleInfo.MapID`;
+`apply_layout` selects that map before creating the Training Ground. Omission
+uses map 1021 (训练基地), the Mechcore Training Ground baseline. Unknown IDs are
+rejected by the native adapter.
+Build 2259 examples: `1001` is 铁道小镇 (`MainSceneDesert`), and `1021` is
+训练基地 (`MainSceneMilitaryBase`). Map-owned neutral crystals are retained:
+the selected map, not a global deletion rule, determines the RVO environment.
+This field does not imply simulator support for map-specific obstacles.
+For standalone sessions use `start_test: {seed: 42, map_id: 1021}` in scripts,
+or `start_test 42 --map-id 1021` in the shell.
+
 `seed` is an optional signed 32-bit integer. When present it requests that exact
 match seed. When absent it requests a generated seed, whose resolved `i32` value
 is reported by the executor and persisted in MCFR `DurableContext.match_seed`.

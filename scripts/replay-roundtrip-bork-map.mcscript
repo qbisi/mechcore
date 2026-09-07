@@ -1,0 +1,18 @@
+# Map-specific control for the TUFF roundtrip: BORK uses map 1001.
+game: launch
+vars:
+  out: /Users/qbisi/mechcore-v2/work/research/bork-map-selected-20260907
+  grbr: /Users/qbisi/mechcore-v2/tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr
+steps:
+  - record_replay_round:
+      grbr: $grbr
+      round: 7
+      output: ${out}/replay-r7.mcfr
+  - let:
+      layout: embedded_layout(${out}/replay-r7.mcfr)
+  - apply_layout: $layout
+  - record_battle:
+      output: ${out}/training-r7.mcfr
+  - compare:
+      left: ${out}/replay-r7.mcfr
+      right: ${out}/training-r7.mcfr
