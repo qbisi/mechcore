@@ -140,7 +140,9 @@ pub struct BattleSkillDefinition {
     pub positions: Vec<Position>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum TerrainType {
     Oil,
@@ -299,10 +301,9 @@ impl Layout {
     /// Two rules make up the normal form. Syntax equivalent to a public default
     /// is dropped, and every collection whose order carries no meaning is put in
     /// its defined order: indexed placements by deployment identity, technology
-    /// and Officer IDs and retained airdrop shields ascending. `battle_skills`
-    /// is deliberately untouched, because release order is what it records.
-    /// `terrains` is untouched as well, but for a weaker reason: whether the
-    /// order of retained terrain releases is observable has not been settled.
+    /// and Officer IDs and retained airdrop shields ascending, and retained
+    /// terrain by type and control points. `battle_skills` is the one exception,
+    /// because release order is what it records.
     ///
     /// Applying this twice changes nothing the first pass did not already do.
     #[must_use]
@@ -317,6 +318,16 @@ impl Layout {
                 .sort_by_key(|contraption| contraption.index);
             side.airdrop_shields
                 .sort_unstable_by_key(|position| (position.x, position.y));
+            side.terrains.sort_by_key(|terrain| {
+                (
+                    terrain.terrain_type,
+                    terrain
+                        .positions
+                        .iter()
+                        .map(|position| (position.x, position.y))
+                        .collect::<Vec<_>>(),
+                )
+            });
             for formation in &mut side.formations {
                 if formation.level == Some(1) {
                     formation.level = None;
@@ -1794,7 +1805,11 @@ mod tests {
                         {"index": 3, "type": "shield", "x": 0, "y": -120},
                         {"index": 2, "type": "shield", "x": 100, "y": -120}
                     ],
-                    "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}]
+                    "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}],
+                    "terrains": [
+                        {"type": "oil", "positions": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]},
+                        {"type": "oil", "positions": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
+                    ]
                 },
                 "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
             }
@@ -1825,6 +1840,15 @@ mod tests {
         assert_eq!(
             once.sides.blue.airdrop_shields,
             [Position { x: -200, y: 20 }, Position { x: 200, y: 20 }]
+        );
+        assert_eq!(
+            once.sides
+                .blue
+                .terrains
+                .iter()
+                .map(|terrain| terrain.positions[0].x)
+                .collect::<Vec<_>>(),
+            [-100, 100]
         );
         assert!(once.sides.blue.formations[0].level.is_none());
         assert!(once.sides.blue.formations[0].exp.is_none());

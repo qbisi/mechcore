@@ -124,14 +124,15 @@ in its defined order:
 | `formations`, `constructions`, `contraptions` | ascending `index` |
 | `techs.officers`, `techs.units` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
+| `terrains` | ascending `type`, then control points |
 | `battle_skills` | as written: release order is what it records |
-| `terrains` | as written |
 
 `airdrop_shields` can be reordered because the game sorts both of its shield
 lists by position at fight start, so a retained shield's position in the list is
-not observable during the fight. `terrains` is left alone for a weaker reason:
-whether the order of retained terrain releases is observable has not been
-settled, so it is preserved rather than assumed free.
+not observable during the fight. `terrains` can be reordered because under
+current 1v1 rules the collection holds at most one entry, so there is no order
+to observe; the sort is what keeps the rule total over the shape the schema
+admits rather than over the states today's rules can reach.
 
 `mechcore layout format` writes this form and `mechcore layout diff` compares it,
 so two documents that denote the same state compare equal. Normalizing an
@@ -500,7 +501,12 @@ deployment footprint and rejects positive-area overlap before any game
 mutation. Exact edge contact is legal. In a main deployment region,
 `rotated: true` exchanges a unit's footprint width and height. The left/right
 ambush regions have a native quarter-turn orientation, which exchanges the
-effective world footprint once more. Collision checks use this region-aware
+effective world footprint once more. `rotated` is therefore stated relative to
+the region that holds the unit, not to the world: the base `width x height` is
+transposed exactly when `rotated` and ambush membership disagree. An unrotated
+ambush unit and a rotated main-region unit describe the same world shape, and
+the same `rotated: true` describes two different world shapes depending on which
+region the unit stands in. Collision checks use this region-aware
 footprint and compiled world positions, so units, constructions, and
 interceptors share one collision space within a side and across `blue` and
 `red` after the red-side 180-degree transform. Shields and missiles do not
@@ -606,8 +612,10 @@ public layout state. `index` is the required stable native formation index.
 `level` is the optional displayed level,
 defaults to `1`, and must be in `1..=9`. `exp` is optional, defaults to `0`,
 and records the formation's current-level experience. `rotated` is an optional
-boolean, defaults to `false`, and declares the native unit-orientation flag;
-the owning map region's facing still contributes to its world footprint.
+boolean, defaults to `false`, and declares the native unit-orientation flag. It
+is region-relative rather than absolute, so the owning region's own orientation
+still contributes to the world footprint; see the footprint rules above for the
+exact transposition.
 `equipment` is an optional positive native `EquipmentData.ID`. A unit has at
 most one equipment slot, so this field is singular rather than an array.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
@@ -765,7 +773,10 @@ field changes.
 
 `terrains` records the active cross-round battlefield terrain owned by one side
 at the start of this single fight. It defaults to `[]`. One entry represents one
-original Sticky Oil Bomb release, rather than one surviving oil circle:
+original Sticky Oil Bomb release, rather than one surviving oil circle. Under
+current 1v1 rules a side holds at most one entry: the Sticky Oil Bomb is the only
+release that survives its round, and it is unlocked once through the research
+center. Entry order therefore carries nothing, and canonical layouts sort it:
 
 ```yaml
 terrains:
