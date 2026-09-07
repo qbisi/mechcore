@@ -1,0 +1,106 @@
+# Round-trip the two test matches that carry retained objects: the replay and
+# the Training Ground must record the same fight.
+#
+#   mechcore run scripts/replay-roundtrip-retained-objects.mcscript --check   validate offline
+#   mechcore run scripts/replay-roundtrip-retained-objects.mcscript --force   record
+#
+# These are the smallest matches that separate the ways a commander-skill object
+# reaches a layout, and they are the only tracked coverage of that path.
+#
+# Both matches release a Shield Airdrop during round 1, so round 1 exports it as
+# a `battle_skills` release. It is still standing when round 2 starts, so round 2
+# exports it as an `airdrop_shields` entry instead. Running both rounds is what
+# proves one shield is never recorded in both collections, and never created
+# twice when the layout is applied.
+#
+# The second match adds the case that makes the split worth testing: its round 2
+# holds four contraption shields and the retained airdrop shield in the same
+# native shield collection, plus a retained Sticky Oil Bomb on the other side. A
+# wrong split shows up here as a shield created twice, missed, or placed under
+# the wrong deployment bounds.
+#
+# Both matches run on map 1001, which the exported layout carries; the Training
+# Ground loads it rather than the 1021 default.
+#
+# Every comparison carries an expect, so a mismatch fails the run instead of
+# leaving the schema claiming to carry state it does not carry.
+#
+# Both paths must be absolute.
+
+game: launch
+
+vars:
+  out: /Users/qbisi/mechcore-v2/work/research/replay-roundtrip-retained-objects
+  airdrop: /Users/qbisi/mechcore-v2/tests/grbr/2259_26-09-03__13-25-40-032_[crower]VS[电脑].grbr
+  mixed: /Users/qbisi/mechcore-v2/tests/grbr/2259_26-09-03__13-54-16-770_[crower]VS[电脑].grbr
+
+steps:
+  # Match 1, round 1: the Shield Airdrop is released this round.
+  - record_replay_round:
+      grbr: $airdrop
+      round: 1
+      output: ${out}/airdrop-r1.mcfr
+  - let:
+      airdrop_r1: embedded_layout(${out}/airdrop-r1.mcfr)
+  - apply_layout: $airdrop_r1
+  - record_battle:
+      output: ${out}/airdrop-r1-training.mcfr
+  - compare:
+      left: ${out}/airdrop-r1.mcfr
+      right: ${out}/airdrop-r1-training.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  # Match 1, round 2: the same shield is now a retained object, not a release.
+  - record_replay_round:
+      grbr: $airdrop
+      round: 2
+      output: ${out}/airdrop-r2.mcfr
+  - let:
+      airdrop_r2: embedded_layout(${out}/airdrop-r2.mcfr)
+  - apply_layout: $airdrop_r2
+  - record_battle:
+      output: ${out}/airdrop-r2-training.mcfr
+  - compare:
+      left: ${out}/airdrop-r2.mcfr
+      right: ${out}/airdrop-r2-training.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  # Match 2, round 1: two contraption shields, one Shield Airdrop release, and
+  # a Sticky Oil Bomb release on the other side.
+  - record_replay_round:
+      grbr: $mixed
+      round: 1
+      output: ${out}/mixed-r1.mcfr
+  - let:
+      mixed_r1: embedded_layout(${out}/mixed-r1.mcfr)
+  - apply_layout: $mixed_r1
+  - record_battle:
+      output: ${out}/mixed-r1-training.mcfr
+  - compare:
+      left: ${out}/mixed-r1.mcfr
+      right: ${out}/mixed-r1-training.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  # Match 2, round 2: four contraption shields and the retained airdrop shield
+  # share one native collection, against retained oil on the other side.
+  - record_replay_round:
+      grbr: $mixed
+      round: 2
+      output: ${out}/mixed-r2.mcfr
+  - let:
+      mixed_r2: embedded_layout(${out}/mixed-r2.mcfr)
+  - apply_layout: $mixed_r2
+  - record_battle:
+      output: ${out}/mixed-r2-training.mcfr
+  - compare:
+      left: ${out}/mixed-r2.mcfr
+      right: ${out}/mixed-r2-training.mcfr
+    expect:
+      equal: true
+      content_equal: true

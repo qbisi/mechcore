@@ -307,6 +307,10 @@ interceptors. Unit interception sources are not layout contraptions. Layout
 retains native full-list shield order at deployment and is not delayed or
 reordered from S(1).
 
+The same shield collection also holds retained Shield Airdrops. Those are
+commander-skill objects, so export splits them out of `contraptions` into the
+side's `airdrop_shields`, keeping their native full-list order.
+
 Native hooks use temporary Shield IDs before S(1). At the first advancing combat
 snapshot, initial IDs are assigned once in `(team_id, active_order)` order, with
 inactive shields following each team's active shields. First-tick-removed

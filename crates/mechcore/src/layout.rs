@@ -26,6 +26,7 @@ fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
         "formation_count": plan.formation_count(),
         "construction_count": plan.construction_count(),
         "contraption_count": plan.contraption_count(),
+        "airdrop_shield_count": plan.airdrop_shield_count(),
         "terrain_count": plan.terrain_count(),
     });
     println!(

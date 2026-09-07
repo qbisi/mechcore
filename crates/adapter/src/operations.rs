@@ -1,7 +1,7 @@
 use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
 use crate::layout::{
-    self, BattleSkill, EnergyTower, NativeFormation, Placement, ResearchCenter, SidePlan, Techs,
-    Terrain,
+    self, BattleSkill, EnergyTower, NativeFormation, Placement, Position as LayoutPosition,
+    ResearchCenter, SidePlan, Techs, Terrain,
 };
 use crate::runtime::Runtime;
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
@@ -1210,6 +1210,12 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     for placement in &plan.red.contraptions {
         layout_world_position(placement, true)?;
     }
+    for &position in &plan.blue.airdrop_shields {
+        position_to_world(position, false, "airdrop shield center")?;
+    }
+    for &position in &plan.red.airdrop_shields {
+        position_to_world(position, true, "airdrop shield center")?;
+    }
     for terrain in &plan.blue.terrains {
         terrain_world_positions(terrain, false)?;
     }
@@ -1249,6 +1255,11 @@ fn apply_side_layout_stage(
             "formations": formations,
             "constructions": constructions,
             "contraptions": contraptions,
+            "airdrop_shields": apply_airdrop_shields(
+                runtime,
+                &side.airdrop_shields,
+                rotate_to_world,
+            )?,
             "terrains": apply_terrains(runtime, &side.terrains, rotate_to_world)?,
             "battle_skills": apply_battle_skills(
                 runtime,
@@ -1263,6 +1274,28 @@ fn apply_side_layout_stage(
         ));
     }
     Ok(result)
+}
+
+/// Restores the Shield Airdrops earlier rounds left standing, in declaration
+/// order. They are existing world objects, so this adds no commander inventory
+/// and no release record.
+fn apply_airdrop_shields(
+    runtime: &Runtime,
+    shields: &[LayoutPosition],
+    rotate_to_world: bool,
+) -> Result<Vec<Value>, OperationError> {
+    shields
+        .iter()
+        .map(|&position| {
+            let world = position_to_world(position, rotate_to_world, "airdrop shield center")?;
+            let order = restore_airdrop_shield(runtime, world)?;
+            Ok(json!({
+                "native_shield_order": order,
+                "x": position.x,
+                "y": position.y
+            }))
+        })
+        .collect()
 }
 
 fn apply_terrains(
@@ -2413,16 +2446,6 @@ fn apply_contraption_formation(
     contraption_id: i32,
     world_position: MapVector,
 ) -> Result<Value, OperationError> {
-    if placement.isairdrop {
-        let order = restore_airdrop_shield(runtime, world_position)?;
-        return Ok(json!({
-            "type": placement.type_name,
-            "isairdrop": true,
-            "native_shield_order": order,
-            "x": placement.position.x,
-            "y": placement.position.y
-        }));
-    }
     let contraption_index = contraption(runtime, contraption_id, world_position, None)
         .map_err(|error| error.context(&format!("place {}", describe_placement(placement))))?;
     Ok(json!({
@@ -3745,7 +3768,6 @@ mod tests {
             rotated: false,
             equipment: None,
             travelling: false,
-            isairdrop: false,
         };
         let Err(error) = layout_world_position(&placement, true) else {
             panic!("red coordinate rotation unexpectedly succeeded")

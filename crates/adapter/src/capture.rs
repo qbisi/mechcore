@@ -4917,6 +4917,8 @@ fn read_native_side(
         });
     }
     constructions.sort_by(|a, b| (&a.type_name, a.x, a.y).cmp(&(&b.type_name, b.x, b.y)));
+    let (contraptions, airdrop_shields) =
+        read_native_contraptions(api, controller, team, shield_system, metadata)?;
     Ok(Side {
         techs: Techs {
             officers: read_native_officers(api, controller)?,
@@ -4926,7 +4928,8 @@ fn read_native_side(
         energy_tower: read_native_energy_tower(api, controller)?,
         formations,
         constructions,
-        contraptions: read_native_contraptions(api, controller, team, shield_system, metadata)?,
+        contraptions,
+        airdrop_shields,
         terrains: read_native_terrains(api, controller, range_item_system, team, metadata)?,
         battle_skills: read_native_battle_skills(api, controller, team)?,
     })
@@ -5335,13 +5338,15 @@ fn read_tower_strength(
     level.ok_or_else(|| format!("core tower kind {expected_kind} is absent"))
 }
 
-fn read_native_contraptions(
+/// Splits the one native shield collection into contraption shields and the
+/// retained Shield Airdrops, which are commander-skill objects instead.
+fn read_native_shields(
     api: Api,
     controller: *mut Object,
     team: usize,
     shield_system: *mut Object,
     metadata: &Metadata,
-) -> Result<Vec<ContraptionPlacement>, String> {
+) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
     let manager = invoke_object(api, controller, "GetContraptionManager")?;
     let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
     let fight_team = invoke_object(api, fight_controller, "GetTeam")?;
@@ -5386,7 +5391,22 @@ fn read_native_contraptions(
             airdrop_defaults = Some(defaults?);
         }
     }
-    let mut result = layout_shield_placements(shields, team, expected_energy, airdrop_defaults)?;
+    layout_shield_placements(shields, team, expected_energy, airdrop_defaults)
+}
+
+/// Reads this side's contraptions, plus the retained Shield Airdrops that share
+/// the native shield collection but are commander-skill objects, not
+/// contraptions.
+fn read_native_contraptions(
+    api: Api,
+    controller: *mut Object,
+    team: usize,
+    shield_system: *mut Object,
+    metadata: &Metadata,
+) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
+    let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
+    let (mut result, airdrop_shields) =
+        read_native_shields(api, controller, team, shield_system, metadata)?;
 
     let mine_manager = invoke_object(api, fight_controller, "GetMineManager")?;
     let mines = invoke_object(api, mine_manager, "GetLandMines")?;
@@ -5445,7 +5465,7 @@ fn read_native_contraptions(
         let position = vec3(invoke_value::<FixedVec3>(api, interceptor, "GetPos")?);
         result.push(layout_contraption_position("interceptor", position, team)?);
     }
-    Ok(result)
+    Ok((result, airdrop_shields))
 }
 
 fn layout_shield_placements(
@@ -5453,8 +5473,9 @@ fn layout_shield_placements(
     team: usize,
     expected_energy: i32,
     airdrop_defaults: Option<(i64, i32)>,
-) -> Result<Vec<ContraptionPlacement>, String> {
+) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
     let mut placements = Vec::new();
+    let mut airdrops = Vec::new();
     for shield in shields {
         let state = shield.state;
         let isairdrop = state.source_kind == ShieldSourceKind::CommanderSkill;
@@ -5478,11 +5499,17 @@ fn layout_shield_placements(
                     .into(),
             );
         }
-        let mut placement = layout_contraption_position("shield", state.position, team)?;
-        placement.isairdrop = isairdrop.then_some(true);
-        placements.push(placement);
+        let placement = layout_contraption_position("shield", state.position, team)?;
+        if isairdrop {
+            airdrops.push(Position {
+                x: placement.x,
+                y: placement.y,
+            });
+        } else {
+            placements.push(placement);
+        }
     }
-    Ok(placements)
+    Ok((placements, airdrops))
 }
 
 fn layout_contraption_position(
@@ -5511,7 +5538,6 @@ fn layout_contraption_position(
         type_name: type_name.into(),
         x,
         y,
-        isairdrop: None,
     })
 }
 
@@ -8997,14 +9023,14 @@ mod tests {
             type_name: kind.into(),
             x,
             y,
-            isairdrop: None,
         };
         let shields = vec![
             layout_test_shield(1, 215, 86, None),
             layout_test_shield(2, -230, 120, Some(0)),
             layout_test_shield(3, 106, 103, Some(1)),
         ];
-        let layout = layout_shield_placements(shields, 1, 40_000, None).unwrap();
+        let (layout, airdrops) = layout_shield_placements(shields, 1, 40_000, None).unwrap();
+        assert!(airdrops.is_empty());
         assert_eq!(
             layout,
             vec![
@@ -9013,20 +9039,20 @@ mod tests {
                 placement("shield", -106, -103),
             ]
         );
-        let inherited_only =
+        let (inherited_only, _) =
             layout_shield_placements(vec![layout_test_shield(1, 215, 86, None)], 1, 40_000, None)
                 .unwrap();
         assert_eq!(inherited_only, vec![placement("shield", -215, -86)]);
     }
 
     #[test]
-    fn layout_shields_include_airdrops_in_full_list_order() {
+    fn layout_shields_split_airdrops_out_of_the_contraption_list() {
         let mut airdrop = layout_test_shield(2, 300, -20, None);
         airdrop.state.source_kind = ShieldSourceKind::CommanderSkill;
         airdrop.state.radius = 100 * FIXED_ONE_RAW;
         airdrop.state.energy.maximum = 90_000;
         let defaults = Some((100 * FIXED_ONE_RAW, 90_000));
-        let placements = layout_shield_placements(
+        let (placements, airdrops) = layout_shield_placements(
             vec![layout_test_shield(1, 215, 86, Some(1)), airdrop.clone()],
             1,
             40_000,
@@ -9036,10 +9062,11 @@ mod tests {
         assert_eq!(
             placements
                 .iter()
-                .map(|placement| (placement.x, placement.y, placement.isairdrop))
+                .map(|placement| (placement.x, placement.y))
                 .collect::<Vec<_>>(),
-            [(-215, -86, None), (-300, 20, Some(true))]
+            [(-215, -86)]
         );
+        assert_eq!(airdrops, vec![Position { x: -300, y: 20 }]);
         assert!(layout_shield_placements(vec![airdrop.clone()], 1, 40_000, None).is_err());
         airdrop.state.round_policy = ShieldRoundPolicy::RetainState;
         assert!(layout_shield_placements(vec![airdrop], 1, 40_000, defaults).is_err());

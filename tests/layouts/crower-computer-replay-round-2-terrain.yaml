@@ -1,3 +1,4 @@
+map_id: 1001
 seed: 1788414856
 round: 2
 sides:
@@ -15,10 +16,6 @@ sides:
         rotated: true
     contraptions:
       - type: shield
-        x: -33
-        y: -72
-        isairdrop: true
-      - type: shield
         x: 62
         y: -103
       - type: shield
@@ -30,6 +27,8 @@ sides:
       - type: shield
         x: -216
         y: -90
+    airdrop_shields:
+      - {x: -33, y: -72}
   red:
     formations:
       - type: arclight

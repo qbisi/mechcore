@@ -74,6 +74,7 @@ sides:
         x: 5
         y: -95
 
+    airdrop_shields: []
     terrains: []
 
     battle_skills:
@@ -102,6 +103,7 @@ sides:
         y: -100
 
     contraptions: []
+    airdrop_shields: []
     terrains: []
     battle_skills: []
 ```
@@ -118,8 +120,8 @@ Runtime catalog availability and native readback remain Adapter-owned.
 
 `mechcore layout verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. A successful JSON report includes the normalized
-seed, round, formation count, construction count, and contraption
-count.
+seed, round, formation count, construction count, contraption count, and
+airdrop shield count.
 
 ## Seed
 
@@ -272,6 +274,7 @@ when omitted:
 - `energy_tower.movement_enhancement` defaults to `false`.
 - `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
+- `airdrop_shields` defaults to `[]`.
 - `terrains` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
 - A unit formation's `index` is required and has no default.
@@ -621,19 +624,16 @@ contraptions:
   - type: shield
     x: 275
     y: 20
-    isairdrop: true
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
 contraption kind. `contraptions` is parallel to `formations` and
 `constructions` under one side and defaults to `[]`. A contraption entry
-requires `type`, `x`, and `y`; shields additionally accept optional boolean
-`isairdrop` (default false). Other contraptions and constructions reject this
-field. None of these types requires an extra position. Replay export describes
-the contraptions still present at the deployment boundary, including objects
-retained from earlier rounds; it is not a list of this round's release
-operations. Export reads ordinary and retained airdrop shields from the full
-shield collection, `TeamMineManager.GetLandMines()`, and live
+requires `type`, `x`, and `y`, and none of these types requires an extra
+position. Replay export describes the contraptions still present at the
+deployment boundary, including objects retained from earlier rounds; it is not a
+list of this round's release operations. Export reads them from the full shield
+collection, `TeamMineManager.GetLandMines()`, and live
 `InterceptCtrGroup_Interceptor` sources. Removed missiles and destroyed
 interceptors are excluded; inactive reset-next-round shields are included.
 Export orders categories as shield, missile, interceptor, preserving native
@@ -641,27 +641,51 @@ order within each category. Shields retain full-list order; layout is captured
 before combat and is not reordered using S(1). MCFR Shield IDs are normalized
 separately and are not inferred from layout entry order.
 Shield radius and maximum energy must match the selected native source's
-defaults; otherwise export fails rather than silently losing state. Ordinary
-shields keep their own-side radius-70 deployment bounds. Retained airdrop shields
-require only their center inside `x=[-400,400], y=[-350,350]`, in side-local
-coordinates; they can extend outside the deployment area. Integer coordinates
-are converted directly to Q32.32 without floating-point rounding.
-
-`isairdrop: true` means a shield already present before this battle, not a new
-`battle_skills: shield_airdrop` release. It uses build-2259 `CS_EnergyShield`
-(ID 800001), which is not short-lived and resets to maximum energy between
-rounds. During the requested round's deployment, the executor constructs this
-data source without adding commander inventory or a release record, then invokes
-`AdvancedEnergyShieldSystem.Create(data, FVector3, teamController)` in layout
-declaration order. It verifies full/active-list insertion, source, team, exact
-position, radius, energy, and round policy. MCFR shield IDs remain normalized at
-S(1); no MCFR schema or hash field changes.
+defaults; otherwise export fails rather than silently losing state. Shields keep
+their own-side radius-70 deployment bounds. Integer coordinates are converted
+directly to Q32.32 without floating-point rounding.
 For missile/interceptor objects, export projects native world X/Z onto the
 layout plane; native object height is not a placement coordinate. Fractional
 planar coordinates are rejected rather than rounded.
-For ordinary contraptions, the executor performs the native placement check,
-releases the contraption once, and verifies its type and exact position through
-authoritative recorder readback.
+The executor performs the native placement check, releases the contraption once,
+and verifies its type and exact position through authoritative recorder readback.
+
+### `airdrop_shields`
+
+```yaml
+airdrop_shields:
+  - {x: -285, y: -22}
+```
+
+`airdrop_shields` records the Shield Airdrop objects an earlier round's release
+left standing at the start of this fight. It defaults to `[]` and holds bare
+side-local centers, because the object carries no other layout-visible state.
+
+A Shield Airdrop is a commander-skill object, not a contraption. It has no
+contraption index, it does not consume the contraption count, and it is created
+through the commander-skill path rather than a contraption release. That is why
+it is its own collection rather than a flag on a `contraptions` entry, even
+though native export finds it in the same shield collection as contraption
+shields.
+
+An entry here always means a shield already present before this battle. A Shield
+Airdrop released during the requested round is a `battle_skills` entry instead,
+so one shield is never recorded in both places. The retained object uses
+build-2259 `CS_EnergyShield` (ID 800001), which is not short-lived and resets to
+maximum energy between rounds.
+
+Because a retained airdrop is an existing world object rather than a new
+release, it only has to stand on the battlefield: its center must be inside
+`x=[-400,400], y=[-350,350]` in side-local coordinates, and its radius-70 body
+may extend outside the deployment area.
+
+During the requested round's deployment, the executor constructs the data source
+without adding commander inventory or a release record, then invokes
+`AdvancedEnergyShieldSystem.Create(data, FVector3, teamController)` in layout
+declaration order, after contraptions and before `terrains`. It verifies
+full/active-list insertion, source, team, exact position, radius, energy, and
+round policy. MCFR shield IDs remain normalized at S(1); no MCFR schema or hash
+field changes.
 
 ### `terrains`
 
@@ -895,7 +919,8 @@ request:
    polling authoritative status until the next deployment is stable;
 5. in the activation round, apply every unit in formation declaration order and construction,
    Officers, unit technologies, Research Center and Energy Tower state, shields,
-   missiles, interceptors, retained terrains, and battle skills; after each unit's final move,
+   missiles, interceptors, retained airdrop shields, retained terrains, and
+   battle skills; after each unit's final move,
    explicitly correct and verify any mismatching travelling state, then return
    while the game is still deploying.
 
@@ -921,7 +946,8 @@ construction, and contraption counts. A successful `apply_layout` response
 includes them as `round`, `formation_count`, `construction_count`, and
 `contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
 do not recount the input or returned arrays to establish completeness.
-`mechcore layout verify` additionally reports `terrain_count`.
+`mechcore layout verify` additionally reports `airdrop_shield_count` and
+`terrain_count`.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
 each side. Application also rejects a declared Officer or technology that is

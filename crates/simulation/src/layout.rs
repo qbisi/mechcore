@@ -109,6 +109,11 @@ fn compile_side(
             "side {name} contraptions are outside the current baseline simulator slice"
         )));
     }
+    if !side.airdrop_shields.is_empty() {
+        return Err(Error::new(format!(
+            "side {name} airdrop shields are outside the current baseline simulator slice"
+        )));
+    }
     side.formations
         .iter()
         .enumerate()
