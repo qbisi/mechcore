@@ -8,6 +8,7 @@ members = [
     "crates/simulation",
 ]
 resolver = "3"
+default-members = ["crates/mechcore"]
 
 [workspace.package]
 edition = "2024"
@@ -19,6 +20,12 @@ codegen-units = 1
 lto = "thin"
 panic = "abort"
 strip = "symbols"
+
+# The Adapter is a build-time artifact but runs inside the game. Cargo's
+# default build-dependency opt-level=0 is inappropriate for native capture.
+[profile.release.build-override]
+opt-level = 3
+codegen-units = 1
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

@@ -15,17 +15,43 @@ peer with the same effective UID.
 
 ## Build and launch
 
-Build the release Adapter from the repository root:
+The repository pins nightly Rust in `rust-toolchain.toml` and enables Cargo
+artifact dependencies in `.cargo/config.toml`. Use a rustup-provided Cargo
+(a standalone stable Cargo, including one installed by Nix, does not select
+the pinned toolchain). For a Nix environment without rustup, enter
+`nix-shell -p rustup` first; its `cargo` proxy selects the pinned nightly.
+
+Build the CLI and its Adapter together from the repository root:
 
 ```sh
-cargo build -p mechcore-adapter --release
+cargo build -p mechcore --release
 ```
 
-The Adapter dylib is repository-relative:
+`cargo run --release -- run <script.mcscript>` also checks and builds the
+Adapter before running the CLI. Cargo tracks the Adapter's source and transitive
+dependencies; the CLI build script atomically copies the resulting dylib beside
+the executable. No runtime Cargo invocation or absolute build path is needed.
+The workspace defaults to the CLI; use `--workspace` for workspace-wide checks.
+Release build dependencies explicitly use optimization level 3 and one codegen
+unit because Cargo otherwise builds build-time artifacts without optimization.
+Cargo keeps build dependencies on its unwind panic strategy; the CLI retains
+the workspace's abort strategy.
+The default release directory contains both files:
 
 ```text
+target/release/mechcore
 target/release/libmechcore_adapter.dylib
 ```
+
+Debug builds, custom target directories and explicit target triples use their
+corresponding output directory. Distribute both files together. After changing
+the Adapter, start a new game with `game: launch` (or `shell --launch`): an
+already running game keeps its loaded Adapter, including when using `attach`.
+
+`python3 scripts/check-adapter-packaging.py` exercises the real packaging build
+script with a small test dylib: source changes, no-op builds, a removed copy,
+debug/release profiles, a custom output directory and an explicit target triple.
+Run it in the same nightly environment after fetching the workspace dependencies.
 
 The default Steam game executable is home-relative:
 

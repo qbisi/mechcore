@@ -16,6 +16,10 @@ serde_json = "1"
 serde_yaml = "0.9"
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
 
+[build-dependencies]
+mechcore-adapter = { path = "../adapter", artifact = "cdylib", target = "target" }
+tempfile = "3"
+
 [dev-dependencies]
 tempfile = "3"
 

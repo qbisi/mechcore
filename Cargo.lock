@@ -488,6 +488,7 @@ name = "mechcore"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "mechcore-adapter",
  "mechcore-layout",
  "mechcore-mcfr",
  "mechcore-protocol",
