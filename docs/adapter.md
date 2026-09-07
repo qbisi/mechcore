@@ -139,6 +139,14 @@ stream before returning from a lifecycle operation.
 
 ### apply_layout
 
+Neutral map crystals in the global `BuildingSystem` are retained, including
+their RVO agents and collision/query indexes. They are native scene inputs, not
+layout-side deployments: deleting them solely because they have no team can
+change RVO neighbour queries even when they are outside the deployment area.
+The prepare result reports their `retained_count` and `rvo_controller_count`
+under `retained.neutral_crystals`. This preserves the native Training Ground
+map; it does not claim that every replay map is identical to that map.
+
 Input is the complete layout object defined by [layout.md](layout.md), with a
 positive top-level `round` and `sides.blue` and `sides.red` fields.
 A layout is valid at any round, but this operation stages every earlier setup

@@ -863,7 +863,7 @@ fn apply_layout_stage(
 
     if stage == LayoutExecutionStage::Prepare {
         validate_layout_positions(plan)?;
-        let neutral_crystals = clear_neutral_crystals(runtime)?;
+        let neutral_crystals = inspect_neutral_crystals(runtime)?;
         let current = require_match(runtime)?;
         validate_side_layout_catalog(runtime, &plan.blue)?;
         clear_current_side(runtime, current, &plan.blue.constructions, false)?;
@@ -886,9 +886,9 @@ fn apply_layout_stage(
             "cleared": {
                 "cleared": true,
                 "both_sides": true,
-                "constructions": "reconciled",
-                "neutral_crystals": neutral_crystals
+                "constructions": "reconciled"
             },
+            "retained": {"neutral_crystals": neutral_crystals},
         }));
     }
 
@@ -920,9 +920,10 @@ fn apply_layout_stage(
     }))
 }
 
-// Remove Training Ground scene owners before the first fight, not agents inside
-// the RVO solver. Replay captures never execute this deployment path.
-fn clear_neutral_crystals(runtime: &Runtime) -> Result<Value, OperationError> {
+// Neutral crystals belong to the native map, not either layout side. Even
+// peripheral crystals affect RVO tree construction, so preserve their owners,
+// agents and indexes. Merely being neutral does not make them test-only objects.
+fn inspect_neutral_crystals(runtime: &Runtime) -> Result<Value, OperationError> {
     require_layout_deployment(runtime, 1)?;
     let api = runtime.api;
     let system = find_match_module(
@@ -936,68 +937,21 @@ fn clear_neutral_crystals(runtime: &Runtime) -> Result<Value, OperationError> {
     let team_field = api.field(crystal_class, "currentTeamController")?;
     let origin_field = api.field(crystal_class, "originTeamController")?;
     let count = list_count(api, buildings)?;
-    let mut targets = Vec::new();
     let mut rvo_controller_count = 0;
     for index in 0..count {
         let crystal = list_item(api, buildings, index)?;
         let team: *mut Object = api.field_value(crystal, team_field)?;
         let origin: *mut Object = api.field_value(crystal, origin_field)?;
-        // The global scene list is expected to contain only plain neutral
-        // crystals. Reject mixed ownership before changing any object/index.
         if api.object_class(crystal) != Some(crystal_class) || !team.is_null() || !origin.is_null()
         {
             return Err(OperationError::InvalidState(
-                "neutral crystal cleanup found a non-neutral or derived global building".into(),
+                "neutral crystal inspection found a non-neutral or derived global building".into(),
             ));
         }
         let controller = api.invoke(crystal, "GetRVOController", &mut [])?;
         rvo_controller_count += usize::from(!controller.is_null());
-        targets.push((crystal, controller));
     }
-    let system_class = api.object_class(system).ok_or_else(|| {
-        OperationError::InvalidState("BuildingSystem has no runtime class".into())
-    })?;
-    let mut indexes = Vec::new();
-    for name in ["collideController", "damageController", "quadtree"] {
-        let object: *mut Object = api.field_value(system, api.field(system_class, name)?)?;
-        if object.is_null() {
-            return Err(OperationError::InvalidState(format!(
-                "BuildingSystem.{name} is null"
-            )));
-        }
-        indexes.push(object);
-    }
-    for (crystal, controller) in targets {
-        api.invoke_void(crystal, "Deactive", &mut [])?;
-        let mut hidden = 3_i32; // build-2259 ActorVisibility.Hide
-        api.invoke_void(crystal, "SetVisibility", &mut [argument(&mut hidden)])?;
-        if !controller.is_null() {
-            let class = api.object_class(controller).ok_or_else(|| {
-                OperationError::InvalidState("crystal RVO controller has no class".into())
-            })?;
-            let agent: *mut Object =
-                api.field_value(controller, api.field(class, "<rvoAgent>k__BackingField")?)?;
-            if !agent.is_null() || api.invoke_value::<bool>(controller, "IsActive", &mut [])? {
-                return Err(OperationError::InvalidState(
-                    "neutral crystal RVO remains active".into(),
-                ));
-            }
-        }
-    }
-    // Native Clear also unregisters BuildingFunctionController destruction
-    // listeners. All owners were checked above, so no team index is cleared.
-    for index in indexes {
-        api.invoke_void(index, "Clear", &mut [])?;
-    }
-    api.invoke_void(buildings, "Clear", &mut [])?;
-    if list_count(api, api.invoke(system, "GetBuildings", &mut [])?)? != 0 {
-        return Err(OperationError::InvalidState(
-            "neutral crystal owners remain registered".into(),
-        ));
-    }
-    Ok(
-        json!({"removed_count": count, "remaining_count": 0, "rvo_controller_count": rvo_controller_count}),
-    )
+    Ok(json!({"retained_count": count, "rvo_controller_count": rvo_controller_count}))
 }
 
 fn switch_player(runtime: &Runtime, current: *mut Object) -> Result<(), OperationError> {
