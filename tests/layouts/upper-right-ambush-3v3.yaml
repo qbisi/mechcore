@@ -12,12 +12,10 @@ sides:
         index: 1
         x: 330
         y: 285
-        travelling: false
       - type: typhoon
         index: 2
         x: 350
         y: 290
-        travelling: false
 
   red:
     formations:

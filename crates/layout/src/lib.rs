@@ -294,10 +294,29 @@ impl Plan {
 }
 
 impl Layout {
-    /// Removes syntax that is semantically equivalent to the public defaults.
+    /// Rewrites a layout into the one document that denotes its state.
+    ///
+    /// Two rules make up the normal form. Syntax equivalent to a public default
+    /// is dropped, and every collection whose order carries no meaning is put in
+    /// its defined order: indexed placements by deployment identity, technology
+    /// and Officer IDs and retained airdrop shields ascending. `battle_skills`
+    /// is deliberately untouched, because release order is what it records.
+    /// `terrains` is untouched as well, but for a weaker reason: whether the
+    /// order of retained terrain releases is observable has not been settled.
+    ///
+    /// Applying this twice changes nothing the first pass did not already do.
     #[must_use]
     pub fn normalized(mut self) -> Self {
         for side in [&mut self.sides.blue, &mut self.sides.red] {
+            side.techs.officers.sort_unstable();
+            side.techs.units.sort_unstable();
+            side.formations.sort_by_key(|formation| formation.index);
+            side.constructions
+                .sort_by_key(|construction| construction.index);
+            side.contraptions
+                .sort_by_key(|contraption| contraption.index);
+            side.airdrop_shields
+                .sort_unstable_by_key(|position| (position.x, position.y));
             for formation in &mut side.formations {
                 if formation.level == Some(1) {
                     formation.level = None;
@@ -393,8 +412,10 @@ fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
 
 /// Serializes a validated layout into the canonical YAML representation.
 ///
-/// Canonical layout YAML omits an unspecified `seed`, preserves declaration
-/// order, omits default-valued optional syntax, and ends with one newline.
+/// Canonical layout YAML omits an unspecified `seed`, omits default-valued
+/// optional syntax, puts every collection in the order [`Layout::normalized`]
+/// defines, and ends with one newline. It does not preserve declaration order:
+/// only `battle_skills`, whose order is its content, survives as written.
 ///
 /// # Errors
 ///
@@ -1755,6 +1776,94 @@ mod tests {
             .round,
             40
         );
+    }
+
+    #[test]
+    fn normalization_reaches_its_fixed_point_in_one_pass() {
+        let denormalized: Layout = serde_json::from_value(json!({
+            "round": 2,
+            "sides": {
+                "blue": {
+                    "techs": {"officers": [20039, 10014], "units": [10202, 10101]},
+                    "formations": [
+                        {"index": 4, "type": "marksman", "x": 40, "y": -50, "level": 1},
+                        {"index": 1, "type": "marksman", "x": 0, "y": -50,
+                         "exp": 0, "rotated": false, "travelling": false}
+                    ],
+                    "contraptions": [
+                        {"index": 3, "type": "shield", "x": 0, "y": -120},
+                        {"index": 2, "type": "shield", "x": 100, "y": -120}
+                    ],
+                    "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}]
+                },
+                "red": {"formations": [{"index": 0, "type": "marksman", "x": 0, "y": -50}]}
+            }
+        }))
+        .unwrap();
+
+        let once = denormalized.normalized();
+        assert_eq!(once.sides.blue.techs.officers, [10014, 20039]);
+        assert_eq!(once.sides.blue.techs.units, [10101, 10202]);
+        assert_eq!(
+            once.sides
+                .blue
+                .formations
+                .iter()
+                .map(|formation| formation.index)
+                .collect::<Vec<_>>(),
+            [1, 4]
+        );
+        assert_eq!(
+            once.sides
+                .blue
+                .contraptions
+                .iter()
+                .map(|contraption| contraption.index)
+                .collect::<Vec<_>>(),
+            [2, 3]
+        );
+        assert_eq!(
+            once.sides.blue.airdrop_shields,
+            [Position { x: -200, y: 20 }, Position { x: 200, y: 20 }]
+        );
+        assert!(once.sides.blue.formations[0].level.is_none());
+        assert!(once.sides.blue.formations[0].exp.is_none());
+        assert!(once.sides.blue.formations[0].rotated.is_none());
+        assert!(once.sides.blue.formations[0].travelling.is_none());
+
+        assert_eq!(once.clone().normalized(), once);
+    }
+
+    #[test]
+    fn tracked_layouts_are_normal_and_normalize_idempotently() {
+        let directory = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/layouts");
+        let mut checked = 0;
+        for entry in std::fs::read_dir(directory).expect("tracked layout directory") {
+            let path = entry.expect("directory entry").path();
+            if path.extension().is_none_or(|extension| extension != "yaml") {
+                continue;
+            }
+            let bytes = std::fs::read(&path).expect("readable layout");
+            let layout = parse_yaml(&bytes).unwrap_or_else(|error| {
+                panic!("{} does not parse: {error}", path.display());
+            });
+            assert_eq!(
+                layout.clone(),
+                layout.clone().normalized(),
+                "{} is not in normal form",
+                path.display()
+            );
+            let once = layout.normalized();
+            let twice = once.clone().normalized();
+            assert_eq!(
+                once,
+                twice,
+                "{} is not a normalization fixed point",
+                path.display()
+            );
+            checked += 1;
+        }
+        assert!(checked > 0, "no tracked layouts were read from {directory}");
     }
 
     #[test]

@@ -3,7 +3,7 @@ round: 1
 sides:
   blue:
     techs:
-      units: [10213, 10202]
+      units: [10202, 10213]
 
     research_center:
       strength_level: 2
@@ -48,7 +48,7 @@ sides:
   red:
     techs:
       officers: [30602]
-      units: [10209, 10206, 10215]
+      units: [10206, 10209, 10215]
 
     energy_tower:
       strength_level: 1

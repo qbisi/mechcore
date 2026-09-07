@@ -182,8 +182,8 @@ sides:
   red:
     techs:
       officers:
-      - 20039
       - 20023
+      - 20039
       units:
       - 3925
       - 4515

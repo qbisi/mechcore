@@ -113,6 +113,31 @@ sides:
 YAML field order has no semantic meaning. Examples and generated files should
 nevertheless use the order above.
 
+## Normal form
+
+One state is one document. A layout is in normal form when syntax equivalent to
+a public default is absent and every collection whose order carries no meaning is
+in its defined order:
+
+| Collection | Order |
+| --- | --- |
+| `formations`, `constructions`, `contraptions` | ascending `index` |
+| `techs.officers`, `techs.units` | ascending ID |
+| `airdrop_shields` | ascending `(x, y)` |
+| `battle_skills` | as written: release order is what it records |
+| `terrains` | as written |
+
+`airdrop_shields` can be reordered because the game sorts both of its shield
+lists by position at fight start, so a retained shield's position in the list is
+not observable during the fight. `terrains` is left alone for a weaker reason:
+whether the order of retained terrain releases is observable has not been
+settled, so it is preserved rather than assumed free.
+
+`mechcore layout format` writes this form and `mechcore layout diff` compares it,
+so two documents that denote the same state compare equal. Normalizing an
+already-normal document changes nothing. A hand-written layout may still state a
+default explicitly, which is valid and merely not normal.
+
 The `mechcore-layout` crate is the authoritative implementation of this public
 shape, its static legality rules, and normalized execution plan. MCP uses its
 `Layout` type for the `apply_layout` input schema and validates with the shared
@@ -333,7 +358,8 @@ uses Officer `30101` for Mass-Produced Fortress and Officer `30201` for
 Range-Extended Marksman. Generic Officers use `typeID: 0` and remain in the
 same array.
 
-IDs must be unique. Their order is the deterministic application order.
+IDs must be unique and carry no order semantics, so canonical layouts sort them
+ascending; that sorted order is then the deterministic application order.
 Commander skills, equipment, and extra formations granted by an Officer are
 not themselves Officer modifiers. Their resulting state belongs to
 `battle_skills`, equipment, or formation definitions. A compiler must use the
@@ -364,8 +390,9 @@ technology catalogs still contain the same relationship. Catalog drift is
 rejected before any layout mutation.
 
 Every declared technology is both added and activated. The format does not
-represent an acquired but inactive technology. IDs must be unique, and array
-order is the deterministic order of native add and activate operations.
+represent an acquired but inactive technology. IDs must be unique and carry no
+order semantics, so canonical layouts sort them ascending; that sorted order is
+then the deterministic order of native add and activate operations.
 
 ### `research_center`
 
