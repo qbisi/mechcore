@@ -188,6 +188,7 @@ mod tests {
     use crate::rules::SimulationConfig;
 
     const LAYOUT: &str = r"
+kind: layout
 round: 1
 sides:
   blue:

@@ -489,6 +489,7 @@ impl Session {
                 Operation::RecordReplayRound,
                 json!({
                     "grbr": grbr,
+                    "kind": "layout",
                     "round": round,
                     "output": output,
                     "speed_up": speed_up,
@@ -841,7 +842,7 @@ mod tests {
         let failure = record_battle_failure(
             "cleanup failed",
             &json!({"recorded": true}),
-            &json!({"round": 1, "sides": {}}),
+            &json!({"kind": "layout", "round": 1, "sides": {}}),
             Err("native exit failed".into()),
             json!({"status": "training_ground", "fighting": false}),
         );
@@ -898,6 +899,7 @@ mod tests {
         let error = Session::new()
             .apply_layout(
                 json!({
+                    "kind": "layout",
                     "round": 1,
                     "sides": {
                         "blue": {"formations": [{"type": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
@@ -917,6 +919,7 @@ mod tests {
         let error = Session::new()
             .apply_layout(
                 json!({
+                    "kind": "layout",
                     "round": 1,
                     "sides": {
                         "blue": {

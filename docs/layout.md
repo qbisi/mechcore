@@ -32,7 +32,20 @@ unsupported formations or mechanisms are rejected before recording begins.
 A layout contains exactly two player sides, `blue` and `red`. Persistent Officer
 and unit-technology state is grouped under each side's `techs` object.
 
+The required top-level `kind` names what the document is. It is a constant, not
+a version: it takes the single value `layout` and never needs maintaining. Its
+purpose is to separate this document from the other kinds this format will
+define, such as a turn, which carries a partial layout beside its actions and so
+overlaps this shape too much for structure alone to tell them apart. A reader
+resolves `kind` before anything else, so a document of another kind is refused
+as that kind rather than as a layout with an unexpected field. A document that
+names no kind is refused as well, since a default would make the answer a guess.
+
+`kind` marks a document root, not a subtree. A future document that embeds part
+of a layout does not repeat it inside that part.
+
 ```yaml
+kind: layout
 round: 3
 
 sides:
@@ -133,6 +146,9 @@ admits rather than over the states today's rules can reach.
 so two documents that denote the same state compare equal. Normalizing an
 already-normal document changes nothing. A hand-written layout may still state a
 default explicitly, which is valid and merely not normal.
+
+A canonical document begins with `kind: layout`, since a reader has to know what
+it is holding before any of it means anything.
 
 Every coordinate pair in the schema is one `{x, y}` value rather than two
 sibling fields. `formations`, `constructions` and `contraptions` carry it as
@@ -324,7 +340,8 @@ when omitted:
 - A unit formation's `equipment` defaults to no equipment.
 - A unit formation's `travelling` defaults to `false`.
 
-Unknown fields must be rejected. Numeric IDs outside formation definitions must
+Unknown fields must be rejected, and so is a document whose `kind` is absent or
+names another kind. Numeric IDs outside formation definitions must
 be positive integers unless the field explicitly defines `0` as a baseline
 level.
 

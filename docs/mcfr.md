@@ -26,7 +26,7 @@ recording.mcfr
 
 | 成员 | 逻辑内容 | 时间覆盖 | 物理编码 |
 | --- | --- | --- | --- |
-| `layout.yaml` | 可直接重放的规范化场景布局 | 录像级 | UTF-8 YAML，LF 结尾 |
+| `layout.yaml` | 可直接重放的规范化场景布局，首行为 `kind: layout` | 录像级 | UTF-8 YAML，LF 结尾 |
 | `ticks.parquet` | DurableContext、录像元数据、每帧摘要 | `T(1)..T(n)` | Parquet + Zstd level 6 |
 | `units.parquet` | 存活 FightMech 完整状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `projectiles.parquet` | ProjectileSystem 中的弹体完整状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |

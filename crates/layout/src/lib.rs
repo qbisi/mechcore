@@ -6,9 +6,24 @@ use std::collections::BTreeMap;
 mod grbr;
 pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 
+/// Names the kind of document a file carries.
+///
+/// A layout is one of several documents this crate will define, and they share
+/// most of their shape: a `turn` carries a partial layout beside its actions.
+/// Structure alone therefore cannot say which one a file holds, so every
+/// document names itself. The tag is a constant, not a version: it never needs
+/// maintaining, and because it takes one value within a kind it cannot split
+/// one state across two documents.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DocumentKind {
+    Layout,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
+    pub kind: DocumentKind,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
     pub map_id: Option<i32>,
@@ -236,6 +251,7 @@ const BATTLEFIELD_MAX_Y: i64 = 350;
 const OIL_TERRAIN_RADIUS: i64 = 30;
 const OIL_TERRAIN_GRID_SIZE: usize = 12;
 const OIL_TERRAIN_GRID_MASK: u32 = (1 << OIL_TERRAIN_GRID_SIZE) - 1;
+const LAYOUT_KIND: &str = "layout";
 const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 const ENEMY_TOWER_X: [i64; 2] = [-140, 140];
 const ENEMY_TOWER_Y: i64 = 170;
@@ -372,10 +388,42 @@ pub fn parse_yaml(bytes: &[u8]) -> Result<Layout, String> {
 ///
 /// Returns an error when the YAML does not match the shared layout structure.
 pub fn parse_embedded_yaml(bytes: &[u8]) -> Result<Layout, String> {
+    if let Ok(header) = serde_yaml::from_slice::<DocumentHeader>(bytes) {
+        require_layout_kind(header.kind.as_deref())?;
+    }
     let layout: Layout =
         serde_yaml::from_slice(bytes).map_err(|error| format!("invalid layout YAML: {error}"))?;
     validate_embedded_categories(&layout)?;
     Ok(layout)
+}
+
+/// Reads only the discriminator, so a document of another kind is named as one.
+///
+/// Unknown fields are accepted here on purpose. Every document kind carries
+/// fields a layout does not, and rejecting them at this level would answer
+/// "which document is this?" with a complaint about one of its fields.
+#[derive(Deserialize)]
+struct DocumentHeader {
+    #[serde(default)]
+    kind: Option<String>,
+}
+
+/// Rejects a document that does not announce itself as a layout.
+///
+/// This runs before the document is deserialized, so a `turn` reaches the
+/// reader as the wrong kind of document rather than as a layout with a strange
+/// field. Without it the first difference in shape would be reported instead,
+/// which says nothing about what the file actually is.
+fn require_layout_kind(kind: Option<&str>) -> Result<(), String> {
+    match kind {
+        Some(LAYOUT_KIND) => Ok(()),
+        Some(other) => Err(format!(
+            "expected a {LAYOUT_KIND} document, found kind {other:?}"
+        )),
+        None => Err(format!(
+            "document does not name its kind: a layout starts with `kind: {LAYOUT_KIND}`"
+        )),
+    }
 }
 
 fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
@@ -500,6 +548,12 @@ fn collapse_placement_positions(yaml: &str) -> String {
 /// Returns an error when the JSON does not match [`Layout`] or violates any
 /// shared static layout rule.
 pub fn compile(value: &Value) -> Result<Plan, String> {
+    match value.get("kind") {
+        Some(Value::String(kind)) => require_layout_kind(Some(kind))?,
+        // A non-string `kind` is a type error, which serde reports better.
+        Some(_) => {}
+        None => require_layout_kind(None)?,
+    }
     let layout: Layout = serde_json::from_value(value.clone())
         .map_err(|error| format!("invalid layout: {error}"))?;
     compile_layout(layout)
@@ -1764,6 +1818,7 @@ mod tests {
 
     fn layout_with_blue_battle_skill(type_name: &str, positions: impl serde::Serialize) -> Value {
         json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -1779,6 +1834,7 @@ mod tests {
 
     fn layout_with_blue_terrains(terrains: Value) -> Value {
         json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -1793,8 +1849,56 @@ mod tests {
     }
 
     #[test]
+    fn a_document_of_another_kind_is_rejected_as_that_kind() {
+        // The point of the discriminator is that this reads as "not a layout"
+        // rather than as a layout with an unexpected field. A turn carries a
+        // partial layout, so the shapes overlap and the first structural
+        // difference would say nothing about what the file is.
+        let turn = br"
+kind: turn
+round: 1
+actions:
+  - type: deploy
+sides:
+  blue:
+    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+  red:
+    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+";
+        let error = parse_embedded_yaml(turn).unwrap_err();
+        assert_eq!(error, "expected a layout document, found kind \"turn\"");
+
+        let untagged = br"
+round: 1
+sides:
+  blue:
+    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+  red:
+    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+";
+        assert_eq!(
+            parse_embedded_yaml(untagged).unwrap_err(),
+            "document does not name its kind: a layout starts with `kind: layout`"
+        );
+
+        // The JSON entry point that MCP publishes answers the same way.
+        assert_eq!(
+            compile(&json!({"kind": "turn", "round": 1, "sides": {}})).unwrap_err(),
+            "expected a layout document, found kind \"turn\""
+        );
+
+        // Malformed YAML still reports the syntax problem, not the kind.
+        assert!(
+            parse_embedded_yaml(b"kind: layout\nround: [\n")
+                .unwrap_err()
+                .starts_with("invalid layout YAML:")
+        );
+    }
+
+    #[test]
     fn requires_a_positive_round() {
         let missing = compile(&json!({
+            "kind": "layout",
             "sides": {
                 "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
                 "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
@@ -1804,6 +1908,7 @@ mod tests {
         assert!(missing.contains("missing field `round`"));
 
         let invalid = compile(&json!({
+            "kind": "layout",
             "round": 0,
             "sides": {
                 "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
@@ -1817,6 +1922,7 @@ mod tests {
         // round that no Training Ground run can reach.
         assert_eq!(
             compile(&json!({
+                "kind": "layout",
                 "round": 40,
                 "sides": {
                     "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
@@ -1832,6 +1938,7 @@ mod tests {
     #[test]
     fn normalization_reaches_its_fixed_point_in_one_pass() {
         let denormalized: Layout = serde_json::from_value(json!({
+            "kind": "layout",
             "round": 2,
             "sides": {
                 "blue": {
@@ -1932,7 +2039,7 @@ mod tests {
 
     #[test]
     fn map_id_is_optional_positive_and_preserved() {
-        let mut value = json!({"round": 1, "sides": {
+        let mut value = json!({"kind": "layout", "round": 1, "sides": {
             "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
             "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
         }});
@@ -1960,6 +2067,7 @@ mod tests {
     fn leaves_an_unspecified_seed_absent_and_rejects_the_zero_sentinel() {
         let layout = |seed| {
             let mut value = json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]},
@@ -2046,6 +2154,7 @@ mod tests {
     fn embedded_layout_keeps_placement_categories_explicit() {
         let error = parse_embedded_yaml(
             br#"
+kind: layout
 round: 1
 sides:
   blue:
@@ -2066,6 +2175,7 @@ sides:
     #[test]
     fn compiles_formations_in_declaration_order() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 3,
             "sides": {
                 "blue": {"formations": [
@@ -2097,6 +2207,7 @@ sides:
     fn enforces_round_rules_for_ambush_units() {
         let layout = |round, travelling| {
             json!({
+                "kind": "layout",
                 "round": round,
                 "sides": {
                     "blue": {"formations": [
@@ -2123,6 +2234,7 @@ sides:
                 .contains("first flank deployment")
         );
         let omitted = compile(&json!({
+            "kind": "layout",
             "round": 2,
             "sides": {
                 "blue": {"formations": [{"index": 0, "type": "marksman", "position": {"x": -310, "y": 20}}]},
@@ -2150,6 +2262,7 @@ sides:
     #[test]
     fn travelling_requires_an_ambush_position() {
         let main_error = compile(&json!({
+            "kind": "layout",
             "round": 3,
             "sides": {
                 "blue": {"formations": [
@@ -2165,6 +2278,7 @@ sides:
     #[test]
     fn ambush_unit_footprint_must_fit_one_flank_region() {
         let error = compile(&json!({
+            "kind": "layout",
             "round": 3,
             "sides": {
                 "blue": {"formations": [
@@ -2180,6 +2294,7 @@ sides:
     #[test]
     fn ambush_region_orientation_changes_the_effective_unit_footprint() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 3,
             "sides": {
                 "blue": {"formations": [
@@ -2198,6 +2313,7 @@ sides:
         );
 
         let error = compile(&json!({
+            "kind": "layout",
             "round": 3,
             "sides": {
                 "blue": {"formations": [
@@ -2216,6 +2332,7 @@ sides:
     #[test]
     fn compiles_unit_defaults_for_both_sides() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
@@ -2244,6 +2361,7 @@ sides:
     #[test]
     fn compiles_stable_unit_indices_and_experience() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [
@@ -2261,6 +2379,7 @@ sides:
         assert_eq!(plan.blue.formations[1].exp, Some(0));
 
         let duplicate = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [
@@ -2274,6 +2393,7 @@ sides:
         assert!(duplicate.contains("indices must be strictly increasing"));
 
         let negative_exp = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [
@@ -2289,6 +2409,7 @@ sides:
     #[test]
     fn compiles_one_equipment_for_a_unit() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
@@ -2309,6 +2430,7 @@ sides:
     #[test]
     fn constructions_reject_unit_only_fields() {
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -2329,6 +2451,7 @@ sides:
     #[test]
     fn rejects_nonpositive_equipment_id() {
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
@@ -2350,6 +2473,7 @@ sides:
     #[test]
     fn validates_tech_ids() {
         let valid = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -2366,6 +2490,7 @@ sides:
         assert_eq!(valid.blue.techs.units, [10202]);
 
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"techs": {"units": [10202, 10202]}, "formations": [{"index": 0,
@@ -2380,6 +2505,7 @@ sides:
         assert_eq!(error, "side blue techs.units contains duplicate ID 10202");
 
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"techs": {"officers": [0]}, "formations": [{"index": 0,
@@ -2400,6 +2526,7 @@ sides:
     #[test]
     fn rejects_tower_levels_outside_the_runtime_catalog() {
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -2418,6 +2545,7 @@ sides:
     #[test]
     fn rejects_construction_types_in_formations() {
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
@@ -2439,6 +2567,7 @@ sides:
     #[test]
     fn requires_nonempty_formations_for_both_sides() {
         let missing = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {},
@@ -2451,6 +2580,7 @@ sides:
         assert!(missing.contains("missing field `formations`"));
 
         let empty = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": []},
@@ -2467,6 +2597,7 @@ sides:
     fn rejects_positive_area_unit_overlap_but_allows_edge_contact() {
         let layout = |second_x| {
             json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {"formations": [
@@ -2526,6 +2657,7 @@ sides:
     #[test]
     fn rejects_center_that_does_not_match_its_footprint_grid_class() {
         let error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {"formations": [{"index": 0,
@@ -2661,6 +2793,7 @@ sides:
     fn compiles_interceptor_and_reuses_formation_collision_validation() {
         let layout = |interceptor_y| {
             json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {
@@ -2692,6 +2825,7 @@ sides:
     #[test]
     fn shield_and_missile_skip_grid_and_collision_validation() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -2724,7 +2858,7 @@ sides:
 
     #[test]
     fn retained_airdrop_shields_are_their_own_collection() {
-        let mut value = json!({"round": 2, "sides": {
+        let mut value = json!({"kind": "layout", "round": 2, "sides": {
             "blue": {"formations": [{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}],
                 "contraptions": [{"index": 0, "type":"shield","position": {"x": 0, "y": -120}}],
                 "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
@@ -2750,7 +2884,7 @@ sides:
     #[test]
     fn contraptions_reject_the_retired_isairdrop_field() {
         for kind in ["shield", "missile", "interceptor"] {
-            let value = json!({"round":1,"sides":{
+            let value = json!({"kind": "layout", "round":1,"sides":{
                 "blue":{"formations":[{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}],
                     "contraptions":[{"index": 0, "type":kind,"position": {"x": 5, "y": -95},"isairdrop":false}]},
                 "red":{"formations":[{"index": 0, "type":"marksman","position": {"x": 0, "y": -150}}]}}});
@@ -2762,6 +2896,7 @@ sides:
     fn shield_requires_its_complete_edge_inside_the_own_side() {
         let layout = |x, y| {
             json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {
@@ -2788,6 +2923,7 @@ sides:
     fn missile_requires_only_its_center_inside_the_own_side() {
         let layout = |x, y| {
             json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {
@@ -2813,6 +2949,7 @@ sides:
     #[test]
     fn compiles_all_four_construction_types_in_document_order() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -2859,6 +2996,7 @@ sides:
     fn construction_and_contraption_indices_are_required_and_ordered() {
         let layout = |constructions: Value, contraptions: Value| {
             json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {
@@ -2916,6 +3054,7 @@ sides:
     #[test]
     fn compiles_position_targeted_battle_skills_in_document_order() {
         let plan = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -3104,6 +3243,7 @@ sides:
         .unwrap();
 
         let red_error = compile(&json!({
+            "kind": "layout",
             "round": 1,
             "sides": {
                 "blue": {
@@ -3142,6 +3282,7 @@ sides:
     fn rejects_unknown_duplicate_and_wrong_length_battle_skills() {
         let layout = |battle_skills| {
             json!({
+                "kind": "layout",
                 "round": 1,
                 "sides": {
                     "blue": {

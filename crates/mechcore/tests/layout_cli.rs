@@ -7,6 +7,7 @@ fn layout_verify_reports_shared_compiler_summary() {
     fs::write(
         &layout,
         r#"
+kind: layout
 seed: -17
 round: 1
 sides:
@@ -48,7 +49,7 @@ fn layout_verify_rejects_the_zero_seed_sentinel() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        "seed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -72,6 +73,7 @@ fn layout_verify_rejects_contraptions_in_formations() {
     fs::write(
         &layout,
         r#"
+kind: layout
 round: 1
 sides:
   blue:
@@ -101,6 +103,7 @@ fn layout_format_emits_canonical_defaults_and_supports_in_place_write() {
     fs::write(
         &layout,
         r#"
+kind: layout
 round: 1
 sides:
   blue:
@@ -119,7 +122,7 @@ sides:
         .unwrap();
     assert!(output.status.success());
     let canonical = String::from_utf8(output.stdout).unwrap();
-    assert!(canonical.starts_with("round: 1\n"));
+    assert!(canonical.starts_with("kind: layout\nround: 1\n"));
     assert!(!canonical.contains("seed:"));
     assert!(!canonical.contains("level:"));
     assert!(!canonical.contains("rotated:"));
@@ -150,12 +153,12 @@ fn layout_diff_compares_normalized_fields() {
     let right = directory.path().join("right.yaml");
     fs::write(
         &left,
-        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     fs::write(
         &right,
-        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -173,7 +176,7 @@ fn layout_diff_compares_normalized_fields() {
 
     fs::write(
         &right,
-        "round: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))
