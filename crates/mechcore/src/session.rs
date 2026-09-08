@@ -489,7 +489,6 @@ impl Session {
                 Operation::RecordReplayRound,
                 json!({
                     "grbr": grbr,
-                    "kind": "layout",
                     "round": round,
                     "output": output,
                     "speed_up": speed_up,

@@ -905,7 +905,6 @@ fn apply_layout_stage(
         switch_player(runtime, current)?;
         return Ok(json!({
             "stage": "prepare",
-            "kind": "layout",
             "round": expected_round,
             "target_round": plan.round,
             "formation_count": plan.formation_count(),
@@ -936,7 +935,6 @@ fn apply_layout_stage(
             LayoutExecutionStage::Prepare => "prepare",
             LayoutExecutionStage::Activation => "activation",
         },
-        "kind": "layout",
         "round": expected_round,
         "target_round": plan.round,
         "formation_count": plan.formation_count(),
@@ -1843,7 +1841,6 @@ fn apply_battle_skill(
             json!({"x": position.x, "y": position.y})
         }).collect::<Vec<_>>(),
         "active": active,
-        "kind": "layout",
         "round": release_round
     }))
 }
