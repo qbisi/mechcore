@@ -11,7 +11,8 @@
 
 use crate::acquire::Mode;
 use crate::mcfr;
-use crate::session::{RecordBattleInstrumentationParameters, Session};
+use crate::session::Session;
+use mechcore_protocol::RecordBattleInstrumentation;
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::io::IsTerminal;
@@ -722,19 +723,19 @@ async fn confirm_overwrite(scope: &Scope, destinations: &[&Path]) -> Result<bool
 fn instrumentation(
     value: Option<&Value>,
     scope: &Scope,
-) -> Result<Option<RecordBattleInstrumentationParameters>, String> {
+) -> Result<Option<RecordBattleInstrumentation>, String> {
     let Some(value) = value else { return Ok(None) };
-    let mut parameters: RecordBattleInstrumentationParameters =
-        serde_json::from_value(value.clone())
-            .map_err(|error| format!("invalid instrumentation: {error}"))?;
+    let mut parameters: RecordBattleInstrumentation = serde_json::from_value(value.clone())
+        .map_err(|error| format!("invalid instrumentation: {error}"))?;
     parameters.output = scope.path(&json!(parameters.output), "instrumentation output")?;
     Ok(Some(parameters))
 }
 
 /// Split `apply_layout` arguments into the layout and an optional seed override.
 ///
-/// A layout's top-level keys are closed to `map_id`, `seed`, `round` and `sides`, so a
-/// `layout` key can only be the wrapper form and never a layout itself.
+/// A layout's top-level keys are closed to `kind`, `map_id`, `seed`, `round` and
+/// `sides`, so a `layout` key can only be the wrapper form and never a layout
+/// itself.
 fn split_layout_arguments(arguments: &Value) -> Result<(Value, Option<i32>), String> {
     let Some(wrapped) = arguments.get("layout") else {
         return Ok((arguments.clone(), None));

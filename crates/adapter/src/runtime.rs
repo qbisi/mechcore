@@ -1,9 +1,11 @@
-use crate::capture::{self, CaptureMessage};
+use crate::capture::{self, CaptureMessage, CaptureProfile as _, ValidateRvoScope as _};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
-use mechcore_protocol::{Busy, Hello, MAX_STAGED_ROUND, Operation, Request, Response};
-use serde::Deserialize;
+use mechcore_protocol::{
+    Busy, Hello, MAX_STAGED_ROUND, Operation, RecordBattleArguments, RecordBattleInstrumentation,
+    RecordReplayRoundArguments, Request, Response,
+};
 use serde_json::Value;
 use std::env;
 use std::ffi::{CString, c_void};
@@ -27,41 +29,8 @@ const RECORDING_TIMEOUT: Duration = Duration::from_secs(175);
 const RECORDING_POLL_INTERVAL: Duration = Duration::from_millis(5);
 const REPLAY_LOAD_TIMEOUT: Duration = Duration::from_secs(60);
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RecordBattleArguments {
-    output: PathBuf,
-    #[serde(default)]
-    video_output: Option<PathBuf>,
-    /// Request native combat speed-up. Defaults to true, with or without a
-    /// visual recording.
-    #[serde(default)]
-    speed_up: Option<bool>,
-    #[serde(default)]
-    instrumentation: Option<RecordBattleInstrumentationArguments>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RecordReplayRoundArguments {
-    grbr: PathBuf,
-    round: i32,
-    output: PathBuf,
-    #[serde(default)]
-    speed_up: Option<bool>,
-    instrumentation: Option<RecordBattleInstrumentationArguments>,
-}
-
-#[derive(Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-struct RecordBattleInstrumentationArguments {
-    output: PathBuf,
-    profile: capture::CaptureInstrumentationProfile,
-    rvo_scope: Option<capture::RvoCaptureScope>,
-}
-
 fn validate_instrumentation_arguments(
-    instrumentation: Option<&RecordBattleInstrumentationArguments>,
+    instrumentation: Option<&RecordBattleInstrumentation>,
     output: &Path,
     video_output: Option<&Path>,
 ) -> Result<(), String> {

@@ -119,6 +119,13 @@ Success and failure responses preserve that identifier:
 {"kind":"response","id":2,"ok":false,"error":{"code":"invalid_game_state","message":"no active match"}}
 ```
 
+Request arguments are typed, and their types live in `mechcore-protocol`
+alongside the operation names, so both ends of the socket compile against one
+definition. Every argument type rejects unknown fields. Naming them in one place
+is what keeps a caller from inventing a field the adapter will refuse, which is
+otherwise only observable with the game running. `apply_layout` carries a layout
+document, whose type the same crate names and `mechcore-layout` validates.
+
 The hello capability list is authoritative. Operations not present in that
 list are rejected even if private implementation helpers still exist inside
 the dylib. Every request is parsed on the socket thread. Individual native

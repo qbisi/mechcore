@@ -6,7 +6,8 @@
 //! neither is offline and refuses native commands. See `docs/session.md`.
 
 use crate::acquire::{Mode, Ownership};
-use crate::session::{RecordBattleInstrumentationParameters, Session};
+use crate::session::Session;
+use mechcore_protocol::RecordBattleInstrumentation;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -242,7 +243,7 @@ async fn native(
                     video,
                     speed_up,
                     force,
-                    None::<RecordBattleInstrumentationParameters>,
+                    None::<RecordBattleInstrumentation>,
                 )
                 .await
                 .map_err(|value| render(&value))

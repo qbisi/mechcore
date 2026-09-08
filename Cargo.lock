@@ -518,7 +518,6 @@ dependencies = [
 name = "mechcore-layout"
 version = "0.1.0"
 dependencies = [
- "mechcore-protocol",
  "schemars",
  "serde",
  "serde_json",
@@ -547,6 +546,7 @@ dependencies = [
 name = "mechcore-protocol"
 version = "0.1.0"
 dependencies = [
+ "mechcore-layout",
  "serde",
  "serde_json",
 ]

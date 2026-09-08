@@ -7,8 +7,11 @@
 
 use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
-use mechcore_protocol::Operation;
-use serde::{Deserialize, Serialize};
+use mechcore_protocol::{
+    CaptureInstrumentationProfile, Operation, RecordBattleArguments, RecordBattleInstrumentation,
+    RecordReplayRoundArguments, StartTestArguments,
+};
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
@@ -31,24 +34,14 @@ pub(crate) fn error_body(error: impl Into<String>) -> Value {
     json!({"error": error.into()})
 }
 
-/// Research-only instrumentation request accepted by the recording operations.
-#[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct RecordBattleInstrumentationParameters {
-    /// Absolute destination path for the new HDF5 instrumentation sidecar.
-    pub(crate) output: PathBuf,
-    /// Adapter-defined temporary research profile name.
-    pub(crate) profile: String,
-    /// Bound RVO detail to selected MCFR units and combat update-start ticks.
-    pub(crate) rvo_scope: Option<RvoCaptureScopeParameters>,
-}
-
-#[derive(Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct RvoCaptureScopeParameters {
-    pub(crate) start_tick: u64,
-    pub(crate) end_tick: u64,
-    pub(crate) unit_ids: Vec<u64>,
+/// Encodes typed protocol arguments for one adapter request.
+///
+/// Requests travel as JSON, but their shape is the protocol's, not this
+/// module's. Building them from the shared types is what keeps a field this
+/// side invents from reaching an adapter that rejects unknown fields, which is
+/// otherwise only discoverable with the game running.
+fn arguments<T: Serialize>(value: &T) -> Result<Value, String> {
+    serde_json::to_value(value).map_err(|error| format!("cannot encode request arguments: {error}"))
 }
 
 pub(crate) struct Session {
@@ -248,7 +241,7 @@ impl Session {
         let result = self
             .adapter_request(
                 Operation::StartTest,
-                json!({"seed": seed, "map_id": map_id}),
+                arguments(&StartTestArguments { seed, map_id })?,
             )
             .await?;
         let status = self
@@ -296,7 +289,10 @@ impl Session {
         let created = self
             .adapter_request(
                 Operation::StartTest,
-                json!({"seed": seed, "map_id": plan.map_id}),
+                arguments(&StartTestArguments {
+                    seed,
+                    map_id: plan.map_id,
+                })?,
             )
             .await?;
         self.wait_status(
@@ -335,7 +331,7 @@ impl Session {
         video_output: Option<PathBuf>,
         speed_up: Option<bool>,
         force: bool,
-        instrumentation: Option<RecordBattleInstrumentationParameters>,
+        instrumentation: Option<RecordBattleInstrumentation>,
     ) -> Result<Value, Value> {
         let _operation = self.operation.lock().await;
         let before = self.refresh_status().await.map_err(error_body)?;
@@ -364,12 +360,12 @@ impl Session {
         let result = match self
             .adapter_request(
                 Operation::RecordBattle,
-                json!({
-                    "output": output,
-                    "video_output": video_output,
-                    "speed_up": speed_up,
-                    "instrumentation": instrumentation,
-                }),
+                arguments(&RecordBattleArguments {
+                    output: output.clone(),
+                    video_output: video_output.clone(),
+                    speed_up,
+                    instrumentation,
+                })?,
             )
             .await
         {
@@ -454,7 +450,7 @@ impl Session {
         output: PathBuf,
         speed_up: Option<bool>,
         force: bool,
-        instrumentation: Option<RecordBattleInstrumentationParameters>,
+        instrumentation: Option<RecordBattleInstrumentation>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
@@ -487,13 +483,13 @@ impl Session {
         let result = self
             .adapter_request(
                 Operation::RecordReplayRound,
-                json!({
-                    "grbr": grbr,
-                    "round": round,
-                    "output": output,
-                    "speed_up": speed_up,
-                    "instrumentation": instrumentation,
-                }),
+                arguments(&RecordReplayRoundArguments {
+                    grbr: grbr.clone(),
+                    round,
+                    output: output.clone(),
+                    speed_up,
+                    instrumentation,
+                })?,
             )
             .await?;
         if result.get("recorded").and_then(Value::as_bool) != Some(true) {
@@ -642,7 +638,7 @@ pub(crate) fn validate_record_outputs(
     operation: &str,
     output: &Path,
     video_output: Option<&Path>,
-    instrumentation: Option<&RecordBattleInstrumentationParameters>,
+    instrumentation: Option<&RecordBattleInstrumentation>,
     force: bool,
 ) -> Result<(), Value> {
     if !output.is_absolute() {
@@ -676,7 +672,7 @@ pub(crate) fn validate_record_outputs(
     }
     if let Some(instrumentation) = instrumentation {
         if let Some(scope) = &instrumentation.rvo_scope
-            && (instrumentation.profile != "target_refs_rvo_v1"
+            && (instrumentation.profile != CaptureInstrumentationProfile::TargetRefsRvoV1
                 || scope.start_tick == 0
                 || scope.start_tick > scope.end_tick
                 || scope.end_tick - scope.start_tick >= 64
@@ -692,11 +688,6 @@ pub(crate) fn validate_record_outputs(
         {
             return Err(error_body(
                 "rvo_scope requires target_refs_rvo_v1, 1..=8 unique positive MCFR unit_ids, and 1..=64 inclusive positive MCFR ticks",
-            ));
-        }
-        if instrumentation.profile.trim().is_empty() || instrumentation.profile.contains('\0') {
-            return Err(error_body(
-                "record_battle instrumentation profile is invalid",
             ));
         }
         if !instrumentation.output.is_absolute() {

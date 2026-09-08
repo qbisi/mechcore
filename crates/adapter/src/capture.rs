@@ -18,7 +18,8 @@ use mechcore_mcfr::{
     TerrainType, TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility,
     WeaponAimState, WorldSnapshot,
 };
-use serde::{Deserialize, Serialize};
+pub(crate) use mechcore_protocol::{CaptureInstrumentationProfile, RvoCaptureScope};
+use serde::Serialize;
 use std::{
     cell::Cell,
     collections::{BTreeMap, BTreeSet, VecDeque},
@@ -47,28 +48,21 @@ pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
 pub(crate) const CALIBRATION_CAMERA_PITCH_DEGREES: f32 = 45.0;
 pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum CaptureInstrumentationProfile {
-    TargetRefsV1,
-    TargetRefsRvoV1,
-    SkillAttackableCheckerV1,
-    SelectorScoreV1,
-    SelectorScoreRvoV1,
+/// Capture behaviour for the profile the request names.
+///
+/// The profile itself is protocol, because it crosses the socket. Which
+/// channels it turns on is this crate's business, so it lives here rather than
+/// in the shape both sides agree on.
+pub(crate) trait CaptureProfile {
+    fn channel(self) -> &'static str;
+    fn includes_target_refs(self) -> bool;
+    fn includes_rvo(self) -> bool;
+    fn includes_skill_attackable_checker(self) -> bool;
+    fn includes_selector_score(self) -> bool;
 }
 
-impl CaptureInstrumentationProfile {
-    pub(crate) const fn as_str(self) -> &'static str {
-        match self {
-            Self::TargetRefsV1 => "target_refs_v1",
-            Self::TargetRefsRvoV1 => "target_refs_rvo_v1",
-            Self::SkillAttackableCheckerV1 => "skill_attackable_checker_v1",
-            Self::SelectorScoreV1 => "selector_score_v1",
-            Self::SelectorScoreRvoV1 => "selector_score_rvo_v1",
-        }
-    }
-
-    pub(crate) const fn channel(self) -> &'static str {
+impl CaptureProfile for CaptureInstrumentationProfile {
+    fn channel(self) -> &'static str {
         match self {
             Self::TargetRefsV1 => "target_refs",
             Self::TargetRefsRvoV1 => "target_refs_rvo",
@@ -78,35 +72,31 @@ impl CaptureInstrumentationProfile {
         }
     }
 
-    const fn includes_target_refs(self) -> bool {
+    fn includes_target_refs(self) -> bool {
         matches!(self, Self::TargetRefsV1 | Self::TargetRefsRvoV1)
     }
 
-    const fn includes_rvo(self) -> bool {
+    fn includes_rvo(self) -> bool {
         matches!(self, Self::TargetRefsRvoV1 | Self::SelectorScoreRvoV1)
     }
 
-    const fn includes_skill_attackable_checker(self) -> bool {
+    fn includes_skill_attackable_checker(self) -> bool {
         matches!(self, Self::SkillAttackableCheckerV1)
     }
 
-    const fn includes_selector_score(self) -> bool {
+    fn includes_selector_score(self) -> bool {
         matches!(self, Self::SelectorScoreV1 | Self::SelectorScoreRvoV1)
     }
 }
 
-/// Research-only filter using one-based MCFR combat ticks. In build 2259,
-/// FightController.Update advances the native time counter by 100 per tick.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct RvoCaptureScope {
-    pub(crate) start_tick: u64,
-    pub(crate) end_tick: u64,
-    pub(crate) unit_ids: Vec<u64>,
+/// Checks an RVO scope against the profile that has to support it.
+pub(crate) trait ValidateRvoScope {
+    fn validate(&self, profile: CaptureInstrumentationProfile) -> Result<(), String>;
+    fn includes_native_tick(&self, tick: u64) -> bool;
 }
 
-impl RvoCaptureScope {
-    pub(crate) fn validate(&self, profile: CaptureInstrumentationProfile) -> Result<(), String> {
+impl ValidateRvoScope for RvoCaptureScope {
+    fn validate(&self, profile: CaptureInstrumentationProfile) -> Result<(), String> {
         if profile != CaptureInstrumentationProfile::TargetRefsRvoV1 {
             return Err("rvo_scope requires target_refs_rvo_v1".into());
         }
