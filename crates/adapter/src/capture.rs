@@ -5623,10 +5623,7 @@ fn layout_shield_placements(
             // A retained airdrop belongs to the commander-skill recorder, so it
             // has no contraption index.
             let placement = layout_contraption_position("shield", 0, state.position, team)?;
-            airdrops.push(Position {
-                x: placement.position.x,
-                y: placement.position.y,
-            });
+            airdrops.push(placement.position);
         } else {
             let index =
                 contraption_record_index(record_indices, shield.pointer as *mut Object, "shield")?;

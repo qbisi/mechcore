@@ -1291,8 +1291,7 @@ fn apply_airdrop_shields(
             let order = restore_airdrop_shield(runtime, world)?;
             Ok(json!({
                 "native_shield_order": order,
-                "x": position.x,
-                "y": position.y
+                "position": {"x": position.x, "y": position.y}
             }))
         })
         .collect()
@@ -2380,8 +2379,7 @@ fn apply_unit_formation(
         "unit_index": unit_index,
         "level": level,
         "exp": readback.exp,
-        "x": placement.position.x,
-        "y": placement.position.y,
+        "position": {"x": placement.position.x, "y": placement.position.y},
         "rotated": placement.rotated,
         "travelling": readback.travelling,
         "equipment": placement.equipment
@@ -2443,8 +2441,7 @@ fn apply_construction_formation(
     Ok(json!({
         "type": placement.type_name,
         "construction_index": construction_index,
-        "x": placement.position.x,
-        "y": placement.position.y,
+        "position": {"x": placement.position.x, "y": placement.position.y},
         "retained": retained
     }))
 }
@@ -2473,8 +2470,7 @@ fn apply_contraption_formation(
     Ok(json!({
         "type": placement.type_name,
         "contraption_index": contraption_index,
-        "x": placement.position.x,
-        "y": placement.position.y
+        "position": {"x": placement.position.x, "y": placement.position.y}
     }))
 }
 
