@@ -134,6 +134,7 @@ impl WorldSnapshot {
     /// # Errors
     ///
     /// Returns an error when an identity is zero or duplicated within its object kind.
+    #[allow(clippy::too_many_lines)]
     pub fn object_keys(&self) -> Result<BTreeSet<ObjectRef>> {
         let mut keys = BTreeSet::new();
         for key in self.iter_object_keys() {

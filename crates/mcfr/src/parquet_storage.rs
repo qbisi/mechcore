@@ -1441,6 +1441,11 @@ fn read_events_jsonl(member: &MemberSlice) -> Result<Vec<(u32, u32, Event)>> {
         .collect()
 }
 
+#[allow(
+    clippy::match_same_arms,
+    reason = "the payload arms stay in variant order so each event's JSON shape reads in one place"
+)]
+#[allow(clippy::too_many_lines)]
 fn event_json_line(tick: u32, ordinal: u32, event: &Event) -> Result<String> {
     validate_event_refs(event)?;
     let mut line = format!(
@@ -1690,6 +1695,7 @@ fn option_u16_json(value: Option<u16>) -> String {
     value.map_or_else(|| "null".to_owned(), |value| value.to_string())
 }
 
+#[allow(clippy::too_many_lines)]
 fn parse_event_json_line(line: &str) -> Result<(u32, u32, Event)> {
     let value: Value = serde_json::from_str(line)
         .map_err(|error| Error::invalid(format!("invalid events.jsonl line: {error}")))?;
@@ -1796,6 +1802,10 @@ fn parse_event_json_line(line: &str) -> Result<(u32, u32, Event)> {
     Ok((tick, ordinal, event))
 }
 
+#[allow(
+    clippy::match_same_arms,
+    reason = "the event-type table stays in schema order so each event's columns read in one place"
+)]
 fn event_field_names(event_type: &str) -> Result<BTreeSet<&'static str>> {
     let mut fields = [
         "tick",
@@ -2241,13 +2251,14 @@ fn state_tick_index(tick: u32, tick_count: u32) -> Result<usize> {
     usize::try_from(tick).map_err(|_| Error::invalid("tick index is too large"))
 }
 
-fn read_ticks(
-    member: MemberSlice,
-) -> Result<(
+/// Tick metadata paired with the per-tick state and trace hash columns.
+type TickColumns = (
     TickMetadata,
     Vec<[u8; canonical::HASH_BYTES]>,
     Vec<[u8; canonical::HASH_BYTES]>,
-)> {
+);
+
+fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
     let builder = checked_builder(member, &Schema::new(tick_fields()), "ticks")?;
     let metadata = builder.schema().metadata();
     let format = required_metadata(metadata, "format")?;

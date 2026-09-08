@@ -49,7 +49,14 @@ const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 11] = [
     include_str!("../../../config/units/phoenix.yaml"),
 ];
 
-const SPACE_UNITS_PER_METER: f64 = 1_000.0;
+/// The integer form of [`SPACE_UNITS_PER_METER`], for whole-meter checks on
+/// values that have already been quantized.
+const SPACE_UNITS_PER_METER_SCALE: i64 = 1_000;
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "the scale is a small power of ten and is exact in f64"
+)]
+const SPACE_UNITS_PER_METER: f64 = SPACE_UNITS_PER_METER_SCALE as f64;
 const Q32_UNITS_PER_ONE: f64 = 4_294_967_296.0;
 const TIME_UNITS_PER_SECOND: f64 = 2_000.0;
 const MILLIDEGREES_PER_DEGREE: f64 = 1_000.0;
@@ -478,7 +485,7 @@ impl UnitConfig {
     pub(crate) fn formation_footprint_meters(&self) -> Result<(i64, i64)> {
         fn whole_meters(value: f64, field: &str) -> Result<i64> {
             let raw = quantize_i64(value, SPACE_UNITS_PER_METER);
-            let scale = SPACE_UNITS_PER_METER as i64;
+            let scale = SPACE_UNITS_PER_METER_SCALE;
             if raw.rem_euclid(scale) != 0 {
                 return Err(Error::new(format!(
                     "unit config field {field} must use whole meters for layout placement"
@@ -495,7 +502,7 @@ impl UnitConfig {
 
     pub(crate) fn formation_slot_size_meters(&self) -> Result<i64> {
         let raw = quantize_i64(self.formation.slot_size, SPACE_UNITS_PER_METER);
-        let scale = SPACE_UNITS_PER_METER as i64;
+        let scale = SPACE_UNITS_PER_METER_SCALE;
         if raw.rem_euclid(scale) != 0 {
             return Err(Error::new(
                 "unit config field formation.slot_size must use whole meters for member generation",
@@ -514,6 +521,7 @@ impl UnitConfig {
 }
 
 impl AttackConfig {
+    #[allow(clippy::too_many_lines)]
     fn validate(&self) -> Result<()> {
         if !self.targets.ground && !self.targets.air {
             return Err(Error::new("attack must target ground, air, or both"));
@@ -718,6 +726,11 @@ impl AttackConfig {
         quantize_i64(target_offset_radius, SPACE_UNITS_PER_METER)
     }
 
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        reason = "native laser damage scales in float and truncates toward zero"
+    )]
     pub(crate) fn laser_damage(&self, attack_count: usize) -> i64 {
         let AttackPath::Laser { damage_multipliers } = &self.path else {
             unreachable!("laser damage requires the laser attack path")

@@ -1,3 +1,7 @@
+// Paired fixed-point components are named `x_q32` / `z_q32` throughout, which
+// `similar_names` flags on every coordinate pair.
+#![allow(clippy::similar_names)]
+
 use std::{cmp::Ordering, collections::BTreeMap, path::Path, time::Instant};
 
 use mechcore_mcfr::{
@@ -69,7 +73,7 @@ fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
 
 fn movable_rvo_collision_masks(collider_priority: i32) -> (u32, u32) {
     debug_assert!((1..=16).contains(&collider_priority));
-    let layer_index = (collider_priority * 2 - 2) as u32;
+    let layer_index = (collider_priority * 2 - 2).cast_unsigned();
     let layer = 1_u32 << layer_index;
     let higher = if layer_index < 30 {
         0x7fff_ffff_u32 & (!0_u32 << (layer_index + 1))
@@ -318,7 +322,7 @@ impl TargetActorQuadtreeNode {
     fn append_query_order(&self, output: &mut Vec<FightActorRef>) {
         output.extend(self.elements.iter().copied());
         if let Some(children) = &self.children {
-            for child in children.iter() {
+            for child in children {
                 child.append_query_order(output);
             }
         }
@@ -415,6 +419,10 @@ impl TargetActorQuadtree {
 }
 
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the actor mirrors the native fight actor's independent state flags"
+)]
 struct Actor {
     placement: Placement,
     rules: UnitConfig,
@@ -491,12 +499,12 @@ impl Actor {
             usize::try_from(rules.attack.weapons.count)
                 .expect("u32 weapon count fits the supported host")
         ];
-        let group_skill_count = (rules.attack.weapons.mode == WeaponMode::Group)
-            .then(|| {
-                usize::try_from(rules.attack.weapons.count)
-                    .expect("u32 weapon count fits the supported host")
-            })
-            .unwrap_or(0);
+        let group_skill_count = if rules.attack.weapons.mode == WeaponMode::Group {
+            usize::try_from(rules.attack.weapons.count)
+                .expect("u32 weapon count fits the supported host")
+        } else {
+            0
+        };
         Self {
             x,
             z,
@@ -848,13 +856,12 @@ fn initialize_actors(
     for mut actor in initial {
         let unit_id = identities.allocate_object(ObjectKind::Unit)?.id;
         let formation_key = (actor.placement.team, actor.placement.formation_index);
-        let formation_id = match formation_ids.get(&formation_key) {
-            Some(id) => *id,
-            None => {
-                let id = identities.allocate_formation()?;
-                formation_ids.insert(formation_key, id);
-                id
-            }
+        let formation_id = if let Some(id) = formation_ids.get(&formation_key) {
+            *id
+        } else {
+            let id = identities.allocate_formation()?;
+            formation_ids.insert(formation_key, id);
+            id
         };
         actor.placement.unit_id = unit_id;
         actor.placement.formation_id = formation_id;
@@ -1250,6 +1257,7 @@ impl Simulation {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
         let publish_late_building_events = self.late_building_events_pending;
         self.late_building_events_pending = false;
@@ -1609,7 +1617,7 @@ impl Simulation {
             }
         }
         if !ready_to_finish {
-            self.step_rvo()?;
+            self.step_rvo();
         }
         for death in events
             .iter_mut()
@@ -1889,6 +1897,7 @@ impl Simulation {
             .collect())
     }
 
+    #[allow(clippy::too_many_lines)]
     fn update_group_skill_targets(
         &mut self,
         actor_id: u64,
@@ -2206,11 +2215,11 @@ impl Simulation {
             return Ok(false);
         };
         let target = FightActorRef::Unit(target_id);
-        if (!allow_phase_override
-            && !(actor.fight_skill_phase == FightSkillPhase::Attack
-                || (actor.fight_skill_phase == FightSkillPhase::Idle
-                    && actor.motion == MotionState::Attacking
-                    && !self.bodyless_target_in_attack_range(actor_id, target))))
+        let in_attacking_phase = actor.fight_skill_phase == FightSkillPhase::Attack
+            || (actor.fight_skill_phase == FightSkillPhase::Idle
+                && actor.motion == MotionState::Attacking
+                && !self.bodyless_target_in_attack_range(actor_id, target));
+        if (!allow_phase_override && !in_attacking_phase)
             || !actor.rules.has_body
             || !actor.rules.attack.quick_switch_target
             || actor.rules.attack.weapons.mode != WeaponMode::Normal
@@ -2734,16 +2743,18 @@ impl Simulation {
             for skill_index in 1..actor.group_skill_targets.len() {
                 let next_attack_step = actor.group_skill_next_attack_steps[skill_index];
                 let prepare_ready_step = actor.group_skill_prepare_ready_steps[skill_index];
-                if next_attack_step > 0 && next_attack_step <= step && prepare_ready_step <= step {
-                    if let Some(target) = actor.group_skill_targets[skill_index] {
-                        due.push((
-                            skill_index,
-                            PendingRelease {
-                                step,
-                                target: FightActorRef::Unit(target),
-                            },
-                        ));
-                    }
+                if next_attack_step > 0
+                    && next_attack_step <= step
+                    && prepare_ready_step <= step
+                    && let Some(target) = actor.group_skill_targets[skill_index]
+                {
+                    due.push((
+                        skill_index,
+                        PendingRelease {
+                            step,
+                            target: FightActorRef::Unit(target),
+                        },
+                    ));
                 }
             }
             due.sort_by_key(|&(skill_index, _)| skill_index);
@@ -3222,10 +3233,11 @@ impl Simulation {
         }
     }
 
-    fn step_rvo(&mut self) -> Result<()> {
+    #[allow(clippy::too_many_lines)]
+    fn step_rvo(&mut self) {
         self.rvo_counter += 1;
         if self.rvo_counter < 4 {
-            return Ok(());
+            return;
         }
         self.rvo_counter = 0;
         let first_tree = self.rvo_first_tree_pending;
@@ -3340,7 +3352,6 @@ impl Simulation {
             actor.rvo_tree_z_q32 = actor.z_q32;
             actor.rvo_stopped_snap_since_boundary = false;
         }
-        Ok(())
     }
 
     fn quick_switch_bodyless_pending_target(
@@ -3658,7 +3669,7 @@ impl Simulation {
                     let value_squared =
                         q32_mul(value_x, value_x).saturating_add(q32_mul(value_z, value_z));
                     let magnitude_product =
-                        if direction_squared.saturating_add(value_squared) < 0x16A09_0000_0001 {
+                        if direction_squared.saturating_add(value_squared) < 0x1_6A09_0000_0001 {
                             fpcs_sqrt_fastest(q32_mul(direction_squared, value_squared))
                         } else {
                             q32_mul(
@@ -3755,6 +3766,10 @@ impl Simulation {
         }
     }
 
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the parameters mirror the native projectile release call"
+    )]
     fn release_projectile_at(
         &mut self,
         actor_id: u64,
@@ -4122,6 +4137,7 @@ impl Simulation {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     fn impact(&mut self, projectile: &Projectile, events: &mut Vec<Event>) -> Result<()> {
         let owner = self
             .actors
@@ -4380,6 +4396,10 @@ pub(crate) fn run(
         .saturating_mul(LOGIC_TICK_TIME_UNITS)
         .saturating_mul(1_000)
         / TIME_UNITS_PER_SECOND;
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "a millisecond count stays far below f64's exact integer range"
+    )]
     let simulation_to_real_time_rate =
         simulated_duration_milliseconds as f64 / generation_duration.as_secs_f64() / 1_000.0;
     let winner = simulation.winner().map(team_name);
@@ -5087,11 +5107,17 @@ pub(crate) fn fpcs_acos_fastest(value: i64) -> i64 {
     fpcs_atan2_fastest(fpcs_sqrt_fastest(complement), value)
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+)]
 pub(crate) fn fpcs_sin_fastest(value: i64) -> i64 {
     let turn = q32_mul(value, 0x28BE_60DC) as i32;
     let doubled = turn.wrapping_mul(2);
     let folded = 0x8000_0000_u32.wrapping_sub(turn as u32) as i32;
-    let coordinate = if doubled ^ turn >= 0 { turn } else { folded } as i64;
+    let coordinate = i64::from(if doubled ^ turn >= 0 { turn } else { folded });
     let scaled_coordinate = coordinate.wrapping_mul(4);
     let squared = coordinate.wrapping_mul(scaled_coordinate) >> 32;
     let coefficient = i64::from_ne_bytes(0xD6CF_6F97_0000_0000_u64.to_ne_bytes())
@@ -5172,7 +5198,7 @@ mod tests {
         ];
         let mut tree = TargetActorQuadtree::new();
         for id in 1..=19 {
-            let (x, z) = positions[(id as usize - 1) % 4];
+            let (x, z) = positions[(usize::try_from(id).unwrap() - 1) % 4];
             tree.insert(unit_target(id), x, z, 0);
         }
         assert!(tree.root.children.is_none());
@@ -5404,6 +5430,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
         let layout = CompiledLayout {
             round: 1,
@@ -7086,7 +7113,7 @@ mod tests {
         source.next_speed_q32 = space_to_q32(source.rules.move_speed());
         source.next_max_speed_q32 = source.next_speed_q32;
         simulation.rvo_counter = 3;
-        simulation.step_rvo().unwrap();
+        simulation.step_rvo();
         assert!(simulation.actors[&1].solver_speed_q32 > 0);
         assert_ne!(simulation.actors[&1].solver_target_z_q32, 0);
     }
@@ -7144,7 +7171,7 @@ mod tests {
         source.next_speed_q32 = space_to_q32(source.rules.move_speed());
         source.next_max_speed_q32 = source.next_speed_q32;
         simulation.rvo_counter = 3;
-        simulation.step_rvo().unwrap();
+        simulation.step_rvo();
         assert!(simulation.actors[&1].solver_speed_q32 > 0);
         assert_ne!(simulation.actors[&1].solver_target_z_q32, 0);
     }
@@ -7171,7 +7198,7 @@ mod tests {
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Moving;
         simulation.rvo_counter = 3;
-        simulation.step_rvo().unwrap();
+        simulation.step_rvo();
     }
 
     #[test]
@@ -7707,8 +7734,7 @@ mod tests {
             let output_tick = step + 1;
             let rhino = &simulation.actors[&1];
             match output_tick {
-                216 => assert_eq!(rhino.backswing_finish_step, Some(224)),
-                225 => assert_eq!(rhino.backswing_finish_step, Some(224)),
+                216 | 225 => assert_eq!(rhino.backswing_finish_step, Some(224)),
                 226 => {
                     assert_eq!(rhino.backswing_finish_step, None);
                     assert_eq!(rhino.pending.unwrap().step, 233);
@@ -7833,7 +7859,7 @@ mod tests {
         actor.solver_speed_q32 = 0;
         simulation.rvo_counter = 3;
 
-        simulation.step_rvo().unwrap();
+        simulation.step_rvo();
 
         let actor = &simulation.actors[&1];
         assert_eq!(actor.published_target_x_q32, actor.x_q32);
@@ -8189,6 +8215,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
         let layout = CompiledLayout {
             round: 1,

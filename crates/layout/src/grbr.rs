@@ -14,6 +14,13 @@ pub struct GrbrRoundTerrains {
 /// This is deliberately independent from the Adapter's live `RangeItemSystem`
 /// enumeration. A future `mechcore grbr layout` command can compose this narrow
 /// parser with the other GRBR layout fields.
+///
+/// # Errors
+///
+/// Returns an error when the GRBR carries no embedded `BattleRecord` XML, when
+/// that XML does not describe exactly two players, or when the requested round
+/// or its terrain entries are missing or malformed.
+#[allow(clippy::too_many_lines)]
 pub fn terrains_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundTerrains, String> {
     let xml = embedded_battle_record_xml(grbr)?;
     let player_records = xml_element(xml, "playerRecords")?;
@@ -212,7 +219,7 @@ fn decode_grbr_byte_mask(value: i32) -> Result<Vec<bool>, String> {
     if value == 0 {
         return Err("serialized ByteMask value is zero".into());
     }
-    let raw = value as u32;
+    let raw = value.cast_unsigned();
     let length = if value < 0 {
         31
     } else {

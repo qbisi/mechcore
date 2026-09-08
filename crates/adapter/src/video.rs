@@ -34,10 +34,6 @@ impl MovWriter {
         if logic_step.numerator == 0 || logic_step.denominator == 0 {
             return Err("video logic step must be positive".into());
         }
-        u32::try_from(logic_step.numerator)
-            .map_err(|_| "video logic-step numerator exceeds MOV limits")?;
-        u32::try_from(logic_step.denominator)
-            .map_err(|_| "video logic-step denominator exceeds MOV limits")?;
         let parent = path.parent().unwrap_or_else(|| Path::new("."));
         std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
         let temporary = tempfile::Builder::new()
@@ -195,10 +191,8 @@ fn moov(
     sample_sizes: &[u32],
 ) -> Result<Vec<u8>, String> {
     let count = u32::try_from(sample_sizes.len()).map_err(|_| "video has too many frames")?;
-    let timescale =
-        u32::try_from(logic_step.denominator).map_err(|_| "video timescale exceeds MOV limits")?;
-    let sample_duration = u32::try_from(logic_step.numerator)
-        .map_err(|_| "video sample duration exceeds MOV limits")?;
+    let timescale = logic_step.denominator;
+    let sample_duration = logic_step.numerator;
     let duration_u64 = u64::from(count)
         .checked_mul(u64::from(sample_duration))
         .ok_or("video duration overflow")?;

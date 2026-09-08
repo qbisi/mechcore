@@ -553,6 +553,7 @@ async fn run_loop(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn perform(
     step: &Call,
     arguments: &Value,

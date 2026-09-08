@@ -123,10 +123,10 @@ impl FixedVec2 {
         let magnitude = self.magnitude();
         // Native `FVector2.Normalize()` returns zero only while the magnitude
         // is strictly below `FPoint.C1em5`; equality takes the division path.
-        if !normalization_divides(magnitude) {
-            Self::ZERO
-        } else {
+        if normalization_divides(magnitude) {
             self.div(magnitude)
+        } else {
+            Self::ZERO
         }
     }
 
@@ -317,14 +317,14 @@ impl<'a> NativeQuadtree<'a> {
                 }
             }
 
-            let quadrant = self.quadrant(self.inputs[agent_index].tree_position, rect);
+            let quadrant = Self::quadrant(self.inputs[agent_index].tree_position, rect);
             node_index = self.nodes[node_index].child00 + quadrant;
             rect = rect.child(quadrant);
             depth = depth.saturating_add(1);
         }
     }
 
-    fn quadrant(&self, position: FixedVec2, rect: QuadtreeRect) -> usize {
+    fn quadrant(position: FixedVec2, rect: QuadtreeRect) -> usize {
         let center = rect.center();
         usize::from(fpoint_less_than(center.x, position.x)) * 2
             + usize::from(fpoint_less_than(center.y, position.y))
@@ -342,7 +342,7 @@ impl<'a> NativeQuadtree<'a> {
         self.nodes[node_index].head = None;
         while let Some(agent_index) = current {
             let old_next = self.next[agent_index];
-            let quadrant = self.quadrant(self.inputs[agent_index].tree_position, rect);
+            let quadrant = Self::quadrant(self.inputs[agent_index].tree_position, rect);
             let child_index = child00 + quadrant;
             self.next[agent_index] = self.nodes[child_index].head;
             self.nodes[child_index].head = Some(agent_index);
@@ -664,7 +664,7 @@ pub(crate) fn solve_agents(
             let neighbours = nearest_neighbours(agent, inputs);
             let obstacles = neighbours
                 .into_iter()
-                .filter_map(|other| neighbour_obstacle(agent, other, inverse_delta_time))
+                .map(|other| neighbour_obstacle(agent, other, inverse_delta_time))
                 .collect::<Vec<_>>();
             (agent.key, solve_agent(agent, &obstacles))
         })
@@ -681,19 +681,19 @@ fn neighbour_obstacle(
     agent: &AgentInput,
     other: &AgentInput,
     inverse_delta_time: i64,
-) -> Option<VelocityObstacle> {
+) -> VelocityObstacle {
     let center = other.position.sub(agent.position);
     if agent.group != other.group {
         // `RVOAgentFixed.GenerateOpponentVOs`: a different RVO group uses the
         // observer's outer radius plus the target's inner radius and a fixed
         // 0.01-second horizon. Fight teams do not select this branch.
-        return Some(VelocityObstacle::new(
+        return VelocityObstacle::new(
             center,
             FixedVec2::ZERO,
             agent.radius_outer.saturating_add(other.radius_inner),
             DIFFERENT_GROUP_INVERSE_HORIZON,
             inverse_delta_time,
-        ));
+        );
     }
     let avoidance_strength = if other.locked {
         Q32_ONE
@@ -716,13 +716,13 @@ fn neighbour_obstacle(
     } else {
         agent.radius_outer.saturating_add(other.radius_outer)
     };
-    Some(VelocityObstacle::new(
+    VelocityObstacle::new(
         center,
         center_velocity,
         radius,
         q32_div(Q32_ONE, DEFAULT_AGENT_TIME_HORIZON),
         inverse_delta_time,
-    ))
+    )
 }
 
 fn solve_agent(agent: &AgentInput, obstacles: &[VelocityObstacle]) -> AgentSolution {
@@ -831,6 +831,12 @@ fn trace_score_replaces_incumbent(step_index: i64, score: i64, incumbent: i64) -
 /// sentinel. This matters in the late Trace iterations: a numerically lower
 /// score only replaces the incumbent when it is lower by at least 44 raw
 /// units.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+)]
 pub(crate) fn fpoint_less_than(left: i64, right: i64) -> bool {
     const SENTINEL: i64 = i64::MIN + 1;
     if left == SENTINEL || right == SENTINEL {
@@ -919,6 +925,12 @@ fn lerp(left: FixedVec2, right: FixedVec2, amount: i64) -> FixedVec2 {
         .add(right.mul(amount))
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+)]
 fn q32_mul(left: i64, right: i64) -> i64 {
     let low = ((u64::from(left as u32) * u64::from(right as u32)) >> 32) as i64;
     (left >> 32)
@@ -951,6 +963,12 @@ fn q32_div(numerator: i64, denominator: i64) -> i64 {
     }
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+)]
 fn q32_exp(value: i64) -> i64 {
     let low = u64::from(value as u32);
     let high = value >> 32;
@@ -964,6 +982,12 @@ fn q32_exp(value: i64) -> i64 {
     q32_exp2_fastest(exp2_input)
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap,
+    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+)]
 fn q32_exp2_fastest(value: i64) -> i64 {
     const LIMIT: i64 = 0x1f_ffff_ffff;
     if value > LIMIT {
@@ -992,6 +1016,10 @@ fn q32_exp2_fastest(value: i64) -> i64 {
 mod tests {
     use super::*;
 
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the builder mirrors every AgentInput field the tests vary"
+    )]
     fn observed_agent(
         key: AgentKey,
         position: FixedVec2,
@@ -1164,6 +1192,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn build_2259_same_group_vo_matches_native_v8_construction() {
         let arclight = AgentInput {
             key: AgentKey::Unit(2),
@@ -1236,7 +1265,7 @@ mod tests {
             priority: Q32_ONE,
         };
 
-        let obstacle = neighbour_obstacle(&arclight, &rhino, Q32_ONE * 5).unwrap();
+        let obstacle = neighbour_obstacle(&arclight, &rhino, Q32_ONE * 5);
         assert_eq!(
             (
                 obstacle.line1,

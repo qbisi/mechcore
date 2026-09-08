@@ -221,6 +221,7 @@ fn vitals_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
     hasher.finish()
 }
 
+#[allow(clippy::too_many_lines)]
 fn interactions_hash(events: &TransitionEvents) -> [u8; HASH_BYTES] {
     let mut hasher = PhysicsHasher::new("battle-physics-interactions-v1");
     hasher.len(events.events.len());
@@ -490,7 +491,7 @@ pub(crate) fn parse_hex(value: &str, label: &str) -> Result<[u8; HASH_BYTES]> {
         return Err(Error::invalid(format!("{label} is not a 64-digit hash")));
     }
     let mut output = [0; HASH_BYTES];
-    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+    for (index, pair) in value.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         output[index] = (nibble(pair[0], label)? << 4) | nibble(pair[1], label)?;
     }
     Ok(output)

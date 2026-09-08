@@ -33,3 +33,7 @@ unsafe_op_in_unsafe_fn = "deny"
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+
+# `assert!(value.is_empty())` reads better than the `assert_eq!(value, [] as [T; 0])`
+# rewrite this lint proposes, and the tests assert emptiness throughout.
+assert_is_empty = "allow"

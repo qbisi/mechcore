@@ -6,7 +6,7 @@ fn layout_verify_reports_shared_compiler_summary() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        r#"
+        r"
 kind: layout
 seed: -17
 round: 1
@@ -18,7 +18,7 @@ sides:
     terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
     formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
-"#,
+",
     )
     .unwrap();
 
@@ -72,7 +72,7 @@ fn layout_verify_rejects_contraptions_in_formations() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        r#"
+        r"
 kind: layout
 round: 1
 sides:
@@ -82,7 +82,7 @@ sides:
       - {type: shield, index: 1, position: {x: 0, y: -100}}
   red:
     formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
-"#,
+",
     )
     .unwrap();
 
@@ -102,7 +102,7 @@ fn layout_format_emits_canonical_defaults_and_supports_in_place_write() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        r#"
+        r"
 kind: layout
 round: 1
 sides:
@@ -111,7 +111,7 @@ sides:
     terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
     formations: [{type: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
-"#,
+",
     )
     .unwrap();
 

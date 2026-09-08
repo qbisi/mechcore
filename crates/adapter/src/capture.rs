@@ -1845,6 +1845,7 @@ fn initialize_selector_score_instrumentation(api: Api) -> Result<(), String> {
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[allow(clippy::too_many_lines)]
 fn initialize_rvo_instrumentation(api: Api) -> Result<RvoMetadata, String> {
     let fight_actor = api
         .class("GRFight.dll", "GameRiver.Fight", "FightActor")
@@ -2411,6 +2412,10 @@ unsafe extern "C" fn selector_calculate_score_hook(
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the harness mirrors the native checker wrapper's argument list"
+)]
 fn run_checker_wrapper_offline<Before, Original, After, Fail>(
     active: bool,
     receiver: usize,
@@ -2743,7 +2748,7 @@ unsafe extern "C" fn rvo_generate_neighbour_vos_hook(
             state.fail("RVO metadata disappeared during instrumentation".into());
             return;
         };
-        match read_native_rvo_vo_buffer(runtime.api, vos, metadata) {
+        match read_native_rvo_vo_buffer(runtime.api, vos, &metadata) {
             Ok(vos) => state.rvo_vo_buffers.push(NativeRvoVoBuffer {
                 update_ordinal,
                 call_ordinal: RVO_VO_CALL_ORDINAL.fetch_add(1, Ordering::AcqRel),
@@ -2805,7 +2810,7 @@ unsafe extern "C" fn rvo_generate_opponent_vos_hook(
         state
             .metadata
             .rvo
-            .map(|metadata| read_vo_buffer_length(runtime.api, vos, metadata))
+            .map(|metadata| read_vo_buffer_length(runtime.api, vos, &metadata))
     });
     // SAFETY: arguments are forwarded unchanged from IL2CPP.
     unsafe { original(agent, vos, other, method) };
@@ -2848,9 +2853,9 @@ unsafe extern "C" fn rvo_generate_opponent_vos_hook(
                 return;
             };
             let observation = before.and_then(|before| {
-                let after = read_vo_buffer_length(runtime.api, vos, metadata)?;
+                let after = read_vo_buffer_length(runtime.api, vos, &metadata)?;
                 let colliding =
-                    read_appended_vo_colliding(runtime.api, vos, before, after, metadata)?;
+                    read_appended_vo_colliding(runtime.api, vos, before, after, &metadata)?;
                 Ok(NativeOpponentVo {
                     update_ordinal,
                     call_ordinal: RVO_VO_CALL_ORDINAL.fetch_add(1, Ordering::AcqRel),
@@ -3165,7 +3170,7 @@ fn capture_rvo_published_agents(state: &mut CaptureState, simulator: *mut Object
         state.fail("RVO metadata disappeared at publication".into());
         return;
     };
-    match read_native_rvo_agent_set(runtime.api, simulator, metadata, state) {
+    match read_native_rvo_agent_set(runtime.api, simulator, &metadata, state) {
         Ok(agents) => {
             state.rvo_published_agent_sets.insert(ordinal, agents);
         }
@@ -3217,7 +3222,7 @@ fn record_rvo_neighbours(agent: *mut Object) {
                 .field_value::<*mut Object>(agent, metadata.agent_simulator as *mut FieldInfo)
                 .map_err(|error| error.to_string())
                 .and_then(|simulator| {
-                    read_native_rvo_agent_set(runtime.api, simulator, metadata, &state)
+                    read_native_rvo_agent_set(runtime.api, simulator, &metadata, &state)
                 });
             match snapshot {
                 Ok(agents) => {
@@ -3235,7 +3240,7 @@ fn record_rvo_neighbours(agent: *mut Object) {
             agent,
             update_ordinal,
             source_call_ordinal,
-            metadata,
+            &metadata,
         ) {
             Ok(observation) => state.rvo_neighbour_sets.push(observation),
             Err(error) => state.fail(error),
@@ -3243,10 +3248,11 @@ fn record_rvo_neighbours(agent: *mut Object) {
     }));
 }
 
+#[allow(clippy::too_many_lines)]
 fn read_native_rvo_agent_set(
     api: Api,
     simulator: *mut Object,
-    metadata: RvoMetadata,
+    metadata: &RvoMetadata,
     state: &CaptureState,
 ) -> Result<Vec<NativeRvoAgentState>, String> {
     const INSTRUMENTATION_AGENT_CAP: i32 = 4_096;
@@ -3257,7 +3263,8 @@ fn read_native_rvo_agent_set(
         .field_value(simulator, metadata.simulator_agents as *mut FieldInfo)
         .map_err(|error| error.to_string())?;
     let count = list_count(api, agents, INSTRUMENTATION_AGENT_CAP)?;
-    let mut result = Vec::with_capacity(count as usize);
+    let mut result =
+        Vec::with_capacity(usize::try_from(count).expect("list_count rejects negative counts"));
     for index in 0..count {
         let agent = list_item(api, agents, index)?;
         if agent.is_null() {
@@ -3352,7 +3359,7 @@ fn read_native_rvo_agent_set(
             .field_value::<FixedVec2>(agent, metadata.agent_position as *mut FieldInfo)
             .map_err(|error| error.to_string())?;
         result.push(NativeRvoAgentState {
-            ordinal: index as u32,
+            ordinal: index.cast_unsigned(),
             pointer: agent as usize,
             radius_inner,
             size,
@@ -3401,7 +3408,7 @@ fn read_native_rvo_neighbour_set(
     agent: *mut Object,
     update_ordinal: u64,
     source_call_ordinal: u64,
-    metadata: RvoMetadata,
+    metadata: &RvoMetadata,
 ) -> Result<NativeRvoNeighbourSet, String> {
     const INSTRUMENTATION_NEIGHBOUR_CAP: i32 = 4_096;
     let max_neighbours: i32 = api
@@ -3430,7 +3437,9 @@ fn read_native_rvo_neighbour_set(
             "native RVO neighbour fields disagree: count={neighbour_count}, neighbours={neighbours_len}, distances={distances_len}"
         ));
     }
-    let mut observations = Vec::with_capacity(neighbour_count as usize);
+    let mut observations = Vec::with_capacity(
+        usize::try_from(neighbour_count).expect("list_count rejects negative counts"),
+    );
     for index in 0..neighbour_count {
         let neighbour = list_item(api, neighbours, index)?;
         if neighbour.is_null() {
@@ -3454,7 +3463,11 @@ fn read_native_rvo_neighbour_set(
     })
 }
 
-fn read_vo_buffer_length(api: Api, vos: *mut Object, metadata: RvoMetadata) -> Result<i32, String> {
+fn read_vo_buffer_length(
+    api: Api,
+    vos: *mut Object,
+    metadata: &RvoMetadata,
+) -> Result<i32, String> {
     let length: i32 = api
         .field_value(vos, metadata.vo_buffer_length as *mut FieldInfo)
         .map_err(|error| error.to_string())?;
@@ -3468,7 +3481,7 @@ fn read_vo_buffer_length(api: Api, vos: *mut Object, metadata: RvoMetadata) -> R
 fn read_native_rvo_vo_buffer(
     api: Api,
     vos: *mut Object,
-    metadata: RvoMetadata,
+    metadata: &RvoMetadata,
 ) -> Result<Vec<NativeRvoVo>, String> {
     const ARRAY_LENGTH_OFFSET: usize = 0x18;
     const ARRAY_DATA_OFFSET: usize = 0x20;
@@ -3520,7 +3533,7 @@ fn read_appended_vo_colliding(
     vos: *mut Object,
     before: i32,
     after: i32,
-    metadata: RvoMetadata,
+    metadata: &RvoMetadata,
 ) -> Result<bool, String> {
     const ARRAY_LENGTH_OFFSET: usize = 0x18;
     const ARRAY_DATA_OFFSET: usize = 0x20;
@@ -4441,10 +4454,9 @@ fn resolve_projectile_channel(
     })?;
     let weapons = invoke_object(api, fight_skill as *mut Object, "GetWeapons")?;
     let weapon_count = list_count(api, weapons, 1_024)?;
-    let list_candidate = usize::try_from(skill_index)
-        .ok()
-        .filter(|index| *index < weapon_count as usize)
-        .map(|index| list_item(api, weapons, index as i32))
+    let list_candidate = (0..weapon_count)
+        .contains(&skill_index)
+        .then(|| list_item(api, weapons, skill_index))
         .transpose()?
         .map(|weapon| {
             let weapon_data = invoke_object(api, weapon, "GetWeaponData")?;
@@ -4908,6 +4920,7 @@ fn read_native_side(
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn read_native_terrains(
     api: Api,
     player_controller: *mut Object,
@@ -5029,7 +5042,7 @@ fn read_native_terrains(
             }
         }
     }
-    Ok(groups
+    groups
         .into_iter()
         .map(|mut group| -> Result<LayoutTerrain, String> {
             let start = group.centers.get(&0).ok_or_else(|| {
@@ -5085,7 +5098,7 @@ fn read_native_terrains(
                 grid_rows: group.grid_rows,
             })
         })
-        .collect::<Result<Vec<_>, _>>()?)
+        .collect::<Result<Vec<_>, _>>()
 }
 
 fn validate_native_indices(kind: &str, indices: &[i32]) -> Result<(), String> {
@@ -5102,7 +5115,7 @@ fn validate_native_indices(kind: &str, indices: &[i32]) -> Result<(), String> {
     Ok(())
 }
 
-/// A replay ignores the match speed-up vote: playback rate lives on TimeSystem.
+/// A replay ignores the match speed-up vote: playback rate lives on `TimeSystem`.
 ///
 /// Two multiplies real time without letting the game outrun the capture queue,
 /// which is bounded and fails the recording when it overflows. The readback is
@@ -5661,6 +5674,7 @@ fn layout_contraption_position(
 
 /// Canonicalize the temporary shield namespace once, before resolving S(1)
 /// references. Retain first-tick-removed shields so E(1) can still name them.
+#[allow(clippy::too_many_lines)]
 fn finalize_initial_shield_ids(
     capture: &mut CaptureState,
     current: &[RawShield],
@@ -5701,12 +5715,10 @@ fn finalize_initial_shield_ids(
     let mut ordered = candidates
         .iter()
         .map(|(&pointer, (state, present))| {
-            let category = if !present {
-                2_u8
-            } else if state.active {
-                0
-            } else {
-                1
+            let category = match (present, state.active) {
+                (false, _) => 2_u8,
+                (true, true) => 0,
+                (true, false) => 1,
             };
             let key = (
                 !*present,
@@ -6159,9 +6171,7 @@ fn snapshot(
             .insert(shield.pointer, shield.state.clone());
         shields.push(shield.state);
     }
-    if initial {
-        capture.live_shield_pointers = current_shield_pointers.clone();
-    } else {
+    if !initial {
         for pointer in current_shield_pointers.difference(&capture.live_shield_pointers) {
             let state = capture
                 .shield_last_states
@@ -6188,8 +6198,8 @@ fn snapshot(
             });
             capture.retired_shield_pointers.insert(*pointer);
         }
-        capture.live_shield_pointers = current_shield_pointers.clone();
     }
+    capture.live_shield_pointers = current_shield_pointers;
     let terrains = read_terrains(runtime.api, range_item_system, capture, initial)
         .map_err(|error| format!("dynamic terrain snapshot failed: {error}"))?;
     for (unit_index, target_pointer) in raw_mech_lock_targets {
@@ -6259,11 +6269,11 @@ fn snapshot(
             ))
         }
         Some(CaptureInstrumentationProfile::SelectorScoreV1) => Some(
-            CaptureInstrumentationObservation::SelectorScore(drain_selector_score_calls(capture)?),
+            CaptureInstrumentationObservation::SelectorScore(drain_selector_score_calls(capture)),
         ),
         Some(CaptureInstrumentationProfile::SelectorScoreRvoV1) => Some(
             CaptureInstrumentationObservation::SelectorScoreRvo(SelectorScoreRvoObservation {
-                selector_score: drain_selector_score_calls(capture)?,
+                selector_score: drain_selector_score_calls(capture),
                 rvo_updates: resolve_rvo_updates(native_tick, capture)?,
             }),
         ),
@@ -6299,6 +6309,7 @@ fn snapshot(
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn read_terrains(
     api: Api,
     system: *mut Object,
@@ -6790,8 +6801,7 @@ fn read_unit(
                 skill_attack_target,
             })
         }
-        None => None,
-        Some(_) => None,
+        _ => None,
     };
     let shield = invoke_object(api, unit, "GetEnergyShieldController")?;
     let max_energy = invoke_value::<i32>(api, shield, "GetMaxEnergy")?;
@@ -6820,7 +6830,7 @@ fn read_unit(
     Ok(RawUnit {
         pointer: unit as usize,
         formation: formation as usize,
-        rvo_agent: if instrumentation_profile.is_some_and(|profile| profile.includes_rvo()) {
+        rvo_agent: if instrumentation_profile.is_some_and(CaptureProfile::includes_rvo) {
             read_rvo_agent(api, unit, metadata)?
         } else {
             None
@@ -7203,6 +7213,7 @@ fn resolve_rvo_observation(
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn resolve_rvo_updates(
     native_tick: u64,
     capture: &mut CaptureState,
@@ -7485,16 +7496,16 @@ fn resolve_rvo_agent_ref(
     {
         return Ok(RvoAgentRefObservation::Entity(reference));
     }
-    let internal_agent_ordinal = match capture.rvo_internal_agent_ids.get(&pointer) {
-        Some(ordinal) => *ordinal,
-        None => {
-            let ordinal = capture.next_rvo_internal_agent_id;
-            capture.next_rvo_internal_agent_id = ordinal
-                .checked_add(1)
-                .ok_or_else(|| "RVO internal agent identity overflow".to_owned())?;
-            capture.rvo_internal_agent_ids.insert(pointer, ordinal);
-            ordinal
-        }
+    let internal_agent_ordinal = if let Some(ordinal) = capture.rvo_internal_agent_ids.get(&pointer)
+    {
+        *ordinal
+    } else {
+        let ordinal = capture.next_rvo_internal_agent_id;
+        capture.next_rvo_internal_agent_id = ordinal
+            .checked_add(1)
+            .ok_or_else(|| "RVO internal agent identity overflow".to_owned())?;
+        capture.rvo_internal_agent_ids.insert(pointer, ordinal);
+        ordinal
     };
     Ok(RvoAgentRefObservation::Internal {
         internal_agent_ordinal,
@@ -7528,7 +7539,7 @@ fn read_building(
     let collision_enabled = invoke_value::<bool>(api, data, "get_EnableCollision")?;
     Ok(RawBuilding {
         pointer: building as usize,
-        rvo_agent: if instrumentation_profile.is_some_and(|profile| profile.includes_rvo()) {
+        rvo_agent: if instrumentation_profile.is_some_and(CaptureProfile::includes_rvo) {
             read_rvo_agent(api, building, metadata)?
         } else {
             None
@@ -7552,6 +7563,7 @@ fn read_building(
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn read_team_shields(
     api: Api,
     shield_system: *mut Object,
@@ -7838,6 +7850,7 @@ fn read_projectile(
     })
 }
 
+#[allow(clippy::too_many_lines)]
 fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> TransitionEvents {
     let mut events = Vec::new();
     for trace in traces {
@@ -8053,9 +8066,7 @@ fn resolve_target_ref(
         })
 }
 
-fn drain_selector_score_calls(
-    capture: &mut CaptureState,
-) -> Result<SelectorScoreObservation, String> {
+fn drain_selector_score_calls(capture: &mut CaptureState) -> SelectorScoreObservation {
     let score_calculations = std::mem::take(&mut capture.selector_score_calculations)
         .into_iter()
         .map(|calculation| SelectorScoreCalculation {
@@ -8072,7 +8083,7 @@ fn drain_selector_score_calls(
             score_raw: calculation.score_raw,
         })
         .collect();
-    Ok(SelectorScoreObservation { score_calculations })
+    SelectorScoreObservation { score_calculations }
 }
 
 fn drain_skill_attackable_checker_calls(
@@ -8796,7 +8807,7 @@ mod tests {
             team_id: Some(1),
             terrain_type: TerrainType::Oil,
             position: QVec3 {
-                x: id as i64,
+                x: i64::try_from(id).unwrap(),
                 y: 0,
                 z: 7,
             },
@@ -9448,7 +9459,8 @@ mod tests {
         let mut capture = CaptureState::default();
         capture.reset_session();
         for &pointer in pointers {
-            let mut shield = layout_test_shield(pointer, pointer as i64, 90, Some(0)).state;
+            let mut shield =
+                layout_test_shield(pointer, i64::try_from(pointer).unwrap(), 90, Some(0)).state;
             shield.shield_id = allocate(&mut capture.next_shield_id, "shield").unwrap();
             capture.shield_ids.insert(pointer, shield.shield_id);
             capture
@@ -9493,9 +9505,12 @@ mod tests {
                 .into_iter()
                 .map(|id| {
                     let mut state = building(0);
-                    state.team_id = if id == 3 { 0 } else { 1 };
+                    state.team_id = match id {
+                        3 => 0,
+                        _ => 1,
+                    };
                     state.building_type_id = if id == 2 { 2 } else { 1 };
-                    state.position.x = id as i64;
+                    state.position.x = i64::try_from(id).unwrap();
                     RawBuilding {
                         pointer: 100 - id,
                         rvo_agent: None,
@@ -9557,7 +9572,7 @@ mod tests {
                 skill: 700,
                 source_actor: 11,
                 source_skill_id: 5001,
-                is_attacking_check: ordinal % 2 == 0,
+                is_attacking_check: ordinal.is_multiple_of(2),
                 previous_attack_target: Some(raw_target(22, ObjectKind::Unit)),
             },
             post_attack_target_candidate: Some(raw_target(33, ObjectKind::Building)),
@@ -9683,7 +9698,7 @@ mod tests {
         let mut capture = CaptureState::default();
         capture.selector_score_calculations.push(expected);
 
-        let drained = drain_selector_score_calls(&mut capture).unwrap();
+        let drained = drain_selector_score_calls(&mut capture);
         assert_eq!(
             drained.score_calculations,
             vec![SelectorScoreCalculation {
@@ -9703,7 +9718,6 @@ mod tests {
         assert!(capture.selector_score_calculations.is_empty());
         assert!(
             drain_selector_score_calls(&mut capture)
-                .unwrap()
                 .score_calculations
                 .is_empty()
         );
@@ -10584,12 +10598,14 @@ mod tests {
 
     #[test]
     fn rvo_scope_filters_sources_and_drains_delayed_publication_with_native_ordinals() {
-        let mut state = CaptureState::default();
-        state.rvo_scope = Some(RvoCaptureScope {
-            start_tick: 8,
-            end_tick: 14,
-            unit_ids: vec![124],
-        });
+        let mut state = CaptureState {
+            rvo_scope: Some(RvoCaptureScope {
+                start_tick: 8,
+                end_tick: 14,
+                unit_ids: vec![124],
+            }),
+            ..CaptureState::default()
+        };
         state
             .rvo_agent_refs
             .insert(10, ObjectRef::new(ObjectKind::Unit, 124));
@@ -10641,6 +10657,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn rvo_drain_readiness_ordering_and_source_join() {
         let mut state = CaptureState::default();
         state
@@ -10912,7 +10929,6 @@ mod tests {
     #[test]
     #[allow(clippy::too_many_lines)]
     fn rvo_seven_hook_contract_and_inactive_profile_behavior() {
-        let _guard = RVO_GLOBAL_TEST_LOCK.lock().unwrap();
         struct Contract {
             method: &'static str,
             abi: &'static str,
@@ -10921,6 +10937,7 @@ mod tests {
             original_slot: &'static str,
             prologue: [u8; 16],
         }
+        let _guard = RVO_GLOBAL_TEST_LOCK.lock().unwrap();
         let contracts = [
             Contract {
                 method: RVO_CONTROLLER_ACTIVE_LABEL,

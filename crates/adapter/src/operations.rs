@@ -60,7 +60,7 @@ const FIXED_ONE_RAW: i64 = 1_i64 << 32;
 const OIL_COMMANDER_SKILL_ID: i32 = 400_002;
 const OIL_RANGE_ITEM_TYPE: i32 = 1;
 const OIL_RADIUS_RAW: i64 = 30 * FIXED_ONE_RAW;
-const OIL_GRID_SIZE: usize = 12;
+const OIL_GRID_SIZE: u32 = 12;
 const OIL_GRID_MASK: u32 = (1 << OIL_GRID_SIZE) - 1;
 const RETAINED_OIL_ROUND: i32 = 1;
 
@@ -1305,7 +1305,8 @@ fn apply_terrains(
     if terrains.is_empty() {
         return Ok(Vec::new());
     }
-    let result = terrains
+
+    terrains
         .iter()
         .map(|terrain| {
             let source = oil_terrain_source(runtime.api)?;
@@ -1314,8 +1315,7 @@ fn apply_terrains(
             runtime.api.free_gc_handle(handle);
             result
         })
-        .collect();
-    result
+        .collect()
 }
 
 fn terrain_world_positions(
@@ -1333,10 +1333,11 @@ fn terrain_world_positions(
 pub(crate) fn rotate_terrain_grid_rows(rows: &[u32]) -> Vec<u32> {
     rows.iter()
         .rev()
-        .map(|row| (row & OIL_GRID_MASK).reverse_bits() >> (u32::BITS - OIL_GRID_SIZE as u32))
+        .map(|row| (row & OIL_GRID_MASK).reverse_bits() >> (u32::BITS - OIL_GRID_SIZE))
         .collect()
 }
 
+#[allow(clippy::too_many_lines)]
 fn restore_oil_terrain(
     runtime: &Runtime,
     terrain: &Terrain,
@@ -1639,8 +1640,8 @@ fn overwrite_terrain_grid(api: Api, item: *mut Object, rows: &[u32]) -> Result<(
     let size = api.invoke_value::<Vector2Int>(grid, "get_Size", &mut [])?;
     if size
         != (Vector2Int {
-            x: OIL_GRID_SIZE as i32,
-            y: OIL_GRID_SIZE as i32,
+            x: OIL_GRID_SIZE.cast_signed(),
+            y: OIL_GRID_SIZE.cast_signed(),
         })
     {
         return Err(OperationError::Rejected(format!(
@@ -1661,7 +1662,7 @@ fn overwrite_terrain_grid(api: Api, item: *mut Object, rows: &[u32]) -> Result<(
     let mut mask = api.new_object(mask_class)?;
     api.invoke_void(masks, "Enqueue", &mut [object_argument(mask)])?;
     for x in 0..OIL_GRID_SIZE {
-        for row in rows.iter().take(OIL_GRID_SIZE) {
+        for row in rows.iter().take(OIL_GRID_SIZE as usize) {
             if api.invoke_value::<bool>(mask, "IsFull", &mut [])? {
                 mask = api.new_object(mask_class)?;
                 api.invoke_void(masks, "Enqueue", &mut [object_argument(mask)])?;
@@ -1671,7 +1672,7 @@ fn overwrite_terrain_grid(api: Api, item: *mut Object, rows: &[u32]) -> Result<(
         }
     }
     let mut columns = vec![0_u32; 32];
-    for (x, column) in columns.iter_mut().take(OIL_GRID_SIZE).enumerate() {
+    for (x, column) in columns.iter_mut().take(OIL_GRID_SIZE as usize).enumerate() {
         for (y, row) in rows.iter().enumerate() {
             if row & (1_u32 << x) != 0 {
                 *column |= 1_u32 << (u32::BITS as usize - 1 - y);
@@ -3713,7 +3714,7 @@ mod tests {
             json!(-1),
             json!(1.5),
             json!("1021"),
-            json!(2147483648_i64),
+            json!(2_147_483_648_i64),
         ] {
             assert!(parse_start_test_arguments(&json!({"map_id": id})).is_err());
         }

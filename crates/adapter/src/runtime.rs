@@ -524,6 +524,7 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
     let arguments: RecordReplayRoundArguments =
         match serde_json::from_value(request.arguments.clone()) {
@@ -604,7 +605,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
         &arguments.grbr,
         native_start_round,
     )) {
-        return replay_failure_after_cleanup(runtime, request.id, response);
+        return replay_failure_after_cleanup(runtime, request.id, &response);
     }
     let load_deadline = Instant::now() + REPLAY_LOAD_TIMEOUT;
     if let Err(response) = wait_layout_status(
@@ -615,7 +616,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
         LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
         |status| is_replay_state(status, arguments.round, true, false),
     ) {
-        return replay_failure_after_cleanup(runtime, request.id, response);
+        return replay_failure_after_cleanup(runtime, request.id, &response);
     }
 
     let capture_request = Request {
@@ -630,7 +631,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
     let mut capture_response =
         execute_recording_series(runtime, &capture_request, capture::CaptureStartMode::Replay);
     if !capture_response.ok {
-        return replay_failure_after_cleanup(runtime, request.id, capture_response);
+        return replay_failure_after_cleanup(runtime, request.id, &capture_response);
     }
     let cleanup = match finish_replay_to_main_menu(runtime, request.id) {
         Ok(status) => status,
@@ -639,8 +640,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
             let message = response
                 .error
                 .as_ref()
-                .map(|error| error.message.as_str())
-                .unwrap_or("unknown cleanup error");
+                .map_or("unknown cleanup error", |error| error.message.as_str());
             return Response::failure(
                 request.id,
                 "replay_cleanup_failed",
@@ -667,26 +667,23 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
 fn replay_failure_after_cleanup(
     runtime: &mut Runtime,
     request_id: u64,
-    response: Response<Value>,
+    response: &Response<Value>,
 ) -> Response<Value> {
-    let code = response
-        .error
-        .as_ref()
-        .map(|error| error.code.clone())
-        .unwrap_or_else(|| "record_replay_round_failed".into());
-    let message = response
-        .error
-        .as_ref()
-        .map(|error| error.message.clone())
-        .unwrap_or_else(|| "record_replay_round failed without an error body".into());
+    let code = response.error.as_ref().map_or_else(
+        || "record_replay_round_failed".into(),
+        |error| error.code.clone(),
+    );
+    let message = response.error.as_ref().map_or_else(
+        || "record_replay_round failed without an error body".into(),
+        |error| error.message.clone(),
+    );
     match finish_replay_to_main_menu(runtime, request_id) {
         Ok(_) => Response::failure(request_id, code, message),
         Err(cleanup) => {
             let cleanup = cleanup
                 .error
                 .as_ref()
-                .map(|error| error.message.as_str())
-                .unwrap_or("unknown cleanup error");
+                .map_or("unknown cleanup error", |error| error.message.as_str());
             Response::failure(
                 request_id,
                 code,
@@ -921,7 +918,7 @@ fn execute_recording_series(
                 recorded_tick += 1;
                 match (&arguments.instrumentation, instrumentation) {
                     (Some(_), Some(observation)) => {
-                        instrumentation_records.push((recorded_tick, observation))
+                        instrumentation_records.push((recorded_tick, observation));
                     }
                     (None, None) => {}
                     (Some(config), None) if config.rvo_scope.is_some() => {}

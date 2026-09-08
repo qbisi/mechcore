@@ -18,6 +18,7 @@ use serde_json::json;
 const LAYOUT_YAML: &str = "kind: layout\nseed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      index: 0\n      position: {x: 0, y: -50}\n  red:\n    formations:\n    - type: arclight\n      index: 0\n      position: {x: 0, y: -50}\n";
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn writes_and_reads_v6_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
@@ -129,7 +130,7 @@ fn writes_and_reads_v6_tracks() {
 fn building_state_has_no_rotation_in_canonical_hash_input() {
     let mut value = serde_json::to_value(&state(100).buildings[0]).unwrap();
     assert!(value.get("rotation").is_none());
-    value["rotation"] = json!(24273083116_i64);
+    value["rotation"] = json!(24_273_083_116_i64);
     assert!(serde_json::from_value::<BuildingState>(value).is_err());
 }
 

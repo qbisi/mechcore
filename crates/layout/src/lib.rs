@@ -1832,7 +1832,7 @@ mod tests {
         })
     }
 
-    fn layout_with_blue_terrains(terrains: Value) -> Value {
+    fn layout_with_blue_terrains(terrains: &Value) -> Value {
         json!({
             "kind": "layout",
             "round": 1,
@@ -2056,7 +2056,7 @@ sides:
             json!(-1),
             json!(1.5),
             json!("1021"),
-            json!(2147483648_i64),
+            json!(2_147_483_648_i64),
         ] {
             value["map_id"] = id;
             assert!(compile(&value).is_err());
@@ -2091,7 +2091,7 @@ sides:
 
     #[test]
     fn compiles_and_counts_valid_oil_terrain_state() {
-        let plan = compile(&layout_with_blue_terrains(json!([
+        let plan = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]},
             {"type": "oil", "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}], "grid_rows": {"0": [], "1": vec![0x0fff_u32; 12]}}
         ])))
@@ -2107,43 +2107,43 @@ sides:
 
     #[test]
     fn terrain_fields_and_grid_shape_are_fail_closed() {
-        let unknown = compile(&layout_with_blue_terrains(json!([
+        let unknown = compile(&layout_with_blue_terrains(&json!([
             {"type": "fire", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(unknown.contains("unknown variant `fire`, expected `oil`"));
 
-        let outside = compile(&layout_with_blue_terrains(json!([
+        let outside = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 431, "y": 0}, {"x": 500, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(outside.contains("does not overlap the battlefield"));
 
-        let wrong_count = compile(&layout_with_blue_terrains(json!([
+        let wrong_count = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 0, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(wrong_count.contains("control_points must contain exactly two points"));
 
-        let wrong_height = compile(&layout_with_blue_terrains(json!([
+        let wrong_height = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![1_u32; 11]}}
         ])))
         .unwrap_err();
         assert!(wrong_height.contains("exactly 12 rows"));
 
-        let outside_width = compile(&layout_with_blue_terrains(json!([
+        let outside_width = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0x1000_u32; 12]}}
         ])))
         .unwrap_err();
         assert!(outside_width.contains("uses bits outside width 12"));
 
-        let empty_grid = compile(&layout_with_blue_terrains(json!([
+        let empty_grid = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0_u32; 12]}}
         ])))
         .unwrap_err();
         assert!(empty_grid.contains("must activate at least one cell"));
 
-        let outside_index = compile(&layout_with_blue_terrains(json!([
+        let outside_index = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"7": []}}
         ])))
         .unwrap_err();
@@ -2153,7 +2153,7 @@ sides:
     #[test]
     fn embedded_layout_keeps_placement_categories_explicit() {
         let error = parse_embedded_yaml(
-            br#"
+            br"
 kind: layout
 round: 1
 sides:
@@ -2163,7 +2163,7 @@ sides:
   red:
     formations:
       - {type: marksman, index: 0, position: {x: 0, y: -50}}
-"#,
+",
         )
         .unwrap_err();
         assert_eq!(
