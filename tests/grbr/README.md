@@ -62,4 +62,5 @@ how the two classes are told apart. A claim resting on it says so.
 `work/research/random_state_support.py` does the same for the random-state
 claims, and reimplements `GRRandom` in Python to do it.
 `work/research/reinforce_pool_support.py` does the same for the reinforcement
-pool log.
+pool log, and `work/research/battle_invariant_support.py` for the match-level
+and cross-round claims of `docs/battle.md`.

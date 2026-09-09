@@ -41,8 +41,9 @@ layout. They belong to the document rather than to a side because both sides
 share them.
 
 A [turn](turn.md) carries this shape under its own `state` key, without
-repeating `kind`, and adds the actions taken from it. `kind` marks a document
-root, not a subtree.
+repeating `kind`, and adds the actions taken from it. A [battle](battle.md)
+carries the turns of one match in order, and hoists `map_id` and `seed` to its
+own root. `kind` marks a document root, not a subtree.
 
 ## Relation to a layout
 
@@ -480,8 +481,9 @@ where such a conversion would start.
 The round's income arrives through `Player.AddRoundSupply(round, roundSupply)`.
 It takes the round income, adds `extraFirstRoundSupply` when the round is 1,
 adds `extraRoundSupply` and a modifier read from the player's dynamic `DataSet`,
-floors the result at zero, and then adds it to `supply` unless the latch
-described under excluded fields is set. A negative `roundSupply` argument makes
+where an energy tower skill's deferred half was registered, floors the result at
+zero, and then adds it to `supply` unless the latch described under excluded
+fields is set. A negative `roundSupply` argument makes
 it ask `PlayerAgent.GetRoundSupply(round)` instead.
 
 The `extraSupplyDatas` table is not part of this path in a ranked match. Its
@@ -561,8 +563,9 @@ loses nothing.
 ### The research centre and the energy tower
 
 Three native lists sit here. `blueprints` names what the research centre has
-activated, `energy_tower_skills` what the energy tower has activated, and
-`tower_strengthen_levels` how far each of the two towers has been reinforced.
+activated, `energy_tower_skills` which of the energy tower's skills this round
+has activated, and `tower_strengthen_levels` how far each of the two towers has
+been reinforced.
 
 The blueprint catalogue has 17 rows in two kinds. `bpType: 1` is an upgrade
 chain: `4` 进攻强化 and its successor `401`, `5` 防御强化 and its successor `501`.
@@ -655,14 +658,30 @@ appear there. Neither document enforces the invariant yet.
 
 #### The energy tower keeps all five
 
-A state lists every activated energy tower skill, and a layout keeps only the two
-that reach a fight, `5` 强化瞄准 as `range_enhancement` and `6` 高速移动 as
-`movement_enhancement`. The projection is behaving correctly: `3` and `4` are
-recruitment and reach a fight only through the units they produce, and `1`
-快速补给 is economic. `1` is the one that must not be dropped from a state, since
-it pays `supplyChangeValue: 200` now against `nextRoundSupplyChangeValue: -300`
-later, so it outlives the round that activated it. It is also the only energy
-tower skill the local set shows, in 15 player-rounds.
+Every energy tower skill is a 本回合 effect, so this field is the set activated
+in the round the state describes. Like everything else here it is defined after
+each action, which means it is empty at a round's start and fills as the round's
+actions are applied.
+
+A state lists all five, and a layout keeps only the two that reach a fight, `5`
+强化瞄准 as `range_enhancement` and `6` 高速移动 as `movement_enhancement`. The
+projection is behaving correctly: `3` and `4` are recruitment and reach a fight
+only through the units they produce, and `1` 快速补给 is economic. `1` is the one
+that must not be dropped, because it is the half of a decision the next round
+pays for: `supplyChangeValue: 200` now against `nextRoundSupplyChangeValue: -300`
+at the next round's income. Carrying the skill carries that debt, and nothing
+else in the document states it.
+
+The recorded field is a different quantity and must not be copied into this one.
+`PlayerSnapshotController.TakeResearchCenterSanpshot` writes only the skills
+passing `IsLongTermEffect`, which is a test of `nextRoundSupplyChangeValue` and
+so admits `1` alone, and it writes them a round late, because a skill's
+activation flag survives until the following round's `OnEnterDeploymentAfter`
+and the snapshot precedes that. The recorded list holds `1` in 15 player-rounds
+of the local set, one round after each of the rounds that activated it.
+[`docs/battle.md`](battle.md) sets out that lifecycle. So the recorded list is an
+input to reconstructing `supply`, not a source for this field, which is rebuilt
+from the round's `PAD_ActiveEnergyTowerSkill` actions.
 
 ## The skill panel
 
@@ -774,10 +793,12 @@ shape that a layout would then also have to admit.
 ## Rebuilding a state offline
 
 Most of a round's state can be read out of a replay without running the game.
-Three fields cannot be copied, because the snapshot is taken before the round's
-own reset: `supply` and the two shop counters state what stood before the round's
-income and allowances arrived, and each is treated in its own section above.
-Nothing turns on closing that gap yet, since the conversion is not being built.
+Four fields cannot be copied. Three of them are stale, because the snapshot is
+taken before the round's own reset: `supply` and the two shop counters state
+what stood before the round's income and allowances arrived. The fourth,
+`energy_tower_skills`, is not stale but a different quantity, and it is rebuilt
+from the round's actions. Each is treated in its own section above, and nothing
+turns on closing the gap yet, since the conversion is not being built.
 
 The unit roster comes straight from `playerData.units`, a list of `NewUnitData`
 carrying `id`, `Index`, `RoundCount`, `Durability`, `Exp`, `Level`, `Position`,
@@ -869,3 +890,9 @@ where the two differ. The field already includes the round's income, so writing
 it directly leaves the game free to add that income a second time, which is what
 `Player.isLockSupplyForSnapshot` exists to prevent. An installer therefore has to
 set that latch even though no state document carries it.
+
+`energy_tower_skills` needs the same care in the other direction. Installing an
+activated skill has to set its activation flag without paying the immediate half
+a second time, which is what `ActiveSkill` does under the `isSnapshot` argument
+`ApplyResearchCenterSnapshot` passes. An installed state whose flag is missing
+gives the next round 300 supply too many.

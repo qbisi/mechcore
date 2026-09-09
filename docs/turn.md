@@ -38,6 +38,10 @@ Everything about what a state holds, how it projects onto a layout, and how it
 is rebuilt from a replay belongs to that document. This one covers only the
 second half of a turn.
 
+A [battle](battle.md) is a whole match: the turns in order, plus the fields
+every round of that match shares. A turn appearing there drops `map_id` and
+`seed` as well, since the battle states them once.
+
 ## The two halves are the same information
 
 A turn states a round twice over. `state.sides.<side>.battle_skills` records
