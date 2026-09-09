@@ -18,3 +18,48 @@ hash identity are part of the fixture contract.
 `record_replay_round`. Its serialized player records contain indices `0..=9`;
 native replay capture accepts battle rounds `1..=9` unchanged and verifies the
 same value through `Match.get_RoundCount()`.
+
+## Where usable replays come from
+
+The Steam installation keeps its own replay directory, and the files there fall
+into two classes that do not agree with each other. Only one of them is evidence.
+
+```
+~/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/ProjectDatas/Replay
+```
+
+**Locally recorded.** Written by this machine while playing. `BattleInfo.Seat`
+holds a real seat, 0 or greater, and the file keeps the
+`<build>_<date>--<id>_[a]VS[b].grbr` name. Its snapshots are the ones
+`PlayerSnapshotController` took, so they are the faithful ones. These are the
+files this directory tracks, and the ones any further measurement should use.
+
+**Downloaded.** Fetched from the server, named `<version>\<id>.rep.grbr` with a
+literal backslash, and carrying `Seat` of -1. Its snapshots are rebuilt server
+side through `NetworkMessageData.Convert`, and the rebuild is not faithful. Two
+fields differ with no counterexample in either direction, over 282 downloaded and
+218 locally recorded player-rounds:
+
+| Field | Locally recorded | Downloaded |
+| --- | --- | --- |
+| `playerData.IsSpecialSupply` | `false` everywhere | `true` everywhere |
+| An upgraded blueprint chain | current level only, `401` | both levels, `4` and `401` |
+
+Do not treat a downloaded replay as a snapshot of the match. It is a
+reconstruction, and at least these two fields carry the reconstruction's
+conventions rather than the game's state.
+
+Older builds appear there too, as `.bak` files from 2203 and 2207. This
+directory is build 2259 only.
+
+## Supporting corpus
+
+Claims in `docs/state.md` that need more rounds than the six files here provide
+are measured over the locally recorded replays in the Steam directory, currently
+11 ranked matches and 202 player-rounds, without copying them in.
+`work/research/local_replay_support.py` reproduces those measurements and shows
+how the two classes are told apart. A claim resting on it says so.
+`work/research/random_state_support.py` does the same for the random-state
+claims, and reimplements `GRRandom` in Python to do it.
+`work/research/reinforce_pool_support.py` does the same for the reinforcement
+pool log.
