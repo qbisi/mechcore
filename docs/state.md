@@ -107,6 +107,11 @@ array; the remaining one is `ID=0, Index=-1`, the recorded form of declining.
 It is the only field above `sides`, and the [scope](#scope) example shows it in
 place.
 
+Rounds 0 and 1 are dealt no offer at all: `matchDatas.reinforceItems` is empty
+in 22 of the 101 round snapshots of the local set, which is exactly those two
+rounds of each match. The field is absent there rather than an empty array,
+since no array was dealt.
+
 The offer array is stored as recorded rather than rolled from a random state.
 It is a function of that state, but reproducing the function means reproducing
 the game's probability tables and draw order, and the layout format already
@@ -822,6 +827,9 @@ report.
 | `playerData.IsSpecialSupply` | Inert in this build, see below |
 | `playerData.researchQueue` | Unreachable without game rule `999917`, see above |
 | `matchDatas.deadCount` | Zero in every round of the corpus |
+| `NewUnitData.Durability` | Zero in all 2488 recorded units |
+| `NewUnitData.RoundCount`, `SellSupply` | Both follow from when the unit was bought and what it cost |
+| `ConstructionSnapshotData.durability` | One entry per segment, `-1` in every one |
 | `matchDatas.teamRanks` | Seat ordering; no mechanism is known to read it |
 | `matchDatas.poolOPs` | Reinforcement pool bookkeeping for later rounds, see below |
 | `matchDatas.RoundExcludeReinforce` | The same, per round rather than permanently |

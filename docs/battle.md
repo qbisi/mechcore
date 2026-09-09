@@ -2,9 +2,14 @@
 
 ## Status
 
-This document is a design draft. No crate implements it yet, and the field
-names below are proposals, not a contract. Sections marked **Unresolved** name
-what still has no evidence behind it.
+This document is a design draft, and the field names below are proposals rather
+than a contract. Sections marked **Unresolved** name what still has no evidence
+behind it.
+
+One half of it is implemented. `mechcore convert battle <replay.grbr>
+<battle.yaml>` writes this document from a locally recorded replay, and the
+[conversion section](#converting-a-replay) says what it rebuilds and what it
+refuses. Nothing executes a battle yet.
 
 A battle spans a whole match, so the four tracked ranked replays that carry most
 of the [state](state.md) and [turn](turn.md) claims are too small a corpus for
@@ -288,11 +293,42 @@ was activated this round, which is what the layout projection of skills `5` and
 `6` already assumes, and it is rebuilt from the round's actions rather than
 copied from the record.
 
+## Converting a replay
+
+```bash
+mechcore convert battle <replay.grbr> <battle.yaml> [--force]
+```
+
+The converter refuses rather than guesses. A replay from another build, a
+downloaded one, a match mode other than `VS_1_1`, a `Test` match, a match
+carrying game rules, rounds that are not the contiguous sequence both sides
+share, an object this build's catalogues cannot name, and an action this format
+has no representation for are each an error naming what was found.
+
+Most fields are copied. Four are not, and each is argued in the document that
+owns it:
+
+| Field | Why it is rebuilt |
+| --- | --- |
+| `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, less the energy tower debt |
+| `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder, so the allowance is read back from the next snapshot plus what this round spent |
+| `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
+| `equipment` | The recorded inventory includes fitted items, which the formations already name |
+
+The last round has no next snapshot to read the shop allowance from, so it falls
+back to the shipped constants, two and one.
+
+Two fields are always empty and refused rather than guessed when they could not
+be. `airdrop_shields` has no recorded source, so a panel holding commander skill
+`800001` is an error instead of a silent omission. `travelling` has none either,
+and it is left absent rather than inferred from the ambush regions.
+
 ## Normal form
 
 | Collection | Order |
 | --- | --- |
 | `turns` | ascending `round` |
+| `formations`, `constructions`, `contraptions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
 | `game_rules` | ascending rule ID |
 

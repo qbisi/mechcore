@@ -122,6 +122,20 @@ every cancel, and collapsing them is this format's convention.
 `FinishDeploy` is dropped. It appears exactly once per round-side, so it carries
 no decision.
 
+`BuyUnit` does not name the unit it creates. Its recorded `UIDX` is `-1` in
+every purchase of the local set, so the index comes from the allocator, and
+applying a turn has to hand out `next_index.unit` exactly as the game does.
+That is one of the two things the allocator is in a state for.
+
+`MoveUnit` is recorded as a batch. One action carries between one and seven
+`moveUnitDatas` entries, 1096 of the 1164 carrying one. A turn writes one move
+per unit: the collapse has already run by then, so the batch no longer has to
+stay whole for an undo to pop it, and order is all that survives either way.
+
+Declining a reinforcement card is recorded as `ChooseReinforceItem` with `ID`
+zero at offer `-1`. A turn writes it as its own action, since an offer position
+that names no card is not a choice of card.
+
 `MoveUnit` keeps only the resulting position and rotation. The recorded
 `positionRecord`, `rotateRecord` and `superDeployRecord` fields restate the
 state before the move, which the turn already holds.
@@ -144,6 +158,8 @@ A state's own collections keep the orders that document defines.
 | `PAD_FinishDeploy` | Exactly one per round-side, so it carries no decision |
 | `PAD_MoveUnit.positionRecord` | Restates the state before the action |
 | `PAD_MoveUnit.rotateRecord`, `superDeployRecord` | Same |
+| `PAD_BuyUnit.UIDX` | Always `-1`; the allocator names the new unit |
+| `PAD_ReleaseCommanderSkill.Positions` beside an object target | The player's click point, which names no state |
 
 ## Capabilities the adapter still lacks
 

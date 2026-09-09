@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
+pub mod battle;
 mod grbr;
+pub mod record;
 pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 
 /// Names the kind of document a file carries.
@@ -18,6 +20,7 @@ pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 #[serde(rename_all = "snake_case")]
 pub enum DocumentKind {
     Layout,
+    Battle,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -501,7 +504,7 @@ pub fn canonical_embedded_yaml(layout: Layout) -> Result<String, String> {
 /// has no per-field flow style, so the emitted document is folded afterwards.
 /// Only the `position` key is folded: it always holds exactly `x` and `y`, so
 /// the fold is total, whereas the lists of bare positions vary in length.
-fn collapse_placement_positions(yaml: &str) -> String {
+pub(crate) fn collapse_placement_positions(yaml: &str) -> String {
     let lines: Vec<&str> = yaml.lines().collect();
     let mut out = String::with_capacity(yaml.len());
     let mut index = 0;

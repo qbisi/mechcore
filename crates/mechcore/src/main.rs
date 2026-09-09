@@ -1,5 +1,6 @@
 mod acquire;
 mod adapter;
+mod convert;
 mod layout;
 mod mcfr;
 mod script;
@@ -16,6 +17,7 @@ fn usage(program: &str) {
     eprintln!("       {program} layout verify <layout.yaml>");
     eprintln!("       {program} layout format <layout.yaml> [--write]");
     eprintln!("       {program} layout diff <left.yaml> <right.yaml>");
+    eprintln!("       {program} convert battle <replay.grbr> <battle.yaml> [--force]");
     eprintln!(
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
     );
@@ -65,6 +67,14 @@ fn main() -> ExitCode {
             Ok(false) => ExitCode::FAILURE,
             Err(error) => {
                 eprintln!("mechcore layout: {error}");
+                ExitCode::FAILURE
+            }
+        },
+        Some("convert") => match convert::run(arguments) {
+            Ok(true) => ExitCode::SUCCESS,
+            Ok(false) => ExitCode::FAILURE,
+            Err(error) => {
+                eprintln!("mechcore convert: {error}");
                 ExitCode::FAILURE
             }
         },
