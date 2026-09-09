@@ -489,7 +489,7 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "mechcore-adapter",
- "mechcore-layout",
+ "mechcore-document",
  "mechcore-mcfr",
  "mechcore-protocol",
  "mechcore-simulation",
@@ -506,7 +506,7 @@ version = "0.1.0"
 dependencies = [
  "jpeg-encoder",
  "libc",
- "mechcore-layout",
+ "mechcore-document",
  "mechcore-mcfr",
  "mechcore-protocol",
  "serde",
@@ -515,7 +515,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mechcore-layout"
+name = "mechcore-document"
 version = "0.1.0"
 dependencies = [
  "quick-xml",
@@ -534,7 +534,7 @@ dependencies = [
  "arrow-schema",
  "blake3",
  "bytes",
- "mechcore-layout",
+ "mechcore-document",
  "parquet",
  "rust-hdf5",
  "serde",
@@ -547,7 +547,7 @@ dependencies = [
 name = "mechcore-protocol"
 version = "0.1.0"
 dependencies = [
- "mechcore-layout",
+ "mechcore-document",
  "serde",
  "serde_json",
 ]
@@ -557,7 +557,7 @@ name = "mechcore-simulation"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "mechcore-layout",
+ "mechcore-document",
  "mechcore-mcfr",
  "serde",
  "serde_json",

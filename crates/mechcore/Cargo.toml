@@ -7,7 +7,7 @@ rust-version.workspace = true
 
 [dependencies]
 libc = "0.2"
-mechcore-layout = { path = "../layout" }
+mechcore-document = { path = "../document", features = ["convert"] }
 mechcore-mcfr = { path = "../mcfr" }
 mechcore-protocol = { path = "../protocol" }
 mechcore-simulation = { path = "../simulation" }

@@ -53,7 +53,7 @@ impl McfrWriter {
         }
         context.validate()?;
         let layout =
-            mechcore_layout::parse_embedded_yaml(layout_yaml.as_bytes()).map_err(Error::invalid)?;
+            mechcore_document::parse_embedded_yaml(layout_yaml.as_bytes()).map_err(Error::invalid)?;
         match layout.seed {
             None => {
                 return Err(Error::invalid(
@@ -75,7 +75,7 @@ impl McfrWriter {
             )));
         }
         let layout_yaml =
-            mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
+            mechcore_document::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
         let context_bytes = parquet_storage::encode_durable_context(context)?;
         let temporary = tempfile::Builder::new()
             .prefix(".mcfr-")

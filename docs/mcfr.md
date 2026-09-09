@@ -48,7 +48,7 @@ ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。六个 Parq
 
 布局采用规范 YAML：显式记录 `seed`，省略原生值为格式默认值的字段，并按原生 Unit index
 保留 `formations` 声明顺序；四种初始防御建筑按 manager 顺序记录在同级
-`constructions`。`mechcore layout verify/format` 和 Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
+`constructions`。`mechcore verify/format` 和 Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
 `mechcore sim compare`，不直接进入 `physics_*_hash` 或 `content_*_hash`。
 
 逻辑时间线为：

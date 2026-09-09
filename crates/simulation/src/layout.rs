@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use mechcore_layout::{NativeFormation, SidePlan};
+use mechcore_document::{NativeFormation, SidePlan};
 
 use crate::{
     Error, Result,
@@ -39,8 +39,8 @@ pub(crate) fn load(
             path.display()
         ))
     })?;
-    let parsed = mechcore_layout::parse_yaml(&bytes).map_err(Error::new)?;
-    let canonical = mechcore_layout::canonical_yaml(parsed).map_err(Error::new)?;
+    let parsed = mechcore_document::parse_yaml(&bytes).map_err(Error::new)?;
+    let canonical = mechcore_document::canonical_yaml(parsed).map_err(Error::new)?;
     Ok((seed, layout, canonical))
 }
 
@@ -53,8 +53,8 @@ pub(crate) fn compile_with_seed(
     bytes: &[u8],
     units: &UnitConfigs,
 ) -> Result<(Option<i32>, CompiledLayout)> {
-    let layout = mechcore_layout::parse_yaml(bytes).map_err(Error::new)?;
-    let plan = mechcore_layout::compile_layout(layout).map_err(Error::new)?;
+    let layout = mechcore_document::parse_yaml(bytes).map_err(Error::new)?;
+    let plan = mechcore_document::compile_layout(layout).map_err(Error::new)?;
     let mut placements = compile_side("blue", 0, &plan.blue, units)?;
     placements.extend(compile_side("red", 1, &plan.red, units)?);
 
@@ -125,7 +125,7 @@ fn compile_formation(
     side_name: &str,
     team: u32,
     index: usize,
-    formation: &mechcore_layout::Placement,
+    formation: &mechcore_document::Placement,
     units: &UnitConfigs,
 ) -> Result<Placement> {
     if !matches!(formation.native, NativeFormation::Unit(_))
@@ -168,7 +168,7 @@ fn compile_formation(
 
 fn validate_formation_footprint(
     side_name: &str,
-    formation: &mechcore_layout::Placement,
+    formation: &mechcore_document::Placement,
     rules: &UnitConfig,
 ) -> Result<()> {
     let configured = rules.formation_footprint_meters()?;

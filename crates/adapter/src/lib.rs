@@ -9,7 +9,7 @@ mod operations;
 mod runtime;
 mod video;
 
-use mechcore_layout as layout;
+use mechcore_document as layout;
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::thread;

@@ -30,8 +30,8 @@ fn battle(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
 
     let grbr =
         fs::read(&source).map_err(|error| format!("cannot read {}: {error}", source.display()))?;
-    let battle = mechcore_layout::battle::battle_from_grbr(&grbr)?;
-    let yaml = mechcore_layout::battle::canonical_yaml(&battle)?;
+    let battle = mechcore_document::convert::battle_from_grbr(&grbr)?;
+    let yaml = mechcore_document::battle::canonical_yaml(&battle)?;
     fs::write(&destination, &yaml)
         .map_err(|error| format!("cannot write {}: {error}", destination.display()))?;
 

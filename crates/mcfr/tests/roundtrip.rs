@@ -388,7 +388,7 @@ fn embedded_layout_is_not_a_hash_input() {
 #[test]
 fn embedded_layout_preserves_adapter_state_outside_public_legality() {
     const PARTIAL_LAYOUT: &str = "kind: layout\nseed: 42\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      index: 0\n      position: {x: -310, y: 20}\n  red:\n    formations:\n    - type: arclight\n      index: 0\n      position: {x: -310, y: 20}\n";
-    assert!(mechcore_layout::parse_yaml(PARTIAL_LAYOUT.as_bytes()).is_err());
+    assert!(mechcore_document::parse_yaml(PARTIAL_LAYOUT.as_bytes()).is_err());
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("partial-layout.mcfr");
     let context = context();

@@ -1,7 +1,7 @@
 use std::{fs, process::Command};
 
 #[test]
-fn layout_verify_reports_shared_compiler_summary() {
+fn verify_reports_shared_compiler_summary() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::write(
@@ -23,7 +23,6 @@ sides:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("layout")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -44,7 +43,7 @@ sides:
 }
 
 #[test]
-fn layout_verify_rejects_the_zero_seed_sentinel() {
+fn verify_rejects_the_zero_seed_sentinel() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::write(
@@ -54,7 +53,7 @@ fn layout_verify_rejects_the_zero_seed_sentinel() {
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["layout", "verify"])
+        .arg("verify")
         .arg(&layout)
         .output()
         .unwrap();
@@ -67,7 +66,7 @@ fn layout_verify_rejects_the_zero_seed_sentinel() {
 }
 
 #[test]
-fn layout_verify_rejects_contraptions_in_formations() {
+fn verify_rejects_contraptions_in_formations() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::write(
@@ -87,7 +86,6 @@ sides:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("layout")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -97,7 +95,7 @@ sides:
 }
 
 #[test]
-fn layout_format_emits_canonical_defaults_and_supports_in_place_write() {
+fn format_emits_canonical_defaults_and_supports_in_place_write() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::write(
@@ -116,7 +114,7 @@ sides:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["layout", "format"])
+        .arg("format")
         .arg(&layout)
         .output()
         .unwrap();
@@ -137,7 +135,7 @@ sides:
     assert!(!canonical.contains("grid_rows:"));
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["layout", "format"])
+        .arg("format")
         .arg(&layout)
         .arg("--write")
         .output()
@@ -147,7 +145,7 @@ sides:
 }
 
 #[test]
-fn layout_diff_compares_normalized_fields() {
+fn diff_compares_normalized_fields() {
     let directory = tempfile::tempdir().unwrap();
     let left = directory.path().join("left.yaml");
     let right = directory.path().join("right.yaml");
@@ -163,7 +161,7 @@ fn layout_diff_compares_normalized_fields() {
     .unwrap();
 
     let equal = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["layout", "diff"])
+        .arg("diff")
         .arg(&left)
         .arg(&right)
         .output()
@@ -180,7 +178,7 @@ fn layout_diff_compares_normalized_fields() {
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["layout", "diff"])
+        .arg("diff")
         .arg(&left)
         .arg(&right)
         .output()

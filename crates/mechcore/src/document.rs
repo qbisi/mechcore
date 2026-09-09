@@ -1,3 +1,9 @@
+//! The document commands: verify, format and diff.
+//!
+//! They are named for what they do to a document rather than for one kind, and
+//! today every one of them accepts a layout. A state, turn or battle document
+//! is refused by the parser until the same three verbs learn the other kinds.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -7,20 +13,12 @@ use std::{
 use serde::Serialize;
 use serde_json::Value;
 
-pub(crate) fn run(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
-    match arguments.next().as_deref() {
-        Some("verify") => verify(arguments).map(|()| true),
-        Some("format") => format(arguments).map(|()| true),
-        Some("diff") => diff(arguments),
-        _ => Err("expected `verify <layout.yaml>`, `format <layout.yaml> [--write]`, or `diff <left.yaml> <right.yaml>`".into()),
-    }
-}
 
-fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
+pub(crate) fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let path = required_path(&mut arguments, "expected layout.yaml after `verify`")?;
     reject_extra(&mut arguments)?;
     let layout = read_layout(&path)?;
-    let plan = mechcore_layout::compile_layout(layout)?;
+    let plan = mechcore_document::compile_layout(layout)?;
     let report = serde_json::json!({
         "valid": true,
         "layout": path,
@@ -41,7 +39,7 @@ fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     Ok(())
 }
 
-fn format(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
+pub(crate) fn format(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let path = required_path(&mut arguments, "expected layout.yaml after `format`")?;
     let write = match arguments.next().as_deref() {
         None => false,
@@ -49,7 +47,7 @@ fn format(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
         Some(extra) => return Err(format!("unexpected argument {extra:?}")),
     };
     reject_extra(&mut arguments)?;
-    let canonical = mechcore_layout::canonical_yaml(read_layout(&path)?)?;
+    let canonical = mechcore_document::canonical_yaml(read_layout(&path)?)?;
     if write {
         fs::write(&path, canonical)
             .map_err(|error| format!("cannot write {}: {error}", path.display()))?;
@@ -59,7 +57,7 @@ fn format(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     Ok(())
 }
 
-fn diff(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
+pub(crate) fn diff(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     let left_path = required_path(&mut arguments, "expected left.yaml after `diff`")?;
     let right_path = required_path(&mut arguments, "expected right.yaml after left.yaml")?;
     reject_extra(&mut arguments)?;
@@ -87,10 +85,10 @@ fn diff(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
     Ok(equal)
 }
 
-fn read_layout(path: &PathBuf) -> Result<mechcore_layout::Layout, String> {
+fn read_layout(path: &PathBuf) -> Result<mechcore_document::Layout, String> {
     let bytes =
         fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    mechcore_layout::parse_yaml(&bytes)
+    mechcore_document::parse_yaml(&bytes)
 }
 
 fn required_path(

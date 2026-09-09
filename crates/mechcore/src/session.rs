@@ -265,7 +265,7 @@ impl Session {
         layout: Value,
         seed: Option<i32>,
     ) -> Result<Value, String> {
-        let plan = mechcore_layout::compile(&layout)?;
+        let plan = mechcore_document::compile(&layout)?;
         if plan.round > mechcore_protocol::MAX_STAGED_ROUND {
             return Err(format!(
                 "apply_layout advances through every earlier round inside one timeout budget \

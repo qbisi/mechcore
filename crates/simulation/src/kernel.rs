@@ -4531,7 +4531,7 @@ fn execute(
         Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
     let mut writer = match output {
         Some(path) => {
-            let mut replay_layout = mechcore_layout::parse_yaml(
+            let mut replay_layout = mechcore_document::parse_yaml(
                 replay_layout
                     .ok_or_else(|| Error::new("output MCFR requires a replay layout"))?
                     .as_bytes(),
@@ -4539,7 +4539,7 @@ fn execute(
             .map_err(Error::new)?;
             replay_layout.seed = Some(seed);
             let replay_layout =
-                mechcore_layout::canonical_yaml(replay_layout).map_err(Error::new)?;
+                mechcore_document::canonical_yaml(replay_layout).map_err(Error::new)?;
             McfrWriter::create(path, &config.game_build, &context, &replay_layout)?
         }
         None => McfrWriter::hash_only(&context)?,

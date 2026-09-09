@@ -1,23 +1,20 @@
-//! Builds a battle document from one recorded match.
+//! Fills a battle document from one recorded match.
 //!
-//! `docs/battle.md`, `docs/turn.md` and `docs/state.md` define what is produced
-//! here. A battle holds what every round of a match shares and the turns in
-//! order; a turn holds the state a round starts from and the decisions taken
-//! from it.
-//!
-//! Three quantities are rebuilt rather than copied, because the snapshot the
-//! game writes precedes the round's own reset. `supply` gains the round's
-//! income, the two shop counters are restored to the round's allowance, and the
-//! energy tower list is the set activated during the round, which at a round's
-//! start is empty. `docs/state.md` argues each of those in full.
+//! Most fields are copied. Four are rebuilt, because the snapshot the game
+//! writes precedes the round's own reset: `supply` gains the round's income,
+//! the two shop counters are restored to the round's allowance, the energy
+//! tower list is the set activated during the round and so empty at its
+//! start, and the equipment list drops what the formations carry.
+//! `docs/battle.md` says what the conversion refuses.
 
-use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
-use crate::{
-    ContraptionPlacement, DocumentKind, Formation, Position, StaticPlacement, Techs, Terrain,
-    construction_type_from_id, contraption_type_from_id, terrains_from_grbr_round,
-    unit_type_from_id,
+use crate::battle::{
+    Action, Battle, BattleSide, BattleSides, EquipmentItem, NextIndex, PanelSkill, ShopState,
+    SideState, SkillTarget, State, StateSides, Turn, TurnActions,
 };
-use serde::Serialize;
+use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
+use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
+use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
+use crate::{DocumentKind, terrains_from_grbr_round};
 use std::collections::BTreeMap;
 
 /// The build these catalogues and conventions are pinned to.
@@ -36,188 +33,6 @@ const MASS_RECRUIT_SKILL: i32 = 3;
 const CHAIN_OFFICERS: [i32; 4] = [20300, 20301, 20310, 20311];
 /// The Shield Airdrop commander skill, whose retained objects a replay omits.
 const SHIELD_AIRDROP_SKILL: i32 = 800_001;
-
-/// One recorded match, as `docs/battle.md` defines it.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct Battle {
-    pub kind: DocumentKind,
-    pub map_id: i32,
-    pub seed: i32,
-    pub sides: BattleSides,
-    pub turns: Vec<Turn>,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct BattleSides {
-    pub blue: BattleSide,
-    pub red: BattleSide,
-}
-
-/// What a side holds for the whole match rather than for one round.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct BattleSide {
-    /// Which technologies each unit may research, keyed by unit ID.
-    pub tech_loadout: BTreeMap<i32, Vec<i32>>,
-}
-
-/// One deployment round: the state it starts from and the decisions taken.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct Turn {
-    pub round: i32,
-    pub state: State,
-    pub actions: TurnActions,
-}
-
-/// A match position, carrying the state document's shape without its `kind`.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct State {
-    /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reinforce_offers: Option<Vec<i32>>,
-    pub sides: StateSides,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct StateSides {
-    pub blue: SideState,
-    pub red: SideState,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct SideState {
-    pub reactor_core: i32,
-    pub supply: i32,
-    pub shop: ShopState,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub blueprints: Vec<i32>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub energy_tower_skills: Vec<i32>,
-    pub tower_strengthen_levels: Vec<i32>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub equipment: Vec<EquipmentItem>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub battle_skills: Vec<PanelSkill>,
-    pub next_index: NextIndex,
-    pub techs: Techs,
-    pub formations: Vec<Formation>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub constructions: Vec<StaticPlacement>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub contraptions: Vec<ContraptionPlacement>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub airdrop_shields: Vec<Position>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub terrains: Vec<Terrain>,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct ShopState {
-    pub unlocked_units: Vec<i32>,
-    pub buys_remaining: i32,
-    pub unlocks_remaining: i32,
-}
-
-/// An owned item no formation carries; a fitted one is named by its formation.
-#[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EquipmentItem {
-    pub id: i32,
-    /// Absent means `-1`, which is every item a standard 1v1 hands out.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub durability: Option<i32>,
-}
-
-/// One commander skill panel slot. A release is an action, not a panel field.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct PanelSkill {
-    pub index: i32,
-    pub id: i32,
-    pub cooldown: i32,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct NextIndex {
-    pub unit: i32,
-    pub contraption: i32,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct TurnActions {
-    pub blue: Vec<Action>,
-    pub red: Vec<Action>,
-}
-
-/// One decision that took effect, in the order the side took it.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum Action {
-    ChooseReinforceItem {
-        offer: i32,
-        id: i32,
-    },
-    /// The recorded form of taking no card, `ID` zero at offer `-1`.
-    DeclineReinforceItem,
-    ChooseAdvanceTeam {
-        offer: i32,
-        id: i32,
-    },
-    BuyUnit {
-        unit: i32,
-        position: Position,
-    },
-    UpgradeUnit {
-        index: i32,
-    },
-    UnlockUnit {
-        unit: i32,
-    },
-    UpgradeTechnology {
-        unit: i32,
-        tech: i32,
-    },
-    ActiveBlueprint {
-        id: i32,
-    },
-    ActiveEnergyTowerSkill {
-        skill: i32,
-    },
-    StrengthenTower {
-        tower: i32,
-    },
-    UseEquipment {
-        equipment: i32,
-        unit: i32,
-    },
-    MoveUnit {
-        index: i32,
-        position: Position,
-        #[serde(skip_serializing_if = "is_false")]
-        rotated: bool,
-    },
-    ReleaseCommanderSkill {
-        skill: i32,
-        target: SkillTarget,
-    },
-    ReleaseContraption {
-        contraption: i32,
-        position: Position,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        extra_position: Option<Position>,
-    },
-}
-
-/// A release covers an area or points at one object, never both.
-#[derive(Debug, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum SkillTarget {
-    Area(Vec<Position>),
-    Unit(i32),
-    Construction(i32),
-}
-
-#[allow(clippy::trivially_copy_pass_by_ref)] // Required by serde's predicate shape.
-fn is_false(value: &bool) -> bool {
-    !*value
-}
 
 /// Which half of the map a side plays on, and so how its positions are read.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -340,17 +155,6 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         },
         turns,
     })
-}
-
-/// Serializes a battle in the normal form the three documents define.
-///
-/// # Errors
-///
-/// Returns an error when the battle cannot be serialized.
-pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
-    let yaml = serde_yaml::to_string(battle)
-        .map_err(|error| format!("cannot serialize battle YAML: {error}"))?;
-    Ok(crate::collapse_placement_positions(&yaml))
 }
 
 fn battle_side(player: &record::PlayerRecord) -> BattleSide {
@@ -779,7 +583,8 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Action, SkillTarget, battle_from_grbr, canonical_yaml, recorded_unit_ids};
+    use super::{battle_from_grbr, recorded_unit_ids};
+    use crate::battle::{Action, SkillTarget, canonical_yaml};
     use crate::{DocumentKind, Position};
 
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";

@@ -1,7 +1,7 @@
 mod acquire;
 mod adapter;
 mod convert;
-mod layout;
+mod document;
 mod mcfr;
 mod script;
 mod session;
@@ -14,9 +14,9 @@ fn usage(program: &str) {
     eprintln!("usage: {program} shell [--launch | --attach]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
-    eprintln!("       {program} layout verify <layout.yaml>");
-    eprintln!("       {program} layout format <layout.yaml> [--write]");
-    eprintln!("       {program} layout diff <left.yaml> <right.yaml>");
+    eprintln!("       {program} verify <document.yaml>");
+    eprintln!("       {program} format <document.yaml> [--write]");
+    eprintln!("       {program} diff <left.yaml> <right.yaml>");
     eprintln!("       {program} convert battle <replay.grbr> <battle.yaml> [--force]");
     eprintln!(
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
@@ -62,14 +62,9 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
-        Some("layout") => match layout::run(arguments) {
-            Ok(true) => ExitCode::SUCCESS,
-            Ok(false) => ExitCode::FAILURE,
-            Err(error) => {
-                eprintln!("mechcore layout: {error}");
-                ExitCode::FAILURE
-            }
-        },
+        Some("verify") => report("verify", document::verify(arguments).map(|()| true)),
+        Some("format") => report("format", document::format(arguments).map(|()| true)),
+        Some("diff") => report("diff", document::diff(arguments)),
         Some("convert") => match convert::run(arguments) {
             Ok(true) => ExitCode::SUCCESS,
             Ok(false) => ExitCode::FAILURE,
@@ -89,6 +84,18 @@ fn main() -> ExitCode {
         _ => {
             usage(&program);
             ExitCode::from(2)
+        }
+    }
+}
+
+/// Turns a command's outcome into an exit code, naming the command on failure.
+fn report(command: &str, outcome: Result<bool, String>) -> ExitCode {
+    match outcome {
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => ExitCode::FAILURE,
+        Err(error) => {
+            eprintln!("mechcore {command}: {error}");
+            ExitCode::FAILURE
         }
     }
 }

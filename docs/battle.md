@@ -111,7 +111,7 @@ read the states inside it under premises the rule breaks.
 ## The sides are positional
 
 `blue` is `playerRecords[0]` and `red` is `playerRecords[1]`, which is the
-convention `crates/layout/src/grbr.rs` already converts coordinates by.
+convention `crates/document/src/grbr.rs` already converts coordinates by.
 
 The record offers nothing better. `PlayerRecord.data.team` is `0` for both
 players in all 22 slots, so it does not name a seat, and the record's `Seat`

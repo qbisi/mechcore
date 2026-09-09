@@ -3,7 +3,7 @@ use crate::{
     runtime::Runtime,
 };
 use jpeg_encoder::{ColorType, Encoder};
-use mechcore_layout::{
+use mechcore_document::{
     BattleSkillDefinition, ContraptionPlacement, DocumentKind, EnergyTower, Formation, Layout,
     Position, ResearchCenter, Side, Sides, StaticPlacement, Techs, Terrain as LayoutTerrain,
     TerrainType as LayoutTerrainType, battle_skill_type_from_id, canonical_embedded_yaml,

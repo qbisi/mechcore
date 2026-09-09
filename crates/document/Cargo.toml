@@ -1,0 +1,22 @@
+[package]
+name = "mechcore-document"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+# Reading a replay is the CLI's business, and the four crates that only want
+# the document types should not pull an XML reader in with them.
+default = []
+convert = ["dep:quick-xml"]
+
+[dependencies]
+quick-xml = { version = "0.38", features = ["serialize"], optional = true }
+schemars = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+[lints]
+workspace = true

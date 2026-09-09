@@ -1,4 +1,4 @@
-use mechcore_layout::Layout;
+use mechcore_document::Layout;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -173,7 +173,7 @@ pub struct StartTestArguments {
 /// Arguments for [`Operation::ApplyLayout`].
 ///
 /// The operation carries the layout document itself rather than wrapping it, so
-/// this is the same type both sides already validate with `mechcore-layout`.
+/// this is the same type both sides already validate with `mechcore-document`.
 pub type ApplyLayoutArguments = Layout;
 
 /// Arguments for [`Operation::RecordBattle`].

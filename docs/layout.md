@@ -15,7 +15,7 @@ The same layout is also the input to the bounded deterministic simulator:
 
 ```text
 mechcore sim layout.yaml [--seed <i32>] [--output battle.mcfr] [--config <directory>]
-mechcore layout verify layout.yaml
+mechcore verify layout.yaml
 ```
 
 `mechcore sim` returns hashes, terminal battle structure, and generation profiling
@@ -142,7 +142,7 @@ current 1v1 rules the collection holds at most one entry, so there is no order
 to observe; the sort is what keeps the rule total over the shape the schema
 admits rather than over the states today's rules can reach.
 
-`mechcore layout format` writes this form and `mechcore layout diff` compares it,
+`mechcore format` writes this form and `mechcore diff` compares it,
 so two documents that denote the same state compare equal. Normalizing an
 already-normal document changes nothing. A hand-written layout may still state a
 default explicitly, which is valid and merely not normal.
@@ -157,19 +157,19 @@ sibling fields. `formations`, `constructions` and `contraptions` carry it as
 a placement's `position` onto one line, since spending three lines on one value
 would bury the fields that tell two placements apart.
 
-The `mechcore-layout` crate is the authoritative implementation of this public
+The `mechcore-document` crate is the authoritative implementation of this public
 shape, its static legality rules, and normalized execution plan. MCP uses its
 `Layout` type for the `apply_layout` input schema and validates with the shared
 compiler before contacting the game; the Adapter consumes the same plan, while
 the Simulator adds only its narrower feature-support and configuration checks.
 Runtime catalog availability and native readback remain Adapter-owned.
 
-`mechcore layout verify layout.yaml` runs this shared static compiler without
+`mechcore verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. A successful JSON report includes the normalized
 seed, round, formation count, construction count, contraption count, and
 airdrop shield count.
 
-`mechcore layout diff left.yaml right.yaml` normalizes both documents and reports
+`mechcore diff left.yaml right.yaml` normalizes both documents and reports
 the fields that differ. Each difference carries a JSON pointer, except that
 `formations`, `constructions` and `contraptions` are aligned by their entries'
 `index` rather than by position, and their path segment reads `index=<value>`.
@@ -235,7 +235,7 @@ layouts.
 The two readings pull apart at the upper end, so validation and staging are
 separate checks:
 
-- `mechcore layout verify` and every other schema consumer accept any positive
+- `mechcore verify` and every other schema consumer accept any positive
   round, since Training Ground and ranked matches both run past round 15;
 - `apply_layout` refuses a round above `MAX_STAGED_ROUND`, which is `15`,
   because it advances through every earlier setup round inside the adapter's
@@ -588,17 +588,17 @@ infer a size from combat-member radius.
 
 Tracked negative fixtures cover the spatial rejection cases:
 
-- `crates/layout/tests/fixtures/invalid-footprint-boundary.yaml`: center
+- `crates/document/tests/fixtures/invalid-footprint-boundary.yaml`: center
   inside, footprint edge outside;
-- `crates/layout/tests/fixtures/invalid-unit-collision.yaml`: an unrotated
+- `crates/document/tests/fixtures/invalid-unit-collision.yaml`: an unrotated
   `50 x 20` Sledgehammer overlaps a rotated `20 x 50` Crawler;
-- `crates/layout/tests/fixtures/invalid-unit-construction-collision.yaml`: a
+- `crates/document/tests/fixtures/invalid-unit-construction-collision.yaml`: a
   `20 x 20` Marksman overlaps a `60 x 10` Defensive Wall.
 
 One further negative fixture covers the round 2 ambush rule rather than a
 spatial rule:
 
-- `crates/layout/tests/fixtures/invalid-round-2-ambush-travelling.yaml`: a
+- `crates/document/tests/fixtures/invalid-round-2-ambush-travelling.yaml`: a
   round 2 ambush Marksman that omits `travelling`.
 
 Native catalog IDs are adapter details and do not appear in a layout. The
@@ -843,7 +843,7 @@ simulated battle. Adapter execution reproduces the build-2259 line branch with
 native `FVector3`/`FPoint` operations, adds only the declared active indexes through
 `RangeItemSystem.AddItem`, then overwrites and reads back each optional
 `GridBlockInt` mask. Direct GRBR decoding is exposed as
-`mechcore_layout::terrains_from_grbr_round`; replay recording uses the
+`mechcore_document::terrains_from_grbr_round`; replay recording uses the
 independent live `RangeItemSystem` enumeration path and groups items by provider.
 
 ### `battle_skills`
@@ -1050,7 +1050,7 @@ construction, and contraption counts. A successful `apply_layout` response
 includes them as `round`, `formation_count`, `construction_count`, and
 `contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
 do not recount the input or returned arrays to establish completeness.
-`mechcore layout verify` additionally reports `airdrop_shield_count` and
+`mechcore verify` additionally reports `airdrop_shield_count` and
 `terrain_count`.
 
 The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for

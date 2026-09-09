@@ -1396,7 +1396,7 @@ fn read_layout_yaml(member: &MemberSlice, combat_round: u32) -> Result<(String, 
     }
     let text = std::str::from_utf8(&bytes)
         .map_err(|_| Error::invalid("layout.yaml is not valid UTF-8"))?;
-    let layout = mechcore_layout::parse_embedded_yaml(&bytes).map_err(Error::invalid)?;
+    let layout = mechcore_document::parse_embedded_yaml(&bytes).map_err(Error::invalid)?;
     if u32::try_from(layout.round).ok() != Some(combat_round) {
         return Err(Error::invalid(format!(
             "layout.yaml round {} differs from durable context combat_round {}",
@@ -1406,7 +1406,7 @@ fn read_layout_yaml(member: &MemberSlice, combat_round: u32) -> Result<(String, 
     let match_seed = layout.seed.ok_or_else(|| {
         Error::invalid("layout.yaml has no seed; a recording embeds the resolved match seed")
     })?;
-    let canonical = mechcore_layout::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
+    let canonical = mechcore_document::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
     if text != canonical {
         return Err(Error::invalid("layout.yaml is not canonical"));
     }

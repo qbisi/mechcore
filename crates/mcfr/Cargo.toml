@@ -11,7 +11,7 @@ arrow-buffer = "59.2.0"
 arrow-schema = "59.2.0"
 blake3 = "1"
 bytes = "1"
-mechcore-layout = { path = "../layout" }
+mechcore-document = { path = "../document" }
 parquet = { version = "59.2.0", default-features = false, features = ["arrow", "zstd"] }
 rust-hdf5 = "0.4.3"
 serde = { version = "1", features = ["derive"] }

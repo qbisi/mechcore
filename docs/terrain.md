@@ -221,7 +221,7 @@ Simulator 仍拒绝非空 `terrains`。Adapter 通过原生 `RangeItemSystem` �
 
 存在两条互相校验、但不互相依赖的导出路径：
 
-1. `mechcore_layout::terrains_from_grbr_round` 直接从 GRBR 的 BinaryFormatter 包装中提取
+1. `mechcore_document::terrains_from_grbr_round` 直接从 GRBR 的 BinaryFormatter 包装中提取
    `BattleRecord` XML，读取指定 `PlayerRoundRecord`，再把 `activeState` 与扁平
    `gridInfo/ByteMask` 解码为零基激活索引和规范 y-row/x-bit 网格，同时保留原始两个
    `positions` 控制点。这是后续
