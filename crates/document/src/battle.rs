@@ -128,12 +128,28 @@ pub struct EquipmentItem {
     pub durability: Option<i32>,
 }
 
-/// One commander skill panel slot. A release is an action, not a panel field.
+/// One commander skill panel slot.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct PanelSkill {
     pub index: i32,
     pub id: i32,
     pub cooldown: i32,
+    /// Present on a skill this round released. A state is defined after each
+    /// action, so a round's opening position carries none and a deployment's
+    /// closing position carries one per release.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release: Option<Release>,
+}
+
+/// Where in a round's release sequence a skill went off, and at what.
+///
+/// `order` is explicit because the panel is sorted by `index`, so array
+/// position cannot carry it. A layout is the other way round: it lists only
+/// releases, and there the array position is the order.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct Release {
+    pub order: i32,
+    pub target: SkillTarget,
 }
 
 #[derive(Debug, Default, Serialize, PartialEq, Eq)]

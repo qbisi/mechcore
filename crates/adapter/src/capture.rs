@@ -5179,20 +5179,26 @@ fn find_match_module(
     }
 }
 
+/// Reads the Officers a side holds, as a multiset.
+///
+/// An Officer card that may be taken again stacks, so the same ID can appear
+/// more than once and each copy is another application of its effect. The two
+/// enhancement chains are the exception: their Officer is named once however
+/// the chain got there, so a blueprint's product joins only if the list does
+/// not already carry it.
 fn read_native_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetOfficerManager")?;
     let officers = invoke_object(api, manager, "GetOfficers")?;
     let mut ids = Vec::new();
-    let mut seen = BTreeSet::new();
     for index in 0..list_count(api, officers, 10_000)? {
         let id = invoke_value::<i32>(api, list_item(api, officers, index)?, "GetID")?;
-        if id <= 0 || !seen.insert(id) {
-            return Err(format!("invalid or duplicate native officer ID {id}"));
+        if id <= 0 {
+            return Err(format!("invalid native officer ID {id}"));
         }
         ids.push(id);
     }
     for id in read_blueprint_officers(api, controller)? {
-        if seen.insert(id) {
+        if !ids.contains(&id) {
             ids.push(id);
         }
     }

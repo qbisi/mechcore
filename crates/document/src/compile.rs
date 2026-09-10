@@ -1000,7 +1000,17 @@ fn validate_unit_placement(
 }
 
 fn validate_techs(side_name: &str, techs: &Techs) -> Result<(), String> {
-    validate_unique_positive_ids(side_name, "techs.officers", &techs.officers)?;
+    // An Officer may repeat. Some Officer cards can be taken again, and taking
+    // one twice stacks it rather than doing nothing: two copies of Advanced
+    // Offensive Tactics are +60% damage, which a fight plainly sees. A unit
+    // technology has no second copy to hold.
+    for (index, &id) in techs.officers.iter().enumerate() {
+        if id <= 0 {
+            return Err(format!(
+                "side {side_name} techs.officers[{index}] must be a positive integer"
+            ));
+        }
+    }
     validate_unique_positive_ids(side_name, "techs.units", &techs.units)
 }
 

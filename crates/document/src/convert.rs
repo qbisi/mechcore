@@ -207,6 +207,9 @@ fn side_state(
             index: skill.index,
             id: skill.id,
             cooldown: skill.cooling_round,
+            // A converted state opens a round, and a round opens with nothing
+            // released. The round's releases are its actions.
+            release: None,
         });
     }
     battle_skills.sort_by_key(|skill| skill.index);

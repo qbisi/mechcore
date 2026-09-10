@@ -2223,6 +2223,23 @@ fn map_vector_list_matches(
     Ok(true)
 }
 
+/// How many copies of one Officer the side holds.
+fn officer_count(
+    runtime: &Runtime,
+    manager: *mut Object,
+    officer_id: i32,
+) -> Result<usize, OperationError> {
+    let officers = runtime.api.invoke(manager, "GetOfficers", &mut [])?;
+    let mut held = 0;
+    for index in 0..list_count(runtime.api, officers)? {
+        let officer = list_item(runtime.api, officers, index)?;
+        if runtime.api.invoke_value::<i32>(officer, "GetID", &mut [])? == officer_id {
+            held += 1;
+        }
+    }
+    Ok(held)
+}
+
 fn apply_techs(
     runtime: &Runtime,
     current: *mut Object,
@@ -2232,38 +2249,33 @@ fn apply_techs(
     let officer_manager = runtime
         .api
         .invoke(controller, "GetOfficerManager", &mut [])?;
+    // An Officer may be listed more than once, because a card that can be taken
+    // again stacks. The count before has to be zero and the count after has to
+    // match what was asked for, so a copy that silently failed to land is not
+    // read back as a success.
     let mut officers = Vec::with_capacity(desired.officers.len());
     for &officer_id in &desired.officers {
         let mut id = officer_id;
-        let before = runtime
-            .api
-            .invoke(officer_manager, "GetOfficer", &mut [argument(&mut id)])?;
-        if !before.is_null() {
-            return Err(OperationError::Rejected(format!(
-                "officer ID {officer_id} already exists before layout application"
-            )));
-        }
         let action = new_player_test_action(runtime.api, "MAD_AddOfficer", controller)?;
         runtime
             .api
             .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
         perform_test(runtime.api, current, action)
             .map_err(|error| error.context(&format!("add officer ID {officer_id}")))?;
-        let readback =
-            runtime
-                .api
-                .invoke(officer_manager, "GetOfficer", &mut [argument(&mut id)])?;
-        if readback.is_null()
-            || runtime
-                .api
-                .invoke_value::<i32>(readback, "GetID", &mut [])?
-                != officer_id
-        {
+        officers.push(officer_id);
+    }
+    for &officer_id in &desired.officers {
+        let wanted = desired
+            .officers
+            .iter()
+            .filter(|listed| **listed == officer_id)
+            .count();
+        let held = officer_count(runtime, officer_manager, officer_id)?;
+        if held != wanted {
             return Err(OperationError::Rejected(format!(
-                "officer ID {officer_id} readback mismatch"
+                "officer ID {officer_id} reads back {held} times, and the layout asks for {wanted}"
             )));
         }
-        officers.push(officer_id);
     }
 
     let mut units = Vec::with_capacity(desired.units.len());

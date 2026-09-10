@@ -73,9 +73,14 @@ filtered rather than copied:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
-| `techs` | `techs` | copied, with each blueprint chain's Officer added |
+| `techs` | `techs` | copied, duplicates included, with each blueprint chain's Officer added |
 | `blueprints` | `techs.officers` | `4` → `20310`; `401` → `20311`; `5` → `20300`; `501` → `20301` |
 | `energy_tower_skills` | `energy_tower_skills` | copied, keeping `5` and `6` |
+
+`crates/document/src/project.rs` implements this. Every position of every
+tracked replay projects onto a layout the compiler accepts, which is what puts
+the type names, the footprints, the deployment regions and the collision rules
+behind the projection rather than only the field mapping.
 
 A valid blueprint list cannot hold both levels of one chain, so each chain
 contributes at most one Officer. Blueprint IDs `1`, `2` and `3`, and Energy
@@ -91,7 +96,13 @@ section on `tower_strengthen_levels` below settles it.
 `battle_skills` is projected rather than copied too. The projection keeps only
 entries with `release`, sorts them by `release.order`, resolves each native `id`
 to the layout's semantic `type`, and maps an area target to `positions`. A unit
-or construction target has no representation in the current layout contract.
+or construction target has no representation in the current layout contract, so
+projecting one is refused rather than dropped.
+
+A round's opening position carries no release at all, since a state is defined
+after each action and a round opens before its first. The releases of a round
+belong to the position its deployment closes with, which is what a captured
+layout holds.
 
 `kind` marks a document root, not a subtree. The shared per-side shapes do not
 repeat it, because a seed, a map and a round are shared by both sides and belong

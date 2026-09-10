@@ -23,6 +23,7 @@ pub mod economy;
 mod grbr;
 pub mod layout;
 pub mod ledger;
+pub mod project;
 pub mod transition;
 #[cfg(feature = "convert")]
 pub mod record;
@@ -757,6 +758,24 @@ sides:
         }))
         .unwrap_err();
         assert_eq!(error, "side blue techs.units contains duplicate ID 10202");
+
+        // An Officer is the other way round. A card that may be taken again
+        // stacks, and two copies of Advanced Offensive Tactics are +60% damage,
+        // so a layout has to be able to say it.
+        let repeated = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "sides": {
+                "blue": {"techs": {"officers": [20002, 20002]}, "formations": [{"index": 0,
+                    "type": "marksman", "position": {"x": 0, "y": -50}
+                }]},
+                "red": {"formations": [{"index": 0,
+                    "type": "marksman", "position": {"x": 0, "y": -50}
+                }]}
+            }
+        }))
+        .unwrap();
+        assert_eq!(repeated.blue.techs.officers, [20002, 20002]);
 
         let error = compile(&json!({
             "kind": "layout",

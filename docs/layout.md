@@ -117,7 +117,7 @@ in its defined order:
 | Collection | Order |
 | --- | --- |
 | `formations`, `constructions`, `contraptions` | ascending `index` |
-| `techs.officers`, `techs.units`, `energy_tower_skills` | ascending ID |
+| `techs.officers`, `techs.units`, `energy_tower_skills` | ascending ID; `techs.officers` may repeat one |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
 | `battle_skills` | as written: release order is what it records |
@@ -355,9 +355,9 @@ Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
 
 #### `techs.officers`
 
-`techs.officers` is the set of native `OfficerData.ID` values whose persistent
-effects belong to the side. It covers ordinary and opening Officers regardless
-of how they were acquired.
+`techs.officers` is the multiset of native `OfficerData.ID` values whose
+persistent effects belong to the side. It covers ordinary and opening Officers
+regardless of how they were acquired.
 
 Unit modifications are also native Officer entries. An Officer with a nonzero
 `typeID` targets that unit type; it is not a separate technology kind and does
@@ -366,13 +366,18 @@ uses Officer `30101` for Mass-Produced Fortress and Officer `30201` for
 Range-Extended Marksman. Generic Officers use `typeID: 0` and remain in the
 same array.
 
-IDs must be unique and carry no order semantics, so canonical layouts sort them
-ascending; that sorted order is then the deterministic application order.
-Commander skills, equipment, and extra formations granted by an Officer are
-not themselves Officer modifiers. Their resulting state belongs to
-`battle_skills`, equipment, or formation definitions. A compiler must use the
-runtime Officer catalog to detect derived state and reject duplicate
-declarations.
+An ID may repeat. An Officer card whose `canRepeated` is set may be taken
+again, and taking it twice stacks it rather than doing nothing: two copies of
+Advanced Offensive Tactics are +60% damage and two of Advanced Targeting System
+are +20 m of range, both of which a fight sees. One side in the local replay set
+holds three copies of `20022`. The executor therefore adds one Officer per
+entry and reads the count back, rather than reading a presence.
+
+IDs carry no order semantics, so canonical layouts sort them ascending; that
+sorted order is then the deterministic application order. Commander skills,
+equipment, and extra formations granted by an Officer are not themselves
+Officer modifiers. Their resulting state belongs to `battle_skills`, equipment,
+or formation definitions.
 
 The Officers the Research Center's two enhancement chains hand out, `20310`,
 `20311`, `20300` and `20301`, belong here like any other Officer. A layout has
@@ -380,7 +385,7 @@ no separate attack or defense level, because the Officer is the whole of what
 those levels do to a fight.
 
 The deterministic implementation must add an Officer by ID through the native
-Training Ground test action and verify the resulting `OfficerManager` entry.
+Training Ground test action and verify the resulting `OfficerManager` count.
 Choosing a random opening or reinforcement candidate by index is not an
 implementation of this field.
 
