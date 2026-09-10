@@ -56,7 +56,7 @@ pub struct StateSides {
     pub red: SideState,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct SideState {
     /// The four openings this side was dealt, in round 0 and no other round.
     ///
@@ -91,7 +91,7 @@ pub struct SideState {
     pub terrains: Vec<Terrain>,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
@@ -136,7 +136,7 @@ pub struct PanelSkill {
     pub cooldown: i32,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct NextIndex {
     pub unit: i32,
     pub contraption: i32,

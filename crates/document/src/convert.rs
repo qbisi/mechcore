@@ -441,12 +441,26 @@ fn allowance(player: &record::PlayerRecord, position: usize, allowance: Allowanc
 
 /// Collapses a recorded action list onto the decisions that took effect.
 ///
-/// Each action is pushed. `Undo` pops the newest survivor, `Redo` pushes it
-/// back, and a cancel removes the newest surviving release of the same skill
-/// slot. `docs/turn.md` states the rule and the evidence for it.
+/// Every recorded action is one entry on the undo stack, and `Undo` pops the
+/// newest entry whether or not it still stands for a decision. That is what
+/// distinguishes this from popping the newest surviving decision: a cancelled
+/// release stays on the stack as an entry, and so does the cancel itself, so
+/// the two of them absorb two undos between them.
+///
+/// One player-round settles it. A side chose a card, bought two units, moved
+/// one of them twice, released a skill, cancelled it, released it again,
+/// unlocked a unit, and then pressed undo seven times. Its next snapshot keeps
+/// the card and one of the two units, which is what stepping back over seven
+/// recorded entries leaves and is two entries further than stepping back over
+/// seven surviving decisions.
+///
+/// `Redo` pushes the newest undone entry back, and any other action clears what
+/// could be redone. `docs/turn.md` states the rule and the evidence for it.
 fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
-    let mut taken: Vec<&ActionRecord> = Vec::with_capacity(recorded.len());
-    let mut undone: Vec<&ActionRecord> = Vec::new();
+    /// An entry that no longer stands for a decision but still absorbs an undo.
+    const SPENT: bool = false;
+    let mut taken: Vec<(&ActionRecord, bool)> = Vec::with_capacity(recorded.len());
+    let mut undone: Vec<(&ActionRecord, bool)> = Vec::new();
     for action in recorded {
         match action.kind.as_str() {
             "PAD_Undo" => {
@@ -461,21 +475,26 @@ fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
             }
             "PAD_CancelReleaseCommanderSkill" => {
                 undone.clear();
-                if let Some(position) = taken.iter().rposition(|candidate| {
-                    candidate.kind == "PAD_ReleaseCommanderSkill"
+                if let Some(entry) = taken.iter_mut().rev().find(|(candidate, stands)| {
+                    *stands
+                        && candidate.kind == "PAD_ReleaseCommanderSkill"
                         && candidate.skill_index == action.skill_index
                 }) {
-                    taken.remove(position);
+                    entry.1 = SPENT;
                 }
+                taken.push((action, SPENT));
             }
             "PAD_FinishDeploy" => undone.clear(),
             _ => {
                 undone.clear();
-                taken.push(action);
+                taken.push((action, true));
             }
         }
     }
     taken
+        .into_iter()
+        .filter_map(|(action, stands)| stands.then_some(action))
+        .collect()
 }
 
 /// The opening specialist a side ends round 0 holding.

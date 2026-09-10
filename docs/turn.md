@@ -89,11 +89,18 @@ A turn stores the decisions that took effect, so a recorded list is collapsed
 before it is written. The game keeps a retraction as an action of its own, and
 there are two kinds.
 
-Replaying the recorded list into a stack defines the collapse. Each action is
-pushed. `Undo` pops the newest surviving action, and both disappear. `Redo`
-pushes it back. `CancelReleaseCommanderSkill` removes the newest surviving
-`ReleaseCommanderSkill` with the same `SkillIndex`, and disappears with it. What
-remains is the turn's action list, and it contains no retraction of either kind.
+Replaying the recorded list into a stack defines the collapse. Every recorded
+action is pushed as an entry, and `Undo` pops the newest entry whether or not it
+still stands for a decision. `Redo` pushes it back.
+`CancelReleaseCommanderSkill` stops the newest standing
+`ReleaseCommanderSkill` with the same `SkillIndex` from counting, but the
+release stays on the stack as a spent entry, and the cancel is pushed as one
+too. What remains standing is the turn's action list, and it contains no
+retraction of either kind.
+
+Counting the spent entries is the part that is easy to get wrong, and it is
+what the game does: undo walks an index back over the recorded list, so an entry
+that no longer means anything still costs an undo.
 
 The two rules are the game's own, read from `ActionHistoryController`, which
 holds one `actionHostories` list and a `currentActionIndex` into it. Undo moves
@@ -102,14 +109,20 @@ and `TryGetCancelActionTarget` walks the list backwards from that index for the
 newest `PAD_ReleaseCommanderSkill` whose field at `0x1C`, `SkillIndex`, equals
 the cancel's own. It matches on the index alone, not on the skill `ID`.
 
-The collapse is checked and not assumed. Across 35 undos none underflows the
-stack, and the allocator agrees: predicting the `unitIndex` delta from net
-purchases plus the units granted by cards explains 64 of 66 round transitions,
-where ignoring undo explains 54. The cancel rule closes just as cleanly: all 14
-cancels in the local set are preceded by a matching release and immediately
-followed by another, so each one is a player replacing a skill's target. The
-preceding release sits 1 to 14 positions back, which is why a cancel cannot be
-treated as a stack pop.
+The collapse is checked and not assumed. Over the local set every one of the
+3080 field checks the transition test makes reproduces, and the allocator is the
+field that pins the spent entries down. One player-round decides it. A side
+chose a card, bought two units, moved one of them twice, released a skill,
+cancelled it, released it again, unlocked a unit, and then pressed undo seven
+times. Its next snapshot keeps the card and one of the two units, which is where
+stepping back over seven recorded entries lands. Stepping back over seven
+standing decisions lands two entries further, on the card, and the card is still
+there.
+
+The cancel rule closes just as cleanly: all 14 cancels in the local set are
+preceded by a matching release and immediately followed by another, so each one
+is a player replacing a skill's target. The preceding release sits 1 to 14
+positions back, which is why a cancel cannot be treated as a stack pop.
 
 What the collapse is not is the game's own file format. `FixActionWithUndo`, the
 method `PlayReplayCommand.StartReplay` calls, deletes nothing: it merges a
@@ -203,9 +216,13 @@ A state's own collections keep the orders that document defines.
 ## What a turn reproduces
 
 Applying a turn's decisions to its state has to reproduce the state the next
-turn starts from, in everything the fight does not decide. `mechcore convert
-battle` checks seven such fields, and over the four tracked replays, 66 round
-transitions each, five of them reproduce every time:
+turn starts from, in everything the fight does not decide. That application is a
+function rather than a comparison: it takes a position, a round and the round's
+decisions, and returns the seven fields below. Checking a turn is then reading
+the same seven out of the recorded next state and comparing. All seven reproduce
+every time, over the four tracked replays and over the locally recorded ranked
+matches alike: 462 of 462 field checks on the tracked set and 3178 of 3178 on
+the local one.
 
 | Field | Reproduced |
 | --- | ---: |
@@ -214,15 +231,28 @@ transitions each, five of them reproduce every time:
 | `blueprints` | 66/66 |
 | `tower_strengthen_levels` | 66/66 |
 | `shop.unlocked_units` | 66/66 |
-| `battle_skills` | 64/66 |
-| `next_index.unit` | 62/66 |
+| `battle_skills` | 66/66 |
+| `next_index.unit` | 66/66 |
 
-Three rules the check had to learn are worth stating, because none of them is
+`battle_skills` is compared by the IDs on the panel and not by how many slots it
+has, and `techs.officers` by a multiset and not by a set. Both distinctions are
+real: Missile Specialist puts two copies of Missile Strike on the panel, and an
+officer card that may be taken again stacks, which is how one side in the local
+set comes to hold three copies of `20022`. A slot's index and its cooldown are
+left out, because a cooldown counts down through the fight.
+
+Five rules the function had to learn are worth stating, because none of them is
 visible in an action. Taking a team unlocks the two unit types it is made of.
 A blueprint's second level replaces its first rather than joining it, and the
-officer it produces follows. And a specialist delivers what it hands out a
-round after it arrives: the officer is held from round 1, its squad and its
-skills appear in the state of round 2.
+officer it produces follows. An officer hands out on a schedule of its own
+rather than when it arrives, and the two halves can fall in different rounds:
+Longbow Specialist unlocks Marksman in round 1 and hands out its rank 3 squad in
+round 2, while Rhino Specialist unlocks in round 1 and waits until round 4. The
+officer's own `activeRound` names the delivery round and `unitUnlockRound` the
+unlock, both absolute, and `config/officers.yaml` carries them. An officer list
+is a multiset, so a repeatable officer card adds a copy rather than doing
+nothing. And an undo steps back over a recorded entry rather than over a
+standing decision, which the net-decision section states.
 
 A roster, a reactor core and a formation's experience are not checked, because
 the fight decides them.

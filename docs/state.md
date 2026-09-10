@@ -398,12 +398,13 @@ four matches rather than a rule, and deriving one of two allocators would buy
 nothing.
 
 What the allocators carry that the object lists cannot is history. Buying a unit
-and undoing it returns the visible state, and usually returns the allocator too,
-but not always: of 66 round transitions, predicting the `unitIndex` delta from
-net purchases explains 64 while ignoring undo explains 54, and one of the two
-misses is a round where the allocator behaved as though the undo had not rolled
-it back. Two positions that look identical can therefore differ here, which is
-what a state diff has to be able to see.
+and undoing it returns the visible state, and it returns the allocator too, but
+only once the undo is counted the way the game counts it. Predicting the
+`unitIndex` delta from net purchases plus what the round's cards and officers
+hand out now explains all 66 round transitions of the tracked set and all 440 of
+the local one, where ignoring undo explains 54 of the 66. Two positions that look
+identical can still differ here, which is what a state diff has to be able to
+see.
 
 `constructionIndex` is recorded by the game but is not an allocator under 1v1
 rules, so it is left out. It reads 0 in round 0, takes its value for the match in

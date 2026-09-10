@@ -77,11 +77,14 @@ pub struct AdvanceTeam {
 }
 
 /// The unit a specialist officer unlocks and hands out.
+///
+/// The two halves arrive in different rounds. The unit joins the shop in
+/// `unlock_round`, and the squad itself in the officer's `active_round`.
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct OpeningUnit {
     pub unit: i32,
     pub level: i32,
-    pub from_round: i32,
+    pub unlock_round: i32,
 }
 
 /// The two shapes an opening takes.
@@ -134,6 +137,15 @@ pub struct Officer {
     /// Equipment it hands out when it arrives.
     #[serde(default)]
     pub equipment: Vec<i32>,
+    /// The round the officer hands out what it hands out.
+    ///
+    /// It is an absolute round rather than one counted from the officer's
+    /// arrival, and it is the round the officer's own description names:
+    /// Longbow Specialist reads "在第2回合免费获得1个3级长弓" and states 2, while
+    /// Rhino Specialist states 4. Only an officer with something to hand out
+    /// states one.
+    #[serde(default)]
+    pub active_round: i32,
     /// A unit it unlocks and hands out a squad of.
     #[serde(default)]
     pub opening_unit: Option<OpeningUnit>,
