@@ -58,21 +58,21 @@ started without the Adapter".
 **2. Connect result.** `connect()` on the endpoint. `ENOENT` means no file;
 `ECONNREFUSED` means a stale file with no listener.
 
-**3. Greeting.** The Adapter writes its greeting immediately on accept. A
-client that connects and receives no line has not been accepted by a serving
-loop.
+**3. Greeting.** A client claims the game at its level, and the Adapter answers
+that claim. A client that connects, claims, and receives no line has not been
+accepted by a serving loop.
 
 Because the Adapter's accept loop is serial, a second client's `connect()`
-succeeds while its greeting waits in the backlog. The Adapter therefore
-answers an already-occupied endpoint explicitly rather than leaving the caller
-to infer occupancy from a timeout:
+succeeds while its answer waits in the backlog. The Adapter therefore answers
+an already-occupied endpoint explicitly rather than leaving the caller to infer
+occupancy from a timeout:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v1","capabilities":["status", "..."]}
-{"kind":"busy","protocol":"mechcore.adapter.v1"}
+{"kind":"hello","protocol":"mechcore.adapter.v2","capabilities":["status", "..."]}
+{"kind":"busy","protocol":"mechcore.adapter.v2","holder_level":1,"evicting":false}
 ```
 
-A `busy` greeting is peer-verified like any other connection and is followed by
+A `busy` answer is peer-verified like any other connection and is followed by
 an immediate close. A greeting timeout after a successful connect is therefore
 **not** normal occupancy; it indicates an unresponsive Adapter and must be
 reported as such.
@@ -91,29 +91,67 @@ than a latched state.
 | absent | absent | — | **A** clean | launch, **owned** | fail `no_game` |
 | absent | present | connect refused | **B** stale endpoint | launch, **owned** | fail `no_game` |
 | present | absent | — | **C** foreign game | fail `foreign_game` | fail `foreign_game` |
-| present | present | `hello` | **D** adapter idle | fail `already_running` | attach, **not owned** |
-| present | present | `busy` | **E** adapter occupied | fail `adapter_busy` | fail `adapter_busy` |
+| present | present | `hello` | **D** adapter idle | take over, **not owned** | take over, **not owned** |
+| present | present | `busy`, `evicting` | **E1** outranked holder | wait, then take over, **not owned** | same |
+| present | present | `busy` | **E2** adapter occupied | fail `adapter_busy` | fail `adapter_busy` |
 | present | present | no greeting | **F** adapter unresponsive | fail `adapter_unresponsive` | fail `adapter_unresponsive` |
 
 State **C** is the player's own game. The Adapter cannot be injected into a
 live process, and starting a second instance would corrupt both. Both verbs
 fail closed and name the running PID.
 
-State **D** fails under `launch` deliberately. `launch` means "I want to own a
-fresh process"; degrading it to an attach is exactly the implicit behaviour
-this design removes. The error names `attach` as the remedy.
+The two verbs differ only in states **A** and **B**: `launch` starts a game
+where there is none, `attach` refuses to. Everywhere else both mean "give me
+the game", and what decides is the level, not the verb. A script that takes
+over a game it did not start is **not owned**: ownership follows who started
+the process, so taking the game over never makes a session responsible for
+shutting a stranger's game down.
 
 State **B** does not unlink anything. The Adapter clears the stale endpoint
 when the newly launched game binds.
+
+States **E1** and **E2** are the same endpoint seen by two different clients.
+Every acquisition carries a level in `0..=4`, declared by a script's `level:`
+key or `shell --level`, and defaulting to `1`. A claim strictly above the
+holder's takes the game; an equal or lower one is refused with the holder's
+level named.
+
+Taking the game is the Adapter's work, not the claimant's. It stops the
+holder's current operation at its next polling point, closes that connection
+with an `evicted` notice, returns the game to the main menu, and only then
+admits the next client. The claimant is told `evicting` and connects again
+until it is greeted, which is one acquisition from its own side; the wait ends
+after two minutes with `adapter_busy` if the hand-over never completes.
+
+Nothing waits for a claim. Every wait inside a long operation abandons itself
+at its next polling point, a capture included: the recording in flight is torn
+down and published nowhere. Leaving the match and settling at the main menu is
+the only part of a hand-over that still takes time.
+
+An evicted client releases nothing, whatever its ownership: the game process it
+started is being kept at the main menu for the client that claimed it, so
+shutting it down there would destroy someone else's game. Its run ends where it
+was interrupted, reports `{"operation":"evicted","completed":false}`, and exits
+successfully.
+
+Nothing else evicts. A client that is refused waits, retries or gives up, and
+no client can take the game by any means other than outranking its holder.
 
 ## Ownership
 
 Ownership decides shutdown, and it is never inferred:
 
-- `launch` sets **owned**. Normal exit shuts the game down through `quit_game`.
-- `attach` sets **not owned**. Exit closes the connection and leaves the game
-  running. A not-owned session must never terminate the process, because the
-  process belongs to another session or to the user.
+- Starting the process sets **owned**. Normal exit shuts the game down through
+  `quit_game`.
+- Finding a game already running sets **not owned**, for both verbs. Exit
+  closes the connection and leaves the game running. A not-owned session must
+  never terminate the process, because the process belongs to another session
+  or to the user.
+- Being evicted releases nothing at all, owned or not.
+
+`quit_game` is an operation, not a property of ownership: any client may shut
+the game down deliberately, which is what makes a rebuilt Adapter loadable. A
+running game keeps the Adapter it started with.
 
 Ownership is visible in the shell banner, in `status`, and in the structured
 result of every `mechcore run` execution.
@@ -124,10 +162,12 @@ result of every `mechcore run` execution.
 
 The optional top-level `game:` key declares acquisition. It accepts exactly
 `launch` or `attach`. Omitting it means the script is **offline** and touches
-no game.
+no game. The optional `level:` key declares what the run outranks, `0..=4`,
+defaulting to `1`, and is rejected without a `game:`.
 
 ```yaml
 game: launch
+level: 0
 steps:
   - record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
 ```
@@ -153,10 +193,12 @@ is answerable without holding it.
 ```sh
 mechcore shell            # offline; native commands report how to acquire
 mechcore shell --launch
-mechcore shell --attach
+mechcore shell --attach --level 3
 ```
 
-`--launch` and `--attach` are mutually exclusive. The REPL additionally offers
+`--launch` and `--attach` are mutually exclusive. `--level` declares what the
+session outranks, defaulting to `1`, and applies to the REPL's own `launch` and
+`attach` as well. The REPL additionally offers
 `launch`, `attach`, and `detach`, so a session may start offline, run a
 comparison, and acquire the game only when needed. `detach` on an owned session
 requires confirmation, or `quit`.
@@ -170,8 +212,7 @@ concrete next action.
 | --- | --- | --- |
 | `no_game` | `attach` with no running game | endpoint path probed |
 | `foreign_game` | game running without the Adapter | PID, executable path |
-| `already_running` | `launch` with an idle Adapter available | PID; suggests `attach` |
-| `adapter_busy` | another `mechcore` holds the endpoint | endpoint path |
+| `adapter_busy` | a client of the same or higher level holds the endpoint | endpoint path, holder level |
 | `adapter_unresponsive` | connected, no greeting before deadline | endpoint path, deadline |
 | `protocol_mismatch` | greeting protocol or capability set differs | expected and observed |
 | `launch_failed` | Adapter dylib or game executable missing | resolved paths tried |

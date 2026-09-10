@@ -11,7 +11,7 @@ mod sim;
 use std::process::ExitCode;
 
 fn usage(program: &str) {
-    eprintln!("usage: {program} shell [--launch | --attach]");
+    eprintln!("usage: {program} shell [--launch | --attach] [--level <0-4>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} verify <document.yaml>");
@@ -33,8 +33,8 @@ fn main() -> ExitCode {
     let mut arguments = std::env::args();
     let program = arguments.next().unwrap_or_else(|| "mechcore".into());
     match arguments.next().as_deref() {
-        Some("shell") => match shell_mode(arguments) {
-            Ok(mode) => match shell::run(mode) {
+        Some("shell") => match shell_options(arguments) {
+            Ok((mode, level)) => match shell::run(mode, level) {
                 Ok(()) => ExitCode::SUCCESS,
                 Err(error) => {
                     eprintln!("mechcore shell: {error}");
@@ -101,12 +101,27 @@ fn report(command: &str, outcome: Result<bool, String>) -> ExitCode {
 }
 
 /// Acquisition is declared, never inferred: at most one of the two flags.
-fn shell_mode(arguments: impl Iterator<Item = String>) -> Result<Option<acquire::Mode>, String> {
+///
+/// The level is a separate decision from the verb: it says what this session
+/// outranks, not how it gets the game.
+fn shell_options(
+    arguments: impl Iterator<Item = String>,
+) -> Result<(Option<acquire::Mode>, u8), String> {
+    let mut arguments = arguments.peekable();
     let mut mode = None;
-    for argument in arguments {
+    let mut level = None;
+    while let Some(argument) = arguments.next() {
         let requested = match argument.as_str() {
             "--launch" => acquire::Mode::Launch,
             "--attach" => acquire::Mode::Attach,
+            "--level" => {
+                if level.is_some() {
+                    return Err("--level given twice".into());
+                }
+                let value = arguments.next().ok_or("--level needs a number")?;
+                level = Some(acquire::parse_level(&value)?);
+                continue;
+            }
             other => return Err(format!("unexpected argument {other}")),
         };
         if mode.is_some() {
@@ -114,5 +129,5 @@ fn shell_mode(arguments: impl Iterator<Item = String>) -> Result<Option<acquire:
         }
         mode = Some(requested);
     }
-    Ok(mode)
+    Ok((mode, level.unwrap_or(mechcore_protocol::DEFAULT_LEVEL)))
 }

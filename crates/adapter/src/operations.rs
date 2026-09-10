@@ -1,4 +1,4 @@
-use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
+use crate::il2cpp::{Api, Error as Il2CppError, FieldInfo, Object, argument, object_argument};
 use crate::layout::{
     self, BattleSkill, NativeFormation, Placement, Position as LayoutPosition, SidePlan, Techs,
     Terrain,
@@ -54,6 +54,46 @@ struct ContraptionReleaseBaseline {
     position: MapVector,
 }
 
+#[derive(Debug)]
+struct WatchRuleObservation {
+    custom_info_present: bool,
+    competition: bool,
+    member_count: Option<i32>,
+    subtype: Option<i32>,
+    close_reinforce: Option<bool>,
+    reactor_changed: Option<bool>,
+    extend_rule_count: Option<i32>,
+    deploy_time: Option<i32>,
+}
+
+type EligibleWatchScene = (i32, i32, i32, i32, i32);
+
+impl WatchRuleObservation {
+    fn standard_subtype(&self) -> Option<i32> {
+        (!self.competition
+            && self.member_count == Some(2)
+            && self.subtype == Some(STANDARD_ONE_V_ONE_SUBTYPE)
+            && self.close_reinforce == Some(false)
+            && self.reactor_changed == Some(false)
+            && self.extend_rule_count == Some(0)
+            && self.deploy_time == Some(0))
+        .then_some(STANDARD_ONE_V_ONE_SUBTYPE)
+    }
+
+    fn diagnostic(&self) -> Value {
+        json!({
+            "custom_info_present": self.custom_info_present,
+            "competition": self.competition,
+            "member_count": self.member_count,
+            "subtype": self.subtype,
+            "close_reinforce": self.close_reinforce,
+            "reactor_changed": self.reactor_changed,
+            "extend_rule_count": self.extend_rule_count,
+            "deploy_time": self.deploy_time,
+        })
+    }
+}
+
 const ENERGY_TOWER_KIND: i32 = 1;
 const RESEARCH_CENTER_KIND: i32 = 2;
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
@@ -82,6 +122,9 @@ pub(crate) enum LayoutExecutionStage {
 #[derive(Clone)]
 pub(crate) enum InternalOperation {
     Status,
+    RefreshWatchScenes,
+    StartEligibleWatch,
+    SaveCurrentReplay,
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
@@ -107,6 +150,9 @@ pub(crate) fn execute_internal(
 ) -> Response<Value> {
     let result = match operation {
         InternalOperation::Status => Ok(status(runtime)),
+        InternalOperation::RefreshWatchScenes => refresh_watch_scenes(runtime),
+        InternalOperation::StartEligibleWatch => start_eligible_watch(runtime),
+        InternalOperation::SaveCurrentReplay => save_current_replay(runtime),
         InternalOperation::StartCapture {
             mode,
             visual,
@@ -215,6 +261,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         Operation::RecordReplayRound => Err(OperationError::InvalidState(
             "record_replay_round requires the runtime capture coordinator".into(),
         )),
+        Operation::RecordWatchReplay => Err(OperationError::InvalidState(
+            "record_watch_replay requires the runtime watch coordinator".into(),
+        )),
         Operation::ToggleFight => invoke_match_void(runtime, "ChangeProcessState"),
         Operation::SpeedUp => speed_up(runtime),
         Operation::QuitMatch => quit_match(runtime),
@@ -238,6 +287,12 @@ fn status(runtime: &Runtime) -> Value {
         }
     } else if classify_replay(api, current_match) == Some(true) {
         return match_status(runtime, current_match, GameStatus::Replay);
+    } else if api
+        .invoke_value::<bool>(current_match, "IsWatchMode", &mut [])
+        .ok()
+        == Some(true)
+    {
+        return match_status(runtime, current_match, GameStatus::Spectating);
     } else if api
         .invoke_value::<bool>(current_match, "IsTestMatch", &mut [])
         .ok()
@@ -268,13 +323,311 @@ fn match_status(runtime: &Runtime, current_match: *mut Object, status: GameStatu
         .ok()
         .filter(|random| !random.is_null())
         .and_then(|random| api.invoke_value::<i32>(random, "GetSeed", &mut []).ok());
-    json!({
+    let mut result = json!({
         "status": status,
         "round_count": round_count,
+        "fight_ready": !fight.is_null(),
         "deploying": deploying,
         "fighting": fighting,
         "match_seed": match_seed
+    });
+    if status == GameStatus::Spectating {
+        // A temporarily unavailable native detail is `null` here as everywhere
+        // else in this snapshot: one failed read must not abort a watch that
+        // has already been running for an hour.
+        result["finished"] = api
+            .invoke_value::<bool>(current_match, "get_IsFinished", &mut [])
+            .ok()
+            .map_or(Value::Null, Value::Bool);
+    }
+    result
+}
+
+const MATCH_FIRST_ROOM_FILTER: i32 = 5;
+const STANDARD_ONE_V_ONE_SUBTYPE: i32 = 0;
+const STANDARD_ONE_V_ONE_GAME_MODE: i32 = 0;
+const STANDARD_ONE_V_ONE_MATCH_MODE: i32 = 0;
+const MAX_WATCHERS_PER_SCENE: i32 = 300;
+
+#[derive(Clone, Copy)]
+struct WatchRuleFields {
+    subtype: *mut FieldInfo,
+    close_reinforce: *mut FieldInfo,
+    reactor_changed: *mut FieldInfo,
+    extend_rules: *mut FieldInfo,
+    deploy_time: *mut FieldInfo,
+}
+
+/// Refresh the first page of match-made scenes through the same cache-resetting
+/// path as the native lobby UI. The filter value is build-2259
+/// `ERoomListFilter.MatchFirst`; room/custom lists are deliberately excluded.
+fn refresh_watch_scenes(runtime: &Runtime) -> Result<Value, OperationError> {
+    if !runtime.current_match().is_null() {
+        return Err(OperationError::InvalidState(
+            "watch-scene refresh requires main_menu with no active match".into(),
+        ));
+    }
+    let Some(lobby) = find_proxy(runtime, "LobbyProxy", "GameRiver.Client.LobbyProxy")? else {
+        return Ok(json!({"requested": false, "ready": false}));
+    };
+    let mut filter = MATCH_FIRST_ROOM_FILTER;
+    runtime
+        .api
+        .invoke_void(
+            lobby,
+            "SwitchToRoomListFilter",
+            &mut [argument(&mut filter)],
+        )
+        .map_err(OperationError::from)
+        .map_err(|error| error.context("LobbyProxy.SwitchToRoomListFilter"))?;
+    Ok(json!({"requested": true, "room_filter": "match_first"}))
+}
+
+/// Choose the least occupied eligible scene from the currently cached first
+/// page, then enter it through LobbyProxy.WatchScene.
+fn start_eligible_watch(runtime: &Runtime) -> Result<Value, OperationError> {
+    if !runtime.current_match().is_null() {
+        return Err(OperationError::InvalidState(
+            "watch-scene selection requires main_menu with no active match".into(),
+        ));
+    }
+    let api = runtime.api;
+    let Some(lobby) = find_proxy(runtime, "LobbyProxy", "GameRiver.Client.LobbyProxy")? else {
+        return Ok(json!({"started": false, "eligible_scenes": 0, "ready": false}));
+    };
+    let mut filter = MATCH_FIRST_ROOM_FILTER;
+    let data = api.invoke(
+        lobby,
+        "GetRoomFilterDataByType",
+        &mut [argument(&mut filter)],
+    )?;
+    if data.is_null() {
+        return Ok(json!({"started": false, "eligible_scenes": 0}));
+    }
+    let scenes = api.invoke(data, "GetWatchScenes", &mut [])?;
+    if scenes.is_null() {
+        return Ok(json!({"started": false, "eligible_scenes": 0}));
+    }
+
+    let (mut eligible, observed) = scan_watch_scenes(runtime, scenes)?;
+    eligible.sort_unstable();
+    let Some((watcher_num, scene_id, map_id, round, subtype)) = eligible.first().copied() else {
+        return Ok(json!({
+            "started": false,
+            "eligible_scenes": 0,
+            "observed": observed,
+        }));
+    };
+    let mut selected_scene_id = scene_id;
+    api.invoke_void(lobby, "WatchScene", &mut [argument(&mut selected_scene_id)])?;
+    Ok(json!({
+        "started": true,
+        "eligible_scenes": eligible.len(),
+        "scene_id": scene_id,
+        "map_id": map_id,
+        "round": round,
+        "subtype": subtype,
+        "competition": false,
+        "watcher_num": watcher_num,
+        "observed": observed,
+    }))
+}
+
+fn scan_watch_scenes(
+    runtime: &Runtime,
+    scenes: *mut Object,
+) -> Result<(Vec<EligibleWatchScene>, Value), OperationError> {
+    let api = runtime.api;
+    let watch_scene_class = api.class("GRClient.dll", "GameRiver.Client", "WatchScene")?;
+    let scene_id_field = api.field(watch_scene_class, "SceneID")?;
+    let map_id_field = api.field(watch_scene_class, "MapID")?;
+    let round_field = api.field(watch_scene_class, "Round")?;
+    let watcher_num_field = api.field(watch_scene_class, "WatcherNum")?;
+    let custom_info_field = api.field(watch_scene_class, "CustomInfo")?;
+    let members_field = api.field(watch_scene_class, "Members")?;
+    let custom_info_class = api.class("GRClient.dll", "GameRiver.Client", "RoomCustomInfo")?;
+    let rule_fields = WatchRuleFields {
+        subtype: api.field(custom_info_class, "ServerSubType")?,
+        close_reinforce: api.field(custom_info_class, "CloseUnitReinforce")?,
+        reactor_changed: api.field(custom_info_class, "IsReactorCoreChanged")?,
+        extend_rules: api.field(custom_info_class, "ExtendRules")?,
+        deploy_time: api.field(custom_info_class, "DeployTime")?,
+    };
+    let config = config_instance(runtime)?;
+    let total_scenes = list_count(api, scenes)?;
+    let mut typed_scenes = 0;
+    let mut round_one_scenes = 0;
+    let mut standard_rule_scenes = 0;
+    let mut standard_map_scenes = 0;
+    let mut first_round_one = None;
+    let mut eligible = Vec::new();
+    for index in 0..total_scenes {
+        let scene = list_item(api, scenes, index)?;
+        let Some(class) = api.object_class(scene) else {
+            continue;
+        };
+        if !api.class_is_or_inherits(class, watch_scene_class) {
+            continue;
+        }
+        typed_scenes += 1;
+        let scene_id: i32 = api.field_value(scene, scene_id_field)?;
+        let map_id: i32 = api.field_value(scene, map_id_field)?;
+        let round: i32 = api.field_value(scene, round_field)?;
+        let watcher_num: i32 = api.field_value(scene, watcher_num_field)?;
+        let custom_info: *mut Object = api.field_value(scene, custom_info_field)?;
+        let members: *mut Object = api.field_value(scene, members_field)?;
+        let match_info = api.invoke(scene, "get_matchInfo", &mut [])?;
+        if scene_id <= 0
+            || map_id <= 0
+            || round != 1
+            || !(0..MAX_WATCHERS_PER_SCENE).contains(&watcher_num)
+        {
+            continue;
+        }
+        round_one_scenes += 1;
+        let rule_observation =
+            observe_watch_rules(api, custom_info, match_info, members, &rule_fields)?;
+        let mut diagnostic = rule_observation.diagnostic();
+        diagnostic["scene_id"] = json!(scene_id);
+        diagnostic["map_id"] = json!(map_id);
+        diagnostic["watcher_num"] = json!(watcher_num);
+        let Some(subtype) = rule_observation.standard_subtype() else {
+            first_round_one.get_or_insert(diagnostic);
+            continue;
+        };
+        standard_rule_scenes += 1;
+        let mut requested_map = map_id;
+        let setting = api.invoke(
+            config,
+            "GetMatchSettingOrNull",
+            &mut [argument(&mut requested_map)],
+        )?;
+        if setting.is_null() {
+            diagnostic["map_setting_present"] = json!(false);
+            first_round_one.get_or_insert(diagnostic);
+            continue;
+        }
+        let game_mode = api.invoke_value::<i32>(setting, "get_GameMode", &mut [])?;
+        let match_mode = api.invoke_value::<i32>(setting, "get_MatchMode", &mut [])?;
+        diagnostic["map_setting_present"] = json!(true);
+        diagnostic["game_mode"] = json!(game_mode);
+        diagnostic["match_mode"] = json!(match_mode);
+        first_round_one.get_or_insert(diagnostic);
+        if game_mode != STANDARD_ONE_V_ONE_GAME_MODE || match_mode != STANDARD_ONE_V_ONE_MATCH_MODE
+        {
+            continue;
+        }
+        standard_map_scenes += 1;
+        eligible.push((watcher_num, scene_id, map_id, round, subtype));
+    }
+
+    Ok((
+        eligible,
+        json!({
+            "total": total_scenes,
+            "typed": typed_scenes,
+            "round_one": round_one_scenes,
+            "standard_rules": standard_rule_scenes,
+            "standard_maps": standard_map_scenes,
+            "first_round_one": first_round_one,
+        }),
+    ))
+}
+
+fn observe_watch_rules(
+    api: Api,
+    custom_info: *mut Object,
+    match_info: *mut Object,
+    members: *mut Object,
+    fields: &WatchRuleFields,
+) -> Result<WatchRuleObservation, OperationError> {
+    let member_count = (!members.is_null())
+        .then(|| api.invoke_value::<i32>(members, "get_Count", &mut []))
+        .transpose()?;
+    if custom_info.is_null() {
+        return Ok(WatchRuleObservation {
+            custom_info_present: false,
+            competition: !match_info.is_null(),
+            member_count,
+            subtype: None,
+            close_reinforce: None,
+            reactor_changed: None,
+            extend_rule_count: None,
+            deploy_time: None,
+        });
+    }
+    let extend_rules: *mut Object = api.field_value(custom_info, fields.extend_rules)?;
+    Ok(WatchRuleObservation {
+        custom_info_present: true,
+        competition: !match_info.is_null(),
+        member_count,
+        subtype: Some(api.field_value(custom_info, fields.subtype)?),
+        close_reinforce: Some(api.field_value(custom_info, fields.close_reinforce)?),
+        reactor_changed: Some(api.field_value(custom_info, fields.reactor_changed)?),
+        extend_rule_count: (!extend_rules.is_null())
+            .then(|| api.invoke_value::<i32>(extend_rules, "get_Count", &mut []))
+            .transpose()?,
+        deploy_time: Some(api.field_value(custom_info, fields.deploy_time)?),
     })
+}
+
+fn save_current_replay(runtime: &Runtime) -> Result<Value, OperationError> {
+    let current = require_match(runtime)?;
+    let api = runtime.api;
+    if !api.invoke_value::<bool>(current, "IsWatchMode", &mut [])?
+        || !api.invoke_value::<bool>(current, "get_IsFinished", &mut [])?
+    {
+        return Err(OperationError::InvalidState(
+            "saving a watched replay requires a finished watch match".into(),
+        ));
+    }
+    let proxy =
+        find_proxy(runtime, "MatchProxy", "GameRiver.Client.MatchProxy")?.ok_or_else(|| {
+            OperationError::InvalidState("MatchProxy is not registered in GameFacade".into())
+        })?;
+    let callback: *mut Object = std::ptr::null_mut();
+    api.invoke_void(proxy, "SaveReplay", &mut [object_argument(callback)])?;
+    Ok(json!({"requested": true}))
+}
+
+/// Retrieve an application-owned `PureMVC` proxy without relying on a generic
+/// method instantiation being present in the IL2CPP method table. `ProxyGroup`
+/// controls registration; constructing one here can race login initialization.
+fn find_proxy(
+    runtime: &Runtime,
+    short_name: &str,
+    full_name: &str,
+) -> Result<Option<*mut Object>, OperationError> {
+    let api = runtime.api;
+    let facade_class = api.class("GRClient.dll", "GameRiver.Client", "GameFacade")?;
+    let facade = api.invoke_static(facade_class, "get_Instance", &mut [])?;
+    if facade.is_null() {
+        return Err(OperationError::InvalidState(
+            "GameFacade singleton is unavailable".into(),
+        ));
+    }
+    let facade_base = api.class("GRUtility.dll", "PureMVC.Patterns.Facade", "Facade")?;
+    let retrieve =
+        api.class_method_with_parameter_types(facade_base, "RetrieveProxy", &["System.String"])?;
+    let expected = api.class("GRClient.dll", "GameRiver.Client", short_name)?;
+    for name in [full_name, short_name] {
+        let managed_name = api.string(name)?;
+        let proxy = api.invoke_raw(
+            retrieve,
+            facade.cast(),
+            &mut [object_argument(managed_name)],
+        )?;
+        if proxy.is_null() {
+            continue;
+        }
+        if api
+            .object_class(proxy)
+            .is_some_and(|class| api.class_is_or_inherits(class, expected))
+        {
+            return Ok(Some(proxy));
+        }
+    }
+    Ok(None)
 }
 
 fn is_main_menu_scene(scene: &str) -> bool {

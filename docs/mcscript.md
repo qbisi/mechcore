@@ -15,10 +15,11 @@ anything.
 
 ## Document shape
 
-Three top-level keys, all others rejected:
+Four top-level keys, all others rejected:
 
 ```yaml
 game: launch        # optional: launch | attach; omitted means offline
+level: 1            # optional: 0..4, needs a game; higher takes it from lower
 vars:               # optional
   grbr: tests/grbr/example.grbr
   out: work/research/example
@@ -44,8 +45,24 @@ execution.** Nothing is probed and no game is started, so `--check` answers
 "does this need the game?" without holding it. This is what lets simulator and
 recording-comparison work share the same runner as native capture.
 
-An acquired game is released on every exit path. A launched game is shut down
-through `quit_game`; an attached game is left running.
+An acquired game is released on every exit path. A game this run started is
+shut down through `quit_game`; a game it found already running is left running.
+
+`level:` is what this run outranks, in `0..=4`, defaulting to `1`. A script
+whose level is strictly above the level of the client currently holding the
+game takes the game from it; an equal or lower one is refused with
+`adapter_busy`. Declaring a level without a `game:` is rejected, because there
+is nothing to order.
+
+Being taken over is not a failure, and nothing is waited for. The Adapter
+abandons the operation in flight, a recording included, returns the game to the
+main menu, and closes the connection; the run reports
+`{"operation":"evicted","completed":false}` and exits successfully, leaving the
+game to whoever claimed it. That is the one exit path where a launched game is
+not shut down: the Adapter is holding it for the next client.
+
+The acquisition states, their failure codes and what evicts what are in
+[session.md](session.md).
 
 ## Operations
 
@@ -59,6 +76,7 @@ through `quit_game`; an attached game is left running.
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
 | `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
+| `record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
 | `toggle_fight` | yes | |
 | `speed_up` | yes | standalone operation, distinct from the recording field |
 | `quit_match` | yes | |
@@ -147,6 +165,7 @@ Only inside a `let` value.
 | --- | --- |
 | `read_yaml(<path>)` | the parsed YAML document |
 | `embedded_layout(<path.mcfr>)` | the layout embedded in that recording |
+| `range(<count>)` | integers from `0` through `count - 1`; `count` is at most 10,000 |
 
 `embedded_layout` is how a replay round becomes a Training Ground layout
 without a separate conversion step:
@@ -201,11 +220,67 @@ A failing step ends the run. The iteration is the unit that fails: a step whose
 predecessor failed cannot produce a meaningful result, so nothing after it in
 that body runs, and no later iteration starts.
 
-Nested loops are rejected, as is `steps` or `where` on a plain operation, and
-`expect` on the loop itself; assert inside the body instead.
+A loop inside a loop is rejected, as is `steps` or `where` on a plain
+operation, and `expect` on the loop itself; assert inside the body instead. A
+loop needs no stopping condition of its own: a higher claim ends the whole run
+wherever it is.
 
 The static rule reaches into loop bodies, so a native operation cannot be
 hidden inside a loop to evade an offline script's `game:` requirement.
+
+### Unattended standard 1v1 corpus recording
+
+`record_watch_replay` is one long, atomic native transaction. It refreshes the
+server matchmaking watch list, selects an eligible scene at round one, watches
+through the result, and returns to the main menu. By default the result is the
+file already saved in the game's own `ProjectDatas/Replay` directory. Setting
+`output_dir` additionally publishes a create-new corpus copy there. The next
+loop iteration cannot start until all of those steps have completed.
+
+The admissible scene policy is fixed rather than script-configurable:
+
+- server-provided watch list (`ERoomListFilter.MatchFirst`) without competition
+  `matchInfo`;
+- exactly two players, subtype `Mod1V1`, no custom rule deltas, normal game
+  mode, `VS_1_1` map mode, and round one;
+- fewer than the native 300-watcher limit.
+
+After the game finishes, the Adapter accepts only a new or changed file in the
+game's native `ProjectDatas/Replay` directory. It waits for the file to become
+stable, uses `MatchProxy.SaveReplay` if autosave produced nothing, and copies
+with create-new semantics. The file is the game's own recording of a match it
+admitted at round one, and is published unread. There is no `force` field: a
+basename collision aborts the run instead of replacing corpus data.
+
+A collector declares the lowest level, so anything else takes the machine from
+it, and `range` gives the batch a bounded source:
+
+```yaml
+game: launch
+level: 0
+
+steps:
+  - let:
+      captures: range(10000)
+  - foreach: {capture: $captures}
+    steps:
+      - record_watch_replay:
+          wait_for_scene_seconds: 900
+          match_timeout_seconds: 7200
+```
+
+Running any ordinary script ends it: the default level of `1` outranks it, the
+watch in progress is abandoned at its next poll, the game returns to the main
+menu, and the collector exits leaving that game to its claimant. Every match
+already collected is untouched, and the abandoned one produces no recording.
+
+The loop fails closed on the first unsuccessful match and emits one JSON result
+line per recording. Add `output_dir` only when a separate corpus copy is wanted.
+Redirect stdout to a JSONL file when the per-file path, publication mode and
+selected scene metadata should travel with the corpus. See
+[grbr-corpus.md](grbr-corpus.md) for the native call path, evidence boundary and
+live qualification result. A ready-to-check batch lives at
+`scripts/record-standard-1v1-grbr.mcscript`.
 
 ## Output
 

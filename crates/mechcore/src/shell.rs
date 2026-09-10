@@ -28,28 +28,28 @@ native
   record_replay_round <in.grbr> <round> <out.mcfr> [-f]
   toggle_fight                    start the current fight
   speed_up                        request battle speed-up
-  quit_match                      leave the active test or replay
+  quit_match                      leave the active test, replay or watch
   quit_game                       shut the game down
 shell
   help                            this list
   quit | exit                     leave the shell";
 
-pub(crate) fn run(mode: Option<Mode>) -> Result<(), String> {
+pub(crate) fn run(mode: Option<Mode>, level: u8) -> Result<(), String> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| format!("cannot create async runtime: {error}"))?
-        .block_on(run_async(mode))
+        .block_on(run_async(mode, level))
 }
 
-async fn run_async(mode: Option<Mode>) -> Result<(), String> {
+async fn run_async(mode: Option<Mode>, level: u8) -> Result<(), String> {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
     let mut ownership: Option<Ownership> = None;
 
     let mut out = tokio::io::stdout();
     if let Some(mode) = mode {
-        match session.acquire(mode).await {
+        match session.acquire(mode, level).await {
             Ok(owned) => {
                 write(&mut out, &banner(&owned, &session)).await;
                 ownership = Some(owned);
@@ -69,7 +69,7 @@ async fn run_async(mode: Option<Mode>) -> Result<(), String> {
 
     // Never leave this function without running shut_down: an owned game is
     // only shut down here, and a dropped Child does not terminate it.
-    let looped = repl(&session, &mut ownership, &mut out).await;
+    let looped = repl(&session, &mut ownership, level, &mut out).await;
     let closed = session.release(ownership).await;
     monitor.abort();
     looped.and(closed)
@@ -78,6 +78,7 @@ async fn run_async(mode: Option<Mode>) -> Result<(), String> {
 async fn repl(
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
+    level: u8,
     out: &mut tokio::io::Stdout,
 ) -> Result<(), String> {
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
@@ -94,7 +95,7 @@ async fn repl(
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        match dispatch(line, session, ownership, out).await {
+        match dispatch(line, session, ownership, level, out).await {
             Flow::Continue => {}
             Flow::Quit => return Ok(()),
         }
@@ -110,6 +111,7 @@ async fn dispatch(
     line: &str,
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
+    level: u8,
     out: &mut tokio::io::Stdout,
 ) -> Flow {
     let mut words = line.split_whitespace();
@@ -132,7 +134,7 @@ async fn dispatch(
                 write(out, "already holding a game; detach or quit first\n").await;
                 return Flow::Continue;
             }
-            match session.acquire(mode).await {
+            match session.acquire(mode, level).await {
                 Ok(owned) => {
                     write(out, &banner(&owned, session)).await;
                     *ownership = Some(owned);

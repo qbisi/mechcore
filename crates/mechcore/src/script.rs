@@ -12,7 +12,10 @@
 use crate::acquire::Mode;
 use crate::mcfr;
 use crate::session::Session;
-use mechcore_protocol::RecordBattleInstrumentation;
+use mechcore_protocol::{
+    DEFAULT_LEVEL, DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS, DEFAULT_WATCH_SCENE_WAIT_SECONDS,
+    MAX_LEVEL, RecordBattleInstrumentation,
+};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::io::IsTerminal;
@@ -27,6 +30,7 @@ const NATIVE: &[&str] = &[
     "apply_layout",
     "record_battle",
     "record_replay_round",
+    "record_watch_replay",
     "toggle_fight",
     "speed_up",
     "quit_match",
@@ -52,6 +56,7 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
                 "schema": "mechcore.mcscript-check.v1",
                 "script": options.script.display().to_string(),
                 "game": script.game.map(Mode::as_str),
+                "level": script.game.map(|_| script.level),
                 "steps": script.steps.len(),
                 "valid": true,
             })
@@ -124,6 +129,7 @@ impl Options {
 #[cfg_attr(test, derive(Debug))]
 struct Script {
     game: Option<Mode>,
+    level: u8,
     vars: Vec<(String, Value)>,
     steps: Vec<Step>,
 }
@@ -162,7 +168,7 @@ impl Script {
             .as_object()
             .ok_or("script must be a mapping with optional game, vars and steps")?;
         for key in document.keys() {
-            if !matches!(key.as_str(), "game" | "vars" | "steps") {
+            if !matches!(key.as_str(), "game" | "level" | "vars" | "steps") {
                 return Err(format!("unknown top-level key {key}"));
             }
         }
@@ -175,6 +181,24 @@ impl Script {
                 return Err(format!("game must be launch or attach, got {other}"));
             }
         };
+
+        // The level orders this run against the other clients of one game: a
+        // higher one takes the game from a lower one. It is only meaningful
+        // for a script that acquires a game at all.
+        let level = match document.get("level") {
+            None => DEFAULT_LEVEL,
+            Some(Value::Number(value)) => {
+                let level = value
+                    .as_u64()
+                    .filter(|level| *level <= u64::from(MAX_LEVEL))
+                    .ok_or_else(|| format!("level must be 0..={MAX_LEVEL}, got {value}"))?;
+                u8::try_from(level).unwrap_or(MAX_LEVEL)
+            }
+            Some(other) => return Err(format!("level must be 0..={MAX_LEVEL}, got {other}")),
+        };
+        if document.contains_key("level") && game.is_none() {
+            return Err("level orders clients of one game, but the script declares no `game:` key".into());
+        }
 
         let mut vars = Vec::new();
         if let Some(declared) = document.get("vars") {
@@ -197,7 +221,12 @@ impl Script {
         if steps.is_empty() {
             return Err("script must declare at least one step".into());
         }
-        Ok(Self { game, vars, steps })
+        Ok(Self {
+            game,
+            level,
+            vars,
+            steps,
+        })
     }
 
     /// Reject a script before it runs, without probing or launching anything.
@@ -268,26 +297,32 @@ impl Step {
             Some(Value::Object(fields)) => Some(fields.clone()),
             Some(other) => return Err(format!("where must be a mapping, got {other}")),
         };
-        let body = mapping
-            .get("steps")
-            .ok_or("foreach needs steps")?
-            .as_array()
-            .ok_or("foreach steps must be a list")?
-            .iter()
-            .map(Self::parse)
-            .collect::<Result<Vec<_>, _>>()?;
-        if body.is_empty() {
-            return Err("foreach needs at least one body step".into());
-        }
-        if body.iter().any(|step| matches!(step, Self::ForEach(_))) {
-            return Err("nested foreach is not supported".into());
-        }
+        let body = Self::body(mapping, "foreach")?;
         Ok(Self::ForEach(ForEach {
             binding,
             source,
             filter,
             body,
         }))
+    }
+
+    /// A loop body: at least one step, and no loop of its own.
+    fn body(mapping: &Map<String, Value>, loop_: &str) -> Result<Vec<Self>, String> {
+        let body = mapping
+            .get("steps")
+            .ok_or_else(|| format!("{loop_} needs steps"))?
+            .as_array()
+            .ok_or_else(|| format!("{loop_} steps must be a list"))?
+            .iter()
+            .map(Self::parse)
+            .collect::<Result<Vec<_>, _>>()?;
+        if body.is_empty() {
+            return Err(format!("{loop_} needs at least one body step"));
+        }
+        if body.iter().any(|step| matches!(step, Self::ForEach(_))) {
+            return Err(format!("a loop inside {loop_} is not supported"));
+        }
+        Ok(body)
     }
 
     /// Every operation this step can reach, loop bodies included, so the
@@ -415,7 +450,7 @@ async fn execute(script: Script, base: PathBuf, overwrite: Overwrite) -> Result<
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
     let mut ownership = None;
     if let Some(mode) = script.game {
-        match session.acquire(mode).await {
+        match session.acquire(mode, script.level).await {
             Ok(owned) => ownership = Some(owned),
             Err(failure) => {
                 monitor.abort();
@@ -432,6 +467,13 @@ async fn execute(script: Script, base: PathBuf, overwrite: Overwrite) -> Result<
     let outcome = run_steps(&script, &mut scope, &session).await;
     let closed = session.release(ownership).await;
     monitor.abort();
+    // Losing the game to a higher claim is not a failed script. The run ends
+    // where it was interrupted, says so, and leaves the game to its claimant.
+    if session.was_evicted() {
+        println!("{}", json!({"operation": "evicted", "completed": false}));
+        closed?;
+        return Ok(true);
+    }
     outcome?;
     closed?;
     Ok(true)
@@ -680,6 +722,39 @@ async fn perform(
                 )
                 .await
         }
+        "record_watch_replay" => {
+            let fields = arguments
+                .as_object()
+                .ok_or("record_watch_replay takes a mapping")?;
+            for key in fields.keys() {
+                if !matches!(
+                    key.as_str(),
+                    "output_dir" | "wait_for_scene_seconds" | "match_timeout_seconds"
+                ) {
+                    return Err(format!(
+                        "record_watch_replay accepts only output_dir, wait_for_scene_seconds and \
+                         match_timeout_seconds, got {key}"
+                    ));
+                }
+            }
+            let output_dir = fields
+                .get("output_dir")
+                .map(|value| scope.path(value, "record_watch_replay output_dir"))
+                .transpose()?;
+            let wait_for_scene_seconds = optional_u64(
+                fields.get("wait_for_scene_seconds"),
+                "record_watch_replay wait_for_scene_seconds",
+            )?
+            .unwrap_or(DEFAULT_WATCH_SCENE_WAIT_SECONDS);
+            let match_timeout_seconds = optional_u64(
+                fields.get("match_timeout_seconds"),
+                "record_watch_replay match_timeout_seconds",
+            )?
+            .unwrap_or(DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS);
+            session
+                .record_watch_replay(output_dir, wait_for_scene_seconds, match_timeout_seconds)
+                .await
+        }
         "toggle_fight" => session.toggle_fight().await,
         "speed_up" => session.speed_up().await,
         "quit_match" => session.quit_match().await,
@@ -774,6 +849,17 @@ fn optional_flag(value: Option<&Value>, what: &str) -> Result<Option<bool>, Stri
     }
 }
 
+/// Read an optional unsigned integer field without accepting floats or signs.
+fn optional_u64(value: Option<&Value>, what: &str) -> Result<Option<u64>, String> {
+    match value {
+        None => Ok(None),
+        Some(value) => value
+            .as_u64()
+            .map(Some)
+            .ok_or_else(|| format!("{what} must be an unsigned integer, got {value}")),
+    }
+}
+
 /// Evaluate a `let` right-hand side: a built-in call, or a plain value.
 fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
     let resolved = scope.resolve(value)?;
@@ -800,6 +886,16 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
                 .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
             serde_yaml::from_str(reader.layout_yaml())
                 .map_err(|error| format!("cannot parse the embedded layout: {error}"))
+        }
+        "range" => {
+            let count = argument
+                .trim()
+                .parse::<u64>()
+                .map_err(|error| format!("range count is not an unsigned integer: {error}"))?;
+            if count > 10_000 {
+                return Err(format!("range count {count} exceeds 10000"));
+            }
+            Ok(Value::Array((0..count).map(Value::from).collect()))
         }
         other => Err(format!("unknown function {other}")),
     }
@@ -1072,7 +1168,7 @@ mod tests {
             "steps:\n  - foreach: {a: $x}\n    steps:\n      - foreach: {b: $y}\n        steps:\n          - compare: {left: a, right: b}\n",
         )
         .unwrap_err();
-        assert!(error.contains("nested foreach"), "{error}");
+        assert!(error.contains("a loop inside foreach"), "{error}");
     }
 
     #[test]
@@ -1094,6 +1190,63 @@ mod tests {
         // must be refused rather than silently treated as "on".
         let error = optional_flag(Some(&json!(3)), "record_battle speed_up").unwrap_err();
         assert!(error.contains("true or false"), "{error}");
+    }
+
+    #[test]
+    fn range_builds_a_bounded_batch_source() {
+        let scope = scope_with(&[]);
+        assert_eq!(
+            evaluate(&json!("range(4)"), &scope).unwrap(),
+            json!([0, 1, 2, 3])
+        );
+        assert_eq!(evaluate(&json!("range(0)"), &scope).unwrap(), json!([]));
+        assert!(evaluate(&json!("range(-1)"), &scope).is_err());
+        assert!(evaluate(&json!("range(10001)"), &scope).is_err());
+    }
+
+    #[test]
+    fn watch_recording_is_native_and_its_timeouts_are_unsigned() {
+        let script = Script::parse("game: launch\nsteps:\n  - record_watch_replay: {}\n").unwrap();
+        assert!(script.check().is_ok());
+
+        let session = Session::new();
+        let mut scope = scope_with(&[]);
+        let call = Call {
+            operation: "record_watch_replay".into(),
+            arguments: json!({
+                "output_dir": "/tmp/corpus",
+                "wait_for_scene_seconds": -1,
+            }),
+            expect: None,
+        };
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let error = runtime
+            .block_on(perform(
+                &call,
+                &call.arguments.clone(),
+                &mut scope,
+                &session,
+            ))
+            .unwrap_err();
+        assert!(error.contains("unsigned integer"), "{error}");
+    }
+
+    #[test]
+    fn level_is_bounded_and_belongs_to_a_script_that_takes_a_game() {
+        let script = Script::parse("game: launch\nlevel: 0\nsteps:\n  - status: {}\n").unwrap();
+        assert_eq!(script.level, 0);
+        // Ordinary work outranks a background batch without saying anything.
+        let script = Script::parse("game: attach\nsteps:\n  - status: {}\n").unwrap();
+        assert_eq!(script.level, DEFAULT_LEVEL);
+        assert!(script.level > 0);
+
+        assert!(Script::parse("game: attach\nlevel: 5\nsteps:\n  - status: {}\n").is_err());
+        assert!(Script::parse("game: attach\nlevel: -1\nsteps:\n  - status: {}\n").is_err());
+        assert!(Script::parse("game: attach\nlevel: high\nsteps:\n  - status: {}\n").is_err());
+        // A level with nothing to order is a mistake worth naming.
+        let error = Script::parse("level: 2\nsteps:\n  - compare: {left: a, right: b}\n")
+            .unwrap_err();
+        assert!(error.contains("game:"), "{error}");
     }
 
     #[test]

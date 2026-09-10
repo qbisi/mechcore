@@ -47,6 +47,13 @@ Debug builds, custom target directories and explicit target triples use their
 corresponding output directory. Distribute both files together. After changing
 the Adapter, start a new game with `game: launch` (or `shell --launch`): an
 already running game keeps its loaded Adapter, including when using `attach`.
+That is why `quit_game` stays a plain operation any client can call: shutting
+the running game down is the only way to load a rebuilt Adapter, and a client
+that took the game over can do it without having started the process. When the
+wire contract itself changed, the running game answers with the old `protocol`
+name and every new client is refused with `protocol_mismatch`; quit that game
+from the session that still holds it, or from the game's own menu, and launch
+again.
 
 `python3 scripts/check-adapter-packaging.py` exercises the real packaging build
 script with a small test dylib: source changes, no-op builds, a removed copy,
@@ -86,18 +93,33 @@ how it differs from Unity's own `Player.log`.
 ## Wire protocol
 
 Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
-1 MiB. A new connection first receives:
+1 MiB. A new connection speaks first, and says what it is worth:
+
+```json
+{"kind":"claim","protocol":"mechcore.adapter.v2","level":1}
+```
+
+The level is `0..=4`. It orders clients and nothing else: a claim strictly
+above the level of the client being served takes the game from it, and an equal
+or lower one is refused. Two clients that matter the same amount cannot each
+decide the other should stop. A connection that says nothing within three
+seconds is dropped, and anything that is not a claim is answered
+`{"kind":"refused","protocol":"...","reason":"..."}` so it is not mistaken for
+an adapter that stopped answering.
+
+An admitted claim receives:
 
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v1",
+  "protocol": "mechcore.adapter.v2",
   "capabilities": [
     "status",
     "start_test",
     "apply_layout",
     "record_battle",
     "record_replay_round",
+    "record_watch_replay",
     "toggle_fight",
     "speed_up",
     "quit_match",
@@ -105,6 +127,37 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
   ]
 }
 ```
+
+A claim that does not win is answered instead:
+
+```json
+{"kind":"busy","protocol":"mechcore.adapter.v2","holder_level":1,"evicting":true}
+```
+
+`holder_level` is what the claim lost to, or is taking the game from.
+`evicting` says the claim did win: the game is being handed back right now, and
+the client is expected to connect again rather than give up. The adapter admits
+its next client only once the interrupted match has been left and the main menu
+is up, which is why the winner is told to come back rather than handed a
+connection immediately.
+
+The client being served is told before its connection closes:
+
+```json
+{"kind":"evicted","protocol":"mechcore.adapter.v2","by_level":3}
+```
+
+That notice is the difference between a taken game and a crashed one. A client
+that reads it must leave the game process alone: the adapter is keeping it at
+the main menu for whoever claimed it. An operation still in flight is answered
+first, with the error code `evicted`.
+
+Eviction is the adapter's, not the client's, and it is unconditional. Every
+wait inside a long operation stops at its next polling point, a capture
+included; a client that is between operations is closed without waiting for it
+to speak; and the game is returned to the main menu before the next client is
+admitted. Nothing partial is ever published: an abandoned capture is torn down
+and an abandoned match simply produces no recording.
 
 A request contains a caller-chosen identifier:
 
@@ -136,10 +189,14 @@ automatically retried.
 
 The adapter returns after the native call or readback completes. `apply_layout`
 also waits until the requested activation-round deployment is stable.
-`record_battle` remains active through the complete logic-tick capture and atomic MCFR publication.
-`record_replay_round` additionally owns replay loading, round selection, accelerated deployment,
-capture, and return to the main menu. Other
-cross-scene readiness belongs to the session layer, which observes the status
+`record_battle` remains active through the complete logic-tick capture and
+atomic MCFR publication. `record_replay_round` additionally owns replay
+loading, round selection, accelerated deployment, capture, and return to the
+main menu.
+`record_watch_replay` owns live matchmaking-scene selection, the complete
+spectated match, native GRBR publication, and return to the main menu; a higher
+claim ends it early and without a recording.
+Other cross-scene readiness belongs to the session layer, which observes the status
 stream before returning from a lifecycle operation.
 
 ## Operations
@@ -426,6 +483,38 @@ never quits the game process. Invalid input, unavailable rounds, capture
 failure, and timeout paths also attempt replay cleanup before returning an
 error.
 
+### record_watch_replay
+
+Input names bounded scene/match timeouts and may name an absolute corpus
+directory:
+
+```json
+{
+  "wait_for_scene_seconds": 900,
+  "match_timeout_seconds": 7200
+}
+```
+
+With no `output_dir`, `output` is the game-owned file under
+`Mechabellum.app/ProjectDatas/Replay` and `published_copy` is `false`. An
+explicit different directory receives a create-new copy and reports
+`published_copy: true`; explicitly naming the native Replay directory is
+equivalent to omitting the field.
+
+A higher claim stops the operation at its next poll, wherever it is, and it
+fails with the `evicted` code rather than returning a recording. Abandoning the match is the
+price of handing the machine over within seconds rather than hours.
+
+The operation admits only a round-one, normal `VS_1_1` scene from the server
+matchmaking watch list. It watches to `Match.get_IsFinished`, waits ten seconds
+for the game's own autosave to produce a stable new native GRBR, requests
+`MatchProxy.SaveReplay` if none appears, copies the file without overwriting,
+and returns only after the native match quit reaches `main_menu`. The recording
+itself is the game's, and is published as written.
+
+The complete native path, build provenance, exact scene admission rules and
+live qualification evidence are in [grbr-corpus.md](grbr-corpus.md).
+
 ### quit_match
 
 Input is an empty object.
@@ -436,7 +525,8 @@ Typical output:
 {"performed":true}
 ```
 
-The operation requests that the active Training Ground or replay match exit.
+The operation requests that the active Training Ground, replay, or spectated
+match exit.
 The MCP layer additionally waits for `main_menu`.
 
 ### speed_up
@@ -494,13 +584,17 @@ Main-menu output:
 Training Ground output:
 
 ```json
-{"status":"training_ground","round_count":1,"deploying":true,"fighting":false,"match_seed":1787720817}
+{"status":"training_ground","round_count":1,"fight_ready":true,"deploying":true,"fighting":false,"match_seed":1787720817}
 ```
 
-`status` is exactly one of `main_menu`, `training_ground`, `replay`, or
-`unknown`. Training Ground and replay status additionally report `round_count`,
-`deploying`, `fighting`, and the effective `match_seed` read from the native
-match random stream; a temporarily unavailable native detail is `null`.
+`status` is exactly one of `main_menu`, `training_ground`, `replay`,
+`spectating`, or `unknown`. Every active match status additionally reports
+`round_count`, `fight_ready`, `deploying`, `fighting`, and the effective
+`match_seed` read from the native match random stream; a temporarily
+unavailable native detail is `null`. `fight_ready` is whether the match already
+owns a `FightController`, so `deploying` and `fighting` are `null` exactly while
+it is `false`. `spectating` also reports `finished` from
+`Match.get_IsFinished`.
 
 ### toggle_fight
 

@@ -8,14 +8,18 @@
 use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::{
-    CaptureInstrumentationProfile, Operation, RecordBattleArguments, RecordBattleInstrumentation,
-    RecordReplayRoundArguments, StartTestArguments,
+    CaptureInstrumentationProfile, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS,
+    Operation, RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
+    RecordWatchReplayArguments, StartTestArguments,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::{
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 use tokio::{
@@ -50,6 +54,12 @@ pub(crate) struct Session {
     operation: Mutex<()>,
     last_applied_layout: Mutex<Option<Value>>,
     status: watch::Sender<Value>,
+    /// Whether the game went to a higher claim.
+    ///
+    /// It is the one disconnection that must not be answered by shutting the
+    /// game down: the adapter is holding that process at the main menu for
+    /// whoever claimed it.
+    evicted: AtomicBool,
 }
 impl Session {
     pub(crate) fn new() -> Arc<Self> {
@@ -61,6 +71,7 @@ impl Session {
             operation: Mutex::new(()),
             last_applied_layout: Mutex::new(None),
             status,
+            evicted: AtomicBool::new(false),
         })
     }
 
@@ -78,6 +89,11 @@ impl Session {
             }
             sleep(STATUS_INTERVAL).await;
         }
+    }
+
+    /// Whether this session lost the game to a higher claim.
+    pub(crate) fn was_evicted(&self) -> bool {
+        self.evicted.load(Ordering::SeqCst)
     }
 
     pub(crate) fn current_status(&self) -> Value {
@@ -112,12 +128,28 @@ impl Session {
         let request_timeout = match operation {
             Operation::RecordBattle => Duration::from_secs(180),
             Operation::RecordReplayRound => Duration::from_secs(330),
+            Operation::RecordWatchReplay => {
+                let scene = arguments
+                    .get("wait_for_scene_seconds")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(MAX_WATCH_SCENE_WAIT_SECONDS)
+                    .min(MAX_WATCH_SCENE_WAIT_SECONDS);
+                let battle = arguments
+                    .get("match_timeout_seconds")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(MAX_WATCH_MATCH_TIMEOUT_SECONDS)
+                    .min(MAX_WATCH_MATCH_TIMEOUT_SECONDS);
+                Duration::from_secs(scene.saturating_add(battle).saturating_add(480))
+            }
             _ => ADAPTER_REQUEST_TIMEOUT,
         };
         match tokio::time::timeout(request_timeout, client.request(operation, arguments)).await {
             Ok(Ok(value)) => Ok(value),
             Ok(Err(error)) => {
                 let fatal = error.is_fatal();
+                if error.is_evicted() {
+                    self.evicted.store(true, Ordering::SeqCst);
+                }
                 let message = error.to_string();
                 if fatal {
                     *adapter = None;
@@ -174,8 +206,12 @@ impl Session {
     /// booting, so connecting is not readiness. Every native operation begins
     /// at the main menu; returning earlier would let a caller's first step race
     /// the loading screen.
-    pub(crate) async fn acquire(self: &Arc<Self>, mode: Mode) -> Result<Ownership, String> {
-        let (client, ownership) = acquire::acquire(mode, self.endpoint())
+    pub(crate) async fn acquire(
+        self: &Arc<Self>,
+        mode: Mode,
+        level: u8,
+    ) -> Result<Ownership, String> {
+        let (client, ownership) = acquire::acquire(mode, level, self.endpoint())
             .await
             .map_err(|failure| format!("{} refused, {failure}", mode.as_str()))?;
         self.install_client(client).await?;
@@ -191,10 +227,17 @@ impl Session {
     /// An attached game is left to its owner. An owned game is asked to quit
     /// and then awaited; if the request itself failed the game was never told
     /// to exit, so awaiting it would hang and it is terminated instead.
+    ///
+    /// An evicted session releases nothing. The adapter took the game and is
+    /// keeping that process at the main menu for the client that claimed it,
+    /// so quitting or terminating it here would destroy someone else's game.
     pub(crate) async fn release(&self, ownership: Option<Ownership>) -> Result<(), String> {
         let Some(Ownership::Owned { mut child, .. }) = ownership else {
             return Ok(());
         };
+        if self.was_evicted() {
+            return Ok(());
+        }
         match self.quit_game().await {
             Ok(_) => match child.wait().await {
                 Ok(status) if status.success() => Ok(()),
@@ -434,7 +477,7 @@ impl Session {
         }
         if !matches!(
             status.get("status").and_then(Value::as_str),
-            Some("training_ground" | "replay")
+            Some("training_ground" | "replay" | "spectating")
         ) {
             return Err(format!(
                 "recording cleanup requires an active match or main_menu: {status}"
@@ -506,6 +549,50 @@ impl Session {
         Ok(json!({"operation": result, "status": status}))
     }
 
+    /// Watch one live round-one matchmaking battle and publish its native GRBR.
+    ///
+    /// Scene selection, saving and cleanup are one adapter transaction, and the
+    /// file it names is the one the game itself wrote. The batch cannot start
+    /// its next iteration until this operation is back at the main menu.
+    pub(crate) async fn record_watch_replay(
+        &self,
+        output_dir: Option<PathBuf>,
+        wait_for_scene_seconds: u64,
+        match_timeout_seconds: u64,
+    ) -> Result<Value, String> {
+        let output_dir = prepare_watch_output(
+            output_dir.as_deref(),
+            wait_for_scene_seconds,
+            match_timeout_seconds,
+        )?;
+        let _operation = self.operation.lock().await;
+        self.require_status("main_menu").await?;
+        *self.last_applied_layout.lock().await = None;
+
+        let result = self
+            .adapter_request(
+                Operation::RecordWatchReplay,
+                arguments(&RecordWatchReplayArguments {
+                    output_dir: output_dir.clone(),
+                    wait_for_scene_seconds,
+                    match_timeout_seconds,
+                })?,
+            )
+            .await?;
+        if result.get("recorded").and_then(Value::as_bool) != Some(true) {
+            return Err(format!(
+                "adapter did not confirm watched replay recording: {result}"
+            ));
+        }
+        let status = self.refresh_status().await?;
+        if !is_status(&status, "main_menu") {
+            return Err(format!(
+                "record_watch_replay completed outside main_menu: {status}"
+            ));
+        }
+        Ok(json!({"operation": result, "status": status}))
+    }
+
     pub(crate) async fn toggle_fight(&self) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         let before = self.refresh_status().await?;
@@ -560,7 +647,7 @@ impl Session {
         let status = self.refresh_status().await?;
         if !matches!(
             status.get("status").and_then(Value::as_str),
-            Some("training_ground" | "replay")
+            Some("training_ground" | "replay" | "spectating")
         ) {
             return Err(format!("quit_match requires an active match: {status}"));
         }
@@ -606,6 +693,48 @@ impl Session {
             ))
         }
     }
+}
+
+fn prepare_watch_output(
+    output_dir: Option<&Path>,
+    wait_for_scene_seconds: u64,
+    match_timeout_seconds: u64,
+) -> Result<Option<PathBuf>, String> {
+    if !(1..=MAX_WATCH_SCENE_WAIT_SECONDS).contains(&wait_for_scene_seconds) {
+        return Err(format!(
+            "record_watch_replay wait_for_scene_seconds must be 1..={MAX_WATCH_SCENE_WAIT_SECONDS}"
+        ));
+    }
+    if !(60..=MAX_WATCH_MATCH_TIMEOUT_SECONDS).contains(&match_timeout_seconds) {
+        return Err(format!(
+            "record_watch_replay match_timeout_seconds must be 60..={MAX_WATCH_MATCH_TIMEOUT_SECONDS}"
+        ));
+    }
+    let Some(output_dir) = output_dir else {
+        return Ok(None);
+    };
+    if !output_dir.is_absolute() {
+        return Err("record_watch_replay output_dir must be absolute".into());
+    }
+    std::fs::create_dir_all(output_dir).map_err(|error| {
+        format!(
+            "cannot create GRBR corpus directory {}: {error}",
+            output_dir.display()
+        )
+    })?;
+    let output_dir = output_dir.canonicalize().map_err(|error| {
+        format!(
+            "cannot resolve GRBR corpus directory {}: {error}",
+            output_dir.display()
+        )
+    })?;
+    if !output_dir.is_dir() {
+        return Err(format!(
+            "record_watch_replay output_dir is not a directory: {}",
+            output_dir.display()
+        ));
+    }
+    Ok(Some(output_dir))
 }
 
 /// Refuse an existing destination, or remove it when the caller asked to.
@@ -743,7 +872,7 @@ pub(crate) fn record_battle_failure(
             let at_main_menu = is_status(&observed_status, "main_menu");
             let in_match = matches!(
                 observed_status.get("status").and_then(Value::as_str),
-                Some("training_ground" | "replay")
+                Some("training_ground" | "replay" | "spectating")
             );
             let required = if in_match {
                 json!("quit_match")

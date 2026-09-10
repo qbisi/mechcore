@@ -5,6 +5,7 @@
 //! native operation reaches this module on its own.
 
 use crate::adapter::{Client, ConnectError};
+use mechcore_protocol::MAX_LEVEL;
 use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -16,6 +17,13 @@ const PROC_ALL_PIDS: u32 = 1;
 const GREETING_DEADLINE: Duration = Duration::from_secs(3);
 const LAUNCH_TIMEOUT: Duration = Duration::from_secs(60);
 const LAUNCH_POLL_INTERVAL: Duration = Duration::from_millis(200);
+/// How long the adapter is given to hand the game over.
+///
+/// Nothing waits for a claim: every operation abandons itself at its next
+/// polling point, so this budget is the one thing that is still allowed to
+/// take time, leaving the match and settling at the main menu.
+const EVICTION_TIMEOUT: Duration = Duration::from_secs(120);
+const EVICTION_POLL_INTERVAL: Duration = Duration::from_millis(500);
 const ADAPTER_DYLIB: &str = "libmechcore_adapter.dylib";
 const GAME_ENV: &str = "MECHCORE_GAME";
 const DEFAULT_GAME_SUFFIX: &str = "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
@@ -86,7 +94,7 @@ impl std::fmt::Display for Failure {
 enum Probe {
     NoListener,
     Idle(Box<Client>),
-    Busy,
+    Busy { holder_level: u8, evicting: bool },
     Unresponsive(String),
     Protocol(String),
 }
@@ -97,20 +105,44 @@ pub(crate) struct GameProcess {
     pub(crate) path: PathBuf,
 }
 
-/// Acquire the game as declared, returning the connected client and ownership.
+/// Read a declared run level, which orders clients and nothing else.
+pub(crate) fn parse_level(value: &str) -> Result<u8, String> {
+    let level: u8 = value
+        .trim()
+        .parse()
+        .map_err(|error| format!("level is not a number in 0..={MAX_LEVEL}: {error}"))?;
+    if level > MAX_LEVEL {
+        return Err(format!("level {level} is above the highest run level {MAX_LEVEL}"));
+    }
+    Ok(level)
+}
+
+/// Acquire the game at `level`, returning the connected client and ownership.
+///
+/// The level is what decides an occupied endpoint: a higher one takes the game
+/// and the adapter hands it back at the main menu, an equal or lower one is
+/// refused. Ownership still follows who started the process, so taking over a
+/// running game never makes this session responsible for shutting it down.
 pub(crate) async fn acquire(
     mode: Mode,
+    level: u8,
     endpoint: &Path,
 ) -> Result<(Client, Ownership), Box<Failure>> {
     let running = game_processes();
-    let probe = probe_endpoint(endpoint).await;
+    let mut probe = probe_endpoint(endpoint, level).await;
+    if let Probe::Busy { evicting: true, .. } = probe {
+        probe = wait_for_the_game(endpoint, level).await;
+    }
 
     match (mode, running.first(), probe) {
-        // E and F apply to both verbs: something holds the endpoint, or the
+        // E and F apply to both verbs: something outranks this client, or the
         // adapter stopped answering. Neither verb may proceed.
-        (_, _, Probe::Busy) => Err(Box::new(Failure::new(
+        (_, _, Probe::Busy { holder_level, .. }) => Err(Box::new(Failure::new(
             "adapter_busy",
-            format!("another mechcore process is serving {}", endpoint.display()),
+            format!(
+                "a level {holder_level} client is serving {}, and level {level} does not outrank it",
+                endpoint.display()
+            ),
         ))),
         (_, _, Probe::Unresponsive(detail)) => Err(Box::new(Failure::new(
             "adapter_unresponsive",
@@ -135,19 +167,10 @@ pub(crate) async fn acquire(
             ),
         ))),
 
-        // D: an idle adapter is available. attach takes it; launch refuses
-        // rather than silently degrading into an attach.
-        (Mode::Attach, _, Probe::Idle(client)) => Ok((*client, Ownership::Attached)),
-        (Mode::Launch, running, Probe::Idle(_)) => {
-            let detail = running.map_or_else(
-                || "an adapter is already serving".to_string(),
-                |process| format!("Mechabellum is already running (pid {})", process.pid),
-            );
-            Err(Box::new(Failure::new(
-                "already_running",
-                format!("{detail}; use attach to join it"),
-            )))
-        }
+        // D: an adapter is available, either because it was idle or because
+        // this claim just took the game. Both verbs use it, and neither owns
+        // the process it did not start.
+        (_, _, Probe::Idle(client)) => Ok((*client, Ownership::Attached)),
 
         // A and B: nothing to join.
         // A and B are the same refusal for attach: whether the endpoint file
@@ -164,12 +187,12 @@ pub(crate) async fn acquire(
                 }
             ),
         ))),
-        (Mode::Launch, None, Probe::NoListener) => launch(endpoint).await,
+        (Mode::Launch, None, Probe::NoListener) => launch(endpoint, level).await,
     }
 }
 
 /// Start the game with the sibling Adapter and wait for its endpoint.
-async fn launch(endpoint: &Path) -> Result<(Client, Ownership), Box<Failure>> {
+async fn launch(endpoint: &Path, level: u8) -> Result<(Client, Ownership), Box<Failure>> {
     let dylib = adapter_dylib()?;
     let game = game_executable()?;
     // Discarding this stream hid every Adapter diagnostic, which are written to
@@ -203,16 +226,16 @@ async fn launch(endpoint: &Path) -> Result<(Client, Ownership), Box<Failure>> {
 
     let deadline = tokio::time::Instant::now() + LAUNCH_TIMEOUT;
     loop {
-        match probe_endpoint(endpoint).await {
+        match probe_endpoint(endpoint, level).await {
             Probe::Idle(client) => return Ok((*client, Ownership::Owned { child, log })),
             Probe::Protocol(detail) => {
                 return Err(Box::new(Failure::new("protocol_mismatch", detail)));
             }
-            Probe::Busy => {
+            Probe::Busy { holder_level, .. } => {
                 return Err(Box::new(Failure::new(
                     "adapter_busy",
                     format!(
-                        "the game we started at {} was taken by another client",
+                        "the game we started at {} was taken by a level {holder_level} client",
                         endpoint.display()
                     ),
                 )));
@@ -235,10 +258,36 @@ async fn launch(endpoint: &Path) -> Result<(Client, Ownership), Box<Failure>> {
 }
 
 /// One connection attempt, bounded by the greeting deadline.
-async fn probe_endpoint(endpoint: &Path) -> Probe {
-    match tokio::time::timeout(GREETING_DEADLINE, Client::connect(endpoint)).await {
+/// Keep claiming until the adapter hands the game over, or gives up on it.
+///
+/// The winning claim is told the game is coming back, not given it: the
+/// adapter admits its next client only once the match it interrupted has been
+/// left and the main menu is up. Waiting here is what turns that into one
+/// acquisition from the caller's side.
+async fn wait_for_the_game(endpoint: &Path, level: u8) -> Probe {
+    let deadline = tokio::time::Instant::now() + EVICTION_TIMEOUT;
+    loop {
+        tokio::time::sleep(EVICTION_POLL_INTERVAL).await;
+        let probe = probe_endpoint(endpoint, level).await;
+        if !matches!(probe, Probe::Busy { .. }) {
+            return probe;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return probe;
+        }
+    }
+}
+
+async fn probe_endpoint(endpoint: &Path, level: u8) -> Probe {
+    match tokio::time::timeout(GREETING_DEADLINE, Client::connect(endpoint, level)).await {
         Ok(Ok(client)) => Probe::Idle(Box::new(client)),
-        Ok(Err(ConnectError::Busy)) => Probe::Busy,
+        Ok(Err(ConnectError::Busy {
+            holder_level,
+            evicting,
+        })) => Probe::Busy {
+            holder_level,
+            evicting,
+        },
         Ok(Err(ConnectError::Unavailable(detail))) => {
             let _ = detail;
             Probe::NoListener

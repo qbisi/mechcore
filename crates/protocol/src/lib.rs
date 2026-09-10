@@ -3,7 +3,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
 
-pub const PROTOCOL: &str = "mechcore.adapter.v1";
+/// Wire contract name, and the version gate between a client and an adapter.
+///
+/// A running game keeps the Adapter it was started with, so a rebuilt Adapter
+/// and a running game can differ. Naming the contract is what turns that into
+/// one clear refusal at connect time instead of a desynchronised stream.
+pub const PROTOCOL: &str = "mechcore.adapter.v2";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -11,6 +16,21 @@ pub const PROTOCOL: &str = "mechcore.adapter.v1";
 /// past it, so layout validation, replay decoding, and any recorded round
 /// number must not be bounded by this value.
 pub const MAX_STAGED_ROUND: i32 = 15;
+pub const DEFAULT_WATCH_SCENE_WAIT_SECONDS: u64 = 15 * 60;
+pub const DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS: u64 = 2 * 60 * 60;
+pub const MAX_WATCH_SCENE_WAIT_SECONDS: u64 = 24 * 60 * 60;
+pub const MAX_WATCH_MATCH_TIMEOUT_SECONDS: u64 = 4 * 60 * 60;
+
+/// Highest run level a client may claim.
+///
+/// Levels order clients, nothing else: a claim strictly above the level of the
+/// client being served takes the game from it. Five is enough to separate a
+/// background corpus batch from ordinary work, and few enough that a number is
+/// still a decision rather than a habit.
+pub const MAX_LEVEL: u8 = 4;
+
+/// The level a client runs at when its script does not say.
+pub const DEFAULT_LEVEL: u8 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -20,6 +40,7 @@ pub enum Operation {
     ApplyLayout,
     RecordBattle,
     RecordReplayRound,
+    RecordWatchReplay,
     ToggleFight,
     SpeedUp,
     QuitMatch,
@@ -27,12 +48,13 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::Status,
         Self::StartTest,
         Self::ApplyLayout,
         Self::RecordBattle,
         Self::RecordReplayRound,
+        Self::RecordWatchReplay,
         Self::ToggleFight,
         Self::SpeedUp,
         Self::QuitMatch,
@@ -47,6 +69,7 @@ impl Operation {
             Self::ApplyLayout => "apply_layout",
             Self::RecordBattle => "record_battle",
             Self::RecordReplayRound => "record_replay_round",
+            Self::RecordWatchReplay => "record_watch_replay",
             Self::ToggleFight => "toggle_fight",
             Self::SpeedUp => "speed_up",
             Self::QuitMatch => "quit_match",
@@ -67,6 +90,7 @@ pub enum GameStatus {
     MainMenu,
     TrainingGround,
     Replay,
+    Spectating,
     Unknown,
 }
 
@@ -88,26 +112,106 @@ impl Hello {
     }
 }
 
-/// Greeting sent when the endpoint is already serving another client.
+/// The first message a client sends, before it is greeted or refused.
 ///
-/// The accept loop serves one client at a time, so a second connection would
-/// otherwise wait in the backlog and be indistinguishable from an unresponsive
-/// adapter. Answering explicitly keeps occupancy a protocol fact.
+/// A client says what it is worth before it asks for anything, because that is
+/// what the adapter needs in order to answer: the game goes to the higher
+/// level, and the claim is the only place that level is ever stated.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Claim {
+    pub kind: String,
+    pub protocol: String,
+    pub level: u8,
+}
+
+impl Claim {
+    #[must_use]
+    pub fn current(level: u8) -> Self {
+        Self {
+            kind: "claim".into(),
+            protocol: PROTOCOL.into(),
+            level,
+        }
+    }
+}
+
+/// Answer to a claim that does not outrank the client being served.
+///
+/// `holder_level` is what it lost to. `evicting` says the claim did win and
+/// the game is being handed back right now: the client is expected to connect
+/// again rather than to give up, because the adapter admits its next client
+/// only once the game is at the main menu.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Busy {
     pub kind: String,
     pub protocol: String,
+    pub holder_level: u8,
+    pub evicting: bool,
 }
 
 impl Busy {
     #[must_use]
-    pub fn current() -> Self {
+    pub fn current(holder_level: u8, evicting: bool) -> Self {
         Self {
             kind: "busy".into(),
             protocol: PROTOCOL.into(),
+            holder_level,
+            evicting,
         }
     }
 }
+
+/// Answer to a claim the adapter cannot act on at all.
+///
+/// A wrong protocol or an out-of-range level is not occupancy, and saying so
+/// is what keeps it from being diagnosed as a wedged adapter.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Refused {
+    pub kind: String,
+    pub protocol: String,
+    pub reason: String,
+}
+
+impl Refused {
+    #[must_use]
+    pub fn current(reason: impl Into<String>) -> Self {
+        Self {
+            kind: "refused".into(),
+            protocol: PROTOCOL.into(),
+            reason: reason.into(),
+        }
+    }
+}
+
+/// Last message to a client that is losing the game to a higher claim.
+///
+/// The connection closes immediately after it. It is what separates a taken
+/// game from a crashed one, and a client that reads it must leave the game
+/// process alone: the adapter is keeping it for whoever claimed it.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Evicted {
+    pub kind: String,
+    pub protocol: String,
+    pub by_level: u8,
+}
+
+impl Evicted {
+    #[must_use]
+    pub fn current(by_level: u8) -> Self {
+        Self {
+            kind: "evicted".into(),
+            protocol: PROTOCOL.into(),
+            by_level,
+        }
+    }
+}
+
+/// Error code carried by an operation the adapter abandoned for a higher claim.
+pub const EVICTED_CODE: &str = "evicted";
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -203,6 +307,26 @@ pub struct RecordReplayRoundArguments {
     pub instrumentation: Option<RecordBattleInstrumentation>,
 }
 
+/// Arguments for [`Operation::RecordWatchReplay`].
+///
+/// The selection policy is deliberately fixed: a server-provided matchmaking
+/// scene must be a normal `VS_1_1` match in round one. This operation is a
+/// corpus collector, not a general-purpose custom-room watcher.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecordWatchReplayArguments {
+    /// Existing absolute directory that receives one newly published `.grbr`.
+    ///
+    /// When omitted, the game-owned Replay directory is used directly and no
+    /// corpus copy is created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_dir: Option<PathBuf>,
+    /// Maximum time to wait for an eligible round-one matchmaking scene.
+    pub wait_for_scene_seconds: u64,
+    /// Maximum time from stable round-one entry until the match finishes.
+    pub match_timeout_seconds: u64,
+}
+
 /// Research-only instrumentation request accepted by the recording operations.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -262,6 +386,7 @@ mod tests {
                 "apply_layout",
                 "record_battle",
                 "record_replay_round",
+                "record_watch_replay",
                 "toggle_fight",
                 "speed_up",
                 "quit_match",
@@ -276,6 +401,7 @@ mod tests {
             GameStatus::MainMenu,
             GameStatus::TrainingGround,
             GameStatus::Replay,
+            GameStatus::Spectating,
             GameStatus::Unknown,
         ];
         let values: Vec<_> = statuses
@@ -284,8 +410,14 @@ mod tests {
             .collect();
         assert_eq!(
             values,
-            ["main_menu", "training_ground", "replay", "unknown"]
-                .map(|value| Value::String(value.into()))
+            [
+                "main_menu",
+                "training_ground",
+                "replay",
+                "spectating",
+                "unknown",
+            ]
+            .map(|value| Value::String(value.into()))
         );
     }
 
@@ -295,19 +427,56 @@ mod tests {
             serde_json::to_value(Hello::current()).unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v1",
+                "protocol": "mechcore.adapter.v2",
                 "capabilities": [
                     "status",
                     "start_test",
                     "apply_layout",
                     "record_battle",
                     "record_replay_round",
+                    "record_watch_replay",
                     "toggle_fight",
                     "speed_up",
                     "quit_match",
                     "quit_game",
                 ],
             })
+        );
+    }
+
+    #[test]
+    fn a_client_states_its_level_before_it_is_greeted_or_refused() {
+        assert_eq!(
+            serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
+            serde_json::json!({
+                "kind": "claim",
+                "protocol": "mechcore.adapter.v2",
+                "level": 1,
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(Busy::current(3, true)).unwrap(),
+            serde_json::json!({
+                "kind": "busy",
+                "protocol": "mechcore.adapter.v2",
+                "holder_level": 3,
+                "evicting": true,
+            })
+        );
+        assert_eq!(
+            serde_json::to_value(Evicted::current(4)).unwrap(),
+            serde_json::json!({
+                "kind": "evicted",
+                "protocol": "mechcore.adapter.v2",
+                "by_level": 4,
+            })
+        );
+        // A claim that carries anything else is not this message.
+        assert!(
+            serde_json::from_value::<Claim>(
+                serde_json::json!({"kind": "claim", "protocol": PROTOCOL, "level": 1, "force": true})
+            )
+            .is_err()
         );
     }
 
@@ -372,6 +541,35 @@ mod tests {
                     "profile": "target_refs_rvo_v1",
                     "rvo_scope": {"start_tick": 1, "end_tick": 2, "unit_ids": [7]}
                 }
+            })
+        );
+
+        let watch = serde_json::to_value(RecordWatchReplayArguments {
+            output_dir: Some(PathBuf::from("/tmp/grbr-corpus")),
+            wait_for_scene_seconds: 900,
+            match_timeout_seconds: 7_200,
+        })
+        .unwrap();
+        assert_eq!(
+            watch,
+            serde_json::json!({
+                "output_dir": "/tmp/grbr-corpus",
+                "wait_for_scene_seconds": 900,
+                "match_timeout_seconds": 7200,
+            })
+        );
+
+        let native_watch = serde_json::to_value(RecordWatchReplayArguments {
+            output_dir: None,
+            wait_for_scene_seconds: 900,
+            match_timeout_seconds: 7_200,
+        })
+        .unwrap();
+        assert_eq!(
+            native_watch,
+            serde_json::json!({
+                "wait_for_scene_seconds": 900,
+                "match_timeout_seconds": 7200,
             })
         );
     }

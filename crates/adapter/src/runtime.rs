@@ -3,10 +3,13 @@ use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
 use mechcore_protocol::{
-    Busy, Hello, MAX_STAGED_ROUND, Operation, RecordBattleArguments, RecordBattleInstrumentation,
-    RecordReplayRoundArguments, Request, Response,
+    Busy, Claim, EVICTED_CODE, Evicted, Hello, MAX_LEVEL, MAX_STAGED_ROUND,
+    MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL,
+    RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
+    RecordWatchReplayArguments, Refused, Request, Response,
 };
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::env;
 use std::ffi::{CString, c_void};
 use std::fs;
@@ -15,19 +18,33 @@ use std::os::fd::AsRawFd;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::{Arc, OnceLock, mpsc};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 const SOCKET_ENV: &str = "MECHCORE_ADAPTER_SOCKET";
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
+/// How long a new connection has to state its level.
+const CLAIM_DEADLINE: Duration = Duration::from_secs(3);
+/// How often a served client's socket is checked while it is quiet.
+const CLIENT_POLL_INTERVAL: Duration = Duration::from_millis(250);
+/// How long a served client may say nothing before it is dropped.
+const CLIENT_SILENCE_TIMEOUT: Duration = Duration::from_secs(30);
 const LAYOUT_SERIES_TIMEOUT: Duration = Duration::from_secs(55);
 const LAYOUT_STATUS_INTERVAL: Duration = Duration::from_millis(50);
 const LAYOUT_DEPLOYMENT_STABLE_SAMPLES: usize = 3;
 const RECORDING_TIMEOUT: Duration = Duration::from_secs(175);
 const RECORDING_POLL_INTERVAL: Duration = Duration::from_millis(5);
 const REPLAY_LOAD_TIMEOUT: Duration = Duration::from_secs(60);
+const WATCH_LIST_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
+const WATCH_LIST_SETTLE_TIME: Duration = Duration::from_secs(1);
+const WATCH_ENTRY_TIMEOUT: Duration = Duration::from_secs(180);
+const WATCH_FINISH_POLL_INTERVAL: Duration = Duration::from_secs(1);
+const WATCH_FILE_POLL_INTERVAL: Duration = Duration::from_millis(250);
+const WATCH_AUTOSAVE_GRACE: Duration = Duration::from_secs(10);
+const WATCH_EXPLICIT_SAVE_TIMEOUT: Duration = Duration::from_secs(30);
+const WATCH_REPLAY_STABLE_SAMPLES: usize = 3;
 
 fn validate_instrumentation_arguments(
     instrumentation: Option<&RecordBattleInstrumentation>,
@@ -388,6 +405,20 @@ fn run() -> Result<(), RuntimeError> {
 
     for stream in receiver {
         let result = serve_client(&mut runtime, stream);
+        // An evicted client leaves the game wherever its last operation
+        // stopped. The adapter owes the next client a main menu, and only
+        // then is the slot free: admitting anyone earlier would hand over a
+        // half-finished match.
+        if evicting() {
+            if let Err(response) = return_to_main_menu(&mut runtime, 0) {
+                let detail = response
+                    .error
+                    .as_ref()
+                    .map_or("unknown error", |error| error.message.as_str());
+                eprintln!("mechcore-adapter: cannot reach the main menu after eviction: {detail}");
+            }
+            EVICTING_FOR.store(NO_CLAIM, Ordering::SeqCst);
+        }
         serving.store(false, Ordering::SeqCst);
         if let Err(error) = result {
             eprintln!("mechcore-adapter: client disconnected: {error}");
@@ -400,7 +431,8 @@ fn run() -> Result<(), RuntimeError> {
 ///
 /// The worker serves one client at a time, so a connection arriving while the
 /// slot is taken would otherwise wait in the backlog and look identical to an
-/// unresponsive adapter. Answering `busy` here keeps occupancy a protocol fact.
+/// unresponsive adapter. Answering here keeps occupancy a protocol fact, and
+/// the claim's level is what decides between being refused and taking over.
 fn greet_clients(
     listener: &UnixListener,
     serving: &AtomicBool,
@@ -419,17 +451,66 @@ fn greet_clients(
             eprintln!("mechcore-adapter: rejected peer: {error}");
             continue;
         }
+        let level = match read_claim(&mut stream) {
+            Ok(level) => level,
+            Err(error) => {
+                eprintln!("mechcore-adapter: rejected claim: {error}");
+                continue;
+            }
+        };
         if serving.swap(true, Ordering::SeqCst) {
-            if let Err(error) = write_json_line(&mut stream, &Busy::current()) {
+            let holder = HOLDER_LEVEL.load(Ordering::SeqCst);
+            // Equal levels do not preempt: two clients that matter the same
+            // amount cannot each decide the other should stop.
+            let evicting = level > holder;
+            if evicting {
+                claim_eviction(level);
+            }
+            if let Err(error) = write_json_line(&mut stream, &Busy::current(holder, evicting)) {
                 eprintln!("mechcore-adapter: cannot answer busy: {error}");
             }
             continue;
         }
+        HOLDER_LEVEL.store(level, Ordering::SeqCst);
         if sender.send(stream).is_err() {
             serving.store(false, Ordering::SeqCst);
             return;
         }
     }
+}
+
+/// Read the claim that opens a connection, and greet the client it admits.
+///
+/// The level arrives before the greeting because the greeting is the answer to
+/// it. A client that says nothing is dropped rather than served: the slot is
+/// the scarce thing here, and an unidentified client cannot be ranked.
+fn read_claim(stream: &mut UnixStream) -> io::Result<u8> {
+    stream.set_read_timeout(Some(CLAIM_DEADLINE))?;
+    let mut line = String::new();
+    {
+        let mut reader = BufReader::new(&*stream).take(MAX_MESSAGE_BYTES as u64);
+        if reader.read_line(&mut line)? == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "client closed before claiming a level",
+            ));
+        }
+    }
+    let refuse = |reason: &str| {
+        let mut answer = stream.try_clone()?;
+        write_json_line(&mut answer, &Refused::current(reason))?;
+        Err(io::Error::new(io::ErrorKind::InvalidData, reason.to_owned()))
+    };
+    let Ok(claim) = serde_json::from_str::<Claim>(&line) else {
+        return refuse("first message must be a claim");
+    };
+    if claim.kind != "claim" || claim.protocol != PROTOCOL {
+        return refuse("claim protocol mismatch");
+    }
+    if claim.level > MAX_LEVEL {
+        return refuse("claim level is above the highest run level");
+    }
+    Ok(claim.level)
 }
 
 fn socket_path() -> Result<PathBuf, RuntimeError> {
@@ -481,19 +562,34 @@ fn bind_listener(path: &Path) -> Result<UnixListener, RuntimeError> {
 
 fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()> {
     verify_peer(&stream)?;
-    stream.set_read_timeout(Some(Duration::from_secs(30)))?;
+    // Short reads rather than one long one: a client that is between steps is
+    // still holding the game, and a higher claim must not have to wait for it
+    // to speak before the game can be taken back.
+    stream.set_read_timeout(Some(CLIENT_POLL_INTERVAL))?;
     stream.set_write_timeout(Some(Duration::from_secs(30)))?;
     let hello = Hello::current();
     write_json_line(&mut stream, &hello)?;
     let mut reader = BufReader::new(stream.try_clone()?);
+    let mut bytes = Vec::new();
+    let mut quiet_since = Instant::now();
     loop {
-        let mut bytes = Vec::new();
-        let read = reader
-            .by_ref()
-            .take((MAX_MESSAGE_BYTES + 1) as u64)
-            .read_until(b'\n', &mut bytes)?;
-        if read == 0 {
-            return Ok(());
+        if evicting() {
+            return evict(&mut stream);
+        }
+        let remaining = (MAX_MESSAGE_BYTES + 1 - bytes.len()) as u64;
+        match reader.by_ref().take(remaining).read_until(b'\n', &mut bytes) {
+            Ok(0) => return Ok(()),
+            Ok(_) => {}
+            Err(error) if would_block(&error) => {
+                if quiet_since.elapsed() >= CLIENT_SILENCE_TIMEOUT {
+                    return Err(io::Error::new(
+                        io::ErrorKind::TimedOut,
+                        "client said nothing for 30s",
+                    ));
+                }
+                continue;
+            }
+            Err(error) => return Err(error),
         }
         if bytes.len() > MAX_MESSAGE_BYTES {
             return Err(io::Error::new(
@@ -501,7 +597,13 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 "request exceeds size limit",
             ));
         }
-        let request: Request = match serde_json::from_slice(&bytes) {
+        if !bytes.ends_with(b"\n") {
+            return Ok(());
+        }
+        quiet_since = Instant::now();
+        let parsed = serde_json::from_slice::<Request>(&bytes);
+        bytes.clear();
+        let request: Request = match parsed {
             Ok(request) => request,
             Err(error) => {
                 let response: Response<Value> =
@@ -518,10 +620,544 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 capture::CaptureStartMode::TrainingGround,
             ),
             Operation::RecordReplayRound => execute_replay_recording_series(runtime, &request),
+            Operation::RecordWatchReplay => execute_watch_replay_series(runtime, &request),
             _ => execute_on_main(runtime, &request),
         };
         write_json_line(&mut stream, &response)?;
+        if evicting() {
+            return evict(&mut stream);
+        }
     }
+}
+
+fn would_block(error: &io::Error) -> bool {
+    matches!(
+        error.kind(),
+        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+    )
+}
+
+/// Tell a client it lost the game, then close the connection.
+///
+/// The notice is the difference between a taken game and a crashed one: a
+/// client that reads it knows the game process is still there and being kept
+/// for someone else, so it must not shut it down on its way out.
+fn evict(stream: &mut UnixStream) -> io::Result<()> {
+    write_json_line(stream, &Evicted::current(evicting_level()))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ReplayFileState {
+    len: u64,
+    modified: SystemTime,
+}
+
+/// Own one watched match from main menu back to main menu. Keeping scene
+/// selection, native save detection and cleanup in one adapter request prevents
+/// another client from interleaving operations with a long unattended capture.
+#[allow(clippy::too_many_lines)]
+fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let arguments: RecordWatchReplayArguments =
+        match serde_json::from_value(request.arguments.clone()) {
+            Ok(arguments) => arguments,
+            Err(error) => {
+                return Response::failure(request.id, "invalid_arguments", error.to_string());
+            }
+        };
+    if arguments.wait_for_scene_seconds == 0
+        || arguments.wait_for_scene_seconds > MAX_WATCH_SCENE_WAIT_SECONDS
+    {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            format!("wait_for_scene_seconds must be 1..={MAX_WATCH_SCENE_WAIT_SECONDS}"),
+        );
+    }
+    if arguments.match_timeout_seconds < 60
+        || arguments.match_timeout_seconds > MAX_WATCH_MATCH_TIMEOUT_SECONDS
+    {
+        return Response::failure(
+            request.id,
+            "invalid_arguments",
+            format!("match_timeout_seconds must be 60..={MAX_WATCH_MATCH_TIMEOUT_SECONDS}"),
+        );
+    }
+    let output_dir = match arguments.output_dir.as_deref() {
+        Some(path) if !path.is_absolute() || !path.is_dir() => {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "record_watch_replay output_dir must be an existing absolute directory",
+            );
+        }
+        Some(path) => match path.canonicalize() {
+            Ok(path) => Some(path),
+            Err(error) => {
+                return Response::failure(
+                    request.id,
+                    "invalid_arguments",
+                    format!("cannot resolve output_dir: {error}"),
+                );
+            }
+        },
+        None => None,
+    };
+    let replay_dir = match native_replay_directory() {
+        Ok(path) => path,
+        Err(error) => {
+            return Response::failure(request.id, "native_replay_directory", error);
+        }
+    };
+    let baseline = match replay_snapshot(&replay_dir) {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            return Response::failure(
+                request.id,
+                "native_replay_directory",
+                format!("cannot snapshot {}: {error}", replay_dir.display()),
+            );
+        }
+    };
+    let before = match successful_result(execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::Status,
+    )) {
+        Ok(status) => status,
+        Err(response) => return response,
+    };
+    if before.get("status").and_then(Value::as_str) != Some("main_menu") {
+        return Response::failure(
+            request.id,
+            "invalid_game_state",
+            format!("record_watch_replay requires main_menu: {before}"),
+        );
+    }
+
+    let scene_deadline = Instant::now() + Duration::from_secs(arguments.wait_for_scene_seconds);
+    let mut last_selection = Value::Null;
+    let scene = loop {
+        if evicting() {
+            return evicted_response(request.id);
+        }
+        if Instant::now() >= scene_deadline {
+            return watch_failure_after_cleanup(
+                runtime,
+                request.id,
+                "operation_timeout",
+                format!(
+                    "timed out waiting for an eligible round-one standard 1v1 watch scene; last selection: {last_selection}"
+                ),
+            );
+        }
+        if let Err(response) = successful_result(execute_internal_on_main(
+            runtime,
+            request.id,
+            operations::InternalOperation::RefreshWatchScenes,
+        )) {
+            return watch_response_after_cleanup(runtime, request.id, &response);
+        }
+        thread::sleep(WATCH_LIST_SETTLE_TIME);
+        let selection = match successful_result(execute_internal_on_main(
+            runtime,
+            request.id,
+            operations::InternalOperation::StartEligibleWatch,
+        )) {
+            Ok(selection) => selection,
+            Err(response) => return watch_response_after_cleanup(runtime, request.id, &response),
+        };
+        last_selection = selection.clone();
+        if selection.get("started").and_then(Value::as_bool) == Some(true) {
+            let entry = wait_status(
+                runtime,
+                request.id,
+                &StatusWait {
+                    deadline: Instant::now() + WATCH_ENTRY_TIMEOUT,
+                    interval: LAYOUT_STATUS_INTERVAL,
+                    description: "round-one watch match entry",
+                    stable_samples: LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+                },
+                evicting,
+                |status| {
+                    status.get("status").and_then(Value::as_str) == Some("spectating")
+                        && status.get("round_count").and_then(Value::as_i64) == Some(1)
+                        && status.get("fight_ready").and_then(Value::as_bool) == Some(true)
+                },
+            );
+            match entry {
+                Ok(_) => break selection,
+                Err(response) if evicted(&response) => return response,
+                Err(response)
+                    if response
+                        .error
+                        .as_ref()
+                        .is_some_and(|error| error.code == "operation_timeout") =>
+                {
+                    if let Err(cleanup) = return_to_main_menu(runtime, request.id) {
+                        let cleanup = cleanup
+                            .error
+                            .as_ref()
+                            .map_or("unknown cleanup error", |error| error.message.as_str());
+                        return Response::failure(
+                            request.id,
+                            "watch_cleanup_failed",
+                            format!(
+                                "stale watch scene did not enter and cleanup failed: {cleanup}"
+                            ),
+                        );
+                    }
+                    continue;
+                }
+                Err(response) => {
+                    return watch_response_after_cleanup(runtime, request.id, &response);
+                }
+            }
+        }
+        thread::sleep(WATCH_LIST_REFRESH_INTERVAL.saturating_sub(WATCH_LIST_SETTLE_TIME));
+    };
+
+    let finished = wait_status(
+        runtime,
+        request.id,
+        &StatusWait {
+            deadline: Instant::now() + Duration::from_secs(arguments.match_timeout_seconds),
+            interval: WATCH_FINISH_POLL_INTERVAL,
+            description: "watched match finish",
+            stable_samples: 1,
+        },
+        evicting,
+        |status| {
+            status.get("status").and_then(Value::as_str) == Some("spectating")
+                && status.get("finished").and_then(Value::as_bool) == Some(true)
+        },
+    );
+    if let Err(response) = finished {
+        // The match is abandoned mid-way and writes no recording. The adapter
+        // returns the game to the main menu once this client is gone, so the
+        // operation does not clean up on its way out.
+        if evicted(&response) {
+            return response;
+        }
+        return watch_response_after_cleanup(runtime, request.id, &response);
+    }
+
+    let source = match wait_for_stable_replay(
+        &replay_dir,
+        &baseline,
+        Instant::now() + WATCH_AUTOSAVE_GRACE,
+    ) {
+        Ok(Some(path)) => path,
+        Ok(None) => {
+            // Waiting for the file to settle is a wait like any other: a claim
+            // ends it, and the game's own recording stays where it wrote it.
+            if evicting() {
+                return evicted_response(request.id);
+            }
+            if let Err(response) = successful_result(execute_internal_on_main(
+                runtime,
+                request.id,
+                operations::InternalOperation::SaveCurrentReplay,
+            )) {
+                return watch_response_after_cleanup(runtime, request.id, &response);
+            }
+            match wait_for_stable_replay(
+                &replay_dir,
+                &baseline,
+                Instant::now() + WATCH_EXPLICIT_SAVE_TIMEOUT,
+            ) {
+                Ok(Some(path)) => path,
+                Ok(None) if evicting() => return evicted_response(request.id),
+                Ok(None) => {
+                    return watch_failure_after_cleanup(
+                        runtime,
+                        request.id,
+                        "native_replay_missing",
+                        format!(
+                            "finished watch produced no stable .grbr in {}",
+                            replay_dir.display()
+                        ),
+                    );
+                }
+                Err(error) => {
+                    return watch_failure_after_cleanup(
+                        runtime,
+                        request.id,
+                        "native_replay_io",
+                        error,
+                    );
+                }
+            }
+        }
+        Err(error) => {
+            return watch_failure_after_cleanup(runtime, request.id, "native_replay_io", error);
+        }
+    };
+    let Some(file_name) = source.file_name() else {
+        return watch_failure_after_cleanup(
+            runtime,
+            request.id,
+            "native_replay_io",
+            format!("native replay has no file name: {}", source.display()),
+        );
+    };
+    let (output, published_copy) = match output_dir.as_deref() {
+        Some(directory) if directory != replay_dir => {
+            let output = directory.join(file_name);
+            if let Err(error) = copy_new_file(&source, &output) {
+                return watch_failure_after_cleanup(
+                    runtime,
+                    request.id,
+                    "publish_replay_failed",
+                    format!(
+                        "cannot publish {} to {}: {error}",
+                        source.display(),
+                        output.display()
+                    ),
+                );
+            }
+            (output, true)
+        }
+        _ => (source.clone(), false),
+    };
+
+    let cleanup = match return_to_main_menu(runtime, request.id) {
+        Ok(status) => status,
+        Err(response) => {
+            let message = response
+                .error
+                .as_ref()
+                .map_or("unknown cleanup error", |error| error.message.as_str());
+            return Response::failure(
+                request.id,
+                "watch_cleanup_failed",
+                format!(
+                    "published {}, but could not return to main_menu: {message}",
+                    output.display()
+                ),
+            );
+        }
+    };
+    Response::success(
+        request.id,
+        serde_json::json!({
+            "recorded": true,
+            "output": output,
+            "native_source": source,
+            "published_copy": published_copy,
+            "scene": scene,
+            "cleanup": {"match_exited": true},
+            "status": cleanup,
+        }),
+    )
+}
+
+fn native_replay_directory() -> Result<PathBuf, String> {
+    let executable =
+        env::current_exe().map_err(|error| format!("cannot locate game executable: {error}"))?;
+    native_replay_directory_from_executable(&executable)
+}
+
+fn native_replay_directory_from_executable(executable: &Path) -> Result<PathBuf, String> {
+    let app = executable.ancestors().nth(3).ok_or_else(|| {
+        format!(
+            "game executable is not inside a macOS app bundle: {}",
+            executable.display()
+        )
+    })?;
+    if app.extension().and_then(|value| value.to_str()) != Some("app") {
+        return Err(format!(
+            "game executable is not inside a macOS app bundle: {}",
+            executable.display()
+        ));
+    }
+    app.join("ProjectDatas")
+        .join("Replay")
+        .canonicalize()
+        .map_err(|error| format!("cannot resolve native Replay directory: {error}"))
+}
+
+fn replay_snapshot(directory: &Path) -> io::Result<BTreeMap<PathBuf, ReplayFileState>> {
+    let mut snapshot = BTreeMap::new();
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("grbr") {
+            continue;
+        }
+        let metadata = entry.metadata()?;
+        if metadata.is_file() {
+            snapshot.insert(
+                path,
+                ReplayFileState {
+                    len: metadata.len(),
+                    modified: metadata.modified()?,
+                },
+            );
+        }
+    }
+    Ok(snapshot)
+}
+
+fn newest_changed_replay(
+    baseline: &BTreeMap<PathBuf, ReplayFileState>,
+    current: &BTreeMap<PathBuf, ReplayFileState>,
+) -> Option<(PathBuf, ReplayFileState)> {
+    current
+        .iter()
+        .filter(|(path, state)| state.len > 0 && baseline.get(*path) != Some(*state))
+        .max_by(|(left_path, left), (right_path, right)| {
+            left.modified
+                .cmp(&right.modified)
+                .then_with(|| left_path.cmp(right_path))
+        })
+        .map(|(path, state)| (path.clone(), state.clone()))
+}
+
+fn wait_for_stable_replay(
+    directory: &Path,
+    baseline: &BTreeMap<PathBuf, ReplayFileState>,
+    deadline: Instant,
+) -> Result<Option<PathBuf>, String> {
+    let mut last = None;
+    let mut stable = 0;
+    while Instant::now() < deadline && !evicting() {
+        let current = replay_snapshot(directory)
+            .map_err(|error| format!("cannot read {}: {error}", directory.display()))?;
+        // An absent file is not a stable one: waiting out the whole deadline is
+        // what gives the game's own autosave its grace period.
+        if let Some(candidate) = newest_changed_replay(baseline, &current) {
+            if last.as_ref() == Some(&candidate) {
+                stable += 1;
+            } else {
+                last = Some(candidate);
+                stable = 1;
+            }
+            if stable >= WATCH_REPLAY_STABLE_SAMPLES {
+                return Ok(last.map(|(path, _)| path));
+            }
+        } else {
+            last = None;
+            stable = 0;
+        }
+        thread::sleep(WATCH_FILE_POLL_INTERVAL);
+    }
+    Ok(None)
+}
+
+fn copy_new_file(source: &Path, destination: &Path) -> io::Result<()> {
+    let mut input = fs::File::open(source)?;
+    let mut output = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(destination)?;
+    let result = io::copy(&mut input, &mut output).and_then(|_| output.sync_all());
+    if let Err(error) = result {
+        drop(output);
+        if let Err(cleanup) = fs::remove_file(destination) {
+            eprintln!(
+                "mechcore-adapter: cannot remove partial watched replay {}: {cleanup}",
+                destination.display()
+            );
+        }
+        return Err(error);
+    }
+    Ok(())
+}
+
+/// Whether a failed wait stopped because a higher claim took the game.
+fn evicted(response: &Response<Value>) -> bool {
+    response
+        .error
+        .as_ref()
+        .is_some_and(|error| error.code == EVICTED_CODE)
+}
+
+fn evicted_response(request_id: u64) -> Response<Value> {
+    Response::failure(
+        request_id,
+        EVICTED_CODE,
+        format!("level {} claimed the game", evicting_level()),
+    )
+}
+
+fn watch_response_after_cleanup(
+    runtime: &mut Runtime,
+    request_id: u64,
+    response: &Response<Value>,
+) -> Response<Value> {
+    let code = response.error.as_ref().map_or_else(
+        || "record_watch_replay_failed".into(),
+        |error| error.code.clone(),
+    );
+    let message = response.error.as_ref().map_or_else(
+        || "record_watch_replay failed without an error body".into(),
+        |error| error.message.clone(),
+    );
+    watch_failure_after_cleanup(runtime, request_id, &code, message)
+}
+
+fn watch_failure_after_cleanup(
+    runtime: &mut Runtime,
+    request_id: u64,
+    code: &str,
+    message: String,
+) -> Response<Value> {
+    match return_to_main_menu(runtime, request_id) {
+        Ok(_) => Response::failure(request_id, code, message),
+        Err(cleanup) => {
+            let cleanup = cleanup
+                .error
+                .as_ref()
+                .map_or("unknown cleanup error", |error| error.message.as_str());
+            Response::failure(
+                request_id,
+                code,
+                format!("{message}; watch cleanup also failed: {cleanup}"),
+            )
+        }
+    }
+}
+
+/// Leave whatever match is running and settle at the main menu.
+///
+/// This is what the adapter owes its next client, and what an operation that
+/// stopped early owes the game.
+fn return_to_main_menu(
+    runtime: &mut Runtime,
+    request_id: u64,
+) -> Result<Value, Response<Value>> {
+    if runtime.current_match().is_null() {
+        let status = successful_result(execute_internal_on_main(
+            runtime,
+            request_id,
+            operations::InternalOperation::Status,
+        ))?;
+        if status.get("status").and_then(Value::as_str) == Some("main_menu") {
+            return Ok(status);
+        }
+        return wait_layout_status(
+            runtime,
+            request_id,
+            Instant::now() + REPLAY_LOAD_TIMEOUT,
+            "main_menu after watch transition",
+            LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+            |value| value.get("status").and_then(Value::as_str) == Some("main_menu"),
+        );
+    }
+    let quit = Request {
+        id: request_id,
+        operation: Operation::QuitMatch,
+        arguments: serde_json::json!({}),
+    };
+    successful_result(execute_on_main(runtime, &quit))?;
+    wait_layout_status(
+        runtime,
+        request_id,
+        Instant::now() + REPLAY_LOAD_TIMEOUT,
+        "main_menu after watch exit",
+        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
+        |value| value.get("status").and_then(Value::as_str) == Some("main_menu"),
+    )
 }
 
 #[allow(clippy::too_many_lines)]
@@ -843,6 +1479,17 @@ fn execute_recording_series(
     let mut instrumentation_records = Vec::new();
     let mut recorded_tick = 0_u64;
     loop {
+        // A capture in flight is abandoned like any other wait. Nothing is
+        // published, the sidecar and video are torn down with it, and the
+        // claim is answered now rather than up to three minutes from now.
+        if evicting() {
+            return recording_failure(
+                runtime,
+                request.id,
+                EVICTED_CODE,
+                format!("level {} claimed the game", evicting_level()),
+            );
+        }
         if Instant::now() >= deadline {
             return recording_failure(
                 runtime,
@@ -1353,9 +2000,66 @@ fn wait_layout_status(
     stable_samples: usize,
     predicate: impl Fn(&Value) -> bool,
 ) -> Result<Value, Response<Value>> {
+    wait_status(
+        runtime,
+        request_id,
+        &StatusWait {
+            deadline,
+            interval: LAYOUT_STATUS_INTERVAL,
+            description,
+            stable_samples,
+        },
+        evicting,
+        predicate,
+    )
+}
+
+/// One status-polling wait: how long, how often, and what it is called.
+///
+/// The interval is the caller's because every sample is a synchronous
+/// main-thread dispatch: a deployment that resolves in a second is worth 50ms,
+/// a match that lasts an hour is not.
+struct StatusWait<'a> {
+    deadline: Instant,
+    interval: Duration,
+    description: &'a str,
+    stable_samples: usize,
+}
+
+/// Poll status until it satisfies `predicate`, `stop` asks to give up, or the
+/// deadline passes. A `stop` that fires is reported as its own error code, so
+/// a caller can tell an abandoned wait from a failed one.
+///
+/// Every wait gives up for a higher claim. An operation abandoned that way
+/// leaves the game part-way through, which is what the adapter's own return to
+/// the main menu is for: the claim is answered in seconds rather than after
+/// however long this operation would have taken.
+fn wait_status(
+    runtime: &mut Runtime,
+    request_id: u64,
+    wait: &StatusWait<'_>,
+    stop: impl Fn() -> bool,
+    predicate: impl Fn(&Value) -> bool,
+) -> Result<Value, Response<Value>> {
+    let StatusWait {
+        deadline,
+        interval,
+        description,
+        stable_samples,
+    } = *wait;
     let mut stable = 0;
     let mut last = Value::Null;
     loop {
+        if stop() {
+            return Err(Response::failure(
+                request_id,
+                EVICTED_CODE,
+                format!(
+                    "level {} claimed the game while waiting for {description}",
+                    evicting_level()
+                ),
+            ));
+        }
         if Instant::now() >= deadline {
             return Err(Response::failure(
                 request_id,
@@ -1376,7 +2080,7 @@ fn wait_layout_status(
         } else {
             stable = 0;
         }
-        thread::sleep(LAYOUT_STATUS_INTERVAL);
+        thread::sleep(interval);
     }
 }
 
@@ -1440,6 +2144,38 @@ impl Drop for SocketCleanup {
 static ENDPOINT_PATH: OnceLock<CString> = OnceLock::new();
 static ENDPOINT_ARMED: AtomicBool = AtomicBool::new(false);
 
+/// `EVICTING_FOR` when no claim is taking the game.
+///
+/// The level of a claim is stored one above its value, which leaves zero to
+/// mean "nobody", and lets a second, higher claim raise the pending one with a
+/// single `fetch_max`.
+const NO_CLAIM: u8 = 0;
+
+/// The level of the client currently being served.
+static HOLDER_LEVEL: AtomicU8 = AtomicU8::new(0);
+
+/// The level that is taking the game, set by the accept thread.
+///
+/// It outlives the operation it interrupts, so a claim cannot be lost in the
+/// gap between two of them, and is cleared once the game is back at the main
+/// menu and the slot is free.
+static EVICTING_FOR: AtomicU8 = AtomicU8::new(NO_CLAIM);
+
+/// Whether a higher claim is taking the game from the serving client.
+fn evicting() -> bool {
+    EVICTING_FOR.load(Ordering::SeqCst) != NO_CLAIM
+}
+
+/// The level that is taking the game, meaningless unless [`evicting`].
+fn evicting_level() -> u8 {
+    EVICTING_FOR.load(Ordering::SeqCst).saturating_sub(1)
+}
+
+/// Record that a claim is taking the game, keeping the highest one.
+fn claim_eviction(level: u8) {
+    EVICTING_FOR.fetch_max(level + 1, Ordering::SeqCst);
+}
+
 extern "C" fn remove_endpoint_at_exit() {
     if !ENDPOINT_ARMED.load(Ordering::SeqCst) {
         return;
@@ -1467,6 +2203,78 @@ fn arm_endpoint_cleanup(endpoint: &Path) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_replay_directory_is_derived_from_the_app_bundle() {
+        let root = tempfile::tempdir().unwrap();
+        let app = root.path().join("Mechabellum.app");
+        let replay = app.join("ProjectDatas/Replay");
+        fs::create_dir_all(&replay).unwrap();
+        let executable = app.join("Contents/MacOS/Mechabellum");
+        assert_eq!(
+            native_replay_directory_from_executable(&executable).unwrap(),
+            replay.canonicalize().unwrap()
+        );
+        assert!(native_replay_directory_from_executable(Path::new("/tmp/game")).is_err());
+    }
+
+    #[test]
+    fn newest_changed_replay_ignores_the_baseline_and_uses_mtime() {
+        let old = PathBuf::from("old.grbr");
+        let first = PathBuf::from("first.grbr");
+        let newest = PathBuf::from("newest.grbr");
+        let unchanged = ReplayFileState {
+            len: 10,
+            modified: SystemTime::UNIX_EPOCH + Duration::from_secs(1),
+        };
+        let baseline = BTreeMap::from([(old.clone(), unchanged.clone())]);
+        let current = BTreeMap::from([
+            (old, unchanged),
+            (
+                first,
+                ReplayFileState {
+                    len: 20,
+                    modified: SystemTime::UNIX_EPOCH + Duration::from_secs(2),
+                },
+            ),
+            (
+                newest.clone(),
+                ReplayFileState {
+                    len: 30,
+                    modified: SystemTime::UNIX_EPOCH + Duration::from_secs(3),
+                },
+            ),
+        ]);
+        assert_eq!(
+            newest_changed_replay(&baseline, &current).map(|(path, _)| path),
+            Some(newest)
+        );
+    }
+
+    #[test]
+    fn waiting_for_a_replay_gives_autosave_its_whole_grace_period() {
+        let root = tempfile::tempdir().unwrap();
+        let baseline = BTreeMap::new();
+        let grace = WATCH_FILE_POLL_INTERVAL * 4;
+        let started = Instant::now();
+        assert_eq!(
+            wait_for_stable_replay(root.path(), &baseline, started + grace).unwrap(),
+            None
+        );
+        assert!(started.elapsed() >= grace, "returned before the deadline");
+    }
+
+    #[test]
+    fn replay_publication_is_create_new() {
+        let root = tempfile::tempdir().unwrap();
+        let source = root.path().join("native.grbr");
+        let output = root.path().join("corpus.grbr");
+        fs::write(&source, b"native recording").unwrap();
+        copy_new_file(&source, &output).unwrap();
+        assert_eq!(fs::read(&output).unwrap(), b"native recording");
+        assert!(copy_new_file(&source, &output).is_err());
+        assert_eq!(fs::read(&output).unwrap(), b"native recording");
+    }
 
     #[test]
     fn replay_instrumentation_scope_is_validated_before_loading() {
@@ -1536,10 +2344,12 @@ mod tests {
         drop(listener);
     }
 
+    /// A claim is how a connection identifies itself, and the only thing that
+    /// decides between being served, being refused, and taking the game.
     #[test]
-    fn second_client_is_answered_busy_while_the_slot_is_taken() {
+    fn a_claim_decides_between_being_served_refused_and_taking_over() {
         let path = PathBuf::from(format!(
-            "/tmp/mechcore-adapter-busy-{}.sock",
+            "/tmp/mechcore-adapter-claim-{}.sock",
             std::process::id()
         ));
         let _ = fs::remove_file(&path);
@@ -1551,29 +2361,46 @@ mod tests {
             move || greet_clients(&listener, &serving, &sender)
         });
 
-        // The first client takes the single serving slot and holds it.
-        let first = UnixStream::connect(&path).unwrap();
-        let held = receiver.recv().unwrap();
-        assert!(serving.load(Ordering::SeqCst));
-
-        // A second client must be told so, not left waiting in the backlog.
-        let second = UnixStream::connect(&path).unwrap();
-        let mut line = String::new();
-        BufReader::new(&second).read_line(&mut line).unwrap();
-        let greeting: Value = serde_json::from_str(&line).unwrap();
-        assert_eq!(greeting["kind"], "busy");
-        assert_eq!(greeting["protocol"], mechcore_protocol::PROTOCOL);
-
-        // Releasing the slot lets the next client be served normally.
-        drop(held);
-        serving.store(false, Ordering::SeqCst);
-        let third = UnixStream::connect(&path).unwrap();
+        // The first client claims level 1 and takes the single serving slot.
+        let held = claim(&path, 1);
         let served = receiver.recv().unwrap();
         assert!(serving.load(Ordering::SeqCst));
+        assert_eq!(HOLDER_LEVEL.load(Ordering::SeqCst), 1);
+        assert!(!evicting());
 
-        drop(first);
-        drop(second);
-        drop(third);
+        // An equal claim is refused: two clients that matter the same amount
+        // cannot each decide the other should stop.
+        let (equal, answer) = claim_and_read(&path, 1);
+        assert_eq!(answer["kind"], "busy");
+        assert_eq!(answer["holder_level"], 1);
+        assert_eq!(answer["evicting"], false);
+        assert!(!evicting());
+
+        // A higher claim takes the game, and is told to come back for it.
+        let (higher, answer) = claim_and_read(&path, 3);
+        assert_eq!(answer["kind"], "busy");
+        assert_eq!(answer["holder_level"], 1);
+        assert_eq!(answer["evicting"], true);
+        assert!(evicting());
+        assert_eq!(evicting_level(), 3);
+
+        // Anything that is not a claim is refused as such, not left to look
+        // like an adapter that stopped answering.
+        let mut stranger = UnixStream::connect(&path).unwrap();
+        let mut reader = BufReader::new(stranger.try_clone().unwrap());
+        stranger.write_all(b"{\"id\":1,\"operation\":\"status\"}\n").unwrap();
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&line).unwrap()["kind"],
+            "refused"
+        );
+
+        EVICTING_FOR.store(NO_CLAIM, Ordering::SeqCst);
+        drop(held);
+        drop(equal);
+        drop(higher);
+        drop(stranger);
         drop(served);
 
         // Free the slot, close the channel, then knock once: the greeter
@@ -1581,8 +2408,23 @@ mod tests {
         // the knock it would stay blocked in accept forever.
         serving.store(false, Ordering::SeqCst);
         drop(receiver);
-        let _ = UnixStream::connect(&path);
+        let knock = claim(&path, 0);
         let _ = greeter.join();
+        drop(knock);
         let _ = fs::remove_file(path);
+    }
+
+    fn claim(path: &Path, level: u8) -> UnixStream {
+        let mut stream = UnixStream::connect(path).unwrap();
+        write_json_line(&mut stream, &Claim::current(level)).unwrap();
+        stream
+    }
+
+    fn claim_and_read(path: &Path, level: u8) -> (UnixStream, Value) {
+        let stream = claim(path, level);
+        let mut line = String::new();
+        BufReader::new(&stream).read_line(&mut line).unwrap();
+        let answer = serde_json::from_str(&line).unwrap();
+        (stream, answer)
     }
 }
