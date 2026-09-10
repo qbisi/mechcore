@@ -14,6 +14,8 @@ use crate::battle::{
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
+use crate::economy::{Economy, MapSupply};
+use crate::ledger;
 use crate::{DocumentKind, terrains_from_grbr_round};
 use std::collections::BTreeMap;
 
@@ -122,6 +124,7 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         }
     }
 
+    let economy = Economy::embedded()?;
     let mut turns = Vec::with_capacity(match_rounds.len());
     for (position, round) in match_rounds.iter().copied().enumerate() {
         let offers = record.match_rounds.entries[position]
@@ -134,8 +137,8 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             state: State {
                 reinforce_offers: offers,
                 sides: StateSides {
-                    blue: side_state(grbr, &blue, position, Seat::Blue)?,
-                    red: side_state(grbr, &red, position, Seat::Red)?,
+                    blue: side_state(grbr, &economy, &blue, position, Seat::Blue)?,
+                    red: side_state(grbr, &economy, &red, position, Seat::Red)?,
                 },
             },
             actions: TurnActions {
@@ -171,6 +174,7 @@ fn battle_side(player: &record::PlayerRecord) -> BattleSide {
 
 fn side_state(
     grbr: &[u8],
+    economy: &Economy,
     player: &record::PlayerRecord,
     position: usize,
     seat: Seat,
@@ -230,7 +234,7 @@ fn side_state(
 
     Ok(SideState {
         reactor_core: data.reactor_core,
-        supply: data.supply + round_income(player, position),
+        supply: data.supply + round_income(economy, player, position),
         shop: ShopState {
             unlocked_units,
             buys_remaining: allowance(player, position, Allowance::Buy),
@@ -346,16 +350,24 @@ fn unfitted_equipment(data: &PlayerData) -> Vec<EquipmentItem> {
 ///
 /// The map's own row is recorded per player, so no map catalogue is consulted.
 /// An energy tower skill activated last round is paid for here.
-fn round_income(player: &record::PlayerRecord, position: usize) -> i32 {
-    let round = player.rounds.entries[position].round;
+fn round_income(economy: &Economy, player: &record::PlayerRecord, position: usize) -> i32 {
+    let entry = &player.rounds.entries[position];
+    let round = entry.round;
     if round < 1 {
         return 0;
     }
     let setup = &player.data;
-    let base = setup
-        .first_round_supply
-        .saturating_add((round - 1).saturating_mul(setup.round_supply_increase))
-        .min(setup.max_round_supply);
+    let officers = &entry.data.officers.values;
+    let base = ledger::round_income(
+        economy,
+        round,
+        officers,
+        MapSupply {
+            first_round_supply: setup.first_round_supply,
+            round_supply_increase: setup.round_supply_increase,
+            max_round_supply: setup.max_round_supply,
+        },
+    );
     let debt = position
         .checked_sub(1)
         .map(|previous| &player.rounds.entries[previous])
@@ -671,11 +683,12 @@ mod tests {
         ] {
             assert_eq!(state.supply, 0);
         }
-        for state in [
-            &battle.turns[1].state.sides.blue,
-            &battle.turns[1].state.sides.red,
-        ] {
-            assert_eq!(state.supply, 200);
+        // The map pays 200 in round 1, and red holds a supply officer that
+        // adds fifty to every round's income.
+        let opening = &battle.turns[1].state.sides;
+        assert_eq!(opening.blue.supply, 200);
+        assert_eq!(opening.red.supply, 250);
+        for state in [&opening.blue, &opening.red] {
             assert_eq!(state.shop.buys_remaining, 2);
             assert_eq!(state.shop.unlocks_remaining, 1);
         }

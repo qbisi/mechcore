@@ -318,6 +318,32 @@ owns it:
 The last round has no next snapshot to read the shop allowance from, so it falls
 back to the shipped constants, two and one.
 
+### The supply ledger
+
+Converting also checks what it wrote. Two consecutive states and the decisions
+between them have to satisfy one identity:
+
+```text
+supply(round + 1) = supply(round) - spent(round) + income(round + 1)
+```
+
+Spending prices the turn's actions against the tables in `config/`: what a unit
+costs to buy, to unlock and to raise a level, what a technology, a blueprint, a
+tower level, an energy tower skill and a reinforcement card cost, and how the
+officers a side holds change all of those. Unit reinforcement cards keep their
+own table, because what they hand out matters as much as what they cost. Income is the map's row plus what
+those officers add, less what a Rapid Supply owes from the round before.
+
+Not every round can be decided. A side holding Field Recovery, or an officer
+that pays a bounty for destroying a giant, is paid by the fight in an amount no
+document records, and 124 of the 180 round transitions of the local set are
+exposed that way. Of the 56 that are not, 52 close. The four that do not are
+each short by a multiple of fifty in an early round, which is the thread to pull
+next.
+
+The check is reported, never enforced: a battle converts whether or not its
+ledger closes, because a side the fight pays cannot be made to.
+
 Two fields are always empty and refused rather than guessed when they could not
 be. `airdrop_shields` has no recorded source, so a panel holding commander skill
 `800001` is an error instead of a silent omission. `travelling` has none either,

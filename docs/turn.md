@@ -171,7 +171,14 @@ The adapter installs state through 41 `MAD_*` Training Ground commands, and only
 taking a legitimate decision are therefore different capabilities, and the
 second one does not exist yet.
 
-The transition check needs a card catalog, which a layout never needed. Card
-effects come from `unitReinforceDatas` and `advanceTeamDatas`; without them a
-`ChooseReinforceItem` that grants two units looks like state appearing with no
-action behind it.
+The transition check needs a card catalog, which a layout never needed. Without
+one a `ChooseReinforceItem` that grants two units looks like state appearing
+with no action behind it.
+
+Half of that catalog now exists.
+[`config/unit_reinforcements.yaml`](../config/unit_reinforcements.yaml) states,
+for each of the 519 unit cards a standard match can offer, which unit it hands
+out, how many squads of it, at what level, and from which round. No card in
+this build mixes two kinds of unit. What is still missing is the opening
+advance team, whose own units a converter would have to read the same way, and
+the cards that grant a commander skill or an equipment rather than units.

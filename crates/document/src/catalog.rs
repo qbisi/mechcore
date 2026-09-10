@@ -372,3 +372,11 @@ pub(crate) const fn battle_skill_spec(
         tower_exclusion_radius,
     }
 }
+
+/// The native unit ID a public type name denotes.
+pub(crate) fn unit_id_from_type(type_name: &str) -> Option<i32> {
+    match resolve_unit_type(type_name)?.native {
+        NativeFormation::Unit(id) => Some(id),
+        NativeFormation::Construction(_) | NativeFormation::Contraption(_) => None,
+    }
+}
