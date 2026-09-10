@@ -54,15 +54,8 @@ sides:
       officers: [10002, 20003, 30201]
       units: [10202, 10402]
 
-    research_center:
-      strength_level: 2
-      attack_level: 2
-      defense_level: 1
-
-    energy_tower:
-      strength_level: 1
-      range_enhancement: true
-      movement_enhancement: true
+    energy_tower_skills: [5, 6]
+    tower_strengthen_levels: [1, 2]
 
     formations:
       - type: marksman
@@ -99,14 +92,8 @@ sides:
     techs:
       officers: []
       units: []
-    research_center:
-      strength_level: 0
-      attack_level: 0
-      defense_level: 0
-    energy_tower:
-      strength_level: 0
-      range_enhancement: false
-      movement_enhancement: false
+    energy_tower_skills: []
+    tower_strengthen_levels: []
     formations:
       - type: marksman
         index: 0
@@ -130,10 +117,14 @@ in its defined order:
 | Collection | Order |
 | --- | --- |
 | `formations`, `constructions`, `contraptions` | ascending `index` |
-| `techs.officers`, `techs.units` | ascending ID |
+| `techs.officers`, `techs.units`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
 | `battle_skills` | as written: release order is what it records |
+
+`tower_strengthen_levels` is absent from that table because its order is its
+meaning: it is keyed by tower position. An all-zero list is equivalent to
+omitting it, and normal form omits it.
 
 `airdrop_shields` can be reordered because the game sorts both of its shield
 lists by position at fight start, so a retained shield's position in the list is
@@ -323,12 +314,9 @@ when omitted:
 - Omitting `techs` is equivalent to setting both nested arrays to `[]`.
 - `techs.officers` defaults to `[]`.
 - `techs.units` defaults to `[]`.
-- `research_center.strength_level` defaults to `0`.
-- `research_center.attack_level` defaults to `0`.
-- `research_center.defense_level` defaults to `0`.
-- `energy_tower.strength_level` defaults to `0`.
-- `energy_tower.range_enhancement` defaults to `false`.
-- `energy_tower.movement_enhancement` defaults to `false`.
+- `energy_tower_skills` defaults to `[]`.
+- `tower_strengthen_levels` defaults to `[]`, which puts every tower at level
+  `0`.
 - `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
 - `airdrop_shields` defaults to `[]`.
@@ -386,8 +374,10 @@ not themselves Officer modifiers. Their resulting state belongs to
 runtime Officer catalog to detect derived state and reject duplicate
 declarations.
 
-Research Center attack and defense levels own their native Officer products.
-Those derived Officer IDs must not also appear in `techs.officers`.
+The Officers the Research Center's two enhancement chains hand out, `20310`,
+`20311`, `20300` and `20301`, belong here like any other Officer. A layout has
+no separate attack or defense level, because the Officer is the whole of what
+those levels do to a fight.
 
 The deterministic implementation must add an Officer by ID through the native
 Training Ground test action and verify the resulting `OfficerManager` entry.
@@ -414,68 +404,71 @@ represent an acquired but inactive technology. IDs must be unique and carry no
 order semantics, so canonical layouts sort them ascending; that sorted order is
 then the deterministic order of native add and activate operations.
 
-### `research_center`
+### `energy_tower_skills`
 
 ```yaml
-research_center:
-  strength_level: 2
-  attack_level: 2
-  defense_level: 1
+energy_tower_skills: [5, 6]
 ```
 
-The Research Center contains its fixed building-strengthening level and two
-persistent, side-wide combat enhancements:
+`energy_tower_skills` lists the Energy Tower skills this round has activated,
+by native ID, ascending. Two of them change what a fight does:
 
-| Field | Level 0 | Level 1 | Level 2 |
-| --- | --- | --- | --- |
-| `attack_level` | no enhancement | attack +12% | attack +36% |
-| `defense_level` | no enhancement | life +15% | life +45% |
+| ID | Effect |
+| --- | --- |
+| `5` | ranged-unit attack range +15 m |
+| `6` | all-unit movement speed +3 m/s |
 
-`strength_level` must be a non-negative integer supported by the runtime tower
-catalog. The executor resolves the Research Center to exactly one native
-building-manager entry, strengthens it one level at a time, and verifies the
-final level. A transient building-manager index never appears in the layout.
+Only those two may appear. The tower's other skills buy supply or discount a
+round's shopping, so they change a [state](state.md) and not a fight, and a
+projection drops them rather than recording them here.
 
-`attack_level` and `defense_level` must be integers in `0..=2`. Native
-blueprint IDs are adapter details and do not appear in the layout. For the
-reference game data, the execution mapping is:
+Unlike `tower_strengthen_levels`, these effects are cleared at the next
+deployment and may be activated again in each round. The staged executor
+activates each listed skill in the activation round, and refuses a layout whose
+tower already holds a skill the layout does not list.
 
-- attack level 1: activate blueprint `4`;
-- attack level 2: activate blueprints `4`, then `401`;
-- defense level 1: activate blueprint `5`;
-- defense level 2: activate blueprints `5`, then `501`.
+This field says the same thing the state field of the same name says, in the
+same shape, so projecting a state onto a layout copies it rather than
+translating it.
 
-Research products that grant an Officer or commander skill are excluded from
-this definition. Those objects can be added directly through Training Ground
-capabilities and belong to `techs.officers` or `battle_skills`.
-
-### `energy_tower`
+### `tower_strengthen_levels`
 
 ```yaml
-energy_tower:
-  strength_level: 1
-  range_enhancement: true
-  movement_enhancement: true
+tower_strengthen_levels: [1, 2]
 ```
 
-The Energy Tower contains its fixed building-strengthening level and two
-side-wide effects for the current round:
+`tower_strengthen_levels` holds one strengthening level per fixed tower, keyed
+by the tower's position in `BuildingManager.buildings`. That is the key
+`PAD_StrengthenTower.Index` uses and the key the state field of the same name
+uses, so the two documents say this the same way.
 
-| Field | `false` | `true` |
+The list is either empty, which puts every tower at level `0`, or exactly two
+entries long. Each level is an integer in `0..=4`, the four levels
+[`config/economy.yaml`](../config/economy.yaml) prices. The executor
+strengthens a tower one level at a time and verifies the final level.
+
+Position `0` is the Research Center and position `1` the Energy Tower.
+[`docs/state.md`](state.md) gives the measurement that settles it. The adapter
+still checks each position's native building kind on every apply and every
+capture and refuses a scene that contradicts it, so a build that reorders its
+buildings fails loudly rather than strengthening the wrong tower quietly.
+
+The Research Center's two persistent enhancements are not a field of their own.
+They are Officers, and they live in `techs.officers` with every other Officer:
+
+| Enhancement | Officer | Effect |
 | --- | --- | --- |
-| `range_enhancement` | no effect | ranged-unit attack range +15 m |
-| `movement_enhancement` | no effect | all-unit movement speed +3 m/s |
+| attack 1 | `20310` | attack +12% |
+| attack 2 | `20311` | attack +36% |
+| defense 1 | `20300` | life +15% |
+| defense 2 | `20301` | life +45% |
 
-`strength_level` must be a non-negative integer supported by the runtime tower
-catalog. The executor resolves the Energy Tower to exactly one native
-building-manager entry, strengthens it one level at a time, and verifies the
-final level. A transient building-manager index never appears in the layout.
-
-For the reference game data, `range_enhancement: true` activates Energy Tower
-skill `5`, while `movement_enhancement: true` activates skill `6`. The IDs are
-adapter details. Unlike `strength_level`, these two effects are cleared at the
-next deployment and may be activated again in each round. The staged executor
-applies the complete Energy Tower state in the activation round.
+A native match reaches them by researching blueprints `4`, `401`, `5` and
+`501`, which is what a [state](state.md) records. A layout carries the Officer
+the blueprint hands out, because that Officer is the whole of what a fight sees,
+and a level of a chain is the second name for a thing `techs.officers` already
+had a name for. Each chain contributes at most one Officer: its second level
+replaces its first rather than joining it.
 
 ### `formations`
 
@@ -993,11 +986,9 @@ The adapter now has the operations required for deterministic `techs`
 application: stable Officer IDs are validated, added through `MAD_AddOfficer`,
 and read back through `OfficerManager`; unit technology ownership is decoded
 statically, checked against the runtime catalog, added, activated, and read
-back through `TechnologyManager`. Research Center blueprints, Energy Tower
-effects, tower strengthening, all supported formations, constructions, and
-contraptions, side
-switching, and field-state clearing use their corresponding native actions and
-readbacks.
+back through `TechnologyManager`. Energy Tower skills, tower strengthening, all
+supported formations, constructions, and contraptions, side switching, and
+field-state clearing use their corresponding native actions and readbacks.
 
 `choose_opening` and `choose_reinforcement` remain normal-game selection
 operations. They accept transient candidate indices and must not be used to
@@ -1008,16 +999,16 @@ materialize `techs.officers`.
 The `apply_layout` operation accepts the layout object as its complete
 `arguments` value. Its current implementation supports units with optional
 equipment and travelling state, the four ordinary opening constructions, all
-three contraptions, both fixed-tower strengthening levels, Research Center
-attack/defense levels, Energy Tower range/movement enhancements, Officers,
+three contraptions, both fixed-tower strengthening levels, the two
+fight-visible Energy Tower skills, Officers,
 active unit technologies, and every position-targeted `battle_skills` type in
 the build-2227 index. The compiler applies this state as one fail-closed adapter
 request:
 
 1. require round-one Training Ground deployment;
 2. compile the complete layout and resolve every Officer, unit technology,
-   formation, construction, contraption, fixed tower, required blueprint, Energy Tower skill, and battle
-   skill through each side's runtime catalog before mutation;
+   formation, construction, contraption, fixed tower, Energy Tower skill, and
+   battle skill through each side's runtime catalog before mutation;
 3. clear both sides in round 1 without placing combat formations;
 4. start each earlier empty round and wait for the game to advance it naturally,
    polling authoritative status until the next deployment is stable;
@@ -1104,10 +1095,9 @@ were cleared and their manager count read back as zero before placement.
 state. Sledgehammer, Marksman, Fang, Wasp, and Arclight receive their respective
 Range Enhancement technologies (`10213`, `10202`, `10209`, `10206`, and
 `10215`), and red receives Improved Wasp Officer `30602`. Blue strengthens its
-Research Center to level 2 and activates attack level 2 plus defense level 1;
-red strengthens its Energy Tower to level 1 and activates both range and
-movement enhancements. The public semantic levels are compiled to native
-blueprint and skill IDs only inside the adapter. Blue releases `missile_strike`
+Research Center to level 2 and holds attack Officer `20311` and defense Officer
+`20300`; red strengthens its Energy Tower to level 1 and activates both Energy
+Tower skills. Blue releases `missile_strike`
 at world position `(55,60)`, the center of red's local `(-55,-60)` front Fang.
 Red releases `mobile_beacon` at local positions `(-55,-60)`, `(-105,-90)`, and
 `(-105,20)`, which compile to world positions `(55,60)`, `(105,90)`, and
@@ -1135,9 +1125,8 @@ The following names are intentionally absent:
 
 - `unit_modifications`: unit modifications are native Officer entries and live
   in `techs.officers`.
-- `research_blueprints`: the public layout uses semantic attack and defense
-  levels instead of native blueprint IDs.
-- `tower_strengthening`: each fixed tower owns its `strength_level` directly.
+- `research_blueprints`: a blueprint's fight-visible product is an Officer, and
+  it lives in `techs.officers`.
 - `reactor_core` and `supply`: resource provisioning is an executor concern.
 - `opening_techs` and `reinforcement_techs`: Officer acquisition source does
   not change the resulting state in `techs.officers`.

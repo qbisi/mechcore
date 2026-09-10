@@ -265,8 +265,8 @@ layout 必须以一个已完整闭合的父 layout 为基础，只改变一个�
    layout。
 5. **P4：其它 Formation 类型**。依次加入 Construction、shield、interceptor 和
    missile，先闭合其显性状态和生命周期，再研究与 Unit 的交互。
-6. **P5：Side 与战场修饰**。依次研究 `research_center`、`energy_tower`、Officer、单位
-   technology 和 `battle_skills`。纯数值修饰先于改变实体、事件顺序或生命周期的机制。
+6. **P5：Side 与战场修饰**。依次研究 `tower_strengthen_levels`、
+   `energy_tower_skills`、Officer、单位 technology 和 `battle_skills`。纯数值修饰先于改变实体、事件顺序或生命周期的机制。
 7. **P6：组合回归**。仅组合已经单独闭合的字段，用 pairwise 和已知机制交互选择场景，
    不对全部 layout 值做无界笛卡尔积。
 

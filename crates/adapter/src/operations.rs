@@ -1,9 +1,13 @@
 use crate::il2cpp::{Api, Error as Il2CppError, Object, argument, object_argument};
 use crate::layout::{
-    self, BattleSkill, EnergyTower, NativeFormation, Placement, Position as LayoutPosition,
-    ResearchCenter, SidePlan, Techs, Terrain,
+    self, BattleSkill, NativeFormation, Placement, Position as LayoutPosition, SidePlan, Techs,
+    Terrain,
 };
 use crate::runtime::Runtime;
+use mechcore_document::{
+    ENERGY_TOWER_POSITION, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, MAX_TOWER_STRENGTHEN_LEVEL,
+    RESEARCH_CENTER_POSITION,
+};
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -52,8 +56,6 @@ struct ContraptionReleaseBaseline {
 
 const ENERGY_TOWER_KIND: i32 = 1;
 const RESEARCH_CENTER_KIND: i32 = 2;
-const RANGE_ENHANCEMENT_SKILL: i32 = 5;
-const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
 const DEFAULT_TRAINING_GROUND_MAP_ID: i32 = 1021;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
@@ -1043,14 +1045,9 @@ fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<()
         }
     }
     validate_tech_catalog(runtime, config, &side.techs)?;
-    resolve_core_tower(runtime, RESEARCH_CENTER_KIND)?;
-    resolve_core_tower(runtime, ENERGY_TOWER_KIND)?;
-    validate_research_blueprint_catalog(runtime, &side.research_center)?;
-    if side.energy_tower.range_enhancement {
-        require_energy_tower_skill(runtime, RANGE_ENHANCEMENT_SKILL)?;
-    }
-    if side.energy_tower.movement_enhancement {
-        require_energy_tower_skill(runtime, MOVEMENT_ENHANCEMENT_SKILL)?;
+    validate_fixed_tower_positions(runtime)?;
+    for &skill in &side.energy_tower_skills {
+        require_energy_tower_skill(runtime, skill)?;
     }
     validate_battle_skill_catalog(runtime, &side.battle_skills)?;
     Ok(())
@@ -1250,8 +1247,14 @@ fn apply_side_layout_stage(
         LayoutExecutionStage::Prepare => unreachable!("prepare returned before side application"),
         LayoutExecutionStage::Activation => json!({
             "techs": apply_techs(runtime, current, &side.techs)?,
-            "research_center": apply_research_center(runtime, &side.research_center)?,
-            "energy_tower": apply_energy_tower(runtime, &side.energy_tower)?,
+            "energy_tower_skills": apply_energy_tower_skills(
+                runtime,
+                &side.energy_tower_skills,
+            )?,
+            "tower_strengthen_levels": apply_tower_strengthen_levels(
+                runtime,
+                &side.tower_strengthen_levels,
+            )?,
             "formations": formations,
             "constructions": constructions,
             "contraptions": contraptions,
@@ -1975,70 +1978,57 @@ fn read_unit_technology(
     )?))
 }
 
-fn apply_research_center(
+/// Applies each fixed tower's strengthening level, keyed by its position.
+///
+/// A layout keys `tower_strengthen_levels` the way `PAD_StrengthenTower.Index`
+/// does, so the position in the list is the building-manager index to act on.
+/// An empty list leaves every tower where a fresh scene puts it, at level 0.
+fn apply_tower_strengthen_levels(
     runtime: &Runtime,
-    desired: &ResearchCenter,
+    levels: &[i32],
 ) -> Result<Value, OperationError> {
-    let manager_index = resolve_core_tower(runtime, RESEARCH_CENTER_KIND)?;
-    apply_tower_strength(
-        runtime,
-        manager_index,
-        desired.strength_level,
-        "research_center",
-    )?;
-
-    let blueprint_ids = research_blueprint_ids(desired)?;
-    let mut actions = Vec::with_capacity(blueprint_ids.len());
-    for &id in &blueprint_ids {
-        let (active, researching) = research_blueprint(runtime, id)
-            .map_err(|error| error.context("apply research_center enhancement"))?;
-        if !active || researching {
-            return Err(OperationError::Rejected(format!(
-                "research_center blueprint {id} did not become active immediately"
-            )));
-        }
-        actions.push(json!({"blueprint_id": id, "active": true}));
+    validate_fixed_tower_positions(runtime)?;
+    for (position, &level) in levels.iter().enumerate() {
+        let index = i32::try_from(position).map_err(|_| {
+            OperationError::InvalidArguments("tower position does not fit an index".into())
+        })?;
+        apply_tower_strength(runtime, index, level, &format!("tower {position}"))?;
     }
-    for id in [4, 401, 5, 501] {
-        if !blueprint_ids.contains(&id) && blueprint_is_active_or_researching(runtime, id)? {
-            return Err(OperationError::Rejected(format!(
-                "undeclared research_center blueprint {id} is active or researching"
-            )));
-        }
-    }
-    Ok(json!({
-        "strength_level": desired.strength_level,
-        "attack_level": desired.attack_level,
-        "defense_level": desired.defense_level,
-        "blueprints": actions
-    }))
+    Ok(json!(levels))
 }
 
-fn apply_energy_tower(runtime: &Runtime, desired: &EnergyTower) -> Result<Value, OperationError> {
-    let manager_index = resolve_core_tower(runtime, ENERGY_TOWER_KIND)?;
-    apply_tower_strength(
-        runtime,
-        manager_index,
-        desired.strength_level,
-        "energy_tower",
-    )?;
-    apply_energy_tower_enhancement(
-        runtime,
-        RANGE_ENHANCEMENT_SKILL,
-        desired.range_enhancement,
-        "range_enhancement",
-    )?;
-    apply_energy_tower_enhancement(
-        runtime,
-        MOVEMENT_ENHANCEMENT_SKILL,
-        desired.movement_enhancement,
-        "movement_enhancement",
-    )?;
-    Ok(json!({
-        "strength_level": desired.strength_level,
-        "range_enhancement": desired.range_enhancement,
-        "movement_enhancement": desired.movement_enhancement
-    }))
+/// Activates the Energy Tower skills a round released, and only those.
+///
+/// A layout carries the skills whose effect a fight can see, so each of them is
+/// either activated here or required to be inactive. The rest of the tower's
+/// skills buy supply or discount shopping, which no layout describes.
+fn apply_energy_tower_skills(runtime: &Runtime, desired: &[i32]) -> Result<Value, OperationError> {
+    for id in FIGHT_VISIBLE_ENERGY_TOWER_SKILLS {
+        apply_energy_tower_enhancement(runtime, id, desired.contains(&id))?;
+    }
+    Ok(json!(desired))
+}
+
+/// Checks that each fixed tower sits where a layout says its level is keyed.
+///
+/// `docs/state.md` measures the mapping: position 0 is the Research Center and
+/// position 1 the Energy Tower. It is still checked here on every apply, so a
+/// build that reorders its buildings fails loudly rather than silently
+/// strengthening the wrong tower.
+fn validate_fixed_tower_positions(runtime: &Runtime) -> Result<(), OperationError> {
+    for (kind, position) in [
+        (ENERGY_TOWER_KIND, ENERGY_TOWER_POSITION),
+        (RESEARCH_CENTER_KIND, RESEARCH_CENTER_POSITION),
+    ] {
+        let index = resolve_core_tower(runtime, kind)?;
+        let expected = i32::try_from(position).expect("a tower position fits an index");
+        if index != expected {
+            return Err(OperationError::InvalidState(format!(
+                "core tower kind {kind} sits at building-manager position {index}, and a layout keys its level by {expected}"
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn apply_tower_strength(
@@ -2062,7 +2052,6 @@ fn apply_energy_tower_enhancement(
     runtime: &Runtime,
     skill_id: i32,
     desired: bool,
-    name: &str,
 ) -> Result<(), OperationError> {
     let skill = require_energy_tower_skill(runtime, skill_id)?;
     let before = runtime
@@ -2071,116 +2060,17 @@ fn apply_energy_tower_enhancement(
     if desired {
         if before {
             return Err(OperationError::Rejected(format!(
-                "energy_tower {name} was already active"
+                "energy_tower skill {skill_id} was already active"
             )));
         }
         activate_energy_tower_skill(runtime, skill_id)
-            .map_err(|error| error.context(&format!("activate energy_tower {name}")))?;
+            .map_err(|error| error.context(&format!("activate energy_tower skill {skill_id}")))?;
     } else if before {
         return Err(OperationError::Rejected(format!(
-            "undeclared energy_tower {name} is active"
+            "undeclared energy_tower skill {skill_id} is active"
         )));
     }
     Ok(())
-}
-
-fn research_blueprint_ids(desired: &ResearchCenter) -> Result<Vec<i32>, OperationError> {
-    let mut ids = Vec::with_capacity(4);
-    match desired.attack_level {
-        0 => {}
-        1 => ids.push(4),
-        2 => ids.extend([4, 401]),
-        level => {
-            return Err(OperationError::InvalidArguments(format!(
-                "research_center attack_level {level} is outside 0..=2"
-            )));
-        }
-    }
-    match desired.defense_level {
-        0 => {}
-        1 => ids.push(5),
-        2 => ids.extend([5, 501]),
-        level => {
-            return Err(OperationError::InvalidArguments(format!(
-                "research_center defense_level {level} is outside 0..=2"
-            )));
-        }
-    }
-    Ok(ids)
-}
-
-fn validate_research_blueprint_catalog(
-    runtime: &Runtime,
-    desired: &ResearchCenter,
-) -> Result<(), OperationError> {
-    validate_blueprint_chain(runtime, 4, desired.attack_level, 401)?;
-    validate_blueprint_chain(runtime, 5, desired.defense_level, 501)
-}
-
-fn validate_blueprint_chain(
-    runtime: &Runtime,
-    root_id: i32,
-    level: i32,
-    expected_successor: i32,
-) -> Result<(), OperationError> {
-    if level == 0 {
-        return Ok(());
-    }
-    let root = require_blueprint(runtime, root_id)?;
-    if level == 2 {
-        let successor = runtime
-            .api
-            .invoke_value::<i32>(root, "GetNextID", &mut [])?;
-        if successor != expected_successor {
-            return Err(OperationError::InvalidState(format!(
-                "research_center blueprint {root_id} successor is {successor}, expected {expected_successor}"
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn require_blueprint(runtime: &Runtime, mut id: i32) -> Result<*mut Object, OperationError> {
-    let current = require_training_deploying(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let manager = runtime
-        .api
-        .invoke(controller, "GetBlueprintManager", &mut [])?;
-    let blueprint = runtime
-        .api
-        .invoke(manager, "GetBlueprint", &mut [argument(&mut id)])?;
-    if blueprint.is_null() {
-        Err(OperationError::InvalidArguments(format!(
-            "research_center blueprint {id} is absent from the runtime catalog"
-        )))
-    } else {
-        Ok(blueprint)
-    }
-}
-
-fn blueprint_is_active_or_researching(
-    runtime: &Runtime,
-    mut id: i32,
-) -> Result<bool, OperationError> {
-    let current = require_training_deploying(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let manager = runtime
-        .api
-        .invoke(controller, "GetBlueprintManager", &mut [])?;
-    let blueprint = runtime
-        .api
-        .invoke(manager, "GetBlueprint", &mut [argument(&mut id)])?;
-    if blueprint.is_null() {
-        return Ok(false);
-    }
-    let active = runtime
-        .api
-        .invoke_value::<bool>(blueprint, "IsActive", &mut [])?;
-    let researching =
-        runtime
-            .api
-            .invoke_value::<bool>(manager, "IsResearching", &mut [argument(&mut id)])?;
-    Ok(active || researching)
 }
 
 fn require_energy_tower_skill(
@@ -2928,10 +2818,10 @@ fn strengthen_tower(
     mut manager_index: i32,
     target_level: i32,
 ) -> Result<i32, OperationError> {
-    if !(0..=2).contains(&target_level) {
-        return Err(OperationError::InvalidArguments(
-            "target_level must be 0..=2".into(),
-        ));
+    if !(0..=MAX_TOWER_STRENGTHEN_LEVEL).contains(&target_level) {
+        return Err(OperationError::InvalidArguments(format!(
+            "target_level must be 0..={MAX_TOWER_STRENGTHEN_LEVEL}"
+        )));
     }
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
@@ -3294,55 +3184,6 @@ fn verify_contraption_readback(
     }
 }
 
-fn research_blueprint(runtime: &Runtime, mut id: i32) -> Result<(bool, bool), OperationError> {
-    let current = require_training_deploying(runtime)?;
-    let controller = player_controller(runtime, current)?;
-    let manager = runtime
-        .api
-        .invoke(controller, "GetBlueprintManager", &mut [])?;
-    let blueprint = runtime
-        .api
-        .invoke(manager, "GetBlueprint", &mut [argument(&mut id)])?;
-    if blueprint.is_null() {
-        return Err(OperationError::InvalidArguments(
-            "blueprint_id was not found".into(),
-        ));
-    }
-    let before_active = runtime
-        .api
-        .invoke_value::<bool>(blueprint, "IsActive", &mut [])?;
-    let before_researching =
-        runtime
-            .api
-            .invoke_value::<bool>(manager, "IsResearching", &mut [argument(&mut id)])?;
-    if before_active || before_researching {
-        return Err(OperationError::Rejected(
-            "blueprint is already active or researching".into(),
-        ));
-    }
-    let action = core_action(runtime.api, "PAD_ActiveBlueprint")?;
-    runtime
-        .api
-        .invoke_void(action, "set_ID", &mut [argument(&mut id)])?;
-    check_action(runtime.api, controller, action)?;
-    perform_sync(runtime.api, controller, action)?;
-    let active = runtime
-        .api
-        .invoke_value::<bool>(blueprint, "IsActive", &mut [])?;
-    let researching =
-        runtime
-            .api
-            .invoke_value::<bool>(manager, "IsResearching", &mut [argument(&mut id)])?;
-    if !active && !researching {
-        return Err(OperationError::Rejected(
-            "blueprint state did not change".into(),
-        ));
-    }
-    Ok((active, researching))
-}
-
-/// The layout's declared deployment index, which is the object's cross-round
-/// identity rather than a position in the declaration list.
 fn declared_index(placement: &Placement, kind: &str) -> Result<i32, OperationError> {
     placement.index.ok_or_else(|| {
         OperationError::InvalidArguments(format!(

@@ -6,8 +6,7 @@ sides:
     techs:
       units: [110211]
 
-    energy_tower:
-      range_enhancement: true
+    energy_tower_skills: [5]
 
     constructions:
       - type: rapid_fire_turret

@@ -4,18 +4,11 @@ round: 2
 sides:
   blue:
     techs:
-      officers: [32101]
+      officers: [20300, 20311, 32101]
       units: [1802, 110211]
 
-    research_center:
-      strength_level: 2
-      attack_level: 2
-      defense_level: 1
-
-    energy_tower:
-      strength_level: 1
-      range_enhancement: true
-      movement_enhancement: true
+    energy_tower_skills: [5, 6]
+    tower_strengthen_levels: [2, 1]
 
     formations:
       - type: arclight

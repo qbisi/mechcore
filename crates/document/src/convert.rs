@@ -650,6 +650,49 @@ mod tests {
         battle_from_grbr(&std::fs::read(TUFF).expect("tracked GRBR fixture")).unwrap()
     }
 
+    /// The one player-round that names the two fixed towers apart.
+    ///
+    /// `tests/layouts/tuff-replay-round-7.yaml` was captured from the game while
+    /// this replay played, and its towers were read by `BuildingData.BuildingType`
+    /// rather than by position. The record keys the same two levels by
+    /// building-manager position. Red bought both of its strengthenings in round
+    /// 5, so the round's start and its deployment end hold the same levels and
+    /// the two documents are comparing one fact. Agreement here is what fixes
+    /// `RESEARCH_CENTER_POSITION` at 0 and `ENERGY_TOWER_POSITION` at 1.
+    #[test]
+    fn the_captured_layout_keys_its_towers_the_way_the_record_does() {
+        let battle = tuff();
+        let round = battle
+            .turns
+            .iter()
+            .find(|turn| turn.round == 7)
+            .expect("the replay reaches round 7");
+        let bytes = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml")
+            .expect("tracked layout fixture");
+        let layout = crate::layout::parse_yaml(&bytes).expect("a valid layout");
+        // Normal form omits an all-zero list, which the state still writes.
+        let stated = |levels: &[i32]| {
+            if levels.iter().all(|level| *level == 0) {
+                Vec::new()
+            } else {
+                levels.to_vec()
+            }
+        };
+        assert_eq!(
+            stated(&round.state.sides.red.tower_strengthen_levels),
+            layout.sides.red.tower_strengthen_levels
+        );
+        assert_eq!(
+            stated(&round.state.sides.blue.tower_strengthen_levels),
+            layout.sides.blue.tower_strengthen_levels
+        );
+        assert_eq!(
+            layout.sides.red.tower_strengthen_levels[crate::ENERGY_TOWER_POSITION],
+            2,
+            "the live capture put level 2 on the energy tower"
+        );
+    }
+
     #[test]
     fn hoists_what_every_round_shares() {
         let battle = tuff();

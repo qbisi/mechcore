@@ -9,9 +9,10 @@ use crate::catalog::{
     resolve_construction_type, resolve_contraption_type, resolve_unit_type,
 };
 use crate::layout::{
-    BattleSkillDefinition, ContraptionPlacement, EnergyTower, Formation, Layout, OIL_TERRAIN_GRID_MASK,
-    OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, Position, ResearchCenter, Side, StaticPlacement,
-    Techs, Terrain, TerrainType, require_layout_kind,
+    BattleSkillDefinition, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation,
+    Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK, OIL_TERRAIN_GRID_SIZE,
+    OIL_TERRAIN_POINT_COUNT, Position, Side, StaticPlacement, TOWER_COUNT, Techs, Terrain,
+    TerrainType, require_layout_kind,
 };
 use serde_json::Value;
 #[derive(Debug, PartialEq, Eq)]
@@ -38,8 +39,8 @@ pub struct Placement {
 #[derive(Debug, PartialEq, Eq)]
 pub struct SidePlan {
     pub techs: Techs,
-    pub research_center: ResearchCenter,
-    pub energy_tower: EnergyTower,
+    pub energy_tower_skills: Vec<i32>,
+    pub tower_strengthen_levels: Vec<i32>,
     pub formations: Vec<Placement>,
     pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
@@ -164,8 +165,8 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     validate_side_modifiers(side_name, &side)?;
     let Side {
         techs,
-        research_center,
-        energy_tower,
+        energy_tower_skills,
+        tower_strengthen_levels,
         formations,
         constructions,
         contraptions,
@@ -181,8 +182,8 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     Ok(SidePlan {
         techs,
-        research_center,
-        energy_tower,
+        energy_tower_skills,
+        tower_strengthen_levels,
         formations,
         constructions,
         contraptions,
@@ -1020,19 +1021,32 @@ fn validate_unique_positive_ids(side_name: &str, field: &str, ids: &[i32]) -> Re
 }
 
 fn validate_side_modifiers(side_name: &str, side: &Side) -> Result<(), String> {
-    let research = &side.research_center;
-    if !(0..=2).contains(&research.strength_level)
-        || !(0..=2).contains(&research.attack_level)
-        || !(0..=2).contains(&research.defense_level)
-    {
+    let skills = &side.energy_tower_skills;
+    for (index, &skill) in skills.iter().enumerate() {
+        if !FIGHT_VISIBLE_ENERGY_TOWER_SKILLS.contains(&skill) {
+            return Err(format!(
+                "side {side_name} energy_tower_skills[{index}] is {skill}, which no fight can see: a layout carries {FIGHT_VISIBLE_ENERGY_TOWER_SKILLS:?}"
+            ));
+        }
+        if skills[..index].contains(&skill) {
+            return Err(format!(
+                "side {side_name} energy_tower_skills contains duplicate ID {skill}"
+            ));
+        }
+    }
+
+    let levels = &side.tower_strengthen_levels;
+    if !levels.is_empty() && levels.len() != TOWER_COUNT {
         return Err(format!(
-            "side {side_name} research_center levels must each be 0..=2"
+            "side {side_name} tower_strengthen_levels must hold {TOWER_COUNT} levels, one per fixed tower, or none at all"
         ));
     }
-    if !(0..=2).contains(&side.energy_tower.strength_level) {
-        return Err(format!(
-            "side {side_name} energy_tower strength_level must be 0..=2"
-        ));
+    for (index, &level) in levels.iter().enumerate() {
+        if !(0..=MAX_TOWER_STRENGTHEN_LEVEL).contains(&level) {
+            return Err(format!(
+                "side {side_name} tower_strengthen_levels[{index}] must be 0..={MAX_TOWER_STRENGTHEN_LEVEL}"
+            ));
+        }
     }
     Ok(())
 }

@@ -8,20 +8,16 @@ sides:
       officers:
       - 20005
       - 20023
+      - 20300
+      - 20310
       - 32701
       units:
       - 10204
       - 10207
       - 10220
       - 180931
-    research_center:
-      strength_level: 0
-      attack_level: 1
-      defense_level: 1
-    energy_tower:
-      strength_level: 0
-      range_enhancement: true
-      movement_enhancement: false
+    energy_tower_skills:
+    - 5
     formations:
     - type: vortex
       index: 1
@@ -131,17 +127,16 @@ sides:
       officers:
       - 10002
       - 20023
+      - 20300
+      - 20310
       units:
       - 924
       - 11024
-    research_center:
-      strength_level: 0
-      attack_level: 1
-      defense_level: 1
-    energy_tower:
-      strength_level: 2
-      range_enhancement: true
-      movement_enhancement: false
+    energy_tower_skills:
+    - 5
+    tower_strengthen_levels:
+    - 0
+    - 2
     formations:
     - type: crawler
       index: 0

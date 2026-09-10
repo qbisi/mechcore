@@ -4,8 +4,9 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_document::{
-    BattleSkillDefinition, ContraptionPlacement, DocumentKind, EnergyTower, Formation, Layout,
-    Position, ResearchCenter, Side, Sides, StaticPlacement, Techs, Terrain as LayoutTerrain,
+    BattleSkillDefinition, ContraptionPlacement, DocumentKind, ENERGY_TOWER_POSITION,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, Position, RESEARCH_CENTER_POSITION, Side,
+    Sides, StaticPlacement, Techs, Terrain as LayoutTerrain,
     TerrainType as LayoutTerrainType, battle_skill_type_from_id, canonical_embedded_yaml,
     construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
@@ -40,8 +41,15 @@ const CAPTURE_FRAME_RATE: i32 = 20;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
 const ENERGY_TOWER_KIND: i32 = 1;
 const RESEARCH_CENTER_KIND: i32 = 2;
-const RANGE_ENHANCEMENT_SKILL: i32 = 5;
-const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
+
+/// The Officers the two Research Center enhancement chains hand out.
+///
+/// `config/economy.yaml` states the mapping: blueprint `4` grants Officer
+/// `20310` and `401` grants `20311`, while `5` grants `20300` and `501` grants
+/// `20301`. A layout carries the Officer rather than the blueprint, so a
+/// capture reads the chain and reports what it stands for.
+const ATTACK_ENHANCEMENT_OFFICERS: [i32; 2] = [20310, 20311];
+const DEFENSE_ENHANCEMENT_OFFICERS: [i32; 2] = [20300, 20301];
 pub(crate) const CALIBRATION_VIEW: &str = "calibration_topdown";
 pub(crate) const CALIBRATION_CAMERA_HEIGHT: f32 = 1_070.0;
 pub(crate) const CALIBRATION_CAMERA_Z: f32 = -1_070.0;
@@ -4909,8 +4917,8 @@ fn read_native_side(
             officers: read_native_officers(api, controller)?,
             units: read_native_unit_technologies(api, controller)?,
         },
-        research_center: read_native_research_center(api, controller)?,
-        energy_tower: read_native_energy_tower(api, controller)?,
+        energy_tower_skills: read_native_energy_tower_skills(api, controller)?,
+        tower_strengthen_levels: read_native_tower_strengthen_levels(api, controller)?,
         formations,
         constructions,
         contraptions,
@@ -5183,6 +5191,11 @@ fn read_native_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, S
         }
         ids.push(id);
     }
+    for id in read_blueprint_officers(api, controller)? {
+        if seen.insert(id) {
+            ids.push(id);
+        }
+    }
     Ok(ids)
 }
 
@@ -5215,16 +5228,32 @@ fn read_native_unit_technologies(api: Api, controller: *mut Object) -> Result<Ve
     Ok(active.into_iter().collect())
 }
 
-fn read_native_research_center(
-    api: Api,
-    controller: *mut Object,
-) -> Result<ResearchCenter, String> {
+/// Reads the Research Center enhancement chains as the Officers they grant.
+///
+/// The native blueprint IDs never reach a layout, which says an attack or
+/// defense enhancement by naming the Officer the chain hands out. `OfficerManager`
+/// already lists that Officer in all 202 player-rounds `docs/state.md` measures,
+/// so this normally repeats what the officer read found; it is here so that a
+/// capture still names the enhancement if the two ever disagree, and so that a
+/// chain caught mid-research fails the capture rather than reporting a level it
+/// does not hold yet.
+fn read_blueprint_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetBlueprintManager")?;
-    Ok(ResearchCenter {
-        strength_level: read_tower_strength(api, controller, RESEARCH_CENTER_KIND)?,
-        attack_level: read_blueprint_level(api, manager, 4, 401, "attack")?,
-        defense_level: read_blueprint_level(api, manager, 5, 501, "defense")?,
-    })
+    let mut officers = Vec::new();
+    for (first, second, label, granted) in [
+        (4, 401, "attack", ATTACK_ENHANCEMENT_OFFICERS),
+        (5, 501, "defense", DEFENSE_ENHANCEMENT_OFFICERS),
+    ] {
+        let level = read_blueprint_level(api, manager, first, second, label)?;
+        if let Some(officer) = usize::try_from(level)
+            .ok()
+            .and_then(|level| level.checked_sub(1))
+            .and_then(|index| granted.get(index))
+        {
+            officers.push(*officer);
+        }
+    }
+    Ok(officers)
 }
 
 fn read_blueprint_level(
@@ -5249,7 +5278,7 @@ fn decode_blueprint_level(
         (None, Some(false)) => Ok(1),
         (None, Some(true)) => Ok(2),
         state => Err(format!(
-            "research_center {label} blueprint chain has invalid native state {state:?}"
+            "the {label} enhancement chain has invalid native state {state:?}"
         )),
     }
 }
@@ -5270,19 +5299,25 @@ fn read_blueprint_state(
         .map_err(|error| error.to_string())?;
     if researching {
         return Err(format!(
-            "research_center blueprint {id} is still researching at capture"
+            "enhancement blueprint {id} is still researching at capture"
         ));
     }
     invoke_value(api, blueprint, "IsActive").map(Some)
 }
 
-fn read_native_energy_tower(api: Api, controller: *mut Object) -> Result<EnergyTower, String> {
+/// Reads the Energy Tower skills a fight can see, ascending.
+///
+/// The tower's other skills buy supply or discount a round's shopping, so they
+/// have nothing to say to a layout and are not read here.
+fn read_native_energy_tower_skills(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetEnergyTowerManager")?;
-    Ok(EnergyTower {
-        strength_level: read_tower_strength(api, controller, ENERGY_TOWER_KIND)?,
-        range_enhancement: read_energy_tower_skill(api, manager, RANGE_ENHANCEMENT_SKILL)?,
-        movement_enhancement: read_energy_tower_skill(api, manager, MOVEMENT_ENHANCEMENT_SKILL)?,
-    })
+    let mut active = Vec::new();
+    for id in FIGHT_VISIBLE_ENERGY_TOWER_SKILLS {
+        if read_energy_tower_skill(api, manager, id)? {
+            active.push(id);
+        }
+    }
+    Ok(active)
 }
 
 fn read_energy_tower_skill(api: Api, manager: *mut Object, mut id: i32) -> Result<bool, String> {
@@ -5295,33 +5330,50 @@ fn read_energy_tower_skill(api: Api, manager: *mut Object, mut id: i32) -> Resul
     invoke_value(api, skill, "IsActive")
 }
 
-fn read_tower_strength(
+/// Reads each fixed tower's strengthening level, keyed by its position.
+///
+/// A layout keys `tower_strengthen_levels` by building-manager position, the
+/// same key `PAD_StrengthenTower.Index` uses. The kinds are checked against the
+/// positions a layout assumes, so a build that orders its buildings differently
+/// fails loudly here instead of writing the levels to the wrong towers.
+fn read_native_tower_strengthen_levels(
     api: Api,
     controller: *mut Object,
-    expected_kind: i32,
-) -> Result<i32, String> {
+) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetBuildingManager")?;
     let buildings = invoke_object(api, manager, "GetBuildings")?;
-    let mut level = None;
-    for index in 0..list_count(api, buildings, 256)? {
+    let expected = [
+        (ENERGY_TOWER_POSITION, ENERGY_TOWER_KIND),
+        (RESEARCH_CENTER_POSITION, RESEARCH_CENTER_KIND),
+    ];
+    let count = list_count(api, buildings, 256)?;
+    let wanted = i32::try_from(expected.len()).expect("two tower positions fit an index");
+    if count != wanted {
+        return Err(format!(
+            "building manager holds {count} buildings, and a layout keys {wanted} tower levels"
+        ));
+    }
+    let mut levels = Vec::with_capacity(expected.len());
+    for (position, kind) in expected {
+        let index = i32::try_from(position).expect("a tower position fits an index");
         let building = list_item(api, buildings, index)?;
         let data = invoke_object(api, building, "GetBuildingData")?;
-        if invoke_value::<i32>(api, data, "get_BuildingType")? != expected_kind {
-            continue;
-        }
-        if level.is_some() {
-            return Err(format!("multiple core towers have kind {expected_kind}"));
+        let native = invoke_value::<i32>(api, data, "get_BuildingType")?;
+        if native != kind {
+            return Err(format!(
+                "building-manager position {position} holds kind {native}, and a layout keys kind {kind} there"
+            ));
         }
         let strength = api
             .invoke(building, "GetTowerStrengthenData", &mut [])
             .map_err(|error| error.to_string())?;
-        level = Some(if strength.is_null() {
+        levels.push(if strength.is_null() {
             0
         } else {
             invoke_value::<i32>(api, strength, "GetLevel")?
         });
     }
-    level.ok_or_else(|| format!("core tower kind {expected_kind} is absent"))
+    Ok(levels)
 }
 
 /// Splits the one native shield collection into contraption shields and the

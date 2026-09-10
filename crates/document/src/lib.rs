@@ -34,9 +34,11 @@ pub use catalog::{
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
 pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
 pub use layout::{
-    BattleSkillDefinition, ContraptionPlacement, EnergyTower, Formation, Layout, Position,
-    ResearchCenter, Side, Sides, StaticPlacement, Techs, Terrain, TerrainType,
-    canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml, parse_yaml,
+    BattleSkillDefinition, ContraptionPlacement, ENERGY_TOWER_POSITION,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, MAX_TOWER_STRENGTHEN_LEVEL,
+    MOVEMENT_ENHANCEMENT_SKILL, Position, RANGE_ENHANCEMENT_SKILL, RESEARCH_CENTER_POSITION, Side,
+    Sides, StaticPlacement, TOWER_COUNT, Techs, Terrain, TerrainType, canonical_embedded_yaml,
+    canonical_yaml, parse_embedded_yaml, parse_yaml,
 };
 
 /// Names the kind of document a file carries.
@@ -782,7 +784,7 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "research_center": {"attack_level": 3},
+                    "tower_strengthen_levels": [0, 5],
                     "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
@@ -791,7 +793,51 @@ sides:
             }
         }))
         .unwrap_err();
-        assert_eq!(error, "side blue research_center levels must each be 0..=2");
+        assert_eq!(error, "side blue tower_strengthen_levels[1] must be 0..=4");
+    }
+
+    #[test]
+    fn rejects_a_tower_list_that_does_not_name_every_tower() {
+        let error = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "sides": {
+                "blue": {
+                    "tower_strengthen_levels": [1],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
+                },
+                "red": {
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
+                }
+            }
+        }))
+        .unwrap_err();
+        assert_eq!(
+            error,
+            "side blue tower_strengthen_levels must hold 2 levels, one per fixed tower, or none at all"
+        );
+    }
+
+    #[test]
+    fn rejects_an_energy_tower_skill_no_fight_can_see() {
+        let error = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "sides": {
+                "blue": {
+                    "energy_tower_skills": [1],
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
+                },
+                "red": {
+                    "formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]
+                }
+            }
+        }))
+        .unwrap_err();
+        assert_eq!(
+            error,
+            "side blue energy_tower_skills[0] is 1, which no fight can see: a layout carries [5, 6]"
+        );
     }
 
     #[test]

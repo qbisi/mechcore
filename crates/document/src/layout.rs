@@ -16,6 +16,47 @@ pub(crate) const OIL_TERRAIN_GRID_MASK: u32 = (1 << OIL_TERRAIN_GRID_SIZE) - 1;
 pub(crate) const LAYOUT_KIND: &str = "layout";
 pub(crate) const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 
+/// How many fixed towers a side's building manager holds.
+///
+/// `BuildingManager.buildings` is exactly this long in all 494 player-rounds of
+/// the local replay set, and `docs/state.md` records the measurement.
+pub const TOWER_COUNT: usize = 2;
+
+/// The building-manager position each fixed tower occupies.
+///
+/// `tower_strengthen_levels` is keyed by this position, the same key
+/// `PAD_StrengthenTower.Index` uses, so a layout and a state say the levels the
+/// same way.
+///
+/// Which position holds which tower was settled by one player-round that names
+/// the two towers apart. In round 7 of the TUFF replay the red side's recorded
+/// `towerStrengthenLevels` is `[0, 2]`, and the layout captured live from that
+/// same round puts the level 2 on the building whose `BuildingType` is
+/// `EnergyTower`. `docs/state.md` carries the argument. The adapter still checks
+/// each position's native building kind on every apply and capture, so a build
+/// that reorders its buildings fails loudly instead of strengthening the wrong
+/// tower.
+pub const RESEARCH_CENTER_POSITION: usize = 0;
+/// See [`RESEARCH_CENTER_POSITION`].
+pub const ENERGY_TOWER_POSITION: usize = 1;
+
+/// The highest level a tower can be strengthened to.
+///
+/// `config/economy.yaml` prices levels 1 through 4.
+pub const MAX_TOWER_STRENGTHEN_LEVEL: i32 = 4;
+
+/// The Energy Tower skill that widens ranged attack range.
+pub const RANGE_ENHANCEMENT_SKILL: i32 = 5;
+/// The Energy Tower skill that raises movement speed.
+pub const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
+
+/// The Energy Tower skills whose effect a fight can see.
+///
+/// The others buy supply or discount a round's shopping, which a layout does
+/// not carry, so a projection drops them rather than recording them here.
+pub const FIGHT_VISIBLE_ENERGY_TOWER_SKILLS: [i32; 2] =
+    [RANGE_ENHANCEMENT_SKILL, MOVEMENT_ENHANCEMENT_SKILL];
+
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
@@ -42,10 +83,10 @@ pub struct Sides {
 pub struct Side {
     #[serde(default, skip_serializing_if = "Techs::is_default")]
     pub techs: Techs,
-    #[serde(default, skip_serializing_if = "ResearchCenter::is_default")]
-    pub research_center: ResearchCenter,
-    #[serde(default, skip_serializing_if = "EnergyTower::is_default")]
-    pub energy_tower: EnergyTower,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub energy_tower_skills: Vec<i32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tower_strengthen_levels: Vec<i32>,
     pub formations: Vec<Formation>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
@@ -68,36 +109,7 @@ pub struct Techs {
     pub units: Vec<i32>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
-#[allow(clippy::struct_field_names)] // Field names are fixed by the public layout schema.
-pub struct ResearchCenter {
-    pub strength_level: i32,
-    pub attack_level: i32,
-    pub defense_level: i32,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
-pub struct EnergyTower {
-    pub strength_level: i32,
-    pub range_enhancement: bool,
-    pub movement_enhancement: bool,
-}
-
 impl Techs {
-    fn is_default(&self) -> bool {
-        self == &Self::default()
-    }
-}
-
-impl ResearchCenter {
-    fn is_default(&self) -> bool {
-        self == &Self::default()
-    }
-}
-
-impl EnergyTower {
     fn is_default(&self) -> bool {
         self == &Self::default()
     }
@@ -180,9 +192,12 @@ impl Layout {
     /// Two rules make up the normal form. Syntax equivalent to a public default
     /// is dropped, and every collection whose order carries no meaning is put in
     /// its defined order: indexed placements by deployment identity, technology
-    /// and Officer IDs and retained airdrop shields ascending, and retained
-    /// terrain by type and control points. `battle_skills` is the one exception,
-    /// because release order is what it records.
+    /// and Officer IDs and Energy Tower skills and retained airdrop shields
+    /// ascending, and retained terrain by type and control points.
+    /// `battle_skills` is the one exception, because release order is what it
+    /// records, and `tower_strengthen_levels` is not a collection whose order is
+    /// free: it is keyed by building-manager position, so an all-zero list is
+    /// dropped as a default rather than sorted.
     ///
     /// Applying this twice changes nothing the first pass did not already do.
     #[must_use]
@@ -190,6 +205,10 @@ impl Layout {
         for side in [&mut self.sides.blue, &mut self.sides.red] {
             side.techs.officers.sort_unstable();
             side.techs.units.sort_unstable();
+            side.energy_tower_skills.sort_unstable();
+            if side.tower_strengthen_levels.iter().all(|level| *level == 0) {
+                side.tower_strengthen_levels.clear();
+            }
             side.formations.sort_by_key(|formation| formation.index);
             side.constructions
                 .sort_by_key(|construction| construction.index);

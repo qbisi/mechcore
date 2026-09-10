@@ -66,26 +66,27 @@ What the projection drops is everything the fight cannot observe: supply,
 the shop, the reinforcement offer, the allocators, and the parts of the skill
 panel that were not released this round.
 
-Six side fields project unchanged: `techs`, `formations`, `constructions`,
-`contraptions`, `airdrop_shields` and `terrains`. The layout's
-`research_center` and `energy_tower` objects do not occur in a state. They are
-semantic views of three native state fields:
+Five side fields project unchanged: `formations`, `constructions`,
+`contraptions`, `airdrop_shields` and `terrains`. `tower_strengthen_levels`
+projects unchanged as well, keyed the same way in both documents. Two more are
+filtered rather than copied:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
-| `blueprints` | `research_center.attack_level` | neither `4` nor `401` → `0`; `4` → `1`; `401` → `2` |
-| `blueprints` | `research_center.defense_level` | neither `5` nor `501` → `0`; `5` → `1`; `501` → `2` |
-| `tower_strengthen_levels` | `research_center.strength_level` | level at the Research Center's building-manager position |
-| `tower_strengthen_levels` | `energy_tower.strength_level` | level at the Energy Tower's building-manager position |
-| `energy_tower_skills` | `energy_tower.range_enhancement` | `5` is present |
-| `energy_tower_skills` | `energy_tower.movement_enhancement` | `6` is present |
+| `techs` | `techs` | copied, with each blueprint chain's Officer added |
+| `blueprints` | `techs.officers` | `4` → `20310`; `401` → `20311`; `5` → `20300`; `501` → `20301` |
+| `energy_tower_skills` | `energy_tower_skills` | copied, keeping `5` and `6` |
 
-A valid blueprint list cannot hold both levels of one chain. Blueprint IDs `1`,
-`2` and `3`, and Energy Tower skill IDs `1`, `3` and `4`, add no other tower
-field to the projection: their fight-visible consequences are already carried
-by the skill panel or formations, while their economic consequences are not
-part of a layout. The building-manager position for each fixed tower remains the
-one unresolved part of this projection.
+A valid blueprint list cannot hold both levels of one chain, so each chain
+contributes at most one Officer. Blueprint IDs `1`, `2` and `3`, and Energy
+Tower skill IDs `1`, `3` and `4`, reach no layout field: their fight-visible
+consequences are already carried by the skill panel or formations, while their
+economic consequences are not part of a layout.
+
+Which building-manager position holds which tower does not affect this
+projection at all: both documents key the levels by position, so the projection
+copies the list. It matters only to a reader who wants to name a tower, and the
+section on `tower_strengthen_levels` below settles it.
 
 `battle_skills` is projected rather than copied too. The projection keeps only
 entries with `release`, sorts them by `release.order`, resolves each native `id`
@@ -328,13 +329,14 @@ not write an empty one.
 
 ## Side state
 
-Each side carries the six layout fields that project unchanged:
-`techs`, `formations`, `constructions`, `contraptions`, `airdrop_shields` and
-`terrains`. It adds the fields a layout has no reason to hold. The two layout
-tower objects are deliberately absent: `blueprints`, `energy_tower_skills` and
-`tower_strengthen_levels` are their source state, and the projection above
-constructs the objects from those three fields. `battle_skills` also uses the
-state panel shape defined below rather than the layout release shape.
+Each side carries the layout fields that project unchanged: `formations`,
+`constructions`, `contraptions`, `airdrop_shields`, `terrains` and
+`tower_strengthen_levels`. It carries `techs` and `energy_tower_skills` in the
+same shape, filtered by the projection above rather than copied. It adds the
+fields a layout has no reason to hold, of which `blueprints` is the one that
+reaches a fight: its two enhancement chains project onto Officers.
+`battle_skills` uses the state panel shape defined below rather than the layout
+release shape.
 
 ```yaml
     blue:
@@ -418,14 +420,31 @@ carries its own `index`, which is its identity and is unaffected.
 an `Index`, and the counter at that index rises by the number of net actions
 naming it. All three transitions in the corpus close exactly.
 
-It holds the same two numbers as the layout's `research_center.strength_level`
-and `energy_tower.strength_level`, keyed differently. This document keys by
-position in `BuildingManager.buildings`, because that is what
-`PAD_StrengthenTower.Index` names and what `GetBuildingByIndex` resolves. A
-layout keys by tower instead, and the adapter already bridges the two in
-`resolve_core_tower`, which scans the same list for a `BuildingData.BuildingType`
-of 1 for the energy tower or 2 for the research centre, requires exactly one
-building of that kind, and returns its manager index.
+A layout holds the same two numbers under the same name, keyed the same way, so
+the projection copies the list. Both documents key by position in
+`BuildingManager.buildings`, because that is what `PAD_StrengthenTower.Index`
+names and what `GetBuildingByIndex` resolves, the latter being how
+`ApplyResearchCenterSnapshot` reads the list back.
+
+Position `0` is the Research Center and position `1` the Energy Tower. One
+player-round names the two apart, and three facts meet on it:
+
+- the record for round 7 of the TUFF replay gives the red side `[0, 2]`;
+- `tests/layouts/tuff-replay-round-7.yaml` was captured from the game while that
+  replay played, and reads its towers by `BuildingData.BuildingType` rather than
+  by position. It puts strength level 2 on the Energy Tower and 0 on the
+  Research Center;
+- `BuildingType` is an enum, and `EnergyTower` is `1` while `ResearchCenter` is
+  `2`, so the capture is naming the towers rather than guessing them.
+
+Red bought both of its strengthenings in round 5, so the round's start and its
+deployment end hold the same levels and the two documents are describing one
+position. Six live exports across two capture sessions agree, and no other
+player-round in the corpus has a live capture beside it with the two levels
+apart. `crates/document/src/convert.rs` pins the comparison as a test.
+
+The adapter checks the mapping on every apply and every capture by reading each
+position's `BuildingData.BuildingType`, rather than trusting the constant.
 
 The list is exactly two entries long in all 202 player-rounds of the local set,
 so a 1v1 side holds precisely the two towers a layout names. Both draw from one
@@ -699,10 +718,11 @@ two, and a downloaded replay spells it the other way, which is one of the reason
 
 So the blueprint list and the product officers in the recording are two
 spellings of one fact. `blueprints` owns it in a state, and `techs.officers` must
-not name `20300`, `20301`, `20310` or `20311`. The projection carries the chain
-half into a layout as `research_center.attack_level` and `defense_level` on 0 to
-2; `docs/officers.md` already states that the derived officers must not also
-appear there. Neither document enforces the invariant yet.
+not name `20300`, `20301`, `20310` or `20311`. A layout spells it the other way:
+it has no blueprint list, so the projection puts the chain's product Officer into
+`techs.officers`, which is the only place a layout says a persistent Officer
+effect. The converter drops the four from a state's officer list; nothing
+enforces the invariant on a hand-written state yet.
 
 #### The energy tower keeps all five
 
@@ -712,7 +732,7 @@ each action, which means it is empty at a round's start and fills as the round's
 actions are applied.
 
 A state lists all five, and a layout keeps only the two that reach a fight, `5`
-强化瞄准 as `range_enhancement` and `6` 高速移动 as `movement_enhancement`. The
+强化瞄准 and `6` 高速移动, under the same field name. The
 projection is behaving correctly: `3` and `4` are recruitment and reach a fight
 only through the units they produce, and `1` 快速补给 is economic. `1` is the one
 that must not be dropped, because it is the half of a decision the next round

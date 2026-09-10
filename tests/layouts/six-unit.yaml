@@ -4,12 +4,10 @@ round: 1
 sides:
   blue:
     techs:
+      officers: [20300, 20311]
       units: [10202, 10213]
 
-    research_center:
-      strength_level: 2
-      attack_level: 2
-      defense_level: 1
+    tower_strengthen_levels: [2, 0]
 
     formations:
       - type: sledgehammer
@@ -44,10 +42,8 @@ sides:
       officers: [30602]
       units: [10206, 10209, 10215]
 
-    energy_tower:
-      strength_level: 1
-      range_enhancement: true
-      movement_enhancement: true
+    energy_tower_skills: [5, 6]
+    tower_strengthen_levels: [0, 1]
 
     formations:
       - type: fang

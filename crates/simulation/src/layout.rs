@@ -78,12 +78,8 @@ fn compile_side(
             "side {name} technologies are outside the current baseline simulator slice"
         )));
     }
-    if side.research_center.strength_level != 0
-        || side.research_center.attack_level != 0
-        || side.research_center.defense_level != 0
-        || side.energy_tower.strength_level != 0
-        || side.energy_tower.range_enhancement
-        || side.energy_tower.movement_enhancement
+    if !side.energy_tower_skills.is_empty()
+        || side.tower_strengthen_levels.iter().any(|level| *level != 0)
     {
         return Err(Error::new(format!(
             "side {name} tower modifiers are outside the current baseline simulator slice"
