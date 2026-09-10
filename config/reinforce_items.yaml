@@ -1,0 +1,67 @@
+schema: mechcore.reinforce_items
+game_build: 1.11.1.3.2259
+
+# Commander skill and equipment cards, the two the config data
+# container does not carry. A card whose limitedScene omits the
+# standard mode is left out, an empty list restricting nothing,
+# and a card with no price of its own
+# carries its level's price: 0, 50, 100 and 200 by level.
+
+items:
+  - {id: 100002, name: 燃烧弹, supply: 100}
+  - {id: 100003, name: 燃烧弹, supply: 100}
+  - {id: 200001, name: 电磁冲击, supply: 50}
+  - {id: 200002, name: 巨型电磁冲击, supply: 200}
+  - {id: 200003, name: 光子投射, supply: 100}
+  - {id: 200004, name: 巨型电磁冲击, supply: 200}
+  - {id: 300001, name: 导弹打击, supply: 50}
+  - {id: 300003, name: 轨道轰炸, supply: 150}
+  - {id: 300004, name: 核弹, supply: 350}
+  - {id: 300005, name: 闪电风暴, supply: 350}
+  - {id: 300006, name: 离子轰炸, supply: 250}
+  - {id: 300007, name: 轨道标枪, supply: 200}
+  - {id: 300008, name: 核弹, supply: 350}
+  - {id: 300009, name: 闪电风暴, supply: 350}
+  - {id: 300010, name: 离子轰炸, supply: 250}
+  - {id: 400002, name: 黏油弹, supply: 100}
+  - {id: 400003, name: 黏油弹, supply: 100}
+  - {id: 500002, name: 酸液弹, supply: 100}
+  - {id: 600002, name: 烟雾弹, supply: 100}
+  - {id: 800001, name: 空投护盾, supply: 50}
+  - {id: 900001, name: 战地回收, supply: 100}
+  - {id: 900002, name: 低效回收, supply: 100}
+  - {id: 900003, name: 低效回收, supply: 100}
+  - {id: 900004, name: 机械进化, supply: 200}
+  - {id: 1000001, name: 再部署, supply: 50}
+  - {id: 1000002, name: 再部署, supply: 50}
+  - {id: 1100001, name: 强化训练, supply: 50}
+  - {id: 1200001, name: 地底威胁, supply: 50}
+  - {id: 1200002, name: 犀牛来袭, supply: 50}
+  - {id: 1200003, name: 呼叫机群, supply: 50}
+  - {id: 1200004, name: 呼叫战舰, supply: 250}
+  - {id: 1200005, name: 天降火神, supply: 200}
+  - {id: 1200006, name: 犀牛来袭, supply: 50}
+  - {id: 1305001, name: 充能弹药, supply: 100}
+  - {id: 1305002, name: 寄生弹药, supply: 400}
+  - {id: 1305003, name: 光子涂层, supply: 0}
+  - {id: 1306001, name: 坦克生产线, supply: 200}
+  - {id: 1306002, name: 野马生产线, supply: 200}
+  - {id: 1306003, name: 钢球生产线, supply: 200}
+  - {id: 1307001, name: 保护屏障, supply: 100}
+  - {id: 1308001, name: 抗干扰模块, supply: 0}
+  - {id: 1309001, name: 汲取模块, supply: 100}
+  - {id: 1500001, name: 移动信标, supply: 0}
+  - {id: 1500002, name: 移动信标, supply: 0}
+  - {id: 1500003, name: 干扰信标, supply: 0}
+  - {id: 13010001, name: 便携式护盾, supply: 150}
+  - {id: 13020001, name: 纳米维修包, supply: 100}
+  - {id: 13030001, name: 激光瞄具, supply: 50}
+  - {id: 13030002, name: 重型装甲, supply: 50}
+  - {id: 13030003, name: 改良火控系统, supply: 50}
+  - {id: 13030004, name: 强化模块, supply: 200}
+  - {id: 13030005, name: 速攻模块, supply: 0}
+  - {id: 13030006, name: 超重型装甲, supply: 200}
+  - {id: 13030007, name: 增幅核心, supply: 150}
+  - {id: 13030008, name: 高级火控系统, supply: 300}
+  - {id: 13030010, name: 统御核心, supply: 100}
+  - {id: 13040001, name: 部署模块, supply: 0}
