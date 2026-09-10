@@ -165,6 +165,9 @@ pub struct UnitRecord {
     pub equipment_id: i32,
     #[serde(rename = "IsRotate")]
     pub rotated: bool,
+    /// What recovering the formation pays back, at the prices actually paid.
+    #[serde(rename = "SellSupply")]
+    pub sell_supply: i32,
 }
 
 #[derive(Debug, Default, Deserialize)]

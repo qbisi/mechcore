@@ -27,6 +27,7 @@ pub struct Economy {
     tower_strengthen: BTreeMap<i32, i32>,
     energy_tower_skills: BTreeMap<i32, EnergyTowerSkill>,
     maps: BTreeMap<i32, MapSupply>,
+    constructions: BTreeMap<String, i32>,
 }
 
 /// What one unit costs to buy, to unlock and to raise one level.
@@ -153,9 +154,17 @@ struct OfficerRow {
 #[derive(Deserialize)]
 struct EconomyFile {
     blueprints: Vec<BlueprintPrice>,
+    constructions: Vec<ConstructionRecovery>,
     tower_strengthen: Vec<TowerLevel>,
     energy_tower_skills: Vec<EnergyTowerRow>,
     maps: Vec<MapRow>,
+}
+
+#[derive(Deserialize)]
+struct ConstructionRecovery {
+    #[serde(rename = "type")]
+    type_name: String,
+    recovers: i32,
 }
 
 #[derive(Deserialize)]
@@ -245,6 +254,11 @@ impl Economy {
                 .into_iter()
                 .map(|row| (row.id, row.skill))
                 .collect(),
+            constructions: economy
+                .constructions
+                .into_iter()
+                .map(|row| (row.type_name, row.recovers))
+                .collect(),
             maps: economy
                 .maps
                 .into_iter()
@@ -300,6 +314,12 @@ impl Economy {
         self.energy_tower_skills.get(&skill).copied()
     }
 
+    /// What recovering a construction pays back, which its type alone decides.
+    #[must_use]
+    pub fn construction_recovery(&self, type_name: &str) -> Option<i32> {
+        self.constructions.get(type_name).copied()
+    }
+
     #[must_use]
     pub fn map(&self, map_id: i32) -> Option<MapSupply> {
         self.maps.get(&map_id).copied()
@@ -321,6 +341,8 @@ mod tests {
         assert_eq!(economy.blueprint(4), Some(100));
         assert_eq!(economy.tower_strengthen(1), Some(100));
         assert_eq!(economy.map(1001).unwrap().first_round_supply, 200);
+        assert_eq!(economy.construction_recovery("defensive_wall"), Some(50));
+        assert_eq!(economy.construction_recovery("anti_armor_turret"), Some(100));
     }
 
     #[test]

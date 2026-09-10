@@ -9,7 +9,7 @@
 
 use crate::battle::{
     Action, Battle, BattleSide, BattleSides, EquipmentItem, NextIndex, PanelSkill, ShopState,
-    SideState, SkillTarget, State, StateSides, Turn, TurnActions,
+    SideState, SkillTarget, State, StateFormation, StateSides, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
@@ -261,12 +261,14 @@ fn side_state(
 }
 
 /// The unit roster, as the layout formations a projection would keep.
-fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<Formation>, String> {
+fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, String> {
     let mut formations = Vec::with_capacity(data.units.entries.len());
     for unit in &data.units.entries {
         let (type_name, _) = unit_type_from_id(unit.id)
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
-        formations.push(Formation {
+        formations.push(StateFormation {
+            value: Some(unit.sell_supply),
+            formation: Formation {
             type_name: type_name.to_owned(),
             index: unit.index,
             position: seat.position(&unit.position),
@@ -278,9 +280,10 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<Formation>, String> {
             equipment: Some(unit.equipment_id).filter(|id| *id != 0),
             // No recorded field states it; see docs/battle.md.
             travelling: None,
+            },
         });
     }
-    formations.sort_by_key(|formation| formation.index);
+    formations.sort_by_key(|entry| entry.formation.index);
     Ok(formations)
 }
 
@@ -589,7 +592,7 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
         .turns
         .iter()
         .flat_map(|turn| [&turn.state.sides.blue, &turn.state.sides.red])
-        .flat_map(|side| side.formations.iter().map(|unit| unit.type_name.clone()))
+        .flat_map(|side| side.formations.iter().map(|unit| unit.formation.type_name.clone()))
         .collect()
 }
 
@@ -657,21 +660,23 @@ mod tests {
         let vortex = blue
             .formations
             .iter()
-            .find(|formation| formation.index == 2)
+            .find(|entry| entry.formation.index == 2)
             .unwrap();
-        assert_eq!(vortex.type_name, "vortex");
-        assert_eq!(vortex.level, Some(3));
-        assert_eq!(vortex.position, Position { x: -250, y: -120 });
+        assert_eq!(vortex.formation.type_name, "vortex");
+        assert_eq!(vortex.formation.level, Some(3));
+        assert_eq!(vortex.formation.position, Position { x: -250, y: -120 });
+        // What recovering it pays back is what the side paid for it.
+        assert_eq!(vortex.value, Some(100));
         let red = &battle.turns[8].state.sides.red;
         let marksman = red
             .formations
             .iter()
-            .find(|formation| formation.index == 20)
+            .find(|entry| entry.formation.index == 20)
             .unwrap();
-        assert_eq!(marksman.type_name, "marksman");
-        assert_eq!(marksman.level, Some(4));
+        assert_eq!(marksman.formation.type_name, "marksman");
+        assert_eq!(marksman.formation.level, Some(4));
         // Red's recorded (-190, 170) is (190, -170) in its own frame.
-        assert_eq!(marksman.position, Position { x: 190, y: -170 });
+        assert_eq!(marksman.formation.position, Position { x: 190, y: -170 });
     }
 
     #[test]
@@ -776,7 +781,7 @@ mod tests {
                             assert!(state.supply >= 0);
                             assert!(state.next_index.unit >= 0);
                             for formation in &state.formations {
-                                assert!(formation.index < state.next_index.unit);
+                                assert!(formation.formation.index < state.next_index.unit);
                             }
                         }
                     }

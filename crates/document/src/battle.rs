@@ -72,7 +72,7 @@ pub struct SideState {
     pub battle_skills: Vec<PanelSkill>,
     pub next_index: NextIndex,
     pub techs: Techs,
-    pub formations: Vec<Formation>,
+    pub formations: Vec<StateFormation>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -88,6 +88,19 @@ pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
+}
+
+/// A formation, and what recovering it pays back.
+///
+/// `value` is not a function of the unit's type and level. It is what the side
+/// actually paid, at the prices its officers made at the time, so two identical
+/// looking formations bought a round apart can be worth different amounts.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct StateFormation {
+    #[serde(flatten)]
+    pub formation: Formation,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<i32>,
 }
 
 /// An owned item no formation carries; a fitted one is named by its formation.

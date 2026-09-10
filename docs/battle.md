@@ -334,15 +334,29 @@ officers a side holds change all of those. Unit reinforcement cards keep their
 own table, because what they hand out matters as much as what they cost. Income is the map's row plus what
 those officers add, less what a Rapid Supply owes from the round before.
 
-Not every round can be decided. A side holding Field Recovery, or an officer
-that pays a bounty for destroying a giant, is paid by the fight in an amount no
-document records, and 124 of the 180 round transitions of the local set are
-exposed that way. Of the 56 that are not, 52 close. The four that do not are
-each short by a multiple of fifty in an early round, which is the thread to pull
-next.
+Recovering a formation is a decision like any other, and it is why a state's
+formations carry a `value`. Field Recovery takes one of the side's own
+formations away and pays back what that formation cost, at the prices the
+side's officers made when it bought and upgraded it. That amount is history
+rather than a property of the unit standing there: two formations of the same
+type and level, bought a round apart, can be worth different amounts. All 56
+formations a recovery skill targeted in the local set are gone from the next
+snapshot, while every formation another skill targeted is still there.
+
+Recovering a construction pays a fixed price instead, which its type alone
+decides, and `config/economy.yaml` states it.
+
+Over the four tracked ranked replays, 37 of the 62 decidable round transitions
+close, and 4 hold a released skill whose panel slot no state names. What the
+failures still owe is known rather than mysterious: a formation a card handed
+out has a value the converter never saw paid, and a card can raise a
+formation's level without an upgrade of its own.
+
+An officer that pays a bounty for destroying a giant is the one thing left that
+the fight decides, and a side holding one is counted apart.
 
 The check is reported, never enforced: a battle converts whether or not its
-ledger closes, because a side the fight pays cannot be made to.
+ledger closes.
 
 Two fields are always empty and refused rather than guessed when they could not
 be. `airdrop_shields` has no recorded source, so a panel holding commander skill
