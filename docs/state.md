@@ -112,6 +112,49 @@ in 22 of the 101 round snapshots of the local set, which is exactly those two
 rounds of each match. The field is absent there rather than an empty array,
 since no array was dealt.
 
+### The opening offer is private, so it sits under a side
+
+The round 0 offer is the exception to everything above. It deals each side four
+combinations of an advance team and a specialist officer, privately: neither
+player sees the other's four. It is therefore not `reinforce_offers`, which is
+above `sides` precisely because both players choose from one array.
+
+```yaml
+    blue:
+      opening_offers:
+        - {team: 9911, specialist: 20005}
+        - {team: 9874, specialist: 10002}
+        - {team: 9883, specialist: 20024}
+        - {team: 9907, specialist: 10014}
+```
+
+`opening_offers` appears in round 0 and in no other round, and it is there for
+the same reason the reinforcement offer is: a decision needs what it chose
+between. A state that named only the opening taken would be a position a
+decision cannot be read from.
+
+The only shared information the opening carries is the construction layout,
+which the map rolls once and deals to both sides. Both receive the same
+construction types in all 29 matches of the local set, and `constructions`
+already states them.
+
+No replay stores the four combinations. The offer array
+`matchDatas[round].reinforceItems` is empty in rounds 0 and 1 of every match,
+holding one shared array of four from round 2 on, and `BattleRecord`'s own
+`reinforceItems` is empty in all 30 local replays. Nothing else in the file
+carries a per-side offer.
+
+Watching a replay still shows both sides' openings, which means the client
+rolls them again rather than reading them back. It has what that takes: the
+match random state of every round and the pool's own operation log are both
+recorded, and [the random state section](#random-state) sets out what they
+drive. Reproducing an offer offline therefore means reproducing the game's
+probability tables and draw order, which is the cost this format declined to pay
+when it decided to store the offer as recorded rather than roll it.
+
+So a converted battle leaves this field absent, and filling it is a piece of
+work the format can name rather than a hole in it.
+
 The offer array is stored as recorded rather than rolled from a random state.
 It is a function of that state, but reproducing the function means reproducing
 the game's probability tables and draw order, and the layout format already

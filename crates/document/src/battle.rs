@@ -58,6 +58,14 @@ pub struct StateSides {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct SideState {
+    /// The four openings this side was dealt, in round 0 and no other round.
+    ///
+    /// A decision needs what it chose between, and this offer is private to
+    /// the side, so it sits here rather than beside the shared
+    /// `reinforce_offers`. A replay records only the one taken, so a converted
+    /// battle leaves it absent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opening_offers: Option<Vec<Opening>>,
     pub reactor_core: i32,
     pub supply: i32,
     pub shop: ShopState,
@@ -88,6 +96,14 @@ pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
+}
+
+/// One of the openings a side was dealt: a team of formations and the
+/// specialist officer bound to it.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct Opening {
+    pub team: i32,
+    pub specialist: i32,
 }
 
 /// A formation, and what recovering it pays back.
@@ -142,9 +158,13 @@ pub enum Action {
     },
     /// The recorded form of taking no card, `ID` zero at offer `-1`.
     DeclineReinforceItem,
+    /// The round 0 opening, which is one decision with two halves: the team
+    /// of formations and the specialist officer bound to it.
     ChooseAdvanceTeam {
         offer: i32,
         id: i32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        specialist: Option<i32>,
     },
     BuyUnit {
         unit: i32,

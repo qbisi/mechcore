@@ -36,6 +36,7 @@ fn battle(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     let battle = mechcore_document::convert::battle_from_grbr(&grbr)?;
     let economy = mechcore_document::economy::Economy::embedded()?;
     let ledger = mechcore_document::ledger::check(&battle, &economy);
+    let transition = mechcore_document::transition::check(&battle, &economy);
     let yaml = mechcore_document::battle::canonical_yaml(&battle)?;
     fs::write(&destination, &yaml)
         .map_err(|error| format!("cannot write {}: {error}", destination.display()))?;
@@ -69,6 +70,20 @@ fn battle(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
     }
     if ledger.failures.len() > FAILURES_SHOWN {
         println!("    and {} more", ledger.failures.len() - FAILURES_SHOWN);
+    }
+    println!(
+        "  turn transition: {} of {} field checks reproduce",
+        transition.closed,
+        transition.closed + transition.failed
+    );
+    for failure in transition.failures.iter().take(FAILURES_SHOWN) {
+        println!(
+            "    round {} {} {}: expected {} and holds {}",
+            failure.round, failure.side, failure.field, failure.expected, failure.actual
+        );
+    }
+    if transition.failures.len() > FAILURES_SHOWN {
+        println!("    and {} more", transition.failures.len() - FAILURES_SHOWN);
     }
     Ok(())
 }

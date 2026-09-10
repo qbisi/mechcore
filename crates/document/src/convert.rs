@@ -14,7 +14,7 @@ use crate::battle::{
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
-use crate::economy::{Economy, RoundSupply};
+use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::ledger;
 use crate::{DocumentKind, terrains_from_grbr_round};
 use std::collections::BTreeMap;
@@ -142,8 +142,16 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
                 },
             },
             actions: TurnActions {
-                blue: actions(&blue.rounds.entries[position], Seat::Blue)?,
-                red: actions(&red.rounds.entries[position], Seat::Red)?,
+                blue: actions(
+                    &blue.rounds.entries[position],
+                    Seat::Blue,
+                    opening_specialist(&economy, &blue, position),
+                )?,
+                red: actions(
+                    &red.rounds.entries[position],
+                    Seat::Red,
+                    opening_specialist(&economy, &red, position),
+                )?,
             },
         });
     }
@@ -233,6 +241,8 @@ fn side_state(
     unlocked_units.sort_unstable();
 
     Ok(SideState {
+        // A replay records the opening taken and not the three refused.
+        opening_offers: None,
         reactor_core: data.reactor_core,
         supply: data.supply + round_income(economy, player, position),
         shop: ShopState {
@@ -468,7 +478,35 @@ fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
     taken
 }
 
-fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String> {
+/// The opening specialist a side ends round 0 holding.
+///
+/// The record logs the team half of the opening and not the specialist half,
+/// so the specialist is read back from the officer list of the round the
+/// opening produced. Exactly one officer of a side is an opening specialist,
+/// in every player-round of the local set.
+fn opening_specialist(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    position: usize,
+) -> Option<i32> {
+    let next = player.rounds.entries.get(position + 1)?;
+    next.data
+        .officers
+        .values
+        .iter()
+        .copied()
+        .find(|officer| {
+            economy
+                .advance_team(*officer)
+                .is_some_and(|team| team.kind == OpeningKind::Officer)
+        })
+}
+
+fn actions(
+    round: &PlayerRoundRecord,
+    seat: Seat,
+    specialist: Option<i32>,
+) -> Result<Vec<Action>, String> {
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {
@@ -495,6 +533,7 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
             "PAD_ChooseAdvanceTeam" => Action::ChooseAdvanceTeam {
                 offer: field("Index", action.index)?,
                 id: field("ID", action.id)?,
+                specialist,
             },
             "PAD_BuyUnit" => Action::BuyUnit {
                 unit: field("UID", action.unit_id)?,

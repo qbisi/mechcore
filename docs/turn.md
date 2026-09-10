@@ -136,6 +136,45 @@ Declining a reinforcement card is recorded as `ChooseReinforceItem` with `ID`
 zero at offer `-1`. A turn writes it as its own action, since an offer position
 that names no card is not a choice of card.
 
+`ChooseAdvanceTeam` belongs to round 0 and to no other round, and it is one
+decision with two halves. The opening deals a side four combinations of a team
+and a specialist officer, and taking one takes both:
+
+```yaml
+actions:
+  blue:
+    - type: choose_advance_team
+      offer: 2
+      id: 9911
+      specialist: 20005
+```
+
+`offer` is the position taken among the four, `id` names the team, whose
+formations [`config/advance_teams.yaml`](../config/advance_teams.yaml) lists,
+and `specialist` names the officer bound to it.
+
+The two halves are one choice rather than two. The same team appears with
+different specialists in different matches, so the specialist is not a property
+of the team; and no second action is recorded, so it is not a second decision
+either. The converter reads the specialist back from the officer list of the
+round the opening produced, and exactly one officer of a side is an opening
+specialist in all 290 player-rounds of the local set, so the reading is
+unambiguous.
+
+The four combinations are dealt to each side privately. Neither player sees the
+other's, which is why they are not `reinforce_offers`: that field sits above
+`sides` precisely because both players choose from one array, and the opening is
+the one offer that does not work that way. The opening's only shared
+information is the construction layout, which the map rolls once and deals to
+both sides; both receive the same construction types in all 29 matches of the
+local set.
+
+A replay stores none of the four combinations, so a turn states the one taken
+and nothing about the three refused. The state's own `opening_offers` is where
+the four belong, and [the state document](state.md) defines it along with why a
+replay can still show them: the file carries the random state and the pool log
+the game rolls them from, so they are reproducible rather than recorded.
+
 `MoveUnit` keeps only the resulting position and rotation. The recorded
 `positionRecord`, `rotateRecord` and `superDeployRecord` fields restate the
 state before the move, which the turn already holds.
@@ -160,6 +199,33 @@ A state's own collections keep the orders that document defines.
 | `PAD_MoveUnit.rotateRecord`, `superDeployRecord` | Same |
 | `PAD_BuyUnit.UIDX` | Always `-1`; the allocator names the new unit |
 | `PAD_ReleaseCommanderSkill.Positions` beside an object target | The player's click point, which names no state |
+
+## What a turn reproduces
+
+Applying a turn's decisions to its state has to reproduce the state the next
+turn starts from, in everything the fight does not decide. `mechcore convert
+battle` checks seven such fields, and over the four tracked replays, 66 round
+transitions each, five of them reproduce every time:
+
+| Field | Reproduced |
+| --- | ---: |
+| `techs.units` | 66/66 |
+| `techs.officers` | 66/66 |
+| `blueprints` | 66/66 |
+| `tower_strengthen_levels` | 66/66 |
+| `shop.unlocked_units` | 66/66 |
+| `battle_skills` | 64/66 |
+| `next_index.unit` | 62/66 |
+
+Three rules the check had to learn are worth stating, because none of them is
+visible in an action. Taking a team unlocks the two unit types it is made of.
+A blueprint's second level replaces its first rather than joining it, and the
+officer it produces follows. And a specialist delivers what it hands out a
+round after it arrives: the officer is held from round 1, its squad and its
+skills appear in the state of round 2.
+
+A roster, a reactor core and a formation's experience are not checked, because
+the fight decides them.
 
 ## Capabilities the adapter still lacks
 

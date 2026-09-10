@@ -25,7 +25,7 @@ pub struct Economy {
     advance_teams: BTreeMap<i32, AdvanceTeam>,
     unit_reinforcements: BTreeMap<i32, UnitReinforcement>,
     officers: BTreeMap<i32, Officer>,
-    blueprints: BTreeMap<i32, i32>,
+    blueprints: BTreeMap<i32, Blueprint>,
     tower_strengthen: BTreeMap<i32, i32>,
     energy_tower_skills: BTreeMap<i32, EnergyTowerSkill>,
     round_supply: RoundSupply,
@@ -76,6 +76,14 @@ pub struct AdvanceTeam {
     pub reactor_core: i32,
 }
 
+/// The unit a specialist officer unlocks and hands out.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct OpeningUnit {
+    pub unit: i32,
+    pub level: i32,
+    pub from_round: i32,
+}
+
 /// The two shapes an opening takes.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -120,6 +128,15 @@ pub struct Officer {
     /// A bounty the fight pays, which is why a side holding one is not checked.
     #[serde(default)]
     pub kill_bounty: i32,
+    /// Commander skills the officer puts on the panel when it arrives.
+    #[serde(default)]
+    pub commander_skills: Vec<i32>,
+    /// Equipment it hands out when it arrives.
+    #[serde(default)]
+    pub equipment: Vec<i32>,
+    /// A unit it unlocks and hands out a squad of.
+    #[serde(default)]
+    pub opening_unit: Option<OpeningUnit>,
     /// The units a discount applies to. Empty applies to every unit.
     #[serde(default)]
     pub units: Vec<i32>,
@@ -227,10 +244,23 @@ struct ConstructionRecovery {
     recovers: i32,
 }
 
+/// What a blueprint costs and what activating it grants.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Blueprint {
+    pub supply: i32,
+    /// The commander skill it puts on the panel, if it grants one.
+    #[serde(default)]
+    pub grants_skill: Option<i32>,
+    /// The officer it produces, if it is a level of an upgrade chain.
+    #[serde(default)]
+    pub grants_officer: Option<i32>,
+}
+
 #[derive(Deserialize)]
 struct BlueprintPrice {
     id: i32,
-    supply: i32,
+    #[serde(flatten)]
+    blueprint: Blueprint,
 }
 
 #[derive(Deserialize)]
@@ -301,7 +331,7 @@ impl Economy {
             blueprints: economy
                 .blueprints
                 .into_iter()
-                .map(|blueprint| (blueprint.id, blueprint.supply))
+                .map(|row| (row.id, row.blueprint))
                 .collect(),
             tower_strengthen: economy
                 .tower_strengthen
@@ -377,9 +407,32 @@ impl Economy {
         self.officers.get(&officer)
     }
 
+    /// What activating a blueprint costs.
     #[must_use]
     pub fn blueprint(&self, blueprint: i32) -> Option<i32> {
-        self.blueprints.get(&blueprint).copied()
+        self.blueprints.get(&blueprint).map(|row| row.supply)
+    }
+
+    /// The commander skill a blueprint puts on the panel.
+    #[must_use]
+    pub fn blueprint_skill(&self, blueprint: i32) -> Option<i32> {
+        self.blueprints.get(&blueprint)?.grants_skill
+    }
+
+    /// The officer a chain blueprint produces.
+    #[must_use]
+    pub fn blueprint_officer(&self, blueprint: i32) -> Option<i32> {
+        self.blueprints.get(&blueprint)?.grants_officer
+    }
+
+    /// The blueprint that replaces this one, if it is the first of a chain.
+    #[must_use]
+    pub fn blueprint_successor(&self, blueprint: i32) -> Option<i32> {
+        match blueprint {
+            4 => Some(401),
+            5 => Some(501),
+            _ => None,
+        }
     }
 
     /// What raising a tower to `level` costs.
