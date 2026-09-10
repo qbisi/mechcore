@@ -13,6 +13,14 @@ Training Ground compiler. The remaining rows document equivalent standard-1v1
 sources such as a Blueprint or Research Center result; their differing
 acquisition route or cooldown does not create another layout type.
 
+A skill reaches a side by one of two routes, and both name it by this ID. A
+reinforcement card's own ID is the skill it grants, which
+[`docs/reinforce_items.md`](reinforce_items.md) sets out, and a blueprint names
+the skill it activates in `grants_skill`, which
+[`config/economy.yaml`](../config/economy.yaml) states alongside what the
+blueprint costs. A state names the same ID in `battle_skills`, so the panel, the
+card and the blueprint all speak one ID space.
+
 ## ID mapping
 
 Descriptions below use the official English localization with the build-2227

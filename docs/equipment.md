@@ -8,6 +8,14 @@ Amplify Specialist opening. Names and effects are taken from that build's
 `EquipmentGroupData`; percentages below are additive native modifiers unless
 the effect says otherwise.
 
+An equipment ID is also the ID of the card that grants it, so taking card
+`13030001` adds equipment `13030001` and nothing has to be looked up in
+between. The machine-readable table, pinned to build 2259, is
+[`config/reinforce_items.yaml`](../config/reinforce_items.yaml), which states
+each item's `kind` and what taking it costs;
+[`docs/reinforce_items.md`](reinforce_items.md) explains the card system that
+deals it. The effect text below has no machine-readable counterpart yet.
+
 | Equipment ID | Name | Effect |
 | --- | --- | --- |
 | 1305003 | Photon Coating | For the first 30 seconds of combat, reduces damage taken by 30% and grants immunity to EMP, ignition, acid, and degeneration beam effects |

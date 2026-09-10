@@ -12,6 +12,7 @@ const UNIT_PRICES: &str = include_str!("../../../config/unit_prices.yaml");
 const UNIT_TECHS: &str = include_str!("../../../config/unit_techs.yaml");
 const REINFORCE_ITEMS: &str = include_str!("../../../config/reinforce_items.yaml");
 const UNIT_REINFORCEMENTS: &str = include_str!("../../../config/unit_reinforcements.yaml");
+const ADVANCE_TEAMS: &str = include_str!("../../../config/advance_teams.yaml");
 const OFFICERS: &str = include_str!("../../../config/officers.yaml");
 const ECONOMY: &str = include_str!("../../../config/economy.yaml");
 
@@ -20,13 +21,14 @@ const ECONOMY: &str = include_str!("../../../config/economy.yaml");
 pub struct Economy {
     units: BTreeMap<i32, UnitPrice>,
     technologies: BTreeMap<i32, i32>,
-    cards: BTreeMap<i32, i32>,
+    cards: BTreeMap<i32, Card>,
+    advance_teams: BTreeMap<i32, AdvanceTeam>,
     unit_reinforcements: BTreeMap<i32, UnitReinforcement>,
     officers: BTreeMap<i32, Officer>,
     blueprints: BTreeMap<i32, i32>,
     tower_strengthen: BTreeMap<i32, i32>,
     energy_tower_skills: BTreeMap<i32, EnergyTowerSkill>,
-    maps: BTreeMap<i32, MapSupply>,
+    round_supply: RoundSupply,
     constructions: BTreeMap<String, i32>,
 }
 
@@ -38,6 +40,50 @@ pub struct UnitPrice {
     pub upgrade_supply: i32,
     #[serde(default)]
     pub unlock_supply: i32,
+}
+
+/// What kind of thing a card is, and so what taking it changes.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CardKind {
+    /// Grants the commander skill its own ID names.
+    CommanderSkill,
+    /// Grants the equipment its own ID names.
+    Equipment,
+    /// Grants the officer its own ID names.
+    Officer,
+    /// Hands out the units [`Economy::advance_team`] states.
+    AdvanceTeam,
+}
+
+/// A card a match can offer.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Card {
+    pub kind: CardKind,
+    pub supply: i32,
+}
+
+/// What a side can pick as its opening in round 0.
+#[derive(Clone, Debug, Deserialize)]
+pub struct AdvanceTeam {
+    pub kind: OpeningKind,
+    /// One entry per formation it hands out, empty for a specialist.
+    #[serde(default)]
+    pub units: Vec<i32>,
+    /// What picking it does to the reactor core, which is how the stronger
+    /// openings are paid for.
+    #[serde(default)]
+    pub reactor_core: i32,
+}
+
+/// The two shapes an opening takes.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum OpeningKind {
+    /// Hands out the formations the row lists.
+    Units,
+    /// Grants the officer its own ID names.
+    Officer,
 }
 
 /// A card that hands a side units.
@@ -88,11 +134,12 @@ pub struct EnergyTowerSkill {
     pub owed: i32,
 }
 
+/// The income a round hands out, which every versus map shares.
 #[derive(Clone, Copy, Debug, Deserialize)]
-pub struct MapSupply {
-    pub first_round_supply: i32,
-    pub round_supply_increase: i32,
-    pub max_round_supply: i32,
+pub struct RoundSupply {
+    pub first: i32,
+    pub increase: i32,
+    pub max: i32,
 }
 
 #[derive(Deserialize)]
@@ -124,7 +171,20 @@ struct CardFile {
 #[derive(Deserialize)]
 struct CardPrice {
     id: i32,
-    supply: i32,
+    #[serde(flatten)]
+    card: Card,
+}
+
+#[derive(Deserialize)]
+struct AdvanceTeamFile {
+    teams: Vec<AdvanceTeamRow>,
+}
+
+#[derive(Deserialize)]
+struct AdvanceTeamRow {
+    id: i32,
+    #[serde(flatten)]
+    team: AdvanceTeam,
 }
 
 #[derive(Deserialize)]
@@ -157,7 +217,7 @@ struct EconomyFile {
     constructions: Vec<ConstructionRecovery>,
     tower_strengthen: Vec<TowerLevel>,
     energy_tower_skills: Vec<EnergyTowerRow>,
-    maps: Vec<MapRow>,
+    round_supply: RoundSupply,
 }
 
 #[derive(Deserialize)]
@@ -186,13 +246,6 @@ struct EnergyTowerRow {
     skill: EnergyTowerSkill,
 }
 
-#[derive(Deserialize)]
-struct MapRow {
-    map_id: i32,
-    #[serde(flatten)]
-    supply: MapSupply,
-}
-
 fn parse<T: serde::de::DeserializeOwned>(source: &str, name: &str) -> Result<T, String> {
     serde_yaml::from_str(source).map_err(|error| format!("cannot read {name}: {error}"))
 }
@@ -208,6 +261,7 @@ impl Economy {
         let units: UnitPriceFile = parse(UNIT_PRICES, "config/unit_prices.yaml")?;
         let techs: UnitTechFile = parse(UNIT_TECHS, "config/unit_techs.yaml")?;
         let cards: CardFile = parse(REINFORCE_ITEMS, "config/reinforce_items.yaml")?;
+        let teams: AdvanceTeamFile = parse(ADVANCE_TEAMS, "config/advance_teams.yaml")?;
         let reinforcements: UnitReinforcementFile =
             parse(UNIT_REINFORCEMENTS, "config/unit_reinforcements.yaml")?;
         let officers: OfficerFile = parse(OFFICERS, "config/officers.yaml")?;
@@ -227,7 +281,12 @@ impl Economy {
             cards: cards
                 .items
                 .into_iter()
-                .map(|card| (card.id, card.supply))
+                .map(|card| (card.id, card.card))
+                .collect(),
+            advance_teams: teams
+                .teams
+                .into_iter()
+                .map(|row| (row.id, row.team))
                 .collect(),
             unit_reinforcements: reinforcements
                 .cards
@@ -259,11 +318,7 @@ impl Economy {
                 .into_iter()
                 .map(|row| (row.type_name, row.recovers))
                 .collect(),
-            maps: economy
-                .maps
-                .into_iter()
-                .map(|row| (row.map_id, row.supply))
-                .collect(),
+            round_supply: economy.round_supply,
         })
     }
 
@@ -280,11 +335,35 @@ impl Economy {
     /// What taking a card costs, whichever kind of card it is.
     #[must_use]
     pub fn card(&self, card: i32) -> Option<i32> {
-        self.cards.get(&card).copied().or_else(|| {
-            self.unit_reinforcements
-                .get(&card)
-                .map(|reinforcement| reinforcement.supply)
+        self.cards
+            .get(&card)
+            .map(|row| row.supply)
+            .or_else(|| {
+                self.unit_reinforcements
+                    .get(&card)
+                    .map(|reinforcement| reinforcement.supply)
+            })
+            // An opening is paid for with reactor core, never with supply.
+            .or_else(|| self.advance_teams.contains_key(&card).then_some(0))
+    }
+
+    /// What taking a card changes.
+    ///
+    /// A unit card and an advance team are named by their own tables, so this
+    /// answers for the three kinds whose ID is the thing they grant.
+    #[must_use]
+    pub fn card_kind(&self, card: i32) -> Option<CardKind> {
+        self.cards.get(&card).map(|row| row.kind).or_else(|| {
+            self.advance_teams
+                .contains_key(&card)
+                .then_some(CardKind::AdvanceTeam)
         })
+    }
+
+    /// The formations an opening hands out.
+    #[must_use]
+    pub fn advance_team(&self, team: i32) -> Option<&AdvanceTeam> {
+        self.advance_teams.get(&team)
     }
 
     /// What a card hands out, when it hands out units.
@@ -321,14 +400,14 @@ impl Economy {
     }
 
     #[must_use]
-    pub fn map(&self, map_id: i32) -> Option<MapSupply> {
-        self.maps.get(&map_id).copied()
+    pub const fn round_supply(&self) -> RoundSupply {
+        self.round_supply
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Economy;
+    use super::{CardKind, Economy, OpeningKind};
 
     #[test]
     fn reads_every_embedded_table() {
@@ -340,7 +419,8 @@ mod tests {
         assert_eq!(economy.technology(10201), Some(300));
         assert_eq!(economy.blueprint(4), Some(100));
         assert_eq!(economy.tower_strengthen(1), Some(100));
-        assert_eq!(economy.map(1001).unwrap().first_round_supply, 200);
+        assert_eq!(economy.round_supply().first, 200);
+        assert_eq!(economy.round_supply().max, 4000);
         assert_eq!(economy.construction_recovery("defensive_wall"), Some(50));
         assert_eq!(economy.construction_recovery("anti_armor_turret"), Some(100));
     }
@@ -353,6 +433,26 @@ mod tests {
         assert_eq!(economy.card(13_030_001), Some(50));
         assert_eq!(economy.card(20023), Some(300));
         assert_eq!(economy.card(1_072_213), Some(50));
+        assert_eq!(economy.card_kind(300_001), Some(CardKind::CommanderSkill));
+        assert_eq!(economy.card_kind(13_030_001), Some(CardKind::Equipment));
+        assert_eq!(economy.card_kind(20023), Some(CardKind::Officer));
+        assert_eq!(economy.card_kind(9871), Some(CardKind::AdvanceTeam));
+        // A unit card is named by its own table instead.
+        assert_eq!(economy.card_kind(1_072_213), None);
+    }
+
+    #[test]
+    fn an_opening_names_the_formations_it_hands_out() {
+        let economy = Economy::embedded().unwrap();
+        let team = economy.advance_team(9871).unwrap();
+        assert_eq!(team.kind, OpeningKind::Units);
+        assert_eq!(team.units, vec![2, 2, 2, 13, 13]);
+        assert_eq!(team.reactor_core, -200);
+        // A specialist is the same choice in the other shape.
+        let specialist = economy.advance_team(20029).unwrap();
+        assert_eq!(specialist.kind, OpeningKind::Officer);
+        assert!(specialist.units.is_empty());
+        assert_eq!(specialist.reactor_core, -200);
     }
 
     #[test]

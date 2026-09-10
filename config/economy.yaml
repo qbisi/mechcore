@@ -3,24 +3,19 @@ game_build: 1.11.1.3.2259
 
 # Prices a round can pay that belong to no unit.
 
+# The blueprints a standard match can reach. A map lists what its
+# research centre offers, `PrepareBlueprint` drops every row that
+# needs research because no standard rule enables it, and a chain's
+# second level is reached by activating its first.
+
 blueprints:
-  - {id: 1, name: 黏油弹, supply: 150}
-  - {id: 2, name: 战地回收, supply: 100}
-  - {id: 3, name: 移动信标, supply: 100}
-  - {id: 4, name: 进攻强化, supply: 100}
-  - {id: 5, name: 防御强化, supply: 100}
-  - {id: 6, name: 低效回收, supply: 100}
-  - {id: 7, name: 犀牛来袭, supply: 100}
-  - {id: 8, name: 再部署, supply: 100}
-  - {id: 9, name: 误导信标, supply: 100}
-  - {id: 401, name: 进攻强化II, supply: 300}
-  - {id: 501, name: 防御强化II, supply: 300}
-  - {id: 1001, name: 燃烧弹, supply: 150}
-  - {id: 1002, name: 黏油弹, supply: 100}
-  - {id: 1003, name: 核弹, supply: 300}
-  - {id: 1004, name: 闪电风暴, supply: 300}
-  - {id: 1005, name: 离子轰炸, supply: 250}
-  - {id: 1006, name: 巨型电磁冲击, supply: 200}
+  - {id: 1, name: 黏油弹, supply: 150, grants_skill: 400002}
+  - {id: 2, name: 战地回收, supply: 100, grants_skill: 900001}
+  - {id: 3, name: 移动信标, supply: 100, grants_skill: 1500001}
+  - {id: 4, name: 进攻强化, supply: 100, grants_officer: 20310}
+  - {id: 5, name: 防御强化, supply: 100, grants_officer: 20300}
+  - {id: 401, name: 进攻强化II, supply: 300, grants_officer: 20311}
+  - {id: 501, name: 防御强化II, supply: 300, grants_officer: 20301}
 
 tower_strengthen:
   - {level: 1, supply: 100}
@@ -45,30 +40,13 @@ constructions:
   - {type: rapid_fire_turret, id: 3, recovers: 100}
   - {type: magnetic_barrier, id: 4, recovers: 50}
 
-# What a map pays out, keyed by the ID a document carries.
-maps:
-  - {map_id: 1001, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1011, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1012, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1021, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1022, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1031, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1032, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 1051, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 2000}
-  - {map_id: 2001, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2002, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2011, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2012, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2013, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2014, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2021, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2022, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2023, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2031, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2032, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 4000}
-  - {map_id: 2051, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 2000}
-  - {map_id: 4001, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 1400}
-  - {map_id: 4002, first_round_supply: 200, round_supply_increase: 200, max_round_supply: 1400}
+# The income rule every versus map shares, checked across the
+# 18 of them. A survival map caps at 2000 instead, and
+# the two roguelike maps at 1400.
+round_supply:
+  first: 200
+  increase: 200
+  max: 4000
 
 # A card with no price of its own is sold at its level's price.
 reinforce_levels:

@@ -1,0 +1,56 @@
+schema: mechcore.advance_teams
+game_build: 1.11.1.3.2259
+
+# The round 0 opening. A `units` row hands out that force, and the
+# round 1 roster of every side in the local set is exactly one of
+# them. An `officer` row grants the officer its own ID names, whose
+# effects config/officers.yaml states. Either way the reactor core
+# moves by the stated amount, which is the only price an opening
+# has: none of them costs supply.
+
+teams:
+  - {id: 9871, name: 2-13, kind: units, units: [2, 2, 2, 13, 13], reactor_core: -200}
+  - {id: 9873, name: 10-7, kind: units, units: [10, 10, 10, 7, 7], reactor_core: 500}
+  - {id: 9874, name: 9-8, kind: units, units: [9, 9, 9, 8, 8], reactor_core: 700}
+  - {id: 9875, name: 10-8, kind: units, units: [10, 10, 10, 8, 8], reactor_core: 200}
+  - {id: 9877, name: 9-13, kind: units, units: [9, 9, 9, 13, 13], reactor_core: 100}
+  - {id: 9879, name: 10-13, kind: units, units: [10, 10, 10, 13, 13], reactor_core: -300}
+  - {id: 9883, name: 15-8, kind: units, units: [15, 15, 15, 8, 8], reactor_core: 300}
+  - {id: 9885, name: 15-13, kind: units, units: [15, 15, 15, 13, 13], reactor_core: -200}
+  - {id: 9889, name: 24-2, kind: units, units: [2, 2, 2, 24, 24], reactor_core: 300}
+  - {id: 9890, name: 24-9, kind: units, units: [9, 9, 9, 24, 24], reactor_core: 100}
+  - {id: 9891, name: 24-10, kind: units, units: [10, 10, 10, 24, 24], reactor_core: -300}
+  - {id: 9892, name: 21-10, kind: units, units: [10, 10, 10, 21, 21], reactor_core: -400}
+  - {id: 9893, name: 21-9, kind: units, units: [9, 9, 9, 21, 21], reactor_core: 200}
+  - {id: 9894, name: 21-15, kind: units, units: [15, 15, 15, 21, 21], reactor_core: -300}
+  - {id: 9895, name: 28-13, kind: units, units: [28, 28, 28, 13, 13], reactor_core: 100}
+  - {id: 9896, name: 28-7, kind: units, units: [28, 28, 28, 7, 7], reactor_core: 400}
+  - {id: 9897, name: 28-8, kind: units, units: [28, 28, 28, 8, 8], reactor_core: 200}
+  - {id: 9899, name: 30-13, kind: units, units: [30, 30, 30, 13, 13], reactor_core: 300}
+  - {id: 9900, name: 30-7, kind: units, units: [30, 30, 30, 7, 7], reactor_core: 500}
+  - {id: 9901, name: 30-24, kind: units, units: [30, 30, 30, 24, 24], reactor_core: 200}
+  - {id: 9902, name: 21-28, kind: units, units: [28, 28, 28, 21, 21], reactor_core: -300}
+  - {id: 9903, name: 20-9, kind: units, units: [9, 9, 9, 20, 20], reactor_core: 100}
+  - {id: 9904, name: 20-10, kind: units, units: [10, 10, 10, 20, 20]}
+  - {id: 9905, name: 20-2, kind: units, units: [2, 2, 2, 20, 20], reactor_core: 100}
+  - {id: 9906, name: 20-30, kind: units, units: [30, 30, 30, 20, 20], reactor_core: 200}
+  - {id: 9907, name: 31-13, kind: units, units: [31, 31, 31, 13, 13], reactor_core: 300}
+  - {id: 9908, name: 31-7, kind: units, units: [31, 31, 31, 7, 7], reactor_core: 200}
+  - {id: 9909, name: 31-24, kind: units, units: [31, 31, 31, 24, 24], reactor_core: 400}
+  - {id: 9910, name: 31-20, kind: units, units: [31, 31, 31, 20, 20]}
+  - {id: 10002, name: 补给专家, kind: officer, reactor_core: -600}
+  - {id: 10010, name: 快速补给专家, kind: officer, reactor_core: -500}
+  - {id: 10011, name: 导弹专家, kind: officer, reactor_core: 100}
+  - {id: 10013, name: 增幅专家, kind: officer, reactor_core: 500}
+  - {id: 10014, name: 训练专家, kind: officer, reactor_core: 300}
+  - {id: 20005, name: 巨型专家, kind: officer}
+  - {id: 20021, name: 空军专家, kind: officer, reactor_core: 400}
+  - {id: 20024, name: 速度专家, kind: officer, reactor_core: 300}
+  - {id: 20029, name: 长弓专家, kind: officer, reactor_core: -200}
+  - {id: 20032, name: 精英专家, kind: officer, reactor_core: 500}
+  - {id: 20033, name: 犀牛专家, kind: officer, reactor_core: -300}
+  - {id: 20034, name: 成本控制专家, kind: officer, reactor_core: 100}
+  - {id: 20035, name: 重装专家, kind: officer, reactor_core: 300}
+  - {id: 20036, name: 剑齿虎专家, kind: officer}
+  - {id: 20038, name: 火獾专家, kind: officer}
+  - {id: 20039, name: 台风专家, kind: officer, reactor_core: -300}

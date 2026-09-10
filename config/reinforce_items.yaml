@@ -5,223 +5,133 @@ game_build: 1.11.1.3.2259
 # A card whose limitedScene names other modes only is left out; an
 # empty list restricts nothing. A card with no price of its own is
 # sold at its level's price, which is 0, 50, 100 and 200 by level.
+#
+# Every card here grants the thing its own ID names. A unit card
+# and an advance team hand out units instead, and each has its
+# own table. A skill a blueprint researches and an officer that
+# belongs to an opening are left out: the pool never deals them.
 
 items:
-  - {id: 9871, name: 2-13, supply: 0}
-  - {id: 9873, name: 10-7, supply: 0}
-  - {id: 9874, name: 9-8, supply: 0}
-  - {id: 9875, name: 10-8, supply: 0}
-  - {id: 9877, name: 9-13, supply: 0}
-  - {id: 9879, name: 10-13, supply: 0}
-  - {id: 9883, name: 15-8, supply: 0}
-  - {id: 9885, name: 15-13, supply: 0}
-  - {id: 9889, name: 24-2, supply: 0}
-  - {id: 9890, name: 24-9, supply: 0}
-  - {id: 9891, name: 24-10, supply: 0}
-  - {id: 9892, name: 21-10, supply: 0}
-  - {id: 9893, name: 21-9, supply: 0}
-  - {id: 9894, name: 21-15, supply: 0}
-  - {id: 9895, name: 28-13, supply: 0}
-  - {id: 9896, name: 28-7, supply: 0}
-  - {id: 9897, name: 28-8, supply: 0}
-  - {id: 9899, name: 30-13, supply: 0}
-  - {id: 9900, name: 30-7, supply: 0}
-  - {id: 9901, name: 30-24, supply: 0}
-  - {id: 9902, name: 21-28, supply: 0}
-  - {id: 9903, name: 20-9, supply: 0}
-  - {id: 9904, name: 20-10, supply: 0}
-  - {id: 9905, name: 20-2, supply: 0}
-  - {id: 9906, name: 20-30, supply: 0}
-  - {id: 9907, name: 31-13, supply: 0}
-  - {id: 9908, name: 31-7, supply: 0}
-  - {id: 9909, name: 31-24, supply: 0}
-  - {id: 9910, name: 31-20, supply: 0}
-  - {id: 10001, name: 快速冷却, supply: 100}
-  - {id: 10002, name: 补给专家, supply: 100}
-  - {id: 10003, name: 超级补给强化, supply: 250}
-  - {id: 10004, name: 额外部署位, supply: 100}
-  - {id: 10005, name: 巨型猎手, supply: 100}
-  - {id: 10007, name: 先进护盾装置, supply: 0}
-  - {id: 10008, name: 先进飞弹装置, supply: 0}
-  - {id: 10009, name: 快速传送, supply: 0}
-  - {id: 10010, name: 快速补给专家, supply: 50}
-  - {id: 10011, name: 导弹专家, supply: 0}
-  - {id: 10012, name: 核弹专家, supply: 0}
-  - {id: 10013, name: 增幅专家, supply: 0}
-  - {id: 10014, name: 训练专家, supply: 0}
-  - {id: 20001, name: 先进防御战术, supply: 300}
-  - {id: 20002, name: 先进进攻战术, supply: 350}
-  - {id: 20003, name: 高效科技研发, supply: 100}
-  - {id: 20004, name: 先进动力系统, supply: 100}
-  - {id: 20005, name: 巨型专家, supply: 100}
-  - {id: 20006, name: 先进瞄准系统, supply: 400}
-  - {id: 20007, name: 补给强化, supply: 100}
-  - {id: 20021, name: 空军专家, supply: 100}
-  - {id: 20022, name: 高效巨型制造, supply: 100}
-  - {id: 20023, name: 高效小型制造, supply: 300}
-  - {id: 20024, name: 速度专家, supply: 100}
-  - {id: 20029, name: 长弓专家, supply: 50}
-  - {id: 20032, name: 精英专家, supply: 50}
-  - {id: 20033, name: 犀牛专家, supply: 50}
-  - {id: 20034, name: 成本控制专家, supply: 50}
-  - {id: 20035, name: 重装专家, supply: 50}
-  - {id: 20036, name: 剑齿虎专家, supply: 50}
-  - {id: 20037, name: 先知专家, supply: 100}
-  - {id: 20038, name: 火獾专家, supply: 50}
-  - {id: 20039, name: 台风专家, supply: 100}
-  - {id: 20300, name: 防御强化, supply: 50}
-  - {id: 20301, name: 防御强化II, supply: 50}
-  - {id: 20310, name: 进攻强化, supply: 50}
-  - {id: 20311, name: 进攻强化II, supply: 50}
-  - {id: 30101, name: 量产堡垒, supply: 50}
-  - {id: 30102, name: 突击堡垒, supply: 50}
-  - {id: 30103, name: 智能堡垒, supply: 0}
-  - {id: 30104, name: 改进型堡垒, supply: 0}
-  - {id: 30105, name: 增程堡垒, supply: 0}
-  - {id: 30201, name: 增程长弓, supply: 50}
-  - {id: 30202, name: 智能长弓, supply: 0}
-  - {id: 30203, name: 长弓补贴, supply: 100}
-  - {id: 30204, name: 精英长弓, supply: 0}
-  - {id: 30301, name: 增程火神, supply: 50}
-  - {id: 30302, name: 突击火神, supply: 0}
-  - {id: 30303, name: 智能火神, supply: 0}
-  - {id: 30401, name: 突击熔点, supply: 0}
-  - {id: 30402, name: 改进型熔点, supply: 0}
-  - {id: 30403, name: 量产熔点, supply: 0}
-  - {id: 30501, name: 量产犀牛, supply: 0}
-  - {id: 30502, name: 狂暴犀牛, supply: 0}
-  - {id: 30503, name: 精英犀牛, supply: 0}
-  - {id: 30601, name: 量产兵蜂, supply: 0}
-  - {id: 30602, name: 改进型兵蜂, supply: 50}
-  - {id: 30603, name: 狂暴兵蜂, supply: 50}
-  - {id: 30604, name: 精英兵蜂, supply: 0}
-  - {id: 30701, name: 野马补贴, supply: 100}
-  - {id: 30702, name: 重装野马, supply: 50}
-  - {id: 30703, name: 精英野马, supply: 0}
-  - {id: 30801, name: 钢球补贴, supply: 100}
-  - {id: 30802, name: 增程钢球, supply: 50}
-  - {id: 30803, name: 改进型钢球, supply: 0}
-  - {id: 30804, name: 精英钢球, supply: 0}
-  - {id: 30901, name: 精英尖牙, supply: 0}
-  - {id: 30902, name: 突击尖牙, supply: 0}
-  - {id: 31001, name: 爬虫补贴, supply: 100}
-  - {id: 31002, name: 精英爬虫, supply: 0}
-  - {id: 31003, name: 改进型爬虫, supply: 50}
-  - {id: 31101, name: 重装霸主, supply: 0}
-  - {id: 31102, name: 量产霸主, supply: 0}
-  - {id: 31103, name: 智能霸主, supply: 0}
-  - {id: 31104, name: 改进型霸主, supply: 50}
-  - {id: 31201, name: 突击暴雨, supply: 0}
-  - {id: 31202, name: 增程暴雨, supply: 50}
-  - {id: 31203, name: 暴雨补贴, supply: 50}
-  - {id: 31204, name: 改进型暴雨, supply: 0}
-  - {id: 31205, name: 精英暴雨, supply: 0}
-  - {id: 31301, name: 量产铁锤, supply: 0}
-  - {id: 31302, name: 增程铁锤, supply: 0}
-  - {id: 31303, name: 狂暴铁锤, supply: 50}
-  - {id: 31304, name: 改进型铁锤, supply: 0}
-  - {id: 31305, name: 精英铁锤, supply: 0}
-  - {id: 31401, name: 增程骇客, supply: 50}
-  - {id: 31402, name: 重装骇客, supply: 0}
-  - {id: 31403, name: 精英骇客, supply: 0}
-  - {id: 31501, name: 弧光补贴, supply: 100}
-  - {id: 31502, name: 智能弧光, supply: 0}
-  - {id: 31503, name: 重装弧光, supply: 100}
-  - {id: 31504, name: 增程弧光, supply: 50}
-  - {id: 31505, name: 精英弧光, supply: 0}
-  - {id: 31601, name: 量产凤凰, supply: 0}
-  - {id: 31602, name: 增程凤凰, supply: 0}
-  - {id: 31603, name: 改进型凤凰, supply: 0}
-  - {id: 31604, name: 精英凤凰, supply: 0}
-  - {id: 31701, name: 增程战争工厂, supply: 0}
-  - {id: 31702, name: 改进型战争工厂, supply: 0}
-  - {id: 31801, name: 量产恶灵, supply: 0}
-  - {id: 31802, name: 改进型恶灵, supply: 0}
-  - {id: 31901, name: 突击狂蝎, supply: 50}
-  - {id: 31902, name: 量产狂蝎, supply: 0}
-  - {id: 31903, name: 改进型狂蝎, supply: 0}
-  - {id: 32101, name: 增程剑齿虎, supply: 0}
-  - {id: 32102, name: 量产剑齿虎, supply: 0}
-  - {id: 32103, name: 改进型剑齿虎, supply: 0}
-  - {id: 32301, name: 改进型沙虫, supply: 0}
-  - {id: 32302, name: 量产沙虫, supply: 0}
-  - {id: 32401, name: 改进型狼蛛, supply: 0}
-  - {id: 32402, name: 精英狼蛛, supply: 0}
-  - {id: 32501, name: 增程鬼鳐, supply: 0}
-  - {id: 32601, name: 量产先知, supply: 0}
-  - {id: 32602, name: 重装先知, supply: 0}
-  - {id: 32701, name: 突击雷霆, supply: 0}
-  - {id: 32801, name: 强击猎犬, supply: 0}
-  - {id: 33001, name: 改进型魔眼, supply: 0}
-  - {id: 40001, name: 巨型杀手, supply: 100}
-  - {id: 40002, name: 数不过三, supply: 0}
-  - {id: 40003, name: 没有单位增援, supply: 100}
-  - {id: 40004, name: 量产护盾装置, supply: 0}
-  - {id: 40005, name: 紧急避险, supply: 0}
-  - {id: 40006, name: 能量塔过载, supply: 0}
-  - {id: 40007, name: 保卫丧钟, supply: 0}
-  - {id: 40008, name: 磁暴先兆, supply: 0}
-  - {id: 40009, name: 台风先兆, supply: 0}
-  - {id: 50008, name: 补给增援, supply: 0}
-  - {id: 50009, name: 补给增援, supply: 0}
-  - {id: 50010, name: 补给增援, supply: 0}
-  - {id: 50011, name: 补给增援, supply: 0}
-  - {id: 50012, name: 补给增援, supply: 0}
-  - {id: 50013, name: 补给增援, supply: 0}
-  - {id: 100002, name: 燃烧弹, supply: 100}
-  - {id: 100003, name: 燃烧弹, supply: 100}
-  - {id: 200001, name: 电磁冲击, supply: 50}
-  - {id: 200002, name: 巨型电磁冲击, supply: 200}
-  - {id: 200003, name: 光子投射, supply: 100}
-  - {id: 200004, name: 巨型电磁冲击, supply: 200}
-  - {id: 300001, name: 导弹打击, supply: 50}
-  - {id: 300003, name: 轨道轰炸, supply: 150}
-  - {id: 300004, name: 核弹, supply: 350}
-  - {id: 300005, name: 闪电风暴, supply: 350}
-  - {id: 300006, name: 离子轰炸, supply: 250}
-  - {id: 300007, name: 轨道标枪, supply: 200}
-  - {id: 300008, name: 核弹, supply: 350}
-  - {id: 300009, name: 闪电风暴, supply: 350}
-  - {id: 300010, name: 离子轰炸, supply: 250}
-  - {id: 400002, name: 黏油弹, supply: 100}
-  - {id: 400003, name: 黏油弹, supply: 100}
-  - {id: 500002, name: 酸液弹, supply: 100}
-  - {id: 600002, name: 烟雾弹, supply: 100}
-  - {id: 800001, name: 空投护盾, supply: 50}
-  - {id: 900001, name: 战地回收, supply: 100}
-  - {id: 900002, name: 低效回收, supply: 100}
-  - {id: 900003, name: 低效回收, supply: 100}
-  - {id: 900004, name: 机械进化, supply: 200}
-  - {id: 1000001, name: 再部署, supply: 50}
-  - {id: 1000002, name: 再部署, supply: 50}
-  - {id: 1100001, name: 强化训练, supply: 50}
-  - {id: 1200001, name: 地底威胁, supply: 50}
-  - {id: 1200002, name: 犀牛来袭, supply: 50}
-  - {id: 1200003, name: 呼叫机群, supply: 50}
-  - {id: 1200004, name: 呼叫战舰, supply: 250}
-  - {id: 1200005, name: 天降火神, supply: 200}
-  - {id: 1200006, name: 犀牛来袭, supply: 50}
-  - {id: 1305001, name: 充能弹药, supply: 100}
-  - {id: 1305002, name: 寄生弹药, supply: 400}
-  - {id: 1305003, name: 光子涂层, supply: 0}
-  - {id: 1306001, name: 坦克生产线, supply: 200}
-  - {id: 1306002, name: 野马生产线, supply: 200}
-  - {id: 1306003, name: 钢球生产线, supply: 200}
-  - {id: 1307001, name: 保护屏障, supply: 100}
-  - {id: 1308001, name: 抗干扰模块, supply: 0}
-  - {id: 1309001, name: 汲取模块, supply: 100}
-  - {id: 1500001, name: 移动信标, supply: 0}
-  - {id: 1500002, name: 移动信标, supply: 0}
-  - {id: 1500003, name: 干扰信标, supply: 0}
-  - {id: 13010001, name: 便携式护盾, supply: 150}
-  - {id: 13020001, name: 纳米维修包, supply: 100}
-  - {id: 13030001, name: 激光瞄具, supply: 50}
-  - {id: 13030002, name: 重型装甲, supply: 50}
-  - {id: 13030003, name: 改良火控系统, supply: 50}
-  - {id: 13030004, name: 强化模块, supply: 200}
-  - {id: 13030005, name: 速攻模块, supply: 0}
-  - {id: 13030006, name: 超重型装甲, supply: 200}
-  - {id: 13030007, name: 增幅核心, supply: 150}
-  - {id: 13030008, name: 高级火控系统, supply: 300}
-  - {id: 13030010, name: 统御核心, supply: 100}
-  - {id: 13040001, name: 部署模块, supply: 0}
+  - {id: 10003, name: 超级补给强化, kind: officer, supply: 250}
+  - {id: 10004, name: 额外部署位, kind: officer, supply: 100}
+  - {id: 10007, name: 先进护盾装置, kind: officer, supply: 0}
+  - {id: 10008, name: 先进飞弹装置, kind: officer, supply: 0}
+  - {id: 10009, name: 快速传送, kind: officer, supply: 0}
+  - {id: 20001, name: 先进防御战术, kind: officer, supply: 300}
+  - {id: 20002, name: 先进进攻战术, kind: officer, supply: 350}
+  - {id: 20003, name: 高效科技研发, kind: officer, supply: 100}
+  - {id: 20004, name: 先进动力系统, kind: officer, supply: 100}
+  - {id: 20006, name: 先进瞄准系统, kind: officer, supply: 400}
+  - {id: 20007, name: 补给强化, kind: officer, supply: 100}
+  - {id: 20022, name: 高效巨型制造, kind: officer, supply: 100}
+  - {id: 20023, name: 高效小型制造, kind: officer, supply: 300}
+  - {id: 30101, name: 量产堡垒, kind: officer, supply: 50}
+  - {id: 30102, name: 突击堡垒, kind: officer, supply: 50}
+  - {id: 30104, name: 改进型堡垒, kind: officer, supply: 0}
+  - {id: 30105, name: 增程堡垒, kind: officer, supply: 0}
+  - {id: 30201, name: 增程长弓, kind: officer, supply: 50}
+  - {id: 30202, name: 智能长弓, kind: officer, supply: 0}
+  - {id: 30203, name: 长弓补贴, kind: officer, supply: 100}
+  - {id: 30204, name: 精英长弓, kind: officer, supply: 0}
+  - {id: 30301, name: 增程火神, kind: officer, supply: 50}
+  - {id: 30302, name: 突击火神, kind: officer, supply: 0}
+  - {id: 30401, name: 突击熔点, kind: officer, supply: 0}
+  - {id: 30402, name: 改进型熔点, kind: officer, supply: 0}
+  - {id: 30403, name: 量产熔点, kind: officer, supply: 0}
+  - {id: 30501, name: 量产犀牛, kind: officer, supply: 0}
+  - {id: 30502, name: 狂暴犀牛, kind: officer, supply: 0}
+  - {id: 30503, name: 精英犀牛, kind: officer, supply: 0}
+  - {id: 30601, name: 量产兵蜂, kind: officer, supply: 0}
+  - {id: 30602, name: 改进型兵蜂, kind: officer, supply: 50}
+  - {id: 30604, name: 精英兵蜂, kind: officer, supply: 0}
+  - {id: 30701, name: 野马补贴, kind: officer, supply: 100}
+  - {id: 30702, name: 重装野马, kind: officer, supply: 50}
+  - {id: 30703, name: 精英野马, kind: officer, supply: 0}
+  - {id: 30801, name: 钢球补贴, kind: officer, supply: 100}
+  - {id: 30803, name: 改进型钢球, kind: officer, supply: 0}
+  - {id: 30804, name: 精英钢球, kind: officer, supply: 0}
+  - {id: 30901, name: 精英尖牙, kind: officer, supply: 0}
+  - {id: 30902, name: 突击尖牙, kind: officer, supply: 0}
+  - {id: 31001, name: 爬虫补贴, kind: officer, supply: 100}
+  - {id: 31002, name: 精英爬虫, kind: officer, supply: 0}
+  - {id: 31101, name: 重装霸主, kind: officer, supply: 0}
+  - {id: 31102, name: 量产霸主, kind: officer, supply: 0}
+  - {id: 31104, name: 改进型霸主, kind: officer, supply: 50}
+  - {id: 31201, name: 突击暴雨, kind: officer, supply: 0}
+  - {id: 31202, name: 增程暴雨, kind: officer, supply: 50}
+  - {id: 31203, name: 暴雨补贴, kind: officer, supply: 50}
+  - {id: 31205, name: 精英暴雨, kind: officer, supply: 0}
+  - {id: 31301, name: 量产铁锤, kind: officer, supply: 0}
+  - {id: 31302, name: 增程铁锤, kind: officer, supply: 0}
+  - {id: 31304, name: 改进型铁锤, kind: officer, supply: 0}
+  - {id: 31305, name: 精英铁锤, kind: officer, supply: 0}
+  - {id: 31402, name: 重装骇客, kind: officer, supply: 0}
+  - {id: 31403, name: 精英骇客, kind: officer, supply: 0}
+  - {id: 31501, name: 弧光补贴, kind: officer, supply: 100}
+  - {id: 31502, name: 智能弧光, kind: officer, supply: 0}
+  - {id: 31503, name: 重装弧光, kind: officer, supply: 100}
+  - {id: 31504, name: 增程弧光, kind: officer, supply: 50}
+  - {id: 31505, name: 精英弧光, kind: officer, supply: 0}
+  - {id: 31601, name: 量产凤凰, kind: officer, supply: 0}
+  - {id: 31602, name: 增程凤凰, kind: officer, supply: 0}
+  - {id: 31603, name: 改进型凤凰, kind: officer, supply: 0}
+  - {id: 31604, name: 精英凤凰, kind: officer, supply: 0}
+  - {id: 31701, name: 增程战争工厂, kind: officer, supply: 0}
+  - {id: 31702, name: 改进型战争工厂, kind: officer, supply: 0}
+  - {id: 31801, name: 量产恶灵, kind: officer, supply: 0}
+  - {id: 31802, name: 改进型恶灵, kind: officer, supply: 0}
+  - {id: 31901, name: 突击狂蝎, kind: officer, supply: 50}
+  - {id: 31902, name: 量产狂蝎, kind: officer, supply: 0}
+  - {id: 31903, name: 改进型狂蝎, kind: officer, supply: 0}
+  - {id: 32101, name: 增程剑齿虎, kind: officer, supply: 0}
+  - {id: 32102, name: 量产剑齿虎, kind: officer, supply: 0}
+  - {id: 32103, name: 改进型剑齿虎, kind: officer, supply: 0}
+  - {id: 32301, name: 改进型沙虫, kind: officer, supply: 0}
+  - {id: 32302, name: 量产沙虫, kind: officer, supply: 0}
+  - {id: 32401, name: 改进型狼蛛, kind: officer, supply: 0}
+  - {id: 32402, name: 精英狼蛛, kind: officer, supply: 0}
+  - {id: 32501, name: 增程鬼鳐, kind: officer, supply: 0}
+  - {id: 32601, name: 量产先知, kind: officer, supply: 0}
+  - {id: 32602, name: 重装先知, kind: officer, supply: 0}
+  - {id: 32701, name: 突击雷霆, kind: officer, supply: 0}
+  - {id: 32801, name: 强击猎犬, kind: officer, supply: 0}
+  - {id: 33001, name: 改进型魔眼, kind: officer, supply: 0}
+  - {id: 100002, name: 燃烧弹, kind: commander_skill, supply: 100}
+  - {id: 200001, name: 电磁冲击, kind: commander_skill, supply: 50}
+  - {id: 200002, name: 巨型电磁冲击, kind: commander_skill, supply: 200}
+  - {id: 200003, name: 光子投射, kind: commander_skill, supply: 100}
+  - {id: 300001, name: 导弹打击, kind: commander_skill, supply: 50}
+  - {id: 300003, name: 轨道轰炸, kind: commander_skill, supply: 150}
+  - {id: 300004, name: 核弹, kind: commander_skill, supply: 350}
+  - {id: 300005, name: 闪电风暴, kind: commander_skill, supply: 350}
+  - {id: 300006, name: 离子轰炸, kind: commander_skill, supply: 250}
+  - {id: 300007, name: 轨道标枪, kind: commander_skill, supply: 200}
+  - {id: 500002, name: 酸液弹, kind: commander_skill, supply: 100}
+  - {id: 600002, name: 烟雾弹, kind: commander_skill, supply: 100}
+  - {id: 800001, name: 空投护盾, kind: commander_skill, supply: 50}
+  - {id: 1000001, name: 再部署, kind: commander_skill, supply: 50}
+  - {id: 1100001, name: 强化训练, kind: commander_skill, supply: 50}
+  - {id: 1200001, name: 地底威胁, kind: commander_skill, supply: 50}
+  - {id: 1200002, name: 犀牛来袭, kind: commander_skill, supply: 50}
+  - {id: 1200003, name: 呼叫机群, kind: commander_skill, supply: 50}
+  - {id: 1200004, name: 呼叫战舰, kind: commander_skill, supply: 250}
+  - {id: 1200005, name: 天降火神, kind: commander_skill, supply: 200}
+  - {id: 1305003, name: 光子涂层, kind: equipment, supply: 0}
+  - {id: 1306001, name: 坦克生产线, kind: equipment, supply: 200}
+  - {id: 1306002, name: 野马生产线, kind: equipment, supply: 200}
+  - {id: 1306003, name: 钢球生产线, kind: equipment, supply: 200}
+  - {id: 1307001, name: 保护屏障, kind: equipment, supply: 100}
+  - {id: 1308001, name: 抗干扰模块, kind: equipment, supply: 0}
+  - {id: 1309001, name: 汲取模块, kind: equipment, supply: 100}
+  - {id: 1500002, name: 移动信标, kind: commander_skill, supply: 0}
+  - {id: 13010001, name: 便携式护盾, kind: equipment, supply: 150}
+  - {id: 13020001, name: 纳米维修包, kind: equipment, supply: 100}
+  - {id: 13030001, name: 激光瞄具, kind: equipment, supply: 50}
+  - {id: 13030002, name: 重型装甲, kind: equipment, supply: 50}
+  - {id: 13030003, name: 改良火控系统, kind: equipment, supply: 50}
+  - {id: 13030004, name: 强化模块, kind: equipment, supply: 200}
+  - {id: 13030005, name: 速攻模块, kind: equipment, supply: 0}
+  - {id: 13030006, name: 超重型装甲, kind: equipment, supply: 200}
+  - {id: 13030007, name: 增幅核心, kind: equipment, supply: 150}
+  - {id: 13030010, name: 统御核心, kind: equipment, supply: 100}
+  - {id: 13040001, name: 部署模块, kind: equipment, supply: 0}

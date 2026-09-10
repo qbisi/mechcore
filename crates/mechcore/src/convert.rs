@@ -35,7 +35,7 @@ fn battle(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
         fs::read(&source).map_err(|error| format!("cannot read {}: {error}", source.display()))?;
     let battle = mechcore_document::convert::battle_from_grbr(&grbr)?;
     let economy = mechcore_document::economy::Economy::embedded()?;
-    let ledger = mechcore_document::ledger::check(&battle, &economy)?;
+    let ledger = mechcore_document::ledger::check(&battle, &economy);
     let yaml = mechcore_document::battle::canonical_yaml(&battle)?;
     fs::write(&destination, &yaml)
         .map_err(|error| format!("cannot write {}: {error}", destination.display()))?;

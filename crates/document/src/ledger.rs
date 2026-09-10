@@ -17,7 +17,7 @@
 
 use crate::battle::{Action, Battle, SideState, SkillTarget, Turn};
 use crate::catalog::unit_id_from_type;
-use crate::economy::{Economy, MapSupply, Officer};
+use crate::economy::{Economy, Officer, RoundSupply};
 use std::collections::BTreeMap;
 
 /// Commander skills that take one of the side's own formations away and pay
@@ -57,18 +57,9 @@ pub struct Failure {
 }
 
 /// Checks every round transition of a battle.
-///
-/// # Errors
-///
-/// Returns an error when the battle names a map this build has no supply row
-/// for, since the round's income cannot then be stated at all.
-pub fn check(battle: &Battle, economy: &Economy) -> Result<Report, String> {
-    let map = economy.map(battle.map_id).ok_or_else(|| {
-        format!(
-            "map {} has no supply row in this build's economy",
-            battle.map_id
-        )
-    })?;
+#[must_use]
+pub fn check(battle: &Battle, economy: &Economy) -> Report {
+    let map = economy.round_supply();
     let mut report = Report::default();
     for pair in battle.turns.windows(2) {
         let [turn, next] = pair else { continue };
@@ -101,7 +92,7 @@ pub fn check(battle: &Battle, economy: &Economy) -> Result<Report, String> {
             );
         }
     }
-    Ok(report)
+    report
 }
 
 struct Transition<'a> {
@@ -111,7 +102,7 @@ struct Transition<'a> {
     following: &'a SideState,
     actions: &'a [Action],
     next_round: i32,
-    map: MapSupply,
+    map: RoundSupply,
 }
 
 fn record(report: &mut Report, economy: &Economy, transition: &Transition<'_>) {
@@ -189,14 +180,14 @@ fn paid_by_the_fight(economy: &Economy, state: &SideState) -> bool {
 /// start add to it. An officer taken later in the round cannot have raised an
 /// income that was already granted.
 #[must_use]
-pub fn round_income(economy: &Economy, round: i32, officers: &[i32], map: MapSupply) -> i32 {
+pub fn round_income(economy: &Economy, round: i32, officers: &[i32], map: RoundSupply) -> i32 {
     if round < 1 {
         return 0;
     }
     let base = map
-        .first_round_supply
-        .saturating_add((round - 1).saturating_mul(map.round_supply_increase))
-        .min(map.max_round_supply);
+        .first
+        .saturating_add((round - 1).saturating_mul(map.increase))
+        .min(map.max);
     let extra: i32 = officers
         .iter()
         .filter_map(|officer| economy.officer(*officer))
@@ -362,7 +353,7 @@ mod tests {
     fn report_for(path: &str) -> super::Report {
         let battle = battle_from_grbr(&std::fs::read(path).unwrap()).unwrap();
         let economy = Economy::embedded().unwrap();
-        let report = check(&battle, &economy).unwrap();
+        let report = check(&battle, &economy);
         assert_eq!(
             report.closed + report.failed + report.fight_pays + report.unpriced,
             transitions(&battle.turns),

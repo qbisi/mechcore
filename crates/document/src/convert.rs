@@ -14,7 +14,7 @@ use crate::battle::{
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
-use crate::economy::{Economy, MapSupply};
+use crate::economy::{Economy, RoundSupply};
 use crate::ledger;
 use crate::{DocumentKind, terrains_from_grbr_round};
 use std::collections::BTreeMap;
@@ -365,10 +365,12 @@ fn round_income(economy: &Economy, player: &record::PlayerRecord, position: usiz
         economy,
         round,
         officers,
-        MapSupply {
-            first_round_supply: setup.first_round_supply,
-            round_supply_increase: setup.round_supply_increase,
-            max_round_supply: setup.max_round_supply,
+        // The record carries the map's own row per player, so the income comes
+        // from the replay rather than from the shared rule.
+        RoundSupply {
+            first: setup.first_round_supply,
+            increase: setup.round_supply_increase,
+            max: setup.max_round_supply,
         },
     );
     let debt = position

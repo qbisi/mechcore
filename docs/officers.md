@@ -13,6 +13,16 @@ An Officer may grant a commander skill, equipment, or an extra formation, but
 those resulting objects are not additional `techs.officers` entries. Native
 `CommanderSkillData` used by `battle_skills` is a separate ID space.
 
+An Officer ID is also the ID of the card that grants it, so taking card `20023`
+adds Officer `20023`. [`config/officers.yaml`](../config/officers.yaml) states,
+for build 2259, the 81 Officers that go on affecting the match after they
+arrive: what they discount and for which units, what they add to a round's
+income, the bounty two of them collect for destroying a giant, and the
+commander skills, equipment and opening formations nine of them hand out. That
+last group is why taking an Officer card can put a skill on the panel.
+[`docs/reinforce_items.md`](reinforce_items.md) explains the card system, and
+the effect text below has no machine-readable counterpart yet.
+
 `Test-only` entries exist in the runtime catalog and are listed for completeness.
 They are not ordinary opening or reinforcement choices. Derived/internal entries
 may be owned by another layout field; in particular Research Center attack and
