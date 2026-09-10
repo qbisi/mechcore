@@ -1,0 +1,333 @@
+schema: mechcore.unit_techs
+game_build: 1.11.1.3.2259
+
+units:
+  - type: fortress
+    unit_id: 1
+    technologies:
+      - {id: 701, supply: 100}
+      - {id: 1001, supply: 500}
+      - {id: 1105, supply: 200}
+      - {id: 1201, supply: 300}
+      - {id: 3001, supply: 150}
+      - {id: 10201, supply: 300}
+      - {id: 10301, supply: 150}
+      - {id: 10401, supply: 200}
+      - {id: 10801, supply: 150}
+      - {id: 110201, supply: 300}
+  - type: marksman
+    unit_id: 2
+    technologies:
+      - {id: 702, supply: 250}
+      - {id: 1202, supply: 300}
+      - {id: 1802, supply: 250}
+      - {id: 3202, supply: 250}
+      - {id: 10102, supply: 200}
+      - {id: 10202, supply: 300}
+      - {id: 10402, supply: 150}
+      - {id: 10802, supply: 400}
+  - type: vulcan
+    unit_id: 3
+    technologies:
+      - {id: 1103, supply: 250}
+      - {id: 1203, supply: 350}
+      - {id: 3003, supply: 150}
+      - {id: 10203, supply: 300}
+      - {id: 10603, supply: 300}
+      - {id: 11010, supply: 150}
+      - {id: 180203, supply: 300}
+  - type: melting_point
+    unit_id: 4
+    technologies:
+      - {id: 304, supply: 200}
+      - {id: 1106, supply: 300}
+      - {id: 1107, supply: 150}
+      - {id: 1204, supply: 300}
+      - {id: 3004, supply: 100}
+      - {id: 10204, supply: 300}
+  - type: rhino
+    unit_id: 5
+    technologies:
+      - {id: 905, supply: 200}
+      - {id: 1109, supply: 150}
+      - {id: 2305, supply: 100}
+      - {id: 2505, supply: 300}
+      - {id: 2805, supply: 250}
+      - {id: 3005, supply: 200}
+      - {id: 10505, supply: 100}
+      - {id: 180305, supply: 300}
+      - {id: 180805, supply: 150}
+  - type: wasp
+    unit_id: 6
+    technologies:
+      - {id: 206, supply: 300}
+      - {id: 406, supply: 100}
+      - {id: 506, supply: 200}
+      - {id: 1606, supply: 100}
+      - {id: 1806, supply: 100}
+      - {id: 3206, supply: 200}
+      - {id: 10206, supply: 300}
+      - {id: 10606, supply: 100}
+      - {id: 10806, supply: 400}
+      - {id: 180206, supply: 100}
+  - type: mustang
+    unit_id: 7
+    technologies:
+      - {id: 407, supply: 50}
+      - {id: 3207, supply: 300}
+      - {id: 3307, supply: 200}
+      - {id: 4607, supply: 250}
+      - {id: 10207, supply: 300}
+      - {id: 10607, supply: 250}
+  - type: steel_ball
+    unit_id: 8
+    technologies:
+      - {id: 308, supply: 200}
+      - {id: 608, supply: 250}
+      - {id: 1308, supply: 300}
+      - {id: 2408, supply: 200}
+      - {id: 3008, supply: 300}
+      - {id: 10208, supply: 300}
+      - {id: 180808, supply: 150}
+  - type: fang
+    unit_id: 9
+    technologies:
+      - {id: 209, supply: 500}
+      - {id: 3109, supply: 150}
+      - {id: 10209, supply: 300}
+      - {id: 10509, supply: 250}
+      - {id: 10609, supply: 100}
+      - {id: 180209, supply: 150}
+  - type: crawler
+    unit_id: 10
+    technologies:
+      - {id: 2610, supply: 350}
+      - {id: 2710, supply: 100}
+      - {id: 3510, supply: 250}
+      - {id: 10510, supply: 100}
+      - {id: 10710, supply: 150}
+      - {id: 180110, supply: 250}
+  - type: overlord
+    unit_id: 11
+    technologies:
+      - {id: 411, supply: 200}
+      - {id: 911, supply: 150}
+      - {id: 1108, supply: 300}
+      - {id: 1211, supply: 250}
+      - {id: 1611, supply: 300}
+      - {id: 3011, supply: 150}
+      - {id: 10211, supply: 300}
+      - {id: 10311, supply: 300}
+      - {id: 180311, supply: 300}
+  - type: stormcaller
+    unit_id: 12
+    technologies:
+      - {id: 412, supply: 150}
+      - {id: 812, supply: 350}
+      - {id: 1812, supply: 300}
+      - {id: 10212, supply: 300}
+      - {id: 10312, supply: 250}
+      - {id: 10912, supply: 200}
+  - type: sledgehammer
+    unit_id: 13
+    technologies:
+      - {id: 613, supply: 200}
+      - {id: 913, supply: 200}
+      - {id: 1813, supply: 350}
+      - {id: 3013, supply: 250}
+      - {id: 10213, supply: 300}
+      - {id: 10513, supply: 250}
+      - {id: 10613, supply: 100}
+  - type: hacker
+    unit_id: 14
+    technologies:
+      - {id: 1014, supply: 400}
+      - {id: 1714, supply: 300}
+      - {id: 1814, supply: 100}
+      - {id: 10214, supply: 300}
+      - {id: 11014, supply: 250}
+  - type: arclight
+    unit_id: 15
+    technologies:
+      - {id: 1815, supply: 400}
+      - {id: 3015, supply: 100}
+      - {id: 3115, supply: 300}
+      - {id: 4515, supply: 250}
+      - {id: 10215, supply: 300}
+      - {id: 10815, supply: 400}
+      - {id: 10915, supply: 100}
+  - type: phoenix
+    unit_id: 16
+    technologies:
+      - {id: 216, supply: 200}
+      - {id: 1616, supply: 100}
+      - {id: 1816, supply: 200}
+      - {id: 2916, supply: 150}
+      - {id: 10216, supply: 300}
+      - {id: 10316, supply: 200}
+      - {id: 10816, supply: 400}
+      - {id: 10916, supply: 200}
+  - type: war_factory
+    unit_id: 17
+    technologies:
+      - {id: 417, supply: 350}
+      - {id: 3017, supply: 350}
+      - {id: 3317, supply: 350}
+      - {id: 10217, supply: 500}
+      - {id: 10317, supply: 300}
+      - {id: 12017, supply: 500}
+      - {id: 12117, supply: 450}
+      - {id: 12217, supply: 400}
+      - {id: 180317, supply: 200}
+  - type: wraith
+    unit_id: 18
+    technologies:
+      - {id: 418, supply: 150}
+      - {id: 918, supply: 200}
+      - {id: 3018, supply: 200}
+      - {id: 4418, supply: 300}
+      - {id: 10218, supply: 300}
+      - {id: 110181, supply: 400}
+      - {id: 180418, supply: 200}
+  - type: scorpion
+    unit_id: 19
+    technologies:
+      - {id: 719, supply: 100}
+      - {id: 919, supply: 150}
+      - {id: 3019, supply: 100}
+      - {id: 10019, supply: 300}
+      - {id: 10219, supply: 300}
+      - {id: 10419, supply: 100}
+      - {id: 180519, supply: 250}
+  - type: fire_badger
+    unit_id: 20
+    technologies:
+      - {id: 820, supply: 250}
+      - {id: 920, supply: 150}
+      - {id: 10220, supply: 300}
+      - {id: 10620, supply: 300}
+      - {id: 11020, supply: 200}
+      - {id: 180220, supply: 100}
+      - {id: 180620, supply: 200}
+  - type: sabertooth
+    unit_id: 21
+    technologies:
+      - {id: 721, supply: 150}
+      - {id: 3321, supply: 100}
+      - {id: 4721, supply: 200}
+      - {id: 10221, supply: 300}
+      - {id: 10321, supply: 200}
+      - {id: 110211, supply: 200}
+  - type: typhoon
+    unit_id: 22
+    technologies:
+      - {id: 2922, supply: 300}
+      - {id: 4722, supply: 200}
+      - {id: 5122, supply: 150}
+      - {id: 5222, supply: 200}
+      - {id: 5322, supply: 200}
+      - {id: 10222, supply: 300}
+      - {id: 1102022, supply: 300}
+  - type: sandworm
+    unit_id: 23
+    technologies:
+      - {id: 923, supply: 150}
+      - {id: 3023, supply: 250}
+      - {id: 3123, supply: 100}
+      - {id: 3623, supply: 250}
+      - {id: 3723, supply: 200}
+      - {id: 3823, supply: 100}
+      - {id: 10523, supply: 150}
+      - {id: 13023, supply: 200}
+  - type: tarantula
+    unit_id: 24
+    technologies:
+      - {id: 424, supply: 300}
+      - {id: 924, supply: 150}
+      - {id: 3024, supply: 100}
+      - {id: 3124, supply: 150}
+      - {id: 10224, supply: 300}
+      - {id: 10524, supply: 400}
+      - {id: 10624, supply: 150}
+      - {id: 11024, supply: 150}
+  - type: phantom_ray
+    unit_id: 25
+    technologies:
+      - {id: 225, supply: 400}
+      - {id: 425, supply: 150}
+      - {id: 725, supply: 200}
+      - {id: 3025, supply: 250}
+      - {id: 3225, supply: 200}
+      - {id: 3925, supply: 100}
+      - {id: 10225, supply: 300}
+      - {id: 11025, supply: 100}
+  - type: farseer
+    unit_id: 26
+    technologies:
+      - {id: 726, supply: 150}
+      - {id: 1826, supply: 150}
+      - {id: 3226, supply: 200}
+      - {id: 3326, supply: 200}
+      - {id: 10226, supply: 300}
+      - {id: 180326, supply: 400}
+      - {id: 180526, supply: 200}
+  - type: raiden
+    unit_id: 27
+    technologies:
+      - {id: 227, supply: 150}
+      - {id: 1827, supply: 300}
+      - {id: 4027, supply: 200}
+      - {id: 4127, supply: 100}
+      - {id: 10227, supply: 300}
+      - {id: 110271, supply: 250}
+  - type: hound
+    unit_id: 28
+    technologies:
+      - {id: 3028, supply: 250}
+      - {id: 4228, supply: 200}
+      - {id: 10228, supply: 300}
+      - {id: 10528, supply: 300}
+      - {id: 11028, supply: 250}
+      - {id: 180828, supply: 300}
+  - type: abyss
+    unit_id: 29
+    technologies:
+      - {id: 2329, supply: 200}
+      - {id: 4329, supply: 350}
+      - {id: 10229, supply: 500}
+      - {id: 11029, supply: 350}
+      - {id: 12029, supply: 300}
+      - {id: 110291, supply: 500}
+      - {id: 180329, supply: 250}
+  - type: void_eye
+    unit_id: 30
+    technologies:
+      - {id: 230, supply: 250}
+      - {id: 330, supply: 50}
+      - {id: 4430, supply: 150}
+      - {id: 10230, supply: 300}
+      - {id: 10930, supply: 100}
+      - {id: 180430, supply: 100}
+      - {id: 180530, supply: 300}
+  - type: vortex
+    unit_id: 31
+    technologies:
+      - {id: 631, supply: 250}
+      - {id: 931, supply: 150}
+      - {id: 4531, supply: 400}
+      - {id: 10231, supply: 300}
+      - {id: 123101, supply: 350}
+      - {id: 180931, supply: 250}
+      - {id: 493101, supply: 300}
+      - {id: 503101, supply: 150}
+  - type: mountain
+    unit_id: 2002
+    technologies:
+      - {id: 72002, supply: 500}
+      - {id: 302002, supply: 400}
+      - {id: 312002, supply: 300}
+      - {id: 1022002, supply: 500}
+      - {id: 1032002, supply: 400}
+      - {id: 11020021, supply: 400}
+      - {id: 11020022, supply: 350}
+      - {id: 18032002, supply: 400}

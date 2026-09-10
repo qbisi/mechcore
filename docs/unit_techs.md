@@ -9,11 +9,22 @@ ordinary build `1.11.1.2.2227` cards. Names and effects are the game's official
 English and Simplified Chinese localizations with serialized description
 parameters expanded.
 
-Use the listed ID in `techs.units`. The final two decimal digits encode the
-owning ordinary unit ID. `apply_layout` adds and activates each declared
-technology in array order, then verifies active state. `Base supply` documents
-the normal-game base price; Training Ground test actions do not make that price
-part of the layout schema.
+Use the listed ID in `techs.units`. `apply_layout` adds and activates each
+declared technology in array order, then verifies active state. `Base supply`
+documents the normal-game base price; Training Ground test actions do not make
+that price part of the layout schema.
+
+The machine-readable table is [`config/unit_techs.yaml`](../config/unit_techs.yaml),
+extracted from build 2259 and grouped by unit, carrying an ID and a price and
+nothing else, with
+[`config/unit_prices.yaml`](../config/unit_prices.yaml) beside it for what a
+unit costs to buy, to unlock and to raise one level. Every price this index and
+that table share agrees, across the 233 rows below.
+
+Reading the owner off the end of an ID is a rule of thumb rather than a rule:
+it accounts for most technologies and fails on the rest, `1106` belonging to
+Melting Point and `503101` to Vortex. The grouping below, and the one in the
+configuration file, come from the catalogue instead.
 
 ## 1 — Fortress / 堡垒
 
