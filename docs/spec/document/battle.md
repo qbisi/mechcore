@@ -200,6 +200,15 @@ owns it:
 The last round has no next snapshot to read the shop allowance from, so it falls
 back to the shipped constants, two and one.
 
+The energy tower debt is the one quantity two readings produce, and the two have
+to agree. A round's decisions say what it owes, and the recorded list says the
+same thing a round later, because the activation flag survives into the round
+after the one that set it. Only the skill with a deferred half can be
+snapshotted, so a round whose recorded list names anything else, or names
+nothing where the round before activated one, is refused rather than converted
+under whichever reading happens to be consulted. An activation in the last round
+is never compared: no snapshot follows it.
+
 Two fields have no recorded source and are refused rather than guessed. A panel
 holding commander skill `800001` is an error instead of a silently missing
 `airdrop_shields`, and `travelling` is left absent rather than inferred from the

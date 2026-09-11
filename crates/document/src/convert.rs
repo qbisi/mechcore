@@ -44,6 +44,13 @@ enum Seat {
 }
 
 impl Seat {
+    const fn name(self) -> &'static str {
+        match self {
+            Self::Blue => "blue",
+            Self::Red => "red",
+        }
+    }
+
     /// Red's recorded coordinates are the blue frame turned half a turn.
     fn position(self, record: &record::PositionRecord) -> Position {
         match self {
@@ -247,7 +254,7 @@ fn side_state(
         // A replay records the opening taken and not the three refused.
         opening_offers: None,
         reactor_core: data.reactor_core,
-        supply: data.supply + round_income(economy, player, position),
+        supply: data.supply + round_income(economy, player, position, seat)?,
         shop: ShopState {
             unlocked_units,
             buys_remaining: allowance(player, position, Allowance::Buy),
@@ -362,15 +369,63 @@ fn unfitted_equipment(data: &PlayerData) -> Vec<EquipmentItem> {
     unfitted
 }
 
+/// Whether last round's Rapid Supply is deducted from this round's income.
+///
+/// Two readings of one fact have to agree, and this is where they meet. The
+/// debt follows from the previous round's own decisions, which is what the
+/// ledger prices. The game also snapshots it: the activation flag survives into
+/// the round after the one that set it, so a round's recorded
+/// `energyTowerSkills` names the previous round's activation rather than its
+/// own, and only skill `1` has a deferred half to be snapshotted at all.
+///
+/// # Errors
+///
+/// Returns an error when the two disagree, which means either the collapse of
+/// the previous round's actions or the reading of the recorded list is wrong.
+/// Guessing which would put a supply figure into the document that no reading
+/// supports.
+fn energy_tower_debt(
+    player: &record::PlayerRecord,
+    position: usize,
+    seat: Seat,
+) -> Result<bool, String> {
+    let entry = &player.rounds.entries[position];
+    let owed = position.checked_sub(1).is_some_and(|previous| {
+        net_actions(&player.rounds.entries[previous].actions.entries)
+            .iter()
+            .any(|action| {
+                action.kind == "PAD_ActiveEnergyTowerSkill"
+                    && action.skill_id == Some(RAPID_SUPPLY_SKILL)
+            })
+    });
+    let expected: &[i32] = if owed { &[RAPID_SUPPLY_SKILL] } else { &[] };
+    let recorded = entry.data.energy_tower_skills.values.as_slice();
+    if recorded == expected {
+        return Ok(owed);
+    }
+    Err(format!(
+        "{} round {} records energy tower skills {recorded:?}, and the round before it \
+         decided {expected:?}; see docs/spec/document/battle.md",
+        seat.name(),
+        entry.round
+    ))
+}
+
 /// The income this round adds, which the recorded supply precedes.
 ///
 /// The map's own row is recorded per player, so no map catalogue is consulted.
 /// An energy tower skill activated last round is paid for here.
-fn round_income(economy: &Economy, player: &record::PlayerRecord, position: usize) -> i32 {
+fn round_income(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    position: usize,
+    seat: Seat,
+) -> Result<i32, String> {
+    let debt = energy_tower_debt(player, position, seat)?;
     let entry = &player.rounds.entries[position];
     let round = entry.round;
     if round < 1 {
-        return 0;
+        return Ok(0);
     }
     let setup = &player.data;
     let officers = &entry.data.officers.values;
@@ -386,18 +441,7 @@ fn round_income(economy: &Economy, player: &record::PlayerRecord, position: usiz
             max: setup.max_round_supply,
         },
     );
-    let debt = position
-        .checked_sub(1)
-        .map(|previous| &player.rounds.entries[previous])
-        .is_some_and(|previous| {
-            net_actions(&previous.actions.entries)
-                .iter()
-                .any(|action| {
-                    action.kind == "PAD_ActiveEnergyTowerSkill"
-                        && action.skill_id == Some(RAPID_SUPPLY_SKILL)
-                })
-        });
-    base - if debt { RAPID_SUPPLY_DEBT } else { 0 }
+    Ok(base - if debt { RAPID_SUPPLY_DEBT } else { 0 })
 }
 
 #[derive(Clone, Copy)]
@@ -906,6 +950,63 @@ mod tests {
             }
         }
         assert_eq!((converted, refused), (4, 2));
+    }
+
+    /// The recorded energy tower list is the previous round's debt.
+    ///
+    /// Two readings of one fact, and the conversion now refuses a replay where
+    /// they disagree. The tracked set exercises the claim in both directions:
+    /// skill `1` is activated eight times, so a debt the snapshot never carried
+    /// would fail, and the other four skills are activated sixty-three times
+    /// between them, so a snapshot carrying any of those would fail too.
+    #[test]
+    fn the_recorded_energy_tower_list_is_the_previous_rounds_debt() {
+        let mut deferred = 0;
+        let mut immediate = 0;
+        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
+                continue;
+            };
+            for turn in &battle.turns {
+                for action in turn.actions.blue.iter().chain(&turn.actions.red) {
+                    if let Action::ActiveEnergyTowerSkill { skill } = action {
+                        if *skill == super::RAPID_SUPPLY_SKILL {
+                            deferred += 1;
+                        } else {
+                            immediate += 1;
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!((deferred, immediate), (8, 63));
+    }
+
+    /// A snapshot that names a skill the round before did not activate is
+    /// refused rather than converted.
+    ///
+    /// The one recorded `energyTowerSkills` entry in the tracked set is edited
+    /// in memory from skill `1` to skill `2`, which is the same number of bytes
+    /// and so leaves the `BinaryFormatter` framing intact. Skill `2` has no
+    /// deferred half, so no round can owe it.
+    #[test]
+    fn a_snapshot_that_disagrees_with_the_round_before_is_refused() {
+        let mut grbr = std::fs::read(TUFF).expect("tracked GRBR fixture");
+        let recorded = b"<energyTowerSkills>\n              <int>1</int>";
+        let at = grbr
+            .windows(recorded.len())
+            .position(|window| window == recorded)
+            .expect("the tracked replay records one deferred skill");
+        let digit = at + recorded.len() - "</int>".len() - 1;
+        assert_eq!(grbr[digit], b'1');
+        grbr[digit] = b'2';
+        let error = battle_from_grbr(&grbr).expect_err("the two readings disagree");
+        assert!(error.contains("energy tower skills [2]"), "{error}");
+        assert!(error.contains("decided [1]"), "{error}");
     }
 
     #[test]
