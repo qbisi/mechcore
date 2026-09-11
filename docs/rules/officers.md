@@ -14,7 +14,7 @@ those resulting objects are not additional `techs.officers` entries. Native
 `CommanderSkillData` used by `battle_skills` is a separate ID space.
 
 An Officer ID is also the ID of the card that grants it, so taking card `20023`
-adds Officer `20023`. [`config/officers.yaml`](../config/officers.yaml) states,
+adds Officer `20023`. [`config/officers.yaml`](../../config/officers.yaml) states,
 for build 2259, the 81 Officers that go on affecting the match after they
 arrive: what they discount and for which units, what they add to a round's
 income, the bounty two of them collect for destroying a giant, and the

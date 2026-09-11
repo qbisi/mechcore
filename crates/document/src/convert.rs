@@ -5,7 +5,7 @@
 //! the two shop counters are restored to the round's allowance, the energy
 //! tower list is the set activated during the round and so empty at its
 //! start, and the equipment list drops what the formations carry.
-//! `docs/battle.md` says what the conversion refuses.
+//! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
     Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, PanelSkill,
@@ -200,7 +200,7 @@ fn side_state(
         if skill.id == SHIELD_AIRDROP_SKILL {
             return Err(format!(
                 "round {round} holds commander skill {SHIELD_AIRDROP_SKILL}, whose retained \
-                 shields a replay does not record; see docs/battle.md"
+                 shields a replay does not record; see docs/spec/document/battle.md"
             ));
         }
         battle_skills.push(PanelSkill {
@@ -291,7 +291,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             exp: Some(unit.exp).filter(|exp| *exp != 0),
             rotated: Some(unit.rotated).filter(|rotated| *rotated),
             equipment: Some(unit.equipment_id).filter(|id| *id != 0),
-            // No recorded field states it; see docs/battle.md.
+            // No recorded field states it; see docs/spec/document/battle.md.
             travelling: None,
             },
         });
@@ -458,7 +458,7 @@ fn allowance(player: &record::PlayerRecord, position: usize, allowance: Allowanc
 /// seven surviving decisions.
 ///
 /// `Redo` pushes the newest undone entry back, and any other action clears what
-/// could be redone. `docs/turn.md` states the rule.
+/// could be redone. `docs/spec/document/turn.md` states the rule.
 fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
     /// An entry that no longer stands for a decision but still absorbs an undo.
     const SPENT: bool = false;
@@ -624,7 +624,7 @@ fn actions(
 /// Resolves the exclusive target of a release.
 ///
 /// The recorded shape is not exclusive: a pointing release also carries the
-/// player's click point, which names no state. `docs/state.md` states why the
+/// player's click point, which names no state. `docs/spec/document/state.md` states why the
 /// resolved target is stored and the coordinate is dropped.
 fn skill_target(action: &ActionRecord, seat: Seat) -> Result<SkillTarget, String> {
     if let Some(unit) = action.unit_index.filter(|index| *index >= 0) {

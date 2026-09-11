@@ -234,7 +234,7 @@ Writer/Reader/hash、Adapter producer、Simulator producer 和测试。MCFR 改�
 
 ### 外层：由简到难枚举 layout
 
-外层循环以 [layout 规范](../../docs/layout.md) 的字段和封闭可选值为搜索空间。每个新
+外层循环以 [layout 规范](../../docs/spec/document/layout.md) 的字段和封闭可选值为搜索空间。每个新
 layout 必须以一个已完整闭合的父 layout 为基础，只改变一个字段、一个离散选项或一个
 边界维度；当前 layout 未闭合时不得生成下一个。合法性始终由 Adapter layout compiler
 判定，Agent 不研究非法组合。

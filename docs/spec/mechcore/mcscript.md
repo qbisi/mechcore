@@ -277,10 +277,13 @@ already collected is untouched, and the abandoned one produces no recording.
 The loop fails closed on the first unsuccessful match and emits one JSON result
 line per recording. Add `output_dir` only when a separate corpus copy is wanted.
 Redirect stdout to a JSONL file when the per-file path, publication mode and
-selected scene metadata should travel with the corpus. See
-[grbr-corpus.md](grbr-corpus.md) for the native call path, evidence boundary and
-live qualification result. A ready-to-check batch lives at
-`scripts/record-standard-1v1-grbr.mcscript`.
+selected scene metadata should travel with the corpus. A ready-to-run batch
+lives at `scripts/record-standard-1v1-grbr.mcscript`.
+
+The native replay is never deleted, and neither is a copy that reached the
+corpus directory. A published copy survives even when only the match-exit check
+fails, and the failed result line is what keeps it out of an accepted manifest
+until someone looks at it.
 
 ## Output
 

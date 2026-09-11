@@ -1,6 +1,6 @@
 //! Applies a turn's decisions to the position they were taken from.
 //!
-//! `docs/turn.md` calls this the turn's own transition test: a turn states its
+//! `docs/spec/document/turn.md` calls this the turn's own transition test: a turn states its
 //! round twice over, once as a position and once as the decisions taken from
 //! it, and applying the second to the first has to reproduce the position the
 //! next turn holds. [`apply`] is that application and [`check`] is that test.

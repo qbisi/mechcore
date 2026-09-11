@@ -8,7 +8,7 @@
 文件名必须为 `<type_name>.yaml`。配置不包含模拟时钟、数值精度、RNG 实现、layout、
 科技、Status、装备或研究专用诊断字段。
 
-[`config/units`](../config/units) 当前覆盖 P0 目标 build 中 23 个普通、非 Huge Formation
+[`config/units`](../../../config/units) 当前覆盖 P0 目标 build 中 23 个普通、非 Huge Formation
 Unit。未知字段必须拒绝；同一配置根目录中的 `type_name` 和 `unit_type_id` 必须分别唯一。
 单位文件不携带 schema 版本或游戏 build；`game_build` 只位于顶层 `config.yaml`，且不执行
 版本匹配。

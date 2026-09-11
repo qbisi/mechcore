@@ -11,7 +11,7 @@ mechcore convert "tests/grbr/<name>.grbr" "tests/battle/<name>.yaml" --force
 
 The four are the locally recorded ranked matches of `tests/grbr`; the two
 `VS[电脑]` files are practice matches against the computer and are not tracked
-here. `docs/battle.md` describes the document and says which of its fields the
+here. `docs/spec/document/battle.md` describes the document and says which of its fields the
 converter rebuilds rather than copies.
 
 | File | Map | Seed | Rounds | Actions | Size | SHA-256 |

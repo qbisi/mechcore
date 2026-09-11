@@ -80,14 +80,14 @@ DYLD_INSERT_LIBRARIES="$PWD/target/release/libmechcore_adapter.dylib" \
   "$HOME/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum"
 ```
 
-[session.md](session.md) defines which of the two applies, what each verb
+[session.md](../mechcore/session.md) defines which of the two applies, what each verb
 refuses, and where the launched game's output is written. Both sides resolve
 `MECHCORE_ADAPTER_SOCKET` the same way, so an override moves the endpoint for
 the Adapter and every client together.
 
 The Adapter reports failures it cannot answer over the socket, such as a
 rejected peer or a dropped client, on the game process's standard error.
-See [session.md](session.md#diagnostics) for where that stream lands and
+See [session.md](../mechcore/session.md#diagnostics) for where that stream lands and
 how it differs from Unity's own `Player.log`.
 
 ## Wire protocol
@@ -215,7 +215,7 @@ map 1021 rather than inheriting a mutable game default.
 Replay export reads the actual `Match.GetBattleInfo().MapID`, so replay roundtrip
 selects the source map rather than assuming the default scene is equivalent.
 
-Input is the complete layout object defined by [layout.md](layout.md), with a
+Input is the complete layout object defined by [layout.md](../document/layout.md), with a
 positive top-level `round` and `sides.blue` and `sides.red` fields.
 A layout is valid at any round, but this operation stages every earlier setup
 round inside one timeout budget, so it refuses a `round` above
@@ -512,8 +512,15 @@ for the game's own autosave to produce a stable new native GRBR, requests
 and returns only after the native match quit reaches `main_menu`. The recording
 itself is the game's, and is published as written.
 
-The complete native path, build provenance, exact scene admission rules and
-live qualification evidence are in [grbr-corpus.md](grbr-corpus.md).
+[`mcscript.md`](../mechcore/mcscript.md#unattended-standard-1v1-corpus-recording)
+states the scene admission rules, which a script cannot widen.
+
+Requalifying this path after a game update means running a batch and accepting
+it only when one result has `operation.recorded` and
+`operation.cleanup.match_exited` true, a final status of `main_menu`, an output
+file `mechcore convert` can open carrying the build and a non-negative seat, and
+no managed exception in either log. That decode is the reviewer's check on a new
+build, not a step the collector performs per match.
 
 ### quit_match
 

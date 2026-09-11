@@ -17,7 +17,7 @@ pub struct Client {
 
 /// Why an endpoint could not be turned into a live client.
 ///
-/// The variants map onto the states in `docs/session.md`; callers must keep
+/// The variants map onto the states in `docs/spec/mechcore/session.md`; callers must keep
 /// `Busy` and `Unresponsive` distinct, because only the latter indicates a
 /// wedged adapter.
 pub enum ConnectError {

@@ -14,10 +14,10 @@ declared technology in array order, then verifies active state. `Base supply`
 documents the normal-game base price; Training Ground test actions do not make
 that price part of the layout schema.
 
-The machine-readable table is [`config/unit_techs.yaml`](../config/unit_techs.yaml),
+The machine-readable table is [`config/unit_techs.yaml`](../../config/unit_techs.yaml),
 extracted from build 2259 and grouped by unit, carrying an ID and a price and
 nothing else, with
-[`config/unit_prices.yaml`](../config/unit_prices.yaml) beside it for what a
+[`config/unit_prices.yaml`](../../config/unit_prices.yaml) beside it for what a
 unit costs to buy, to unlock and to raise one level. Every price this index and
 that table share agrees, across the 233 rows below.
 

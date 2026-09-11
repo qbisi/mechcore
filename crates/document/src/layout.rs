@@ -1,6 +1,6 @@
 //! The layout document: the projection of a state onto what a fight simulates.
 //!
-//! `docs/layout.md` defines it. This module owns the document's shapes, its
+//! `docs/spec/document/layout.md` defines it. This module owns the document's shapes, its
 //! parsing, and its normal form. Compiling one into an execution plan is
 //! [`crate::compile`], and the catalogues both consult are [`crate::catalog`].
 
@@ -18,7 +18,7 @@ pub(crate) const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 
 /// How many fixed towers a side's building manager holds.
 ///
-/// A 1v1 side holds exactly this many fixed towers, which `docs/state.md`
+/// A 1v1 side holds exactly this many fixed towers, which `docs/spec/document/state.md`
 /// states.
 ///
 /// A position in that list is a key, not a name. `tower_strengthen_levels` is
@@ -29,7 +29,7 @@ pub(crate) const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 /// The two sides do not agree on which position is which tower. A live capture
 /// of round 7 of the TUFF replay reads `BuildingData.BuildingType` at each
 /// position and finds `[EnergyTower, ResearchCenter]` for blue against
-/// `[ResearchCenter, EnergyTower]` for red, on map 1021. `docs/state.md`
+/// `[ResearchCenter, EnergyTower]` for red, on map 1021. `docs/spec/document/state.md`
 /// carries the measurement and the reason: a side's buildings are appended in
 /// the order its own territory lists them, and the two territories are mirror
 /// images, so the order is map data per side rather than a property of the

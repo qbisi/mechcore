@@ -3,7 +3,7 @@
 //! This layer owns the Adapter connection, the status stream, mutation
 //! serialization, and the pre/post conditions of each native operation. It
 //! speaks only `serde_json::Value` and `String`, so no frontend protocol
-//! leaks into it. See `docs/session.md` for the acquisition contract.
+//! leaks into it. See `docs/spec/mechcore/session.md` for the acquisition contract.
 
 use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
@@ -917,7 +917,7 @@ pub(crate) fn record_battle_failure(
 /// `MECHCORE_ADAPTER_SOCKET`, then the user-scoped default.
 ///
 /// Both sides resolve the endpoint the same way, so an override moves the
-/// Adapter and every client together. See `docs/session.md`.
+/// Adapter and every client together. See `docs/spec/mechcore/session.md`.
 pub(crate) fn default_adapter_socket() -> PathBuf {
     if let Some(configured) = std::env::var_os("MECHCORE_ADAPTER_SOCKET") {
         let path = PathBuf::from(configured);

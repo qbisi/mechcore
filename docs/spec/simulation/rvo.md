@@ -238,5 +238,5 @@ cargo test -p mechcore-simulation rvo
 cargo test -p mechcore-simulation --test battle native_regression_smoke_hashes_match
 ```
 
-局部 native RVO sidecar 只用于研究和定位，字段与范围见 [Adapter 文档](adapter.md)；它不
+局部 native RVO sidecar 只用于研究和定位，字段与范围见 [Adapter 文档](../adapter/adapter.md)；它不
 替代正式 MCFR 的完整战斗 hash，也不构成 Layout 新字段。

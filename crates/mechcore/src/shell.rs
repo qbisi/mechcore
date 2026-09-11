@@ -3,7 +3,7 @@
 //! The shell owns the game process when it launched one, and never when it
 //! attached to one. Acquisition is declared up front with `--launch` or
 //! `--attach`, or performed later from the prompt; a shell started with
-//! neither is offline and refuses native commands. See `docs/session.md`.
+//! neither is offline and refuses native commands. See `docs/spec/mechcore/session.md`.
 
 use crate::acquire::{Mode, Ownership};
 use crate::session::Session;

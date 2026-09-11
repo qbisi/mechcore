@@ -1,6 +1,6 @@
 //! Projects a match position onto the layout a fight simulates.
 //!
-//! `docs/state.md` defines the projection: what a fight cannot observe is
+//! `docs/spec/document/state.md` defines the projection: what a fight cannot observe is
 //! dropped, most of what it can is copied, and three fields are translated.
 //! A supply, a shop, a reinforcement offer and the two allocators do not
 //! survive; formations, constructions, contraptions, retained shields, terrain
@@ -171,7 +171,7 @@ mod tests {
     /// This is the widest check the projection has without a deployment
     /// executor: it resolves every unit, construction and contraption type,
     /// and puts every position through the footprint, region and collision
-    /// rules `docs/layout.md` states.
+    /// rules `docs/spec/document/layout.md` states.
     /// A layout captured live pins the projection, composed with the turn's
     /// transition function.
     ///

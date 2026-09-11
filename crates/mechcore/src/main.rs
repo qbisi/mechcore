@@ -25,7 +25,7 @@ fn usage(program: &str) {
     eprintln!();
     eprintln!("run --check validates a script offline, without touching the game;");
     eprintln!("--force replaces existing recordings instead of asking about each.");
-    eprintln!("Script steps and their options are documented in docs/mcscript.md;");
+    eprintln!("Script steps and their options are documented in docs/spec/mechcore/mcscript.md;");
     eprintln!("shell commands are listed by `help` inside the shell.");
 }
 

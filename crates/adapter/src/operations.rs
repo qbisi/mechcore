@@ -2399,7 +2399,7 @@ fn apply_energy_tower_skills(runtime: &Runtime, desired: &[i32]) -> Result<Value
 /// Checks that a side holds the two fixed towers a layout keys levels by.
 ///
 /// Which position holds which tower is not checked, because it is per-side map
-/// data: `docs/state.md` measures blue and red ordering their towers
+/// data: `docs/spec/document/state.md` measures blue and red ordering their towers
 /// oppositely. What must hold is that each kind is present exactly once and
 /// within the keyed range, so every level a layout carries lands on a tower and
 /// no tower is strengthened twice.

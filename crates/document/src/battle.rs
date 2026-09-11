@@ -1,6 +1,6 @@
 //! The battle, turn and state documents.
 //!
-//! `docs/battle.md`, `docs/turn.md` and `docs/state.md` define them. A battle
+//! `docs/spec/document/battle.md`, `docs/spec/document/turn.md` and `docs/spec/document/state.md` define them. A battle
 //! holds what every round of a match shares and the turns in order; a turn
 //! holds the state a round starts from and the decisions taken from it.
 //! Filling one from a replay is [`crate::convert`].
@@ -10,7 +10,7 @@ use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, 
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-/// One recorded match, as `docs/battle.md` defines it.
+/// One recorded match, as `docs/spec/document/battle.md` defines it.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct Battle {
     pub kind: DocumentKind,

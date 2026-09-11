@@ -12,11 +12,11 @@ installation, and `tests/grbr/README.md` explains which replays are usable.
 
 | Kind | What taking it changes | Catalogue |
 | --- | --- | --- |
-| Commander skill | The skill joins `battle_skills` | [`config/reinforce_items.yaml`](../config/reinforce_items.yaml) |
+| Commander skill | The skill joins `battle_skills` | [`config/reinforce_items.yaml`](../../config/reinforce_items.yaml) |
 | Equipment | The item joins the side's `equipment` | the same file |
-| Officer | The officer joins `techs.officers` | the same file, effects in [`config/officers.yaml`](../config/officers.yaml) |
-| Unit | Formations arrive | [`config/unit_reinforcements.yaml`](../config/unit_reinforcements.yaml) |
-| Advance team | The round 0 opening, a force or a specialist officer | [`config/advance_teams.yaml`](../config/advance_teams.yaml) |
+| Officer | The officer joins `techs.officers` | the same file, effects in [`config/officers.yaml`](../../config/officers.yaml) |
+| Unit | Formations arrive | [`config/unit_reinforcements.yaml`](../../config/unit_reinforcements.yaml) |
+| Advance team | The round 0 opening, a force or a specialist officer | [`config/advance_teams.yaml`](../../config/advance_teams.yaml) |
 
 The first three grant the thing their own ID names. There is no second mapping
 to look up: taking card `13030001` adds equipment `13030001`, and taking card
@@ -40,7 +40,7 @@ the 26 player slots takes exactly one, and the round 1 roster of every one of
 them is exactly the unit list of the team it took.
 
 Two kinds share that one choice, and
-[`config/advance_teams.yaml`](../config/advance_teams.yaml) holds both. A team
+[`config/advance_teams.yaml`](../../config/advance_teams.yaml) holds both. A team
 hands out a force of five formations. A specialist grants the officer its own ID
 names instead, and 16 of them can be picked: Marksman Specialist unlocks its
 unit and hands out a rank 3 squad of it, Supply Specialist adds 50 to every
@@ -89,7 +89,7 @@ another was ever chosen. Two familiar groups carry another:
 - a commander skill a blueprint researches. All twelve blueprint-granted skills
   are excluded, among them Sticky Oil Bomb, Field Recovery, Mobile Beacon and
   Interference Beacon. A side gets them by activating the blueprint, and its
-  `grants_skill` in [`config/economy.yaml`](../config/economy.yaml) says which.
+  `grants_skill` in [`config/economy.yaml`](../../config/economy.yaml) says which.
 - an officer that belongs to an opening rather than to the pool, which is where
   the 16 specialists are, and an officer neither route reaches, such as Giant
   Hunter and Giant Slayer.
@@ -97,13 +97,13 @@ another was ever chosen. Two familiar groups carry another:
 The filter is not universal. Unit cards and advance teams carry a different
 value and are dealt all the same, so `scope` is read for the three kinds whose
 ID is the thing they grant and for nothing else. Officers excluded here still
-appear in [`config/officers.yaml`](../config/officers.yaml), because a side that
+appear in [`config/officers.yaml`](../../config/officers.yaml), because a side that
 holds one through its opening still gets its discount.
 
 ## What an officer does beyond joining the list
 
 An officer is the only kind of card that keeps changing the match after it
-arrives. [`config/officers.yaml`](../config/officers.yaml) states the 81 that
+arrives. [`config/officers.yaml`](../../config/officers.yaml) states the 81 that
 do, and the shapes are these:
 
 - a discount on buying, unlocking or upgrading a unit, scoped to an explicit

@@ -9,7 +9,7 @@ unit has one YAML file named `<type_name>.yaml`. The configuration does not
 contain the simulation clock, numeric precision, RNG implementation, layout,
 technologies, statuses, equipment, or research-only diagnostics.
 
-The files under [`config/units`](../config/units) cover the 23 ordinary,
+The files under [`config/units`](../../../config/units) cover the 23 ordinary,
 non-Huge Formation Units in the current P0 build. Unknown fields are rejected;
 `type_name` and `unit_type_id` must each be unique within one configuration
 root. Unit files carry neither a schema version nor a game-build field. The

@@ -54,7 +54,7 @@ directory is build 2259 only.
 
 ## Supporting corpus
 
-Claims in `docs/state.md` that need more rounds than the six files here provide
+Claims in `docs/spec/document/state.md` that need more rounds than the six files here provide
 are measured over the locally recorded replays in the Steam directory, currently
 11 ranked matches and 202 player-rounds, without copying them in.
 `work/research/local_replay_support.py` reproduces those measurements and shows
@@ -63,4 +63,4 @@ how the two classes are told apart. A claim resting on it says so.
 claims, and reimplements `GRRandom` in Python to do it.
 `work/research/reinforce_pool_support.py` does the same for the reinforcement
 pool log, and `work/research/battle_invariant_support.py` for the match-level
-and cross-round claims of `docs/battle.md`.
+and cross-round claims of `docs/spec/document/battle.md`.

@@ -442,7 +442,7 @@ The target form belongs to the release and not to the skill: one skill can point
 at a unit in some releases and at a construction in others.
 
 Area lengths are fixed per skill and range from one to three points, matching
-the `Positions` column of the [battle skill index](battle_skill.md).
+the `Positions` column of the [battle skill index](../../rules/battle_skill.md).
 
 ## Normal form
 

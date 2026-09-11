@@ -23,7 +23,7 @@ without generating MCFR storage by default. `--output` additionally serializes,
 validates, and publishes an MCFR at the requested path.
 
 Unit combat values are resolved from the typed, one-file-per-unit
-[unit configuration contract](unit-rules.md), not stored in the layout. The current
+[unit configuration contract](../simulation/unit-rules.md), not stored in the layout. The current
 simulator closure is intentionally narrower than native layout application;
 unsupported formations or mechanisms are rejected before recording begins.
 
@@ -349,9 +349,9 @@ would lose that distinction.
 Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
 
 - Officers and unit modifications:
-  [English](officers.md) / [简体中文](officers.zh.md)
+  [English](../../rules/officers.md) / [简体中文](../../rules/officers.zh.md)
 - Unit technologies:
-  [English](unit_techs.md) / [简体中文](unit_techs.zh.md)
+  [English](../../rules/unit_techs.md) / [简体中文](../../rules/unit_techs.zh.md)
 
 #### `techs.officers`
 
@@ -449,7 +449,7 @@ uses, so the two documents say this the same way.
 
 The list is either empty, which puts every tower at level `0`, or exactly two
 entries long. Each level is an integer in `0..=4`, the four levels
-[`config/economy.yaml`](../config/economy.yaml) prices. The executor
+[`config/economy.yaml`](../../../config/economy.yaml) prices. The executor
 strengthens a tower one level at a time and verifies the final level.
 
 A position keys a tower; it does not name one. The two sides order their towers
@@ -659,7 +659,7 @@ then adds one copy from the runtime catalog to the current side's Training
 Ground inventory through `MAD_AddEquipment`, uses the existing native
 `PAD_UseEquipment` action on that unit, and requires authoritative equipment
 ownership readback. Available IDs and effects are listed in the
-[Equipment index](equipment.md) ([中文](equipment.zh.md)).
+[Equipment index](../../rules/equipment.md) ([中文](../../rules/equipment.zh.md)).
 
 ### `constructions`
 
@@ -864,7 +864,7 @@ the current round. “Battle skill” is the public layout term; native runtime
 objects and operations may continue to use `CommanderSkillData` and
 “commander skill”. The supported catalog is limited to position-targeted
 skills that affect combat and can occur in standard 1v1 matches:
-[English index](battle_skill.md) / [简体中文索引](battle_skill.zh.md).
+[English index](../../rules/battle_skill.md) / [简体中文索引](../../rules/battle_skill.zh.md).
 Skills requiring a unit or construction target and configurations absent from
 standard 1v1 are outside this layout contract.
 
@@ -1078,7 +1078,7 @@ steps:
   - apply_layout: $layout
 ```
 
-See [mcscript.md](mcscript.md); `mechcore shell` applies the same layout
+See [mcscript.md](../mechcore/mcscript.md); `mechcore shell` applies the same layout
 interactively with `apply_layout <layout.yaml>`.
 
 `construction-battle.yaml` reproduces build 2227 opening construction group 28

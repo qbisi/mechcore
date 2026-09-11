@@ -3,8 +3,8 @@
 //! One type system carries all four kinds, because they are one another's
 //! parts. A battle holds turns, a turn holds a state and the decisions taken
 //! from it, and a layout is the projection of a state onto what a fight
-//! simulates. `docs/battle.md`, `docs/turn.md`, `docs/state.md` and
-//! `docs/layout.md` define them.
+//! simulates. `docs/spec/document/battle.md`, `docs/spec/document/turn.md`, `docs/spec/document/state.md` and
+//! `docs/spec/document/layout.md` define them.
 //!
 //! The modules are layered. [`layout`] and [`battle`] define documents,
 //! [`catalog`] pins the names they use to one build, [`compile`] turns a

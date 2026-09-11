@@ -1,6 +1,6 @@
 //! Game acquisition: detection, classification, launch.
 //!
-//! Implements the state matrix in `docs/session.md`. Acquisition is always
+//! Implements the state matrix in `docs/spec/mechcore/session.md`. Acquisition is always
 //! explicitly declared: nothing here falls back from attach to launch, and no
 //! native operation reaches this module on its own.
 
@@ -69,7 +69,7 @@ impl Ownership {
     }
 }
 
-/// A refused acquisition, carrying the stable code from `docs/session.md`.
+/// A refused acquisition, carrying the stable code from `docs/spec/mechcore/session.md`.
 pub(crate) struct Failure {
     pub(crate) code: &'static str,
     pub(crate) message: String,
