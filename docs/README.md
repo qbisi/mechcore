@@ -203,8 +203,8 @@ to copy. The remaining specs predate it.
 Which specs those are is not written here. A list in prose goes stale the first
 time someone converts one, so the checker above holds it instead.
 
-Five documents have a Chinese primary and no English one, so they do not yet
-meet the language rule: [map](rules/map.md), [terrain](rules/terrain.md),
-[mcfr](spec/mcfr/mcfr.md), [rvo](spec/simulation/rvo.md) and
-[quadtree](spec/simulation/quadtree.md). Each becomes an English primary with
-its present text kept as the `.zh.md` translation.
+Four documents still have a Chinese primary and no English one, so they do not
+yet meet the language rule: [map](rules/map.md), [terrain](rules/terrain.md),
+[rvo](spec/simulation/rvo.md) and [quadtree](spec/simulation/quadtree.md). Each
+becomes an English primary with its present text kept as the `.zh.md`
+translation.

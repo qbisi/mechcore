@@ -40,7 +40,6 @@ ALGORITHM_CONTRACT = {
 # the list is reported, so converting one means deleting a line here. An entry
 # naming a file that already conforms is itself an error.
 PENDING = {
-    "docs/spec/mcfr/mcfr.md",
     "docs/spec/simulation/unit-rules.md",
     "docs/spec/mechcore/mcscript.md",
     "docs/spec/mechcore/session.md",
