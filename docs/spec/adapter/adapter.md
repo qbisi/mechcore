@@ -578,6 +578,12 @@ room creation to preserve standard round-one deployment depth, then
 `apply_layout` clears them before applying the requested layout. The MCP layer
 additionally waits for first-round deployment readiness.
 
+Both `PlayerAgent` objects are configured with `FirstRoundSupply=10000` and
+`MaxRoundSupply=10000` before `CreateHost`, with exact getter readback
+required. `apply_layout` therefore performs no hidden economy mutation of its
+own: native layout actions still run their ordinary affordability checks and
+deduct their exact costs.
+
 ### status
 
 Input is an empty object.

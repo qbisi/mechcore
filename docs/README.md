@@ -107,7 +107,7 @@ being specified.
 
 | Kind | Documents | Required sections |
 | --- | --- | --- |
-| Document format | [layout](spec/document/layout.md), [state](spec/document/state.md), [turn](spec/document/turn.md), [battle](spec/document/battle.md), [action](spec/document/action.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | `Document shape`, `Normal form`, `Excluded fields` |
+| Document format | [layout](spec/document/layout.md), [state](spec/document/state.md), [turn](spec/document/turn.md), [battle](spec/document/battle.md), [action](spec/document/action.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | the shape of the document, `Normal form`, `Excluded fields` |
 | Interface contract | [adapter](spec/adapter/adapter.md), [mcscript](spec/mechcore/mcscript.md), [session](spec/mechcore/session.md) | each operation with its arguments, its result and what it refuses; an error taxonomy |
 | Algorithm contract | [rvo](spec/simulation/rvo.md), [quadtree](spec/simulation/quadtree.md) | the determinism invariants; the fidelity boundary |
 
@@ -121,6 +121,13 @@ gap.
 `Excluded fields` is the counterpart of Scope, and it is what stops a settled
 question from being reopened: it names what the format deliberately leaves out
 and why, so a reader who expected a field learns it was considered.
+
+The shape may be one section called `Document shape`, as in
+[layout.md](spec/document/layout.md), or a run of named sections that between
+them account for every field, as in [battle.md](spec/document/battle.md) and
+[state.md](spec/document/state.md). What matters is that no field is
+undescribed, not which heading describes it. Prefer named sections once one
+`Document shape` would run long enough that a reader cannot find a field in it.
 
 `Normal form` states the canonical order of every collection, so that two
 documents describing one position are the same document.
@@ -158,8 +165,9 @@ The same test catches a section title. `Current adapter compiler` and
 ## Worked examples
 
 [action.md](spec/document/action.md), [battle.md](spec/document/battle.md),
-[turn.md](spec/document/turn.md) and [state.md](spec/document/state.md) follow
-the spec convention and are the ones to copy. The remaining specs predate it.
+[turn.md](spec/document/turn.md), [state.md](spec/document/state.md) and
+[layout.md](spec/document/layout.md) follow the spec convention and are the ones
+to copy. The remaining specs predate it.
 
 Five documents have a Chinese primary and no English one, so they do not yet
 meet the language rule: [map](rules/map.md), [terrain](rules/terrain.md),

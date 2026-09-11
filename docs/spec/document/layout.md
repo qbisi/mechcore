@@ -23,9 +23,10 @@ without generating MCFR storage by default. `--output` additionally serializes,
 validates, and publishes an MCFR at the requested path.
 
 Unit combat values are resolved from the typed, one-file-per-unit
-[unit configuration contract](../simulation/unit-rules.md), not stored in the layout. The current
-simulator closure is intentionally narrower than native layout application;
-unsupported formations or mechanisms are rejected before recording begins.
+[unit configuration contract](../simulation/unit-rules.md), not stored in the
+layout. The simulator's closure is narrower than native layout application, and
+it rejects a formation or mechanism outside that closure before recording
+begins rather than recording an approximation.
 
 ## Document shape
 
@@ -171,7 +172,7 @@ difference corresponds to a decision rather than to a shift in the list. A
 collection whose entries lack a usable unique `index` falls back to positional
 alignment. The report is `mechcore.layout-diff-result.v2`.
 
-## Seed
+## Seed and map
 
 `map_id` is an optional positive integer identifying the native `MatchSetting`
 map (not the game mode). Native replay export records `BattleInfo.MapID`;
@@ -970,7 +971,11 @@ with the native `CanReleaseCommanderSkill` path, releases the skill once through
 `PAD_ReleaseCommanderSkill`, and verifies the resulting skill state and exact
 ordered positions through authoritative readback.
 
-## Validation and execution requirements
+## What applying a layout must guarantee
+
+These are obligations on any executor, not a description of one.
+[adapter.md](../adapter/adapter.md) specifies the operation that meets them
+here, and nothing about that operation changes what this document means.
 
 Applying a layout is fail-closed:
 
@@ -998,146 +1003,6 @@ must start from a fresh match or prove that undeclared state is at its
 baseline. They must not silently retain an extra Officer, technology, tower
 level, or active Energy Tower effect from an earlier layout.
 
-## Required adapter capabilities
-
-The adapter now has the operations required for deterministic `techs`
-application: stable Officer IDs are validated, added through `MAD_AddOfficer`,
-and read back through `OfficerManager`; unit technology ownership is decoded
-statically, checked against the runtime catalog, added, activated, and read
-back through `TechnologyManager`. Energy Tower skills, tower strengthening, all
-supported formations, constructions, and contraptions, side switching, and
-field-state clearing use their corresponding native actions and readbacks.
-
-`choose_opening` and `choose_reinforcement` remain normal-game selection
-operations. They accept transient candidate indices and must not be used to
-materialize `techs.officers`.
-
-## Current adapter compiler
-
-The `apply_layout` operation accepts the layout object as its complete
-`arguments` value. Its current implementation supports units with optional
-equipment and travelling state, the four ordinary opening constructions, all
-three contraptions, both fixed-tower strengthening levels, the two
-fight-visible Energy Tower skills, Officers,
-active unit technologies, and every position-targeted `battle_skills` type in
-the build-2227 index. The compiler applies this state as one fail-closed adapter
-request:
-
-1. require round-one Training Ground deployment;
-2. compile the complete layout and resolve every Officer, unit technology,
-   formation, construction, contraption, fixed tower, Energy Tower skill, and
-   battle skill through each side's runtime catalog before mutation;
-3. clear both sides in round 1 without placing combat formations;
-4. start each earlier empty round and wait for the game to advance it naturally,
-   polling authoritative status until the next deployment is stable;
-5. in the activation round, apply every unit in formation declaration order and construction,
-   Officers, unit technologies, Research Center and Energy Tower state, shields,
-   missiles, interceptors, retained airdrop shields, retained terrains, and
-   battle skills; after each unit's final move,
-   explicitly correct and verify any mismatching travelling state, then return
-   while the game is still deploying.
-
-The adapter keeps the selected side across layout stages instead of restoring
-it after every catalog or mutation pass. A stage applies the currently selected
-side, switches once for the other side, and the complete layout transaction
-restores `blue` only after activation is finished. Red side-local positions are
-still rotated 180 degrees into native world coordinates. Each battle skill is
-provisioned, checked with its authoritative runtime position count and
-target-region validator, released once, and read back with its exact ordered
-world positions.
-
-The compiler accepts omitted fields and explicit baseline values described in
-this document, except that `formations` is mandatory and non-empty on both
-sides. It rejects tower levels outside `0..=4`, a `tower_strengthen_levels` that is
-neither empty nor one level per fixed tower, unknown deployment footprints,
-deployment collisions where applicable, and contraptions outside their target
-regions. It accepts structurally valid `terrains`; the Adapter restores the
-currently supported build-2259 oil form during activation. Unsupported terrain
-types or native readback mismatches fail closed and are never silently ignored.
-
-The compiler owns the round and the separate formation,
-construction, and contraption counts. A successful `apply_layout` response
-includes them as `round`, `formation_count`, `construction_count`, and
-`contraption_count`, plus the completed `stages` and `skipped_rounds`; callers
-do not recount the input or returned arrays to establish completeness.
-`mechcore verify` additionally reports `airdrop_shield_count` and
-`terrain_count`.
-
-The clear phase invokes both `MAD_ClearOfficer` and `MAD_ClearTechnology` for
-each side. Application also rejects a declared Officer or technology that is
-already present immediately before its add action.
-
-A script reads the YAML and sends the resulting object to this operation. The
-layout carries its own seed and round, so applying it is one step:
-
-```yaml
-game: launch
-steps:
-  - let:
-      layout: read_yaml(tests/layouts/construction-battle.yaml)
-  - apply_layout: $layout
-```
-
-See [mcscript.md](../mechcore/mcscript.md); `mechcore shell` applies the same layout
-interactively with `apply_layout <layout.yaml>`.
-
-`construction-battle.yaml` reproduces build 2227 opening construction group 28
-with the `reverse_x` transform observed in replay R002. In blue's side-local
-frame, the Defensive Wall is at `(-140, -55)`, Rapid-Fire Turret at
-`(140, -100)`, and Anti-Armor Turret at `(-140, -100)`. Red uses the side-local
-coordinates that compile back to R002's recorded world positions. Magnetic
-Barrier is supported by the compiler but intentionally absent because it is not
-part of that opening group.
-
-`interceptor-battle.yaml` places one `30 x 30` interceptor and one `50 x 20`
-Stormcaller for each side. It is the live regression sample for native
-placement, recorder readback, shared footprint validation, round transition,
-and shutdown.
-
-`shield-missile-battle.yaml` gives each side a Stormcaller centered at
-`(5,-40)`, a shield at `(1,-81)`, and a missile at `(1,-11)`. The Stormcaller's
-complete `50 x 20` deployment footprint lies inside its own radius-70 shield.
-After the red-side transform, each Stormcaller starts about 51.35 m from the
-opponent's missile, inside the reference missile's 100 m trigger range. Both
-contraption centers deliberately avoid the deployment modulo-10 grid. It is the
-live regression sample for shield and missile target-region validation, their
-exclusion from deployment collisions, native recorder readback, battle
-interaction, round transition, and shutdown.
-
-`crawler-in-face.yaml` places a `50 x 20` Crawler for each side at local
-`y=-20`, with its front edge exactly on `y=-10`. The native placement succeeds
-only when the room retains the standard 300 m-deep round-one main regions. A
-successful `apply_layout` also proves that the initial native constructions
-were cleared and their manager count read back as zero before placement.
-
-`six-unit.yaml` also exercises persistent technology state and side-wide tower
-state. Sledgehammer, Marksman, Fang, Wasp, and Arclight receive their respective
-Range Enhancement technologies (`10213`, `10202`, `10209`, `10206`, and
-`10215`), and red receives Improved Wasp Officer `30602`. Blue strengthens its
-Research Center to level 2 and holds attack Officer `20311` and defense Officer
-`20300`; red strengthens its Energy Tower to level 1 and activates both Energy
-Tower skills. Blue releases `missile_strike`
-at world position `(55,60)`, the center of red's local `(-55,-60)` front Fang.
-Red releases `mobile_beacon` at local positions `(-55,-60)`, `(-105,-90)`, and
-`(-105,20)`, which compile to world positions `(55,60)`, `(105,90)`, and
-`(105,-20)`: the selected Fang first retreats briefly away from the adjacent
-Wasp and strike point, then advances on the displaced line.
-
-`start_test` accepts the effective layout seed. Zero or omission requests a
-system-random native seed. It creates the Training
-Ground used by `apply_layout`, with advanced teams, reinforcements, and unit
-reinforcements disabled. Native constructions remain enabled while the room is
-created so that round one uses the standard 300 m-deep main deployment regions;
-`apply_layout` then clears every initial construction through
-`MAD_ClearConstruction` and requires a zero-count manager readback before
-placing the requested formations. `start_test` configures both
-native `PlayerAgent` objects with `FirstRoundSupply=10000` and
-`MaxRoundSupply=10000` before `CreateHost`, and requires exact getter readback.
-`apply_layout` therefore performs no hidden economy mutation. Native layout
-actions still run their normal affordability checks and deduct their exact
-costs. Supply remains absent from the layout
-because the schema does not define terminal economy values.
-
 ## Excluded fields
 
 The following names are intentionally absent:
@@ -1147,5 +1012,29 @@ The following names are intentionally absent:
 - `research_blueprints`: a blueprint's fight-visible product is an Officer, and
   it lives in `techs.officers`.
 - `reactor_core` and `supply`: resource provisioning is an executor concern.
-- `opening_techs` and `reinforcement_techs`: Officer acquisition source does
-  not change the resulting state in `techs.officers`.
+- `opening_techs` and `reinforcement_techs`: a layout states the state that
+  holds, never the route taken to reach it, and Officer acquisition source does
+  not change the resulting state in `techs.officers`. For the same reason
+  `choose_opening` and `choose_reinforcement` are not a way to write
+  `techs.officers`: they take transient candidate indices, and such an index
+  does not denote the same thing twice.
+
+## Unresolved
+
+**Does the schema bound `round`?** An executor refuses a round it cannot stage
+inside one budget, and [adapter.md](../adapter/adapter.md) is explicit that the
+limit is its own rather than a schema rule. Nobody has decided whether a layout
+at round 40 is a valid document no executor can currently apply, or not a
+document at all.
+
+**Can a layout describe a moment other than the end of deployment?** Every
+field here settles at deployment, and the projection from a state produces that
+moment. Whether a mid-fight position is the same document carrying more fields,
+or a different document, is open.
+
+**Do `seed` and `map_id` belong in a state document?** This document already
+argues that a seed is an argument of the battle rather than a state field, and
+that the layout only supplies a default the call site may override. The same
+argument fits `map_id`, which is currently an ordinary field. Either both are
+arguments that a layout may default, or the reasoning about the seed needs
+narrowing.
