@@ -206,6 +206,6 @@ The checker holds the list, not this page, and it fails when a new spec is
 neither classified nor conforming. So the claim in the paragraph above cannot
 quietly stop being true.
 
-Two rules documents still have a Chinese primary and no English one:
-[map](rules/map.md) and [terrain](rules/terrain.md). Each becomes an English
-primary with its present text kept as the `.zh.md` translation.
+Every document here now has an English primary, and nine carry a `.zh.md`
+translation beside it. A new one starts in English; a translation is optional
+and follows.

@@ -1,19 +1,26 @@
-# 1v1 地图
+# 1v1 maps
 
-本文记录 Mechabellum build `1.11.1.3.2259` 中，Mechcore 单回合布局支持选择的
-1v1 地图 ID，以及地图会改变战斗结果这一已验证事实。
+[简体中文](map.zh.md)
 
-## 支持的地图 ID
+The 1v1 map IDs a single-round layout may select on build `1.11.1.3.2259`, and
+what choosing one changes.
 
-| MapID | 地图 | 场景变体 |
+## Supported map IDs
+
+| MapID | Map | Scene variant |
 | ---: | --- | --- |
-| 1001 | 铁道小镇 | 日间 |
-| 1011 | 森林巨眼 | 普通模式 |
-| 1021 | 训练基地 | 普通模式 |
-| 1031 | 铁道小镇 | 黄昏 |
-| 1032 | 铁道小镇 | 深夜 |
+| 1001 | 铁道小镇 | day |
+| 1011 | 森林巨眼 | ordinary mode |
+| 1021 | 训练基地 | ordinary mode |
+| 1031 | 铁道小镇 | dusk |
+| 1032 | 铁道小镇 | deep night |
 
-Layout 顶层可选字段 `map_id` 选择地图：
+Build 2259 also has 1012, 森林巨眼 in competition mode, and 1022, 训练基地 in
+tutorial mode. Both reuse the map resources above and carry special match rules,
+which puts them outside what an ordinary single-round layout supports.
+
+A layout selects one through its optional top-level `map_id`, which
+[layout.md](../spec/document/layout.md) defines:
 
 ```yaml
 map_id: 1001
@@ -23,33 +30,36 @@ sides:
   # ...
 ```
 
-录像导出的 layout 会记录原始 MapID，`apply_layout` 在创建试验场前加载该地图。
-显式指定的 ID 保持不变；省略 `map_id` 时固定使用 1021。1021 是当前大部分
-Simulator 回归样本所对应的基准地图，也避免结果依赖游戏自身可能变化的缺省选择。
+A layout exported from a replay records the original MapID, and `apply_layout`
+loads that map before creating the Training Ground. An explicit ID is used as
+given. Omitting `map_id` selects 1021, which keeps a result from depending on
+whatever default the game itself might change.
 
-build 2259 还存在 1012（森林巨眼竞赛模式）和 1022（训练基地引导模式）。它们
-复用上述地图资源，但包含特殊比赛规则，当前不属于普通单回合布局的支持范围。
+## A map changes the outcome
 
-## 地图确实影响战斗结果
+A MapID is not scene decoration. A map brings its own neutral `FightCrystal`
+objects, and those with an active RVO controller take part in the RVO spatial
+index and neighbour solving as static agents. They therefore change unit
+speeds, how long a fight lasts, and both result hashes.
 
-MapID 不只是场景外观。地图会带入自己的中立 `FightCrystal`，其中激活的
-RVO controller 会作为静态 agent 参与 RVO 空间索引和邻居求解，从而改变单位速度、
-战斗持续时间和最终 physics/content hash。
+What a map contains is a property of that map:
 
-同一个 TUFF 第 7 回合布局曾在未选择录像地图时使用到另一套地图环境：试验场出现
-891 个中立 `FightCrystal`，其中 73 个带 RVO controller；录像与试验场在 tick 12
-开始出现单位速度差异，最终 tick 数为 1294/1235。
+| MapID | Neutral `FightCrystal` | With an RVO controller |
+| ---: | ---: | ---: |
+| 1001 | 891 | 73 |
+| 1021 | 27 | 0 |
 
-改为录像原始地图 1021 后，试验场得到 27 个中立 `FightCrystal`、0 个 RVO
-controller。未删除或补造任何水晶，录像与试验场均为 1294 ticks，physics hash 和
-content hash 完全一致。
+So map objects can neither be deleted wholesale for being unaligned, nor
+copied from one map into another. The rule is to load the native map named by
+`map_id` and then keep the objects that map generates on its own. A replay and
+a Training Ground scene that select the same map reproduce each other; two
+scenes that differ only by map do not.
 
-BORK/Caine 第 7 回合使用地图 1001。该地图确实需要保留 891 个中立
-`FightCrystal` 和其中 73 个 RVO controller；录像与试验场均为 1610 ticks，两个
-结果 hash 完全一致。
+**Not covered.** These counts are for the two maps the recorded corpus
+exercises. The remaining supported IDs have not been counted, and nothing here
+establishes how many crystals or controllers they carry.
 
-因此地图对象既不能按“无阵营”统一删除，也不能把某张地图的对象统一补进其他地图。
-正确规则是先按 `map_id` 加载原生地图，再保留该地图自然生成的对象。
-
-本结论仅证明原生录像/试验场的地图选择与战斗结果关系。Simulator 当前不会读取
-原生地图资源；`map_id` 存在于 layout 不等于 Simulator 已模拟地图水晶或地图碰撞。
+This is a statement about native replay and Training Ground behaviour only. A
+`map_id` in a layout is not a claim that a simulator models map crystals or map
+collision; loading native map resources is a separate capability with its own
+answer.

@@ -274,8 +274,10 @@ A structurally valid layout may contain build-2259 retained Sticky Oil Bomb
 state in `sides.<side>.terrains`. During activation the Adapter expands each
 entry's two ordered control points with the native fixed-point primitives,
 creates only the mapped active indexes through `RangeItemSystem.AddItem`, and
-restores any final clipped grids with immediate native readback. This path is
-validated against a GRBR replay-round MCFR pair, as `terrain.md` documents.
+restores any final clipped grids with immediate native readback. The mechanism
+it restores is [terrain.md](../../rules/terrain.md); which build-2259 sources
+produce which values is not part of that contract, and this operation restores
+whatever the replay recorded rather than deriving it from a type.
 
 ### quit_game
 
