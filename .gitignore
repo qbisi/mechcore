@@ -3,7 +3,7 @@ __pycache__
 /work/*
 !/work/issue/
 /work/issue/*
-!/work/issue/readme.md
+!/work/issue/README.md
 !/work/research/
 /work/research/*
 !/work/research/README.md

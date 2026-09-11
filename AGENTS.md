@@ -3,9 +3,9 @@
 
 # 目录规范
 
-改动或新建一个文件之前，先从它所在目录逐层往上找最近的一份 readme
-（`readme.md` 或 `README.md`，不区分大小写），找到就读完再动手；一直找到仓
-库根还没有，才是真的没有约束。
+改动或新建一个文件之前，先从它所在目录逐层往上找最近的一份 `README.md`，找
+到就读完再动手；一直找到仓库根还没有，才是真的没有约束。本仓库的 readme 一
+律大写命名。
 
 这些 readme 写的是所在目录的准入规则，从文件本身看不出来，而且往往正好禁止
 了 agent 默认会做的事。例如：
@@ -14,9 +14,9 @@
   就是 fixture 契约的一部分；
 - `tests/battle/README.md`：里面的 YAML 只能由 `mechcore convert` 重新生成，
   不许手改。值不对是转换器的问题，改 `crates/document/src/convert.rs`；
-- `docs/readme.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
+- `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；
-- `work/issue/readme.md`：什么够格成为一条 issue，它以什么方式离开；
+- `work/issue/README.md`：什么够格成为一条 issue，它以什么方式离开；
 - `work/research/README.md`：一个数值要拿什么才算有据，什么看着像证据其实
   不是，以及"能复现录像不等于证明了机制"。
 

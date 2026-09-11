@@ -14,7 +14,7 @@
 挨着它们影响的那份契约。
 
 执行中撞见、但还没决定要不要处理的问题也不写在这里，它们写进 `work/issue/`。
-什么算一条 issue、它怎么离开，由 `work/issue/readme.md` 规定。
+什么算一条 issue、它怎么离开，由 `work/issue/README.md` 规定。
 
 ## 已经存在
 
