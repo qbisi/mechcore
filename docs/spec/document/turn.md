@@ -153,12 +153,13 @@ A state's own collections keep the orders that document defines.
 Applying a turn's decisions to its state has to reproduce the state the next
 turn starts from, in everything the fight does not decide. That application is a
 function rather than a comparison: it takes a position, a round and the round's
-decisions, and returns the seven fields below. Checking a turn is then reading
-the same seven out of the recorded next state and comparing.
+decisions, and returns the eight fields below. Checking a turn is then reading
+the same eight out of the recorded next state and comparing.
 
 | Field |
 | --- |
 | `next_index.unit` |
+| `next_index.contraption` |
 | `shop.unlocked_units` |
 | `techs.units` |
 | `techs.officers` |
@@ -179,6 +180,10 @@ blueprint's second level replaces its first, and an officer list is a multiset.
 The fifth belongs here, because it is a property of the sequence rather than of
 any decision in it: an undo steps back over a recorded entry rather than over a
 standing decision.
+
+Both allocators are here even though the fight destroys what they hand out. An
+index is never reissued, so an allocator records how many objects a side has
+ever had rather than how many it still holds, and no fight can move it.
 
 A roster, a reactor core and a formation's experience are not checked, because
 the fight decides them. The rest of the next position is the board, which

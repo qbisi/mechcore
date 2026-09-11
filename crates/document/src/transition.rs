@@ -6,9 +6,9 @@
 //! next turn holds. [`apply`] is that application and [`check`] is that test.
 //!
 //! Only what the fight cannot touch is produced here. A roster, a reactor core
-//! and a formation's experience are the fight's to decide; an allocator, a
-//! shop, a blueprint list, a technology list, a tower level, a skill panel and
-//! an officer list are not.
+//! and a formation's experience are the fight's to decide; the two allocators,
+//! a shop, a blueprint list, a technology list, a tower level, a skill panel
+//! and an officer list are not.
 
 use crate::battle::{Action, Battle, SideState};
 use crate::economy::{CardKind, Economy, OpeningKind};
@@ -24,6 +24,10 @@ use std::collections::BTreeSet;
 pub struct Settled {
     /// The unit allocator, which counts what was handed out as well as bought.
     pub next_unit_index: i32,
+    /// The contraption allocator, which rises once per release and never falls.
+    /// A contraption is consumed by the fight, but the index it took is not
+    /// handed out again, so the allocator is the decisions' alone.
+    pub next_contraption_index: i32,
     pub unlocked_units: Vec<i32>,
     pub technologies: Vec<i32>,
     pub blueprints: Vec<i32>,
@@ -126,8 +130,17 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
     officers.extend(&granted.officers);
     officers.sort_unstable();
 
+    let released = actions
+        .iter()
+        .filter(|action| matches!(action, Action::ReleaseContraption { .. }))
+        .count();
+
     Settled {
         next_unit_index: state.next_index.unit.saturating_add(allocated),
+        next_contraption_index: state
+            .next_index
+            .contraption
+            .saturating_add(i32::try_from(released).unwrap_or(i32::MAX)),
         unlocked_units: unlocked.into_iter().collect(),
         technologies: technologies.into_iter().collect(),
         blueprints: blueprints.into_iter().collect(),
@@ -144,6 +157,7 @@ pub fn settled(state: &SideState) -> Settled {
     panel.sort_unstable();
     Settled {
         next_unit_index: state.next_index.unit,
+        next_contraption_index: state.next_index.contraption,
         unlocked_units: sorted(&state.shop.unlocked_units),
         technologies: sorted(&state.techs.units),
         blueprints: sorted(&state.blueprints),
@@ -180,6 +194,11 @@ pub fn check(battle: &Battle, economy: &Economy) -> Report {
                     "next_index.unit",
                     produced.next_unit_index.to_string(),
                     held.next_unit_index.to_string(),
+                ),
+                (
+                    "next_index.contraption",
+                    produced.next_contraption_index.to_string(),
+                    held.next_contraption_index.to_string(),
                 ),
                 (
                     "shop.unlocked_units",
@@ -382,13 +401,47 @@ mod tests {
         );
     }
 
+    /// A release is the only decision that moves the contraption allocator.
+    ///
+    /// The fight consumes a contraption, but the index it took is never handed
+    /// out again, which is what makes the allocator a decision's to settle
+    /// rather than a maximum over whatever survived.
+    #[test]
+    fn releasing_a_contraption_advances_its_allocator() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            next_index: crate::battle::NextIndex {
+                unit: 7,
+                contraption: 3,
+            },
+            ..SideState::default()
+        };
+        let released = [
+            Action::ReleaseContraption {
+                contraption: 20001,
+                position: crate::layout::Position { x: 0, y: 0 },
+                extra_position: None,
+            },
+            Action::ReleaseContraption {
+                contraption: 10001,
+                position: crate::layout::Position { x: 10, y: 10 },
+                extra_position: None,
+            },
+        ];
+        assert_eq!(
+            apply(&economy, 5, &state, &released).next_contraption_index,
+            5
+        );
+        assert_eq!(apply(&economy, 5, &state, &[]).next_contraption_index, 3);
+    }
+
     /// Every ranked replay the directory tracks, so a rule that holds for one
     /// match alone cannot pass. The directory also keeps replays the converter
     /// refuses by name, and those are skipped here rather than asserted on.
     #[test]
     fn a_turn_reproduces_what_the_fight_does_not_touch() {
         let economy = Economy::embedded().unwrap();
-        let (mut closed, mut battles) = (0, 0);
+        let (mut closed, mut battles, mut releases) = (0, 0, 0);
         for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
@@ -406,7 +459,15 @@ mod tests {
             );
             closed += report.closed;
             battles += 1;
+            releases += battle
+                .turns
+                .iter()
+                .flat_map(|turn| turn.actions.blue.iter().chain(&turn.actions.red))
+                .filter(|action| matches!(action, Action::ReleaseContraption { .. }))
+                .count();
         }
-        assert_eq!((battles, closed), (4, 462));
+        // The contraption allocator would close for free on a set that never
+        // released one, so the set has to be known to move it.
+        assert_eq!((battles, closed, releases), (4, 528, 46));
     }
 }

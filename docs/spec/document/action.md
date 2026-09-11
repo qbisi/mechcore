@@ -51,12 +51,16 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `shop.unlocked_units`, `techs.units`, `techs.officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` |
+| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs.units`, `techs.officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` |
 | Supply | `supply` |
-| Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains`, `equipment`, `next_index.contraption` |
+| Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains`, `equipment` |
 
 Settled is the group no fight can touch, so a round's decisions determine it
 outright. The board is what the decisions arrange and the fight then consumes.
+
+An allocator is settled while the objects it names are board. A contraption is
+destroyed by the fight and a formation can be, but neither index is handed out
+again, so the two counters only ever rise and rise only by a decision.
 
 Three things are written by no action at all. `reactor_core` and a formation's
 `exp` are the fight's. `reinforce_offers`, `opening_offers` and the shop's
