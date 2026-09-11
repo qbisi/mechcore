@@ -253,7 +253,9 @@ fn granted(economy: &Economy, actions: &[Action]) -> Granted {
     let mut granted = Granted::default();
     for action in actions {
         let card = match action {
-            Action::ChooseReinforceItem { id, .. } => *id,
+            // A declined offer names no item, so it falls to the arm below
+            // and hands out nothing.
+            Action::ChooseReinforceItem { id: Some(id), .. } => *id,
             // The opening is one choice with two halves, and each half is
             // either a force or an officer. Only the officer itself arrives
             // now; what it hands out waits for its own round, which
@@ -354,15 +356,34 @@ mod tests {
         let taken = [
             Action::ChooseReinforceItem {
                 offer: 0,
-                id: 20022,
+                id: Some(20022),
             },
             Action::ChooseReinforceItem {
                 offer: 1,
-                id: 20022,
+                id: Some(20022),
             },
         ];
         let settled = apply(&economy, 5, &state, &taken);
         assert_eq!(settled.officers, vec![20022, 20022, 20022]);
+    }
+
+    /// Declining is the same decision, and it hands out nothing.
+    ///
+    /// The two answers share one action, so the only thing separating them is
+    /// the absent `id`. A decline that fell through to the taken branch would
+    /// look up a card that does not exist.
+    #[test]
+    fn a_declined_offer_hands_out_nothing() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState::default();
+        let declined = [Action::ChooseReinforceItem {
+            offer: crate::battle::DECLINED_OFFER,
+            id: None,
+        }];
+        assert_eq!(
+            apply(&economy, 5, &state, &declined),
+            apply(&economy, 5, &state, &[])
+        );
     }
 
     /// Every ranked replay the directory tracks, so a rule that holds for one

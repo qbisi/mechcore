@@ -8,8 +8,8 @@
 //! `docs/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, BattleSides, EquipmentItem, NextIndex, PanelSkill, ShopState,
-    SideState, SkillTarget, State, StateFormation, StateSides, Turn, TurnActions,
+    Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, PanelSkill,
+    ShopState, SideState, SkillTarget, State, StateFormation, StateSides, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
@@ -542,14 +542,16 @@ fn actions(
         };
         converted.push(match action.kind.as_str() {
             "PAD_ChooseReinforceItem" => {
+                // Declining is the same decision at the declined offer, and
+                // the game records its `ID` as zero rather than omitting it.
                 let offer = field("Index", action.index)?;
-                if offer < 0 {
-                    Action::DeclineReinforceItem
-                } else {
-                    Action::ChooseReinforceItem {
-                        offer,
-                        id: field("ID", action.id)?,
-                    }
+                Action::ChooseReinforceItem {
+                    offer,
+                    id: if offer == DECLINED_OFFER {
+                        None
+                    } else {
+                        Some(field("ID", action.id)?)
+                    },
                 }
             }
             "PAD_ChooseAdvanceTeam" => Action::ChooseAdvanceTeam {
@@ -821,7 +823,7 @@ mod tests {
         // Round 7 records three undos, and every retraction is gone.
         assert!(!blue.iter().any(|action| matches!(
             action,
-            Action::ChooseReinforceItem { id: 0, .. }
+            Action::ChooseReinforceItem { id: Some(0), .. }
         )));
         let bought: Vec<i32> = blue
             .iter()

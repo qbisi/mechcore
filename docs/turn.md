@@ -2,18 +2,19 @@
 
 ## Status
 
-This document is a design draft. No crate implements it yet, and the field names
-below are proposals, not a contract. Sections marked **Unresolved** name what
-still has no evidence behind it.
+The document is implemented. `crates/document` reads a turn out of a replay,
+applies one, and checks the result; the field names below are a contract, not a
+proposal. Sections marked **Unresolved** name what still has no evidence behind
+it, and [`action.md`](action.md) carries the action space itself: what the
+thirteen decisions are, what each carries, and what each does to a state.
 
-Evidence for the claims here comes from four ranked GRBR replays in
-`tests/grbr`, 1095 recorded actions over 58 round-sides. Two computer matches in
-the same directory were set up with Training Ground commands rather than by 1v1
-rules and are excluded from every count.
-
-A few claims are measured over a wider set, the 11 ranked matches and 202
-player-rounds the Steam installation has recorded locally. Those say so where
-they appear, and `tests/grbr/README.md` explains which replays are usable.
+Evidence for the claims here comes from the 59 GRBR replays the Steam
+installation has recorded locally. 34 of them convert into battle documents,
+giving 309 rounds, 618 player-rounds, 550 round transitions and 8,263 net
+actions; `tests/grbr` tracks 6 in the repository, of which 4 convert, and a
+count that says "tracked" means those. Test matches were set up with Training
+Ground commands rather than by 1v1 rules and are excluded from every count.
+`tests/grbr/README.md` explains which replays are usable.
 
 ## Scope
 
@@ -62,10 +63,14 @@ each side's actions in sequence, and the check that a turn reproduces its end
 state never asks when an action happened.
 
 The recorded order is the true order. The replay stamps each action with a
-`LocalTime`, and across 234 single-side lists no list violates ascending time,
-so reading the list in file order and dropping the stamp loses nothing. No merge
-between the two sides is attempted either, since the interleaving of one side's
-actions with the other's is not observable in a replay.
+`LocalTime`, and across the 495 single-side lists of the local set no list
+violates ascending time, so reading the list in file order and dropping the
+stamp loses nothing. The one list in the whole directory that does violate it
+belongs to a Test match, where two `PAD_TestCommand` entries stamped `0` sit
+among played actions, which is one more reason those matches are excluded.
+
+No merge between the two sides is attempted either, since the interleaving of
+one side's actions with the other's is not observable in a replay.
 
 ```yaml
 actions:
@@ -110,7 +115,7 @@ newest `PAD_ReleaseCommanderSkill` whose field at `0x1C`, `SkillIndex`, equals
 the cancel's own. It matches on the index alone, not on the skill `ID`.
 
 The collapse is checked and not assumed. Over the local set every one of the
-3080 field checks the transition test makes reproduces, and the allocator is the
+3850 field checks the transition test makes reproduces, and the allocator is the
 field that pins the spent entries down. One player-round decides it. A side
 chose a card, bought two units, moved one of them twice, released a skill,
 cancelled it, released it again, unlocked a unit, and then pressed undo seven
@@ -119,10 +124,13 @@ stepping back over seven recorded entries lands. Stepping back over seven
 standing decisions lands two entries further, on the card, and the card is still
 there.
 
-The cancel rule closes just as cleanly: all 14 cancels in the local set are
-preceded by a matching release and immediately followed by another, so each one
-is a player replacing a skill's target. The preceding release sits 1 to 14
-positions back, which is why a cancel cannot be treated as a stack pop.
+The cancel rule closes just as cleanly. All 78 cancels in the local set are
+preceded by a release carrying the same `SkillIndex`, and all 78 are followed
+later in the same list by another release of that index, so each one is a player
+replacing a skill's target. The re-release is usually the very next entry, but
+not always: in two of the 78 a technology or a contraption comes between. The
+preceding release sits 1 to 27 positions back, which is why a cancel cannot be
+treated as a stack pop.
 
 What the collapse is not is the game's own file format. `FixActionWithUndo`, the
 method `PlayReplayCommand.StartReplay` calls, deletes nothing: it merges a
@@ -221,7 +229,7 @@ function rather than a comparison: it takes a position, a round and the round's
 decisions, and returns the seven fields below. Checking a turn is then reading
 the same seven out of the recorded next state and comparing. All seven reproduce
 every time, over the four tracked replays and over the locally recorded ranked
-matches alike: 462 of 462 field checks on the tracked set and 3178 of 3178 on
+matches alike: 462 of 462 field checks on the tracked set and 3850 of 3850 on
 the local one.
 
 | Field | Reproduced |
@@ -261,20 +269,32 @@ the fight decides them.
 
 A turn cannot be executed today.
 
-The action space is the 19 `PAD_*` types, of which 16 occur in ranked replays.
-The adapter installs state through 41 `MAD_*` Training Ground commands, and only
-6 of those overlap the player action space. Installing an initial condition and
-taking a legitimate decision are therefore different capabilities, and the
-second one does not exist yet.
+The build defines 23 `PAD_*` types, of which 19 are decisions a player takes;
+the other four are two abstract bases, the Training Ground container and a
+sentinel whose every method throws. 16 of the 19 occur in the four tracked
+ranked replays and 17 in the wider local set, which adds giving up. The two that
+occur nowhere are redo and releasing a construction directly.
+[`action.md`](action.md) defines the thirteen decisions the document keeps.
+
+The adapter installs state through 33 `MAD_*` Training Ground commands, and only
+6 of those name the same thing as a `PAD_*` type. It can perform 6 of the 13
+document actions as decisions; the other 7, purchases and cards among them, it
+can only install the result of. Installing an initial condition and taking a
+legitimate decision are therefore different capabilities, and the second one
+does not exist yet.
 
 The transition check needs a card catalog, which a layout never needed. Without
 one a `ChooseReinforceItem` that grants two units looks like state appearing
 with no action behind it.
 
-Half of that catalog now exists.
+That catalog is now complete.
 [`config/unit_reinforcements.yaml`](../config/unit_reinforcements.yaml) states,
 for each of the 519 unit cards a standard match can offer, which unit it hands
 out, how many squads of it, at what level, and from which round. No card in
-this build mixes two kinds of unit. What is still missing is the opening
-advance team, whose own units a converter would have to read the same way, and
-the cards that grant a commander skill or an equipment rather than units.
+this build mixes two kinds of unit.
+[`config/reinforce_items.yaml`](../config/reinforce_items.yaml) covers the rest
+of the pool, 84 officers, 21 commander skills and 18 equipment, each granting
+the thing its own ID names, and
+[`config/advance_teams.yaml`](../config/advance_teams.yaml) states the 45
+openings. What is still missing is not a catalog but an executor: the deployment
+half of a transition, which is the board group [`action.md`](action.md) names.

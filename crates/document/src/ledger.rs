@@ -469,7 +469,11 @@ fn spend(
                 *level += 1;
                 economy.tower_strengthen(*level)?
             }
-            Action::ChooseReinforceItem { id, .. } => {
+            // Declining is one of the answers this decision has, and the one
+            // that pays the side: the item it takes is a supply grant of its
+            // own rather than the absence of an item.
+            Action::ChooseReinforceItem { id: None, .. } => -economy.reinforce_decline(),
+            Action::ChooseReinforceItem { id: Some(id), .. } => {
                 let price = economy.card(*id)?;
                 let granted = purse.add(*id).map_or(0, |officer| officer.granted_supply);
                 // A card that hands out squads allocates them as it is taken,
@@ -506,9 +510,6 @@ fn spend(
             // A contraption is bought from the shop as it is placed, so a
             // release is a purchase. Its price is the contraption's own.
             Action::ReleaseContraption { contraption, .. } => economy.contraption(*contraption)?,
-            // Declining is an item of its own rather than the absence of one,
-            // and the item it is pays supply.
-            Action::DeclineReinforceItem => -economy.reinforce_decline(),
             // Fitting an item is free; the card was paid for when it was taken.
             // What it can change is the price of upgrading its formation.
             Action::UseEquipment { equipment, unit } => {

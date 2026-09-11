@@ -164,16 +164,29 @@ pub struct TurnActions {
     pub red: Vec<Action>,
 }
 
+/// The `offer` of a [`Action::ChooseReinforceItem`] that declined the round.
+///
+/// The game records declining as the same action at this offer, which is not a
+/// position in `reinforce_offers`, with an `ID` of zero.
+pub const DECLINED_OFFER: i32 = -1;
+
 /// One decision that took effect, in the order the side took it.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
+    /// The round's reinforcement answer, which declining is one of.
+    ///
+    /// `offer` is the offer's position in `reinforce_offers`, or
+    /// [`DECLINED_OFFER`] for the decline, which the round always makes
+    /// available and never deals. `id` names the item taken and is present
+    /// exactly when the offer was not declined: what a decline hands back is
+    /// built from the match's progress rather than drawn from a catalogue, so
+    /// it has no ID to carry.
     ChooseReinforceItem {
         offer: i32,
-        id: i32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        id: Option<i32>,
     },
-    /// The recorded form of taking no card, `ID` zero at offer `-1`.
-    DeclineReinforceItem,
     /// The round 0 opening, which is one decision with two halves: the team
     /// of formations and the specialist officer bound to it.
     ChooseAdvanceTeam {
