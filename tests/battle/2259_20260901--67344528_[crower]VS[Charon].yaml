@@ -1455,7 +1455,8 @@ turns:
     - type: upgrade_unit
       index: 5
     red:
-    - type: decline_reinforce_item
+    - type: choose_reinforce_item
+      offer: -1
     - type: release_commander_skill
       skill: 0
       target: !unit 0
