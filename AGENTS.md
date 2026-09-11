@@ -1,2 +1,75 @@
 # 项目设计规范
 - 项目处于敏捷开发阶段，重构时不考虑后向兼容，不保留历史代码
+
+# 提交规范
+
+提交信息用英文写，仓库现有日志是英文。
+
+## 标题
+
+形如 `type(scope): 一句小写的话，说这次提交换来了什么`。写读者因此得到了
+什么，不写你动过哪些文件。不超过 72 字符，结尾不加句号。
+
+| 不要 | 要 |
+| --- | --- |
+| `Update replay script paths` | `fix(adapter): let a side order its own towers` |
+| `Add issue directory` | `docs(issue): give findings a holding pen between discovery and the plan` |
+| `Refactor ledger code` | `feat(battle): close the supply ledger` |
+
+左边那些 diff 自己会说，不需要你再说一遍。
+
+## 正文的组成
+
+正文唯一不可替代的用处，是记住 diff 里看不见的东西。半年后有人 `git blame`
+到某一行，他看得到代码，看不到你当时知道的事。按顺序写三部分。
+
+**一、之前是什么样、现在是什么样。** 一段，有数字就给数字。
+
+> The ledger closed 314 of 531 decidable round transitions and left 19
+> unpriced. It now closes all 550, and none is left unpriced.
+
+**二、每个发现一段，段首第一句要能单独成立。** 例如 `A position does not name
+a tower.`、`Releasing a contraption is a purchase.`。读者只扫首句，也能知道这
+次提交推翻了哪些原有认识。这部分必须交代：
+
+- 旧做法错在哪，以及是什么证据推翻的：读到的反汇编、实机读数、语料统计；
+- 干活过程中撞坏了什么、怎么修的，尤其是只有真跑一次才会暴露的；
+- 哪些数字是从游戏数据里读出来的，哪些是量出来的。
+
+**三、验证。** 跑了什么、证明了什么、证据留在哪个目录。"对得上的 tick 数"
+"逐字节一致的重新生成"是证明，"测试通过"不是。
+
+没验证的写明没验证，量出来而不是读出来的写明出处不明，只做了一半的写明另一
+半没做。提交信息里的每句话以后都会被当成事实引用，包括被你自己引用。
+
+不要罗列改动文件清单，也不要写"改进了""优化了""重构了代码结构"这类不带内容
+的话：这两样 diff 都已经说过，而且说得比你准。
+
+正文按 72 字符折行，与标题之间空一行。
+
+## 拆分判据
+
+**一次提交是让标题成立所需的最小改动集合。** 拿掉其中任何一部分，标题就不再
+成立或变成夸大；能拿掉而标题照样成立的部分，属于另一次提交。
+
+标题写不出来就是拆分信号。需要用逗号罗列、需要 "and also"、需要 "various"，
+那不是标题的问题，是这次提交的问题。
+
+**一起被发现不是理由，一起被引起才是。** `fix(adapter): let a side order its
+own towers, and find its hidden officers` 用 and 连了两个 bug，因为两个都由同
+一次 layout 重构引入、同一次实机运行暴露。只是碰巧在同一个下午撞见的两件事，
+分开提交。
+
+**机械改动单独一次，除非它自己引出了修复。** 搬迁、重命名、批量改路径这类
+零语义的大 diff，混进去会让真正的改动没法审。`docs: split into rules and
+spec` 改了 40 个文件，全是搬迁与重新归类，没有一行新规则；写下那份规范的提
+交紧跟在它后面，单独一次。反过来，把脚本搬进 `scripts/` 时修掉搬迁自己弄坏
+的两处路径，属于同一次，因为不搬就不会坏。
+
+**不要按层拆。** `docs(action): define the action space` 一次改了 4 个 crate
+源文件和 2 份 spec，因为 spec 是代码要满足的契约，拆开之后任一半都不自洽。
+`feat(battle): close the supply ledger` 同样横跨 config、crate、docs 六个文件。
+文件数、行数、目录、"代码/文档/配置"都不是拆分依据。
+
+**每次提交都要能独立编译、独立通过测试。** 拆分点不能落在"改了函数没改调用
+方""加了行为没加断言"的位置。这条也排除了把测试单独拆成一次提交的做法。
