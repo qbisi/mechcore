@@ -117,7 +117,7 @@ do, and the shapes are these:
 
 ## Where the tables come from
 
-`work/research/extract_prices.py` writes all of them from one game build. The
+`scripts/extract_prices.py` writes all of them from one game build. The
 commander skill and equipment catalogues are two `level0` objects that the
 config data container does not carry, and the parse walks their entries by the
 declaration order of `ReinforceItemData`, which every drawable card shares.

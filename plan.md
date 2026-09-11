@@ -20,7 +20,7 @@
 - 离线转换器 `mechcore convert`。下载录像、试验场对局、留存护盾技能、
   带游戏规则的对局和认输都按名拒绝，不猜。
 - 七份配置表进入版本库，覆盖单位价、科技价、卡价、军官效果、开局、蓝图、
-  建筑回收和每回合收入，由 `work/research/extract_prices.py` 从 build 2259 生成。
+  建筑回收和每回合收入，由 `scripts/extract_prices.py` 从 build 2259 生成。
 - 补给账本，接进转换并全闭合。可判定的回合没有留下无法定价的。
 - 转移函数 `transition::apply`，产出下一回合 state 中战斗不决定的七个字段。
 - 投影 `project(state) → layout`。
