@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Measure the random-state claims of `docs/spec/document/state.md` over the local replay set.
 
-Two streams are recorded. This script shows that the player stream is its seed,
-that the match stream is the seed advanced by a match-dependent number of draws,
-and that a Training Ground match derives both player seeds from `SystemSeed`.
+Two streams are recorded. This script shows that the player stream is its seed
+and that the match stream is the seed advanced by a match-dependent number of
+draws.
 
 `tests/grbr/README.md` explains which replays are usable and why the downloaded
 ones are not.
@@ -16,7 +16,6 @@ import xml.etree.ElementTree as ET
 
 REPLAYS = (pathlib.Path.home() / "Library/Application Support/Steam/steamapps"
            / "common/Mechabellum/Mechabellum.app/ProjectDatas/Replay")
-TRAINING = ("13-25-40", "13-54-16")
 MASK = (1 << 64) - 1
 SEARCH = 200_000
 
@@ -50,16 +49,16 @@ def battle_record(path):
     return ET.fromstring(raw[start:end].decode("utf-8", "replace"))
 
 
-def local_replays():
-    """Every replay this machine recorded itself, Training Ground included."""
+def standard_replays():
+    """Every locally recorded standard match in the native replay directory."""
     for path in sorted(REPLAYS.glob("*.grbr")):
         try:
             root = battle_record(path)
         except ValueError:
             continue
-        if int(root.findtext("Seat")) >= 0:
-            training = any(marker in path.name for marker in TRAINING)
-            yield path, root, training
+        info = root.find("BattleInfo")
+        if int(root.findtext("Seat")) >= 0 and info.find("matchType") is None:
+            yield path, root
 
 
 def random_state(element):
@@ -70,16 +69,12 @@ def random_state(element):
 def main():
     rounds = matched = moved = 0
     distances = []
-    derived_seeds = []
 
-    for _, root, training in local_replays():
+    for _, root in standard_replays():
         system_seed = int(root.find("BattleInfo").findtext("SystemSeed"))
 
-        for seat, record in enumerate(root.find("playerRecords")):
+        for record in root.find("playerRecords"):
             seed = int(record.findtext("seed"))
-            if training:
-                derived_seeds.append(seed - system_seed == seat)
-                continue
             expected = GrRandom(seed).state
             first = None
             for round_record in record.find("playerRoundRecords"):
@@ -91,9 +86,6 @@ def main():
                 matched += recorded == expected
                 first = first if first is not None else recorded
                 moved += recorded != first
-
-        if training:
-            continue
 
         # Where each round's match state sits in the stream GRRandom(SystemSeed)
         # generates, by walking that stream and looking the state up.
@@ -108,9 +100,6 @@ def main():
     print(f"ranked player-rounds {rounds}")
     print(f"  playerData.randomStateData == GRRandom(seed): {matched}/{rounds}")
     print(f"  rounds where the player stream moved:         {moved}")
-    print(f"Training Ground seats where seed == SystemSeed + seat: "
-          f"{sum(derived_seeds)}/{len(derived_seeds)}")
-
     unreached = sum(step is None for match in distances for step in match)
     opening = sorted(match[0] for match in distances)
     first = sorted(match[1] - match[0] for match in distances)

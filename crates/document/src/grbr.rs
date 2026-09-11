@@ -285,42 +285,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extracts_latest_tracked_grbr_round_two_oil() {
-        let grbr =
-            include_bytes!("../../../tests/grbr/2259_26-09-03__13-54-16-770_[crower]VS[电脑].grbr");
-        let terrains = terrains_from_grbr_round(grbr, 2).unwrap();
-
-        assert!(terrains.blue.is_empty());
-        assert_eq!(terrains.red.len(), 1);
-        assert_eq!(
-            terrains.red[0].control_points,
-            [Position { x: -24, y: 11 }, Position { x: 80, y: 1 }]
-        );
-        assert_eq!(terrains.red[0].terrain_type, TerrainType::Oil);
-        assert_eq!(
-            terrains.red[0]
-                .grid_rows
-                .keys()
-                .copied()
-                .collect::<Vec<_>>(),
-            [0, 1, 5, 6]
-        );
-        assert_eq!(
-            terrains.red[0].grid_rows[&0],
-            [
-                240, 1020, 2046, 2046, 4095, 4095, 1023, 511, 254, 126, 60, 48
-            ]
-        );
-
-        let layout = super::super::parse_yaml(include_bytes!(
-            "../../../tests/layouts/crower-computer-replay-round-2-terrain.yaml"
-        ))
-        .unwrap();
-        assert_eq!(terrains.blue, layout.sides.blue.terrains);
-        assert_eq!(terrains.red, layout.sides.red.terrains);
-    }
-
-    #[test]
     fn rejects_missing_grbr_xml() {
         assert_eq!(
             terrains_from_grbr_round(b"not a replay", 2).unwrap_err(),

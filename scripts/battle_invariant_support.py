@@ -17,7 +17,6 @@ import xml.etree.ElementTree as ET
 
 REPLAYS = (pathlib.Path.home() / "Library/Application Support/Steam/steamapps"
            / "common/Mechabellum/Mechabellum.app/ProjectDatas/Replay")
-TRAINING = ("13-25-40", "13-54-16")
 XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
 BLUEPRINT_SUCCESSOR = {4: 401, 5: 501}
 OFFICER_SUCCESSOR = {20300: 20301, 20310: 20311}
@@ -32,13 +31,12 @@ def battle_record(path):
 
 def ranked_replays():
     for path in sorted(REPLAYS.glob("*.grbr")):
-        if any(marker in path.name for marker in TRAINING):
-            continue
         try:
             root = battle_record(path)
         except ValueError:
             continue
-        if int(root.findtext("Seat")) >= 0:
+        info = root.find("BattleInfo")
+        if int(root.findtext("Seat")) >= 0 and info.find("matchType") is None:
             yield root
 
 

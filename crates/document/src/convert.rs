@@ -970,7 +970,7 @@ mod tests {
     }
 
     #[test]
-    fn converts_every_tracked_ranked_replay_and_refuses_the_rest() {
+    fn classifies_every_tracked_standard_replay() {
         let mut converted = 0;
         let mut refused = 0;
         for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
@@ -995,21 +995,19 @@ mod tests {
                 }
                 Err(error) => {
                     refused += 1;
-                    // The two computer matches were set up with Training Ground
-                    // commands rather than played.
-                    assert!(error.contains("Test match"), "{error}");
+                    assert!(error.contains("retained shields"), "{error}");
                 }
             }
         }
-        assert_eq!((converted, refused), (5, 2));
+        assert_eq!((converted, refused), (35, 6));
     }
 
     /// The recorded energy tower list is the previous round's debt.
     ///
     /// Two readings of one fact, and the conversion now refuses a replay where
     /// they disagree. The tracked set exercises the claim in both directions:
-    /// skill `1` is activated eleven times, so a debt the snapshot never
-    /// carried would fail, and the other four skills are activated eighty-four
+    /// skill `1` is activated 82 times, so a debt the snapshot never
+    /// carried would fail, and the other four skills are activated 469
     /// times between them, so a snapshot carrying any of those would fail too.
     #[test]
     fn the_recorded_energy_tower_list_is_the_previous_rounds_debt() {
@@ -1035,7 +1033,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!((deferred, immediate), (11, 84));
+        assert_eq!((deferred, immediate), (82, 469));
     }
 
     /// A snapshot that names a skill the round before did not activate is

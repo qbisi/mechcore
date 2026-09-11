@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Measure the state-document claims over the locally recorded replay set.
 
-`tests/grbr` tracks six files. The Steam installation keeps more, in two
-provenance classes that do not agree with each other, so this script uses only
+`tests/grbr` tracks 41 files. The Steam installation also keeps a downloaded
+provenance class that does not agree with them, so this script uses only
 the locally recorded ones and says how it tells them apart. See
 `tests/grbr/README.md` for the rule and why the downloaded class is unusable.
 
@@ -16,7 +16,6 @@ import xml.etree.ElementTree as ET
 REPLAYS = (pathlib.Path.home() / "Library/Application Support/Steam/steamapps"
            / "common/Mechabellum/Mechabellum.app/ProjectDatas/Replay")
 CONFIG = pathlib.Path("work/inputs/config-data-container-build2259.json")
-TRAINING = ("13-25-40", "13-54-16")
 CHAIN = {4: 20310, 401: 20311, 5: 20300, 501: 20301}
 
 
@@ -34,10 +33,9 @@ def locally_recorded():
     rebuilt from PlayerDetail and disagree with a locally taken one.
     """
     for path in sorted(REPLAYS.glob("*.grbr")):
-        if any(marker in path.name for marker in TRAINING):
-            continue
         root = battle_record(path)
-        if int(root.findtext("Seat")) >= 0:
+        info = root.find("BattleInfo")
+        if int(root.findtext("Seat")) >= 0 and info.find("matchType") is None:
             yield path, root
 
 

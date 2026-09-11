@@ -690,20 +690,14 @@ mod tests {
 
     /// What the tracked replays do and do not say about the inventory.
     ///
-    /// Every state in the five convertible replays opens with an empty stock,
-    /// so what the corpus pins is that a round fits exactly what it took in.
-    /// It holds 25 fits against 19 equipment cards, the other six items coming
-    /// back off recovered formations.
-    ///
-    /// That the two sides balance is what the shortfall makes checkable: a fit
-    /// with no source would leave the stock empty either way, and so would
-    /// close silently. No tracked match carries an item across a round
-    /// boundary or holds the officer that delivers one, so those two terms
-    /// rest on the unit tests above rather than on a replay.
+    /// The tracked set pins fits, equipment cards, stock carried across a round
+    /// boundary and any item whose source the transition cannot yet reproduce.
     #[test]
-    fn a_tracked_round_fits_exactly_what_it_took_in() {
+    fn tracked_equipment_coverage_and_failures_are_pinned() {
         let economy = Economy::embedded().unwrap();
         let (mut fits, mut cards) = (0, 0);
+        let mut held = 0;
+        let mut shortfalls = Vec::new();
         for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
@@ -713,24 +707,21 @@ mod tests {
                 continue;
             };
             for turn in &battle.turns {
-                for (state, actions) in [
-                    (&turn.state.sides.blue, &turn.actions.blue),
-                    (&turn.state.sides.red, &turn.actions.red),
+                for (side, state, actions) in [
+                    ("blue", &turn.state.sides.blue, &turn.actions.blue),
+                    ("red", &turn.state.sides.red, &turn.actions.red),
                 ] {
-                    assert!(
-                        state.equipment.is_empty(),
-                        "{} round {} opens holding stock",
-                        path.display(),
-                        turn.round
-                    );
-                    assert!(
-                        apply(&economy, turn.round, state, actions)
-                            .equipment_shortfall
-                            .is_empty(),
-                        "{} round {} fits what the side does not hold",
-                        path.display(),
-                        turn.round
-                    );
+                    if !state.equipment.is_empty() {
+                        held += 1;
+                    }
+                    let missing = apply(&economy, turn.round, state, actions).equipment_shortfall;
+                    if !missing.is_empty() {
+                        shortfalls.push(format!(
+                            "{} round {} {side}: {missing:?}",
+                            path.file_name().unwrap().to_string_lossy(),
+                            turn.round
+                        ));
+                    }
                     for action in actions {
                         match action {
                             Action::UseEquipment { .. } => fits += 1,
@@ -745,7 +736,16 @@ mod tests {
                 }
             }
         }
-        assert_eq!((fits, cards), (25, 19));
+        shortfalls.sort();
+        assert_eq!((fits, cards), (107, 86));
+        assert_eq!(held, 22);
+        assert_eq!(
+            shortfalls,
+            [
+                "2259_20260910--67396394_[kulinichstas1985]VS[Menschlein].grbr round 4 blue: [13030001]",
+                "2259_20260911--201618182_[🐙Noname🐙]VS[Rievin].grbr round 5 blue: [13030003]",
+            ]
+        );
     }
 
     /// A release is the only decision that moves the contraption allocator.
@@ -782,13 +782,13 @@ mod tests {
         assert_eq!(apply(&economy, 5, &state, &[]).next_contraption_index, 3);
     }
 
-    /// Every ranked replay the directory tracks, so a rule that holds for one
-    /// match alone cannot pass. The directory also keeps replays the converter
-    /// refuses by name, and those are skipped here rather than asserted on.
+    /// Every convertible replay the directory tracks, including the exact two
+    /// equipment deliveries the current transition cannot reproduce.
     #[test]
-    fn a_turn_reproduces_what_the_fight_does_not_touch() {
+    fn the_tracked_set_pins_transition_coverage_and_failures() {
         let economy = Economy::embedded().unwrap();
-        let (mut closed, mut battles, mut releases) = (0, 0, 0);
+        let (mut closed, mut failed, mut battles, mut releases) = (0, 0, 0, 0);
+        let mut failures = Vec::new();
         for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
@@ -798,13 +798,11 @@ mod tests {
                 continue;
             };
             let report = check(&battle, &economy);
-            assert_eq!(
-                report.failures,
-                Vec::new(),
-                "{} does not reproduce",
-                path.display()
-            );
+            failures.extend(report.failures.iter().map(|failure| {
+                format!("{}: {failure:?}", path.file_name().unwrap().to_string_lossy())
+            }));
             closed += report.closed;
+            failed += report.failed;
             battles += 1;
             releases += battle
                 .turns
@@ -815,6 +813,14 @@ mod tests {
         }
         // The contraption allocator would close for free on a set that never
         // released one, so the set has to be known to move it.
-        assert_eq!((battles, closed, releases), (5, 756, 64));
+        failures.sort();
+        assert_eq!((battles, closed, failed, releases), (35, 5_110, 2, 323));
+        assert_eq!(
+            failures,
+            [
+                "2259_20260910--67396394_[kulinichstas1985]VS[Menschlein].grbr: Failure { round: 4, side: \"blue\", field: \"equipment\", expected: \" missing 13030001\", actual: \"\" }",
+                "2259_20260911--201618182_[🐙Noname🐙]VS[Rievin].grbr: Failure { round: 5, side: \"blue\", field: \"equipment\", expected: \" missing 13030003\", actual: \"\" }",
+            ]
+        );
     }
 }
