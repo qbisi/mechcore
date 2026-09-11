@@ -30,9 +30,9 @@
 game: launch
 
 vars:
-  out: /Users/qbisi/mechcore-v2/work/research/replay-roundtrip-retained-objects
-  airdrop: /Users/qbisi/mechcore-v2/tests/grbr/2259_26-09-03__13-25-40-032_[crower]VS[电脑].grbr
-  mixed: /Users/qbisi/mechcore-v2/tests/grbr/2259_26-09-03__13-54-16-770_[crower]VS[电脑].grbr
+  out: /Users/qbisi/mechcore/work/research/replay-roundtrip-retained-objects
+  airdrop: /Users/qbisi/mechcore/tests/grbr/2259_26-09-03__13-25-40-032_[crower]VS[电脑].grbr
+  mixed: /Users/qbisi/mechcore/tests/grbr/2259_26-09-03__13-54-16-770_[crower]VS[电脑].grbr
 
 steps:
   # Match 1, round 1: the Shield Airdrop is released this round.

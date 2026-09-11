@@ -21,8 +21,8 @@
 game: launch
 
 vars:
-  out: /Users/qbisi/mechcore-v2/work/research/tuff-tower-keying-20260911
-  grbr: /Users/qbisi/mechcore-v2/tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
+  out: /Users/qbisi/mechcore/work/research/tuff-tower-keying-20260911
+  grbr: /Users/qbisi/mechcore/tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
 
 steps:
   - record_replay_round:

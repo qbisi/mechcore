@@ -24,8 +24,8 @@
 game: launch
 
 vars:
-  out: /Users/qbisi/mechcore-v2/work/research/replay-roundtrip-indices
-  grbr: /Users/qbisi/mechcore-v2/tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr
+  out: /Users/qbisi/mechcore/work/research/replay-roundtrip-indices
+  grbr: /Users/qbisi/mechcore/tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr
 
 steps:
   - record_replay_round:
