@@ -1,0 +1,15 @@
+name: docs
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The checker reads `git ls-files`, so it needs the repository, not a
+      # shallow export. Everything else it uses is in the Python standard
+      # library, so there is nothing to install.
+      - run: python3 scripts/check-docs.py

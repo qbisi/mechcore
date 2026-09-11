@@ -162,12 +162,46 @@ collapses into nothing, it was progress.
 The same test catches a section title. `Current adapter compiler` and
 `Loading and current kernel boundary` both name a moment rather than a contract.
 
+## What a machine can check
+
+`scripts/check-docs.py` enforces the mechanical half of this file. Run it from
+the repository root, and make it pass before a document change lands:
+
+```bash
+python3 scripts/check-docs.py
+```
+
+It checks four things.
+
+- **Every relative link resolves**, the `#anchor` half included. A renamed
+  section silently breaks every link into it, which is the failure most likely
+  to happen without anyone noticing.
+- **Every readme is spelled `README.md`.**
+- **Every spec under `docs/spec/` is classified** into one of the three kinds
+  above. A new spec fails until it is classified, so none sits unchecked
+  because nobody remembered it existed.
+- **Every converted spec opens with `Scope` and closes with `Unresolved`**, and
+  carries no section titled `Status` or beginning `Current`.
+
+The checker also holds the list of specs that predate this convention, and that
+list is the only record of which ones are left. It fails in both directions: a
+spec still on the list that has started conforming is an error too, so
+converting one means deleting its line.
+
+What no checker can do is tell whether a sentence is true. Nothing catches a
+rules document that quietly stopped describing the build, or a spec the code
+has drifted away from. Those need a reader, which is what the rest of this file
+is written for.
+
 ## Worked examples
 
 [action.md](spec/document/action.md), [battle.md](spec/document/battle.md),
 [turn.md](spec/document/turn.md), [state.md](spec/document/state.md) and
 [layout.md](spec/document/layout.md) follow the spec convention and are the ones
 to copy. The remaining specs predate it.
+
+Which specs those are is not written here. A list in prose goes stale the first
+time someone converts one, so the checker above holds it instead.
 
 Five documents have a Chinese primary and no English one, so they do not yet
 meet the language rule: [map](rules/map.md), [terrain](rules/terrain.md),
