@@ -845,6 +845,7 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
         &replay_dir,
         &baseline,
         Instant::now() + WATCH_AUTOSAVE_GRACE,
+        evicting,
     ) {
         Ok(Some(path)) => path,
         Ok(None) => {
@@ -864,6 +865,7 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
                 &replay_dir,
                 &baseline,
                 Instant::now() + WATCH_EXPLICIT_SAVE_TIMEOUT,
+                evicting,
             ) {
                 Ok(Some(path)) => path,
                 Ok(None) if evicting() => return evicted_response(request.id),
@@ -1017,10 +1019,11 @@ fn wait_for_stable_replay(
     directory: &Path,
     baseline: &BTreeMap<PathBuf, ReplayFileState>,
     deadline: Instant,
+    stop: impl Fn() -> bool,
 ) -> Result<Option<PathBuf>, String> {
     let mut last = None;
     let mut stable = 0;
-    while Instant::now() < deadline && !evicting() {
+    while Instant::now() < deadline && !stop() {
         let current = replay_snapshot(directory)
             .map_err(|error| format!("cannot read {}: {error}", directory.display()))?;
         // An absent file is not a stable one: waiting out the whole deadline is
@@ -2257,8 +2260,10 @@ mod tests {
         let baseline = BTreeMap::new();
         let grace = WATCH_FILE_POLL_INTERVAL * 4;
         let started = Instant::now();
+        // This property is about an uninterrupted wait. Supplying that premise
+        // keeps a concurrent test of process-global eviction from changing it.
         assert_eq!(
-            wait_for_stable_replay(root.path(), &baseline, started + grace).unwrap(),
+            wait_for_stable_replay(root.path(), &baseline, started + grace, || false).unwrap(),
             None
         );
         assert!(started.elapsed() >= grace, "returned before the deadline");
