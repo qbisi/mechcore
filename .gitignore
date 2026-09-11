@@ -1,3 +1,6 @@
 /target/
 __pycache__
-/work/
+/work/*
+!/work/issue/
+/work/issue/*
+!/work/issue/readme.md
