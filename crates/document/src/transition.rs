@@ -57,8 +57,6 @@ pub struct Failure {
 struct Granted {
     formations: usize,
     unlocked: BTreeSet<i32>,
-    technologies: BTreeSet<i32>,
-    blueprints: BTreeSet<i32>,
     /// A list rather than a set: an officer card that may be taken again stacks
     /// rather than replacing itself, and a side can hold three copies of one.
     officers: Vec<i32>,
@@ -93,7 +91,6 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
         Action::UpgradeTechnology { tech, .. } => Some(*tech),
         _ => None,
     }));
-    technologies.extend(&granted.technologies);
 
     let mut blueprints: BTreeSet<i32> = state.blueprints.iter().copied().collect();
     for action in actions {
@@ -103,7 +100,6 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
             blueprints.insert(*id);
         }
     }
-    blueprints.extend(&granted.blueprints);
 
     let mut levels = state.tower_strengthen_levels.clone();
     for action in actions {
