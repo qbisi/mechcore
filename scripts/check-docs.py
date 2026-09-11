@@ -42,7 +42,6 @@ ALGORITHM_CONTRACT = {
 PENDING = {
     "docs/spec/mcfr/mcfr.md",
     "docs/spec/simulation/unit-rules.md",
-    "docs/spec/adapter/adapter.md",
     "docs/spec/mechcore/mcscript.md",
     "docs/spec/mechcore/session.md",
     "docs/spec/simulation/rvo.md",

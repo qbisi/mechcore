@@ -2,18 +2,28 @@
 
 [TOC]
 
+## Scope
+
+This contract defines the socket an in-process adapter exposes to one client at
+a time: how a client claims the game, which operations it may then request,
+what each returns, and what each refuses.
+
+It does not define the documents that cross that socket. A layout is
+[layout.md](../document/layout.md) and a recording is
+[mcfr.md](../mcfr/mcfr.md); the adapter validates against those rather than
+restating them. Cross-scene readiness is not here either. A lifecycle operation
+returns when its own native work completes, and waiting for the game to settle
+afterwards belongs to [session.md](../mechcore/session.md).
+
+Every operation mutates a live game and reads the result back. All of them are
+fail-closed: an accepted native action is never sufficient on its own, and
+nothing partial is ever published.
+
+## Build and launch
+
 `mechcore-adapter` is an in-process Rust `cdylib`. On macOS the release
 artifact is `target/release/libmechcore_adapter.dylib`; the artifact name is
 not tied to a game version.
-
-The adapter creates a Unix domain socket and waits for one client. When
-`MECHCORE_ADAPTER_SOCKET` is absent, the endpoint is
-`/tmp/mechcore-adapter-<uid>.sock`. A configured path must be absolute and no
-longer than 100 bytes. The adapter refuses to replace a non-socket or a socket
-owned by another user, creates the endpoint with mode `0600`, and admits only a
-peer with the same effective UID.
-
-## Build and launch
 
 The repository pins nightly Rust in `rust-toolchain.toml` and enables Cargo
 artifact dependencies in `.cargo/config.toml`. Use a rustup-provided Cargo
@@ -91,6 +101,13 @@ See [session.md](../mechcore/session.md#diagnostics) for where that stream lands
 how it differs from Unity's own `Player.log`.
 
 ## Wire protocol
+
+The adapter creates a Unix domain socket and waits for one client. When
+`MECHCORE_ADAPTER_SOCKET` is absent, the endpoint is
+`/tmp/mechcore-adapter-<uid>.sock`. A configured path must be absolute and no
+longer than 100 bytes. The adapter refuses to replace a non-socket or a socket
+owned by another user, creates the endpoint with mode `0600`, and admits only a
+peer with the same effective UID.
 
 Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says what it is worth:
@@ -257,9 +274,8 @@ A structurally valid layout may contain build-2259 retained Sticky Oil Bomb
 state in `sides.<side>.terrains`. During activation the Adapter expands each
 entry's two ordered control points with the native fixed-point primitives,
 creates only the mapped active indexes through `RangeItemSystem.AddItem`, and
-restores any final clipped grids with immediate native readback. Simulator
-terrain support remains disabled; this Adapter path is validated against a
-GRBR replay-round MCFR pair as documented in `terrain.md`.
+restores any final clipped grids with immediate native readback. This path is
+validated against a GRBR replay-round MCFR pair, as `terrain.md` documents.
 
 ### quit_game
 
@@ -271,9 +287,10 @@ Typical output:
 {"requested":true,"exit_code":0}
 ```
 
-The operation invokes Unity application shutdown and is valid only at the main
-menu. The adapter confirms the request; the MCP layer additionally waits for
-the owned process to exit.
+The operation invokes Unity application shutdown. It refuses with
+`invalid_game_state` unless the game is at the main menu with no current match.
+The adapter confirms the request; the MCP layer additionally waits for the
+owned process to exit.
 
 ### record_battle
 
@@ -341,7 +358,7 @@ removal hook additionally records position and the native `intercepted` argument
 death processing. Battlefield Shield damage is recorded per actual Shield result. The same native
 chain attaches the Shield reference to the subsequent projectile removal as `absorbed_by`.
 
-The current native snapshot closure directly reads units, projectiles, the alive `FightCrystal` union
+The native snapshot closure directly reads units, projectiles, the alive `FightCrystal` union
 from every FightTeam's towers, buildings, and constructions, battlefield shields from
 `AdvancedEnergyShieldSystem`, dynamic battlefield terrain from `RangeItemSystem`, personal shields, the four native status bits, the three
 numeric-modifier channels, and every weapon of every entry returned by `FightMech.GetSkills()`.
@@ -359,7 +376,7 @@ reactivation appends an object and can change the interception order independent
 Unknown shield data-source classes, inconsistent active-list membership, dangling projectile birth
 containment references, and reused retired shield pointers fail the recording. Shield lifecycle
 events are generated from authoritative changes in full-list membership at consecutive native
-snapshot boundaries; the current removal source proves destruction but not a narrower cause, so
+snapshot boundaries; the removal source proves destruction but not a narrower cause, so
 `shield_destroyed.reason` is `unknown`.
 
 Embedded layout contraptions are read from current native inventory, not
@@ -394,7 +411,7 @@ team, type, position, radius, optional grid mask, optional cross-round remainder
 lifetime, and the controller's direct unit applications. `affectedUnits` is joined to Unit IDs;
 `affectedUnitTimes` and positive `effectTimeDuration` provide an optional periodic clock.
 Terrain creation and removal events follow authoritative item-list membership changes at consecutive
-snapshot boundaries. Removed pointers are tombstoned, and the current removal source records
+snapshot boundaries. Removed pointers are tombstoned, and the removal source records
 `terrain_removed.reason=unknown`. These snapshot-difference events are synthesized,
 not native callback traces: creation events are appended first, then removal
 events, with each batch ordered by stable Terrain ID rather than process-local
@@ -533,7 +550,7 @@ Typical output:
 ```
 
 The operation requests that the active Training Ground, replay, or spectated
-match exit.
+match exit. It refuses with `invalid_game_state` when there is no active match.
 The MCP layer additionally waits for `main_menu`.
 
 ### speed_up
@@ -546,9 +563,10 @@ Typical output:
 {"requested":true}
 ```
 
-The operation submits the native battle speed-up request. The current status
-does not expose a speed field, so the native call completing normally is the
-authoritative completion condition.
+The operation submits the native battle speed-up request. It refuses with
+`invalid_game_state` when there is no active match, and again when the match
+exposes no action controller. `status` carries no speed field, so the native
+call completing normally is the authoritative completion condition.
 
 ### start_test
 
@@ -609,6 +627,10 @@ owns a `FightController`, so `deploying` and `fighting` are `null` exactly while
 it is `false`. `spectating` also reports `finished` from
 `Match.get_IsFinished`.
 
+`status` refuses nothing. It reports `unknown` rather than failing, so a caller
+may use it to decide what to do about any other operation's
+`invalid_game_state`.
+
 ### toggle_fight
 
 Input is an empty object.
@@ -622,3 +644,75 @@ Typical output:
 The operation changes the Training Ground process state from deployment to
 battle. The MCP layer additionally observes the battle transition before
 returning.
+
+## Errors
+
+A failed response carries a `code` and a human `message`. The code is what a
+caller branches on, and it answers one question: is repeating this request
+worth anything?
+
+**The request is wrong.** Repeating it unchanged cannot succeed.
+
+| Code | Raised when |
+| --- | --- |
+| `invalid_arguments` | an argument is missing, malformed, or names a field no argument type declares |
+| `invalid_request` | the line is not a request this protocol defines |
+| `unsupported` | the operation is real but this build does not implement the path it needs |
+
+**The game is not where the operation needs it.** Repeating the request from
+the same game state fails the same way. Something has to move the game first.
+
+| Code | Raised when |
+| --- | --- |
+| `invalid_game_state` | the operation requires a scene or phase the game is not in |
+| `game_rejected_operation` | the game was in the right state and refused the native action anyway |
+
+**The game was taken.** `evicted` means a higher claim arrived. It is the one
+failure that asks the caller to come back: the adapter holds the game at the
+main menu for the winner, so a client that reads it must leave the process
+alone and reconnect rather than treat the adapter as crashed. An operation in
+flight is answered with this code before the connection closes.
+
+**The operation did not finish.** `operation_timeout` and
+`main_thread_dispatch_failed` say the work did not complete, not that it did
+not happen. A mutation is never retried automatically, and a caller that
+retries one is responsible for deciding the game is still where it thinks.
+
+**The output failed.** Nothing partial is published, so a failed recording
+leaves nothing to clean up, and retrying is harmless but pointless until the
+cause is addressed.
+
+| Code | Raised when |
+| --- | --- |
+| `capture_failed` | the capture itself broke, including a second recording header |
+| `mcfr_error`, `mcfr_reopen_failed` | the recording could not be written, or could not be read back |
+| `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
+| `instrumentation_error`, `instrumentation_verification_failed` | the optional sidecar could not be written or did not verify |
+| `native_replay_directory` | the native replay directory could not be resolved |
+
+**The teardown failed.** `replay_cleanup_failed` and `watch_cleanup_failed`
+replace whatever code the operation would otherwise have returned, so the
+original cause survives only in the message. They mean the game may not be back
+at the main menu, which makes them the one class where the next operation's
+precondition is genuinely unknown.
+
+## Unresolved
+
+**Should the error codes be a closed set?** A code is a free-form `String`
+constructed at each failure site, and only `evicted` has a named constant in
+`mechcore-protocol`. A caller cannot match exhaustively, and a typo at one site
+is indistinguishable from a new code. Making them an enum would settle it, at
+the cost of a protocol change every time a failure mode is added.
+
+**Should a teardown failure hide the failure it followed?** Today the cleanup
+code wins and the original error survives only as text. The alternative is
+reporting both, which needs a shape the response format does not currently
+have.
+
+**Whose limit is `MAX_STAGED_ROUND`?** This contract refuses a round above it
+because staging every earlier round must fit one timeout budget, and says so as
+an executor limit rather than a schema rule.
+[layout.md](../document/layout.md) leaves the matching question open from the
+other side: whether a layout above that round is a valid document nothing can
+currently apply, or not a document at all.
+
