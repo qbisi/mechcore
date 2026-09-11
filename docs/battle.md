@@ -1,24 +1,5 @@
 # Battle definition
 
-## Status
-
-This document is a design draft, and the field names below are proposals rather
-than a contract. Sections marked **Unresolved** name what still has no evidence
-behind it.
-
-One half of it is implemented. `mechcore convert <replay.grbr> <battle.yaml>`
-writes this document from a locally recorded replay, and the
-[conversion section](#converting-a-replay) says what it rebuilds and what it
-refuses. Nothing executes a battle yet.
-
-A battle spans a whole match, so the four tracked ranked replays that carry most
-of the [state](state.md) and [turn](turn.md) claims are too small a corpus for
-it. Everything measured here is measured over the locally recorded ranked
-replays of the Steam installation: 11 matches, 22 player slots, 202
-player-rounds and 180 round transitions. `tests/grbr/README.md` explains which
-replays are usable and why the downloaded ones are not, and
-`work/research/battle_invariant_support.py` reproduces every count below.
-
 ## Scope
 
 A battle is one match. It holds what every round of that match shares, and the
@@ -48,93 +29,60 @@ An entry of `turns` carries the [turn](turn.md) shape without `kind`, and
 without the `map_id` and `seed` a standalone turn holds at its own root, since a
 battle states them once for every round. It keeps its `round`.
 
-The three documents nest rather than compete. A battle is turns plus what they
-share, a turn is a state plus the decisions taken from it, and a layout is the
+The four documents nest rather than compete. A battle is turns plus what they
+share, a turn is a state plus the [decisions](action.md) taken from it, a
+[state](state.md) is one complete position, and a [layout](layout.md) is the
 projection of a state onto what the fight simulates.
 
 ## What every round shares
 
-`BattleInfo` is the match's own header, and it is almost entirely constant.
-Across the 11 ranked matches only three of its 19 fields take more than one
-value:
-
-| Field | Distinct values | Where it goes |
-| --- | ---: | --- |
-| `SystemSeed` | 11 | `seed` |
-| `MapID` | 5 | `map_id` |
-| `BattleID` | 11 | excluded, it names a server record |
-
-So a battle's own fields are the two a [state](state.md) already carries, and
-hoisting them is the whole of what the root does. Both keep the meaning and the
+Two fields are hoisted out of the rounds, and both keep the meaning and the
 optionality a layout gives them.
 
-The rest of the header is one value in every ranked match:
-
-| Field | Value |
+| Field | Source |
 | --- | --- |
-| `StartTime`, `HostID`, `BlueprintIncreaseSupply` | `0` |
-| `PrepareTime`, `DeployTime`, `FightTime` | `30`, `100`, `120` |
-| `MaxRound` | `40` |
-| `EnableAdvanceTeam`, `EnableReinforcement`, `EnableUnitReinforcement`, `EnableConstruction` | `true` |
-| `GameMode`, `MatchMode`, `ScoreMode` | `Normal`, `VS_1_1`, `ReduceScore` |
-| `SurviveModeDifficulty` | `VeryEasy` |
-| `gameRules` | empty |
+| `seed` | `BattleInfo.SystemSeed` |
+| `map_id` | `BattleInfo.MapID` |
 
-None of that is universal. It is the standard 1v1 rule set, and the two Training
-Ground replays in `tests/grbr` show what a different mode does to the same
-header: `PrepareTime` and `DeployTime` become `9999`, `MatchType` becomes
-`Test`, the advance team, reinforcement and construction flags all become
-`false`, and two fields appear that a ranked header does not have at all,
-`PlayerCount` and `TeamCount`. A constant is therefore a property of the mode
-this format describes, and the format states the mode once rather than restating
-its consequences in every document.
+The rest of the match header is a property of the standard 1v1 rule set rather
+than of a match: the phase durations, the round cap, the advance team,
+reinforcement and construction flags, the game and score modes. A battle states
+the mode once by being this format, rather than restating its consequences in
+every document. A mode that changes them is a different format.
 
-`FightTime` is the only one of them a simulator reads. It is 120 seconds in all
-11 matches, which is the value `crates/simulation/src/kernel.rs` already holds
-as `FIGHT_TIME_SECONDS`.
+`FightTime` is the only header constant a simulator reads, and it is 120
+seconds.
 
 ### Game rules are the premise, so the battle carries them
 
-`game_rules` is optional and its absence means none. It is the one constant
-above that a battle states rather than drops, because the other two documents
-are full of exclusions that rest on it being empty: the research queue is
-unreachable without rule `999917`, equipment never wears out and so needs no
-`durability` without rule `999903`, and the blueprint pool is `[1, 2, 3, 4, 5]`
-only while no rule enables blueprint research. Each of those is a claim about
-this field.
+`game_rules` is optional and its absence means none. It is the one header
+constant a battle states rather than drops, because exclusions across the other
+documents rest on it being empty: the research queue is unreachable without rule
+`999917`, equipment never wears out and so needs no `durability` without rule
+`999903`, and the blueprint pool is `[1, 2, 3, 4, 5]` only while no rule enables
+blueprint research. Each of those is a claim about this field.
 
-Every replay this machine holds records an empty `gameRules`, ranked and
-Training Ground alike, so a battle that names a rule is outside what the format
-has been measured against. A reader should refuse such a document rather than
-read the states inside it under premises the rule breaks.
+A battle that names a rule is outside what this format defines. A reader refuses
+such a document rather than reading the states inside it under premises the rule
+breaks.
 
 ## The sides are positional
 
-`blue` is `playerRecords[0]` and `red` is `playerRecords[1]`, which is the
-convention `crates/document/src/grbr.rs` already converts coordinates by.
+`blue` is `playerRecords[0]` and `red` is `playerRecords[1]`.
 
-The record offers nothing better. `PlayerRecord.data.team` is `0` for both
-players in all 22 slots, so it does not name a seat, and the record's `Seat`
-names the client that did the recording rather than a side: it is `-1` in every
-downloaded replay, which is one of the reasons `tests/grbr/README.md` rules that
-class out. Player names and account IDs are not fields either. Nothing reads
-them, and a side is identified by which side it is.
+Nothing else names a seat. The record's own `team` is the same value for both
+players, and its `Seat` names the client that recorded the file rather than a
+side. Player names and account IDs are not fields: nothing reads them, and a
+side is identified by which side it is.
 
 ## The custom tech loadout
 
 One per-side quantity is a property of the match rather than of a round, and it
-is the only thing under `sides` here.
+is the only thing under `sides`.
 
 Each player chooses, before the match, which technologies each unit may
-research. The record keeps that choice as `PlayerRecord.data.unitDatas`, one row
-per unit, and the match reads it back: `PlayerAgent(PlayerData)` feeds each
-row's `UnitData.GetTechnologies` into that unit's `UnitTechnologyManager`, and
-`PAP_UpgradeTechnology.Check` resolves an action's `TechID` through
-`TechnologyManager.GetTechnology(unitID, techID)`, which can only answer for a
-technology the loadout put there. `PlayerAgent.GenerateUnitDatas` writes the
-same rows back out, and the client fills them from
-`LocalPlayerProxy.LoadCustomTechnologyData`, falling back to
-`UnitUtility.GenerateDefaultTechnology`.
+research. A technology outside a unit's loadout cannot be researched in that
+match, so the loadout bounds every `upgrade_technology` a turn can hold.
 
 ```yaml
     blue:
@@ -145,153 +93,87 @@ same rows back out, and the client fills them from
         31: [631, 10231, 180931, 503101]
 ```
 
-It is real state and not a catalogue. The 22 player slots hold 16 distinct
-loadouts, and 32 of the 34 rows differ between at least two players. It is also
-binding: in all 202 player-rounds every technology a side had researched comes
-from that side's own loadout, without exception.
-
-The row count is fixed at 34, in one order, for every player: units `1` through
-`31`, then `2001` 丧钟, `2002` 泰山 and `4001` 试验级丧钟. Most rows hold four
-technologies; `17` 战争工厂, `29` 深渊, `2001` and `2002` hold six, and `4001`
-holds twenty. The rows for `2001` and `4001` are identical in all 22 slots, so
-nobody in this corpus has customised them, which is a fact about the corpus and
-not a rule.
+It is real state and not a catalogue: two players in one match hold different
+loadouts. Rows cover units `1` through `31`, then `2001`, `2002` and `4001`.
 
 The loadout keeps the per-unit grouping that a state's flat `techs.units` array
-drops, because the decoding rule that lets a state flatten does not hold here.
-Reading the owner off the end of the ID accounts for 2640 of the 2816 ordinary
-rows and fails on the rest, `1106` belonging to unit `4` and `503101` to unit
-`31`, and it says nothing at all about the three units above `2000`.
-
-Ownership is still a function of the ID, since no technology appears under two
-units in any of the 22 loadouts, and it is resolved the way the adapter already
-resolves it: `technology_owner` asks the runtime catalogue which unit has the
-technology, and the decoding rule survives only as a test helper. That weakens
-the flattening argument in `docs/state.md`, where 18 of the 289 researched rows
-break the same rule. The flat array survives, because the catalogue answers
-where the digits do not.
+drops, because the rule that lets a state flatten does not hold here. A
+technology's owner cannot be read off the end of its ID for every row, and says
+nothing at all about the three units above `2000`. Ownership is still a function
+of the ID, since no technology belongs to two units, and it is resolved against
+the build's catalogue rather than by decoding digits.
 
 ## The turns are a sequence
 
 `round` stays on each turn even though the list is ordered. It is the key the
-record itself files a snapshot and an action list under, a list position is not,
-and a battle that is sliced or that starts away from zero has to stay readable.
-
-Today it is derivable: all 22 recorded round lists run contiguously from 0 and
-agree with `matchDatas`. Keeping it is the same kind of redundancy as a turn
-stating its round twice over, a fact the reader can check rather than a fact it
-has to trust.
+record files a snapshot and an action list under, a list position is not, and a
+battle that is sliced or that starts away from zero has to stay readable.
 
 A battle repeats most of its state in every turn, and that is accepted rather
 than encoded away. Each turn must stand alone as a document, so that one round
 can be lifted out of a match and run on its own, and a delta encoding would make
-every turn depend on all of its predecessors. The format already refused that
-shape once: a state takes the reinforcement offer as an input precisely so that
-it is not a machine that generates its own successors.
+every turn depend on all of its predecessors.
 
 ## Between two turns there is a fight
 
 Consecutive states are not adjacent. Applying a turn's actions to its state
 yields the position at the end of the deployment, projecting that position
 yields the layout the fight starts from, and the fight is what produces the next
-turn's roster and reactor core. A battle is therefore the only one of the three
+turn's roster and reactor core. A battle is therefore the only one of the four
 documents that states an end-to-end simulator obligation, and the only one whose
 checks can be cross-round.
 
 It also means a battle records no outcome. The last recorded round is a
-deployment like any other, with both reactor cores still positive in all 11
-matches, and the fight that ends the match has no successor state to show its
-result. That is the format's boundary rather than a hole in it: no fight result
-is a field anywhere, and every earlier one is visible only as the difference
-between two states.
+deployment like any other, and the fight that ends the match has no successor
+state to show its result. No fight result is a field anywhere, and every earlier
+one is visible only as the difference between two states.
 
-## Cross-round checks
+## Cross-round invariants
 
-A turn checks itself within a round. A battle can check the seams between
-rounds, and these are what the record supports. All 180 transitions satisfy
-each:
+A turn checks itself within a round. A battle checks the seams between rounds,
+and these hold across every transition of a well-formed battle.
 
-| Check | Holds |
-| --- | ---: |
-| `next_index.unit` rises or holds | 180/180 |
-| `next_index.contraption` rises or holds | 180/180 |
-| researched technologies are kept | 180/180 |
-| the skill panel is extended, never reordered | 180/180 |
-| `shop.unlocked_units` are kept | 180/180 |
-| `tower_strengthen_levels` rise or hold | 180/180 |
-| `blueprints` are kept, or replaced by their own next level | 180/180 |
-| `techs.officers` are kept, or replaced by their own next level | 180/180 |
-| `reactor_core` falls or holds, except at the opening | 169/180 |
+| Invariant |
+| --- |
+| `next_index.unit` rises or holds |
+| `next_index.contraption` rises or holds |
+| researched technologies are kept |
+| researched technologies stay inside that side's `tech_loadout` |
+| the skill panel is extended, never reordered |
+| `shop.unlocked_units` are kept |
+| `tower_strengthen_levels` rise or hold |
+| `blueprints` are kept, or replaced by their own next level |
+| `techs.officers` are kept, or replaced by their own next level |
+| `reactor_core` falls or holds, except across the opening |
 
-The two replacement rows are the same mechanism seen twice. `Active` goes
-through `ReplaceBlueprint`, so a chain blueprint overwrites its predecessor
-rather than joining it, and the product officer it grants follows: the 5
-transitions that drop an officer all replace `20300` by `20301` or `20310` by
-`20311`.
+The two replacement rows are one mechanism seen twice. Activating a chain
+blueprint replaces its predecessor rather than joining it, and the product
+Officer it grants follows.
 
-The reactor core rises 11 times, once per match, and every one of them is the
-round 0 to round 1 transition, by 100 to 700. That is the advance team, whose
-entry carries its own `reactorCore`, chosen by a round 0 action that the round 0
-snapshot precedes. After the opening the core only falls.
+The reactor core rises only across the round 0 to round 1 transition, by the
+amount the advance team the opening chose carries. After the opening it only
+falls.
 
-Researched technologies stay inside the loadout, which is the one check that
-crosses the two levels of the document: 202 of 202 player-rounds.
+## The supply ledger
 
-## The energy tower list is one flag seen at one instant
+A battle is the level at which supply can be checked, because the identity
+spans two rounds:
 
-`playerData.energyTowerSkills` looks like an accumulating list and is not one.
-The mechanism is here because it spans two rounds; what a state does about it is
-in [`docs/state.md`](state.md).
+```text
+supply(round + 1) = supply(round) - spent(round) + income(round + 1)
+```
 
-The manager holds one entry per energy tower skill, created once by
-`EnergyTowerSystem.Init` and never added to again, and each entry is an
-`ActivableItem`. Activation sets a flag on it, and that flag is the whole of the
-bookkeeping. Its life spans two rounds:
+Income is the map's row plus what the side's officers and worn equipment add,
+less what a Rapid Supply owes from the round before. Spending prices the turn's
+decisions; [`action.md`](action.md) says what each costs, and the tables in
+`config/` carry the amounts.
 
-| When | What happens to a skill activated in round N |
-| --- | --- |
-| Round N, at the action | `ActiveSkill` sets the flag, and `AddSkillEffect` pays the immediate half: supply, shop buy count, shop unit level, unit buffs |
-| Round N+1, `OnEnterDeploymentBefore` | `AddNewRoundEffects` arms the deferred half, registering `nextRoundSupplyChangeValue` through `Player.AddData`, where `AddRoundSupply` reads it as part of that round's income |
-| Round N+1, `OnEnterDeploymentAfter` | `Refresh` removes the effect and calls `Deactive` |
+Two rounds cannot be decided by the identity alone. A side holding an officer
+that pays a bounty for destroying a giant is paid by the fight in an amount no
+document records, so such a round is counted apart rather than failed.
 
-`PlayerSnapshotController.TakeResearchCenterSanpshot` writes the flagged skills
-that pass `EnergyTowerSkill.IsLongTermEffect`, which the disassembly shows to be
-a test of the catalogue field at `0xBC`, `nextRoundSupplyChangeValue`. Only
-skill `1` 快速补给 has one, at `-300`. The snapshot is taken between the last two
-rows of that table, so it catches round N's flag during round N+1 and never
-catches round N+1's own. The field reads as a record of the previous round
-because it is one flag seen at one instant, not two quantities. It holds skill
-`1` in the round after a round that activated it in 180 of 180 transitions,
-against 15 activations.
-
-### A state needs no field for the debt
-
-The debt is the flag, and the flag is what `energy_tower_skills` already states.
-Every energy tower skill is a 本回合 effect, including the `+200` half of skill
-`1`, so the set a fight needs is the set activated this round, and that set
-lives only in the action log. Skill `1` appearing in it is the debt: the `+200`
-is already inside `supply`, and the `-300` is a consequence that lands in the
-next state's `supply`, which is stated absolutely. The previous round's debt is
-not a field either, since by the time a state exists its income has already
-arrived net of the penalty.
-
-It follows that this list is empty at every round start and fills as the round's
-actions are applied, which is the other reason it can never equal the recorded
-field.
-
-Two places still have to know, and neither is a state field. A converter
-rebuilding round N's `supply` needs round N's recorded `energyTowerSkills`,
-because that is what says the `-300` applies, so the field belongs to the supply
-reconstruction rather than to the energy tower. And an installer has to set the
-flag without repeating the immediate half, which is what
-`ApplyResearchCenterSnapshot` does when it calls `ActiveSkill` with its
-`isSnapshot` argument, and what `AddSkillEffect` branches on. An installed state
-whose flag is missing gives the next round 300 supply too many.
-
-`docs/state.md` states the consequence in its own terms: the field means what
-was activated this round, which is what the layout projection of skills `5` and
-`6` already assumes, and it is rebuilt from the round's actions rather than
-copied from the record.
+The check is reported, never enforced: a battle is well-formed whether or not
+its ledger closes.
 
 ## Converting a replay
 
@@ -318,114 +200,16 @@ owns it:
 The last round has no next snapshot to read the shop allowance from, so it falls
 back to the shipped constants, two and one.
 
-### The supply ledger
-
-Converting also checks what it wrote. Two consecutive states and the decisions
-between them have to satisfy one identity:
-
-```text
-supply(round + 1) = supply(round) - spent(round) + income(round + 1)
-```
-
-Spending prices the turn's actions against the tables in `config/`: what a unit
-costs to buy, to unlock and to raise a level, what a technology, a blueprint, a
-tower level, an energy tower skill and a reinforcement card cost, and how the
-officers a side holds change all of those. Unit reinforcement cards keep their
-own table, because what they hand out matters as much as what they cost. Income is the map's row plus what
-those officers add, less what a Rapid Supply owes from the round before.
-
-Recovering a formation is a decision like any other, and it is why a state's
-formations carry a `value`. Field Recovery takes one of the side's own
-formations away and pays back what that formation cost, at the prices the
-side's officers made when it bought and upgraded it. That amount is history
-rather than a property of the unit standing there: two formations of the same
-type and level, bought a round apart, can be worth different amounts. All 56
-formations a recovery skill targeted in the local set are gone from the next
-snapshot, while every formation another skill targeted is still there.
-
-What a formation's recorded `sell_supply` carries is the purchase half alone.
-The levels are refunded on top of it, one upgrade for every level above the
-first, and leaving them out is what made a recovery round read as though the
-side had spent more than it did. An upgrade costs half the unit's price in every
-one of the 32 units this build fields, so the whole amount is
-`price x (level + 1) / 2` for a formation nobody discounted, but the ledger
-prices each upgrade from the unit's own row rather than assuming the ratio
-holds.
-
-Recovering a construction pays a fixed price instead, which its type alone
-decides, and `config/economy.yaml` states it.
-
-The prices the ledger charged wrongly at first are worth stating, because each
-is a decision whose amount no action names.
-
-- An officer can make the shop sell at a higher level. Elite Specialist recruits
-  everything at level 2 and Elite Crawler recruits Crawlers at 5, and the levels
-  are not free: buying pays the unit's price plus one upgrade for each level
-  above the first. Two officers that cover one unit take the higher level rather
-  than adding.
-- Elite Recruitment does the same for one round. It raises the shop by a level
-  for every purchase after it, which its `shopUnitLevelChangeValue` states.
-- Releasing a contraption is a purchase. The Energy Shield costs 100, the
-  Sentry Missile 50 and the Missile Interceptor 100, from the `constraptionDatas`
-  object of `level0`, which the config data container does not carry.
-- Declining the round's reinforcement pays 50. Declining is an item of its own
-  rather than the absence of one:
-  `ReinforcementManager.GetGiveUpReinforce` hands back an
-  `AddSupplyReinforceItem`. No shipped table carries the amount, so this one is
-  measured, and every one of the 26 decidable declines in the local set pays it.
-- A technology costs more when the unit already has one.
-  `UnitTechnologyManager.GetUpgradeCost` prices it as a step times the count
-  already active plus its own supply, capped by the unit's
-  `techUpgradeMaxSupplyLimit`, which is zero for every unit a standard match
-  can field. The step is 200, and it is measured rather than read: the shipped
-  `techUpgradeIncreaseSupplyPerCount` is zero for every one of those units. A
-  second technology on one unit costs 200 more in 29 of the 37 decidable rounds
-  that research one, a third 400 more, a fourth 600 more.
-- A technology discount is scoped like every other. Efficient Technology
-  Research covers every unit, but Sabertooth Specialist and Fire Badger
-  Specialist each cover only their own, which their `unitID` states and their
-  description repeats. Applying either of those to another unit's technology is
-  what made a research round read as 50 cheap.
-- An equipment can change an amount rather than a stat, and two do. Upgrade Kit
-  takes 100 off every upgrade of the formation wearing it, from its
-  `EquipmentData.upgradeSupplyChangeValue`; a discount may exceed the price, and
-  an upgrade is never paid backwards. Command Core pays its side 50 a round,
-  from the same class's `roundSupply`. What the income pays for the next round
-  is decided by the board this round opened with, so fitting one mid-round
-  first pays a round later.
-- A specialist's squad arrives before any of the round's decisions, in the
-  round the officer's own `activeRound` names, and it takes the next index. A
-  side that recovers it straight away is paying itself back the unit's price,
-  and a side that buys afterwards files those purchases one along.
-- A card that hands out squads allocates them as it is taken, before anything
-  the round buys afterwards. Leaving them out of the roster does not just lose
-  their recovery value: it shifts the index every later purchase is filed
-  under, so a recovery names the wrong formation. Recovering one pays back the
-  unit's own price, since the side never bought it and no officer discount ever
-  applied.
-
-Every decidable round transition closes, on the four tracked ranked replays and
-on the locally recorded set alike: 66 of 66 and 550 of 550. No round is left
-unpriced either; the ones that used to be were recovering a formation a card had
-handed out, which the roster did not hold.
-
-An officer that pays a bounty for destroying a giant is the one thing left that
-the fight decides, and a side holding one is counted apart.
-
-The check is reported, never enforced: a battle converts whether or not its
-ledger closes.
-
-Two fields are always empty and refused rather than guessed when they could not
-be. `airdrop_shields` has no recorded source, so a panel holding commander skill
-`800001` is an error instead of a silent omission. `travelling` has none either,
-and it is left absent rather than inferred from the ambush regions.
+Two fields have no recorded source and are refused rather than guessed. A panel
+holding commander skill `800001` is an error instead of a silently missing
+`airdrop_shields`, and `travelling` is left absent rather than inferred from the
+ambush regions.
 
 ## Normal form
 
 | Collection | Order |
 | --- | --- |
 | `turns` | ascending `round` |
-| `formations`, `constructions`, `contraptions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
 | `game_rules` | ascending rule ID |
 
@@ -439,34 +223,33 @@ A turn's own collections, and a state's, keep the orders those documents define.
 | `BattleRecord.Seat` | Which client recorded the file, not a property of the match |
 | `PlayerRecord.name`, `id`, `ad` | Account identity; nothing reads it |
 | `PlayerRecord.data.styleData` | Skins |
-| `PlayerRecord.data.team`, `isLeader`, `type` | Constant in every ranked slot; a side is named by which side it is |
+| `PlayerRecord.data.team`, `isLeader`, `type` | A side is named by which side it is |
 | `PlayerRecord.data` supply and core settings | The map's row in `matchSettings` gives them, keyed by `map_id` |
-| `BattleRecord.reinforceItems` | Empty in every replay |
-| `PlayerRecord.seed` | Constant through the match, and nothing draws from that stream, see the state document |
+| `BattleRecord.reinforceItems` | Carries no offer; the per-round array does |
+| `PlayerRecord.seed` | Nothing draws from that stream, see the state document |
 | `BattleRecord.Version`, `CreateTime` | Provenance, see below |
-| The 1v1 header constants | Properties of the mode, listed above |
+| The 1v1 header constants | Properties of the mode, above |
 
-Provenance is the one thing a battle drops that is worth keeping somewhere. A
-document's IDs are all resolved against one build's catalogue, and this
-machine's replay directory holds three builds, so a converter should record
-which replay and which build a battle came from beside the document rather than
-inside it. The alternative, a `build` field that no rule reads, would state a
-fact the reader cannot act on except by refusing the document.
+A document's IDs are all resolved against one build's catalogue, so a converter
+records which replay and which build a battle came from beside the document
+rather than inside it. A `build` field no rule reads would state a fact the
+reader cannot act on except by refusing the document.
 
-**Unresolved.** Whether a build mismatch should be a refusal, and therefore
-whether provenance belongs in the document after all, is not settled here. It is
-the same question for all four kinds and should be answered once.
+## Unresolved
 
-## Capabilities the adapter still lacks
+**Whether provenance belongs in the document.** A build mismatch is currently
+undetectable from a battle alone, because the build is recorded beside the file.
+Making it detectable means a `build` field, and a field is only worth carrying
+if a mismatch is a refusal. That is the same question for all four kinds and
+should be answered once.
 
-A battle cannot be captured or executed today, for the reasons the other two
-documents give: there is no complete state capture, and the player action space
-a turn needs barely overlaps the Training Ground commands the adapter drives.
+**Whether a battle records how the match ended.** Today it does not: the format
+holds positions and decisions, and an outcome is neither. But giving up is a
+decision a player takes that [`action.md`](action.md) has no representation for
+precisely because it ends a match rather than moving a position. If that becomes
+a battle-level field, the two questions are answered together.
 
-The tech loadout is the exception, and it is already reachable. The adapter
-drives `MAD_ClearTechnology`, `MAD_AddTechnology` and `MAD_ActiveTechnology`
-when it installs a layout's technologies, and `MAD_AddTechnology` is exactly the
-command that puts a technology in a unit's manager without researching it. What
-is missing is the distinction rather than the capability: layout application
-adds only the technologies it is about to activate, so an installed match today
-has a loadout equal to its researched set.
+**What a battle does with a match that carries game rules.** Refusing is the
+current answer and it is a floor rather than a design. A rule changes premises
+the other documents rest on, so admitting one means each of those documents
+saying what it does under that rule, not just this one recording the rule's ID.

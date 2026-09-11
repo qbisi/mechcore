@@ -18,8 +18,8 @@ pub(crate) const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 
 /// How many fixed towers a side's building manager holds.
 ///
-/// `BuildingManager.buildings` is exactly this long in all 494 player-rounds of
-/// the local replay set, and `docs/state.md` records the measurement.
+/// A 1v1 side holds exactly this many fixed towers, which `docs/state.md`
+/// states.
 ///
 /// A position in that list is a key, not a name. `tower_strengthen_levels` is
 /// keyed by it, the same key `PAD_StrengthenTower.Index` uses, so a layout and

@@ -454,8 +454,7 @@ strengthens a tower one level at a time and verifies the final level.
 
 A position keys a tower; it does not name one. The two sides order their towers
 oppositely: on map 1021 blue holds the Energy Tower at position `0` and red
-holds it at position `1`, which [`docs/state.md`](state.md) measures and
-explains. So `[1, 2]` does not say which building is at level `2` without
+holds it at position `1`, which [`docs/state.md`](state.md) explains. So `[1, 2]` does not say which building is at level `2` without
 knowing the side and the map, and nothing needs to: a level is captured from a
 position and applied to that same position.
 

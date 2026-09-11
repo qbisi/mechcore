@@ -5244,12 +5244,12 @@ fn read_native_unit_technologies(api: Api, controller: *mut Object) -> Result<Ve
 /// Reads the Research Center enhancement chains as the Officers they grant.
 ///
 /// The native blueprint IDs never reach a layout, which says an attack or
-/// defense enhancement by naming the Officer the chain hands out. `OfficerManager`
-/// already lists that Officer in all 202 player-rounds `docs/state.md` measures,
-/// so this normally repeats what the officer read found; it is here so that a
-/// capture still names the enhancement if the two ever disagree, and so that a
-/// chain caught mid-research fails the capture rather than reporting a level it
-/// does not hold yet.
+/// defense enhancement by naming the Officer the chain hands out.
+/// `OfficerManager` normally lists that Officer already, so this repeats what
+/// the officer read found; it is here so that a capture still names the
+/// enhancement if the two ever disagree, and so that a chain caught
+/// mid-research fails the capture rather than reporting a level it does not
+/// hold yet.
 fn read_blueprint_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetBlueprintManager")?;
     let mut officers = Vec::new();

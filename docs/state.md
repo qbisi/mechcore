@@ -1,27 +1,10 @@
 # State definition
 
-## Status
-
-This document is a design draft. No crate implements it yet, and the field names
-below are proposals, not a contract. Sections marked **Unresolved** name what
-still has no evidence behind it.
-
-Evidence for the claims here comes from four ranked GRBR replays in
-`tests/grbr`, 1095 recorded actions over 58 round-sides. Two computer matches in
-the same directory were set up with Training Ground commands rather than by 1v1
-rules and are excluded from every count.
-
-A few claims are measured over a wider set, the 11 ranked matches and 202
-player-rounds the Steam installation has recorded locally. Those say so where
-they appear. `tests/grbr/README.md` explains which replays there are usable and
-why the downloaded ones are not.
-
 ## Scope
 
-A state document describes one complete match position: everything both players
-hold at one moment of one round. It is the largest of the three documents this
-format defines, and the other two are related to it by projection and by
-composition.
+A state describes one complete match position: everything both players hold at
+one moment of one round. It is the largest of the four documents this format
+defines, and the other three relate to it by projection and by composition.
 
 ```yaml
 kind: state
@@ -40,64 +23,50 @@ sides:
 layout. They belong to the document rather than to a side because both sides
 share them.
 
-A [turn](turn.md) carries this shape under its own `state` key, without
-repeating `kind`, and adds the actions taken from it. A [battle](battle.md)
-carries the turns of one match in order, and hoists `map_id` and `seed` to its
-own root. `kind` marks a document root, not a subtree.
+A state is defined after each action, not only at a round's ends. A
+[turn](turn.md) carries this shape under its own `state` key, without repeating
+`kind`, and adds the [decisions](action.md) taken from it. A
+[battle](battle.md) carries the turns of one match in order, and hoists `map_id`
+and `seed` to its own root. `kind` marks a document root, not a subtree.
 
 ## Relation to a layout
 
-A layout is not a different object from a state. It is the projection of a
-state onto what the fight simulates:
+A layout is not a different object from a state. It is the projection of a state
+onto what the fight simulates:
 
 ```text
 layout = project(state)
 ```
 
-The projection is defined at every point in the round, not only at its ends.
-After each action the state changes, and projecting the new state yields the
-layout that a Training Ground scene would have to install to reproduce the
-match at that moment. Running an action list forward and projecting after every
-step is therefore the natural way to check a [turn](turn.md) against a capture,
-and it gives a much finer failure signal than comparing only the round's
-endpoints.
+Because a state is defined after every action, so is the projection. Running an
+action list forward and projecting after each step yields the layout a Training
+Ground scene would install to reproduce the match at that moment, which gives a
+finer failure signal than comparing a round's endpoints alone.
 
-What the projection drops is everything the fight cannot observe: supply,
-the shop, the reinforcement offer, the allocators, and the parts of the skill
-panel that were not released this round.
+What the projection drops is everything the fight cannot observe: supply, the
+shop, the reinforcement offer, the allocators, and the parts of the skill panel
+that were not released this round.
 
-Five side fields project unchanged: `formations`, `constructions`,
-`contraptions`, `airdrop_shields` and `terrains`. `tower_strengthen_levels`
-projects unchanged as well, keyed the same way in both documents. Two more are
-filtered rather than copied:
+Six side fields project unchanged: `formations`, `constructions`,
+`contraptions`, `airdrop_shields`, `terrains` and `tower_strengthen_levels`.
+Three more reach a layout transformed rather than copied straight:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
-| `techs` | `techs` | copied, duplicates included, with each blueprint chain's Officer added |
+| `techs` | `techs` | copied, duplicates included |
 | `blueprints` | `techs.officers` | `4` → `20310`; `401` → `20311`; `5` → `20300`; `501` → `20301` |
 | `energy_tower_skills` | `energy_tower_skills` | copied, keeping `5` and `6` |
-
-`crates/document/src/project.rs` implements this. Every position of every
-tracked replay projects onto a layout the compiler accepts, which is what puts
-the type names, the footprints, the deployment regions and the collision rules
-behind the projection rather than only the field mapping.
 
 A valid blueprint list cannot hold both levels of one chain, so each chain
 contributes at most one Officer. Blueprint IDs `1`, `2` and `3`, and Energy
 Tower skill IDs `1`, `3` and `4`, reach no layout field: their fight-visible
-consequences are already carried by the skill panel or formations, while their
-economic consequences are not part of a layout.
+consequences are already carried by the skill panel or by formations, while
+their economic consequences are not part of a layout.
 
-Which building-manager position holds which tower does not affect this
-projection at all: both documents key the levels by position, so the projection
-copies the list. It matters only to a reader who wants to name a tower, and the
-section on `tower_strengthen_levels` below measures it: the answer is per side,
-so the position never names the tower on its own.
-
-`battle_skills` is projected rather than copied too. The projection keeps only
+`battle_skills` is projected rather than copied. The projection keeps only
 entries with `release`, sorts them by `release.order`, resolves each native `id`
 to the layout's semantic `type`, and maps an area target to `positions`. A unit
-or construction target has no representation in the current layout contract, so
+or construction target has no representation in the layout contract, so
 projecting one is refused rather than dropped.
 
 A round's opening position carries no release at all, since a state is defined
@@ -105,32 +74,20 @@ after each action and a round opens before its first. The releases of a round
 belong to the position its deployment closes with, which is what a captured
 layout holds.
 
-`kind` marks a document root, not a subtree. The shared per-side shapes do not
-repeat it, because a seed, a map and a round are shared by both sides and belong
-to the document that owns them.
-
 ## Match level and side level
 
-One fact forces the state to have a level above `sides`.
+The reinforcement offer is dealt once per round and both players choose from the
+same array, so it is the one field above `sides`.
 
-The reinforcement offer is recorded once per round in `matchDatas`, not per
-player, and both players choose from the same array. Across the corpus 49 of 50
-`ChooseReinforceItem` actions satisfy `offers[Index] == ID` against that single
-array; the remaining one is `ID=0, Index=-1`, the recorded form of declining.
-It is the only field above `sides`, and the [scope](#scope) example shows it in
-place.
-
-Rounds 0 and 1 are dealt no offer at all: `matchDatas.reinforceItems` is empty
-in 22 of the 101 round snapshots of the local set, which is exactly those two
-rounds of each match. The field is absent there rather than an empty array,
-since no array was dealt.
+Rounds 0 and 1 are dealt no offer. The field is absent there rather than an
+empty array, since no array was dealt.
 
 ### The opening offer is private, so it sits under a side
 
-The round 0 offer is the exception to everything above. It deals each side four
-combinations of an advance team and a specialist officer, privately: neither
-player sees the other's four. It is therefore not `reinforce_offers`, which is
-above `sides` precisely because both players choose from one array.
+The round 0 offer is the exception. It deals each side four combinations of an
+advance team and a specialist officer, privately: neither player sees the
+other's. It is therefore not `reinforce_offers`, which is above `sides`
+precisely because both players choose from one array.
 
 ```yaml
     blue:
@@ -147,208 +104,53 @@ between. A state that named only the opening taken would be a position a
 decision cannot be read from.
 
 The only shared information the opening carries is the construction layout,
-which the map rolls once and deals to both sides. Both receive the same
-construction types in all 29 matches of the local set, and `constructions`
-already states them.
+which the map rolls once and deals to both sides, and `constructions` already
+states it.
 
-No replay stores the four combinations. The offer array
-`matchDatas[round].reinforceItems` is empty in rounds 0 and 1 of every match,
-holding one shared array of four from round 2 on, and `BattleRecord`'s own
-`reinforceItems` is empty in all 30 local replays. Nothing else in the file
-carries a per-side offer.
-
-Watching a replay still shows both sides' openings, which means the client
-rolls them again rather than reading them back. It has what that takes: the
-match random state of every round and the pool's own operation log are both
-recorded, and [the random state section](#random-state) sets out what they
-drive. Reproducing an offer offline therefore means reproducing the game's
-probability tables and draw order, which is the cost this format declined to pay
-when it decided to store the offer as recorded rather than roll it.
-
-So a converted battle leaves this field absent, and filling it is a piece of
-work the format can name rather than a hole in it.
-
-The offer array is stored as recorded rather than rolled from a random state.
-It is a function of that state, but reproducing the function means reproducing
-the game's probability tables and draw order, and the layout format already
-settled the general rule: a quantity the record states directly is stored, not
-derived.
+A replay stores none of the four combinations. The field is therefore absent in
+a converted battle, and filling it means reproducing the game's probability
+tables and draw order, which the format declined to pay for when it decided to
+store an offer as dealt rather than roll it.
 
 ## Random state
 
-No random stream is a state field. This section says what the four streams are,
-why the two recorded ones are excluded, and what an installer still has to know
-about them.
+No random stream is a state field. Four streams exist:
 
 | Stream | Seed | Recorded |
 | --- | --- | --- |
-| `Match.random` | `BattleInfo.SystemSeed` | `matchDatas[round].randomStateData` |
-| `Player.random` | `PlayerRecord.seed` | `playerData.randomStateData` |
+| `Match.random` | `BattleInfo.SystemSeed` | yes |
+| `Player.random` | `PlayerRecord.seed` | yes |
 | `Match.roundRandom` | `SystemSeed + round` | no |
 | `FightTeam.random` | `(round + teamIndex) * 4444` | no |
 
 The two recorded streams are excluded on the argument the reinforcement pool
 follows: they decide what a later round is offered, and this round's offer is
 already stated by `reinforce_offers`. Neither is read by a fight, so neither
-changes anything a layout can express.
+changes anything a layout can express. The two derived streams are computed from
+the round, the team index and the match seed, all of which a document already
+carries, so nothing has to store them either.
 
-`Match.TakeRandomSnapshot` reads the field at offset `0x38`, which is
-`Match.random`, and `PlayerSnapshotController.TakeSnapshot` reads offset `0xF8`,
-which is `Player.random` rather than `Player.localRandom` at `0x100`. Both are
-restored through `GRRandom.SetState`.
+A state is not a machine that generates its own successors. It takes the offer
+as an input, which is what lets it drop the streams that would produce one.
 
-The measurements in this section are reproduced by
-`work/research/random_state_support.py`, which reimplements the generator in
-Python. The Rust one is `crates/simulation/src/random.rs`, already aligned
-against a native attack stream.
+### What an installer must not do
 
-### The derived stream is the one that is not recorded
-
-`Match.GenerateRoundRandom(roundCount)` constructs `new GRRandom(seed + round)`,
-taking the match seed from the match data and falling back to `1` on positive
-overflow. That stream is a function of the seed and the round number, and the
-game does not record it, which is the expected division: a derivable quantity is
-recomputed and a historical one is snapshotted.
-
-Only one of the two recorded streams turns out to be historical at all. The
-match stream's position depends on how many draws were consumed. The player
-stream never leaves its seed, so even the game's own snapshot of it carries no
-information the seed does not.
-
-### Neither recorded stream affects the fight
-
-This matters for what a state is for. `FightTeam.RefreshRandomData` builds one
-stream per team: it takes the round from `fightController.match`, adds the
-team's own index, multiplies by `0x115C`, and stores the generator in the team's
-`random` field. Formation composition seeds a separate generator with the match
-seed plus the formation index. Neither formula has a term taken from a recorded
-state.
-
-Disassembly stops at construction. `FightTeam.GetRandom` has no indexed callers,
-so the static call graph does not show combat consuming that stream, exactly as
-it fails to show anything consuming the derived round stream. What supports the
-claim is the simulator: it seeds a per-team generator with the same two
-formulas and reproduces native captures tick by tick while never reading either
-recorded state. A stream the fight depended on could not be missing from a
-simulator that matches. That agreement is registered over a bounded domain, so
-the claim is that no counterexample exists inside it.
-
-The recorded states feed the meta layer only: `ReinforcePool`, `MapSystem`,
-`MechPositionManager`, `UpgradeLevel` and `UserManager`. The match stream
-changes what the next round offers, not how this round's battle resolves, which
-is why excluding it costs a state nothing it claims to hold.
-
-### The match stream is the seed advanced by a count nothing records
-
-Every recorded match state is reachable from `SystemSeed`. Walking the stream
-`GRRandom(SystemSeed)` generates and looking each snapshot up in it locates all
-of them, over the 11 ranked matches and 101 round snapshots of the local set, the
-furthest at 115 draws. The distances between consecutive snapshots are these:
-
-| Position | Draws |
-| --- | --- |
-| Reaching the round 0 snapshot | 24 to 30 |
-| Round 0 to round 1 | 17 to 24 |
-| Round 1 to round 2 | 0 in every match |
-| Each round from 2 on | 4 to 16, mean 9.2 over 68 transitions |
-
-So the stream is reachable but not derivable. The count varies from match to
-match at every position, which means `(seed, round)` does not determine it. A
-document that wanted this stream would have to carry the four words, or the draw
-count, which is only recoverable by searching the stream as this measurement
-does. That is the cost excluding it avoids.
-
-The floor of 4 is where the count meets the offer. Every round from 2 on records
-exactly four reinforcement items, and no transition consumes fewer than four
-draws, with nine consuming exactly four. That fits one draw per card, plus the
-extra draws a rejection loop takes: `GRRandom` masks its projection up to a power
-of two and redraws when the sample overshoots the range, so a weighted pick over
-a pool whose weights do not sum to a power of two costs a variable number of
-draws. Reproducing the count therefore means reproducing the pool and its
-weights, which is the same reason `reinforce_offers` is stored rather than
-rolled.
-
-Two observations sit on top of that and are not explained. The zero between
-rounds 1 and 2 says the round 2 offer was already rolled before the round 1
-snapshot was taken, so a round's draws belong to the following round's cards.
-And of the 68 later transitions, the counts 4, 5, 6 and 8 through 14 and 16 all
-occur while 7 and 15 never do. Four independent rejection loops would put roughly
-eight of the 68 at 7, so the internal structure of the roll is not simply one
-masked draw per card. That is the thread to pull if the roll is ever reversed.
-
-### The player stream is its seed
-
-`playerData.randomStateData` equals the state of `GRRandom(PlayerRecord.seed)` in
-all 202 ranked player-rounds of the local set, with no exception, and no seat's
-value moves during its match. The four words are therefore one integer's worth of
-information, and that integer is `PlayerRecord.seed`, which the record already
-states once per player.
-
-The mechanism explains the measurement rather than resting on it. A `Player`
-holds two generators: `GetRandom` reads `0xF8` and `GetLocalRandom` reads
-`0x100`. The snapshot takes `0xF8`. But `PrepareRandomData` and
-`RefreshRandom(seedOffset)` both write `0x100`, seeding it with the player's own
-seed plus a local offset, and `RefreshRandom` is what `UserManager` calls on
-entering each deployment. The one thing that happens per round touches the other
-field, which is why the snapshotted stream stays where it started.
-
-Nothing reads it either. `GetLocalRandom` has no indexed callers at all, and the
-one edge the call graph draws to `GetRandom`, from
-`UserManager.OnEnterDeployment`, is an artifact of a trivial accessor being
-inlined. That method loads its generator from `MatchModule.match` at `0x20` and
-then from `0x38` on the `Match`, which is `Match.random`, the same field the
-match snapshot takes; the round it passes alongside comes from `0x64`, the
-match's `RoundCount`. The draw serves `GameRuleManager.TryGetRandomSupply`, so it
-spends the match stream, and it belongs to a game rule whose `gameRules` list is
-empty in every replay this machine holds.
-
-No indexed call site reads `Player.random` at all, then. The stream exists, gets
-snapshotted and gets restored, and nothing draws from it.
-
-So this stream influences nothing observable in a 1v1, which is the strongest of
-the three reasons it is not a field: it is not read, it is not history, and it is
-not needed to state a position. An installer that wants the recorded generator
-anyway can rebuild it from the replay's `PlayerRecord.seed`, and should assert
-that `GRRandom(seed)` equals the recorded four words rather than trusting it. The
-first replay where that assertion fails is a replay where the stream has a
-position, and the question would have to be reopened.
-
-A Training Ground match derives both seeds from the match. In the two such
-replays here, seat 0 gets `SystemSeed` and seat 1 gets `SystemSeed + 1`, so an
-installer setting up a local match can choose the seeds rather than copy them.
-Ranked seeds show no such relation. The 22 of them differ from their match's
-`SystemSeed` by amounts of either sign spanning the whole 32-bit range, none
-appears in the first 200 draws of the match stream under five projections, and
-the one account that plays in all 13 matches draws a different seed in each, so
-it is not an account-level value either. A ranked seed comes from the server and
-has to be recorded.
-
-### An installer writes neither, and neither means zero
-
-Because no state document carries either stream, an installer leaves both
+Because no state carries either recorded stream, an installer leaves both
 generators as the match's own initialisation left them. That is a legal
-position, merely not the recorded one. What it costs is that any roll the game
-makes afterwards diverges from the record, which is safe exactly while every
-offer is supplied rather than rolled.
+position, merely not the recorded one, and it is safe exactly while every offer
+is supplied rather than rolled.
 
-Writing nothing must never be implemented as writing a zero state. `Match.ApplyRandomSnapshot`
-dereferences `randomStateData` and its word list without a guard, and
-`GRRandom.SetState` compares the incoming array's length against the internal
-one and refuses a mismatch, so an empty list is an error rather than a default.
-Worse, `[0, 0, 0, 0]` is a fixed point of xoshiro256\*\*: every later draw is
-zero and stays zero. An installer that has no state to write must skip the call,
-not write an empty one.
+Writing nothing must never be implemented as writing a zero state. The restore
+path dereferences the word list without a guard and refuses a length mismatch,
+so an empty list is an error rather than a default. Worse, four zero words are a
+fixed point of the generator: every later draw is zero and stays zero. An
+installer with no state to write skips the call rather than writing an empty
+one.
 
 ## Side state
 
-Each side carries the layout fields that project unchanged: `formations`,
-`constructions`, `contraptions`, `airdrop_shields`, `terrains` and
-`tower_strengthen_levels`. It carries `techs` and `energy_tower_skills` in the
-same shape, filtered by the projection above rather than copied. It adds the
-fields a layout has no reason to hold, of which `blueprints` is the one that
-reaches a fight: its two enhancement chains project onto Officers.
-`battle_skills` uses the state panel shape defined below rather than the layout
-release shape.
+Each side carries the layout fields that project unchanged, the three that
+reach a layout transformed, and the fields a layout has no reason to hold.
 
 ```yaml
     blue:
@@ -391,350 +193,173 @@ The last six keys are the layout fields that project unchanged, elided here
 because [the layout document](layout.md) already defines them. A side always
 writes all six, empty where it holds nothing.
 
-`next_index` holds the two live allocators, recorded as `unitIndex` and
-`contraptionIndex`. They are state, not a derived maximum. Comparing each
-against the highest index actually present in the corpus:
+### The allocators
 
-| Allocator | Equal to highest index plus one | Higher |
-| --- | ---: | ---: |
-| `unitIndex` | 58 | 0 |
-| `contraptionIndex` | 58 | 16 |
-
-Contraptions are consumed when used, so the allocator runs far ahead of what
-survives. One side moves through 2, 10, 15, 19 over four rounds while holding at
-most three objects, and no index that vanishes is ever handed out again.
-
-`unitIndex` happens to be recoverable in every round of this corpus, since the
-newest unit always survived to appear in the roster. That is a property of these
-four matches rather than a rule, and deriving one of two allocators would buy
-nothing.
+`next_index` holds the two live allocators. They are state, not a derived
+maximum: a contraption is consumed when used, so its allocator runs far ahead of
+what survives, and an index that vanishes is never handed out again.
 
 What the allocators carry that the object lists cannot is history. Buying a unit
-and undoing it returns the visible state, and it returns the allocator too, but
-only once the undo is counted the way the game counts it. Predicting the
-`unitIndex` delta from net purchases plus what the round's cards and officers
-hand out now explains all 66 round transitions of the tracked set and all 440 of
-the local one, where ignoring undo explains 54 of the 66. Two positions that look
-identical can still differ here, which is what a state diff has to be able to
-see.
+and undoing it returns the visible state and returns the allocator too, so two
+positions that look identical can still differ here, which is what a state diff
+has to be able to see.
 
 `constructionIndex` is recorded by the game but is not an allocator under 1v1
-rules, so it is left out. It reads 0 in round 0, takes its value for the match in
-round 1, and never moves again; the construction list only ever shrinks, through
-destruction. The value is not a property of the map either, since one match on
-map 1001 deals each side two constructions and another deals one.
-`MapSystem.LoadConstructionLayout` picks the group with
-`IListExtensions.RandomElementSync` against a `GRRandom`, so the opening layout
-is rolled, which also accounts for the match stream advancing between rounds 0
-and 1. Nothing in a 1v1 match allocates from the result. Each construction still
+rules, so it is left out: it takes its value for the match in round 1 and never
+moves, and the construction list only ever shrinks. Each construction still
 carries its own `index`, which is its identity and is unaffected.
 
-`tower_strengthen_levels` is a per-tower counter. `StrengthenTower` carries only
-an `Index`, and the counter at that index rises by the number of net actions
-naming it. All three transitions in the corpus close exactly.
+### The two fixed towers
 
-A layout holds the same two numbers under the same name, keyed the same way, so
-the projection copies the list. Both documents key by position in
-`BuildingManager.buildings`, because that is what `PAD_StrengthenTower.Index`
-names and what `GetBuildingByIndex` resolves, the latter being how
-`ApplyResearchCenterSnapshot` reads the list back.
+`tower_strengthen_levels` is a per-tower counter, keyed by the tower's position
+in `BuildingManager.buildings`. A layout holds the same two numbers under the
+same name keyed the same way, so the projection copies the list. Both key by
+that position because it is what `PAD_StrengthenTower.Index` names and what the
+restore path resolves.
 
-**A position keys a tower; it does not name one.** The two sides do not agree
-on which position holds which tower. A live capture of round 7 of the TUFF
-replay, on map 1021, reads `BuildingData.BuildingType` at each position and
-finds:
-
-| Side | position 0 | position 1 | levels |
-| --- | --- | --- | --- |
-| blue | `EnergyTower` | `ResearchCenter` | `[0, 0]` |
-| red | `ResearchCenter` | `EnergyTower` | `[0, 2]` |
-
-`BuildingType` is an enum, `EnergyTower` is `1` and `ResearchCenter` is `2`, so
-the capture is naming the towers rather than guessing them. Red's levels are
-exactly what the replay's own record gives that side, which is what shows the
-record is keyed by position too: a list written in a fixed tower order could not
-match the record on both sides at once when the two sides are mirrored.
-
-Red bought both of its strengthenings in round 5, so the round's start and its
-deployment end hold the same levels and the two documents are describing one
-position. `crates/document/src/convert.rs` pins the comparison as a test.
-
-The mirroring is what the load path predicts. `MapSystem.LoadBuilding` walks the
-map's building entries, keeps the ones `BuildingData.IsTowerData` accepts,
-constructs a `CrystalElement` for each and appends it to the owning territory
-through `MapRegion.AddMapElement`. `MapSystem.SetPlayerData` then walks each
-territory's element list in order and hands every crystal to
-`BuildingManager.AddBuilding`, which appends to a plain list. Nothing on that
-path sorts, and nothing compares `BuildingType`, so a side's order is exactly
-the order in which the map asset lists that side's two towers. The two
-territories are mirror images of one another, and the order lives outside the
-binary, so it may also differ from map to map.
+**A position keys a tower; it does not name one.** The two sides do not agree on
+which position holds which tower: on map 1021 blue holds the Energy Tower at
+position 0 and red holds it at position 1. A side's buildings are appended in
+the order its own territory lists them, nothing on that path sorts or compares
+the building kind, and the two territories are mirror images. The order is map
+data per side, so it may also differ from map to map.
 
 So no constant names a position, and no code may assume one. A capture writes
-each level under the position it read it from, and `apply_layout` strengthens
-the tower at the position the layout keyed. Both check only that a side holds
-one tower of each kind, in whichever order, so a side that lost a tower or grew
-one fails loudly instead of writing levels to the wrong building.
+each level under the position it read it from, and an installer strengthens the
+tower at the position the layout keyed. Both check only that a side holds one
+tower of each kind, in whichever order, so a side that lost a tower or grew one
+fails loudly instead of having its levels written to the wrong building.
 
-The list is exactly two entries long in all 202 player-rounds of the local set,
-so a 1v1 side holds precisely the two towers a layout keys. Both draw from one
-shared catalogue, `towerStrengthenDatas`, whose four rows cost 100, 150, 250 and
-300 supply and raise the crystal's life, so a level is in `0..=4` for either
-tower. Ranked play only ever reaches 2.
+A side holds exactly two towers. Both draw from one shared catalogue whose four
+rows raise the crystal's life, so a level is in `0..=4` for either tower.
 
 ### Equipment is stock plus what is fitted
 
-The replay records both halves. `playerData.equipmentDatas` is a list of
-`{id, durability}`, and each `NewUnitData` carries an `EquipmentID` that is 0
-when the unit carries nothing. The recorded inventory is everything the side
-owns, fitted items included: over the 202 player-rounds of the local set, every
-item fitted to a unit also appears in that side's inventory, without exception,
-and 65 of the 71 rounds that hold any equipment at all list the same ID in both
-places.
+A state stores the difference rather than the record. `equipment` lists only
+what the side owns and no formation wears, and a formation's own `equipment`
+names what it carries. The two together enumerate everything owned, and neither
+can be derived from the other: dropping the side list would lose an unfitted
+item, and dropping the formation field would lose which unit carries what.
 
-Owning something unfitted is rare but real. The inventory exceeds what is fitted
-in 7 of 202 rounds, always by a single item, and one side carried an unfitted
-`1308001` through four consecutive rounds. The same ID also appears twice in one
-inventory in 2 rounds, so this is a multiset and not a set.
+Storing the recorded inventory whole would instead let one document contradict
+itself, by listing an item no formation carries beside a formation carrying an
+item the list omits.
 
-A state therefore stores the difference rather than the record. `equipment` lists
-only what is not fitted, and a formation's own `equipment` names what it carries.
-The two together enumerate everything owned, and neither can be derived from the
-other: dropping the side list would lose an unfitted item, and dropping the
-formation field would lose which unit carries what. Storing the recorded
-inventory whole would instead let one document contradict itself, by listing an
-item no formation carries beside a formation carrying an item the list omits.
+`equipment` is a multiset: a side can own two copies of one item.
 
 That difference is what an installer has to undo. The game restores equipment in
-two steps, creating the inventory in `ApplyEquipmentSnapshot` and then attaching
-items by replaying `PAD_UseEquipment` from `RestoreEquipmentData`, so an adapter
-must add the fitted items back to the inventory before it attaches them.
+two steps, creating the inventory and then attaching items by replaying the fit,
+so an installer must add the fitted items back to the inventory before it
+attaches them.
 
-`durability` is `-1` in all 105 inventory entries of the local set, so a
-normalized document omits it and an absent `durability` means `-1`. Equipment in
-a standard 1v1 does not wear out and survives every round. The field exists because game rule `999903`
-试验装备 hands out equipment that expires after one round, which is also what the
-catalogue's `roundDuration` is for. Under that rule a fitted item's durability
-would have no home in this format, and the rule that introduces it is the one
-that should answer for it.
+`durability` is optional and its absence means `-1`. Equipment in a standard 1v1
+does not wear out and survives every round. The field exists because game rule
+`999903` hands out equipment that expires after one round; under that rule a
+fitted item's durability would have no home in this format, and the rule that
+introduces it is the one that should answer for it.
 
 ### Supply and reactor core
 
-Both are per-map constants at the start and diverge only through play. The map's
-row in `matchSettings`, keyed by the `MapID` the replay records, gives
-`reactorCores`, `firstRoundSupply`, `roundSupplyIncreaseValue` and
-`maxRoundSupply`. Every 1v1 map in build 2259 carries the same values.
-
-| Setting | 1v1 value |
-| --- | ---: |
-| `reactorCores` | 4500 |
-| `firstRoundSupply` | 200 |
-| `roundSupplyIncreaseValue` | 200 |
-| `maxRoundSupply` | 4000 |
+Both start at a per-map constant and diverge only through play. The map's row in
+`matchSettings`, keyed by `map_id`, gives `reactorCores`, `firstRoundSupply`,
+`roundSupplyIncreaseValue` and `maxRoundSupply`.
 
 `reactor_core` is recorded as it stands. It falls only as the outcome of a
-fight, which no state can predict, and it can also rise: an advance team entry
-carries its own `reactorCore` field, and the seat that opened one worth 100 in
-the corpus shows 4600 at round 1 against the other seat's 4500.
+fight, which no state can predict, and it rises only across the opening, by the
+amount the advance team carries.
 
 `supply` is what the side can spend at the moment the state describes. The
 round's income has already been added to it, and every purchase, upgrade and
-sale since has already been applied. Like every other field here it is defined
-after each action and not only at a round boundary, which is what makes the
-projection in the opening section well defined at every point. It is the number
-a purchase's legality is tested against and the number an installer writes.
+sale since has already been applied. It is the number a purchase's legality is
+tested against and the number an installer writes.
 
-That is deliberately not the number the replay stores. `playerData.supply` is
-the residue from before the round's income is added, exactly like the two shop
-counters. Round 1 records `0` for every side in the corpus while every side buys
-two units in that same round, so the recorded value is not what the side had to
-spend, and a document that copied it would be stating a quantity no rule reads.
-At the opening of round 1 the field this document defines holds the map's
-`firstRoundSupply`, 200, where the replay holds `0`.
+That is deliberately not the number the replay stores, which is the residue from
+before the round's income arrived. A converter rebuilds it; [the battle
+document](battle.md) says how.
 
-Nothing has to bridge that gap yet. The offline replay-to-state conversion is
-not being built, and both a live capture and an installer work against the
-definition above rather than against the recorded field. What follows is only
-where such a conversion would start.
-
-The round's income arrives through `Player.AddRoundSupply(round, roundSupply)`.
-It takes the round income, adds `extraFirstRoundSupply` when the round is 1,
-adds `extraRoundSupply` and a modifier read from the player's dynamic `DataSet`,
-where an energy tower skill's deferred half was registered, floors the result at
-zero, and then adds it to `supply` unless the latch described under excluded
-fields is set. A negative `roundSupply` argument makes
-it ask `PlayerAgent.GetRoundSupply(round)` instead.
-
-The `extraSupplyDatas` table is not part of this path in a ranked match. Its
-`level1` through `level10` columns are read from `AIData`, so they are AI
-difficulty handicaps rather than a per-player adjustment.
+Installing a state is where the definition bites. Because the field already
+includes the round's income, writing it directly leaves the game free to add
+that income a second time. The game has a one-shot latch that suppresses exactly
+that, and an installer has to set it even though no state document carries it.
 
 ### The shop
 
-The replay stores four shop numbers. A state stores two, and both differ from
-what the replay holds.
+A state stores two shop numbers, and both differ from what the replay holds.
 
-`locked_units` is dropped because it is the complement of `unlocked_units`. The
-union of the two lists is the same 32 unit IDs in all 74 ranked round-sides, and
-the two never intersect, so one list plus the catalog determines the other.
-
-`MaxUnlockCount` is dropped because it is 1 in all 74 ranked round-sides.
-`Shop.UNLOCK_COUNT_PER_ROUND` is the constant 1, and the game adds a modifier
-to it, so this is an assumption about standard 1v1 rather than an identity: a
-source of unlock bonuses would break it.
+`locked_units` is dropped because it is the complement of `unlocked_units`
+against the build's unit catalogue. `MaxUnlockCount` is dropped because it is
+the shipped constant plus a modifier no standard 1v1 source provides.
 
 The two counters that remain are stored as what is left, not as what was used,
-because that is the number a legality check reads.
+because that is the number a legality check reads. The purchase allowance gates
+a purchase directly: a buy is refused when the counter has fallen to zero.
 
-Neither can be read off the replay, for the same reason `supply` cannot: the
-recorded counters describe the previous round. `UnlockCount` equals the allowance
-minus the unlocks of the *preceding* round in all 58 transitions, with no
-exception outside round 0, where it is `-1`. `BuyCount` behaves the same way
-against the preceding round's purchases. The snapshot is taken before the round's
-own reset, so a conversion would have to reconstruct these two rather than copy
-them. That cost falls on a converter, not on the definition.
-
-The purchase allowance itself is not in the replay at all.
-`Shop.CalculateMaxBuyCount` computes it as `DataSet.GetDataInt(datas, 0) + 2`,
-clamped at zero, where 2 is `Shop.BUY_COUNT_PER_ROUND` and the modifier is fed
-by `OfficerData.ShopBuyCount` and `EnergyTowerSkillData.ShopBuyCountChangeValue`.
-The allowance is real: purchases per round are exactly 2 in round 1 and never
-exceed 3 in any later round, across all 58 round-sides. Which modifier raises it
-to 3, and whether it can go higher, is not established.
-
-The allowance does gate a purchase, and `buys_remaining` is exactly the number
-the gate reads. `PAP_BuyUnit.Check` calls `ShopManager.CanBuyUnit(unitID)`, which
-tests `TerritoryManager.CanAddUnit` for room in the deployment region and then
-tail-calls a private overload; that tail call is an unresolved jump, which is why
-the static call graph appears to stop at the region test. The private overload
-tests the per-unit cap, then `Player.HasEnoughSupply`, and then, when
-`ShopManager.hasBuyCountLimit` is set, returns a refusal if `Shop.buyCount` has
-fallen to zero. The constructor sets that flag, and the only method that clears
-it, `RemoveBuyCountLimit`, has no indexed callers.
-
-`Shop.buyCount` is the same counter throughout. `Shop.Refresh` assigns it
-`CalculateMaxBuyCount` at each round, `ReduceBuyCount` decrements it on a
-purchase, and `AddBuyCount` restores it on an undo. Storing what is left rather
-than what was used therefore stores the field itself.
-
-`ShopManager.HasEnoughBuyCount` is not part of that path. Its one caller is
-`MainUIMediator.OnClickFinishDeploy`, so it is the client asking whether the
-player is about to end a round with purchases unspent.
-
-The second counter in that check is not state here. `Shop.unitCounts` is a
-per-card dictionary that only `Shop.Refresh` seeds, and only when
-`BuyCountPerUnit` is above zero. It is not snapshotted, and ranked play shows it
-is not binding: 122 of the 202 player-rounds of the local set buy the same unit
-ID more than once in one round.
+Neither can be copied from a replay, for the same reason `supply` cannot: the
+recorded counters describe the previous round, because the snapshot is taken
+before the round's own reset.
 
 ### Technologies stay flat
 
-The replay groups technologies under the unit they belong to, as
-`UnitData{id, techs, unlockedTechs}`. The layout stores one flat ascending array
-instead, and a state keeps that.
+The replay groups technologies under the unit they belong to. A state stores one
+flat ascending array instead, as a layout does. Ownership is a function of the
+ID and is resolved against the build's catalogue, so the grouping is
+recoverable without being stored. A battle's `tech_loadout` keeps the grouping,
+because it has to say which technologies a unit may research rather than which
+it has.
 
-The grouping is recoverable: a technology ID ends with the ID of the unit it
-applies to, so `3925` and `425` both belong to unit `25` and `10204` to unit `4`.
-All 80 entries in the corpus have an empty `unlockedTechs`, so the state of
-being unlocked but not active does not arise in ranked play and the flat array
-loses nothing.
+The state of being unlocked but not active does not arise under standard 1v1
+rules, so the flat array loses nothing.
 
 ### The research centre and the energy tower
 
 Three native lists sit here. `blueprints` names what the research centre has
 activated, `energy_tower_skills` which of the energy tower's skills this round
-has activated, and `tower_strengthen_levels` how far each of the two towers has
-been reinforced.
+has activated, and `tower_strengthen_levels` how far each tower has been
+reinforced.
 
-The blueprint catalogue has 17 rows in two kinds. `bpType: 1` is an upgrade
-chain: `4` 进攻强化 and its successor `401`, `5` 防御强化 and its successor `501`.
-`bpType: 2` grants a commander skill, named by the row's `mapID`. A match setting
-lists ten of them for a 1v1, `[1, 2, 3, 4, 5, 1001, 1003, 1004, 1005, 1006]`,
-along with five energy tower skills, `[1, 3, 4, 5, 6]`.
+The blueprint catalogue has two kinds. One is an upgrade chain: `4` and its
+successor `401`, `5` and its successor `501`. The other grants a commander
+skill. Under standard 1v1 rules the pool a match offers is `[1, 2, 3, 4, 5]`,
+because a row that needs research is kept only when a game rule enables
+blueprint research, and no standard match enables it.
 
-The setting's list is not the pool. `PrepareBlueprint` keeps a row only when it
-is the first level of its chain and either does not need research or the match
-enables research. Written as the disassembly has it:
-
-```
-keep = IsFirstLevel(data) && (!NeedResearch(data) || IsEnableBlueprintResearch())
-```
-
-`NeedResearch` is a nonzero `researchTime`, which the five rows `1001` and `1003`
-through `1006` carry and no other row does. `IsEnableBlueprintResearch` reads
-`enableResearchSkill` off the match's game rules, and exactly one of the 13
-shipped rules sets it: `999917` 战场技能研发, whose own text says those skills move
-to the research centre instead of arriving as reinforcements. Every replay this
-machine holds carries an empty `gameRules`, the tracked corpus and the wider
-local set alike, so the pool a standard 1v1 actually offers is `[1, 2, 3, 4, 5]`,
-none of which takes time to research.
-
-The recorded blueprints agree: across 202 player-rounds
-the only blueprints ever held are `1`, `2`, `3`, `4`, `5`, `401` and `501`, the
-last two reached through the chain. No side ever holds one that needs research.
-
-That is why `research_queue` is not a field here. Its type is
-`ResearchData{blueprintID, startRount}`, the game's own spelling, and it holds a
-blueprint from the moment research starts until `UpdateResearchProgress` calls
-`Active` and the skill joins the panel. Under standard 1v1 rules nothing can
-enter it, and all 202 player-rounds hold it empty. The field belongs to game rule
-`999917`, and it is that rule, not this format, that should introduce it.
+That is why `research_queue` is not a field. It holds a blueprint from the
+moment research starts until the skill joins the panel, and under standard 1v1
+rules nothing can enter it. The field belongs to game rule `999917`, and it is
+that rule, not this format, that should introduce it.
 
 #### Why these do not fold into the skill panel
 
-The panel plus the two chain levels do reproduce `blueprints`. Subtracting the
-skills a side's officers grant, mapping each remaining panel entry back through
-`mapID`, and adding the chain level rebuilds the recorded list in all 202
-player-rounds of the local set. That is not enough to drop the field.
+The panel plus the two chain levels do reproduce `blueprints`, by subtracting
+the skills a side's officers grant and mapping each remaining entry back. That
+is not enough to drop the field.
 
 The panel is a union of three sources, and one of them is history rather than
 state. Reinforcement drops add commander skills to the same panel from the same
-ID space, and they dominate it: of the 14 skill IDs the local set shows, 3 come
-from a blueprint, 2 from an officer, and the remaining 9 from a drop. Recovering
-`blueprints` means subtracting those, and a state does not record which entries
-came from a drop. It worked here only because the two catalogues do not collide.
+ID space, and a state does not record which entries came from a drop. Recovering
+`blueprints` would mean subtracting those, which works only while the two
+catalogues do not collide.
 
-That disjointness is maintained by hand rather than guaranteed. Game rule
-`999917` is the visible seam: it swaps blueprint `1` for `1002`, which grants the
-same skill `400002` at a different price and research time, and its
-`excludeReinforce` list removes the drop versions of the skills the research
-centre is about to sell. Both are edits to data, made to keep one skill from
-having two provenances. A state that reconstructs `blueprints` from the panel
-would depend on those edits staying correct, and would need the match's game
-rules to read them, which it does not carry.
-
-Price is not an argument either way. `GetActiveSupply` returns the blueprint's
-own `supply` plus `BattleInfo.BlueprintIncreaseSupply` times the number already
-activated, and that multiplier is 0 in all 22 shipped match settings and in all
-six recorded matches.
+That disjointness is maintained by hand rather than guaranteed. A game rule can
+swap a blueprint for one granting the same skill at a different price and remove
+the drop versions of the skills the research centre sells. Both are edits to
+data, made to keep one skill from having two provenances. A state that
+reconstructed `blueprints` from the panel would depend on those edits staying
+correct, and would need the match's game rules to read them, which it does not
+carry.
 
 #### The chain half is duplicated by the officer list
 
-Activating a chain blueprint also adds its product officer: `4` adds `20310`,
-`401` adds `20311`, `5` adds `20300`, `501` adds `20301`. In all 202
-player-rounds of the local set the officer appears exactly when the blueprint
-does. A chain replaces rather than appends, since `Active` goes through
-`ReplaceBlueprint`, so a side holding 进攻强化II lists `401` alone and never `4`
-beside it. That last point rests on the eight rounds where a chain reached level
-two, and a downloaded replay spells it the other way, which is one of the reasons
-`tests/grbr/README.md` rules that class out.
+Activating a chain blueprint also grants its product officer: `4` grants
+`20310`, `401` grants `20311`, `5` grants `20300`, `501` grants `20301`. A chain
+replaces rather than appends, so a side holding the second level lists it alone.
 
-| Chain officers implied by `blueprints` | Officers listed | Player-rounds |
-| --- | --- | ---: |
-| none | none | 119 |
-| 20300, 20310 | 20300, 20310 | 50 |
-| 20310 | 20310 | 19 |
-| 20300 | 20300 | 6 |
-| 20300, 20311 | 20300, 20311 | 5 |
-| 20301, 20310 | 20301, 20310 | 3 |
-
-So the blueprint list and the product officers in the recording are two
-spellings of one fact. `blueprints` owns it in a state, and `techs.officers` must
-not name `20300`, `20301`, `20310` or `20311`. A layout spells it the other way:
-it has no blueprint list, so the projection puts the chain's product Officer into
+The blueprint list and those officers are two spellings of one fact.
+`blueprints` owns it in a state, and `techs.officers` must not name `20300`,
+`20301`, `20310` or `20311`. A layout spells it the other way: it has no
+blueprint list, so the projection puts the chain's product Officer into
 `techs.officers`, which is the only place a layout says a persistent Officer
-effect. The converter drops the four from a state's officer list; nothing
-enforces the invariant on a hand-written state yet.
+effect.
 
 #### The energy tower keeps all five
 
@@ -743,31 +368,28 @@ in the round the state describes. Like everything else here it is defined after
 each action, which means it is empty at a round's start and fills as the round's
 actions are applied.
 
-A state lists all five, and a layout keeps only the two that reach a fight, `5`
-强化瞄准 and `6` 高速移动, under the same field name. The
-projection is behaving correctly: `3` and `4` are recruitment and reach a fight
-only through the units they produce, and `1` 快速补给 is economic. `1` is the one
-that must not be dropped, because it is the half of a decision the next round
-pays for: `supplyChangeValue: 200` now against `nextRoundSupplyChangeValue: -300`
-at the next round's income. Carrying the skill carries that debt, and nothing
-else in the document states it.
+A state lists all five and a layout keeps only the two that reach a fight, `5`
+and `6`. Skills `3` and `4` are recruitment and reach a fight only through the
+units they produce, and `1` is economic. `1` is the one that must not be
+dropped, because it is the half of a decision the next round pays for: it grants
+supply now against a deduction from the next round's income. Carrying the skill
+carries that debt, and nothing else in the document states it.
 
 The recorded field is a different quantity and must not be copied into this one.
-`PlayerSnapshotController.TakeResearchCenterSanpshot` writes only the skills
-passing `IsLongTermEffect`, which is a test of `nextRoundSupplyChangeValue` and
-so admits `1` alone, and it writes them a round late, because a skill's
-activation flag survives until the following round's `OnEnterDeploymentAfter`
-and the snapshot precedes that. The recorded list holds `1` in 15 player-rounds
-of the local set, one round after each of the rounds that activated it.
-[`docs/battle.md`](battle.md) sets out that lifecycle. So the recorded list is an
-input to reconstructing `supply`, not a source for this field, which is rebuilt
-from the round's `PAD_ActiveEnergyTowerSkill` actions.
+The game snapshots only skills with a deferred half, which admits `1` alone, and
+it writes them a round late, because the activation flag survives into the
+following round. So the recorded list is an input to reconstructing `supply`,
+not a source for this field, which is rebuilt from the round's activations.
+
+Installing one needs care in the other direction: the activation flag has to be
+set without paying the immediate half a second time, and an installed state
+whose flag is missing gives the next round too much supply.
 
 ## The skill panel
 
-A layout lists released skills only, and its list order is the release order.
-A state lists the whole panel, because an action references a skill by
-its panel slot and a slot that the state does not carry cannot be resolved.
+A layout lists released skills only, and its list order is the release order. A
+state lists the whole panel, because an action references a skill by its panel
+slot and a slot the state does not carry cannot be resolved.
 
 ```yaml
       battle_skills:
@@ -779,24 +401,20 @@ its panel slot and a slot that the state does not carry cannot be resolved.
           cooldown: 0
           release:
             order: 1
-            target:
-              area: [{x: 50, y: 44}, {x: 189, y: 38}]
+            target: !area [{x: 50, y: 44}, {x: 189, y: 38}]
         - index: 3
           id: 900001
           cooldown: 0
           release:
             order: 2
-            target:
-              unit: 12
+            target: !unit 12
 ```
 
-`index` is the position at which the skill joined the panel, and it is the key
-`ReleaseCommanderSkill.SkillIndex` names. It is lifelong identity, not a
-recyclable slot: across all 202 panels of the local set the panel never shrinks
-and never reorders, and each round's panel is a prefix extension of the previous
-one. The panel is therefore sorted by `index`, which duplicate skill IDs make
-the only well-order available, since 16 of those 202 panels hold the same ID
-twice.
+`index` is the position at which the skill joined the panel, and it is the key a
+release names. It is lifelong identity, not a recyclable slot: the panel never
+shrinks and never reorders, and each round's panel is a prefix extension of the
+previous one. The panel is sorted by `index`, which duplicate skill IDs make the
+only well-order available, since one panel can hold the same ID twice.
 
 `cooldown` covers a skill that cannot be released this round. A layout cannot
 express one, because a layout only names releases.
@@ -804,41 +422,24 @@ express one, because a layout only names releases.
 `release` is present on a skill released this round, and `order` states where in
 the release sequence it falls. Moving release order into an explicit field is
 what lets the collection be sorted at all: in a layout the array position *is*
-the order, which is why `battle_skills` is the one collection the layout leaves
-as written.
+the order, which is why `battle_skills` is the one collection a layout leaves as
+written.
 
 ### The release target is exclusive
 
-A release either covers an area or points at one object. The three target forms
-are one enum, so a document cannot state two of them.
+A release either covers an area or points at one object, never both.
+[`action.md`](action.md) defines the three target forms, and a release here
+carries the same union.
 
-The recording does not look like this. Every one of the 101 recorded releases
-carries at least one position, and a pointing release carries a position beside
-its `UnitIndex` or `ConstructionIndex`:
+The recording does not look like this: a pointing release carries a position
+beside its object index. That position is the player's click point rather than
+the target's location, and a click point that resolves to an object has no
+effect on the fight. Storing it would let one state have many documents, so a
+state stores the resolved target and an executor supplies a coordinate, using
+the target's centre, when the native call needs one.
 
-| Recorded shape | Releases |
-| --- | ---: |
-| `Positions[1]` + `UnitIndex` | 46 |
-| `Positions[1]` | 23 |
-| `Positions[3]` | 20 |
-| `Positions[1]` + `ConstructionIndex` | 6 |
-| `Positions[2]` | 6 |
-
-`UnitIndex` and `ConstructionIndex` never appear together, so those two are
-exclusive as recorded. The position beside them is the player's click point, not
-the target's location: of the 45 unit-targeted releases that survive undo
-collapse, 7 name a unit whose position can be reconstructed from the same
-round's action log, and all 7 differ from the click point by a few map units,
-for instance a click at `(82, -171)` on a unit standing at `(85, -170)`.
-
-A click point that resolves to a unit has no effect on the fight, and two
-different click points on the same unit denote the same state. Storing it would
-let one state have many documents, so the state stores the resolved target and
-the executor supplies a coordinate, using the target's centre, when the native
-call needs one.
-
-The target form belongs to the release and not to the skill. Skill `900001`
-points at a unit in some releases and at a construction in others.
+The target form belongs to the release and not to the skill: one skill can point
+at a unit in some releases and at a construction in others.
 
 Area lengths are fixed per skill and range from one to three points, matching
 the `Positions` column of the [battle skill index](battle_skill.md).
@@ -855,127 +456,85 @@ the `Positions` column of the [battle skill index](battle_skill.md).
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
-| `reinforce_offers` | as recorded; `ChooseReinforceItem` names a position in it |
+| `reinforce_offers` | as dealt; a choice names a position in it |
 | `tower_strengthen_levels` | by building-manager position |
 
 The rule behind the first three rows is that a collection is ordered by the key
 the actions use to reference it, so document order and action resolution can
-never disagree. `equipment` may repeat an entry, since a side can own two copies
-of one item, and it sorts on the `durability` an absent field implies, `-1`.
+never disagree. `equipment` sorts on the `durability` an absent field implies,
+`-1`.
 
 One cross-check goes with that order rather than in it. Each entry of
 `next_index` must be greater than the highest index in the collection it
-governs, so an allocator cannot drift away from the objects it has already
-handed out. The check is what a sentinel entry in the list itself would buy,
-without making a typed, homogeneous collection carry an element of a second
-shape that a layout would then also have to admit.
+governs, so an allocator cannot drift away from the objects it has handed out.
+The check is what a sentinel entry in the list itself would buy, without making
+a typed collection carry an element of a second shape that a layout would then
+also have to admit.
 
 ## Rebuilding a state offline
 
 Most of a round's state can be read out of a replay without running the game.
-Four fields cannot be copied. Three of them are stale, because the snapshot is
-taken before the round's own reset: `supply` and the two shop counters state
-what stood before the round's income and allowances arrived. The fourth,
-`energy_tower_skills`, is not stale but a different quantity, and it is rebuilt
-from the round's actions. Each is treated in its own section above, and nothing
-turns on closing the gap yet, since the conversion is not being built.
+Four fields cannot be copied. Three are stale, because the snapshot precedes the
+round's own reset: `supply` and the two shop counters state what stood before
+the round's income and allowances arrived. The fourth, `energy_tower_skills`, is
+not stale but a different quantity, and it is rebuilt from the round's actions.
 
-The unit roster comes straight from `playerData.units`, a list of `NewUnitData`
-carrying `id`, `Index`, `RoundCount`, `Durability`, `Exp`, `Level`, `Position`,
-`EquipmentID`, `IsRotate` and `SellSupply`. It is populated from round 1 onward
-and empty only in round 0, before the opening team is placed. Fallen units leave
-holes, so the roster is the survivors, and `max(Index)` is one less than that
-side's `unitIndex` in all 180 populated player-rounds of the local set.
-
-The same roster is recorded a second time at match level, in
-`matchDatas[round].lastFightResult.Reports[seat].unitDatas`, one report per seat
-in seat order. Where both exist the two agree exactly, in all 158 such
-player-rounds. Rounds 0 and 1 have no `lastFightResult`, since they precede the
-first fight, which is the reason to read the per-round list rather than the
-report.
+The unit roster comes from the per-round player data rather than from the
+match-level fight report, because the first two rounds precede the first fight
+and so have no report to read.
 
 ## Excluded fields
 
 | Field | Why it is not in the state |
 | --- | --- |
 | `playerData.preRoundFightResult` | Neither a decision nor a simulation input |
-| `playerData.IsSpecialSupply` | Inert in this build, see below |
-| `playerData.researchQueue` | Unreachable without game rule `999917`, see above |
-| `matchDatas.deadCount` | Zero in every round of the corpus |
-| `NewUnitData.Durability` | Zero in all 2488 recorded units |
+| `playerData.IsSpecialSupply` | A one-shot latch, always clear under 1v1 rules, see below |
+| `playerData.researchQueue` | Unreachable without game rule `999917`, above |
+| `matchDatas.deadCount` | Carries nothing a position needs |
+| `NewUnitData.Durability` | Unused for units in this build |
 | `NewUnitData.RoundCount`, `SellSupply` | Both follow from when the unit was bought and what it cost |
-| `ConstructionSnapshotData.durability` | One entry per segment, `-1` in every one |
-| `matchDatas.teamRanks` | Seat ordering; no mechanism is known to read it |
+| `ConstructionSnapshotData.durability` | One entry per segment, and inert |
+| `matchDatas.teamRanks` | Seat ordering; no mechanism reads it |
 | `matchDatas.poolOPs` | Reinforcement pool bookkeeping for later rounds, see below |
 | `matchDatas.RoundExcludeReinforce` | The same, per round rather than permanently |
-| `matchDatas.randomStateData` | Decides a later offer roll only, see the random state section |
-| `playerData.randomStateData` | Nothing draws from that stream, see the same section |
+| `matchDatas.randomStateData` | Decides a later offer roll only |
+| `playerData.randomStateData` | Nothing draws from that stream |
 
-`IsSpecialSupply` is `Player.isLockSupplyForSnapshot`, which
-`PlayerSnapshotController.ApplySnapshot` passes straight back as the second
-argument of `Player.SetSupply`. It is not an income correction. It is a one-shot
-latch read by `AddRoundSupply`: when it is set, that method computes the round
-income as usual, clears the latch, and skips adding the income to `supply`. It
+`IsSpecialSupply` is the latch the supply section names: when it is set, the
+round's income is computed, the latch cleared, and the income not added. It
 means "this supply was set directly, so do not stack this round's income on
-top".
-
-It is excluded because it is always clear under 1v1 rules. `SetSupply` is its
-only writer and every indexed call site passes `false`, including both of the
-ones in the Training Ground command `MAP_ChangePlayerData`, so the only way it
-becomes true is restoring a snapshot in which it already was. It is `false` in
-all 90 player-rounds of the corpus, Training Ground matches included.
-
-It matters anyway to anything that installs a state rather than reading one, so
-it is named again under the adapter capabilities below.
+top". It is excluded because nothing under 1v1 rules ever sets it, and it
+matters anyway to an installer, which is where the supply section names it.
 
 `poolOPs` and `RoundExcludeReinforce` are the reinforcement pool's bookkeeping,
 and both are excluded on one argument: they decide what a *later* round may be
-offered, while this round's offer is already stated by `reinforce_offers`. A
-state is not a self-contained machine that generates its own successors. It
-takes the offer as an input, so it does not have to carry what would produce
-one.
+offered, while this round's offer is already stated by `reinforce_offers`.
 
-They are worth describing anyway, because an exporter meets them and because
-neither is what it first looks like. `poolOPs` is
-`ReinforcePool.m_ReinforceOperation`, a list of `(op, id)` pairs replayed by
-`ApplayOperation`: `0` removes the id from every level list of
-`m_ReinforceMap`, `1` reads the item's level and adds it to the list one above.
-`SelectReinforce` writes removals when a card is taken, plus the taken card's
-siblings in the same `typeID` group; `OnNewRound` writes both kinds as officer
-availability is re-tested against the side's units. An item whose catalogue row
-sets `canRepeated` is never removed, which is why an officer both players took
-can be absent from the log.
+They differ in kind, and neither can stand in for the other. `poolOPs` is a log
+of removals and promotions that changes pool membership permanently, undone only
+by a matching add. `RoundExcludeReinforce` does not touch membership at all: an
+excluded item stays in the pool and is merely invisible for one named round.
 
-`RoundExcludeReinforce` is `m_RoundExclude`, a map from round to a set of ids,
-and it does not touch pool membership at all. `CheckAppear(id, round)` reads it
-at draw time, alongside the item's own `earliestRound` and `latestRound` window,
-so an excluded item stays in the pool and is merely invisible for that one
-round. `RoundRand` writes it while rolling, into the key `round + 1`. The
-recorded sets bear that out: over the 27 local matches the same 14 ids appear
-every time, at a single round key in 12 matches and at two keys in 3, never
-earlier than round 5.
+## Unresolved
 
-Neither can stand in for the other. A removal is permanent and undone only by an
-add; an exclusion expires when its round passes.
-`work/research/reinforce_pool_support.py` reproduces the log measurements.
+**Whether a state may omit `opening_offers`.** The field is defined and a replay
+does not carry it, so every converted round 0 is a state that cannot be read as
+a decision. Either the field is optional, and a round 0 without it is
+well-formed but incomplete, or filling it is a precondition for converting round
+0 at all. The format currently does the first without saying so.
 
-## Capabilities the adapter still lacks
+**Where a fitted item's durability would live.** `durability` belongs to the
+side's inventory, and a formation's `equipment` names only an ID. Under the game
+rule that makes equipment expire, a fitted item has a durability and this format
+has nowhere to put it.
 
-A state cannot be captured today. The adapter's readback covers the layout
-projection, so supply, the shop, the allocators, the full blueprint and Energy
-Tower skill lists, and the panel cooldowns have no complete capture path.
+**Whether an installer may carry a random stream.** No state field holds one,
+which rests on nothing drawing from the player stream and on the match stream
+only deciding later offers. A use that rolls rather than supplies an offer would
+break the second half of that, and the format would need a field for the four
+words rather than a derivation.
 
-A state can be rebuilt offline from a replay, as above, so the capture gap
-blocks live work rather than corpus work.
-
-Installing a state is a separate problem from capturing one, and `supply` is
-where the two differ. The field already includes the round's income, so writing
-it directly leaves the game free to add that income a second time, which is what
-`Player.isLockSupplyForSnapshot` exists to prevent. An installer therefore has to
-set that latch even though no state document carries it.
-
-`energy_tower_skills` needs the same care in the other direction. Installing an
-activated skill has to set its activation flag without paying the immediate half
-a second time, which is what `ActiveSkill` does under the `isSnapshot` argument
-`ApplyResearchCenterSnapshot` passes. An installed state whose flag is missing
-gives the next round 300 supply too many.
+**What raises the purchase allowance.** `buys_remaining` is not constant, and
+the modifier that raises it is fed by officer and energy tower skill data. Which
+decision buys the extra purchase is not established, so a state records the
+allowance as dealt and no action claims to set it.

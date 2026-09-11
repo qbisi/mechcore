@@ -458,7 +458,7 @@ fn allowance(player: &record::PlayerRecord, position: usize, allowance: Allowanc
 /// seven surviving decisions.
 ///
 /// `Redo` pushes the newest undone entry back, and any other action clears what
-/// could be redone. `docs/turn.md` states the rule and the evidence for it.
+/// could be redone. `docs/turn.md` states the rule.
 fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
     /// An entry that no longer stands for a decision but still absorbs an undo.
     const SPENT: bool = false;
