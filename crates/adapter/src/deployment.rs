@@ -15,6 +15,7 @@ use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 static ORIGINAL: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ENTER_ORIGINAL: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static RUNTIME: AtomicPtr<Runtime> = AtomicPtr::new(ptr::null_mut());
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 static TRACE: OnceLock<Mutex<Trace>> = OnceLock::new();
@@ -31,6 +32,9 @@ struct Trace {
     round: i32,
     game_version: String,
     events: Vec<Value>,
+    actions: usize,
+    initialized: bool,
+    last_state: Option<Value>,
     bytes: usize,
     finished: [bool; 2],
     terminal: Option<Value>,
@@ -49,6 +53,20 @@ impl Trace {
         self.events.push(event);
         Ok(())
     }
+
+    fn gap_before(&mut self, state: &Value) -> Result<(), String> {
+        let previous = self
+            .last_state
+            .as_ref()
+            .ok_or("missing round entry state")?;
+        if previous != state {
+            self.push(json!({
+                "ordinal": self.events.len(), "kind": "between_actions",
+                "before": previous, "after": state,
+            }))?;
+        }
+        Ok(())
+    }
 }
 
 fn trace() -> std::sync::MutexGuard<'static, Trace> {
@@ -62,8 +80,8 @@ pub(crate) fn start(runtime: &mut Runtime, round: i32) -> Result<(), String> {
     if ACTIVE.load(Ordering::Acquire) {
         return Err("a deployment observation is already active".into());
     }
-    if round < 1 || !runtime.current_match().is_null() {
-        return Err("deployment observation starts at main_menu for a positive round".into());
+    if round < 0 {
+        return Err("deployment observation requires a nonnegative round".into());
     }
     let api = runtime.api;
     let game_version = (|| -> Result<String, Error> {
@@ -107,13 +125,13 @@ pub(crate) fn take() -> Result<Value, String> {
     if let Some(error) = &trace.error {
         return Err(error.clone());
     }
-    if trace.terminal.is_none() || trace.events.is_empty() {
-        return Err("deployment trace did not reach both players' finish boundary".into());
+    if !trace.initialized || trace.terminal.is_none() || trace.actions == 0 {
+        return Err("trace did not reach both players' opening/finish boundary".into());
     }
     Ok(json!({
-        "schema": "mechcore.deployment-observation.v1",
         "round": trace.round,
         "game_version": trace.game_version,
+        "actions": trace.actions,
         "events": std::mem::take(&mut trace.events),
         "terminal": trace.terminal.take(),
         "state_encoding": "native_snapshot_and_live_board",
@@ -146,19 +164,49 @@ fn validate_prologue(bytes: &[u8; 16]) -> Result<(), String> {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install(runtime: &Runtime) -> Result<(), String> {
-    if !ORIGINAL.load(Ordering::Acquire).is_null() {
+    install_method(
+        runtime,
+        "GRClient.dll",
+        "GameRiver.Client",
+        "ReplayMatch",
+        "OnEnterDeploy",
+        &[],
+        enter_hook as *const c_void,
+        &ENTER_ORIGINAL,
+    )?;
+    install_method(
+        runtime,
+        "GRCore.dll",
+        "GameRiver",
+        "PlayerController",
+        "TryPerformAction",
+        &["GameRiver.PlayerActionData"],
+        action_hook as *const c_void,
+        &ORIGINAL,
+    )
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[allow(clippy::too_many_arguments)]
+fn install_method(
+    runtime: &Runtime,
+    assembly: &str,
+    namespace: &str,
+    name: &str,
+    method_name: &str,
+    parameters: &[&str],
+    hook: *const c_void,
+    original: &AtomicPtr<c_void>,
+) -> Result<(), String> {
+    if !original.load(Ordering::Acquire).is_null() {
         return Ok(());
     }
     let api = runtime.api;
     let class = api
-        .class("GRCore.dll", "GameRiver", "PlayerController")
+        .class(assembly, namespace, name)
         .map_err(|error| error.to_string())?;
     let method = api
-        .class_method_with_parameter_types(
-            class,
-            "TryPerformAction",
-            &["GameRiver.PlayerActionData"],
-        )
+        .class_method_with_parameter_types(class, method_name, parameters)
         .map_err(|error| error.to_string())?;
     let target = api
         .method_pointer(method)
@@ -170,9 +218,9 @@ fn install(runtime: &Runtime) -> Result<(), String> {
         api,
         method,
         &bytes,
-        action_hook as *const c_void,
-        &ORIGINAL,
-        "PlayerController.TryPerformAction deployment observer",
+        hook,
+        original,
+        &format!("{name}.{method_name} deployment observer"),
     )
 }
 
@@ -182,6 +230,73 @@ fn install(_: &Runtime) -> Result<(), String> {
 }
 
 type Perform = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo) -> bool;
+
+type Enter = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+
+unsafe extern "C" fn enter_hook(current: *mut Object, method: *const MethodInfo) {
+    let original = ENTER_ORIGINAL.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: install resolved the exact void (this, MethodInfo) ABI.
+    let enter: Enter = unsafe { std::mem::transmute(original) };
+    let before = if ACTIVE.load(Ordering::Acquire) {
+        observe(|| {
+            let runtime = runtime()?;
+            if current != runtime.current_match() || current.is_null() {
+                return Ok(None);
+            }
+            let round: i32 = runtime
+                .api
+                .invoke_value(current, "get_RoundCount", &mut [])
+                .map_err(|error| error.to_string())?;
+            // Match.OnEnterDeploy increments the round inside this call.
+            if round.checked_add(1) != Some(trace().round) {
+                return Ok(None);
+            }
+            let state = read_state(runtime)?;
+            let mut trace = trace();
+            if trace.actions != 0 {
+                return Err("replay reinitialized a round after recorded actions".into());
+            }
+            if let Some(previous) = trace.last_state.clone() {
+                let ordinal = trace.events.len();
+                trace.push(json!({
+                    "ordinal": ordinal, "kind": "replay_reset", "action_effect": false,
+                    "before": previous, "after": state,
+                }))?;
+            }
+            Ok(Some(state))
+        })
+        .flatten()
+    } else {
+        None
+    };
+    // SAFETY: invoke the original once, unchanged, even when observation fails.
+    unsafe { enter(current, method) };
+    if let Some(before) = before {
+        observe(|| {
+            let runtime = runtime()?;
+            if !eligible(runtime)? {
+                return Err("round initialization did not reach the requested round".into());
+            }
+            let after = read_state(runtime)?;
+            let mut trace = trace();
+            if trace.actions != 0 {
+                return Err("actions ran inside round initialization".into());
+            }
+            let ordinal = trace.events.len();
+            trace.push(json!({
+                "ordinal": ordinal, "kind": "initialization",
+                "native_type": "ReplayMatch.OnEnterDeploy",
+                "before": before, "after": after,
+            }))?;
+            trace.last_state = Some(after);
+            trace.initialized = true;
+            Ok(())
+        });
+    }
+}
 
 unsafe extern "C" fn action_hook(
     player: *mut Object,
@@ -278,11 +393,29 @@ fn before_action(player: *mut Object, action: *mut Object) -> Result<Option<Befo
     {
         return Err("reinforcement action is missing its native ID or Index".into());
     }
+    let state = read_state(runtime)?;
+    {
+        let mut trace = trace();
+        if !trace.initialized {
+            if trace.round != 0 || kind != "PAD_ChooseAdvanceTeam" {
+                return Err(
+                    "action observed without a complete round initialization boundary".into(),
+                );
+            }
+            trace.push(json!({
+                "ordinal": 0, "kind": "opening_start",
+                "before": state, "after": state,
+            }))?;
+            trace.last_state = Some(state.clone());
+            trace.initialized = true;
+        }
+    }
+    trace().gap_before(&state)?;
     Ok(Some(Before {
         team,
         kind,
         action,
-        state: read_state(runtime)?,
+        state,
     }))
 }
 
@@ -290,26 +423,55 @@ fn after_action(before: &Before, accepted: bool) -> Result<(), String> {
     if trace().error.is_some() {
         return Ok(());
     }
-    // FinishDeploy crosses a process boundary. Its pre-state is retained as a
-    // checkpoint, never presented as a normal deployment transition.
-    let after = if before.kind == "PAD_FinishDeploy" {
+    // Only the final FinishDeploy crosses into combat. The first player's
+    // finish can be read back safely and remains a lifecycle event, not a
+    // decision. Never substitute a post-fight snapshot for the final after.
+    let terminal_reached = trace().terminal.is_some();
+    if terminal_reached && before.kind != "PAD_FinishDeploy" {
+        return Err("deployment ended inside a non-finish action".into());
+    }
+    let after = if terminal_reached {
         None
     } else {
         Some(read_state(runtime()?)?)
     };
     let mut trace = trace();
     let ordinal = trace.events.len();
+    let action_ordinal = trace.actions;
     trace.push(json!({
         "ordinal": ordinal, "team": before.team, "native_type": before.kind,
+        "action_ordinal": action_ordinal,
+        "kind": if before.kind == "PAD_FinishDeploy" { "finish_deploy" } else { "action" },
         "action": before.action, "accepted": accepted,
         "before": before.state, "after": after,
-    }))
+    }))?;
+    trace.actions += 1;
+    trace.last_state.clone_from(&after);
+    if trace.round == 0 {
+        if before.kind != "PAD_ChooseAdvanceTeam" || trace.finished[before.team] {
+            return Err(format!(
+                "unexpected or repeated opening action {} by team {} after {} actions",
+                before.kind, before.team, trace.actions
+            ));
+        }
+        trace.finished[before.team] = true;
+        if trace.finished.iter().all(|done| *done) {
+            trace.terminal = after;
+            ACTIVE.store(false, Ordering::Release);
+        }
+    }
+    Ok(())
 }
 
 /// Called before the original `FinishDeploy`, while deployment objects still
 /// describe the terminal position. No game state is written by this callback.
 pub(crate) fn finish_boundary(player: *mut Object) {
     if !ACTIVE.load(Ordering::Acquire) {
+        return;
+    }
+    // Opening choices call FinishDeploy internally. They are observed at the
+    // outer ChooseAdvanceTeam boundary, not as positive-round finish actions.
+    if trace().round == 0 {
         return;
     }
     observe(|| {
@@ -455,7 +617,16 @@ fn object_list(api: Api, list: *mut Object) -> Result<Vec<*mut Object>, Error> {
 fn ids(api: Api, list: *mut Object) -> Result<Vec<i32>, Error> {
     object_list(api, list)?
         .into_iter()
-        .map(|item| api.invoke_value(item, "GetID", &mut []))
+        .map(|item| {
+            // The give-up reward implements IReinforceItem explicitly, unlike
+            // catalog cards. Resolve its native method, never invent a card ID.
+            let method = if api.object_class_name(item) == "AddSupplyReinforceItem" {
+                "GameRiver.IReinforceItem.GetID"
+            } else {
+                "GetID"
+            };
+            api.invoke_value(item, method, &mut [])
+        })
         .collect()
 }
 

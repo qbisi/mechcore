@@ -30,7 +30,7 @@ const NATIVE: &[&str] = &[
     "apply_layout",
     "record_battle",
     "record_replay_round",
-    "record_replay_deployment",
+    "record_replay_battle",
     "record_watch_replay",
     "toggle_fight",
     "speed_up",
@@ -723,38 +723,32 @@ async fn perform(
                 )
                 .await
         }
-        "record_replay_deployment" => {
+        "record_replay_battle" => {
             let fields = arguments
                 .as_object()
-                .ok_or("record_replay_deployment takes a mapping")?;
+                .ok_or("record_replay_battle takes a mapping")?;
             for key in fields.keys() {
-                if !matches!(key.as_str(), "grbr" | "round" | "output") {
+                if !matches!(key.as_str(), "grbr" | "output") {
                     return Err(format!(
-                        "record_replay_deployment accepts only grbr, round and output, got {key}"
+                        "record_replay_battle accepts only grbr and output, got {key}"
                     ));
                 }
             }
             let grbr = scope.path(
                 fields
                     .get("grbr")
-                    .ok_or("record_replay_deployment needs grbr")?,
+                    .ok_or("record_replay_battle needs grbr")?,
                 "deployment grbr",
             )?;
             let output = scope.path(
                 fields
                     .get("output")
-                    .ok_or("record_replay_deployment needs output")?,
+                    .ok_or("record_replay_battle needs output")?,
                 "deployment output",
             )?;
-            let round = fields
-                .get("round")
-                .and_then(Value::as_i64)
-                .and_then(|n| i32::try_from(n).ok())
-                .ok_or("record_replay_deployment needs an integer round")?;
             session
-                .record_replay_deployment(mechcore_protocol::RecordReplayDeploymentArguments {
+                .record_replay_battle(mechcore_protocol::RecordReplayBattleArguments {
                     grbr,
-                    round,
                     output,
                 })
                 .await
