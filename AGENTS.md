@@ -16,9 +16,12 @@
   不许手改。值不对是转换器的问题，改 `crates/document/src/convert.rs`；
 - `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；
-- `work/issue/README.md`：什么够格成为一条 issue，它以什么方式离开；
 - `work/research/README.md`：一个数值要拿什么才算有据，什么看着像证据其实
   不是，以及"能复现录像不等于证明了机制"。
+
+issue 不在仓库里，它是 GitHub issue。什么够格成为一条 issue、它必须写明哪
+几件事、它以什么方式离开，由 `.github/CONTRIBUTING.md` 规定，开 issue 前先
+读它。
 
 readme 的效力高于你自己的判断。和你想做的事冲突时按它做，或者先说清楚它为
 什么该改，不要绕过去。

@@ -85,8 +85,8 @@ and work belongs in `plan.md`.
 
 A third case is neither. Something observed disagrees with this spec, and nobody
 has yet decided whether the spec is wrong or the reading was. That is an issue,
-and [work/issue/README.md](../work/issue/README.md) says what becomes one and
-how it leaves.
+and [CONTRIBUTING.md](../.github/CONTRIBUTING.md) says what becomes one and how
+it leaves.
 
 Four things are banned from every spec:
 

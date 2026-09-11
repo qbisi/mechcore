@@ -1,0 +1,3 @@
+# An issue has one shape. A blank issue cannot state what it contradicts, and an
+# issue whose expectation is unstated cannot be closed.
+blank_issues_enabled: false

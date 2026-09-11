@@ -13,8 +13,8 @@
 设计上还没定的选择也不写在这里，它们写在对应 spec 的 Unresolved 一节，
 挨着它们影响的那份契约。
 
-执行中撞见、但还没决定要不要处理的问题也不写在这里，它们写进 `work/issue/`。
-什么算一条 issue、它怎么离开，由 `work/issue/README.md` 规定。
+执行中撞见、但还没决定要不要处理的问题也不写在这里，它们开成 GitHub issue。
+什么算一条 issue、它怎么离开，由 `.github/CONTRIBUTING.md` 规定。
 
 ## 已经存在
 

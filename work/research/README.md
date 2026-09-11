@@ -100,8 +100,9 @@ What stays behind is the process: the scenario, the discarded hypotheses, the
 hashes, the scratch decompilation paths. A rules document states what the game
 does. This directory remembers how anyone found out.
 
-Something found by accident rather than pursued is not research. It goes to
-`work/issue/`, whose readme says what qualifies.
+Something found by accident rather than pursued is not research. It becomes a
+GitHub issue, and [CONTRIBUTING.md](../../.github/CONTRIBUTING.md) says what
+qualifies.
 
 ## Tracking
 

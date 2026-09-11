@@ -1,9 +1,6 @@
 /target/
 __pycache__
 /work/*
-!/work/issue/
-/work/issue/*
-!/work/issue/README.md
 !/work/research/
 /work/research/*
 !/work/research/README.md
