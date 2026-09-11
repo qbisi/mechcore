@@ -1,6 +1,31 @@
 # 项目设计规范
 - 项目处于敏捷开发阶段，重构时不考虑后向兼容，不保留历史代码
 
+# 目录规范
+
+改动或新建一个文件之前，先从它所在目录逐层往上找最近的一份 readme
+（`readme.md` 或 `README.md`，不区分大小写），找到就读完再动手；一直找到仓
+库根还没有，才是真的没有约束。
+
+这些 readme 写的是所在目录的准入规则，从文件本身看不出来，而且往往正好禁止
+了 agent 默认会做的事。例如：
+
+- `tests/grbr/README.md`：录像是原样拷贝的，不许重写或规范化，哈希一致本身
+  就是 fixture 契约的一部分；
+- `tests/battle/README.md`：里面的 YAML 只能由 `mechcore convert` 重新生成，
+  不许手改。值不对是转换器的问题，改 `crates/document/src/convert.rs`；
+- `docs/readme.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
+  必须写哪几节；
+- `work/issue/readme.md`：什么够格成为一条 issue，它以什么方式离开；
+- `crates/simulation/readme.md`：默认跑哪些回归，以及"能复现录像不等于证明
+  了机制"。
+
+readme 的效力高于你自己的判断。和你想做的事冲突时按它做，或者先说清楚它为
+什么该改，不要绕过去。
+
+反过来同样成立：改动让最近那份 readme 不再成立时，同一次提交里把 readme 一
+起改。它描述的是当前状态，不是历史。
+
 # 提交规范
 
 提交信息用英文写，仓库现有日志是英文。
