@@ -4,11 +4,11 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_document::{
-    BattleSkillDefinition, ContraptionPlacement, DocumentKind, ENERGY_TOWER_POSITION,
-    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, Position, RESEARCH_CENTER_POSITION, Side,
-    Sides, StaticPlacement, Techs, Terrain as LayoutTerrain,
-    TerrainType as LayoutTerrainType, battle_skill_type_from_id, canonical_embedded_yaml,
-    construction_type_from_id, contraption_type_from_id, unit_type_from_id,
+    BattleSkillDefinition, ContraptionPlacement, DocumentKind, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
+    Formation, Layout, Position, Side, Sides, StaticPlacement, TOWER_COUNT, Techs,
+    Terrain as LayoutTerrain, TerrainType as LayoutTerrainType, battle_skill_type_from_id,
+    canonical_embedded_yaml, construction_type_from_id, contraption_type_from_id,
+    unit_type_from_id,
 };
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
@@ -39,8 +39,6 @@ const CAPTURE_WIDTH: u16 = 1_920;
 const CAPTURE_HEIGHT: u16 = 1_080;
 const CAPTURE_FRAME_RATE: i32 = 20;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
-const ENERGY_TOWER_KIND: i32 = 1;
-const RESEARCH_CENTER_KIND: i32 = 2;
 
 /// The Officers the two Research Center enhancement chains hand out.
 ///
@@ -5182,20 +5180,29 @@ fn find_match_module(
 /// Reads the Officers a side holds, as a multiset.
 ///
 /// An Officer card that may be taken again stacks, so the same ID can appear
-/// more than once and each copy is another application of its effect. The two
-/// enhancement chains are the exception: their Officer is named once however
-/// the chain got there, so a blueprint's product joins only if the list does
-/// not already carry it.
+/// more than once and each copy is another application of its effect.
+///
+/// `OfficerManager` keeps two lists and `AddOfficer` routes by a property of
+/// the Officer itself, so both are read. The Research Center's enhancement
+/// Officers are of the invisible kind, and reading only `GetOfficers` would
+/// drop one that a layout had just installed: the side would hold it, and a
+/// capture of that same side would deny it.
+///
+/// The two enhancement chains are then the one place a duplicate is not a
+/// stack: their Officer is named once however the chain got there, so a
+/// blueprint's product joins only if the lists do not already carry it.
 fn read_native_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetOfficerManager")?;
-    let officers = invoke_object(api, manager, "GetOfficers")?;
     let mut ids = Vec::new();
-    for index in 0..list_count(api, officers, 10_000)? {
-        let id = invoke_value::<i32>(api, list_item(api, officers, index)?, "GetID")?;
-        if id <= 0 {
-            return Err(format!("invalid native officer ID {id}"));
+    for getter in ["GetOfficers", "GetInvisibleOfficers"] {
+        let officers = invoke_object(api, manager, getter)?;
+        for index in 0..list_count(api, officers, 10_000)? {
+            let id = invoke_value::<i32>(api, list_item(api, officers, index)?, "GetID")?;
+            if id <= 0 {
+                return Err(format!("invalid native officer ID {id}"));
+            }
+            ids.push(id);
         }
-        ids.push(id);
     }
     for id in read_blueprint_officers(api, controller)? {
         if !ids.contains(&id) {
@@ -5339,47 +5346,59 @@ fn read_energy_tower_skill(api: Api, manager: *mut Object, mut id: i32) -> Resul
 /// Reads each fixed tower's strengthening level, keyed by its position.
 ///
 /// A layout keys `tower_strengthen_levels` by building-manager position, the
-/// same key `PAD_StrengthenTower.Index` uses. The kinds are checked against the
-/// positions a layout assumes, so a build that orders its buildings differently
-/// fails loudly here instead of writing the levels to the wrong towers.
+/// same key `PAD_StrengthenTower.Index` uses, so each level is written under
+/// the position it was read from. A position does not name a tower: blue and
+/// red order their two towers oppositely, which `mechcore_document::TOWER_COUNT`
+/// measures. What is checked is that the side holds one tower of each kind, in
+/// whichever order, so a build that grew a third building or lost one fails
+/// loudly here instead of exporting levels a layout cannot apply.
 fn read_native_tower_strengthen_levels(
     api: Api,
     controller: *mut Object,
 ) -> Result<Vec<i32>, String> {
     let manager = invoke_object(api, controller, "GetBuildingManager")?;
     let buildings = invoke_object(api, manager, "GetBuildings")?;
-    let expected = [
-        (ENERGY_TOWER_POSITION, ENERGY_TOWER_KIND),
-        (RESEARCH_CENTER_POSITION, RESEARCH_CENTER_KIND),
-    ];
     let count = list_count(api, buildings, 256)?;
-    let wanted = i32::try_from(expected.len()).expect("two tower positions fit an index");
+    let wanted = i32::try_from(TOWER_COUNT).expect("the tower count fits an index");
     if count != wanted {
         return Err(format!(
             "building manager holds {count} buildings, and a layout keys {wanted} tower levels"
         ));
     }
-    let mut levels = Vec::with_capacity(expected.len());
-    for (position, kind) in expected {
+    let mut levels = vec![0; TOWER_COUNT];
+    let mut kinds = Vec::with_capacity(TOWER_COUNT);
+    for (position, level) in levels.iter_mut().enumerate() {
         let index = i32::try_from(position).expect("a tower position fits an index");
         let building = list_item(api, buildings, index)?;
         let data = invoke_object(api, building, "GetBuildingData")?;
-        let native = invoke_value::<i32>(api, data, "get_BuildingType")?;
-        if native != kind {
-            return Err(format!(
-                "building-manager position {position} holds kind {native}, and a layout keys kind {kind} there"
-            ));
-        }
+        kinds.push(invoke_value::<i32>(api, data, "get_BuildingType")?);
         let strength = api
             .invoke(building, "GetTowerStrengthenData", &mut [])
             .map_err(|error| error.to_string())?;
-        levels.push(if strength.is_null() {
+        *level = if strength.is_null() {
             0
         } else {
             invoke_value::<i32>(api, strength, "GetLevel")?
-        });
+        };
+    }
+    if !holds_each_fixed_tower_once(&kinds) {
+        return Err(format!(
+            "building-manager holds kinds {kinds:?}, and a side holds one of each of {:?}",
+            crate::operations::FIXED_TOWER_KINDS
+        ));
     }
     Ok(levels)
+}
+
+/// Whether these building kinds are the two fixed towers, one of each.
+///
+/// Order is deliberately not checked: it is per-side map data. Only membership
+/// is, which is what makes a positional level list safe to key.
+fn holds_each_fixed_tower_once(kinds: &[i32]) -> bool {
+    kinds.len() == TOWER_COUNT
+        && crate::operations::FIXED_TOWER_KINDS
+            .iter()
+            .all(|kind| kinds.iter().filter(|held| *held == kind).count() == 1)
 }
 
 /// Splits the one native shield collection into contraption shields and the
@@ -8978,6 +8997,66 @@ mod tests {
         assert!(validate_native_indices("construction", &[1, 2, 3]).is_ok());
         assert!(validate_native_indices("unit", &[0, 1, 1]).is_err());
         assert!(validate_native_indices("construction", &[-1, 0]).is_err());
+    }
+
+    /// A side's two towers are checked by membership, never by order.
+    ///
+    /// Blue and red order their two towers oppositely, so the mirrored case
+    /// must pass. What must fail is a side that lost a tower, grew one, or
+    /// holds the same kind twice, because then a positional level list has
+    /// nothing to key.
+    #[test]
+    fn fixed_towers_are_checked_by_membership_not_by_order() {
+        let [energy, research] = crate::operations::FIXED_TOWER_KINDS;
+        assert!(holds_each_fixed_tower_once(&[energy, research]));
+        assert!(holds_each_fixed_tower_once(&[research, energy]));
+        assert!(!holds_each_fixed_tower_once(&[energy, energy]));
+        assert!(!holds_each_fixed_tower_once(&[research, research]));
+        assert!(!holds_each_fixed_tower_once(&[energy]));
+        assert!(!holds_each_fixed_tower_once(&[energy, research, energy]));
+        assert!(!holds_each_fixed_tower_once(&[]));
+    }
+
+    /// The chain-to-Officer tables are a copy of what `config/economy.yaml`
+    /// states, kept here so a capture needs no config load on Unity's thread.
+    ///
+    /// A layout says an attack or defense enhancement by naming the Officer the
+    /// chain hands out, so a drift between the two would export an enhancement
+    /// the game never granted. This is the check that they still agree.
+    #[test]
+    fn enhancement_chains_grant_the_officers_the_shipped_economy_names() {
+        let economy =
+            mechcore_document::economy::Economy::embedded().expect("the shipped economy loads");
+        for (chain, granted) in [
+            ([4, 401], ATTACK_ENHANCEMENT_OFFICERS),
+            ([5, 501], DEFENSE_ENHANCEMENT_OFFICERS),
+        ] {
+            for (blueprint, officer) in chain.into_iter().zip(granted) {
+                assert_eq!(
+                    economy.blueprint_officer(blueprint),
+                    Some(officer),
+                    "blueprint {blueprint} grants officer {officer}"
+                );
+            }
+            assert_eq!(economy.blueprint_successor(chain[0]), Some(chain[1]));
+        }
+    }
+
+    /// A level of `0` names no Officer, and neither does a level past the chain.
+    #[test]
+    fn an_enhancement_level_names_at_most_one_officer() {
+        let officer = |level: i32| {
+            usize::try_from(level)
+                .ok()
+                .and_then(|level| level.checked_sub(1))
+                .and_then(|index| ATTACK_ENHANCEMENT_OFFICERS.get(index))
+                .copied()
+        };
+        assert_eq!(officer(0), None);
+        assert_eq!(officer(1), Some(ATTACK_ENHANCEMENT_OFFICERS[0]));
+        assert_eq!(officer(2), Some(ATTACK_ENHANCEMENT_OFFICERS[1]));
+        assert_eq!(officer(3), None);
+        assert_eq!(officer(-1), None);
     }
 
     #[test]

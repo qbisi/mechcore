@@ -675,12 +675,15 @@ mod tests {
     /// The one player-round that names the two fixed towers apart.
     ///
     /// `tests/layouts/tuff-replay-round-7.yaml` was captured from the game while
-    /// this replay played, and its towers were read by `BuildingData.BuildingType`
-    /// rather than by position. The record keys the same two levels by
+    /// this replay played, and the record keys the same two levels by
     /// building-manager position. Red bought both of its strengthenings in round
     /// 5, so the round's start and its deployment end hold the same levels and
-    /// the two documents are comparing one fact. Agreement here is what fixes
-    /// `RESEARCH_CENTER_POSITION` at 0 and `ENERGY_TOWER_POSITION` at 1.
+    /// the two documents are comparing one fact.
+    ///
+    /// Agreement here is what shows the record's list is keyed by position and
+    /// not by a fixed tower order: the live capture read red's kinds as
+    /// `[ResearchCenter, EnergyTower]` and blue's as the mirror image, so a list
+    /// written in tower order would not match the record on both sides at once.
     #[test]
     fn the_captured_layout_keys_its_towers_the_way_the_record_does() {
         let battle = tuff();
@@ -709,9 +712,9 @@ mod tests {
             layout.sides.blue.tower_strengthen_levels
         );
         assert_eq!(
-            layout.sides.red.tower_strengthen_levels[crate::ENERGY_TOWER_POSITION],
-            2,
-            "the live capture put level 2 on the energy tower"
+            layout.sides.red.tower_strengthen_levels,
+            vec![0, 2],
+            "the live capture put the level 2 at red's second position"
         );
     }
 

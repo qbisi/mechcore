@@ -91,7 +91,8 @@ economic consequences are not part of a layout.
 Which building-manager position holds which tower does not affect this
 projection at all: both documents key the levels by position, so the projection
 copies the list. It matters only to a reader who wants to name a tower, and the
-section on `tower_strengthen_levels` below settles it.
+section on `tower_strengthen_levels` below measures it: the answer is per side,
+so the position never names the tower on its own.
 
 `battle_skills` is projected rather than copied too. The projection keeps only
 entries with `release`, sorts them by `release.order`, resolves each native `id`
@@ -438,49 +439,48 @@ the projection copies the list. Both documents key by position in
 names and what `GetBuildingByIndex` resolves, the latter being how
 `ApplyResearchCenterSnapshot` reads the list back.
 
-Position `0` is the Research Center and position `1` the Energy Tower. One
-player-round names the two apart, and three facts meet on it:
+**A position keys a tower; it does not name one.** The two sides do not agree
+on which position holds which tower. A live capture of round 7 of the TUFF
+replay, on map 1021, reads `BuildingData.BuildingType` at each position and
+finds:
 
-- the record for round 7 of the TUFF replay gives the red side `[0, 2]`;
-- `tests/layouts/tuff-replay-round-7.yaml` was captured from the game while that
-  replay played, and reads its towers by `BuildingData.BuildingType` rather than
-  by position. It puts strength level 2 on the Energy Tower and 0 on the
-  Research Center;
-- `BuildingType` is an enum, and `EnergyTower` is `1` while `ResearchCenter` is
-  `2`, so the capture is naming the towers rather than guessing them.
+| Side | position 0 | position 1 | levels |
+| --- | --- | --- | --- |
+| blue | `EnergyTower` | `ResearchCenter` | `[0, 0]` |
+| red | `ResearchCenter` | `EnergyTower` | `[0, 2]` |
+
+`BuildingType` is an enum, `EnergyTower` is `1` and `ResearchCenter` is `2`, so
+the capture is naming the towers rather than guessing them. Red's levels are
+exactly what the replay's own record gives that side, which is what shows the
+record is keyed by position too: a list written in a fixed tower order could not
+match the record on both sides at once when the two sides are mirrored.
 
 Red bought both of its strengthenings in round 5, so the round's start and its
 deployment end hold the same levels and the two documents are describing one
-position. Six live exports across two capture sessions agree, and no other
-player-round in the corpus has a live capture beside it with the two levels
-apart. `crates/document/src/convert.rs` pins the comparison as a test.
+position. `crates/document/src/convert.rs` pins the comparison as a test.
 
-The adapter checks the mapping on every apply and every capture by reading each
-position's `BuildingData.BuildingType`, rather than trusting the constant.
+The mirroring is what the load path predicts. `MapSystem.LoadBuilding` walks the
+map's building entries, keeps the ones `BuildingData.IsTowerData` accepts,
+constructs a `CrystalElement` for each and appends it to the owning territory
+through `MapRegion.AddMapElement`. `MapSystem.SetPlayerData` then walks each
+territory's element list in order and hands every crystal to
+`BuildingManager.AddBuilding`, which appends to a plain list. Nothing on that
+path sorts, and nothing compares `BuildingType`, so a side's order is exactly
+the order in which the map asset lists that side's two towers. The two
+territories are mirror images of one another, and the order lives outside the
+binary, so it may also differ from map to map.
+
+So no constant names a position, and no code may assume one. A capture writes
+each level under the position it read it from, and `apply_layout` strengthens
+the tower at the position the layout keyed. Both check only that a side holds
+one tower of each kind, in whichever order, so a side that lost a tower or grew
+one fails loudly instead of writing levels to the wrong building.
 
 The list is exactly two entries long in all 202 player-rounds of the local set,
-so a 1v1 side holds precisely the two towers a layout names. Both draw from one
+so a 1v1 side holds precisely the two towers a layout keys. Both draw from one
 shared catalogue, `towerStrengthenDatas`, whose four rows cost 100, 150, 250 and
 300 supply and raise the crystal's life, so a level is in `0..=4` for either
 tower. Ranked play only ever reaches 2.
-
-**Unresolved.** Which position is which tower is map data, and the binary does
-not answer it. `MapSystem.LoadBuilding` walks the map's building entries, keeps
-the ones `BuildingData.IsTowerData` accepts, constructs a `CrystalElement` for
-each and appends it to the owning territory through `MapRegion.AddMapElement`.
-`MapSystem.SetPlayerData` then walks each territory's element list in order and
-hands every crystal to `BuildingManager.AddBuilding`, which appends to a plain
-list. Nothing on that path sorts, and nothing compares `BuildingType`, so the
-position is exactly the order in which the map asset lists its two towers. That
-order lives outside the binary and may in principle differ from map to map.
-
-A replay cannot settle it either, since a replay records no tower identity, and
-the one fixture that would suggest an answer,
-`tests/layouts/tuff-replay-round-7.yaml`, is referenced by nothing and carries
-no provenance. Settling it takes one live readback of `GetBuildings` with each
-entry's `BuildingType`, per map, which the adapter can already perform. Until
-then the array is positional, a layout's fields are named, and only the
-adapter's kind lookup connects them.
 
 ### Equipment is stock plus what is fitted
 

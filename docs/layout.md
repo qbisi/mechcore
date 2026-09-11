@@ -452,11 +452,17 @@ entries long. Each level is an integer in `0..=4`, the four levels
 [`config/economy.yaml`](../config/economy.yaml) prices. The executor
 strengthens a tower one level at a time and verifies the final level.
 
-Position `0` is the Research Center and position `1` the Energy Tower.
-[`docs/state.md`](state.md) gives the measurement that settles it. The adapter
-still checks each position's native building kind on every apply and every
-capture and refuses a scene that contradicts it, so a build that reorders its
-buildings fails loudly rather than strengthening the wrong tower quietly.
+A position keys a tower; it does not name one. The two sides order their towers
+oppositely: on map 1021 blue holds the Energy Tower at position `0` and red
+holds it at position `1`, which [`docs/state.md`](state.md) measures and
+explains. So `[1, 2]` does not say which building is at level `2` without
+knowing the side and the map, and nothing needs to: a level is captured from a
+position and applied to that same position.
+
+The adapter checks on every apply and every capture that the side holds one
+tower of each native kind, in whichever order, and refuses a scene that does
+not. A side that lost a tower or grew one fails loudly rather than having its
+levels written to the wrong building.
 
 The Research Center's two persistent enhancements are not a field of their own.
 They are Officers, and they live in `techs.officers` with every other Officer:
@@ -474,6 +480,14 @@ the blueprint hands out, because that Officer is the whole of what a fight sees,
 and a level of a chain is the second name for a thing `techs.officers` already
 had a name for. Each chain contributes at most one Officer: its second level
 replaces its first rather than joining it.
+
+The executor installs these the way it installs any other Officer, without
+researching a blueprint. `OfficerManager` keeps two lists and routes each
+Officer by a property of its own, and these four are of the kind that lands in
+the list `GetInvisibleOfficers` returns rather than `GetOfficers`. Both the
+readback that verifies an apply and the capture that exports a side read both
+lists, so one of these Officers is neither reported missing right after it was
+installed nor dropped from a capture of the side that holds it.
 
 ### `formations`
 
@@ -1035,7 +1049,8 @@ world positions.
 
 The compiler accepts omitted fields and explicit baseline values described in
 this document, except that `formations` is mandatory and non-empty on both
-sides. It rejects tower levels outside `0..=2`, unknown deployment footprints,
+sides. It rejects tower levels outside `0..=4`, a `tower_strengthen_levels` that is
+neither empty nor one level per fixed tower, unknown deployment footprints,
 deployment collisions where applicable, and contraptions outside their target
 regions. It accepts structurally valid `terrains`; the Adapter restores the
 currently supported build-2259 oil form during activation. Unsupported terrain

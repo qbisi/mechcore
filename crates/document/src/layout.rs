@@ -20,25 +20,25 @@ pub(crate) const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 ///
 /// `BuildingManager.buildings` is exactly this long in all 494 player-rounds of
 /// the local replay set, and `docs/state.md` records the measurement.
+///
+/// A position in that list is a key, not a name. `tower_strengthen_levels` is
+/// keyed by it, the same key `PAD_StrengthenTower.Index` uses, so a layout and
+/// a state say the levels the same way and a level is always applied to the
+/// tower it was read from.
+///
+/// The two sides do not agree on which position is which tower. A live capture
+/// of round 7 of the TUFF replay reads `BuildingData.BuildingType` at each
+/// position and finds `[EnergyTower, ResearchCenter]` for blue against
+/// `[ResearchCenter, EnergyTower]` for red, on map 1021. `docs/state.md`
+/// carries the measurement and the reason: a side's buildings are appended in
+/// the order its own territory lists them, and the two territories are mirror
+/// images, so the order is map data per side rather than a property of the
+/// build.
+///
+/// So no constant names a position and no code may assume one. The adapter
+/// checks only that a side holds one tower of each kind, and keys every level
+/// by the position it was found at.
 pub const TOWER_COUNT: usize = 2;
-
-/// The building-manager position each fixed tower occupies.
-///
-/// `tower_strengthen_levels` is keyed by this position, the same key
-/// `PAD_StrengthenTower.Index` uses, so a layout and a state say the levels the
-/// same way.
-///
-/// Which position holds which tower was settled by one player-round that names
-/// the two towers apart. In round 7 of the TUFF replay the red side's recorded
-/// `towerStrengthenLevels` is `[0, 2]`, and the layout captured live from that
-/// same round puts the level 2 on the building whose `BuildingType` is
-/// `EnergyTower`. `docs/state.md` carries the argument. The adapter still checks
-/// each position's native building kind on every apply and capture, so a build
-/// that reorders its buildings fails loudly instead of strengthening the wrong
-/// tower.
-pub const RESEARCH_CENTER_POSITION: usize = 0;
-/// See [`RESEARCH_CENTER_POSITION`].
-pub const ENERGY_TOWER_POSITION: usize = 1;
 
 /// The highest level a tower can be strengthened to.
 ///

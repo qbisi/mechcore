@@ -4,10 +4,7 @@ use crate::layout::{
     Terrain,
 };
 use crate::runtime::Runtime;
-use mechcore_document::{
-    ENERGY_TOWER_POSITION, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, MAX_TOWER_STRENGTHEN_LEVEL,
-    RESEARCH_CENTER_POSITION,
-};
+use mechcore_document::{FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, MAX_TOWER_STRENGTHEN_LEVEL, TOWER_COUNT};
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -96,6 +93,16 @@ impl WatchRuleObservation {
 
 const ENERGY_TOWER_KIND: i32 = 1;
 const RESEARCH_CENTER_KIND: i32 = 2;
+
+/// The native building kinds a side's building manager holds, one of each.
+///
+/// Which position holds which is per-side map data, so this is a set and never
+/// a mapping: blue and red order their two towers oppositely on map 1021, and
+/// `mechcore_document::TOWER_COUNT` carries the measurement. Both the apply
+/// path and the capture path check membership only, and key every level by the
+/// position it belongs to.
+pub(crate) const FIXED_TOWER_KINDS: [i32; TOWER_COUNT] = [ENERGY_TOWER_KIND, RESEARCH_CENTER_KIND];
+
 const TRAINING_GROUND_SUPPLY: i32 = 10_000;
 const DEFAULT_TRAINING_GROUND_MAP_ID: i32 = 1021;
 const FIXED_ONE_RAW: i64 = 1_i64 << 32;
@@ -2223,18 +2230,27 @@ fn map_vector_list_matches(
     Ok(true)
 }
 
-/// How many copies of one Officer the side holds.
+/// How many copies of one Officer a side holds, across both native lists.
+///
+/// `OfficerManager.AddOfficer` routes each Officer by a property of its own:
+/// the visible list `GetOfficers` returns, or the one `GetInvisibleOfficers`
+/// returns. The Research Center's two enhancement chains hand out Officers of
+/// the second kind, so counting only the visible list reads a freshly added
+/// `20300` back as absent. A caller cannot know which list an ID lands in, so
+/// both are counted.
 fn officer_count(
     runtime: &Runtime,
     manager: *mut Object,
     officer_id: i32,
 ) -> Result<usize, OperationError> {
-    let officers = runtime.api.invoke(manager, "GetOfficers", &mut [])?;
     let mut held = 0;
-    for index in 0..list_count(runtime.api, officers)? {
-        let officer = list_item(runtime.api, officers, index)?;
-        if runtime.api.invoke_value::<i32>(officer, "GetID", &mut [])? == officer_id {
-            held += 1;
+    for getter in ["GetOfficers", "GetInvisibleOfficers"] {
+        let officers = runtime.api.invoke(manager, getter, &mut [])?;
+        for index in 0..list_count(runtime.api, officers)? {
+            let officer = list_item(runtime.api, officers, index)?;
+            if runtime.api.invoke_value::<i32>(officer, "GetID", &mut [])? == officer_id {
+                held += 1;
+            }
         }
     }
     Ok(held)
@@ -2352,6 +2368,12 @@ fn apply_tower_strengthen_levels(
     runtime: &Runtime,
     levels: &[i32],
 ) -> Result<Value, OperationError> {
+    if levels.len() > TOWER_COUNT {
+        return Err(OperationError::InvalidArguments(format!(
+            "tower_strengthen_levels holds {} levels, and a side holds {TOWER_COUNT} fixed towers",
+            levels.len()
+        )));
+    }
     validate_fixed_tower_positions(runtime)?;
     for (position, &level) in levels.iter().enumerate() {
         let index = i32::try_from(position).map_err(|_| {
@@ -2374,24 +2396,29 @@ fn apply_energy_tower_skills(runtime: &Runtime, desired: &[i32]) -> Result<Value
     Ok(json!(desired))
 }
 
-/// Checks that each fixed tower sits where a layout says its level is keyed.
+/// Checks that a side holds the two fixed towers a layout keys levels by.
 ///
-/// `docs/state.md` measures the mapping: position 0 is the Research Center and
-/// position 1 the Energy Tower. It is still checked here on every apply, so a
-/// build that reorders its buildings fails loudly rather than silently
-/// strengthening the wrong tower.
+/// Which position holds which tower is not checked, because it is per-side map
+/// data: `docs/state.md` measures blue and red ordering their towers
+/// oppositely. What must hold is that each kind is present exactly once and
+/// within the keyed range, so every level a layout carries lands on a tower and
+/// no tower is strengthened twice.
 fn validate_fixed_tower_positions(runtime: &Runtime) -> Result<(), OperationError> {
-    for (kind, position) in [
-        (ENERGY_TOWER_KIND, ENERGY_TOWER_POSITION),
-        (RESEARCH_CENTER_KIND, RESEARCH_CENTER_POSITION),
-    ] {
+    let mut positions = Vec::with_capacity(TOWER_COUNT);
+    for kind in FIXED_TOWER_KINDS {
         let index = resolve_core_tower(runtime, kind)?;
-        let expected = i32::try_from(position).expect("a tower position fits an index");
-        if index != expected {
+        let position = usize::try_from(index).map_err(|_| {
+            OperationError::InvalidState(format!(
+                "core tower kind {kind} sits at building-manager position {index}"
+            ))
+        })?;
+        if position >= TOWER_COUNT || positions.contains(&position) {
             return Err(OperationError::InvalidState(format!(
-                "core tower kind {kind} sits at building-manager position {index}, and a layout keys its level by {expected}"
+                "core tower kind {kind} sits at building-manager position {position}, and a side \
+                 keys {TOWER_COUNT} tower levels"
             )));
         }
+        positions.push(position);
     }
     Ok(())
 }
@@ -3924,6 +3951,36 @@ mod tests {
         ] {
             assert!(parse_start_test_arguments(&json!({"map_id": id})).is_err());
         }
+    }
+
+    /// A side holds one of each fixed tower, and the kinds are distinct.
+    ///
+    /// This is a set, not a mapping. Blue and red order their two towers
+    /// oppositely, so any code that reads a tower's identity out of its
+    /// position is wrong, and nothing here may grow back into a position table.
+    #[test]
+    fn the_fixed_tower_kinds_are_a_set_of_distinct_kinds() {
+        assert_eq!(FIXED_TOWER_KINDS.len(), TOWER_COUNT);
+        assert_ne!(ENERGY_TOWER_KIND, RESEARCH_CENTER_KIND);
+        assert!(FIXED_TOWER_KINDS.contains(&ENERGY_TOWER_KIND));
+        assert!(FIXED_TOWER_KINDS.contains(&RESEARCH_CENTER_KIND));
+    }
+
+    /// The fixture captured live from the round whose two towers differ.
+    ///
+    /// Red holds a level 2 tower beside an unstrengthened one, so the list is
+    /// asymmetric and a reversal is visible. The live capture that produced it
+    /// read red's kinds as `[ResearchCenter, EnergyTower]` and its levels as
+    /// `[0, 2]`, which is what the replay's own record says, so this pins the
+    /// list the adapter must reproduce without naming either position.
+    #[test]
+    fn the_captured_fixture_keeps_its_tower_levels_in_position_order() {
+        let bytes = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml")
+            .expect("tracked layout fixture");
+        let parsed = layout::parse_yaml(&bytes).expect("a valid layout");
+        let plan = layout::compile_layout(parsed).expect("the fixture compiles");
+        assert_eq!(plan.red.tower_strengthen_levels, vec![0, 2]);
+        assert!(plan.blue.tower_strengthen_levels.is_empty());
     }
 
     #[test]
