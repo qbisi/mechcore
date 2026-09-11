@@ -17,7 +17,7 @@ fn usage(program: &str) {
     eprintln!("       {program} verify <document.yaml>");
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} diff <left.yaml> <right.yaml>");
-    eprintln!("       {program} convert battle <replay.grbr> <battle.yaml> [--force]");
+    eprintln!("       {program} convert <replay.grbr> <battle.yaml> [--force]");
     eprintln!(
         "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
     );
@@ -65,14 +65,7 @@ fn main() -> ExitCode {
         Some("verify") => report("verify", document::verify(arguments).map(|()| true)),
         Some("format") => report("format", document::format(arguments).map(|()| true)),
         Some("diff") => report("diff", document::diff(arguments)),
-        Some("convert") => match convert::run(arguments) {
-            Ok(true) => ExitCode::SUCCESS,
-            Ok(false) => ExitCode::FAILURE,
-            Err(error) => {
-                eprintln!("mechcore convert: {error}");
-                ExitCode::FAILURE
-            }
-        },
+        Some("convert") => report("convert", convert::run(arguments).map(|()| true)),
         Some("sim") => match sim::run(arguments) {
             Ok(true) => ExitCode::SUCCESS,
             Ok(false) => ExitCode::FAILURE,

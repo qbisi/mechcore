@@ -135,7 +135,7 @@ Accept the implementation only after at least one result has all of:
 
 - `operation.recorded = true` and `operation.cleanup.match_exited = true`;
 - final `status.status = main_menu`;
-- an `operation.output` file that `mechcore convert battle` can open, with the
+- an `operation.output` file that `mechcore convert` can open, with the
   build, a non-negative `Seat` and the `VS_1_1` header the recorder writes;
 - no managed exception in the launch log or Unity `Player.log`.
 
@@ -150,6 +150,6 @@ with SHA-256
 `22a05ab79d4e536c6a1fbefbc0b90701b0ef7ddd7c2ef75c4985c227e5b4ac03`.
 The native log showed `MatchUtility.SaveReplay`, and the final status was
 `main_menu`; no managed exception was found in that run. General
-`convert battle` parsing reached round 4 and then correctly refused commander
+`convert` parsing reached round 4 and then correctly refused commander
 skill `800001` because retained shields are absent from replay data. That
 converter fidelity gate does not invalidate the scene admission above.

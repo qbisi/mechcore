@@ -3,20 +3,15 @@ use std::{fs, path::PathBuf};
 /// How many ledger failures to name before counting the rest.
 const FAILURES_SHOWN: usize = 5;
 
-pub(crate) fn run(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
-    match arguments.next().as_deref() {
-        Some("battle") => battle(arguments).map(|()| true),
-        _ => Err("expected `battle <replay.grbr> <battle.yaml>`".into()),
-    }
-}
-
 /// Converts one locally recorded replay into a battle document.
 ///
-/// The replay is read, never written, and the destination is refused when it
-/// already exists: a conversion that silently replaced a file would make the
-/// document's provenance unrecoverable.
-fn battle(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
-    let source = required_path(&mut arguments, "expected replay.grbr after `battle`")?;
+/// A replay is the only source this command reads and a battle document the
+/// only thing it writes, so the direction is the command rather than an
+/// argument of it. The replay is read, never written, and the destination is
+/// refused when it already exists: a conversion that silently replaced a file
+/// would make the document's provenance unrecoverable.
+pub(crate) fn run(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
+    let source = required_path(&mut arguments, "expected <replay.grbr> <battle.yaml>")?;
     let destination = required_path(&mut arguments, "expected battle.yaml after replay.grbr")?;
     let force = match arguments.next().as_deref() {
         None => false,

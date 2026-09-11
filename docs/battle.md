@@ -6,8 +6,8 @@ This document is a design draft, and the field names below are proposals rather
 than a contract. Sections marked **Unresolved** name what still has no evidence
 behind it.
 
-One half of it is implemented. `mechcore convert battle <replay.grbr>
-<battle.yaml>` writes this document from a locally recorded replay, and the
+One half of it is implemented. `mechcore convert <replay.grbr> <battle.yaml>`
+writes this document from a locally recorded replay, and the
 [conversion section](#converting-a-replay) says what it rebuilds and what it
 refuses. Nothing executes a battle yet.
 
@@ -296,7 +296,7 @@ copied from the record.
 ## Converting a replay
 
 ```bash
-mechcore convert battle <replay.grbr> <battle.yaml> [--force]
+mechcore convert <replay.grbr> <battle.yaml> [--force]
 ```
 
 The converter refuses rather than guesses. A replay from another build, a
