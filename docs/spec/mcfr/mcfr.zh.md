@@ -401,7 +401,10 @@ unit_id        : UINT64 required
 periodic_clock : struct<elapsed: INT32, duration: INT32> nullable
 ```
 
-列表按 `unit_id` 严格升序。`unit_id` 必须引用同 tick 的存活 Unit。controller 提供正数 `effectTimeDuration` 时写入 `periodic_clock`；持续减速、减射程等没有周期触发器的作用关系使用 null。
+列表按 `unit_id` 严格升序。`unit_id` 必须引用同 tick 的存活 Unit。controller 提供正数
+`effectTimeDuration` 时写入 `periodic_clock`；持续减速、减射程等没有周期触发器的作用关系使用
+null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableContext.logic_step` 换算为秒；它们不使用
+`time_units_per_second` 的尺度。
 
 `remaining_rounds` 是一个稀疏派生字段。当前 1v1 原生场景中粘油是四种可部署地形里跨回合保留的类型；字段直接保存相减结果，Reader 使用这个单值解释跨回合余量。普通燃烧、酸液和烟雾行使用 null。
 

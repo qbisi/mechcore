@@ -484,7 +484,9 @@ applications[] = {
 The list is strictly ascending by `unit_id`, and each `unit_id` must reference a
 unit alive on the same tick. `periodic_clock` is written when the controller
 supplies a positive `effectTimeDuration`; a continuous effect with no periodic
-trigger, a sustained slow or range reduction, uses null.
+trigger, a sustained slow or range reduction, uses null. Both clock integers
+count logic advances and convert to seconds through `DurableContext.logic_step`;
+they do not use the `time_units_per_second` scale.
 
 `remaining_rounds` is a sparse derived field. Among the four deployable
 terrains, sticky oil is the one that survives a round in current 1v1 native

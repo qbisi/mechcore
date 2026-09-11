@@ -50,9 +50,11 @@ graph.
 
 An affected relation may carry a periodic clock, `{elapsed, duration}`, which a
 repeating effect needs and a continuous correction such as a sustained slow does
-not. A clock's `duration` counts in the game's native logic units, whose rate is
-the recording's `DurableContext.time_units_per_second`; that field is defined by
-[mcfr.md](../spec/mcfr/mcfr.md) and must be read rather than assumed.
+not. In the recorded fire and acid controllers, `elapsed` advances once per
+logic advance and wraps to zero after `duration`. These counters therefore use
+the recording's `DurableContext.logic_step`, not its separate
+`time_units_per_second` scale; [mcfr.md](../spec/mcfr/mcfr.md) defines the file
+fields.
 
 ## Circles and grids
 
