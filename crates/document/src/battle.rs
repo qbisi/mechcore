@@ -120,7 +120,7 @@ pub struct StateFormation {
 }
 
 /// An owned item no formation carries; a fitted one is named by its formation.
-#[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EquipmentItem {
     pub id: i32,
     /// Absent means `-1`, which is every item a standard 1v1 hands out.

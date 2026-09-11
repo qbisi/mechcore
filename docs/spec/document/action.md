@@ -51,9 +51,9 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs.units`, `techs.officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` |
+| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs.units`, `techs.officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
 | Supply | `supply` |
-| Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains`, `equipment` |
+| Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
 
 Settled is the group no fight can touch, so a round's decisions determine it
 outright. The board is what the decisions arrange and the fight then consumes.
@@ -230,11 +230,23 @@ The inventory follows one identity across a round:
 equipment(R+1) = equipment(R)
                + what this round's cards granted
                + what this round's officers delivered
+               + what recovering a formation handed back
                − what this round fitted
 ```
 
-Both grant terms are multisets, and so is the inventory: a side can own two of
-one item.
+Every term is a multiset, and so is the inventory: a side can own two of one
+item.
+
+The terms are applied where they fall in the sequence rather than all before
+the fits, because an item can arrive and be fitted in the same round, and a
+recovered item can be fitted again later in the round it came back.
+
+Every fit takes a copy out of the stock. A side that fits an item it does not
+hold describes a position the match cannot reach, which is a stronger statement
+than the stock merely staying where it was.
+
+A formation also leaves the board by being destroyed, which is the fight's and
+not a decision's. The identity covers what the decisions do to the stock.
 
 ### `move_unit`
 
@@ -269,7 +281,8 @@ skill ID, which is what a retraction matches on.
 
 What a release writes depends on the skill. It may put a construction, a
 retained airdrop shield or a terrain on the board, or take one of the side's own
-formations or constructions away. Releasing is free, except a skill that
+formations or constructions away. Taking a formation away returns what it wore
+to `equipment`, where the same round can fit it to another formation. Releasing is free, except a skill that
 recovers an object, which pays back what that object cost: for a formation, its
 purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that

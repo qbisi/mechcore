@@ -153,8 +153,8 @@ A state's own collections keep the orders that document defines.
 Applying a turn's decisions to its state has to reproduce the state the next
 turn starts from, in everything the fight does not decide. That application is a
 function rather than a comparison: it takes a position, a round and the round's
-decisions, and returns the eight fields below. Checking a turn is then reading
-the same eight out of the recorded next state and comparing.
+decisions, and returns the nine fields below. Checking a turn is then reading
+the same nine out of the recorded next state and comparing.
 
 | Field |
 | --- |
@@ -166,6 +166,7 @@ the same eight out of the recorded next state and comparing.
 | `blueprints` |
 | `tower_strengthen_levels` |
 | `battle_skills` |
+| `equipment` |
 
 `battle_skills` is compared by the IDs on the panel and not by how many slots it
 has, and `techs.officers` by a multiset and not by a set. Both distinctions are
@@ -184,6 +185,10 @@ standing decision.
 Both allocators are here even though the fight destroys what they hand out. An
 index is never reissued, so an allocator records how many objects a side has
 ever had rather than how many it still holds, and no fight can move it.
+
+`equipment` is compared together with what the round's fits could not find. An
+empty stock is reached both by a round that balanced and by a round that fitted
+an item the side never held, and the two must not compare equal.
 
 A roster, a reactor core and a formation's experience are not checked, because
 the fight decides them. The rest of the next position is the board, which

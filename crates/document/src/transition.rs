@@ -7,10 +7,11 @@
 //!
 //! Only what the fight cannot touch is produced here. A roster, a reactor core
 //! and a formation's experience are the fight's to decide; the two allocators,
-//! a shop, a blueprint list, a technology list, a tower level, a skill panel
-//! and an officer list are not.
+//! a shop, a blueprint list, a technology list, a tower level, a skill panel,
+//! an officer list and an equipment inventory are not.
 
-use crate::battle::{Action, Battle, SideState};
+use crate::battle::{Action, Battle, EquipmentItem, SideState, SkillTarget};
+use std::collections::BTreeMap;
 use crate::economy::{CardKind, Economy, OpeningKind};
 use std::collections::BTreeSet;
 
@@ -36,6 +37,16 @@ pub struct Settled {
     /// not settled here: a cooldown counts down through the fight.
     pub battle_skills: Vec<i32>,
     pub officers: Vec<i32>,
+    /// What the side owns and no formation wears, in the state's normal form.
+    /// A multiset: a side can own two copies of one item.
+    pub equipment: Vec<EquipmentItem>,
+    /// Items this round fitted that the side did not hold, ascending.
+    ///
+    /// Every fit has to take a copy out of the stock, so a non-empty list says
+    /// the decisions describe a position that cannot be reached. It is carried
+    /// rather than clamped away because a stock that is empty either way would
+    /// otherwise let an unreachable round compare equal to a recorded one.
+    pub equipment_shortfall: Vec<i32>,
 }
 
 /// What checking one battle found, counted per field rather than per round.
@@ -65,6 +76,11 @@ struct Granted {
     /// rather than replacing itself, and a side can hold three copies of one.
     officers: Vec<i32>,
     skills: Vec<i32>,
+    /// What the round's officers deliver. A list rather than a set: one
+    /// officer hands out three copies of one item. A card's equipment is not
+    /// here, because a card arrives at a point in the sequence and an officer
+    /// arrives before it.
+    equipment: Vec<i32>,
 }
 
 /// Applies one round's decisions to the position they were taken from.
@@ -130,6 +146,8 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
     officers.extend(&granted.officers);
     officers.sort_unstable();
 
+    let (equipment, equipment_shortfall) = inventory(economy, state, &granted, actions);
+
     let released = actions
         .iter()
         .filter(|action| matches!(action, Action::ReleaseContraption { .. }))
@@ -147,7 +165,82 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
         tower_strengthen_levels: levels,
         battle_skills: panel,
         officers,
+        equipment,
+        equipment_shortfall,
     }
+}
+
+/// What a side owns and no formation wears, after the round's decisions.
+///
+/// Four things move the stock and every one of them is a decision. A card and
+/// an officer put an item in; recovering a formation puts back what it wore;
+/// fitting takes one out. A card taken this round can be fitted in the same
+/// round, and so can an item a recovery just returned, so the three inflows are
+/// applied in the order the actions fall rather than all before the fits.
+fn inventory(
+    economy: &Economy,
+    state: &SideState,
+    granted: &Granted,
+    actions: &[Action],
+) -> (Vec<EquipmentItem>, Vec<i32>) {
+    let mut shortfall = Vec::new();
+    let mut stock = state.equipment.clone();
+    // An officer delivers before any of the round's own decisions.
+    stock.extend(granted.equipment.iter().map(|id| EquipmentItem {
+        id: *id,
+        durability: None,
+    }));
+    // What each formation wears, which a recovery hands back and a fit sets.
+    let mut worn: BTreeMap<i32, i32> = state
+        .formations
+        .iter()
+        .filter_map(|entry| Some((entry.formation.index, entry.formation.equipment?)))
+        .collect();
+    let panel: BTreeMap<i32, i32> = state
+        .battle_skills
+        .iter()
+        .map(|slot| (slot.index, slot.id))
+        .collect();
+    for action in actions {
+        match action {
+            Action::ChooseReinforceItem { id: Some(id), .. }
+                if economy.card_kind(*id) == Some(CardKind::Equipment) =>
+            {
+                stock.push(EquipmentItem {
+                    id: *id,
+                    durability: None,
+                });
+            }
+            Action::ReleaseCommanderSkill {
+                skill,
+                target: SkillTarget::Unit(index),
+            } if panel
+                .get(skill)
+                .is_some_and(|id| crate::ledger::RECOVERY_SKILLS.contains(id)) =>
+            {
+                if let Some(id) = worn.remove(index) {
+                    stock.push(EquipmentItem {
+                        id,
+                        durability: None,
+                    });
+                }
+            }
+            Action::UseEquipment { equipment, unit } => {
+                // Which copy leaves is arbitrary while every copy of an ID is
+                // interchangeable, which is what an absent `durability` means.
+                if let Some(position) = stock.iter().position(|item| item.id == *equipment) {
+                    stock.remove(position);
+                } else {
+                    shortfall.push(*equipment);
+                }
+                worn.insert(*unit, *equipment);
+            }
+            _ => {}
+        }
+    }
+    stock.sort();
+    shortfall.sort_unstable();
+    (stock, shortfall)
 }
 
 /// Reads out of a recorded state the same fields [`apply`] produces.
@@ -164,6 +257,9 @@ pub fn settled(state: &SideState) -> Settled {
         tower_strengthen_levels: state.tower_strengthen_levels.clone(),
         battle_skills: panel,
         officers: sorted(&state.techs.officers),
+        equipment: state.equipment.clone(),
+        // A recorded position is one the match reached, so nothing is missing.
+        equipment_shortfall: Vec::new(),
     }
 }
 
@@ -230,6 +326,11 @@ pub fn check(battle: &Battle, economy: &Economy) -> Report {
                     list(&produced.officers),
                     list(&held.officers),
                 ),
+                (
+                    "equipment",
+                    stock(&produced.equipment, &produced.equipment_shortfall),
+                    stock(&held.equipment, &held.equipment_shortfall),
+                ),
             ] {
                 if expected == actual {
                     report.closed += 1;
@@ -253,6 +354,30 @@ fn sorted(values: &[i32]) -> Vec<i32> {
     let mut values = values.to_vec();
     values.sort_unstable();
     values
+}
+
+/// An inventory as a comparable line, naming what a fit could not find so that
+/// an unreachable round cannot compare equal to a recorded one.
+fn stock(held: &[EquipmentItem], shortfall: &[i32]) -> String {
+    let held = items(held);
+    if shortfall.is_empty() {
+        held
+    } else {
+        format!("{held} missing {}", list(shortfall))
+    }
+}
+
+/// An inventory as a comparable line, with the `-1` an absent durability means
+/// left off so two spellings of one item cannot read as two items.
+fn items(values: &[EquipmentItem]) -> String {
+    values
+        .iter()
+        .map(|item| match item.durability {
+            Some(durability) => format!("{}:{durability}", item.id),
+            None => item.id.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn list(values: &[i32]) -> String {
@@ -309,8 +434,8 @@ fn granted(economy: &Economy, actions: &[Action]) -> Granted {
 /// What the officers a side holds hand out in this round.
 ///
 /// An officer hands out on a schedule of its own rather than when it arrives.
-/// Its squad and its commander skills come in the officer's `active_round`, and
-/// its unit joins the shop in the separate `unlock_round`. Both are absolute
+/// Its squad, its commander skills and its equipment come in the officer's
+/// `active_round`, and its unit joins the shop in the separate `unlock_round`. Both are absolute
 /// rounds: Longbow Specialist unlocks Marksman in round 1 and hands out its
 /// rank 3 squad in round 2, while Rhino Specialist unlocks in round 1 and waits
 /// until round 4. Every specialist in this build unlocks in round 1, so an
@@ -340,6 +465,7 @@ fn officer_deliveries(economy: &Economy, state: &SideState, granted: &mut Grante
             continue;
         }
         granted.skills.extend(&officer.commander_skills);
+        granted.equipment.extend(&officer.equipment);
         if officer.opening_unit.is_some() {
             granted.formations += 1;
         }
@@ -351,7 +477,7 @@ mod tests {
     use super::{apply, check};
     use crate::battle::{Action, SideState};
     use crate::convert::battle_from_grbr;
-    use crate::economy::Economy;
+    use crate::economy::{CardKind, Economy};
 
     /// A repeatable officer card stacks rather than replacing itself.
     ///
@@ -399,6 +525,227 @@ mod tests {
             apply(&economy, 5, &state, &declined),
             apply(&economy, 5, &state, &[])
         );
+    }
+
+    /// A card taken and not fitted stays in the side's stock.
+    #[test]
+    fn an_unfitted_card_stays_in_stock() {
+        let economy = Economy::embedded().unwrap();
+        let taken = [Action::ChooseReinforceItem {
+            offer: 0,
+            id: Some(13_030_001),
+        }];
+        let settled = apply(&economy, 5, &SideState::default(), &taken);
+        assert_eq!(
+            settled.equipment,
+            vec![crate::battle::EquipmentItem {
+                id: 13_030_001,
+                durability: None,
+            }]
+        );
+    }
+
+    /// Fitting the card taken in the same round leaves the stock where it was.
+    ///
+    /// This is the only shape the tracked replays exercise, and it is the one
+    /// that hides a missing term: a grant and a fit that cancel look the same
+    /// as neither being applied.
+    #[test]
+    fn taking_and_fitting_in_one_round_leaves_the_stock_alone() {
+        let economy = Economy::embedded().unwrap();
+        let taken = [
+            Action::ChooseReinforceItem {
+                offer: 0,
+                id: Some(13_030_001),
+            },
+            Action::UseEquipment {
+                equipment: 13_030_001,
+                unit: 4,
+            },
+        ];
+        assert!(
+            apply(&economy, 5, &SideState::default(), &taken)
+                .equipment
+                .is_empty()
+        );
+    }
+
+    /// An officer delivers its equipment in its own round, not when it arrives.
+    ///
+    /// 增幅专家 `10013` is the one officer in this build that hands out
+    /// equipment, and it hands out three copies of `13030009` in round 1.
+    #[test]
+    fn an_officer_delivers_its_equipment_on_its_own_schedule() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            techs: crate::layout::Techs {
+                officers: vec![10013],
+                units: Vec::new(),
+            },
+            ..SideState::default()
+        };
+        let delivered = apply(&economy, 1, &state, &[]);
+        assert_eq!(
+            delivered
+                .equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![13_030_009; 3]
+        );
+        assert!(apply(&economy, 2, &state, &[]).equipment.is_empty());
+    }
+
+    /// Fitting one of several copies takes exactly one out.
+    #[test]
+    fn fitting_takes_one_copy_out_of_a_stack() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            techs: crate::layout::Techs {
+                officers: vec![10013],
+                units: Vec::new(),
+            },
+            ..SideState::default()
+        };
+        let fitted = [Action::UseEquipment {
+            equipment: 13_030_009,
+            unit: 0,
+        }];
+        assert_eq!(apply(&economy, 1, &state, &fitted).equipment.len(), 2);
+    }
+
+    /// Recovering a formation hands back what it wore, in time to re-fit it.
+    ///
+    /// Round 5 of `[你是蓬莱花仙]VS[crower]` is this shape: blue takes an
+    /// Upgrade Kit, fits it to formation 5, upgrades that formation, recovers
+    /// it with Field Recovery, and fits the same item to formation 7. Without
+    /// the return the second fit has nothing to take.
+    #[test]
+    fn recovering_a_formation_returns_what_it_wore() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            battle_skills: vec![crate::battle::PanelSkill {
+                index: 0,
+                id: 900_001,
+                cooldown: 0,
+                release: None,
+            }],
+            formations: vec![crate::battle::StateFormation {
+                formation: crate::layout::Formation {
+                    type_name: "marksman".into(),
+                    index: 5,
+                    position: crate::layout::Position { x: 0, y: 0 },
+                    level: None,
+                    exp: None,
+                    rotated: None,
+                    equipment: Some(13_030_004),
+                    travelling: None,
+                },
+                value: Some(100),
+            }],
+            ..SideState::default()
+        };
+        let recovered = [Action::ReleaseCommanderSkill {
+            skill: 0,
+            target: crate::battle::SkillTarget::Unit(5),
+        }];
+        assert_eq!(
+            apply(&economy, 5, &state, &recovered)
+                .equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![13_030_004]
+        );
+        let refitted = [
+            Action::ReleaseCommanderSkill {
+                skill: 0,
+                target: crate::battle::SkillTarget::Unit(5),
+            },
+            Action::UseEquipment {
+                equipment: 13_030_004,
+                unit: 7,
+            },
+        ];
+        let settled = apply(&economy, 5, &state, &refitted);
+        assert!(settled.equipment.is_empty());
+        assert!(settled.equipment_shortfall.is_empty());
+    }
+
+    /// A fit with nothing to take is reported rather than clamped away.
+    ///
+    /// Both stocks are empty, so without the shortfall this unreachable round
+    /// would compare equal to a recorded one.
+    #[test]
+    fn a_fit_the_side_cannot_afford_is_named() {
+        let economy = Economy::embedded().unwrap();
+        let fitted = [Action::UseEquipment {
+            equipment: 13_030_004,
+            unit: 0,
+        }];
+        let settled = apply(&economy, 5, &SideState::default(), &fitted);
+        assert!(settled.equipment.is_empty());
+        assert_eq!(settled.equipment_shortfall, vec![13_030_004]);
+    }
+
+    /// What the tracked replays do and do not say about the inventory.
+    ///
+    /// Every state in the four convertible replays opens with an empty stock,
+    /// so what the corpus pins is that a round fits exactly what it took in.
+    /// It holds 23 fits against 17 equipment cards, the other six items coming
+    /// back off recovered formations.
+    ///
+    /// That the two sides balance is what the shortfall makes checkable: a fit
+    /// with no source would leave the stock empty either way, and so would
+    /// close silently. No tracked match carries an item across a round
+    /// boundary or holds the officer that delivers one, so those two terms
+    /// rest on the unit tests above rather than on a replay.
+    #[test]
+    fn a_tracked_round_fits_exactly_what_it_took_in() {
+        let economy = Economy::embedded().unwrap();
+        let (mut fits, mut cards) = (0, 0);
+        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+            let path = entry.expect("directory entry").path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
+                continue;
+            };
+            for turn in &battle.turns {
+                for (state, actions) in [
+                    (&turn.state.sides.blue, &turn.actions.blue),
+                    (&turn.state.sides.red, &turn.actions.red),
+                ] {
+                    assert!(
+                        state.equipment.is_empty(),
+                        "{} round {} opens holding stock",
+                        path.display(),
+                        turn.round
+                    );
+                    assert!(
+                        apply(&economy, turn.round, state, actions)
+                            .equipment_shortfall
+                            .is_empty(),
+                        "{} round {} fits what the side does not hold",
+                        path.display(),
+                        turn.round
+                    );
+                    for action in actions {
+                        match action {
+                            Action::UseEquipment { .. } => fits += 1,
+                            Action::ChooseReinforceItem { id: Some(id), .. }
+                                if economy.card_kind(*id) == Some(CardKind::Equipment) =>
+                            {
+                                cards += 1;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!((fits, cards), (23, 17));
     }
 
     /// A release is the only decision that moves the contraption allocator.
@@ -468,6 +815,6 @@ mod tests {
         }
         // The contraption allocator would close for free on a set that never
         // released one, so the set has to be known to move it.
-        assert_eq!((battles, closed, releases), (4, 528, 46));
+        assert_eq!((battles, closed, releases), (4, 594, 46));
     }
 }

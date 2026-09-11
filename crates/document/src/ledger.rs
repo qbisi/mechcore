@@ -22,7 +22,7 @@ use std::collections::BTreeMap;
 
 /// Commander skills that take one of the side's own formations away and pay
 /// back what it cost.
-const RECOVERY_SKILLS: [i32; 4] = [900_001, 900_002, 900_003, 900_004];
+pub(crate) const RECOVERY_SKILLS: [i32; 4] = [900_001, 900_002, 900_003, 900_004];
 
 /// What checking one battle found.
 #[derive(Debug, Default, PartialEq, Eq)]
