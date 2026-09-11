@@ -1,142 +1,174 @@
-# RVO 移动避让实现（build 1.11.1.3.2259）
+# RVO movement avoidance
 
-本文说明 Simulator 当前的定点数 sampled-RVO 实现。其目标是复现 Mechabellum build
-`1.11.1.3.2259` 中 `GRPF.RVO.Sampled.Agent`、`RVOAgentFixed` 和
-`RVOControllerFixed` 的战斗移动行为，而不是提供一套通用 RVO 库。
+[简体中文](rvo.zh.md)
 
-实现位于 `crates/simulation/src/rvo.rs`，战斗循环的接入点位于
-`crates/simulation/src/kernel.rs::step_rvo`。邻居搜索使用的原生式四叉树单独见
-[四叉树实现](quadtree.md)。
+## Scope
 
-## 1. 当前边界
+This contract defines fixed-point sampled RVO as build `1.11.1.3.2259` performs
+it: the agent inputs, the four-tick pipeline, how a neighbour becomes a velocity
+obstacle, and how a velocity is solved. It reproduces the combat movement
+behaviour of the native `GRPF.RVO.Sampled.Agent`, `RVOAgentFixed` and
+`RVOControllerFixed`. It is not a general RVO library, and nothing here should
+be read as the algorithm rather than as this build's version of it.
 
-当前求解器接收两类 agent：
+The implementation is `crates/simulation/src/rvo.rs`, entered from the combat
+loop at `crates/simulation/src/kernel.rs::step_rvo`. The neighbour index it
+queries is [quadtree.md](quadtree.md).
 
-- 所有存活单位；
-- 所有存活且启用碰撞的建筑。建筑作为锁定、不可移动的地面 agent 参与邻居集合。
+This module is agent-agent avoidance and nothing else. Target selection uses a
+different quadtree in `crates/simulation/src/kernel.rs`, with different data
+structures, capacities and traversal rules. The two must not be mixed.
 
-无阵营 `FightCrystal` 是否参与战斗取决于地图，不能一概视为试验场额外对象并删除。
-原生录像/试验场通过 `layout.map_id` 选择同一地图并保留地图对象：build 2259 的
-1021 地图有 0 个中立水晶 RVO controller，1001 地图有 73 个。当前 Simulator
-未实现这套地图对象加载；上述原生对齐不代表 Simulator 已支持地图差异。
-RVO 的私有双缓冲、邻居列表和 VO 列表不是 Layout 或 MCFR 的输入；Simulator
-从可公开还原的单位、建筑和移动状态重新计算它们。
+The solver takes two kinds of agent: every live unit, and every live building
+with collision enabled. A building participates as a locked, immovable ground
+agent that never avoids anything but that neighbours must avoid.
 
-本模块只处理 agent-agent 避让。目标选择使用 `kernel.rs` 中另一棵目标四叉树，两者的数据
-结构、容量和遍历规则不同，不应混用。
+RVO's private double buffers, neighbour lists and VO lists are inputs to
+nothing. They appear in no layout and no recording, and a simulator recomputes
+them from the publicly restorable unit, building and movement state.
 
-## 2. 坐标与数值
+Whether an unaligned `FightCrystal` joins the fight is the map's decision, not a
+Training Ground artefact to be deleted. A replay and a Training Ground scene
+select the same map through `layout.map_id` and keep its objects: on build 2259
+map 1021 has 0 neutral crystal RVO controllers and map 1001 has 73. Loading map
+objects is not implemented, so agreement with a native capture on one map is not
+evidence about another.
 
-RVO 在世界水平面工作：
+## Coordinates and numerics
+
+RVO works on the world's horizontal plane:
 
 ```text
 RVO.x = world.x + 400 m
 RVO.y = world.z + 400 m
 ```
 
-平移不改变距离，只使原生 RVO 坐标保持在正区间。世界高度 `world.y` 不参与避让。
+The translation changes no distance. It keeps native RVO coordinates positive.
+World height `world.y` takes no part in avoidance.
 
-位置、半径、速度、时间和权重全部使用有符号 Q32.32 raw integer。单位配置中的米值先量化
-到 1 mm，再进入 Q32.32。不能把中间值转成 `f32`/`f64` 后再还原，因为以下细节都会影响
-逐 tick 一致性：
+Position, radius, velocity, time and weight are all signed Q32.32 raw integers.
+A metre value from a unit configuration quantises to 1 mm first, then enters
+Q32.32. An intermediate value may not be converted to `f32` or `f64` and back,
+because every one of these decides tick-by-tick agreement:
 
-- 乘法遵循原生 raw 运算的截断和 wrapping 路径；
-- 除法先按绝对值舍入到最近值，再恢复符号；
-- 向量除法先计算一次共享倒数，再分别相乘；
-- `FPoint.op_LessThan` 把相差不超过 43 raw 的值视为相等，至少相差 44 raw 才为真；
-- `FPoint.Min/Max` 在等价时返回第二个参数，因此参数顺序也是行为的一部分；
-- 平方根、三角函数和指数函数使用与目标 build 对齐的 `Fastest` 定点近似。
+- multiplication follows the native raw truncation and wrapping path;
+- division rounds to nearest on the absolute value, then restores the sign;
+- vector division computes one shared reciprocal, then multiplies each
+  component by it;
+- `FPoint.op_LessThan` treats values within 43 raw as equal, so at least 44 raw
+  of difference is required for true;
+- `FPoint.Min/Max` returns its second argument when the two are equivalent, so
+  argument order is part of the behaviour;
+- square root, trigonometric and exponential functions use the `Fastest`
+  fixed-point approximations that match the target build.
 
-碰撞分支的 `centerMagnitude < radius` 是直接严格比较，不使用上述容差比较。
+The collision branch's `centerMagnitude < radius` is a direct strict
+comparison and does not use the tolerance comparison above.
 
-## 3. 四 tick 双缓冲流水线
+## The four-tick double-buffered pipeline
 
-普通战斗逻辑 tick 为约 `0.05 s`，RVO 每 4 tick 求解一次。一个 RVO 边界按以下顺序执行：
+An ordinary combat logic tick is about `0.05 s`, and RVO solves once every four
+of them. One RVO boundary runs in this order:
 
-1. 发布上一次求解得到的目标点和速度；
-2. 根据发布结果更新单位当前速度；
-3. 组装建筑和存活单位的 agent 输入；
-4. 用 `tree_position` 建四叉树并聚合节点最大已发布速度；
-5. agent 切换到当前 `position` 后，查询已经建好的树；
-6. 为邻居生成速度障碍并求解；
-7. 将新目标点和速度存入 solver 缓冲，等下一个四 tick 边界发布。
+1. publish the target point and velocity the previous solve produced;
+2. update each unit's current velocity from what was published;
+3. assemble agent inputs for buildings and live units;
+4. build the quadtree from `tree_position` and aggregate each node's maximum
+   published speed;
+5. switch agents to their current `position`, then query the tree already built;
+6. generate velocity obstacles for the neighbours and solve;
+7. store the new target point and velocity in the solver buffer, to be published
+   at the next four-tick boundary.
 
-因此“求解”和“对移动生效”之间还有一个 RVO 周期。战斗逻辑 tick 内，单位移动先消费当前
-已发布目标和速度，随后才可能进入本 tick 的 RVO 边界。
+So a full RVO period separates solving from taking effect. Within a combat logic
+tick, a unit's movement consumes the currently published target and velocity
+first, and only afterwards may that tick reach an RVO boundary.
 
-### 3.1 首次建树
+### The first tree
 
-原生 sampled agent 构造时会写公开 `Position`，但不会初始化求解器内部的 position 缓冲。
-首次 `BuildQuadtree` 又发生在第一次 `BufferSwitch` 之前，所以所有新 agent 的首次
-`tree_position` 都是 `(0, 0)`；随后邻居查询已经使用真实 `position`。
-
-Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
+A native sampled agent writes its public `Position` at construction but does not
+initialise the solver's internal position buffer, and the first `BuildQuadtree`
+happens before the first `BufferSwitch`. Every new agent's first
+`tree_position` is therefore `(0, 0)`, while the neighbour query that follows
+already uses the real `position`.
 
 ```text
-首次边界：tree_position = (0, 0)，position = 当前真实位置
-以后边界：tree_position = 上次边界位置，position = 当前真实位置
+first boundary: tree_position = (0, 0),          position = real current
+later:          tree_position = previous boundary, position = real current
 ```
 
-这不是随机抖动，也不能通过跳过首次求解替代。它与叶容量共同产生可观察差异：12 个 agent
-时根节点不分裂，仍会扫描整片叶；29 个 agent 时零坐标树发生分裂，真实位置查询可能无法
-进入包含 agent 的分支。详见 [首次树的查询语义](quadtree.md#8-首次零位置树)。
+The simulator reproduces this explicitly through `rvo_first_tree_pending`. It is
+not jitter, and skipping the first solve is not an equivalent substitute.
+Combined with leaf capacity it is observable: at 12 agents the root does not
+split and the whole leaf is scanned, while at 29 agents the zero-coordinate tree
+splits and a query from a real position may not reach the branch holding the
+agents. [quadtree.md](quadtree.md#the-first-tree-at-zero-positions) has the
+query semantics.
 
-## 4. Agent 输入
+## Agent input
 
-| 字段 | 当前含义 |
+| Field | Meaning |
 | --- | --- |
-| `key` | Unit 或 Building namespace 内的稳定身份 |
-| `main_layer` | `Ground=1`、`Air=2`；不同主层直接排除 |
-| `layer` | 由 collider priority 生成的单 bit |
-| `collides_with` | 查询方接受的 candidate layer mask |
-| `group` | 避让分组；当前 kernel 使用队伍 ID 填充 |
-| `locked` | 不可移动 agent 为真；邻居承担全部避让责任 |
-| `tree_position` | 本轮建树使用的旧内部位置 |
-| `position` | BufferSwitch 后查询和 VO 使用的当前位置 |
-| `current_velocity` | 上次已发布目标和速度导出的当前速度 |
-| `desired_velocity` | 本 tick 目标方向和期望速度导出的速度 |
-| `desired_target_delta` | 当前位置到原始移动目标点的向量 |
-| `desired_speed` | 当前请求速度 |
-| `max_speed` | 当前速度上限，参与树的可达范围和超速惩罚 |
-| `published_calculated_speed` | 上次已发布求解速度，供四叉树节点聚合 |
-| `radius_outer/inner` | RVO 外/内半径，不等同于 MCFR 碰撞半径字段 |
-| `size` | 原生有序枚举 `Xs < S < M < L` |
-| `priority` | 同组双方分配避让责任的 Q32.32 权重 |
+| `key` | stable identity within the Unit or Building namespace |
+| `main_layer` | `Ground=1`, `Air=2`; a different main layer is excluded outright |
+| `layer` | a single bit derived from collider priority |
+| `collides_with` | the candidate layer mask the querying agent accepts |
+| `group` | the avoidance group; the kernel fills it with the team ID |
+| `locked` | true for an immovable agent, whose neighbours carry all the avoidance |
+| `tree_position` | the older internal position this round's tree is built from |
+| `position` | the current position used by the query and by every VO |
+| `current_velocity` | the velocity implied by the last published target and speed |
+| `desired_velocity` | the velocity implied by this tick's target direction and desired speed |
+| `desired_target_delta` | the vector from the current position to the original movement target |
+| `desired_speed` | the speed requested now |
+| `max_speed` | the speed ceiling, used by the tree's reachable range and by the overspeed penalty |
+| `published_calculated_speed` | the last published solved speed, aggregated by quadtree nodes |
+| `radius_outer` / `radius_inner` | the RVO radii, which are not the MCFR collision radius field |
+| `size` | the native ordered enumeration `Xs < S < M < L` |
+| `priority` | the Q32.32 weight that splits avoidance responsibility within a group |
 
-单位的 `outer_radius`、`inner_radius`、`size`、`collider_priority` 和 `priority` 来自
-`config/units/*.yaml` 的 `rvo` 字段。配置要求 `inner_radius <= outer_radius`、priority 在
-`0..=1`、collider priority 在 `1..=10`。
+A unit's `outer_radius`, `inner_radius`, `size`, `collider_priority` and
+`priority` come from the `rvo` block of `config/units/*.yaml`. The configuration
+requires `inner_radius <= outer_radius`, a priority in `0..=1`, and a collider
+priority in `1..=10`.
 
-### 4.1 碰撞 layer
+### Collision layers
 
-对 priority `p`，可移动 agent 使用偶数位 `2p-2`，并接受自己的 layer 及所有更高位。
-不可移动建筑使用奇数位 `2p-1` 且自身 `collides_with=0`。当前碰撞建筑固定使用 priority
-10、`size=M`、内外半径均为建筑宽度的一半、`locked=true`。
+For priority `p`, a movable agent uses the even bit `2p-2` and accepts its own
+layer and every higher bit. An immovable building uses the odd bit `2p-1` and
+sets its own `collides_with` to 0. A colliding building uses priority 10,
+`size=M`, inner and outer radius both half the building's width, and
+`locked=true`.
 
-筛选是有方向的：只有查询方满足
-`query.collides_with & candidate.layer != 0`，candidate 才成为邻居。建筑自身不会避让，
-但高优先级建筑 layer 可以被单位查询命中。
+The filter is directional: a candidate becomes a neighbour only when
+`query.collides_with & candidate.layer != 0`. A building therefore avoids
+nothing itself, while a unit's query can still be matched by a high-priority
+building layer.
 
-## 5. 邻居选择
+## Neighbour selection
 
-每个 agent 通过四叉树最多保留 20 个邻居。候选按以下顺序过滤：
+Each agent keeps at most 20 neighbours from the quadtree. Candidates filter in
+this order:
 
-1. 排除自身 key；
-2. 排除不同 `main_layer`；
-3. 排除未被查询方 collision mask 接受的 layer；
-4. 要求当前坐标距离平方严格小于查询范围平方；
-5. 按距离升序插入并截断到 20 个。
+1. exclude the agent's own key;
+2. exclude a different `main_layer`;
+3. exclude a layer the querying agent's collision mask does not accept;
+4. require the squared current-coordinate distance to be strictly below the
+   squared query range;
+5. insert in ascending distance and truncate to 20.
 
-等距候选不会插到已有等距项之前，因此四叉树遍历顺序决定平局。输入组装、叶链表顺序和
-分支访问顺序都是确定性状态，不能事后按 ID 重排。
+An equidistant candidate is never inserted ahead of an equidistant item already
+held, so the quadtree traversal order decides every tie. Input assembly, leaf
+list order and branch visit order are all deterministic state, and none of them
+may be re-sorted by ID afterwards.
 
-## 6. 从邻居生成速度障碍
+## Velocity obstacles from neighbours
 
-令 `center = other.position - self.position`。
+Let `center = other.position - self.position`.
 
-### 6.1 不同 group
+### A different group
 
-不同组使用短时间窗：
+A different group uses a short time window:
 
 ```text
 offset          = (0, 0)
@@ -144,20 +176,21 @@ radius          = self.outer + other.inner
 inverse_horizon = 100        # 0.01 s
 ```
 
-算法只比较 group 是否相等。虽然当前 kernel 用队伍 ID 填充 group，RVO 模块本身不把该值
-解释为战斗归属。
+The algorithm only compares whether the groups are equal. The kernel happens to
+fill `group` with a team ID, and the RVO module does not interpret the value as
+an allegiance.
 
-### 6.2 相同 group
+### The same group
 
-同组先计算查询方承担的避让强度 `s`：
+The same group first computes the querying agent's share of the avoidance, `s`:
 
 ```text
-other.locked 时：s = 1
-否则：           s = other.priority / (self.priority + other.priority)
-权重和不大于 0： s = 0.5
+other.locked:              s = 1
+otherwise:                 s = other.priority / (self.priority + other.priority)
+weights summing to 0 or less: s = 0.5
 ```
 
-随后构造协作速度中心：
+Then it builds the cooperative velocity centre:
 
 ```text
 other_optimal = Lerp(other.current_velocity,
@@ -166,28 +199,34 @@ other_optimal = Lerp(other.current_velocity,
 offset        = Lerp(self.current_velocity, other_optimal, s)
 ```
 
-半径选择是非对称的：查询方 size 小于邻居时使用双方 inner radius，否则使用双方 outer
-radius。时间窗固定为 12 秒，即 `inverse_horizon = 1/12`。
+The radius choice is asymmetric: when the querying agent's size is smaller than
+the neighbour's, both inner radii are used, and otherwise both outer radii. The
+time window is fixed at 12 seconds, so `inverse_horizon = 1/12`.
 
-### 6.3 VO 几何
+### VO geometry
 
-每个 VO 的基础权重为：
+Each VO's base weight is:
 
 ```text
 weight_factor = max(1, 1 + 4 * exp(-((|center|^2 / radius^2)^2)))
 ```
 
-若当前中心距离严格小于半径，构造立即碰撞的分离直线，响应系数为 `0.3`，并使用
-`inverse_delta_time = 1 / (4 * logic_delta)`。恰好接触不进入碰撞分支。
+If the current centre distance is strictly below the radius, an
+already-colliding separation line is constructed, with a response coefficient of
+`0.3` and `inverse_delta_time = 1 / (4 * logic_delta)`. Exact contact does not
+enter the collision branch.
 
-未碰撞时，将相对位置和半径投影到速度空间，构造两条切线、截断线和远端圆弧。切点角度
-使用定点 `Atan2Fastest`、`AcosFastest`、`SinFastest`、`CosFastest`。对一个待评估速度，
-VO 返回使其离开禁区的梯度和穿入深度；有效梯度再乘
-`2 * weight_factor`，正权重额外加一 raw `Q32_ONE`。
+Without a collision, the relative position and radius project into velocity
+space as two tangents, a cut-off line and a far arc. Tangent angles use the
+fixed-point `Atan2Fastest`, `AcosFastest`, `SinFastest` and `CosFastest`. For a
+candidate velocity, a VO returns the gradient that leaves the forbidden region
+and the depth of penetration; an effective gradient is then multiplied by
+`2 * weight_factor`, and a positive weight gains one further raw `Q32_ONE`.
 
-## 7. 速度求解
+## Solving for a velocity
 
-求解先在期望速度上施加顺时针对称偏置。所有 VO 中只取最大的正穿入量：
+The solve first applies a clockwise symmetry bias to the desired velocity, using
+only the largest positive penetration across all VOs:
 
 ```text
 bias = min(0.1, max_penetration / |desired_velocity|)
@@ -195,13 +234,16 @@ desired += clockwise_tangent(desired) * bias
 target  += clockwise_tangent(target)  * bias
 ```
 
-期望速度模小于 `0.001` 时不修改向量，但仍保留“是否位于 VO 内”的判断。
+A desired velocity with magnitude below `0.001` leaves the vectors unmodified,
+while still keeping the question of whether it lies inside a VO.
 
-- 若偏置后的期望速度不在任何 VO 内，直接保留原始目标点增量和 `desired_speed`；
-- 若位于 VO 内，分别从 `current_velocity` 和偏置后的 `desired_velocity` 启动一条 trace，
-  选择得分更低的一条；得分按容差相等时选择第二条。
+- If the biased desired velocity lies in no VO, the original target point delta
+  and `desired_speed` are kept as they are.
+- If it lies inside one, two traces start, one from `current_velocity` and one
+  from the biased `desired_velocity`, and the lower-scoring trace wins. On a
+  score equal within tolerance the second is chosen.
 
-每条 trace 固定 50 次：
+Each trace runs exactly 50 iterations:
 
 ```text
 step_size = max(outer_radius, 0x33333333 * desired_speed)
@@ -210,33 +252,99 @@ step      = remaining^2 * step_size
 point    += normalize(gradient) * step
 ```
 
-第一次评估无条件成为 incumbent；以后只有至少低 44 raw 的得分才替换。梯度评分包含：
+The first evaluation becomes the incumbent unconditionally. After that, only a
+score lower by at least 44 raw replaces it. The gradient score is the sum of:
 
-- 所有 VO 中权重最大的一个梯度，不对多个 VO 求和；
-- 到偏置期望速度的吸引项，权重 `0.1`；
-- 超出最大速度的惩罚，权重 `3`；
-- 超出期望速度的惩罚，权重由两个分别截断的 `0.1` 相加。
+- the single highest-weighted gradient across all VOs, never a sum over several;
+- an attraction term toward the biased desired velocity, weight `0.1`;
+- a penalty for exceeding maximum speed, weight `3`;
+- a penalty for exceeding the desired speed, weighted by two separately
+  truncated `0.1` terms added together.
 
-最后把最佳 point 直接作为新的目标点增量，求解速度为
-`min(|point|, max_speed)`。这里不再额外乘时间步长；目标点增量和速度是原生
-`CalculateVelocity` 的两个独立输出。
+The best point becomes the new target point delta directly, and the solved speed
+is `min(|point|, max_speed)`. No further multiplication by a time step happens
+here: the target point delta and the speed are two independent outputs of the
+native `CalculateVelocity`.
 
-## 8. 验证边界
+## Determinism invariants
 
-实现使用三层验证：
+Changing this module must preserve all of these:
 
-- `rvo.rs` 单元测试固定 build 2259 的同组 pair 解和 VO 构造 raw 值；
-- kernel 测试覆盖建筑碰撞、Q32.32 距离边界、树的粗可达范围和停止移动的边界行为；
-- `tests/mcfr-regressions.yaml` 的 native smoke 样本比较稳定物理投影的逐 tick
-  `physics_result_hash`，包括
-  Steel Ball 对战样本。
+- the coordinate translation, and that world height takes no part;
+- every Q32.32 rule above, including the 43-raw tolerance, `Min/Max` returning
+  its second argument, the shared reciprocal in vector division, and the
+  `Fastest` approximations;
+- the strict comparison in the collision branch, which is not the tolerance
+  comparison;
+- the seven-step boundary order, and the full RVO period between solving and
+  taking effect;
+- the zero `tree_position` on the first tree;
+- neighbour ties resolved by traversal order, never re-sorted by ID;
+- the asymmetric inner-or-outer radius choice by size;
+- exactly 50 trace iterations, and the 44-raw threshold for replacing the
+  incumbent;
+- scoring from the single highest-weighted gradient rather than a sum.
 
-常用检查命令：
+Three layers of test hold this:
+
+- `rvo.rs` unit tests pin build 2259's same-group pair solution and VO
+  construction at raw values;
+- kernel tests cover building collision, Q32.32 distance boundaries, the tree's
+  coarse reachable range, and the behaviour at the edge of stopping;
+- the native smoke samples in `tests/mcfr-regressions.yaml` compare the stable
+  physics projection's per-tick `physics_result_hash`, the Steel Ball battle
+  sample included.
 
 ```text
 cargo test -p mechcore-simulation rvo
 cargo test -p mechcore-simulation --test battle native_regression_smoke_hashes_match
 ```
 
-局部 native RVO sidecar 只用于研究和定位，字段与范围见 [Adapter 文档](../adapter/adapter.md)；它不
-替代正式 MCFR 的完整战斗 hash，也不构成 Layout 新字段。
+## Fidelity boundary
+
+This is a reproduction of one build's behaviour, established by tick-for-tick
+agreement between several mutually independent native trajectories and the
+simulator, with no known counterexample. It is not a derivation from the RVO
+algorithm, so agreement inside the recorded corpus is not an argument about
+anything outside it.
+
+Covered: the ordinary ground Formation Unit main path the corpus reaches,
+including single and multiple neighbours and dense multi-unit migration.
+
+Not covered:
+
+- obstacles;
+- airborne agents;
+- group transition;
+- neighbour truncation and ordering that no recorded scenario has triggered;
+- units absent from the corpus, and any other internal condition branch nothing
+  has taken.
+
+A claim about any of those is unverified, however natural an extension of a
+covered one it looks.
+
+The local native RVO sidecar exists for research and for locating a divergence.
+Its fields and scope are [adapter.md](../adapter/adapter.md)'s. It does not
+substitute for a full MCFR battle hash and it is not a layout field.
+
+## Unresolved
+
+**Should `group` mean allegiance?** The module compares group identity and
+nothing else, while the kernel fills it with a team ID. Either the field is an
+opaque partition that a caller may key however it likes, in which case the
+kernel's choice is incidental, or it is the team, in which case the module
+should say so and a caller should stop being free to change it.
+
+**Should a building be an agent or a boundary?** A colliding building is
+currently a locked agent with a synthesised priority, size and radius, which
+puts it in the neighbour budget of 20. A dense scene can therefore spend
+neighbour slots on walls and drop units that matter more. Modelling static
+geometry separately would remove that interaction at the cost of a second
+avoidance path.
+
+**What does map object loading mean for identity?** Native alignment is
+established on maps whose neutral crystals the simulator does not load. Either
+those objects are outside the fidelity claim permanently, which the scope should
+state as a property rather than as a gap, or loading them is required before any
+cross-map claim, which makes today's agreement map-specific in a way no recorded
+hash announces.

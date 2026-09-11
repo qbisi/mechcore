@@ -195,16 +195,17 @@ is written for.
 
 ## Worked examples
 
-[action.md](spec/document/action.md), [battle.md](spec/document/battle.md),
-[turn.md](spec/document/turn.md), [state.md](spec/document/state.md) and
-[layout.md](spec/document/layout.md) follow the spec convention and are the ones
-to copy. The remaining specs predate it.
+Every spec follows this convention, so any of them answers a question about
+form. For a document format copy [battle.md](spec/document/battle.md) or
+[state.md](spec/document/state.md); for an interface contract
+[adapter.md](spec/adapter/adapter.md), whose error taxonomy is the fullest; for
+an algorithm contract [rvo.md](spec/simulation/rvo.md), whose fidelity boundary
+names what it does not cover rather than implying coverage.
 
-Which specs those are is not written here. A list in prose goes stale the first
-time someone converts one, so the checker above holds it instead.
+The checker holds the list, not this page, and it fails when a new spec is
+neither classified nor conforming. So the claim in the paragraph above cannot
+quietly stop being true.
 
-Four documents still have a Chinese primary and no English one, so they do not
-yet meet the language rule: [map](rules/map.md), [terrain](rules/terrain.md),
-[rvo](spec/simulation/rvo.md) and [quadtree](spec/simulation/quadtree.md). Each
-becomes an English primary with its present text kept as the `.zh.md`
-translation.
+Two rules documents still have a Chinese primary and no English one:
+[map](rules/map.md) and [terrain](rules/terrain.md). Each becomes an English
+primary with its present text kept as the `.zh.md` translation.

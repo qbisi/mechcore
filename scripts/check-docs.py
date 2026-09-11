@@ -38,12 +38,9 @@ ALGORITHM_CONTRACT = {
 
 # Specs that predate the convention. Structure checks are skipped for these and
 # the list is reported, so converting one means deleting a line here. An entry
-# naming a file that already conforms is itself an error.
-PENDING = {
-    "docs/spec/simulation/unit-rules.md",
-    "docs/spec/simulation/rvo.md",
-    "docs/spec/simulation/quadtree.md",
-}
+# naming a file that already conforms is itself an error. It is empty: every
+# spec is on the convention, and a new one is checked from its first commit.
+PENDING: set[str] = set()
 
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 FENCE = re.compile(r"^\s*```")

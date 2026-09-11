@@ -1,70 +1,86 @@
-# RVO 四叉树实现（build 1.11.1.3.2259）
+# RVO quadtree
 
-本文说明 `crates/simulation/src/rvo.rs::NativeQuadtree` 的当前实现。它复现 sampled-RVO
-的 agent 邻居索引，服务于 [RVO 移动避让](rvo.md)，不是
-`crates/simulation/src/kernel.rs` 中用于锁敌的目标四叉树。
+[简体中文](quadtree.zh.md)
 
-这棵树不仅用于加速查询。叶容量、链表插入顺序、分裂时的重排、分支访问顺序以及
-Q32.32 比较规则都会影响等距候选和最终 20 邻居，因此属于战斗确定性算法的一部分。
+## Scope
 
-## 1. 数据结构
+This contract defines the agent neighbour index that sampled RVO queries, as
+`crates/simulation/src/rvo.rs::NativeQuadtree` implements it for build
+`1.11.1.3.2259`. It serves [rvo.md](rvo.md).
+
+It is not the target quadtree in `crates/simulation/src/kernel.rs`, which
+selects attack targets. The two have different data structures, capacities and
+traversal rules, and mixing them up produces plausible wrong answers rather
+than errors.
+
+The tree is not merely a query accelerator, which is the reason it has a
+contract at all. Leaf capacity, linked-list insertion order, the reordering a
+split performs, branch visit order and the Q32.32 comparison rules all decide
+which of several equidistant candidates survives into the final twenty
+neighbours. Change any of them and the battle diverges.
+
+## Data structure
 
 ```text
 NativeQuadtree
-  inputs : &[AgentInput]       # 本轮固定的 agent 数组
-  nodes  : Vec<QuadtreeNode>   # 连续节点池
-  next   : Vec<Option<usize>>  # 每个 agent 一项的单向链表
+  inputs : &[AgentInput]       # the agent array, fixed for this round
+  nodes  : Vec<QuadtreeNode>   # a contiguous node pool
+  next   : Vec<Option<usize>>  # one singly-linked list entry per agent
   bounds : QuadtreeRect
 
 QuadtreeNode
-  child00  # 第一个子节点下标；等于自身下标表示叶节点
-  head     # 叶链表头 agent 下标
-  count    # 叶内数量
+  child00  # index of the first child; equal to its own index means a leaf
+  head     # index of the first agent in the leaf list
+  count    # agents in the leaf
   max_speed
 ```
 
-四个子节点总是一次连续追加，所以节点只需保存 `child00`，其余子节点为
-`child00 + 1..3`。分支节点不保留 agent；所有 agent 最终都在叶链表中。
+Four children are always appended contiguously in one go, so a node stores only
+`child00` and the rest are `child00 + 1..3`. A branch holds no agents; every
+agent ends up in a leaf list.
 
-当前常量：
-
-| 常量 | 值 | 含义 |
+| Constant | Value | Meaning |
 | --- | ---: | --- |
-| `QUADTREE_LEAF_SIZE` | 15 | 第 16 个 agent 插入叶时触发分裂 |
-| `QUADTREE_MAX_DEPTH` | 11 | 达到该深度后不再分裂 |
-| `MAX_NEIGHBOURS` | 20 | 单次查询最终保留的最近邻上限 |
-| `DEFAULT_AGENT_TIME_HORIZON` | 12 s | 节点可达范围使用的速度时间窗 |
+| `QUADTREE_LEAF_SIZE` | 15 | the 16th agent inserted into a leaf triggers a split |
+| `QUADTREE_MAX_DEPTH` | 11 | no split happens at or below this depth |
+| `MAX_NEIGHBOURS` | 20 | nearest neighbours one query keeps |
+| `DEFAULT_AGENT_TIME_HORIZON` | 12 s | the speed time window a node's reachable range uses |
 
-## 2. 两套位置
+## Two positions
 
-每个输入同时携带：
+Every input carries both:
 
-- `tree_position`：`BuildQuadtree` 使用的旧内部位置；
-- `position`：BufferSwitch 后的当前位置，用于查询中心和候选真实距离。
+- `tree_position`, the older internal position that `BuildQuadtree` uses;
+- `position`, the current position after BufferSwitch, used as the query centre
+  and for a candidate's real distance.
 
-这是一项有意的双缓冲语义，不是数据冗余。树的 bounds、象限归属与查询时的距离计算可以
-来自不同时间片。RVO 坐标的 `y` 对应世界 `z`，不对应高度。
+This is deliberate double-buffering, not redundancy. The tree's bounds, its
+quadrant assignment, and the distance computed at query time may come from
+different time slices. In RVO coordinates `y` is world `z`, not height.
 
-## 3. Bounds 与中心
+## Bounds and centre
 
-构建时从第一个 agent 的 `tree_position` 初始化根 bounds，再依输入顺序使用原生式
-`FPoint.Min/Max` 扩张。空输入不生成树，查询返回空集合。
+Construction initialises the root bounds from the first agent's
+`tree_position`, then expands in input order using the native `FPoint.Min/Max`.
+An empty input builds no tree, and a query returns an empty set.
 
-矩形中心按以下运算顺序计算：
+A rectangle's centre is computed in this operation order:
 
 ```text
 center.x = min.x + (max.x - min.x) * 0.5
 center.y = min.y + (max.y - min.y) * 0.5
 ```
 
-不能改写为 `(min + max) / 2`。当 raw 宽度为奇数时，两者的 Q32.32 截断结果不同。
-`FPoint.Min/Max` 对容差相等值返回第二个参数，因此 bounds 也依赖输入顺序。
+It may not be rewritten as `(min + max) / 2`. When the raw width is odd, the two
+truncate differently in Q32.32. `FPoint.Min/Max` returns its second argument for
+values equal within tolerance, so the bounds depend on input order too.
 
-## 4. 象限编号
+## Quadrant numbering
 
-象限由 `center < tree_position` 的原生容差比较决定。等于中心或只相差 43 raw 时归入低侧。
+A quadrant comes from the native tolerance comparison `center < tree_position`.
+A value equal to the centre, or differing by only 43 raw, falls to the low side.
 
-| quadrant | x 区间 | y 区间 | 编号公式 |
+| Quadrant | x | y | Formula |
 | ---: | --- | --- | --- |
 | 0 | low | low | `0 + 0` |
 | 1 | low | high | `0 + 1` |
@@ -80,38 +96,43 @@ center.y = min.y + (max.y - min.y) * 0.5
           +---------+---------+  x high
 ```
 
-## 5. 插入与分裂
+## Insertion and splitting
 
-agent 严格按输入数组顺序插入。当前 kernel 先加入 `self.buildings` 中启用碰撞的存活建筑，
-再加入 `BTreeMap` 中按 Unit ID 排列的存活单位。
+Agents insert strictly in input array order. The kernel adds the live buildings
+from `self.buildings` that have collision enabled, then the live units from a
+`BTreeMap` ordered by Unit ID.
 
-在叶节点中：
+At a leaf:
 
-1. 若 `count < 15`，将新 agent 前插到叶链表头；
-2. 若 `count >= 15` 且深度小于 11，连续创建四个子节点；
-3. 按旧叶链表的头到尾顺序，把原有 agent 前插到各自子叶；
-4. 清空父叶，再继续向下插入当前的新 agent；
-5. 深度达到 11 后，即使超过 15 个也保留在同一叶中。
+1. with `count < 15`, prepend the new agent to the leaf list;
+2. with `count >= 15` and depth below 11, create four children contiguously;
+3. walking the old leaf list from head to tail, prepend each existing agent into
+   its own child leaf;
+4. clear the parent leaf, then continue descending with the new agent;
+5. at depth 11, keep everything in one leaf even past 15.
 
-前插会反转顺序，分裂时再次逐项前插又会重排一次。这个链表顺序会成为叶扫描顺序，进而
-决定等距候选的稳定先后；不能用 `Vec` 排序或 hash 容器替换。
+Prepending reverses order, and a split prepends each item again, reversing it a
+second time. That list order becomes the leaf scan order and therefore fixes
+which equidistant candidate wins. It cannot be replaced by a sorted `Vec` or a
+hash container.
 
-当所有点重合、根 bounds 宽高均为零时，分裂仍会发生。所有点都会沿 quadrant 0 下沉，
-直到最大深度，最终叶可以超过 15 个。
+A split still happens when every point coincides and the root bounds have zero
+width and height. All points sink through quadrant 0 to the maximum depth, and
+the final leaf may hold more than 15.
 
-## 6. 节点最大速度
+## Node maximum speed
 
-全部插入完成后，自底向上计算 `max_speed`：
+After every insertion, `max_speed` is computed bottom-up:
 
-- 叶节点取所有成员 `published_calculated_speed` 的最大值；
-- 分支节点按 quadrant 0、1、2、3 的顺序取四个子树最大值。
+- a leaf takes the maximum `published_calculated_speed` over its members;
+- a branch takes the maximum over its four subtrees, visited 0, 1, 2, 3.
 
-这里聚合的是 agent 上次已发布的求解速度，不是本轮 `desired_speed` 或 `max_speed`。
-建筑的聚合速度为 0。
+What aggregates here is each agent's last published solved speed, not this
+round's `desired_speed` or `max_speed`. A building aggregates 0.
 
-## 7. 查询范围
+## Query range
 
-进入一个节点时，先计算该节点的粗可达距离：
+On entering a node, its coarse reachable distance is computed first:
 
 ```text
 reachable = max((node.max_speed + query.max_speed) * 12,
@@ -120,20 +141,24 @@ reachable = max((node.max_speed + query.max_speed) * 12,
 distance  = min(reachable, current_20th_neighbour_distance)
 ```
 
-尚未收满 20 个邻居时没有第二项限制。该范围故意不逐 candidate 使用其相对速度或半径；
-它只负责保守地判断节点是否值得访问。
+The second term does not apply until twenty neighbours are held. This range
+deliberately does not use a candidate's own relative speed or radius. It decides
+only whether a node is worth visiting at all.
 
-### 7.1 分支访问
+### Visiting a branch
 
-分支不做通用矩形距离计算，而是比较以查询方当前 `position` 为中心、半径为 `distance` 的
-轴对齐范围是否跨过节点中心。子节点固定按 0、1、2、3 顺序访问。
+A branch performs no general rectangle distance test. It asks whether the
+axis-aligned range of radius `distance`, centred on the querying agent's current
+`position`, crosses the node's centre. Children are visited in the fixed order
+0, 1, 2, 3.
 
-每访问完一个子树，如果已经有 20 个邻居，就用当前第 20 名的距离缩小后续分支的
-`distance`。因此较早分支找到的候选可以阻止较晚分支被访问。
+After each subtree, if twenty neighbours are held, the current twentieth
+distance narrows `distance` for the remaining branches. A candidate found in an
+earlier branch can therefore stop a later branch from being visited at all.
 
-### 7.2 叶扫描
+### Scanning a leaf
 
-叶节点按 `head -> next` 扫描，并依次过滤：
+A leaf is scanned `head -> next`, filtering in order:
 
 ```text
 candidate.key != query.key
@@ -142,50 +167,89 @@ query.collides_with & candidate.layer != 0
 distance_squared(candidate.position, query.position) < leaf_range_squared
 ```
 
-距离使用双方当前 `position`，不是它们的 `tree_position`。合法候选按距离升序插入结果，
-只保留前 20 个。距离比较是严格的原生容差比较；等距项追加在已有等距项之后。
+Distance uses both sides' current `position`, never their `tree_position`. A
+surviving candidate is inserted in ascending distance and only the first twenty
+are kept. The distance comparison is the strict native tolerance comparison, and
+an equidistant item is appended after the equidistant items already there.
 
-叶扫描开始时只计算一次 `leaf_range_squared`。即使扫描途中已经收满 20 个并更新第 20 名
-距离，本叶剩余成员仍使用进入该叶时的范围判断；20 项截断负责保留更近者。缩小后的范围只
-影响离开该叶后的其他分支。这一细节不能优化成逐 candidate 缩圈。
+`leaf_range_squared` is computed once, on entering the leaf. Even if the scan
+fills twenty neighbours partway through and updates the twentieth distance, the
+remaining members of this leaf are still judged by the range that applied on
+entry; the twenty-item truncation is what keeps the nearer ones. The narrowed
+range affects only branches visited after leaving this leaf. This must not be
+optimised into a per-candidate shrinking circle.
 
-## 8. 首次零位置树
+## The first tree, at zero positions
 
-新建 sampled agent 的公开位置已是真实坐标，但求解器内部 position 缓冲仍为零。原生调用
-顺序是先建树、再 BufferSwitch、再查邻居，所以首次 RVO 边界满足：
+A newly created sampled agent already publishes its real coordinates while the
+solver's internal position buffer is still zero. The native call order is build
+the tree, then BufferSwitch, then query neighbours, so the first RVO boundary
+satisfies:
 
 ```text
-所有 agent 的 tree_position = (0, 0)
-每个 agent 的 position      = 当前真实位置
+every agent's tree_position = (0, 0)
+every agent's position      = its real current position
 ```
 
-它与叶容量组合出两种不同情况：
+Combined with leaf capacity that produces two distinct cases:
 
-- agent 数不超过 15：根保持叶节点。查询不经过空间分支，扫描全体成员，再用真实位置过滤；
-- agent 数超过 15：树按零坐标持续分裂。查询从真实位置做中心跨越判断，可能根本到不了保存
-  agent 的 quadrant 0 分支。
+- **At most 15 agents.** The root stays a leaf. A query passes through no
+  spatial branch, scans every member, and filters by real position.
+- **More than 15 agents.** The tree splits repeatedly at zero coordinates. A
+  query centres its crossing test on the real position and may never reach the
+  quadrant 0 branch where the agents actually are.
 
-已用于区分实现的两个 native 场景是：
+Two native scenarios separate the two cases: Steel Ball, with 8 units per side
+plus 4 colliding buildings, is 12 agents and does not split; Rhino against
+Crawlers, with 25 units plus 4 buildings, is 29 agents and does. The first
+solve publishes at the next RVO boundary, which is MCFR tick 8 in the native
+captures. Every later build uses the positions saved at the previous RVO
+boundary rather than zeros.
 
-- Steel Ball 双方共 8 个单位，加 4 个碰撞建筑，共 12 个 agent；首次根不分裂；
-- Rhino 对 Crawlers 共 25 个单位，加 4 个碰撞建筑，共 29 个 agent；首次树分裂。
+## Determinism invariants
 
-首次求解结果在下一个 RVO 边界才发布；现有 native 采集中对应 MCFR tick 8。以后每次建树
-改用上一个 RVO 边界保存的位置，不再使用零位置。
+Changing the quadtree must preserve all of these:
 
-## 9. 确定性不变量
+- bounds use only `tree_position`; the query centre and leaf distances use only
+  `position`;
+- leaf capacity is 15, the 16th item splits, maximum depth is 11;
+- four children are appended contiguously to the node pool;
+- leaf members are prepended, and a split prepends again in old-list order;
+- branches are visited 0, 1, 2, 3;
+- among equidistant neighbours the one traversed first is kept;
+- the twentieth distance narrows later branches only once twenty are held;
+- the Q32.32 centre, `Min/Max` and comparisons keep the native operation order.
 
-修改四叉树时必须保持以下行为：
+The unit test covering the double buffer directly is
+`quadtree_builds_from_the_previous_buffer_but_queries_current_positions`.
 
-- bounds 只使用 `tree_position`，查询中心和叶距离只使用 `position`；
-- 叶容量为 15，第 16 项触发分裂，最大深度为 11；
-- 节点池连续追加四个 child；
-- 叶成员前插，分裂按旧链表顺序再次前插；
-- 分支按 0、1、2、3 访问；
-- 等距邻居保留先遍历者；
-- 只在 20 项满时用第 20 名距离收窄后续分支；
-- Q32.32 center、Min/Max 和比较均保持原生运算顺序。
+## Fidelity boundary
 
-直接覆盖双缓冲的单元测试为
-`quadtree_builds_from_the_previous_buffer_but_queries_current_positions`。完整行为还由
-[RVO 验证边界](rvo.md#8-验证边界)中的 native smoke hash 约束。
+This tree is faithful to the native neighbour index along the paths the
+recorded RVO corpus traverses, and the evidence is the tick-by-tick agreement
+that [rvo.md](rvo.md#fidelity-boundary) describes. It is a reproduction of one
+build's behaviour, not a derivation from the algorithm, so a claim about it
+outside those paths is unverified.
+
+Not established:
+
+- neighbour truncation and ordering that no recorded scenario has triggered,
+  which is to say the behaviour when a query genuinely exceeds twenty
+  candidates in contention;
+- depth 11 saturation outside the coincident-point case;
+- any agent population the corpus has not reached, buildings with collision
+  layers other than those it contains included.
+
+## Unresolved
+
+**Should the constants be configuration or code?** Leaf capacity, maximum
+depth, neighbour count and time horizon are native values that happen to be
+correct for build 2259. They are compiled in, so a second build needs a rebuild
+rather than a config, and a wrong value fails as a silent divergence rather
+than as a load error.
+
+**Should the zero-position first tree be modelled or reproduced?** It is
+currently reproduced, because the native call order produces it. Whether a
+future kernel is allowed to skip building a tree it knows is degenerate, and
+still claim identity, depends on whether the first solve can ever observe the
+difference. Nobody has shown that it cannot.

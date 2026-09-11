@@ -140,7 +140,7 @@ projection of the native Q32 value onto 2,000 internal time units per second;
 it was not the design-level interval. Timing phases stay separate because the
 native state machine quantizes and consumes them separately.
 
-## Loading and current kernel boundary
+## Loading a configuration root
 
 The embedded configuration is used by default. An external root is selected
 with:
@@ -149,11 +149,66 @@ with:
 mechcore sim layout.yaml --config config
 ```
 
-The root contains `config.yaml`, `training_ground.yaml`, and `units/*.yaml`.
-The schema can load all current P0 unit paths, but the Simulator must reject a
-unit until its Formation generation and native attack path are implemented.
-At present the executable kernel accepts only the exact embedded behavior
-configs for Marksman and Arclight, the pair covered by the existing native
-per-tick baseline. A renamed config with the same behavior remains valid, but
-an unclosed unit or any behavior-field change fails closed. Loading a config is
-not a claim of native simulation parity.
+A root contains `config.yaml`, `training_ground.yaml` and `units/*.yaml`.
+
+The schema loads every P0 unit path, and the simulator rejects a unit whose
+formation generation or native attack path it does not implement. A renamed
+config with the same behaviour stays valid; an unimplemented unit, or any
+change to a behaviour field, fails closed.
+
+**Loading a config is not a claim of simulation parity.** The schema describes
+what a unit is, and whether a kernel reproduces it is a separate question with
+a separate answer.
+
+## Normal form
+
+A unit lives in exactly one file named `<type_name>.yaml`. Within one
+configuration root, `type_name` and `unit_type_id` are each unique.
+
+The format has no ordered collection, so there is nothing to canonicalise
+inside a file: every value is a scalar or a fixed-key mapping, and two
+configurations describing one unit differ only if a value differs.
+
+The absence of ordering is itself the rule worth stating, because file order
+carries no meaning anywhere downstream. Formation rows and columns derive from
+`members`, `slot_size` and `footprint`. Native member creation order is not MCFR
+identity order: the adapter assigns initial identities after sorting by team,
+world `z`, then world `x`.
+
+## Excluded fields
+
+The configuration describes one unit's baseline and nothing about the machinery
+that runs it.
+
+- **The simulation clock, numeric precision and RNG implementation.** These are
+  kernel-owned, and the native Q32 representation and operation order with them.
+- **Layout, technologies, statuses and equipment.** All of these modify a unit
+  at runtime. A baseline that already had them folded in could not be a
+  baseline.
+- **Jitter constants, member RNG, update order and identity allocation.** Kernel
+  mechanisms, deliberately not duplicated per unit.
+- **Research-only diagnostics.**
+- **A schema version, and a per-unit game build.** `config.yaml` carries
+  `game_build` for the root, and no version matching is performed against it.
+- **Combination-shaped path types.** `grouped_projectile` and its relatives are
+  not schema types. Single versus multi-projectile comes from `path.count`,
+  melee versus non-melee from `path.melee`, and Group or Fusillade from weapon
+  topology.
+
+## Unresolved
+
+**Should an absent field ever mean something other than its default?**
+`independent_aim` is the only field where it does: omission means the unit has
+no mech body to compare an aim direction against, which is not the same claim as
+`false`. Every other absent field simply takes its default. Either this is a
+pattern the schema endorses and should name, or `independent_aim` wants an
+explicit third value.
+
+**Should `game_build` be matched rather than recorded?** A root states the build
+it was extracted from and nothing checks it, so a configuration from one build
+loads silently against a kernel bound to another. Enforcing it would make the
+mismatch loud at the cost of blocking deliberate cross-build experiments.
+
+**Should a unit file carry a schema version?** It carries `schema:
+mechcore.unit` as an identifier with no version. A field that gains a meaning
+later cannot then be told apart from one written before the change.
