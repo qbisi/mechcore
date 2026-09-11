@@ -17,8 +17,9 @@ A spec defines a shape something must conform to. `spec/` is filed by the crate
 that owns each contract, so a document and the code that must satisfy it are
 found the same way.
 
-The rest of this file is the convention for a spec, apart from the language rule
-below, which governs both. A rules document has no other convention yet.
+The language rule below governs both. After it, one section states the
+convention for a rules document and the rest of the file states the convention
+for a spec.
 
 ## Language
 
@@ -38,6 +39,32 @@ primary lacks, and when the two disagree the primary wins.
 English prose may quote a name in another language where the name is the
 identifier: an index that lists the game's official Simplified Chinese names in
 a table is an English document.
+
+## A rule is something a reader can rely on
+
+A rules document states rules a reader can act on without going back to check.
+That is the whole standard, and it decides what may appear there.
+
+A rule is a claim about the build, carried with the scope it holds in. The scope
+is not a hedge, it is what makes the rule usable: a reader who knows where a
+rule stops can work inside it and knows to stop at the edge. So state what a
+rule does not cover beside the rule itself, because a claim just outside a
+closed scope is unverified however obvious an extension of it looks.
+
+Three things read like rules and are not.
+
+- **What our own code reproduces.** That a simulator matches a corpus tick for
+  tick is a fact about the simulator. The game is not answerable to it.
+- **A single run's trace.** Tick numbers lifted from one replay record an
+  observation. The rule is whatever that observation demonstrated, and it is the
+  rule that belongs here.
+- **Confidence labels and review status.** `strongly_supported` and its
+  neighbours say how well a question was answered, not what the game does.
+
+All three belong in `work/research/`, whose README holds the evidence gates a
+finding passes on its way out. [rules/combat.md](rules/combat.md) is the worked
+example: every entry is a scoped claim about one build, with the boundary it
+does not cover stated next to it.
 
 ## A spec's shared spine
 
@@ -132,7 +159,7 @@ The same test catches a section title. `Current adapter compiler` and
 
 [action.md](spec/document/action.md), [battle.md](spec/document/battle.md),
 [turn.md](spec/document/turn.md) and [state.md](spec/document/state.md) follow
-this convention and are the ones to copy. The remaining specs predate it.
+the spec convention and are the ones to copy. The remaining specs predate it.
 
 Five documents have a Chinese primary and no English one, so they do not yet
 meet the language rule: [map](rules/map.md), [terrain](rules/terrain.md),

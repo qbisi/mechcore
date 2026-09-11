@@ -17,8 +17,8 @@
 - `docs/readme.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；
 - `work/issue/readme.md`：什么够格成为一条 issue，它以什么方式离开；
-- `crates/simulation/readme.md`：默认跑哪些回归，以及"能复现录像不等于证明
-  了机制"。
+- `work/research/README.md`：一个数值要拿什么才算有据，什么看着像证据其实
+  不是，以及"能复现录像不等于证明了机制"。
 
 readme 的效力高于你自己的判断。和你想做的事冲突时按它做，或者先说清楚它为
 什么该改，不要绕过去。
