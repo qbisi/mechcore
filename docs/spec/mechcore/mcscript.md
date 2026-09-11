@@ -91,14 +91,16 @@ exist only here and are described below.
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
 | `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
+| `record_replay_deployment` | yes | `grbr`, `round`, new `.json` `output`; native deployment observations; never overwrites |
 | `record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
 | `toggle_fight` | yes | |
 | `speed_up` | yes | standalone operation, distinct from the recording field |
 | `quit_match` | yes | |
 | `quit_game` | yes | |
 
-A recording refuses to overwrite its destination, and a script does not declare
-otherwise. Whether to replace an existing recording is a property of the run,
+For `record_battle` and `record_replay_round`, a recording refuses to overwrite
+its destination, and a script does not declare otherwise. Whether to replace
+an existing recording is a property of the run,
 not of the script: the same document is run once to produce its outputs and
 again to replace them. `mechcore run --force` answers yes for the whole run.
 Without it, an existing destination is asked about once, naming every file at
@@ -108,7 +110,13 @@ The deletion happens in the client either way. The Adapter still refuses to
 write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
 
-Both recording operations accept a research-only HDF5 sidecar request:
+`record_replay_deployment` always requires a new output path, even with
+`--force`. [record-replay-deployment.mcscript](../../../scripts/record-replay-deployment.mcscript)
+is a single-round capture example: change its `grbr`, `round` and `output`
+variables to record another deployment. It produces native observations, not
+a validated `apply` result.
+
+`record_battle` and `record_replay_round` accept a research-only HDF5 sidecar request:
 
 ```yaml
 instrumentation:

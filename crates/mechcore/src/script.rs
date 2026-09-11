@@ -30,6 +30,7 @@ const NATIVE: &[&str] = &[
     "apply_layout",
     "record_battle",
     "record_replay_round",
+    "record_replay_deployment",
     "record_watch_replay",
     "toggle_fight",
     "speed_up",
@@ -720,6 +721,42 @@ async fn perform(
                     force,
                     instrumentation(fields.get("instrumentation"), scope)?,
                 )
+                .await
+        }
+        "record_replay_deployment" => {
+            let fields = arguments
+                .as_object()
+                .ok_or("record_replay_deployment takes a mapping")?;
+            for key in fields.keys() {
+                if !matches!(key.as_str(), "grbr" | "round" | "output") {
+                    return Err(format!(
+                        "record_replay_deployment accepts only grbr, round and output, got {key}"
+                    ));
+                }
+            }
+            let grbr = scope.path(
+                fields
+                    .get("grbr")
+                    .ok_or("record_replay_deployment needs grbr")?,
+                "deployment grbr",
+            )?;
+            let output = scope.path(
+                fields
+                    .get("output")
+                    .ok_or("record_replay_deployment needs output")?,
+                "deployment output",
+            )?;
+            let round = fields
+                .get("round")
+                .and_then(Value::as_i64)
+                .and_then(|n| i32::try_from(n).ok())
+                .ok_or("record_replay_deployment needs an integer round")?;
+            session
+                .record_replay_deployment(mechcore_protocol::RecordReplayDeploymentArguments {
+                    grbr,
+                    round,
+                    output,
+                })
                 .await
         }
         "record_watch_replay" => {

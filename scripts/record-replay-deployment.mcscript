@@ -1,0 +1,20 @@
+# Record one replay round's native deployment state changes.
+# Edit the three variables for another recording; paths are relative to cwd.
+# Run from the repository root:
+#   mechcore run scripts/record-replay-deployment.mcscript --check
+#   mechcore run scripts/record-replay-deployment.mcscript
+# Requires the local macOS arm64 game, build 1.11.1.3.2259.
+# The output must be new, even with --force; choose another path for a new run.
+
+game: launch
+
+vars:
+  grbr: tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
+  round: 2
+  output: work/recordings/deployment.json
+
+steps:
+  - record_replay_deployment:
+      grbr: $grbr
+      round: $round
+      output: $output

@@ -5,8 +5,8 @@ use crate::operations;
 use mechcore_protocol::{
     Busy, Claim, EVICTED_CODE, Evicted, Hello, MAX_LEVEL, MAX_STAGED_ROUND,
     MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL,
-    RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
-    RecordWatchReplayArguments, Refused, Request, Response,
+    RecordBattleArguments, RecordBattleInstrumentation, RecordReplayDeploymentArguments,
+    RecordReplayRoundArguments, RecordWatchReplayArguments, Refused, Request, Response,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -620,6 +620,7 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 capture::CaptureStartMode::TrainingGround,
             ),
             Operation::RecordReplayRound => execute_replay_recording_series(runtime, &request),
+            Operation::RecordReplayDeployment => execute_deployment_series(runtime, &request),
             Operation::RecordWatchReplay => execute_watch_replay_series(runtime, &request),
             _ => execute_on_main(runtime, &request),
         };
@@ -1301,6 +1302,237 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
     result.insert("cleanup".into(), serde_json::json!({"match_exited": true}));
     result.insert("status".into(), cleanup);
     Response::success(request.id, Value::Object(result))
+}
+
+/// Capture starts before loading: the load itself may replay early decisions.
+/// Publish only after source coverage, terminal capture and cleanup all succeed.
+#[allow(clippy::too_many_lines)]
+fn execute_deployment_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let args: RecordReplayDeploymentArguments =
+        match serde_json::from_value(request.arguments.clone()) {
+            Ok(args) => args,
+            Err(error) => {
+                return Response::failure(request.id, "invalid_arguments", error.to_string());
+            }
+        };
+    let prepare = || -> Result<_, String> {
+        if !args.grbr.is_absolute()
+            || !args.grbr.is_file()
+            || args.grbr.extension().and_then(|s| s.to_str()) != Some("grbr")
+            || args.round < 1
+            || !args.output.is_absolute()
+            || args.output.exists()
+            || args.output.extension().and_then(|s| s.to_str()) != Some("json")
+        {
+            return Err("record_replay_deployment needs an existing absolute .grbr, a positive round and a new absolute .json output".into());
+        }
+        let bytes = fs::read(&args.grbr).map_err(|error| error.to_string())?;
+        let record = mechcore_document::record::read(&bytes)?;
+        if record.seat < 0
+            || record.version != "2259"
+            || record.info.match_mode != "VS_1_1"
+            || record.info.match_type.is_some()
+            || !record.info.game_rules.values.is_empty()
+            || record.players.entries.len() != 2
+        {
+            return Err("deployment oracle requires a locally recorded standard 1v1 build-2259 replay without game rules".into());
+        }
+        let mut expected = Vec::new();
+        for player in &record.players.entries {
+            let round = player
+                .rounds
+                .entries
+                .iter()
+                .find(|r| r.round == args.round)
+                .ok_or_else(|| format!("replay has no round {} for both players", args.round))?;
+            expected.push(
+                round
+                    .actions
+                    .entries
+                    .iter()
+                    .map(|action| action.kind.clone())
+                    .collect::<Vec<_>>(),
+            );
+        }
+        Ok((
+            blake3::hash(&bytes).to_hex().to_string(),
+            record.version,
+            expected,
+        ))
+    };
+    let (source_hash, build, expected) = match prepare() {
+        Ok(value) => value,
+        Err(error) => return Response::failure(request.id, "invalid_arguments", error),
+    };
+    if let Err(response) = successful_result(execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::StartDeploymentCapture(args.round),
+    )) {
+        return response;
+    }
+    let run = (|| -> Result<Value, Response<Value>> {
+        successful_result(execute_replay_load_on_main(
+            runtime, request.id, &args.grbr, args.round,
+        ))?;
+        let deadline = Instant::now() + REPLAY_LOAD_TIMEOUT;
+        // The observer can finish while the native loader is still returning.
+        loop {
+            if evicting() {
+                return Err(evicted_response(request.id));
+            }
+            match crate::deployment::progress() {
+                Ok(true) => break,
+                Err(error) => {
+                    return Err(Response::failure(
+                        request.id,
+                        "deployment_capture_failed",
+                        error,
+                    ));
+                }
+                Ok(false) => {}
+            }
+            let status = successful_result(execute_internal_on_main(
+                runtime,
+                request.id,
+                operations::InternalOperation::Status,
+            ))?;
+            if is_replay_state(&status, args.round, true, false) {
+                successful_result(execute_internal_on_main(
+                    runtime,
+                    request.id,
+                    operations::InternalOperation::ReplayFastDeployment,
+                ))?;
+                break;
+            }
+            if Instant::now() >= deadline {
+                return Err(Response::failure(
+                    request.id,
+                    "deployment_capture_timeout",
+                    "replay did not enter the requested deployment",
+                ));
+            }
+            thread::sleep(LAYOUT_STATUS_INTERVAL);
+        }
+        let deadline = Instant::now() + REPLAY_LOAD_TIMEOUT;
+        loop {
+            if evicting() {
+                return Err(evicted_response(request.id));
+            }
+            match crate::deployment::progress() {
+                Ok(true) => break,
+                Err(error) => {
+                    return Err(Response::failure(
+                        request.id,
+                        "deployment_capture_failed",
+                        error,
+                    ));
+                }
+                Ok(false) => {}
+            }
+            if Instant::now() >= deadline {
+                return Err(Response::failure(
+                    request.id,
+                    "deployment_capture_timeout",
+                    "no complete pre-fight deployment boundary",
+                ));
+            }
+            thread::sleep(RECORDING_POLL_INTERVAL);
+        }
+        // Wait for the main-thread callback to unwind and append its final
+        // event; terminal is set inside the original FinishDeploy call.
+        successful_result(execute_internal_on_main(
+            runtime,
+            request.id,
+            operations::InternalOperation::TakeDeploymentCapture,
+        ))
+    })();
+    let _ = execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::StopDeploymentCapture,
+    );
+    let mut observation = match run {
+        Ok(value) => value,
+        Err(response) => return replay_failure_after_cleanup(runtime, request.id, &response),
+    };
+    if let Err(response) = finish_replay_to_main_menu(runtime, request.id) {
+        return response;
+    }
+    if let Err(error) = validate_deployment_coverage(&observation, &expected) {
+        return Response::failure(request.id, "deployment_coverage_mismatch", error);
+    }
+    let mut publish = || -> Result<Value, String> {
+        let current = fs::read(&args.grbr).map_err(|error| error.to_string())?;
+        if blake3::hash(&current).to_hex().as_str() != source_hash {
+            return Err("source replay changed during deployment capture".into());
+        }
+        observation["source"] =
+            serde_json::json!({"grbr": args.grbr, "blake3": source_hash, "build": build});
+        let bytes = serde_json::to_vec(&observation).map_err(|error| error.to_string())?;
+        let parent = args.output.parent().ok_or("output has no parent")?;
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        let mut temporary =
+            tempfile::NamedTempFile::new_in(parent).map_err(|error| error.to_string())?;
+        temporary
+            .write_all(&bytes)
+            .map_err(|error| error.to_string())?;
+        temporary
+            .as_file()
+            .sync_all()
+            .map_err(|error| error.to_string())?;
+        if evicting() {
+            return Err("evicted before deployment publication".into());
+        }
+        temporary
+            .persist_noclobber(&args.output)
+            .map_err(|error| error.to_string())?;
+        Ok(
+            serde_json::json!({"recorded": true, "round": args.round, "output": args.output,
+            "events": observation["events"].as_array().map_or(0, Vec::len),
+            "blake3": blake3::hash(&bytes).to_hex().to_string(), "source_blake3": source_hash}),
+        )
+    };
+    match publish() {
+        Ok(result) => Response::success(request.id, result),
+        Err(error) => Response::failure(request.id, "deployment_publication_failed", error),
+    }
+}
+
+fn validate_deployment_coverage(
+    observation: &Value,
+    expected: &[Vec<String>],
+) -> Result<(), String> {
+    let events = observation["events"]
+        .as_array()
+        .ok_or("trace has no event array")?;
+    let mut actual: [Vec<String>; 2] = [Vec::new(), Vec::new()];
+    for (ordinal, event) in events.iter().enumerate() {
+        if event["ordinal"].as_u64() != Some(ordinal as u64) || event["accepted"] != true {
+            return Err(format!("missing or rejected action at ordinal {ordinal}"));
+        }
+        let team = event["team"]
+            .as_u64()
+            .and_then(|team| usize::try_from(team).ok())
+            .filter(|team| *team < 2)
+            .ok_or("invalid trace team")?;
+        actual[team].push(
+            event["native_type"]
+                .as_str()
+                .ok_or("action has no native type")?
+                .to_owned(),
+        );
+    }
+    for (team, actual) in actual.iter().enumerate() {
+        if expected.get(team) != Some(actual) {
+            return Err(format!(
+                "team {team} native action sequence differs: expected {:?}, captured {:?}",
+                expected.get(team),
+                actual
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn replay_failure_after_cleanup(

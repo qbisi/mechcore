@@ -140,6 +140,9 @@ pub(crate) enum InternalOperation {
         rvo_scope: Option<crate::capture::RvoCaptureScope>,
     },
     StopCapture,
+    StartDeploymentCapture(i32),
+    TakeDeploymentCapture,
+    StopDeploymentCapture,
     ReplayFastDeployment,
     ExpireDeployment(i32),
     ResetDeployment(i32),
@@ -179,6 +182,18 @@ pub(crate) fn execute_internal(
         InternalOperation::StopCapture => crate::capture::stop()
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
+        InternalOperation::StartDeploymentCapture(round) => {
+            crate::deployment::start(runtime, round)
+                .map(|()| json!({"started": true}))
+                .map_err(OperationError::InvalidState)
+        }
+        InternalOperation::TakeDeploymentCapture => {
+            crate::deployment::take().map_err(OperationError::InvalidState)
+        }
+        InternalOperation::StopDeploymentCapture => {
+            crate::deployment::stop();
+            Ok(json!({"stopped": true}))
+        }
         InternalOperation::ReplayFastDeployment => replay_fast_deployment(runtime),
         InternalOperation::ExpireDeployment(round) => expire_deployment(runtime, round),
         InternalOperation::ResetDeployment(round) => reset_deployment(runtime, round),
@@ -267,6 +282,9 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         )),
         Operation::RecordReplayRound => Err(OperationError::InvalidState(
             "record_replay_round requires the runtime capture coordinator".into(),
+        )),
+        Operation::RecordReplayDeployment => Err(OperationError::InvalidState(
+            "record_replay_deployment requires the runtime deployment coordinator".into(),
         )),
         Operation::RecordWatchReplay => Err(OperationError::InvalidState(
             "record_watch_replay requires the runtime watch coordinator".into(),
@@ -646,7 +664,7 @@ fn is_main_menu_scene(scene: &str) -> bool {
     normalized == "mainmenu" || normalized == "mainscene"
 }
 
-fn classify_replay(api: Api, object: *mut Object) -> Option<bool> {
+pub(crate) fn classify_replay(api: Api, object: *mut Object) -> Option<bool> {
     let mut class = api.object_class(object)?;
     let mut replay = false;
     let mut derives_from_match = false;

@@ -6,8 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [features]
-# Reading a replay is the CLI's business, and the four crates that only want
-# the document types should not pull an XML reader in with them.
+# Replay consumers opt in; consumers of document types alone need no XML reader.
 default = []
 convert = ["dep:quick-xml"]
 

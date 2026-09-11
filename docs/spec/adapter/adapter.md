@@ -113,7 +113,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v2","level":1}
+{"kind":"claim","protocol":"mechcore.adapter.v3","level":1}
 ```
 
 The level is `0..=4`. It orders clients and nothing else: a claim strictly
@@ -129,13 +129,14 @@ An admitted claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v2",
+  "protocol": "mechcore.adapter.v3",
   "capabilities": [
     "status",
     "start_test",
     "apply_layout",
     "record_battle",
     "record_replay_round",
+    "record_replay_deployment",
     "record_watch_replay",
     "toggle_fight",
     "speed_up",
@@ -148,7 +149,7 @@ An admitted claim receives:
 A claim that does not win is answered instead:
 
 ```json
-{"kind":"busy","protocol":"mechcore.adapter.v2","holder_level":1,"evicting":true}
+{"kind":"busy","protocol":"mechcore.adapter.v3","holder_level":1,"evicting":true}
 ```
 
 `holder_level` is what the claim lost to, or is taking the game from.
@@ -161,7 +162,7 @@ connection immediately.
 The client being served is told before its connection closes:
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v2","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v3","by_level":3}
 ```
 
 That notice is the difference between a taken game and a crashed one. A client
@@ -502,6 +503,50 @@ never quits the game process. Invalid input, unavailable rounds, capture
 failure, and timeout paths also attempt replay cleanup before returning an
 error.
 
+### record_replay_deployment
+
+Input is `{grbr, round, output}`: an existing absolute local `.grbr` path, a
+positive deployment round, and a new absolute `.json` output path. Only locally
+recorded build-2259 standard 1v1 replays without game rules are admitted.
+The caller starts at `main_menu`; the adapter arms its observer before loading
+the replay and returns to `main_menu` before publishing the trace.
+
+The output uses `mechcore.deployment-observation.v1`. It preserves
+native observations rather than claiming they are a state document. Each event
+carries `ordinal`, `team`, `native_type`, the native `action`, its `accepted`
+result, and `before` and `after` observations. An observation holds both sides'
+native `PlayerSnapshotData`, reinforcement candidate groups, chosen items,
+remaining choices, completion flags and all active Energy Tower skills, plus
+the live `board`. The board omits skill releases; those belong to the native
+skill snapshot. Snapshot counters and inventory retain their native meaning;
+no round income or inferred delivery is added by this observer.
+Native values are read through runtime field metadata, including inherited
+instance fields and compiler-generated property backing fields (named after
+their properties). Lists retain order; enum fields retain their native
+`value__`. Unsupported value types, missing snapshot fields and non-finite
+numbers refuse the trace rather than silently producing empty objects.
+
+The observer brackets the outer `PlayerController.TryPerformAction` call on
+Unity's main thread. Nested work belongs to that outer action. Undo, redo and
+skill cancellation remain in the native sequence. `PAD_FinishDeploy` is a
+checkpoint with no `after`, since it crosses a phase boundary. `terminal` is
+captured immediately before the final player's native `FinishDeploy` body.
+State changes between event boundaries are retained as separate observations,
+not silently charged to either adjacent decision.
+
+Success requires an accepted native sequence matching the original replay's
+per-side action types, both finish boundaries, and an unchanged source file.
+The artifact carries the source path, build and BLAKE3 hash, plus the runtime's
+`game_version`, which must be `1.11.1.3.2259`. The result reports
+`recorded`, `round`, `output`, `events`, output `blake3` and `source_blake3`.
+Observations use a bounded buffer; overflow, read failure, rejected action,
+coverage mismatch, timeout or eviction refuses publication. An existing output
+is never replaced, including when a script uses `--force`.
+
+This operation observes actions the replay executes; it does not certify
+arbitrary-action legality or restore a position in the Training Ground.
+Round zero opening selection is outside this positive-round operation.
+
 ### record_watch_replay
 
 Input names bounded scene/match timeouts and may name an absolute corpus
@@ -687,6 +732,9 @@ cause is addressed.
 | Code | Raised when |
 | --- | --- |
 | `capture_failed` | the capture itself broke, including a second recording header |
+| `deployment_capture_failed`, `deployment_capture_timeout` | deployment readback failed or did not reach both finish boundaries |
+| `deployment_coverage_mismatch` | native action order differs from the source replay |
+| `deployment_publication_failed` | the deployment trace could not be published, or its source changed |
 | `mcfr_error`, `mcfr_reopen_failed` | the recording could not be written, or could not be read back |
 | `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
 | `instrumentation_error`, `instrumentation_verification_failed` | the optional sidecar could not be written or did not verify |
