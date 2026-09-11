@@ -2,25 +2,20 @@
 
 [TOC]
 
-This document defines how a `mechcore` process acquires the running game, how
+## Scope
+
+This contract defines how a `mechcore` process acquires the running game, how
 it classifies what it finds, and what each classification permits. It is the
-shared contract behind `mechcore shell` and `mechcore run`; neither invents its
-own launch path.
+shared contract behind `mechcore shell` and `mechcore run`, and neither invents
+its own launch path.
 
 Acquisition is always **explicitly declared**. There is no implicit fallback
 from attach to launch, and no operation silently starts a game.
 
-## Scope and status
-
-| Part | Status |
-| --- | --- |
-| Adapter socket contract, `busy` greeting | implemented |
-| Detection signals and state matrix | specified here; consumed by `session.rs` |
-| `mechcore shell` acquisition flags | implemented |
-| `mechcore run` `game:` declaration | implemented |
-
-Both frontends were built against this document, and every state in the
-matrix below has been exercised against the real game.
+What happens after acquisition is not here. The socket, its operations and
+their refusals are [adapter.md](../adapter/adapter.md); the run document a
+session executes is [mcscript.md](mcscript.md). This document ends where a
+client is greeted.
 
 ## Who owns the socket file
 
@@ -262,3 +257,28 @@ A non-default `MECHCORE_ADAPTER_SOCKET` moves the endpoint for both the Adapter
 and the client. A game launched with a custom endpoint while the client probes
 the default one is indistinguishable from state **C**; pass the same override to
 both sides.
+
+## Unresolved
+
+**Who shuts down a game whose owner was evicted?** A launching session is
+**owned** and shuts the game down on exit. If a higher claim takes that game,
+the evicted session releases nothing, and the claimant is **not owned** and so
+leaves the game running too. The process then outlives every session that
+touched it. Either ownership should transfer with the game, or eviction should
+be allowed to end a process the claimant did not start, or the outcome is
+correct and a human closing the window is the intended end. Nothing decides
+which.
+
+**Should a custom endpoint be discoverable?** A game launched with
+`MECHCORE_ADAPTER_SOCKET` set, probed by a client using the default, reads
+exactly as state **C**: a foreign game. The current answer is that both sides
+must be given the same override. The alternative is for detection to read the
+endpoint from the process it already found, which would remove a class of
+confusing failure at the cost of a fourth detection signal.
+
+**Whose number is the hand-over deadline?** State **E1** waits two minutes for
+a hand-over and then reports `adapter_busy`. The limit is not declarable, and a
+script cannot say that it is willing to wait longer for a capture it knows is
+long. Whether that belongs in the declaration, in the adapter, or nowhere is
+open.
+

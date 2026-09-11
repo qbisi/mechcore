@@ -41,8 +41,6 @@ ALGORITHM_CONTRACT = {
 # naming a file that already conforms is itself an error.
 PENDING = {
     "docs/spec/simulation/unit-rules.md",
-    "docs/spec/mechcore/mcscript.md",
-    "docs/spec/mechcore/session.md",
     "docs/spec/simulation/rvo.md",
     "docs/spec/simulation/quadtree.md",
 }

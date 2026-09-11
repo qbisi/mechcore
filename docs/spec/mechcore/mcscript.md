@@ -2,6 +2,8 @@
 
 [TOC]
 
+## Scope
+
 A `.mcscript` describes one bounded run: an optional game acquisition, named
 variables, and an ordered list of steps. It replaces the hand-written Python
 drivers that each re-implemented the session lifecycle around a client.
@@ -11,7 +13,14 @@ mechcore run <script.mcscript> [--check]
 ```
 
 `--check` validates the document and exits without probing or launching
-anything.
+anything, which is the whole reason the static rules below are static.
+
+This contract defines the document and what running it means. How the game is
+acquired and what the acquisition failures are called is
+[session.md](session.md); what each native operation does once the socket is
+open is [adapter.md](../adapter/adapter.md). A layout a step applies is
+[layout.md](../document/layout.md) and a recording it produces is
+[mcfr.md](../mcfr/mcfr.md).
 
 ## Document shape
 
@@ -66,6 +75,12 @@ The acquisition states, their failure codes and what evicts what are in
 
 ## Operations
 
+This table says which operations need a game and what the script layer adds to
+each. A native operation's own arguments, result and refusals are
+[adapter.md](../adapter/adapter.md)'s, and a step passes them through rather
+than redefining them. The three offline operations, `let`, `compare` and `sim`,
+exist only here and are described below.
+
 | Operation | Needs a game | Notes |
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
@@ -102,8 +117,9 @@ instrumentation:
   rvo_scope: {start_tick: 4, end_tick: 12, unit_ids: [72, 117, 257, 405]}
 ```
 
-The sidecar path resolves like the recording output and must be new (even with
-`force: true`). RVO scope selects 1–8 unique positive MCFR unit IDs and at most
+The sidecar path resolves like the recording output and must be new, which
+`--force` does not change; `force` is not a script field at all, and a step that
+carries one is rejected. RVO scope selects 1–8 unique positive MCFR unit IDs and at most
 64 ticks of update starts; delayed publications can appear after `end_tick`.
 This instrumentation is separate from MCFR and does not participate in its hash.
 
@@ -310,6 +326,43 @@ so a filter that matched nothing is visible rather than silent.
 A failed step aborts the run, reports `step <n> (<operation>)` with the
 underlying error, and still releases the game.
 
+## Failure
+
+Every failure lands in one of five classes, and which one it is decides what it
+cost.
+
+**Rejected before anything runs.** A document that does not parse, an unknown
+top-level key, a step without exactly one operation key, a `level:` with no
+`game:`, a native operation in an offline script, a loop inside a loop, `steps`
+or `where` on a plain operation, `expect` on a loop itself, or a `force` field
+on a step. `--check` finds all of these, nothing is probed, and no game starts.
+The static rules reach into loop bodies, so a native operation cannot hide in
+one to evade an offline script's `game:` requirement.
+
+**Acquisition failed.** The codes are [session.md](session.md)'s: `no_game`,
+`foreign_game`, `adapter_busy`, `adapter_unresponsive`, `protocol_mismatch`,
+`launch_failed`. No step has run.
+
+**A step failed.** Either the operation returned an error, whose code is
+[adapter.md](../adapter/adapter.md)'s, or an `expect` did not match. The run
+reports `step <n> (<operation>)` with the underlying error, stops, and still
+releases the game. Inside a loop the iteration is the unit that fails: nothing
+later in that body runs and no further iteration starts. Whatever earlier steps
+published stays on disk.
+
+**A destination already exists.** A recording refuses to overwrite. With
+`--force` the client removes the file first; without it the run asks once,
+naming every file at stake, and a run with no terminal to ask on refuses. The
+adapter itself never overwrites either way, so a recording in flight stays
+protected.
+
+**Taken over.** Not a failure. The run reports
+`{"operation":"evicted","completed":false}` and exits successfully, leaving the
+game to the claimant and shutting nothing down.
+
+Only the third and fourth classes can cost a capture. The first two cost
+nothing, which is what makes `--check` worth running before a long script.
+
 ## Worked example
 
 Replay one GRBR round, rebuild it in Training Ground from the layout the replay
@@ -382,3 +435,24 @@ them wastes a capture run:
 
 Because `apply_layout` creates the Training Ground itself, cases run one after
 another in a single game process. Only the first pays the cold start.
+
+## Unresolved
+
+**Should a failing iteration end the whole run?** Today it does: a loop over a
+manifest stops at the first case that fails, and the cases after it are never
+recorded. For a verify run that is right, because the first drift is the answer.
+For a refresh run over a long corpus it throws away the rest of an expensive
+session to report something already known. Either the loop grows a way to say
+which it is, or the two uses stay distinguished only by the presence of
+`expect`, as they are now.
+
+**Should the instrumentation sidecar honour `--force`?** A recording can be
+replaced and its sidecar cannot, so re-running a script that requests one fails
+on the sidecar after the recording has already been overwritten. Either the
+sidecar follows the recording's rule, or the recording should refuse alongside
+it, but the present split leaves a half-applied run.
+
+**Should a loop be allowed inside a loop?** Rejecting it keeps the output shape
+flat, since a line carries one `iteration` and a `step` within one body. Nesting
+would need a shape for that, and no case has yet needed one.
+
