@@ -81,9 +81,41 @@ def replaced_by_successor(before, after, successor):
                for lost in before - after)
 
 
+def net_actions(round_record):
+    """Collapse the recorded undo stack onto the decisions that took effect."""
+    taken = []
+    undone = []
+    for action in round_record.find("actionRecords"):
+        kind = action.get(XSI_TYPE)
+        if kind == "PAD_Undo":
+            if taken:
+                undone.append(taken.pop())
+        elif kind == "PAD_Redo":
+            if undone:
+                taken.append(undone.pop())
+        elif kind == "PAD_CancelReleaseCommanderSkill":
+            undone.clear()
+            skill = action.findtext("SkillIndex")
+            for entry in reversed(taken):
+                candidate, stands = entry
+                if (stands
+                        and candidate.get(XSI_TYPE)
+                        == "PAD_ReleaseCommanderSkill"
+                        and candidate.findtext("SkillIndex") == skill):
+                    entry[1] = False
+                    break
+            taken.append([action, False])
+        elif kind == "PAD_FinishDeploy":
+            undone.clear()
+        else:
+            undone.clear()
+            taken.append([action, True])
+    return [action for action, stands in taken if stands]
+
+
 def energy_tower_activations(round_record):
     return {int(action.findtext("SkillID"))
-            for action in round_record.find("actionRecords")
+            for action in net_actions(round_record)
             if action.get(XSI_TYPE) == "PAD_ActiveEnergyTowerSkill"}
 
 
