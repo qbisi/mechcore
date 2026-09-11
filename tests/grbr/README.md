@@ -13,6 +13,7 @@ hash identity are part of the fixture contract.
 | `2259_20260823--67294111_[你是蓬莱花仙]VS[crower].grbr` | same | 483172 | `d30eea2b61a7afdc101ba6391a94d67ee79cf574b7b0f46c0124f4131d7e4630` |
 | `2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr` | same | 485258 | `f16db1bd8ee2ba4b9d144d5ef314081764b64cec01f61b1d8b065624cb84ba64` |
 | `2259_20260901--67344528_[crower]VS[Charon].grbr` | same | 490505 | `c0468f0b3c63512d683fe96a3f8d1e0894018e00ff835212b5c5bc0e0d47be55` |
+| `2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr` | same | 563932 | `7a36f8d0aa0fe7d28f8d4c8ece814ab82de2cf0a5761974b5cdb897668071af4` |
 
 `2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr` is the integration sample exercised by
 `record_replay_round`. Its serialized player records contain indices `0..=9`;
@@ -28,8 +29,8 @@ into two classes that do not agree with each other. Only one of them is evidence
 ~/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/ProjectDatas/Replay
 ```
 
-**Locally recorded.** Written by this machine while playing. `BattleInfo.Seat`
-holds a real seat, 0 or greater, and the file keeps the
+**Locally recorded.** Written by this machine. `BattleInfo.Seat` holds a real
+seat, 0 or greater, and the file keeps the
 `<build>_<date>--<id>_[a]VS[b].grbr` name. Its snapshots are the ones
 `PlayerSnapshotController` took, so they are the faithful ones. These are the
 files this directory tracks, and the ones any further measurement should use.
@@ -48,6 +49,13 @@ fields differ with no counterexample in either direction, over 282 downloaded an
 Do not treat a downloaded replay as a snapshot of the match. It is a
 reconstruction, and at least these two fields carry the reconstruction's
 conventions rather than the game's state.
+
+A seat above 1 is a spectator, and the file is still locally recorded.
+`[Dr. crbN]VS[trevorism]` holds `Seat` 2 and neither player is this account, so
+it was watched rather than played. It is classed by the two fields above and not
+by the name: `IsSpecialSupply` is false in all twenty of its player-rounds and
+its upgraded blueprint chains list one level, which is the locally recorded
+spelling of both. It is the only tracked replay in which a player concedes.
 
 Older builds appear there too, as `.bak` files from 2203 and 2207. This
 directory is build 2259 only.

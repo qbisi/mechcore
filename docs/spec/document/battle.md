@@ -10,6 +10,10 @@ kind: battle
 map_id: 1001
 seed: 2038621361
 
+concession:
+  side: red
+  round: 9
+
 sides:
   blue:
     tech_loadout: { ... }
@@ -123,10 +127,34 @@ turn's roster and reactor core. A battle is therefore the only one of the four
 documents that states an end-to-end simulator obligation, and the only one whose
 checks can be cross-round.
 
-It also means a battle records no outcome. The last recorded round is a
+It also means a battle records no fight result. The last recorded round is a
 deployment like any other, and the fight that ends the match has no successor
 state to show its result. No fight result is a field anywhere, and every earlier
 one is visible only as the difference between two states.
+
+### A concession is the one ending a decision produces
+
+```yaml
+concession:
+  side: red
+  round: 9
+```
+
+`concession` is optional and names the side that gave up and the round it was in
+when it did. It sits at the battle's root because giving up ends the match
+rather than moving the position its round started from, which is the same
+property that keeps it out of [`action.md`](action.md)'s thirteen decisions.
+
+`round` is the last round the battle holds: the match stops there, so no state
+follows the concession and nothing shows its effect.
+
+Its absence means no player conceded, and says nothing about how the match did
+end. A crystal destroyed and a round cap reached are both fight results, and
+neither is a field. So a battle answers "did someone give up, and who" and not
+"who won".
+
+At most one concession exists, because the first one ends the match. A recording
+naming two is refused rather than reduced to the earlier one.
 
 ## Cross-round invariants
 
@@ -236,6 +264,7 @@ A turn's own collections, and a state's, keep the orders those documents define.
 | `PlayerRecord.data` supply and core settings | The map's row in `matchSettings` gives them, keyed by `map_id` |
 | `BattleRecord.reinforceItems` | Carries no offer; the per-round array does |
 | `PlayerRecord.seed` | Nothing draws from that stream, see the state document |
+| `PAD_GiveUp.Time`, `LocalTime` | A concession names its round; no rule reads a clock |
 | `BattleRecord.Version`, `CreateTime` | Provenance, see below |
 | The 1v1 header constants | Properties of the mode, above |
 
@@ -252,11 +281,11 @@ Making it detectable means a `build` field, and a field is only worth carrying
 if a mismatch is a refusal. That is the same question for all four kinds and
 should be answered once.
 
-**Whether a battle records how the match ended.** Today it does not: the format
-holds positions and decisions, and an outcome is neither. But giving up is a
-decision a player takes that [`action.md`](action.md) has no representation for
-precisely because it ends a match rather than moving a position. If that becomes
-a battle-level field, the two questions are answered together.
+**Whether a battle records a fight result.** `concession` answers the half of
+this that a decision produces. The other half, which side's crystal fell and in
+which round, is the fight's, and a recording carries no field for it. Adding one
+would mean a battle stating something no replay says and only a simulator could
+produce.
 
 **What a battle does with a match that carries game rules.** Refusing is the
 current answer and it is a floor rather than a design. A rule changes premises

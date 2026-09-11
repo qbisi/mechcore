@@ -690,9 +690,9 @@ mod tests {
 
     /// What the tracked replays do and do not say about the inventory.
     ///
-    /// Every state in the four convertible replays opens with an empty stock,
+    /// Every state in the five convertible replays opens with an empty stock,
     /// so what the corpus pins is that a round fits exactly what it took in.
-    /// It holds 23 fits against 17 equipment cards, the other six items coming
+    /// It holds 25 fits against 19 equipment cards, the other six items coming
     /// back off recovered formations.
     ///
     /// That the two sides balance is what the shortfall makes checkable: a fit
@@ -745,7 +745,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!((fits, cards), (23, 17));
+        assert_eq!((fits, cards), (25, 19));
     }
 
     /// A release is the only decision that moves the contraption allocator.
@@ -815,6 +815,6 @@ mod tests {
         }
         // The contraption allocator would close for free on a set that never
         // released one, so the set has to be known to move it.
-        assert_eq!((battles, closed, releases), (4, 594, 46));
+        assert_eq!((battles, closed, releases), (5, 756, 64));
     }
 }

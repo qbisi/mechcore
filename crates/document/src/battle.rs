@@ -16,8 +16,33 @@ pub struct Battle {
     pub kind: DocumentKind,
     pub map_id: i32,
     pub seed: i32,
+    /// Present when a player conceded, which is the one ending a decision
+    /// produces. Absent means the match ended some other way, and which way is
+    /// not recorded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub concession: Option<Concession>,
     pub sides: BattleSides,
     pub turns: Vec<Turn>,
+}
+
+/// Which side a match-level fact belongs to.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Side {
+    Blue,
+    Red,
+}
+
+/// How a match ended, when it ended because a player said so.
+///
+/// Conceding is a decision, but it is not an action: it ends the match rather
+/// than moving the position the round started from, so it sits here and not in
+/// a turn's sequence. `round` is the round the player was in when they
+/// conceded, which is the last round the battle holds.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+pub struct Concession {
+    pub side: Side,
+    pub round: i32,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]

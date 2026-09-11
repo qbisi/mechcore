@@ -6,6 +6,10 @@ An action is one decision a side takes during a deployment round. This document
 defines the thirteen of them: what each carries, and what each does to the
 state the round started from.
 
+A decision that ends the match is not one of them. Giving up leaves the match
+rather than moving the position its round started from, so a
+[battle](battle.md) states it at its own root and no sequence carries it.
+
 A [turn](turn.md) holds the state and the two action sequences taken from it,
 and owns everything about the sequence itself: that order is all a sequence
 carries, which recorded entries are collapsed away before one is written, and
@@ -322,12 +326,6 @@ actions without them produces a position that looks right and is not.
   taking it a second time adds a copy rather than doing nothing.
 
 ## Unresolved
-
-**Whether giving up is an action.** `PAD_GiveUp` is the only player action type
-in the build that overrides `IsExitMatchAction`, and the override returns true
-unconditionally. That argues it ends a match rather than moving a position, and
-so belongs in a battle's result rather than in an action sequence. Until it is
-decided, a replay holding one has no representation at all.
 
 **Whether releasing a construction is an action of its own.**
 `PAD_ReleaseConstruction` is a real type carrying a construction ID, a

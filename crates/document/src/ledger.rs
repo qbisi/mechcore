@@ -575,7 +575,7 @@ mod tests {
             closed += report.closed;
             checked += report.checked();
         }
-        assert_eq!((closed, checked), (66, 66));
+        assert_eq!((closed, checked), (84, 84));
     }
 
     #[test]

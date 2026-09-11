@@ -8,8 +8,9 @@
 //! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, PanelSkill,
-    ShopState, SideState, SkillTarget, State, StateFormation, StateSides, Turn, TurnActions,
+    Action, Battle, BattleSide, BattleSides, Concession, DECLINED_OFFER, EquipmentItem, NextIndex,
+    PanelSkill, ShopState, Side, SideState, SkillTarget, State, StateFormation, StateSides, Turn,
+    TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
@@ -44,6 +45,13 @@ enum Seat {
 }
 
 impl Seat {
+    const fn side(self) -> Side {
+        match self {
+            Self::Blue => Side::Blue,
+            Self::Red => Side::Red,
+        }
+    }
+
     const fn name(self) -> &'static str {
         match self {
             Self::Blue => "blue",
@@ -167,12 +175,52 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         kind: DocumentKind::Battle,
         map_id: record.info.map_id,
         seed: record.info.system_seed,
+        concession: concession(&blue, &red)?,
         sides: BattleSides {
             blue: battle_side(&blue),
             red: battle_side(&red),
         },
         turns,
     })
+}
+
+/// How the match ended, when a player ended it.
+///
+/// `PAD_GiveUp` is the one recorded action that overrides `IsExitMatchAction`,
+/// and the override returns true unconditionally: it leaves the match rather
+/// than moving the position its round started from. So it is read out of the
+/// action list and written at the battle's root, and no turn carries it.
+///
+/// # Errors
+///
+/// Returns an error when both sides concede, which no match can produce: the
+/// first concession ends it.
+fn concession(
+    blue: &record::PlayerRecord,
+    red: &record::PlayerRecord,
+) -> Result<Option<Concession>, String> {
+    let mut conceded = Vec::new();
+    for (seat, player) in [(Seat::Blue, blue), (Seat::Red, red)] {
+        for entry in &player.rounds.entries {
+            if net_actions(&entry.actions.entries)
+                .iter()
+                .any(|action| action.kind == "PAD_GiveUp")
+            {
+                conceded.push(Concession {
+                    side: seat.side(),
+                    round: entry.round,
+                });
+            }
+        }
+    }
+    match conceded.as_slice() {
+        [] => Ok(None),
+        [only] => Ok(Some(*only)),
+        many => Err(format!(
+            "replay records {} concessions, and the first one ends the match",
+            many.len()
+        )),
+    }
 }
 
 fn battle_side(player: &record::PlayerRecord) -> BattleSide {
@@ -659,6 +707,9 @@ fn actions(
                 }
                 continue;
             }
+            // Conceding ends the match rather than moving the position, so
+            // the battle's root carries it and the sequence does not.
+            "PAD_GiveUp" => continue,
             other => return Err(format!("action {other} has no turn representation")),
         });
     }
@@ -713,6 +764,7 @@ mod tests {
 
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
+    const CRBN: &str = "../../tests/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
 
     fn tuff() -> super::Battle {
         battle_from_grbr(&std::fs::read(TUFF).expect("tracked GRBR fixture")).unwrap()
@@ -949,16 +1001,16 @@ mod tests {
                 }
             }
         }
-        assert_eq!((converted, refused), (4, 2));
+        assert_eq!((converted, refused), (5, 2));
     }
 
     /// The recorded energy tower list is the previous round's debt.
     ///
     /// Two readings of one fact, and the conversion now refuses a replay where
     /// they disagree. The tracked set exercises the claim in both directions:
-    /// skill `1` is activated eight times, so a debt the snapshot never carried
-    /// would fail, and the other four skills are activated sixty-three times
-    /// between them, so a snapshot carrying any of those would fail too.
+    /// skill `1` is activated eleven times, so a debt the snapshot never
+    /// carried would fail, and the other four skills are activated eighty-four
+    /// times between them, so a snapshot carrying any of those would fail too.
     #[test]
     fn the_recorded_energy_tower_list_is_the_previous_rounds_debt() {
         let mut deferred = 0;
@@ -983,7 +1035,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!((deferred, immediate), (8, 63));
+        assert_eq!((deferred, immediate), (11, 84));
     }
 
     /// A snapshot that names a skill the round before did not activate is
@@ -1007,6 +1059,34 @@ mod tests {
         let error = battle_from_grbr(&grbr).expect_err("the two readings disagree");
         assert!(error.contains("energy tower skills [2]"), "{error}");
         assert!(error.contains("decided [1]"), "{error}");
+    }
+
+    /// Conceding ends a match, so it is the battle's and not a turn's.
+    ///
+    /// `[Dr. crbN]VS[trevorism]` is the one tracked replay holding a
+    /// `PAD_GiveUp`. Red concedes in round 9, which is the last round the
+    /// battle holds, and the action leaves no trace in either side's sequence.
+    #[test]
+    fn a_conceded_match_says_who_conceded_and_when() {
+        let battle = battle_from_grbr(&std::fs::read(CRBN).expect("tracked GRBR fixture")).unwrap();
+        assert_eq!(
+            battle.concession,
+            Some(crate::battle::Concession {
+                side: crate::battle::Side::Red,
+                round: 9,
+            })
+        );
+        assert_eq!(battle.turns.last().map(|turn| turn.round), Some(9));
+        let yaml = canonical_yaml(&battle).unwrap();
+        assert!(yaml.contains("concession:\n  side: red\n  round: 9\n"), "{yaml}");
+    }
+
+    /// Every other tracked match ended in a way no replay records.
+    #[test]
+    fn a_match_nobody_conceded_carries_no_concession() {
+        assert_eq!(tuff().concession, None);
+        let yaml = canonical_yaml(&tuff()).unwrap();
+        assert!(!yaml.contains("concession"));
     }
 
     #[test]

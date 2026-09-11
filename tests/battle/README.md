@@ -9,7 +9,7 @@ converter, and belongs in `crates/document/src/convert.rs`.
 mechcore convert "tests/grbr/<name>.grbr" "tests/battle/<name>.yaml" --force
 ```
 
-The four are the locally recorded ranked matches of `tests/grbr`; the two
+The five are the locally recorded ranked matches of `tests/grbr`; the two
 `VS[电脑]` files are practice matches against the computer and are not tracked
 here. `docs/spec/document/battle.md` describes the document and says which of its fields the
 converter rebuilds rather than copies.
@@ -20,6 +20,7 @@ converter rebuilds rather than copies.
 | `2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml` | 1021 | 31103914 | 9 | 260 | 66220 | `ac84b4246474124c0726e963436ed8fd77ce99d25ecadb2c36298367d64b952d` |
 | `2259_20260901--201562557_[crower]VS[[BORK]  Caine].yaml` | 1001 | 2038621361 | 10 | 332 | 85013 | `a02bd58b0d64dd1a35b4089bd7cff4477809cdff89bec53cfa3d45cb38d47d98` |
 | `2259_20260901--67344528_[crower]VS[Charon].yaml` | 1032 | 403681099 | 9 | 287 | 65142 | `f5de58c9517cc2191879e9ad3e7cf097708515e1bd1495ea51732e832bf4d86d` |
+| `2259_20260911--67398165_[Dr. crbN]VS[trevorism].yaml` | 1032 | 318292838 | 10 | 292 | 78432 | `b9d729d023c1fc02e3a206e5268a9b6e0ab156de37ee0fbc121dc3a104f14144` |
 
 Every one of them converts with both of the converter's checks closing
 completely, which is what makes them usable as fixtures. A transition count is
@@ -32,9 +33,13 @@ nine field comparisons per round transition per side, so it moves whenever
 | `2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml` | 16 of 16 | 144 of 144 |
 | `2259_20260901--201562557_[crower]VS[[BORK]  Caine].yaml` | 18 of 18 | 162 of 162 |
 | `2259_20260901--67344528_[crower]VS[Charon].yaml` | 16 of 16 | 144 of 144 |
+| `2259_20260911--67398165_[Dr. crbN]VS[trevorism].yaml` | 18 of 18 | 162 of 162 |
 
 None is paid by the fight and none is unpriced, so the whole corpus is priced
 supply that the ledger reproduces from the previous round.
+
+`[Dr. crbN]VS[trevorism]` is the only one with a `concession`, and the only one
+whose ending any document states.
 
 `mechcore verify` reads layout documents only, and refuses these by kind. There
 is no battle verifier yet; the conversion's own two checks are the check.
