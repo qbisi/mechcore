@@ -132,6 +132,7 @@ fn record(report: &mut Report, economy: &Economy, transition: &Transition<'_>) {
         transition.state,
         &panel,
         transition.actions,
+        transition.round,
     ) else {
         report.unpriced += 1;
         return;
@@ -145,12 +146,24 @@ fn record(report: &mut Report, economy: &Economy, transition: &Transition<'_>) {
         })
         .map(|skill| skill.owed)
         .sum();
+    // A formation can carry an income as well as a stat: Command Core pays its
+    // side 50 a round. What it pays for the next round is decided by the board
+    // this round opened with, so fitting one mid-round first pays a round
+    // later.
+    let worn: i32 = transition
+        .state
+        .formations
+        .iter()
+        .filter_map(|entry| entry.formation.equipment)
+        .map(|equipment| economy.equipment_round_supply(equipment))
+        .sum();
     let earned = round_income(
         economy,
         transition.next_round,
         &transition.following.techs.officers,
         transition.map,
-    ) - owed;
+    ) + worn
+        - owed;
     let expected = transition.state.supply - spent + earned;
     if expected == transition.following.supply {
         report.closed += 1;
@@ -198,10 +211,23 @@ pub fn round_income(economy: &Economy, round: i32, officers: &[i32], map: RoundS
     base + extra
 }
 
+/// One formation, and what recovering it would pay back.
+#[derive(Clone, Copy)]
+struct Formation {
+    unit: i32,
+    /// The purchase price, at the prices the side's officers made at the time.
+    paid: i32,
+    level: i32,
+    /// What it wears, since Upgrade Kit makes its upgrades cheaper.
+    equipment: Option<i32>,
+}
+
 /// A side's prices, as the officers it holds change them.
 struct Purse<'a> {
     economy: &'a Economy,
     officers: Vec<Officer>,
+    /// What Elite Recruitment has added to the shop's level this round.
+    raised: i32,
 }
 
 impl<'a> Purse<'a> {
@@ -212,6 +238,7 @@ impl<'a> Purse<'a> {
                 .iter()
                 .filter_map(|officer| economy.officer(*officer).cloned())
                 .collect(),
+            raised: 0,
         }
     }
 
@@ -238,6 +265,23 @@ impl<'a> Purse<'a> {
         Some((price + self.modifier(|officer| officer.unit_supply, Some(unit))).max(0))
     }
 
+    /// The level a bought unit arrives at, which an officer can raise.
+    ///
+    /// Two officers that cover the same unit do not add their levels: Elite
+    /// Specialist recruits everything at 2 and Elite Crawler recruits Crawlers
+    /// at 5, and a side holding both buys a Crawler at 5 rather than at 6.
+    fn shop_level(&self, unit: i32) -> i32 {
+        let officers = self
+            .officers
+            .iter()
+            .filter(|officer| officer.units.is_empty() || officer.units.contains(&unit))
+            .map(|officer| officer.shop_unit_level)
+            .max()
+            .unwrap_or(1)
+            .max(1);
+        officers + self.raised
+    }
+
     fn unlock(&self, unit: i32) -> Option<i32> {
         let price = self.economy.unit(unit)?.unlock_supply;
         Some((price + self.modifier(|officer| officer.unlock_supply, Some(unit))).max(0))
@@ -248,10 +292,109 @@ impl<'a> Purse<'a> {
         Some((price + self.modifier(|officer| officer.upgrade_supply, Some(unit))).max(0))
     }
 
-    fn technology(&self, technology: i32) -> Option<i32> {
-        let price = self.economy.technology(technology)?;
-        Some((price + self.modifier(|officer| officer.technology_supply, None)).max(0))
+    /// What researching a technology costs, given how many the unit already has.
+    ///
+    /// `UnitTechnologyManager.GetUpgradeCost` prices a technology as the step
+    /// times the count already active plus its own supply, so the second
+    /// technology on one unit costs more than the first.
+    ///
+    /// A technology discount is scoped like every other. Efficient Technology
+    /// Research covers every unit, while Sabertooth Specialist covers only its
+    /// own, so the discount asks about the unit the technology belongs to.
+    fn technology(&self, technology: i32, unit: i32, researched: i32) -> Option<i32> {
+        let price = self.economy.technology(technology)?
+            + researched * self.economy.technology_repeat_step();
+        Some((price + self.modifier(|officer| officer.technology_supply, Some(unit))).max(0))
     }
+}
+
+/// The formations a round opens with, and what recovering each would pay back.
+///
+/// Recovery pays what the formation cost: the price paid for it, at the prices
+/// its side's officers made at the time, plus one upgrade for every level above
+/// the first. The record's own `sell_supply` is the purchase half alone, so the
+/// levels are added when the recovery is priced.
+fn opening_roster(state: &SideState) -> BTreeMap<i32, Formation> {
+    state
+        .formations
+        .iter()
+        .filter_map(|entry| {
+            let unit = unit_id_from_type(&entry.formation.type_name)?;
+            Some((
+                entry.formation.index,
+                Formation {
+                    unit,
+                    paid: entry.value.unwrap_or(0),
+                    level: entry.formation.level.unwrap_or(1),
+                    equipment: entry.formation.equipment,
+                },
+            ))
+        })
+        .collect()
+}
+
+/// Files the squads the side's officers hand out this round.
+///
+/// A specialist delivers on its own schedule, which `crate::transition` states,
+/// and the squad arrives before any of the round's own decisions. It has to be
+/// filed for the same reason a card's squads do: it takes the next index, and
+/// everything bought afterwards is filed one along from where it would be.
+fn officer_squads(
+    economy: &Economy,
+    state: &SideState,
+    round: i32,
+    roster: &mut BTreeMap<i32, Formation>,
+    next_index: &mut i32,
+) -> Option<()> {
+    for officer in &state.techs.officers {
+        let Some(officer) = economy.officer(*officer) else {
+            continue;
+        };
+        let Some(opening) = officer.opening_unit.filter(|_| officer.active_round == round) else {
+            continue;
+        };
+        roster.insert(
+            *next_index,
+            Formation {
+                unit: opening.unit,
+                paid: economy.unit(opening.unit)?.supply,
+                level: opening.level,
+                equipment: None,
+            },
+        );
+        *next_index += 1;
+    }
+    Some(())
+}
+
+/// Files the squads a card hands out, which it does as the card is taken.
+///
+/// Leaving them out does not just lose their recovery value: it shifts the
+/// index every later purchase is filed under, so a recovery names the wrong
+/// formation. Recovering one pays back the unit's own price, since the side
+/// never bought it and no officer discount ever applied.
+fn hand_out(
+    economy: &Economy,
+    card: i32,
+    roster: &mut BTreeMap<i32, Formation>,
+    next_index: &mut i32,
+) -> Option<()> {
+    let Some(reinforcement) = economy.unit_reinforcement(card) else {
+        return Some(());
+    };
+    for _ in 0..reinforcement.squads {
+        roster.insert(
+            *next_index,
+            Formation {
+                unit: reinforcement.unit,
+                paid: economy.unit(reinforcement.unit)?.supply,
+                level: reinforcement.level,
+                equipment: None,
+            },
+        );
+        *next_index += 1;
+    }
+    Some(())
 }
 
 /// Prices one round's decisions, or reports that one has no price.
@@ -261,38 +404,64 @@ fn spend(
     state: &SideState,
     panel: &BTreeMap<i32, i32>,
     actions: &[Action],
+    round: i32,
 ) -> Option<i32> {
-    let mut roster: BTreeMap<i32, (i32, i32)> = state
-        .formations
-        .iter()
-        .filter_map(|entry| {
-            let unit = unit_id_from_type(&entry.formation.type_name)?;
-            Some((entry.formation.index, (unit, entry.value.unwrap_or(0))))
-        })
-        .collect();
+    let mut roster = opening_roster(state);
+    // How many technologies each unit already holds, which is what makes the
+    // next one on that unit dearer.
+    let mut researched: BTreeMap<i32, i32> = BTreeMap::new();
+    for tech in &state.techs.units {
+        if let Some(unit) = economy.technology_owner(*tech) {
+            *researched.entry(unit).or_default() += 1;
+        }
+    }
     let mut next_index = state.next_index.unit;
+    officer_squads(economy, state, round, &mut roster, &mut next_index)?;
     let mut towers: Vec<i32> = state.tower_strengthen_levels.clone();
     let mut total = 0;
     for action in actions {
         total += match action {
             Action::BuyUnit { unit, .. } => {
+                // A unit that arrives above level 1 is paid for as a purchase
+                // plus one upgrade per level above the first.
                 let price = purse.buy(*unit)?;
-                roster.insert(next_index, (*unit, price));
+                let level = purse.shop_level(*unit);
+                roster.insert(
+                    next_index,
+                    Formation {
+                        unit: *unit,
+                        paid: price,
+                        level,
+                        equipment: None,
+                    },
+                );
                 next_index += 1;
-                price
+                price + (level - 1) * purse.upgrade(*unit)?
             }
             Action::UnlockUnit { unit } => purse.unlock(*unit)?,
             Action::UpgradeUnit { index } => {
-                let (unit, value) = *roster.get(index)?;
-                let price = purse.upgrade(unit)?;
-                // Recovering a formation pays back its upgrades too.
-                roster.insert(*index, (unit, value + price));
+                let formation = roster.get_mut(index)?;
+                let (unit, worn) = (formation.unit, formation.equipment);
+                formation.level += 1;
+                // A discount can exceed the price, and an upgrade is never
+                // paid backwards.
+                (purse.upgrade(unit)?
+                    + worn.map_or(0, |id| economy.equipment_upgrade_supply(id)))
+                .max(0)
+            }
+            Action::UpgradeTechnology { tech, .. } => {
+                let unit = economy.technology_owner(*tech)?;
+                let count = researched.entry(unit).or_default();
+                let price = purse.technology(*tech, unit, *count)?;
+                *count += 1;
                 price
             }
-            Action::UpgradeTechnology { tech, .. } => purse.technology(*tech)?,
             Action::ActiveBlueprint { id } => economy.blueprint(*id)?,
             Action::ActiveEnergyTowerSkill { skill } => {
                 let skill = economy.energy_tower_skill(*skill)?;
+                // Elite Recruitment raises the shop for the rest of the round,
+                // so a unit bought after it costs its extra level too.
+                purse.raised += skill.shop_unit_level;
                 skill.supply - skill.granted
             }
             Action::StrengthenTower { tower } => {
@@ -303,6 +472,12 @@ fn spend(
             Action::ChooseReinforceItem { id, .. } => {
                 let price = economy.card(*id)?;
                 let granted = purse.add(*id).map_or(0, |officer| officer.granted_supply);
+                // A card that hands out squads allocates them as it is taken,
+                // which is what the indices of the rest of the round's
+                // purchases are counted from. Recovering one pays back the
+                // unit's own price: the side never bought it, so no officer
+                // discount ever applied to it.
+                hand_out(economy, *id, &mut roster, &mut next_index)?;
                 price - granted
             }
             Action::ChooseAdvanceTeam { id, .. } => economy.card(*id)?,
@@ -311,7 +486,9 @@ fn spend(
                 // and pays back what that formation cost.
                 match (panel.get(skill), target) {
                     (Some(id), SkillTarget::Unit(index)) if RECOVERY_SKILLS.contains(id) => {
-                        -roster.get(index)?.1
+                        let formation = *roster.get(index)?;
+                        -(formation.paid
+                            + (formation.level - 1) * purse.upgrade(formation.unit)?)
                     }
                     (Some(id), SkillTarget::Construction(index))
                         if RECOVERY_SKILLS.contains(id) =>
@@ -326,10 +503,21 @@ fn spend(
                     _ => 0,
                 }
             }
-            Action::DeclineReinforceItem
-            | Action::MoveUnit { .. }
-            | Action::ReleaseContraption { .. }
-            | Action::UseEquipment { .. } => 0,
+            // A contraption is bought from the shop as it is placed, so a
+            // release is a purchase. Its price is the contraption's own.
+            Action::ReleaseContraption { contraption, .. } => economy.contraption(*contraption)?,
+            // Declining is an item of its own rather than the absence of one,
+            // and the item it is pays supply.
+            Action::DeclineReinforceItem => -economy.reinforce_decline(),
+            // Fitting an item is free; the card was paid for when it was taken.
+            // What it can change is the price of upgrading its formation.
+            Action::UseEquipment { equipment, unit } => {
+                if let Some(formation) = roster.get_mut(unit) {
+                    formation.equipment = Some(*equipment);
+                }
+                0
+            }
+            Action::MoveUnit { .. } => 0,
         };
     }
     Some(total)
@@ -348,7 +536,6 @@ mod tests {
     use crate::economy::Economy;
 
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
-    const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
 
     fn report_for(path: &str) -> super::Report {
         let battle = battle_from_grbr(&std::fs::read(path).unwrap()).unwrap();
@@ -363,11 +550,31 @@ mod tests {
     }
 
     #[test]
-    fn most_rounds_of_a_tracked_match_close() {
+    fn every_decidable_round_of_a_tracked_match_closes() {
         let report = report_for(TUFF);
-        assert_eq!((report.closed, report.failed), (11, 4));
+        assert_eq!((report.closed, report.failed), (16, 0));
         assert_eq!(report.fight_pays, 0);
-        assert_eq!(report.unpriced, 1);
+        assert_eq!(report.unpriced, 0);
+    }
+
+    /// The whole tracked set, so a price that only fits one match cannot pass.
+    #[test]
+    fn the_tracked_set_closes_every_round() {
+        let economy = Economy::embedded().unwrap();
+        let (mut closed, mut checked) = (0, 0);
+        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+            let path = entry.expect("directory entry").path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
+                continue;
+            };
+            let report = check(&battle, &economy);
+            closed += report.closed;
+            checked += report.checked();
+        }
+        assert_eq!((closed, checked), (66, 66));
     }
 
     #[test]
@@ -391,12 +598,19 @@ mod tests {
         );
     }
 
+    /// A failure has to say which round it is and by how much it misses.
+    /// Nothing in the tracked set fails any more, so the shape is checked
+    /// against a state whose supply was moved by hand.
     #[test]
     fn a_ledger_failure_names_the_round_and_the_difference() {
-        let report = report_for(CAINE);
-        assert!(report.closed >= report.failed);
+        let economy = Economy::embedded().unwrap();
+        let mut battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
+        battle.turns[3].state.sides.red.supply += 50;
+        let report = check(&battle, &economy);
+        assert!(!report.failures.is_empty());
         let failure = &report.failures[0];
         assert!(failure.side == "blue" || failure.side == "red");
+        assert!(failure.round > 0);
         assert_ne!(failure.expected, failure.actual);
     }
 }

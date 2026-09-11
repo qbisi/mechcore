@@ -21,6 +21,9 @@ const ECONOMY: &str = include_str!("../../../config/economy.yaml");
 pub struct Economy {
     units: BTreeMap<i32, UnitPrice>,
     technologies: BTreeMap<i32, i32>,
+    /// Which unit each technology belongs to, so a repeat can be counted.
+    technology_owner: BTreeMap<i32, i32>,
+    technology_repeat_step: i32,
     cards: BTreeMap<i32, Card>,
     advance_teams: BTreeMap<i32, AdvanceTeam>,
     unit_reinforcements: BTreeMap<i32, UnitReinforcement>,
@@ -30,6 +33,8 @@ pub struct Economy {
     energy_tower_skills: BTreeMap<i32, EnergyTowerSkill>,
     round_supply: RoundSupply,
     constructions: BTreeMap<String, i32>,
+    contraptions: BTreeMap<i32, i32>,
+    reinforce_decline: i32,
 }
 
 /// What one unit costs to buy, to unlock and to raise one level.
@@ -61,6 +66,16 @@ pub enum CardKind {
 pub struct Card {
     pub kind: CardKind,
     pub supply: i32,
+    /// What wearing this takes off the price of upgrading its formation.
+    ///
+    /// Upgrade Kit is the only item in this build that discounts one, by 100.
+    #[serde(default)]
+    pub upgrade_supply: i32,
+    /// What wearing this adds to its side's income every round.
+    ///
+    /// Command Core is the only item in this build that pays one, at 50.
+    #[serde(default)]
+    pub round_supply: i32,
 }
 
 /// What a side can pick as its opening in round 0.
@@ -122,6 +137,13 @@ pub struct Officer {
     pub technology_supply: i32,
     #[serde(default)]
     pub upgrade_supply: i32,
+    /// The level a unit the officer covers arrives at when bought.
+    ///
+    /// Elite Specialist recruits every unit at level 2 and Elite Crawler
+    /// recruits Crawlers at level 5. The levels are not free: buying pays the
+    /// unit's price plus one upgrade for each level above the first.
+    #[serde(default)]
+    pub shop_unit_level: i32,
     #[serde(default)]
     pub round_supply: i32,
     #[serde(default)]
@@ -156,6 +178,11 @@ pub struct Officer {
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct EnergyTowerSkill {
+    /// How much higher a unit bought after this skill arrives. Elite
+    /// Recruitment raises the shop by one level for the rest of the round,
+    /// which is a price as well as a level.
+    #[serde(default)]
+    pub shop_unit_level: i32,
     pub supply: i32,
     /// What activating pays back at once.
     pub granted: i32,
@@ -183,6 +210,7 @@ struct UnitTechFile {
 
 #[derive(Deserialize)]
 struct UnitTechRow {
+    unit_id: i32,
     technologies: Vec<TechnologyPrice>,
 }
 
@@ -243,10 +271,19 @@ struct OfficerRow {
 #[derive(Deserialize)]
 struct EconomyFile {
     blueprints: Vec<BlueprintPrice>,
+    reinforce_decline: i32,
+    technology_repeat_step: i32,
+    contraptions: Vec<ContraptionPrice>,
     constructions: Vec<ConstructionRecovery>,
     tower_strengthen: Vec<TowerLevel>,
     energy_tower_skills: Vec<EnergyTowerRow>,
     round_supply: RoundSupply,
+}
+
+#[derive(Deserialize)]
+struct ContraptionPrice {
+    id: i32,
+    supply: i32,
 }
 
 #[derive(Deserialize)]
@@ -316,9 +353,14 @@ impl Economy {
                 .collect(),
             technologies: techs
                 .units
-                .into_iter()
-                .flat_map(|row| row.technologies)
+                .iter()
+                .flat_map(|row| &row.technologies)
                 .map(|tech| (tech.id, tech.supply))
+                .collect(),
+            technology_owner: techs
+                .units
+                .iter()
+                .flat_map(|row| row.technologies.iter().map(|tech| (tech.id, row.unit_id)))
                 .collect(),
             cards: cards
                 .items
@@ -360,6 +402,13 @@ impl Economy {
                 .into_iter()
                 .map(|row| (row.type_name, row.recovers))
                 .collect(),
+            contraptions: economy
+                .contraptions
+                .into_iter()
+                .map(|row| (row.id, row.supply))
+                .collect(),
+            reinforce_decline: economy.reinforce_decline,
+            technology_repeat_step: economy.technology_repeat_step,
             round_supply: economy.round_supply,
         })
     }
@@ -372,6 +421,32 @@ impl Economy {
     #[must_use]
     pub fn technology(&self, technology: i32) -> Option<i32> {
         self.technologies.get(&technology).copied()
+    }
+
+    /// The unit a technology belongs to.
+    #[must_use]
+    pub fn technology_owner(&self, technology: i32) -> Option<i32> {
+        self.technology_owner.get(&technology).copied()
+    }
+
+    /// What each technology already active on a unit adds to the next one.
+    #[must_use]
+    pub const fn technology_repeat_step(&self) -> i32 {
+        self.technology_repeat_step
+    }
+
+    /// What an equipment takes off the price of upgrading its formation.
+    #[must_use]
+    pub fn equipment_upgrade_supply(&self, equipment: i32) -> i32 {
+        self.cards
+            .get(&equipment)
+            .map_or(0, |card| card.upgrade_supply)
+    }
+
+    /// What an equipment adds to its side's income every round it is worn.
+    #[must_use]
+    pub fn equipment_round_supply(&self, equipment: i32) -> i32 {
+        self.cards.get(&equipment).map_or(0, |card| card.round_supply)
     }
 
     /// What taking a card costs, whichever kind of card it is.
@@ -464,6 +539,22 @@ impl Economy {
         self.constructions.get(type_name).copied()
     }
 
+    /// What releasing a contraption costs.
+    #[must_use]
+    pub fn contraption(&self, contraption: i32) -> Option<i32> {
+        self.contraptions.get(&contraption).copied()
+    }
+
+    /// What declining the round's reinforcement pays back.
+    ///
+    /// Declining is itself an item rather than the absence of one, which is
+    /// why it pays: `ReinforcementManager.GetGiveUpReinforce` hands back an
+    /// `AddSupplyReinforceItem`.
+    #[must_use]
+    pub const fn reinforce_decline(&self) -> i32 {
+        self.reinforce_decline
+    }
+
     #[must_use]
     pub const fn round_supply(&self) -> RoundSupply {
         self.round_supply
@@ -488,6 +579,27 @@ mod tests {
         assert_eq!(economy.round_supply().max, 4000);
         assert_eq!(economy.construction_recovery("defensive_wall"), Some(50));
         assert_eq!(economy.construction_recovery("anti_armor_turret"), Some(100));
+    }
+
+    #[test]
+    fn releasing_a_contraption_costs_its_own_price() {
+        let economy = Economy::embedded().unwrap();
+        assert_eq!(economy.contraption(10_001), Some(100));
+        assert_eq!(economy.contraption(20_001), Some(50));
+        assert_eq!(economy.contraption(30_001), Some(100));
+    }
+
+    #[test]
+    fn an_equipment_can_pay_and_discount() {
+        let economy = Economy::embedded().unwrap();
+        assert_eq!(economy.equipment_round_supply(13_030_010), 50);
+        assert_eq!(economy.equipment_upgrade_supply(13_030_004), -100);
+        assert_eq!(economy.equipment_round_supply(13_030_004), 0);
+    }
+
+    #[test]
+    fn declining_the_round_card_pays_back() {
+        assert_eq!(Economy::embedded().unwrap().reinforce_decline(), 50);
     }
 
     #[test]

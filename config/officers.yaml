@@ -76,6 +76,7 @@ officers:
     technology_supply: -50
     active_round: 3
     opening_unit: {unit: 21, level: 1, unlock_round: 1}
+    units: [21]
   - id: 20037
     name: 先知专家
     active_round: 4
@@ -85,6 +86,7 @@ officers:
     technology_supply: -50
     active_round: 3
     opening_unit: {unit: 20, level: 1, unlock_round: 1}
+    units: [20]
   - id: 20039
     name: 台风专家
     active_round: 4

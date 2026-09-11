@@ -25,12 +25,41 @@ tower_strengthen:
 
 # `supply` is what activating costs, `granted` what it pays back
 # at once, and `owed` what it takes from the next round's income.
+# `shop_unit_level` is how much higher a unit bought after it
+# arrives, which is a price as well as a level.
 energy_tower_skills:
   - {id: 1, name: 快速补给, supply: 0, granted: 200, owed: 300}
   - {id: 3, name: 批量征召, supply: 50, granted: 0, owed: 0}
-  - {id: 4, name: 精英征召, supply: 100, granted: 0, owed: 0}
+  - {id: 4, name: 精英征召, supply: 100, granted: 0, shop_unit_level: 1, owed: 0}
   - {id: 5, name: 强化瞄准, supply: 100, granted: 0, owed: 0}
   - {id: 6, name: 高速移动, supply: 50, granted: 0, owed: 0}
+
+# What each technology already researched on a unit adds to the
+# next one's price. `UnitTechnologyManager.GetUpgradeCost` computes
+# a technology's price as this times the count already active plus
+# the technology's own supply, capped by the unit's
+# `techUpgradeMaxSupplyLimit`, which is zero for every unit a
+# standard match can field. The shipped
+# `techUpgradeIncreaseSupplyPerCount` reads zero as well, so the step
+# is measured: a second technology on one unit costs 200 more in 29
+# of the 37 decidable rounds that research one, a third 400 more and
+# a fourth 600 more.
+technology_repeat_step: 200
+
+# What declining the round's reinforcement pays. Declining is itself
+# an item: `ReinforcementManager.GetGiveUpReinforce` returns an
+# `AddSupplyReinforceItem`, built per round rather than read from a
+# shipped table, so this is measured. Every one of the 26 decidable
+# declines in the local replay set pays this, in rounds 2 through 8.
+reinforce_decline: 50
+
+# What releasing a contraption costs. The config data container
+# does not carry these; they come from the `constraptionDatas`
+# object of `level0`.
+contraptions:
+  - {type: shield, id: 10001, name: 护盾发生器, supply: 100}
+  - {type: missile, id: 20001, name: 哨戒飞弹, supply: 50}
+  - {type: interceptor, id: 30001, name: 导弹拦截器, supply: 100}
 
 # What recovering a construction pays back. Unlike a unit's,
 # this is a property of the construction and not of its history.

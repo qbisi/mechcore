@@ -343,14 +343,71 @@ type and level, bought a round apart, can be worth different amounts. All 56
 formations a recovery skill targeted in the local set are gone from the next
 snapshot, while every formation another skill targeted is still there.
 
+What a formation's recorded `sell_supply` carries is the purchase half alone.
+The levels are refunded on top of it, one upgrade for every level above the
+first, and leaving them out is what made a recovery round read as though the
+side had spent more than it did. An upgrade costs half the unit's price in every
+one of the 32 units this build fields, so the whole amount is
+`price x (level + 1) / 2` for a formation nobody discounted, but the ledger
+prices each upgrade from the unit's own row rather than assuming the ratio
+holds.
+
 Recovering a construction pays a fixed price instead, which its type alone
 decides, and `config/economy.yaml` states it.
 
-Over the four tracked ranked replays, 37 of the 62 decidable round transitions
-close, and 4 hold a released skill whose panel slot no state names. What the
-failures still owe is known rather than mysterious: a formation a card handed
-out has a value the converter never saw paid, and a card can raise a
-formation's level without an upgrade of its own.
+The prices the ledger charged wrongly at first are worth stating, because each
+is a decision whose amount no action names.
+
+- An officer can make the shop sell at a higher level. Elite Specialist recruits
+  everything at level 2 and Elite Crawler recruits Crawlers at 5, and the levels
+  are not free: buying pays the unit's price plus one upgrade for each level
+  above the first. Two officers that cover one unit take the higher level rather
+  than adding.
+- Elite Recruitment does the same for one round. It raises the shop by a level
+  for every purchase after it, which its `shopUnitLevelChangeValue` states.
+- Releasing a contraption is a purchase. The Energy Shield costs 100, the
+  Sentry Missile 50 and the Missile Interceptor 100, from the `constraptionDatas`
+  object of `level0`, which the config data container does not carry.
+- Declining the round's reinforcement pays 50. Declining is an item of its own
+  rather than the absence of one:
+  `ReinforcementManager.GetGiveUpReinforce` hands back an
+  `AddSupplyReinforceItem`. No shipped table carries the amount, so this one is
+  measured, and every one of the 26 decidable declines in the local set pays it.
+- A technology costs more when the unit already has one.
+  `UnitTechnologyManager.GetUpgradeCost` prices it as a step times the count
+  already active plus its own supply, capped by the unit's
+  `techUpgradeMaxSupplyLimit`, which is zero for every unit a standard match
+  can field. The step is 200, and it is measured rather than read: the shipped
+  `techUpgradeIncreaseSupplyPerCount` is zero for every one of those units. A
+  second technology on one unit costs 200 more in 29 of the 37 decidable rounds
+  that research one, a third 400 more, a fourth 600 more.
+- A technology discount is scoped like every other. Efficient Technology
+  Research covers every unit, but Sabertooth Specialist and Fire Badger
+  Specialist each cover only their own, which their `unitID` states and their
+  description repeats. Applying either of those to another unit's technology is
+  what made a research round read as 50 cheap.
+- An equipment can change an amount rather than a stat, and two do. Upgrade Kit
+  takes 100 off every upgrade of the formation wearing it, from its
+  `EquipmentData.upgradeSupplyChangeValue`; a discount may exceed the price, and
+  an upgrade is never paid backwards. Command Core pays its side 50 a round,
+  from the same class's `roundSupply`. What the income pays for the next round
+  is decided by the board this round opened with, so fitting one mid-round
+  first pays a round later.
+- A specialist's squad arrives before any of the round's decisions, in the
+  round the officer's own `activeRound` names, and it takes the next index. A
+  side that recovers it straight away is paying itself back the unit's price,
+  and a side that buys afterwards files those purchases one along.
+- A card that hands out squads allocates them as it is taken, before anything
+  the round buys afterwards. Leaving them out of the roster does not just lose
+  their recovery value: it shifts the index every later purchase is filed
+  under, so a recovery names the wrong formation. Recovering one pays back the
+  unit's own price, since the side never bought it and no officer discount ever
+  applied.
+
+Every decidable round transition closes, on the four tracked ranked replays and
+on the locally recorded set alike: 66 of 66 and 550 of 550. No round is left
+unpriced either; the ones that used to be were recovering a formation a card had
+handed out, which the roster did not hold.
 
 An officer that pays a bounty for destroying a giant is the one thing left that
 the fight decides, and a side holding one is counted apart.

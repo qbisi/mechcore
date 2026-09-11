@@ -129,9 +129,9 @@ items:
   - {id: 13030001, name: 激光瞄具, kind: equipment, supply: 50}
   - {id: 13030002, name: 重型装甲, kind: equipment, supply: 50}
   - {id: 13030003, name: 改良火控系统, kind: equipment, supply: 50}
-  - {id: 13030004, name: 强化模块, kind: equipment, supply: 200}
+  - {id: 13030004, name: 强化模块, kind: equipment, supply: 200, upgrade_supply: -100}
   - {id: 13030005, name: 速攻模块, kind: equipment, supply: 0}
   - {id: 13030006, name: 超重型装甲, kind: equipment, supply: 200}
   - {id: 13030007, name: 增幅核心, kind: equipment, supply: 150}
-  - {id: 13030010, name: 统御核心, kind: equipment, supply: 100}
+  - {id: 13030010, name: 统御核心, kind: equipment, supply: 100, round_supply: 50}
   - {id: 13040001, name: 部署模块, kind: equipment, supply: 0}
