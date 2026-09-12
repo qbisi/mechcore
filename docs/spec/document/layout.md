@@ -245,13 +245,15 @@ The native ambush zones become available from round 2. The layout rules are:
 - round 2 requires `travelling: true` on every ambush-zone unit;
 - round 3 and later accept both travelling and non-travelling ambush units.
 
-A unit enters native travelling state when it is first moved to the flank, and
-leaves that state in a later round. Round 1 admits no ambush unit at all, so
-every round 2 ambush unit is necessarily a first flank deployment and cannot
-already have settled. That makes the round 2 case decidable from one layout
-alone, so the compiler rejects a round 2 ambush unit that is not travelling.
-From round 3 the same question needs the previous round's state, which a layout
-does not carry, so both values are accepted there.
+A unit enters native travelling state when a move takes it into a flank region
+from another region, and the fight then takes it out again, so a unit settles
+in the round after the one that deployed it. [`action.md`](action.md) states
+that rule in full. Round 1 admits no ambush unit at all, so every round 2
+ambush unit is necessarily a first flank deployment and cannot already have
+settled. That makes the round 2 case decidable from one layout alone, so the
+compiler rejects a round 2 ambush unit that is not travelling. From round 3 the
+same question needs the previous round's state, which a layout does not carry,
+so both values are accepted there.
 
 `travelling: false` on a settled ambush unit is applied through a direct native
 call rather than by replaying the arrival. The Adapter explicitly changes and

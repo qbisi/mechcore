@@ -194,6 +194,14 @@ A roster, a reactor core and a formation's experience are not checked, because
 the fight decides them. The rest of the next position is the board, which
 [`action.md`](action.md) names and which applying a turn does not yet produce.
 
+`travelling` is the board field a turn's moves settle outright, and it is not
+among the nine for a reason that is not incompleteness: the fight empties the
+travelling set, so the field never reaches the next position to be compared
+against. Applying a turn's moves gives the set the side's own deployment ended
+with, and the next turn's state holds none whatever that set was. That makes it
+a field a turn produces and no turn transition can check, which is the mirror
+image of a reactor core.
+
 ## Unresolved
 
 **Whether a turn can be executed rather than only checked.** Applying a turn

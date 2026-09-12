@@ -37,7 +37,7 @@ pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
 pub use layout::{
     BattleSkillDefinition, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation,
     Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
-    RANGE_ENHANCEMENT_SKILL, Side, Sides, StaticPlacement, TOWER_COUNT, Techs, Terrain,
+    RANGE_ENHANCEMENT_SKILL, Region, Side, Sides, StaticPlacement, TOWER_COUNT, Techs, Terrain,
     TerrainType, canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml, parse_yaml,
 };
 
