@@ -223,15 +223,15 @@ struct Formation {
 }
 
 /// A side's prices, as the officers it holds change them.
-struct Purse<'a> {
+pub(crate) struct Purse<'a> {
     economy: &'a Economy,
     officers: Vec<Officer>,
     /// What Elite Recruitment has added to the shop's level this round.
-    raised: i32,
+    pub(crate) raised: i32,
 }
 
 impl<'a> Purse<'a> {
-    fn new(economy: &'a Economy, officers: &[i32]) -> Self {
+    pub(crate) fn new(economy: &'a Economy, officers: &[i32]) -> Self {
         Self {
             economy,
             officers: officers
@@ -260,7 +260,7 @@ impl<'a> Purse<'a> {
             .sum()
     }
 
-    fn buy(&self, unit: i32) -> Option<i32> {
+    pub(crate) fn buy(&self, unit: i32) -> Option<i32> {
         let price = self.economy.unit(unit)?.supply;
         Some((price + self.modifier(|officer| officer.unit_supply, Some(unit))).max(0))
     }
@@ -270,7 +270,7 @@ impl<'a> Purse<'a> {
     /// Two officers that cover the same unit do not add their levels: Elite
     /// Specialist recruits everything at 2 and Elite Crawler recruits Crawlers
     /// at 5, and a side holding both buys a Crawler at 5 rather than at 6.
-    fn shop_level(&self, unit: i32) -> i32 {
+    pub(crate) fn shop_level(&self, unit: i32) -> i32 {
         let officers = self
             .officers
             .iter()
@@ -282,12 +282,12 @@ impl<'a> Purse<'a> {
         officers + self.raised
     }
 
-    fn unlock(&self, unit: i32) -> Option<i32> {
+    pub(crate) fn unlock(&self, unit: i32) -> Option<i32> {
         let price = self.economy.unit(unit)?.unlock_supply;
         Some((price + self.modifier(|officer| officer.unlock_supply, Some(unit))).max(0))
     }
 
-    fn upgrade(&self, unit: i32) -> Option<i32> {
+    pub(crate) fn upgrade(&self, unit: i32) -> Option<i32> {
         let price = self.economy.unit(unit)?.upgrade_supply;
         Some((price + self.modifier(|officer| officer.upgrade_supply, Some(unit))).max(0))
     }
@@ -301,7 +301,7 @@ impl<'a> Purse<'a> {
     /// A technology discount is scoped like every other. Efficient Technology
     /// Research covers every unit, while Sabertooth Specialist covers only its
     /// own, so the discount asks about the unit the technology belongs to.
-    fn technology(&self, technology: i32, unit: i32, researched: i32) -> Option<i32> {
+    pub(crate) fn technology(&self, technology: i32, unit: i32, researched: i32) -> Option<i32> {
         let price = self.economy.technology(technology)?
             + researched * self.economy.technology_repeat_step();
         Some((price + self.modifier(|officer| officer.technology_supply, Some(unit))).max(0))

@@ -1,42 +1,215 @@
 //! The document commands: verify, format and diff.
 //!
-//! They are named for what they do to a document rather than for one kind, and
-//! today every one of them accepts a layout. A state, turn or battle document
-//! is refused by the parser until the same three verbs learn the other kinds.
+//! They are named for what they do to a document rather than for one kind.
+//! `format` and `diff` accept a layout, and a state, turn or battle document is
+//! refused by the parser until those two verbs learn the other kinds. `verify`
+//! has learned one other: a deployment recording, whose decisions it replays
+//! through the transition rather than parsing.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    path::PathBuf,
+    io::{IsTerminal, Read},
+    path::{Path, PathBuf},
 };
 
 use serde::Serialize;
 use serde_json::Value;
 
+/// Checks each named file against the contract its own kind defines.
+///
+/// A file says which kind it is, so nothing is inferred from an extension. A
+/// layout is checked by the shared static compiler. A deployment recording is
+/// checked by replaying every decision it holds through the transition, which
+/// is a stronger statement than parsing it: the recording already parsed when
+/// the Adapter published it, and what is open is whether this build reproduces
+/// what the game did.
+///
+/// Paths come from the arguments, or from standard input one per line when
+/// there are none, so a batch is a pipe rather than a flag:
+///
+/// ```text
+/// mechcore verify layout.yaml
+/// find work/replay-corpus/observations -name '*.jsonl' | mechcore verify
+/// ```
+///
+/// One report per input goes to standard output, one JSON object per line, a
+/// refusal included. Standard error carries only what stops the run, so a file
+/// that cannot be read is a report like any other and the rest of a batch still
+/// runs. The exit code says whether every input was valid.
+///
+/// # Errors
+///
+/// Returns an error when no input is named at all, or when the list of paths
+/// cannot be read.
+pub(crate) fn verify(arguments: impl Iterator<Item = String>) -> Result<bool, String> {
+    let mut valid = true;
+    for path in inputs(arguments)? {
+        let report = match verify_one(&path) {
+            Ok(report) => report,
+            Err(error) => VerifyReport::refused(&path, error),
+        };
+        valid &= report.valid;
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|error| format!("cannot serialize verification report: {error}"))?
+        );
+    }
+    Ok(valid)
+}
 
-pub(crate) fn verify(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
-    let path = required_path(&mut arguments, "expected layout.yaml after `verify`")?;
-    reject_extra(&mut arguments)?;
-    let layout = read_layout(&path)?;
-    let plan = mechcore_document::compile_layout(layout)?;
-    let report = serde_json::json!({
-        "valid": true,
-        "layout": path,
-        "seed": plan.seed,
-        "map_id": plan.map_id,
-        "round": plan.round,
-        "formation_count": plan.formation_count(),
-        "construction_count": plan.construction_count(),
-        "contraption_count": plan.contraption_count(),
-        "airdrop_shield_count": plan.airdrop_shield_count(),
-        "terrain_count": plan.terrain_count(),
-    });
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&report)
-            .map_err(|error| format!("cannot serialize verification report: {error}"))?
-    );
-    Ok(())
+/// The paths to check: the arguments, or standard input one per line.
+///
+/// An empty argument list with a terminal on standard input is a mistake rather
+/// than an empty batch, so it is refused instead of succeeding over nothing.
+fn inputs(arguments: impl Iterator<Item = String>) -> Result<Vec<PathBuf>, String> {
+    let named: Vec<PathBuf> = arguments.map(PathBuf::from).collect();
+    if !named.is_empty() {
+        return Ok(named);
+    }
+    if std::io::stdin().is_terminal() {
+        return Err("expected <document>... after `verify`, or paths on standard input".into());
+    }
+    let mut piped = String::new();
+    std::io::stdin()
+        .read_to_string(&mut piped)
+        .map_err(|error| format!("cannot read paths from standard input: {error}"))?;
+    Ok(piped
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .collect())
+}
+
+fn verify_one(path: &Path) -> Result<VerifyReport, String> {
+    // A directory names no document, and expanding one is the shell's job:
+    // saying so beats an operating system error about a read that could not
+    // have worked.
+    if path.is_dir() {
+        return Err(format!(
+            "{} is a directory; name the files themselves, as a shell glob \
+             or on standard input",
+            path.display()
+        ));
+    }
+    let bytes =
+        fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    if let Ok(text) = std::str::from_utf8(&bytes)
+        && mechcore_document::observe::is_observation(text)?
+    {
+        return verify_observation(path, text);
+    }
+    let plan = mechcore_document::compile_layout(mechcore_document::parse_yaml(&bytes)?)?;
+    Ok(VerifyReport {
+        schema: VERIFY_SCHEMA,
+        valid: true,
+        kind: "layout",
+        path: path.display().to_string(),
+        error: None,
+        detail: serde_json::json!({
+            "seed": plan.seed,
+            "map_id": plan.map_id,
+            "round": plan.round,
+            "formation_count": plan.formation_count(),
+            "construction_count": plan.construction_count(),
+            "contraption_count": plan.contraption_count(),
+            "airdrop_shield_count": plan.airdrop_shield_count(),
+            "terrain_count": plan.terrain_count(),
+        }),
+    })
+}
+
+/// Replays a recording's decisions through the deployment transition.
+///
+/// Two checks, and the second is not implied by the first. Each decision is
+/// applied to the position it was taken from and every field of the result
+/// compared; then each round's collapsed sequence is applied to the position
+/// the round opened with and compared against the one it closed with. A
+/// decision this build's tables cannot settle is counted apart under the reason
+/// it gave, and neither counted as reproduced nor as failed.
+fn verify_observation(path: &Path, text: &str) -> Result<VerifyReport, String> {
+    let economy = mechcore_document::economy::Economy::embedded()?;
+    let records = mechcore_document::observe::read(text)?;
+    let steps = mechcore_document::oracle::step_check(&economy, &records)?;
+    let deployments = mechcore_document::oracle::round_check(&economy, &records)?;
+    let unsettled: serde_json::Map<String, Value> = steps
+        .unsettled
+        .iter()
+        .map(|(reason, count)| (reason.clone(), Value::from(*count)))
+        .collect();
+    Ok(VerifyReport {
+        schema: VERIFY_SCHEMA,
+        valid: steps.failed == 0 && deployments.failed == 0,
+        kind: "observation",
+        path: path.display().to_string(),
+        error: None,
+        detail: serde_json::json!({
+            "decisions": steps.checked(),
+            "decisions_closed": steps.closed,
+            "decisions_unsettled": unsettled,
+            "retractions": steps.retractions,
+            "deployments": deployments.checked(),
+            "deployments_closed": deployments.closed,
+            "deployments_unsettled": deployments.unsettled,
+            "failures": steps
+                .failures
+                .iter()
+                .map(|failure| {
+                    serde_json::json!({
+                        "sequence": failure.sequence,
+                        "round": failure.round,
+                        "side": failure.side,
+                        "action": failure.native_type,
+                        "field": failure.field,
+                        "produced": failure.expected,
+                        "reached": failure.actual,
+                    })
+                })
+                .chain(deployments.failures.iter().map(|failure| {
+                    serde_json::json!({
+                        "round": failure.round,
+                        "side": failure.side,
+                        "action": "deployment",
+                        "field": failure.field,
+                        "produced": failure.expected,
+                        "reached": failure.actual,
+                    })
+                }))
+                .collect::<Vec<_>>(),
+        }),
+    })
+}
+
+const VERIFY_SCHEMA: &str = "mechcore.verify-result.v1";
+
+/// What checking one file found.
+#[derive(Serialize)]
+struct VerifyReport {
+    schema: &'static str,
+    valid: bool,
+    /// Which contract the file was checked against, or `unreadable` when it
+    /// named none this build knows.
+    kind: &'static str,
+    path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+    #[serde(flatten)]
+    detail: Value,
+}
+
+impl VerifyReport {
+    fn refused(path: &Path, error: String) -> Self {
+        Self {
+            schema: VERIFY_SCHEMA,
+            valid: false,
+            kind: "unreadable",
+            path: path.display().to_string(),
+            error: Some(error),
+            detail: Value::Null,
+        }
+    }
 }
 
 pub(crate) fn format(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {

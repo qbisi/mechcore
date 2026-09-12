@@ -81,7 +81,7 @@ pub struct StateSides {
     pub red: SideState,
 }
 
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
 pub struct SideState {
     /// The four openings this side was dealt, in round 0 and no other round.
     ///
@@ -116,7 +116,7 @@ pub struct SideState {
     pub terrains: Vec<Terrain>,
 }
 
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
 pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
@@ -125,7 +125,7 @@ pub struct ShopState {
 
 /// One of the openings a side was dealt: a team of formations and the
 /// specialist officer bound to it.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct Opening {
     pub team: i32,
     pub specialist: i32,
@@ -136,7 +136,7 @@ pub struct Opening {
 /// `value` is not a function of the unit's type and level. It is what the side
 /// actually paid, at the prices its officers made at the time, so two identical
 /// looking formations bought a round apart can be worth different amounts.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct StateFormation {
     #[serde(flatten)]
     pub formation: Formation,
@@ -154,7 +154,7 @@ pub struct EquipmentItem {
 }
 
 /// One commander skill panel slot.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct PanelSkill {
     pub index: i32,
     pub id: i32,
@@ -171,13 +171,13 @@ pub struct PanelSkill {
 /// `order` is explicit because the panel is sorted by `index`, so array
 /// position cannot carry it. A layout is the other way round: it lists only
 /// releases, and there the array position is the order.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct Release {
     pub order: i32,
     pub target: SkillTarget,
 }
 
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
 pub struct NextIndex {
     pub unit: i32,
     pub contraption: i32,
@@ -196,7 +196,7 @@ pub struct TurnActions {
 pub const DECLINED_OFFER: i32 = -1;
 
 /// One decision that took effect, in the order the side took it.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
     /// The round's reinforcement answer, which declining is one of.
@@ -266,7 +266,7 @@ pub enum Action {
 }
 
 /// A release covers an area or points at one object, never both.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTarget {
     Area(Vec<Position>),

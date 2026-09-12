@@ -158,9 +158,15 @@ the Simulator adds only its narrower feature-support and configuration checks.
 Runtime catalog availability and native readback remain Adapter-owned.
 
 `mechcore verify layout.yaml` runs this shared static compiler without
-starting the game or Simulator. A successful JSON report includes the normalized
-seed, round, formation count, construction count, contraption count, and
-airdrop shield count.
+starting the game or Simulator. It prints one JSON object per input, and a
+layout's carries `kind: layout` beside the normalized seed, round, formation
+count, construction count, contraption count, and airdrop shield count.
+
+The command is not the layout's alone. It checks each file against the contract
+that file names for itself, so a deployment recording is checked by replaying
+its decisions through the transition instead; [`turn.md`](turn.md) states that
+check and how a batch is given. A layout is routed here by the `kind` at its
+root, never by its extension.
 
 `mechcore diff left.yaml right.yaml` normalizes both documents and reports
 the fields that differ. Each difference carries a JSON pointer, except that

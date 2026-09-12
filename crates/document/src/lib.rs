@@ -23,6 +23,10 @@ pub mod economy;
 mod grbr;
 pub mod layout;
 pub mod ledger;
+#[cfg(feature = "convert")]
+pub mod observe;
+#[cfg(feature = "convert")]
+pub mod oracle;
 pub mod project;
 pub mod transition;
 #[cfg(feature = "convert")]

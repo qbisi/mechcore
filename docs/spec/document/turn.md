@@ -202,6 +202,52 @@ with, and the next turn's state holds none whatever that set was. That makes it
 a field a turn produces and no turn transition can check, which is the mirror
 image of a reactor core.
 
+## What a decision reproduces
+
+The nine fields above are what two round snapshots can decide between them. A
+recording that states a position before every decision and after it decides
+more, because it asks a smaller question: not what the next round holds, but
+what this position looks like one decision later.
+
+That is the transition [`action.md`](action.md) defines, and it is checked two
+ways against the same recording.
+
+**One decision at a time.** Each recorded decision is applied to the position it
+was taken from, and every field of the result is compared, the board included.
+A failure names the one decision that caused it rather than the round it was in.
+
+**A whole deployment.** A round's standing sequence, after the net-decision
+collapse above, is applied to the position the round opened with and compared
+against the position it closed with. This is the check the first one cannot
+make: applying one decision at a time reads the position after a retraction out
+of the recording, while a collapsed sequence has to reach the same place without
+the retraction ever having happened.
+
+```bash
+mechcore verify <recording.jsonl>
+find work/replay-corpus/observations -name '*.jsonl' | mechcore verify
+```
+
+runs both checks. `verify` reads whichever contract a file names for itself: a
+recording written by `record_replay_battle`, whose format
+[`adapter.md`](../adapter/adapter.md) defines, declares its schema on its header
+record, and a layout declares `kind: layout` at its root. Nothing is inferred
+from an extension.
+
+A batch is a pipe rather than a flag. Paths come from the arguments, or from
+standard input one per line when there are none, so expanding a directory stays
+the shell's job and there is only ever one expander. One report per input goes
+to standard output as a single JSON object per line, a refusal included, and
+one unreadable input does not stop the rest. The exit code says whether every
+input was valid.
+
+The two frames disagree in one place, and the disagreement is a property of the
+question rather than an error. Applying a turn answers what the next round
+holds, so at round 0 it counts the squads the opening delivers; stepping that
+same choice answers what the position is immediately afterwards, and the squads
+have not arrived. They reach the board when round 1 opens, which is not a
+decision and so is not a step.
+
 ## Unresolved
 
 **Whether a turn can be executed rather than only checked.** Applying a turn

@@ -62,13 +62,42 @@ group each action touches.
 Settled is the group no fight can touch, so a round's decisions determine it
 outright. The board is what the decisions arrange and the fight then consumes.
 
+All three groups are written one decision at a time, not only at a round's end.
+A position is defined after every decision, so applying one decision to the
+position it was taken from has to reach the position the next decision was
+taken from. That is a stronger statement than the round transition
+[`turn.md`](turn.md) defines, and it is the one this document's per-action rules
+are answerable to.
+
+Two inputs no decision carries stop it being a total function, and both are
+named rather than guessed.
+
+- **Where a summoned formation lands.** A card's squads and an opening's force
+  are placed clear of whatever already stands, so the same card in the same seat
+  lands differently in two matches. The index each takes, its type, its level
+  and what recovering it pays back are all settled; only the position is not.
+- **What an experience release grants.** The commander skill that raises a
+  formation's experience raises it by an amount no shipped table carries.
+
+A decision that hits either is reported unsettled. It is not counted as
+reproduced, and no value is invented for it.
+
 An allocator is settled while the objects it names are board. A contraption is
 destroyed by the fight and a formation can be, but neither index is handed out
 again, so the two counters only ever rise and rise only by a decision.
 
-Three things are written by no action at all. `reactor_core` and a formation's
-`exp` are the fight's. `reinforce_offers`, `opening_offers` and the shop's
-`buys_remaining` and `unlocks_remaining` are granted by the round.
+`reinforce_offers` and `opening_offers` are granted by the round and written by
+no action. The rest of that reading needs qualifying, because a decision can
+reach three fields that a round otherwise owns.
+
+- `reactor_core` is moved by the round 0 opening and by nothing else. Both
+  halves of that one choice move it, so a team and its specialist are added
+  together.
+- `buys_remaining` counts down as purchases are made, and two decisions add to
+  it: energy tower skill `3` and reinforcement card `10004` each grant one more.
+  `unlocks_remaining` only ever counts down.
+- A formation's `exp` is the fight's to grant, except that upgrading a formation
+  discards it. A rank starts at zero however much the rank below it earned.
 
 ## The actions
 

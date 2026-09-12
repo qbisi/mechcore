@@ -69,6 +69,19 @@ The second command treats each replay as an independent native run, validates a
 complete JSONL summary before resuming past an existing output, and records
 source/output hashes and failures in `work/replay-corpus/manifest.json`.
 
+Those observations are what the deployment transition is checked against:
+
+```bash
+ls work/replay-corpus/observations/*.jsonl | mechcore verify
+```
+
+Each recorded decision is applied to the position it was taken from and every
+field of the result compared, and each round's collapsed sequence is applied to
+the position the round opened with and compared against the one it closed with.
+`docs/spec/document/turn.md` defines both checks. Their counts are a fact about this local
+corpus rather than about the build, so they live in the commit that moved them
+and not here.
+
 `scripts/local_replay_support.py` and the other `*_support.py` programs
 reproduce aggregate document claims from the same provenance class. A claim
 resting on one of them says so.

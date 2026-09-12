@@ -10,9 +10,13 @@
 //! a shop, a blueprint list, a technology list, a tower level, a skill panel,
 //! an officer list and an equipment inventory are not.
 
-use crate::battle::{Action, Battle, EquipmentItem, SideState, SkillTarget};
+use crate::battle::{
+    Action, Battle, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
+};
+use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
-use crate::layout::Region;
+use crate::layout::{ContraptionPlacement, Position, Region};
+use crate::ledger::Purse;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
@@ -168,6 +172,476 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
         officers,
         equipment,
         equipment_shortfall,
+    }
+}
+
+/// What one decision's application could not settle.
+///
+/// A position that reaches one of these is not a position the transition got
+/// wrong; it is one this build's tables cannot decide. Reporting the reason
+/// rather than a guess is what keeps an unsupported sample out of the closed
+/// count.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Unsettled {
+    /// The build's tables carry no price or catalogue row for the decision.
+    Unpriced(&'static str),
+    /// The decision names a formation, panel slot or construction the position
+    /// does not hold.
+    Missing(&'static str),
+    /// Where the formations a card or an opening hands out arrive is decided by
+    /// the board they arrive on, not by the decision that summoned them.
+    ///
+    /// `MechPositionManager` places each one clear of what already stands, so
+    /// the same card in the same seat lands differently in two matches. The
+    /// index, type, level and recovery value are settled; the position is not.
+    GrantedPosition,
+    /// The release writes a formation's experience, which no table prices.
+    GrantedExperience,
+}
+
+/// Commander skills that grant a formation experience rather than moving it.
+const EXPERIENCE_SKILLS: [i32; 1] = [1_100_001];
+/// Energy tower skill `3` 批量征召, which adds a purchase to this round.
+const MASS_RECRUIT_SKILL: i32 = 3;
+/// Reinforcement card `10004` 额外部署位, which adds one too.
+const EXTRA_DEPLOYMENT_CARD: i32 = 10_004;
+/// How many purchases each of those two adds.
+///
+/// Measured rather than read. No extracted table carries the count: the energy
+/// tower row has no allowance field at all, and `OfficerData.IsAddExtraUnit` is
+/// a shipped boolean rather than a number. Every activation of skill `3` and
+/// every take of card `10004` in the local observation set raises the round's
+/// remaining purchases by exactly this, and nothing else in that set raises it.
+const EXTRA_BUYS: i32 = 1;
+
+/// Applies one decision to the position it was taken from.
+///
+/// This is the deployment's own transition, and it differs from [`apply`] in
+/// what it covers and when it is true. [`apply`] answers what the *next round*
+/// holds and so produces only what a fight cannot touch; this answers what the
+/// position looks like after one decision, while the round is still running, so
+/// it produces the board as well.
+///
+/// The result is a position, not an edit: a decision that cannot be settled
+/// leaves the caller the position it started from rather than half of the one
+/// it was reaching for.
+///
+/// # Errors
+///
+/// Returns the reason the decision could not be settled. Every arm of
+/// [`Unsettled`] is a boundary of this build's tables rather than a failure of
+/// the caller's position.
+pub fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
+    step_placing(economy, state, action, &mut |_| None)
+}
+
+/// [`step`], told where the formations a decision hands out arrive.
+///
+/// A card and an opening summon formations that no decision gives a position
+/// to: `MechPositionManager` places each one clear of what already stands, so
+/// the same card in the same seat lands differently in two matches. `placement`
+/// is asked for the position of each index handed out, in the order they are
+/// handed out, and answering `None` is what makes [`step`] report
+/// [`Unsettled::GrantedPosition`] rather than invent one.
+///
+/// # Errors
+///
+/// The same as [`step`].
+#[allow(clippy::too_many_lines)] // Thirteen decisions, each one short.
+pub fn step_placing(
+    economy: &Economy,
+    state: &SideState,
+    action: &Action,
+    placement: &mut dyn FnMut(i32) -> Option<Position>,
+) -> Result<SideState, Unsettled> {
+    let mut next = state.clone();
+    let mut purse = Purse::new(economy, &state.techs.officers);
+    // Elite Recruitment raises the shop for the rest of the round, and the
+    // round's activations are in the position rather than in the decision.
+    purse.raised = state
+        .energy_tower_skills
+        .iter()
+        .filter_map(|skill| economy.energy_tower_skill(*skill))
+        .map(|skill| skill.shop_unit_level)
+        .sum();
+    match action {
+        // Declining is one of this decision's two answers, and the one that
+        // pays: the item it takes is a supply grant of its own.
+        Action::ChooseReinforceItem { id: None, .. } => {
+            next.supply += economy.reinforce_decline();
+        }
+        Action::ChooseReinforceItem { id: Some(card), .. } => {
+            let price = economy.card(*card).ok_or(Unsettled::Unpriced("card"))?;
+            next.supply -= price;
+            // An officer card joins the list whether or not this build gives
+            // it an effect: the list is what the side holds, and only the
+            // supply it hands over comes from the effects table.
+            match economy.card_kind(*card) {
+                Some(CardKind::Officer) => {
+                    next.supply += economy
+                        .officer(*card)
+                        .map_or(0, |officer| officer.granted_supply);
+                    if *card == EXTRA_DEPLOYMENT_CARD {
+                        next.shop.buys_remaining += EXTRA_BUYS;
+                    }
+                    next.techs.officers.push(*card);
+                    next.techs.officers.sort_unstable();
+                }
+                Some(CardKind::CommanderSkill) => panel_add(&mut next, *card),
+                Some(CardKind::Equipment) => next.equipment.push(EquipmentItem {
+                    id: *card,
+                    durability: None,
+                }),
+                _ => {}
+            }
+            if let Some(reinforcement) = economy.unit_reinforcement(*card) {
+                // A card that hands out squads puts their unit in the shop.
+                unlock(&mut next, reinforcement.unit);
+                hand_out(
+                    economy,
+                    &mut next,
+                    reinforcement.unit,
+                    reinforcement.squads,
+                    reinforcement.level,
+                    placement,
+                )?;
+            }
+            next.equipment.sort();
+        }
+        Action::ChooseAdvanceTeam { id, specialist, .. } => {
+            next.supply -= economy.card(*id).ok_or(Unsettled::Unpriced("opening"))?;
+            let team = economy
+                .advance_team(*id)
+                .ok_or(Unsettled::Unpriced("opening"))?;
+            // The opening is one choice with two halves and each half prices
+            // the reactor core, so a team and its specialist both move it.
+            next.reactor_core += team.reactor_core
+                + specialist
+                    .filter(|chosen| chosen != id)
+                    .and_then(|chosen| economy.advance_team(chosen))
+                    .map_or(0, |officer| officer.reactor_core);
+            // An opening of formations delivers nothing now. Its squads and
+            // the shop rows they unlock arrive when the first deployment round
+            // opens, which is not a decision and so not a step.
+            if team.kind != OpeningKind::Units {
+                next.techs.officers.push(*id);
+            }
+            if let Some(specialist) = specialist.filter(|chosen| chosen != id) {
+                next.techs.officers.push(specialist);
+            }
+            next.techs.officers.sort_unstable();
+        }
+        Action::BuyUnit { unit, position } => {
+            let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
+            let level = purse.shop_level(*unit);
+            let upgrade = purse.upgrade(*unit).ok_or(Unsettled::Unpriced("upgrade"))?;
+            // A unit that arrives above level 1 is paid for as a purchase plus
+            // one upgrade per level above the first.
+            next.supply -= price + (level - 1) * upgrade;
+            next.shop.buys_remaining -= 1;
+            place(&mut next, *unit, level, price, &mut |_| Some(*position))?;
+        }
+        Action::UpgradeUnit { index } => {
+            let formation = formation_mut(&mut next, *index)?;
+            let unit = unit_id_from_type(&formation.formation.type_name)
+                .ok_or(Unsettled::Unpriced("unit"))?;
+            let worn = formation.formation.equipment;
+            formation.formation.level = Some(formation.formation.level.unwrap_or(1) + 1);
+            // A formation starts the next rank with nothing carried over.
+            formation.formation.exp = None;
+            // A discount can exceed the price, and an upgrade is never paid
+            // backwards.
+            let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
+            next.supply -=
+                (upgrade + worn.map_or(0, |id| economy.equipment_upgrade_supply(id))).max(0);
+        }
+        Action::UnlockUnit { unit } => {
+            next.supply -= purse.unlock(*unit).ok_or(Unsettled::Unpriced("unlock"))?;
+            next.shop.unlocks_remaining -= 1;
+            unlock(&mut next, *unit);
+        }
+        Action::UpgradeTechnology { tech, .. } => {
+            let unit = economy
+                .technology_owner(*tech)
+                .ok_or(Unsettled::Unpriced("technology"))?;
+            // Each technology already on the unit makes the next one dearer.
+            let researched = i32::try_from(
+                state
+                    .techs
+                    .units
+                    .iter()
+                    .filter(|held| economy.technology_owner(**held) == Some(unit))
+                    .count(),
+            )
+            .unwrap_or(0);
+            next.supply -= purse
+                .technology(*tech, unit, researched)
+                .ok_or(Unsettled::Unpriced("technology"))?;
+            next.techs.units.push(*tech);
+            next.techs.units.sort_unstable();
+        }
+        Action::ActiveBlueprint { id } => {
+            next.supply -= economy
+                .blueprint(*id)
+                .ok_or(Unsettled::Unpriced("blueprint"))?;
+            // A chain's second level replaces its first rather than joining it.
+            next.blueprints
+                .retain(|held| economy.blueprint_successor(*held) != Some(*id));
+            next.blueprints.push(*id);
+            next.blueprints.sort_unstable();
+            if let Some(skill) = economy.blueprint_skill(*id) {
+                panel_add(&mut next, skill);
+            }
+        }
+        Action::ActiveEnergyTowerSkill { skill } => {
+            let row = economy
+                .energy_tower_skill(*skill)
+                .ok_or(Unsettled::Unpriced("energy tower skill"))?;
+            next.supply -= row.supply - row.granted;
+            if *skill == MASS_RECRUIT_SKILL {
+                next.shop.buys_remaining += EXTRA_BUYS;
+            }
+            next.energy_tower_skills.push(*skill);
+            next.energy_tower_skills.sort_unstable();
+        }
+        Action::StrengthenTower { tower } => {
+            let level = usize::try_from(*tower)
+                .ok()
+                .and_then(|index| next.tower_strengthen_levels.get_mut(index))
+                .ok_or(Unsettled::Missing("tower"))?;
+            *level += 1;
+            let price = economy
+                .tower_strengthen(*level)
+                .ok_or(Unsettled::Unpriced("tower level"))?;
+            next.supply -= price;
+        }
+        // Fitting is free; the card was paid for when it was taken.
+        Action::UseEquipment { equipment, unit } => {
+            let position = next
+                .equipment
+                .iter()
+                .position(|item| item.id == *equipment)
+                .ok_or(Unsettled::Missing("equipment"))?;
+            next.equipment.remove(position);
+            formation_mut(&mut next, *unit)?.formation.equipment = Some(*equipment);
+        }
+        Action::MoveUnit {
+            index,
+            position,
+            rotated,
+        } => {
+            let formation = formation_mut(&mut next, *index)?;
+            let left = Region::of(formation.formation.position);
+            let arrived = Region::of(*position);
+            formation.formation.position = *position;
+            formation.formation.rotated = Some(*rotated).filter(|rotated| *rotated);
+            if left != arrived {
+                formation.formation.travelling = arrived.is_flank().then_some(true);
+            }
+        }
+        Action::ReleaseCommanderSkill { skill, target } => {
+            release(economy, &mut next, *skill, target)?;
+        }
+        // A contraption is bought from the shop as it is placed.
+        Action::ReleaseContraption {
+            contraption,
+            position,
+            ..
+        } => {
+            next.supply -= economy
+                .contraption(*contraption)
+                .ok_or(Unsettled::Unpriced("contraption"))?;
+            let type_name =
+                contraption_type_from_id(*contraption).ok_or(Unsettled::Unpriced("contraption"))?;
+            next.contraptions.push(ContraptionPlacement {
+                type_name: type_name.to_owned(),
+                index: next.next_index.contraption,
+                position: *position,
+            });
+            next.next_index.contraption += 1;
+        }
+    }
+    Ok(next)
+}
+
+/// Records a release on the panel, and applies what it does to the board.
+///
+/// Most releases write nothing but the slot: what they do belongs to the fight.
+/// Two write the position as well. Field Recovery takes one of the side's own
+/// objects away and pays back what it cost, and the experience skills raise a
+/// formation's experience by an amount no shipped table carries.
+fn release(
+    economy: &Economy,
+    next: &mut SideState,
+    slot: i32,
+    target: &SkillTarget,
+) -> Result<(), Unsettled> {
+    let order = i32::try_from(
+        next.battle_skills
+            .iter()
+            .filter(|skill| skill.release.is_some())
+            .count(),
+    )
+    .unwrap_or(0);
+    let id = next
+        .battle_skills
+        .iter()
+        .find(|skill| skill.index == slot)
+        .map(|skill| skill.id)
+        .ok_or(Unsettled::Missing("panel slot"))?;
+    if EXPERIENCE_SKILLS.contains(&id) {
+        return Err(Unsettled::GrantedExperience);
+    }
+    if crate::ledger::RECOVERY_SKILLS.contains(&id) {
+        match target {
+            SkillTarget::Unit(index) => recover_formation(economy, next, *index)?,
+            SkillTarget::Construction(index) => {
+                let position = next
+                    .constructions
+                    .iter()
+                    .position(|placement| placement.index == *index)
+                    .ok_or(Unsettled::Missing("construction"))?;
+                let placement = next.constructions.remove(position);
+                next.supply += economy
+                    .construction_recovery(&placement.type_name)
+                    .ok_or(Unsettled::Unpriced("construction"))?;
+            }
+            SkillTarget::Area(_) => return Err(Unsettled::Missing("recovery target")),
+        }
+    }
+    let slot = next
+        .battle_skills
+        .iter_mut()
+        .find(|skill| skill.index == slot)
+        .ok_or(Unsettled::Missing("panel slot"))?;
+    slot.release = Some(Release {
+        order,
+        target: clone_target(target),
+    });
+    Ok(())
+}
+
+/// Takes one of the side's own formations away and pays back what it cost.
+///
+/// What it cost is the price paid for it, at the prices its officers made at
+/// the time, plus one upgrade for every level above the first. What it wore
+/// goes back into the stock, in time to be fitted again in the same round.
+fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Result<(), Unsettled> {
+    let position = next
+        .formations
+        .iter()
+        .position(|entry| entry.formation.index == index)
+        .ok_or(Unsettled::Missing("formation"))?;
+    let entry = next.formations.remove(position);
+    let unit = unit_id_from_type(&entry.formation.type_name).ok_or(Unsettled::Unpriced("unit"))?;
+    let purse = Purse::new(economy, &next.techs.officers);
+    let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
+    next.supply += entry.value.unwrap_or(0) + (entry.formation.level.unwrap_or(1) - 1) * upgrade;
+    if let Some(worn) = entry.formation.equipment {
+        next.equipment.push(EquipmentItem {
+            id: worn,
+            durability: None,
+        });
+        next.equipment.sort();
+    }
+    Ok(())
+}
+
+/// Files the formations a card or an opening hands out.
+///
+/// Each takes the next index, which is what everything bought afterwards is
+/// counted from, so they are filed even though where they land is not settled.
+fn hand_out(
+    economy: &Economy,
+    next: &mut SideState,
+    unit: i32,
+    squads: i32,
+    level: i32,
+    placement: &mut dyn FnMut(i32) -> Option<Position>,
+) -> Result<(), Unsettled> {
+    // Recovering one pays back the unit's own price: the side never bought it,
+    // so no officer discount ever applied to it.
+    let price = economy
+        .unit(unit)
+        .ok_or(Unsettled::Unpriced("unit"))?
+        .supply;
+    for _ in 0..squads {
+        place(next, unit, level, price, placement)?;
+    }
+    Ok(())
+}
+
+/// Puts one formation on the board under the next index.
+fn place(
+    next: &mut SideState,
+    unit: i32,
+    level: i32,
+    value: i32,
+    placement: &mut dyn FnMut(i32) -> Option<Position>,
+) -> Result<(), Unsettled> {
+    let (type_name, _) = unit_type_from_id(unit).ok_or(Unsettled::Unpriced("unit"))?;
+    let index = next.next_index.unit;
+    next.next_index.unit += 1;
+    let Some(position) = placement(index) else {
+        return Err(Unsettled::GrantedPosition);
+    };
+    next.formations.push(StateFormation {
+        formation: crate::layout::Formation {
+            type_name: type_name.to_owned(),
+            index,
+            position,
+            level: Some(level).filter(|level| *level != 1),
+            exp: None,
+            rotated: None,
+            equipment: None,
+            travelling: None,
+        },
+        value: Some(value),
+    });
+    next.formations.sort_by_key(|entry| entry.formation.index);
+    Ok(())
+}
+
+/// Adds a skill to the panel, under the first slot index nothing holds.
+fn panel_add(next: &mut SideState, id: i32) {
+    // A panel is short and its slots are dense, so the first index nothing
+    // holds is at most one past the end.
+    let index = (0..=i32::try_from(next.battle_skills.len()).unwrap_or(i32::MAX))
+        .find(|candidate| {
+            !next
+                .battle_skills
+                .iter()
+                .any(|skill| skill.index == *candidate)
+        })
+        .unwrap_or(0);
+    next.battle_skills.push(PanelSkill {
+        index,
+        id,
+        cooldown: 0,
+        release: None,
+    });
+    next.battle_skills.sort_by_key(|skill| skill.index);
+}
+
+fn unlock(next: &mut SideState, unit: i32) {
+    if !next.shop.unlocked_units.contains(&unit) {
+        next.shop.unlocked_units.push(unit);
+        next.shop.unlocked_units.sort_unstable();
+    }
+}
+
+fn formation_mut(next: &mut SideState, index: i32) -> Result<&mut StateFormation, Unsettled> {
+    next.formations
+        .iter_mut()
+        .find(|entry| entry.formation.index == index)
+        .ok_or(Unsettled::Missing("formation"))
+}
+
+fn clone_target(target: &SkillTarget) -> SkillTarget {
+    match target {
+        SkillTarget::Area(positions) => SkillTarget::Area(positions.clone()),
+        SkillTarget::Unit(index) => SkillTarget::Unit(*index),
+        SkillTarget::Construction(index) => SkillTarget::Construction(*index),
     }
 }
 
@@ -538,8 +1012,8 @@ fn officer_deliveries(economy: &Economy, state: &SideState, granted: &mut Grante
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{apply, check, travelling};
-    use crate::battle::{Action, SideState, StateFormation};
+    use super::{apply, check, step, travelling};
+    use crate::battle::{Action, EquipmentItem, SideState, StateFormation};
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
     use crate::layout::{Formation, Position};
@@ -868,6 +1342,301 @@ mod tests {
             5
         );
         assert_eq!(apply(&economy, 5, &state, &[]).next_contraption_index, 3);
+    }
+
+    /// A purchase prices the unit, takes a slot and files it under the next
+    /// index.
+    #[test]
+    fn a_purchase_files_the_formation_it_creates() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            supply: 1000,
+            shop: crate::battle::ShopState {
+                unlocked_units: vec![9],
+                buys_remaining: 2,
+                unlocks_remaining: 1,
+            },
+            next_index: crate::battle::NextIndex {
+                unit: 7,
+                contraption: 0,
+            },
+            ..SideState::default()
+        };
+        let bought = Action::BuyUnit {
+            unit: 9,
+            position: Position { x: 0, y: -160 },
+        };
+        let next = step(&economy, &state, &bought).unwrap();
+        assert_eq!(next.next_index.unit, 8);
+        assert_eq!(next.shop.buys_remaining, 1);
+        assert_eq!(next.formations.len(), 1);
+        let placed = &next.formations[0];
+        assert_eq!(placed.formation.index, 7);
+        assert_eq!(placed.formation.position, Position { x: 0, y: -160 });
+        // What it is worth to recover is what this side paid for it.
+        assert_eq!(placed.value, Some(state.supply - next.supply));
+    }
+
+    /// Upgrading a formation starts its new rank with no experience.
+    ///
+    /// The recorded decision carries an `expRecord` for its undo, which is the
+    /// clue: the experience it saves is the experience the upgrade discards.
+    #[test]
+    fn an_upgrade_clears_the_experience_it_replaces() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        state.supply = 1000;
+        state.formations[0].formation.exp = Some(650);
+        let next = step(&economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
+        assert_eq!(next.formations[0].formation.level, Some(2));
+        assert_eq!(next.formations[0].formation.exp, None);
+        assert!(next.supply < state.supply);
+    }
+
+    /// A card that hands out squads also puts their unit in the shop.
+    ///
+    /// The squads take the next indices as the card is taken, which is what
+    /// every later purchase of the round is counted from.
+    #[test]
+    fn a_squad_card_unlocks_its_unit_and_takes_its_indices() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            supply: 1000,
+            next_index: crate::battle::NextIndex {
+                unit: 4,
+                contraption: 0,
+            },
+            ..SideState::default()
+        };
+        let card = 102_212;
+        let reinforcement = economy.unit_reinforcement(card).expect("a squad card");
+        let taken = Action::ChooseReinforceItem {
+            offer: 0,
+            id: Some(card),
+        };
+        // Where a squad lands is the board's to decide, so the plain step
+        // stops at the position and names why.
+        assert_eq!(
+            step(&economy, &state, &taken),
+            Err(crate::transition::Unsettled::GrantedPosition)
+        );
+        let mut placed = vec![Position { x: 0, y: -160 }, Position { x: -20, y: -160 }];
+        placed.reverse();
+        let next = crate::transition::step_placing(&economy, &state, &taken, &mut |_| placed.pop())
+            .unwrap();
+        assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
+        assert_eq!(next.shop.unlocked_units, vec![reinforcement.unit]);
+        assert_eq!(next.formations.len(), 2);
+        assert_eq!(next.formations[0].formation.index, 4);
+        assert_eq!(next.formations[1].formation.index, 5);
+    }
+
+    /// An opening of formations delivers nothing at the moment it is chosen.
+    ///
+    /// Its squads arrive when the first deployment round opens, which is not a
+    /// decision. What the choice does settle is the reactor core, and both
+    /// halves of it price that: round 0 of `[你是蓬莱花仙]VS[crower]` takes team
+    /// `9890` with specialist `20005` and moves the core by `100`, which is the
+    /// team's own `100` and the specialist's `0`.
+    #[test]
+    fn an_opening_settles_the_core_and_delivers_nothing() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState::default();
+        let chosen = Action::ChooseAdvanceTeam {
+            offer: 2,
+            id: 9890,
+            specialist: Some(20005),
+        };
+        let next = step(&economy, &state, &chosen).unwrap();
+        assert_eq!(next.reactor_core, 100);
+        assert!(next.formations.is_empty());
+        assert_eq!(next.next_index.unit, 0);
+        assert_eq!(next.techs.officers, vec![20005]);
+    }
+
+    /// The specialist half prices the core as well as the team half.
+    #[test]
+    fn both_halves_of_an_opening_price_the_core() {
+        let economy = Economy::embedded().unwrap();
+        let chosen = Action::ChooseAdvanceTeam {
+            offer: 0,
+            id: 9890,
+            specialist: Some(20032),
+        };
+        let next = step(&economy, &SideState::default(), &chosen).unwrap();
+        assert_eq!(next.reactor_core, 600);
+    }
+
+    /// Field Recovery pays back what a formation cost and returns what it wore.
+    #[test]
+    fn recovering_a_formation_pays_and_returns() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(5, Position { x: 0, y: -160 })]);
+        state.battle_skills = vec![crate::battle::PanelSkill {
+            index: 0,
+            id: 900_001,
+            cooldown: 0,
+            release: None,
+        }];
+        state.formations[0].value = Some(400);
+        state.formations[0].formation.equipment = Some(13_030_004);
+        let released = Action::ReleaseCommanderSkill {
+            skill: 0,
+            target: crate::battle::SkillTarget::Unit(5),
+        };
+        let next = step(&economy, &state, &released).unwrap();
+        assert!(next.formations.is_empty());
+        assert_eq!(next.supply, 400);
+        assert_eq!(
+            next.equipment,
+            vec![EquipmentItem {
+                id: 13_030_004,
+                durability: None,
+            }]
+        );
+        assert!(next.battle_skills[0].release.is_some());
+    }
+
+    /// A release that writes experience is reported rather than guessed at.
+    ///
+    /// Skill `1100001` raises a formation's experience by an amount no shipped
+    /// table carries, so the decision names the reason it cannot be settled.
+    #[test]
+    fn an_experience_release_is_named_rather_than_guessed() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        state.battle_skills = vec![crate::battle::PanelSkill {
+            index: 0,
+            id: 1_100_001,
+            cooldown: 0,
+            release: None,
+        }];
+        assert_eq!(
+            step(
+                &economy,
+                &state,
+                &Action::ReleaseCommanderSkill {
+                    skill: 0,
+                    target: crate::battle::SkillTarget::Unit(0),
+                }
+            ),
+            Err(crate::transition::Unsettled::GrantedExperience)
+        );
+    }
+
+    /// A move writes the board and nothing else, travelling included.
+    #[test]
+    fn a_move_writes_the_board_alone() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        state.supply = 700;
+        let next = step(
+            &economy,
+            &state,
+            &Action::MoveUnit {
+                index: 0,
+                position: Position { x: 310, y: 20 },
+                rotated: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(next.supply, 700);
+        assert_eq!(next.formations[0].formation.travelling, Some(true));
+        assert_eq!(next.formations[0].formation.rotated, Some(true));
+    }
+
+    /// Every decision the tracked replays take reaches the same nine fields
+    /// the round transition settles.
+    ///
+    /// [`apply`] answers what the next round holds and this answers what the
+    /// deployment ends with, so the two agree wherever nothing arrives between
+    /// the two moments. A delivery arrives with a round rather than with a
+    /// decision, and only [`apply`] is asked about it, which is why a round
+    /// whose officers deliver is counted apart.
+    ///
+    /// Round 0 is the other case and the only one left, so it is separated
+    /// rather than skipped: the opening's squads reach the board when round 1
+    /// opens, so [`apply`] counts them at round 0 and stepping the choice does
+    /// not. Every other round has to agree exactly, because a decision priced
+    /// two ways is a decision priced wrongly one of them.
+    #[test]
+    fn stepping_a_turn_settles_what_applying_it_settles() {
+        let economy = Economy::embedded().unwrap();
+        let (mut compared, mut skipped) = (0, 0);
+        let mut divergent = Vec::new();
+        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+            let path = entry.expect("directory entry").path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
+                continue;
+            };
+            for turn in &battle.turns {
+                for (side, state, actions) in [
+                    ("blue", &turn.state.sides.blue, &turn.actions.blue),
+                    ("red", &turn.state.sides.red, &turn.actions.red),
+                ] {
+                    if delivers(&economy, state, turn.round) {
+                        skipped += 1;
+                        continue;
+                    }
+                    // Where a grant lands is the board's to decide and no
+                    // settled field reads it, so any position will do here.
+                    let mut produced = state.clone();
+                    let mut reachable = true;
+                    for action in actions {
+                        let stepped = crate::transition::step_placing(
+                            &economy,
+                            &produced,
+                            action,
+                            &mut |_| Some(crate::layout::Position { x: 0, y: -160 }),
+                        );
+                        let Ok(next) = stepped else {
+                            reachable = false;
+                            break;
+                        };
+                        produced = next;
+                    }
+                    if !reachable {
+                        skipped += 1;
+                        continue;
+                    }
+                    compared += 1;
+                    let stepped = crate::transition::settled(&produced);
+                    let mut applied = apply(&economy, turn.round, state, actions);
+                    // A shortfall is a statement about the decisions rather
+                    // than a field of the position, and stepping has no place
+                    // to put one.
+                    applied.equipment_shortfall.clear();
+                    if stepped != applied {
+                        divergent.push(format!(
+                            "{} round {} {side}",
+                            path.file_name().unwrap().to_string_lossy(),
+                            turn.round
+                        ));
+                    }
+                }
+            }
+        }
+        divergent.sort();
+        let (openings, rest): (Vec<String>, Vec<String>) = divergent
+            .into_iter()
+            .partition(|name| name.contains(" round 0 "));
+        assert!(rest.is_empty(), "{rest:?}");
+        assert_eq!((compared, skipped, openings.len()), (655, 95, 82));
+    }
+
+    /// Whether an officer hands this side anything as the round opens.
+    fn delivers(economy: &Economy, state: &SideState, round: i32) -> bool {
+        state.techs.officers.iter().any(|officer| {
+            economy.officer(*officer).is_some_and(|row| {
+                row.active_round == round
+                    || row
+                        .opening_unit
+                        .is_some_and(|opening| opening.unlock_round == round)
+            })
+        })
     }
 
     /// A move into a flank is what puts a formation in the travelling set.

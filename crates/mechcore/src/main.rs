@@ -14,7 +14,7 @@ fn usage(program: &str) {
     eprintln!("usage: {program} shell [--launch | --attach] [--level <0-4>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
-    eprintln!("       {program} verify <document.yaml>");
+    eprintln!("       {program} verify <document>... | paths on stdin");
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} diff <left.yaml> <right.yaml>");
     eprintln!("       {program} convert <replay.grbr> <battle.yaml> [--force]");
@@ -62,7 +62,7 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
-        Some("verify") => report("verify", document::verify(arguments).map(|()| true)),
+        Some("verify") => report("verify", document::verify(arguments)),
         Some("format") => report("format", document::format(arguments).map(|()| true)),
         Some("diff") => report("diff", document::diff(arguments)),
         Some("convert") => report("convert", convert::run(arguments).map(|()| true)),

@@ -296,7 +296,7 @@ fn parse_i32(value: &str, context: &str) -> Result<i32, String> {
         .map_err(|error| format!("{context} is not i32: {error}"))
 }
 
-fn decode_grbr_byte_mask(value: i32) -> Result<Vec<bool>, String> {
+pub(crate) fn decode_grbr_byte_mask(value: i32) -> Result<Vec<bool>, String> {
     if value == 0 {
         return Err("serialized ByteMask value is zero".into());
     }
@@ -313,7 +313,7 @@ fn decode_grbr_byte_mask(value: i32) -> Result<Vec<bool>, String> {
         .collect())
 }
 
-fn decode_grbr_grid_groups(values: &[i32]) -> Result<Vec<Vec<u32>>, String> {
+pub(crate) fn decode_grbr_grid_groups(values: &[i32]) -> Result<Vec<Vec<u32>>, String> {
     let mut offset = 0;
     let mut grids = Vec::new();
     while offset < values.len() {
@@ -354,7 +354,7 @@ fn decode_grbr_grid_groups(values: &[i32]) -> Result<Vec<Vec<u32>>, String> {
     Ok(grids)
 }
 
-fn rotate_oil_grid_rows(rows: &[u32]) -> Vec<u32> {
+pub(crate) fn rotate_oil_grid_rows(rows: &[u32]) -> Vec<u32> {
     rows.iter()
         .rev()
         .map(|row| (row & 0x0fff).reverse_bits() >> 20)
