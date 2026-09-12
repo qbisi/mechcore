@@ -37,6 +37,7 @@ import struct
 import sys
 
 TECHNOLOGY_GROUP_PATH_ID = 184
+CONFIG_PATH_ID = 136
 COMMANDER_SKILL_PATH_ID = 167
 EQUIPMENT_PATH_ID = 188
 # The three contraptions a side can release, which the config data container
@@ -81,6 +82,54 @@ def blobs(level0, path_ids):
         if path_id not in found:
             raise SystemExit(f"{level0} has no MonoBehaviour {path_id}")
     return found
+
+
+# Where `GameRiver.Config`'s two match-wide supply numbers sit in its
+# serialized body. Unity writes a MonoBehaviour's own fields after the header
+# in declaration order, and the declaration order is the decompiled one:
+# `isClassicSurviveMode` as a padded bool, then the technology delta, then five
+# eight-byte `FPoint`s, two ints, another `FPoint`, two twelve-byte
+# `MechPositionChangeData`s, a twenty-byte `BuyUnitEffectData`, and the three
+# reinforcement ints. `mineFlyHeight` is private and does not serialize.
+CONFIG_FIELDS = {
+    "upgrade_technology_cost_increase_delta": 4,
+    "reinforce_item_count": 108,
+    "no_reinforcement_supply": 116,
+}
+
+
+def config_numbers(blob):
+    """The match-wide supply numbers `GameRiver.Config` carries.
+
+    `reinforce_item_count` is read only to check the parse. Every round of
+    every tracked replay deals exactly that many offers, so a body parsed at
+    the wrong offset would have to put the right number in the right place by
+    accident to pass.
+    """
+    body = monobehaviour_body(blob)
+    values = {
+        name: struct.unpack_from("<i", body, offset)[0]
+        for name, offset in CONFIG_FIELDS.items()
+    }
+    if values["reinforce_item_count"] != 4:
+        raise SystemExit(
+            f"Config parses reinforce_item_count as {values['reinforce_item_count']}, "
+            "and every tracked round deals four offers; the field offsets are wrong"
+        )
+    return values
+
+
+def monobehaviour_body(blob):
+    """One MonoBehaviour's own fields, past the header Unity writes first.
+
+    The header is the owning GameObject pointer, the enabled flag, the script
+    pointer and the name, and the name is followed to the next four-byte
+    boundary.
+    """
+    offset = 28
+    (length,) = struct.unpack_from("<i", blob, offset)
+    offset += 4 + length
+    return blob[(offset + 3) & ~3:]
 
 
 def contraption_prices(blob):
@@ -445,7 +494,7 @@ def write_officers(structure):
     print(f"officers that change a price or an income: {count}")
 
 
-def write_economy(structure, contraptions):
+def write_economy(structure, contraptions, config):
     """What the towers, the blueprints and the energy tower charge."""
     lines = ["schema: mechcore.economy", f"game_build: {BUILD}", "",
              "# Prices a round can pay that belong to no unit.",
@@ -485,22 +534,26 @@ def write_economy(structure, contraptions):
             f"supply: {row.get('supply', 0)}, granted: {row.get('supplyChangeValue', 0)}, "
             f"{raised}owed: {-row.get('nextRoundSupplyChangeValue', 0)}}}")
     lines += ["", "# What each technology already researched on a unit adds to the",
-              "# next one's price. `UnitTechnologyManager.GetUpgradeCost` computes",
-              "# a technology's price as this times the count already active plus",
-              "# the technology's own supply, capped by the unit's",
-              "# `techUpgradeMaxSupplyLimit`, which is zero for every unit a",
-              "# standard match can field. The shipped",
-              "# `techUpgradeIncreaseSupplyPerCount` reads zero as well, so the step",
-              "# is measured: a second technology on one unit costs 200 more in 29",
-              "# of the 37 decidable rounds that research one, a third 400 more and",
-              "# a fourth 600 more.",
-              "technology_repeat_step: 200"]
-    lines += ["", "# What declining the round's reinforcement pays. Declining is itself",
-              "# an item: `ReinforcementManager.GetGiveUpReinforce` returns an",
-              "# `AddSupplyReinforceItem`, built per round rather than read from a",
-              "# shipped table, so this is measured. Every one of the 26 decidable",
-              "# declines in the local replay set pays this, in rounds 2 through 8.",
-              "reinforce_decline: 50"]
+              "# next one's price. `UnitUtility.CalculateUpgradeTechnologyCost`",
+              "# computes a technology's price as this times the count already",
+              "# active plus the technology's own supply, capped by the unit's",
+              "# `techUpgradeMaxSupplyLimit` when that is above zero. The step it",
+              "# uses is the unit's own `techUpgradeIncreaseSupplyPerCount`, and",
+              "# when that is zero or less it falls back to the match-wide",
+              "# `Config.upgradeTechnologyCostIncreaseDelta`. Every standard unit",
+              "# ships zero, so every standard match uses the fallback, which is",
+              "# what this reads.",
+              f"technology_repeat_step: {config['upgrade_technology_cost_increase_delta']}"]
+    lines += ["", "# What declining the round's reinforcement pays. Declining is",
+              "# itself an item: `ReinforcementManager.GetGiveUpReinforce`",
+              "# returns an `AddSupplyReinforceItem` built per round rather than",
+              "# read from a card table. This is `Config.noReinforcementSupply`,",
+              "# a shipped field whose name and value both match what every",
+              "# decidable decline in the local replay set pays. What is not",
+              "# traced is the path from the field to the item: nothing in the",
+              "# decompilation is recorded reading it, so the match is by name",
+              "# and value rather than by call chain.",
+              f"reinforce_decline: {config['no_reinforcement_supply']}"]
     lines += ["", "# What releasing a contraption costs. The config data container",
               "# does not carry these; they come from the `constraptionDatas`",
               "# object of `level0`.",
@@ -550,8 +603,8 @@ def main():
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     raw = blobs(pathlib.Path(sys.argv[1]),
-                (TECHNOLOGY_GROUP_PATH_ID, COMMANDER_SKILL_PATH_ID, EQUIPMENT_PATH_ID,
-                 CONTRAPTION_PATH_ID))
+                (TECHNOLOGY_GROUP_PATH_ID, CONFIG_PATH_ID, COMMANDER_SKILL_PATH_ID,
+                 EQUIPMENT_PATH_ID, CONTRAPTION_PATH_ID))
     blob = raw[TECHNOLOGY_GROUP_PATH_ID]
     structure = json.loads(CONFIG_JSON.read_text())["m_Structure"]
     cards = {row["id"]: row for row in structure["cardDatas"]}
@@ -665,7 +718,8 @@ def main():
     write_unit_reinforcements(structure, by_level)
     write_advance_teams(structure)
     write_officers(structure)
-    write_economy(structure, contraption_prices(raw[CONTRAPTION_PATH_ID]))
+    write_economy(structure, contraption_prices(raw[CONTRAPTION_PATH_ID]),
+                  config_numbers(raw[CONFIG_PATH_ID]))
 
     UNIT_TECHS.write_text(yaml_units("mechcore.unit_techs", techs))
     UNIT_PRICES.write_text(yaml_units("mechcore.unit_prices", economy))

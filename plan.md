@@ -71,9 +71,15 @@
 | `opening_offers` | 要复现增援池的概率表与抽取顺序，录像只存了随机状态与池操作日志 |
 | `terrains` | 只覆盖粘性油弹 400002，其余留存地形会报错 |
 
-**两个数量出来而不是读出来。** 科技步长 200
-（`techUpgradeIncreaseSupplyPerCount` 对每个标准单位都写 0）和放弃增援的 50
-（随包没有任何一张表给出这个数额）。两者都成立，只是出处不明。
+**一个数量出来而不是读出来。** "这一回合多买一个"的 1：能量塔技能 3 和增援卡
+10004 各加一次购买额度，能量塔那张表根本没有额度字段，`OfficerData.IsAddExtraUnit`
+是个布尔而不是数。成立，只是出处不明。
+
+科技步长 200 已经读出来了，出处在 `Config.upgradeTechnologyCostIncreaseDelta`：
+单位自己的 `techUpgradeIncreaseSupplyPerCount` 为零或更小时，
+`UnitUtility.CalculateUpgradeTechnologyCost` 回落到这个全局字段，而标准单位随包
+全写 0。放弃增援的 50 是 `Config.noReinforcementSupply`，名字和值都对得上，但从
+这个字段到增援项的调用链没追通，只能算按名对上。
 
 ## 下一步
 

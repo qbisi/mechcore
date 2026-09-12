@@ -35,22 +35,26 @@ energy_tower_skills:
   - {id: 6, name: 高速移动, supply: 50, granted: 0, owed: 0}
 
 # What each technology already researched on a unit adds to the
-# next one's price. `UnitTechnologyManager.GetUpgradeCost` computes
-# a technology's price as this times the count already active plus
-# the technology's own supply, capped by the unit's
-# `techUpgradeMaxSupplyLimit`, which is zero for every unit a
-# standard match can field. The shipped
-# `techUpgradeIncreaseSupplyPerCount` reads zero as well, so the step
-# is measured: a second technology on one unit costs 200 more in 29
-# of the 37 decidable rounds that research one, a third 400 more and
-# a fourth 600 more.
+# next one's price. `UnitUtility.CalculateUpgradeTechnologyCost`
+# computes a technology's price as this times the count already
+# active plus the technology's own supply, capped by the unit's
+# `techUpgradeMaxSupplyLimit` when that is above zero. The step it
+# uses is the unit's own `techUpgradeIncreaseSupplyPerCount`, and
+# when that is zero or less it falls back to the match-wide
+# `Config.upgradeTechnologyCostIncreaseDelta`. Every standard unit
+# ships zero, so every standard match uses the fallback, which is
+# what this reads.
 technology_repeat_step: 200
 
-# What declining the round's reinforcement pays. Declining is itself
-# an item: `ReinforcementManager.GetGiveUpReinforce` returns an
-# `AddSupplyReinforceItem`, built per round rather than read from a
-# shipped table, so this is measured. Every one of the 26 decidable
-# declines in the local replay set pays this, in rounds 2 through 8.
+# What declining the round's reinforcement pays. Declining is
+# itself an item: `ReinforcementManager.GetGiveUpReinforce`
+# returns an `AddSupplyReinforceItem` built per round rather than
+# read from a card table. This is `Config.noReinforcementSupply`,
+# a shipped field whose name and value both match what every
+# decidable decline in the local replay set pays. What is not
+# traced is the path from the field to the item: nothing in the
+# decompilation is recorded reading it, so the match is by name
+# and value rather than by call chain.
 reinforce_decline: 50
 
 # What releasing a contraption costs. The config data container
