@@ -137,10 +137,22 @@ from the opening round's random state and checks the chosen entry against the
 recorded team and specialist. A missing or malformed random state, or a choice
 that disagrees with the reconstructed deal, is refused.
 
-Offline opening verification checks both complete offer arrays against the
-match seed and requires each `choose` to name an entry. This checks the deal
-and the choice's range; it does not prove that a player selected that index
-without the source replay, or validate the battle's deployment and combat.
+Offline opening verification computes initialization from the match seed and
+map ID, checks both complete offer arrays and initial construction lists, and
+requires each `choose` to name an entry. It compares the directly computed
+result, without searching alternative stream positions. This checks the deal,
+construction layout and choice's range; it does not prove that a player selected
+that index without the source replay, or validate deployment and combat.
+
+`mechcore opening <seed> <map_id>` predicts the same two offer arrays and
+construction lists without a battle or replay. Its JSON result includes the
+selected officer variants and unit reinforcement round pool, the reinforcement
+state before and after the opening deal, and raw draw counts excluding seed
+warm-up and including range rejection. The map stream reports its chosen
+construction group, reversal flags in blue/red order, and raw draw count.
+Unsupported maps and negative seeds are refused. This operation predicts
+available options; it does not select an option for either player or predict
+subsequent reinforcement deals.
 
 ### The construction layout is dealt, not built
 

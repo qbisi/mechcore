@@ -124,37 +124,21 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
     })
 }
 
-/// Checks that a battle's two openings are the ones its own seed deals.
-///
-/// The opening is the one decision a replay does not record the alternatives
-/// for, so a converted battle states four combinations per side that nothing in
-/// the file it came from carries. They are not invented: they are drawn from
-/// the match's reinforcement stream, and that stream starts at the seed. So the
-/// check is to deal them again from the seed and compare, which is what makes
-/// the field evidence rather than decoration.
-///
-/// The pool draws from the same stream before the opening does, and by how much
-/// is not yet settled, so the starting position is searched within a window
-/// rather than computed. A match establishes consistency inside that window,
-/// not the unique stream position or the player's recorded choice.
+/// Checks both sides' offers and constructions using explicit seeded setup.
+/// Player choices are checked for range; the source replay authenticates them.
 fn verify_battle(
     path: &Path,
     stated: &mechcore_document::opening::Stated,
 ) -> Result<VerifyReport, String> {
     let economy = mechcore_document::economy::Economy::embedded()?;
     let checked = mechcore_document::opening::verify(&economy, stated);
-    let detail = |found: Option<&mechcore_document::opening::Verified>| {
+    let detail = |found: Option<&mechcore_document::opening::Prediction>| {
         serde_json::json!({
             "seed": stated.seed,
             "openings": 2,
-            "opening_offset": found.map(|found| found.offset),
-            "opening_offsets": found.map(|found| found.matches.clone()),
-            "opening_offers": found.map(|found| {
-                serde_json::json!({
-                    "blue": found.deal.blue.iter().copied().map(pair).collect::<Vec<_>>(),
-                    "red": found.deal.red.iter().copied().map(pair).collect::<Vec<_>>(),
-                })
-            }),
+            "map_id": stated.map_id,
+            "prediction": found,
+
         })
     };
     match checked {
@@ -175,10 +159,6 @@ fn verify_battle(
             detail: detail(None),
         }),
     }
-}
-
-fn pair(offer: mechcore_document::battle::OpeningOffer) -> Value {
-    serde_json::json!({ "team": offer.team, "specialist": offer.specialist })
 }
 
 /// Replays a recording's decisions through the deployment transition.

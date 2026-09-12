@@ -45,8 +45,8 @@ CI regenerates this directory on every push and pull request and fails when the
 result differs, so a converter change that left the corpus behind cannot merge.
 
 `mechcore verify tests/battle/*.yaml` checks both sides' complete opening offers
-against each battle's seed and refuses an out-of-range `choose`. It searches a
-bounded window of the seeded stream because the reinforcement pool consumes
-random values before dealing the opening. Deployment seams are checked by the
-conversion's ledger and transition reports; this opening check does not verify
+and initial construction lists against each battle's seed and map ID, and
+refuses an out-of-range `choose`. It computes the reinforcement initialization
+draws and independent map stream directly, without searching stream positions.
+Deployment seams are checked by the conversion's ledger and transition reports; this opening check does not verify
 combat or prove the player's choice without the source replay.
