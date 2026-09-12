@@ -29,7 +29,7 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 反过来同样成立：改动让最近那份 readme 不再成立时，同一次提交里把 readme 一
 起改。它描述的是当前状态，不是历史。
 
-# CI
+# CI 与自动合并
 
 `.github/workflows/ci.yml` 在 macOS 上跑四件事：fixture 哈希、`cargo clippy
 -D warnings`、`cargo test --workspace --all-features`，以及重新生成
@@ -39,6 +39,11 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 `cargo fmt --check` 不在其中：仓库现有代码本来就不符合当前 rustfmt 的输出，
 加上去等于要求先做一次全仓格式化。改动过的文件不应该引入新的格式漂移，用
 `rustfmt --check <file>` 与改动前对比来确认。
+
+`.github/workflows/automerge.yml` 在 ci 通过后运行。当一个 PR 的每一条提交都
+带 `Co-Authored-By: Claude` 落款、来自本仓库的分支、不是草稿、且该 commit 上
+的其它检查也全绿时，它直接合并并删除分支。任何一条提交没有落款就不合并：那
+是人写的，由人来合。
 
 # 提交规范
 

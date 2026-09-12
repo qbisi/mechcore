@@ -1,0 +1,81 @@
+name: automerge
+
+# Runs after ci finishes rather than on the pull request itself, so the merge
+# decision is taken with the run's answer already in hand. `workflow_run` also
+# keeps the write token out of anything a pull request's own branch can change.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+
+jobs:
+  merge:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+    steps:
+      - name: Merge an agent's pull request whose checks are green
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          number=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/pulls" \
+            --jq 'map(select(.state == "open")) | first | .number // empty')
+          if [ -z "$number" ]; then
+            echo "no open pull request has $HEAD_SHA at its head"
+            exit 0
+          fi
+
+          pull=$(gh api "repos/$REPOSITORY/pulls/$number")
+          same_repo=$(jq -r '.head.repo.full_name == .base.repo.full_name' <<<"$pull")
+          draft=$(jq -r '.draft' <<<"$pull")
+          head=$(jq -r '.head.sha' <<<"$pull")
+          mergeable=$(jq -r '.mergeable' <<<"$pull")
+
+          # A fork's branch is not this repository's history, and a draft is a
+          # pull request its author has said is not finished.
+          if [ "$same_repo" != true ] || [ "$draft" != false ]; then
+            echo "#$number is a fork or a draft"
+            exit 0
+          fi
+          # The run that woke this job may already be behind its own branch.
+          if [ "$head" != "$HEAD_SHA" ]; then
+            echo "#$number moved to $head after $HEAD_SHA was checked"
+            exit 0
+          fi
+          # Null means GitHub has not finished computing it, which is not a no.
+          if [ "$mergeable" = false ]; then
+            echo "#$number does not merge cleanly"
+            exit 0
+          fi
+
+          # Every commit has to be an agent's. One hand-written commit in the
+          # series is a person's work, and a person merges their own.
+          authored=$(gh api --paginate "repos/$REPOSITORY/pulls/$number/commits" \
+            --jq '.[] | .commit.message | test("Co-Authored-By: Claude"; "i")')
+          if [ -z "$authored" ] || grep -qx false <<<"$authored"; then
+            echo "#$number carries a commit no agent co-authored"
+            exit 0
+          fi
+
+          # ci is green by the trigger, and this is every other check on the
+          # same commit: docs, and whatever is added later without touching
+          # this file. A check still running means the answer is not in yet.
+          checks=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            --jq '[.check_runs[] | select(.name != "merge")]')
+          pending=$(jq -r '[.[] | select(.status != "completed")] | length' <<<"$checks")
+          failed=$(jq -r \
+            '[.[] | select(.conclusion | IN("success", "skipped", "neutral") | not)] | length' \
+            <<<"$checks")
+          if [ "$pending" != 0 ] || [ "$failed" != 0 ]; then
+            echo "#$number has $pending check(s) running and $failed not green"
+            exit 0
+          fi
+
+          gh pr merge "$number" --repo "$REPOSITORY" --merge --delete-branch
