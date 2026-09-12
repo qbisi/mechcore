@@ -7,10 +7,13 @@ on:
     branches: [master]
   pull_request:
 
-# A second push to the same branch makes the first run's answer stale, and these
-# are macOS runners.
+# A branch's newest push is the only one worth an answer, and these are macOS
+# runners, so an older run on the same branch is cancelled. A mainline commit
+# is not: every commit has to build and pass on its own, and a cancelled run
+# never says whether it did. Keying the mainline by commit gives each its own
+# group, so a merge cannot silence the push before it.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/master' && github.sha || 'head' }}
   cancel-in-progress: true
 
 jobs:
