@@ -902,8 +902,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 221
-        y: 262
+      - {x: 221, y: 262}
 - round: 3
   state:
     reinforce_offers:
@@ -1149,8 +1148,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 239
-        y: 251
+      - {x: 239, y: 251}
     - type: active_blueprint
       id: 2
     - type: release_commander_skill
@@ -1465,8 +1463,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 255
-        y: 260
+      - {x: 255, y: 260}
     - type: active_energy_tower_skill
       skill: 3
     - type: unlock_unit
@@ -1818,8 +1815,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 256
-        y: 249
+      - {x: 256, y: 249}
     - type: upgrade_unit
       index: 7
     - type: move_unit
@@ -2166,8 +2162,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -150
-        y: -271
+      - {x: -150, y: -271}
     red:
     - type: choose_reinforce_item
       offer: -1
@@ -2221,8 +2216,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 252
-        y: 252
+      - {x: 252, y: 252}
     - type: move_unit
       index: 18
       position: {x: 150, y: -250}
@@ -2608,10 +2602,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -79
-        y: 51
-      - x: -184
-        y: 51
+      - {x: -79, y: 51}
+      - {x: -184, y: 51}
     - type: release_contraption
       contraption: 20001
       position: {x: 33, y: -11}
@@ -2647,17 +2639,13 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: 148
-        y: -73
-      - x: 146
-        y: 67
-      - x: 146
-        y: 67
+      - {x: 148, y: -73}
+      - {x: 146, y: 67}
+      - {x: 146, y: 67}
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 266
-        y: 274
+      - {x: 266, y: 274}
     - type: buy_unit
       unit: 10
       position: {x: -5, y: -190}

@@ -2478,12 +2478,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -6
-        y: -28
-      - x: -8
-        y: 113
-      - x: -132
-        y: 167
+      - {x: -6, y: -28}
+      - {x: -8, y: 113}
+      - {x: -132, y: 167}
     - type: release_contraption
       contraption: 20001
       position: {x: -155, y: -11}
@@ -3014,12 +3011,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -13
-        y: -32
-      - x: -163
-        y: -137
-      - x: -245
-        y: -157
+      - {x: -13, y: -32}
+      - {x: -163, y: -137}
+      - {x: -245, y: -157}
     - type: move_unit
       index: 31
       position: {x: -60, y: -285}
@@ -3055,10 +3049,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 92
-        y: -133
-      - x: 25
-        y: -52
+      - {x: 92, y: -133}
+      - {x: 25, y: -52}
     - type: active_energy_tower_skill
       skill: 3
     - type: active_energy_tower_skill
@@ -3522,10 +3514,8 @@ turns:
         terrains:
         - type: oil
           control_points:
-          - x: 92
-            y: -133
-          - x: 25
-            y: -52
+          - {x: 92, y: -133}
+          - {x: 25, y: -52}
   actions:
     blue:
     - type: choose_reinforce_item
@@ -3538,12 +3528,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -13
-        y: -31
-      - x: -94
-        y: -188
-      - x: -183
-        y: -189
+      - {x: -13, y: -31}
+      - {x: -94, y: -188}
+      - {x: -183, y: -189}
     - type: upgrade_technology
       unit: 27
       tech: 4127

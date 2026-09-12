@@ -740,8 +740,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -16
-        y: 279
+      - {x: -16, y: 279}
     - type: unlock_unit
       unit: 7
     - type: buy_unit
@@ -772,13 +771,11 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -129
-        y: -86
+      - {x: -129, y: -86}
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -126
-        y: 81
+      - {x: -126, y: 81}
     - type: unlock_unit
       unit: 10
     - type: buy_unit
@@ -1011,8 +1008,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -191
-        y: 269
+      - {x: -191, y: 269}
     - type: upgrade_unit
       index: 2
     - type: upgrade_unit
@@ -1900,8 +1896,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -256
-        y: 80
+      - {x: -256, y: 80}
     - type: release_commander_skill
       skill: 1
       target: !unit 17
@@ -1934,8 +1929,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 17
-        y: -275
+      - {x: 17, y: -275}
     - type: move_unit
       index: 18
       position: {x: -195, y: -110}
@@ -1948,10 +1942,8 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -186
-        y: 33
-      - x: -105
-        y: 100
+      - {x: -186, y: 33}
+      - {x: -105, y: 100}
     red:
     - type: choose_reinforce_item
       offer: 1
@@ -1976,27 +1968,21 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -291
-        y: -245
-      - x: -235
-        y: -52
-      - x: -168
-        y: 136
+      - {x: -291, y: -245}
+      - {x: -235, y: -52}
+      - {x: -168, y: 136}
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 181
-        y: 270
+      - {x: 181, y: 270}
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 85
-        y: 140
+      - {x: 85, y: 140}
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 327
-        y: 284
+      - {x: 327, y: 284}
     - type: buy_unit
       unit: 9
       position: {x: -5, y: -160}
@@ -2031,10 +2017,8 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: -103
-        y: 24
-      - x: -207
-        y: 25
+      - {x: -103, y: 24}
+      - {x: -207, y: 25}
 - round: 7
   state:
     reinforce_offers:
@@ -2197,10 +2181,8 @@ turns:
         terrains:
         - type: oil
           control_points:
-          - x: -186
-            y: 33
-          - x: -105
-            y: 100
+          - {x: -186, y: 33}
+          - {x: -105, y: 100}
       red:
         reactor_core: 3997
         supply: 1400
@@ -2375,10 +2357,8 @@ turns:
         terrains:
         - type: oil
           control_points:
-          - x: -103
-            y: 24
-          - x: -207
-            y: 25
+          - {x: -103, y: 24}
+          - {x: -207, y: 25}
   actions:
     blue:
     - type: choose_reinforce_item
@@ -2456,12 +2436,9 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 5
-        y: -136
-      - x: -31
-        y: 60
-      - x: -97
-        y: 159
+      - {x: 5, y: -136}
+      - {x: -31, y: 60}
+      - {x: -97, y: 159}
     - type: active_energy_tower_skill
       skill: 5
     - type: active_energy_tower_skill
@@ -2930,12 +2907,9 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -240
-        y: -145
-      - x: -287
-        y: 49
-      - x: -242
-        y: 139
+      - {x: -240, y: -145}
+      - {x: -287, y: 49}
+      - {x: -242, y: 139}
     - type: upgrade_unit
       index: 12
     - type: active_energy_tower_skill

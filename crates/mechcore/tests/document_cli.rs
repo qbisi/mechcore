@@ -126,7 +126,7 @@ sides:
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
     assert!(canonical.contains(
-        "terrains:\n    - type: oil\n      control_points:\n      - x: -60\n        y: 40\n      - x: 60\n        y: 40"
+        "terrains:\n    - type: oil\n      control_points:\n      - {x: -60, y: 40}\n      - {x: 60, y: 40}"
     ));
     assert!(
         canonical.contains("- type: marksman\n      index: 0\n      position: {x: 0, y: -50}\n"),

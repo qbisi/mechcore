@@ -1079,8 +1079,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 140
-        y: 131
+      - {x: 140, y: 131}
     - type: buy_unit
       unit: 9
       position: {x: -5, y: -160}
@@ -1339,17 +1338,14 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -151
-        y: 91
+      - {x: -151, y: 91}
     - type: active_blueprint
       id: 1
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -204
-        y: 5
-      - x: -99
-        y: 5
+      - {x: -204, y: 5}
+      - {x: -99, y: 5}
     - type: release_contraption
       contraption: 10001
       position: {x: -141, y: -144}
@@ -1388,8 +1384,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 135
-        y: 183
+      - {x: 135, y: 183}
     - type: release_contraption
       contraption: 10001
       position: {x: 138, y: -85}
@@ -1561,10 +1556,8 @@ turns:
         terrains:
         - type: oil
           control_points:
-          - x: -204
-            y: 5
-          - x: -99
-            y: 5
+          - {x: -204, y: 5}
+          - {x: -99, y: 5}
           grid_rows:
             0: []
             1:
@@ -1782,10 +1775,8 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -45
-        y: 1
-      - x: 71
-        y: 78
+      - {x: -45, y: 1}
+      - {x: 71, y: 78}
     - type: release_contraption
       contraption: 10001
       position: {x: -137, y: -137}
@@ -2231,8 +2222,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 60
-        y: 136
+      - {x: 60, y: 136}
     - type: upgrade_unit
       index: 9
 - round: 7
@@ -2619,8 +2609,7 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: 183
-        y: 171
+      - {x: 183, y: 171}
     - type: active_energy_tower_skill
       skill: 5
     - type: upgrade_technology
@@ -2635,8 +2624,7 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 130
-        y: 154
+      - {x: 130, y: 154}
     - type: upgrade_unit
       index: 11
     - type: upgrade_unit
@@ -3118,10 +3106,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -232
-        y: 12
-      - x: -127
-        y: 15
+      - {x: -232, y: 12}
+      - {x: -127, y: 15}
     - type: active_energy_tower_skill
       skill: 5
     - type: active_energy_tower_skill

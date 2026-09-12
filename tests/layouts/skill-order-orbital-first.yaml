@@ -43,12 +43,10 @@ sides:
     battle_skills:
     - type: orbital_bombardment
       positions:
-      - x: -20
-        y: 140
+      - {x: -20, y: 140}
     - type: lightning_storm
       positions:
-      - x: 20
-        y: 150
+      - {x: 20, y: 150}
   red:
     formations:
     - type: crawler

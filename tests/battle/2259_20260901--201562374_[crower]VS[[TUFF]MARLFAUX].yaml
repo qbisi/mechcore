@@ -1721,12 +1721,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -41
-        y: -96
-      - x: -90
-        y: -187
-      - x: -273
-        y: -266
+      - {x: -41, y: -96}
+      - {x: -90, y: -187}
+      - {x: -273, y: -266}
     - type: strengthen_tower
       tower: 1
     - type: strengthen_tower
@@ -2055,10 +2052,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -80
-        y: -9
-      - x: -184
-        y: -2
+      - {x: -80, y: -9}
+      - {x: -184, y: -2}
     - type: active_energy_tower_skill
       skill: 5
     - type: active_energy_tower_skill
@@ -2123,12 +2118,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -48
-        y: -90
-      - x: -148
-        y: -150
-      - x: -171
-        y: -151
+      - {x: -48, y: -90}
+      - {x: -148, y: -150}
+      - {x: -171, y: -151}
     - type: active_energy_tower_skill
       skill: 5
     - type: active_energy_tower_skill
@@ -2484,8 +2476,7 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -143
-        y: 72
+      - {x: -143, y: 72}
     - type: buy_unit
       unit: 10
       position: {x: 5, y: -160}
@@ -2585,12 +2576,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -92
-        y: -197
-      - x: -133
-        y: -152
-      - x: -134
-        y: -133
+      - {x: -92, y: -197}
+      - {x: -133, y: -152}
+      - {x: -134, y: -133}
 - round: 8
   state:
     reinforce_offers:
@@ -2991,8 +2979,7 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: -157
-        y: 133
+      - {x: -157, y: 133}
     - type: upgrade_technology
       unit: 25
       tech: 725
@@ -3049,8 +3036,7 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: 138
-        y: 107
+      - {x: 138, y: 107}
     - type: active_energy_tower_skill
       skill: 1
     - type: upgrade_technology
@@ -3101,12 +3087,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -249
-        y: -62
-      - x: -238
-        y: 6
-      - x: -221
-        y: 47
+      - {x: -249, y: -62}
+      - {x: -238, y: 6}
+      - {x: -221, y: 47}
     - type: active_energy_tower_skill
       skill: 6
     - type: active_energy_tower_skill

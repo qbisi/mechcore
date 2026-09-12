@@ -796,8 +796,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -134
-        y: -288
+      - {x: -134, y: -288}
     - type: active_energy_tower_skill
       skill: 3
     - type: buy_unit
@@ -814,8 +813,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 259
-        y: 281
+      - {x: 259, y: 281}
     - type: active_blueprint
       id: 2
     - type: release_commander_skill
@@ -2086,8 +2084,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -316
-        y: -111
+      - {x: -316, y: -111}
     - type: active_energy_tower_skill
       skill: 3
     - type: buy_unit
@@ -2159,8 +2156,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 26
-        y: 286
+      - {x: 26, y: 286}
     - type: upgrade_technology
       unit: 5
       tech: 2805
@@ -3031,12 +3027,9 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: 36
-        y: -270
-      - x: -38
-        y: -229
-      - x: 158
-        y: -190
+      - {x: 36, y: -270}
+      - {x: -38, y: -229}
+      - {x: 158, y: -190}
     - type: active_energy_tower_skill
       skill: 1
     - type: active_energy_tower_skill
@@ -3566,12 +3559,9 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: -180
-        y: -97
-      - x: -108
-        y: -162
-      - x: -108
-        y: -162
+      - {x: -180, y: -97}
+      - {x: -108, y: -162}
+      - {x: -108, y: -162}
     - type: active_energy_tower_skill
       skill: 5
     - type: buy_unit
@@ -3595,8 +3585,7 @@ turns:
     - type: release_commander_skill
       skill: 5
       target: !area
-      - x: -141
-        y: 143
+      - {x: -141, y: 143}
     red:
     - type: choose_reinforce_item
       offer: 1
@@ -3651,5 +3640,4 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 178
-        y: 199
+      - {x: 178, y: 199}

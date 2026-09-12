@@ -2688,8 +2688,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 169
-        y: 59
+      - {x: 169, y: 59}
     - type: upgrade_unit
       index: 21
     - type: upgrade_unit
@@ -3182,8 +3181,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 176
-        y: 111
+      - {x: 176, y: 111}
     red:
     - type: choose_reinforce_item
       offer: 0
@@ -3191,8 +3189,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 160
-        y: 99
+      - {x: 160, y: 99}
     - type: release_contraption
       contraption: 10001
       position: {x: 212, y: -102}

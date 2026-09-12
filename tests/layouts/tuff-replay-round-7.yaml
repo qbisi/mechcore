@@ -120,8 +120,7 @@ sides:
     battle_skills:
     - type: electromagnetic_impact
       positions:
-      - x: -143
-        y: 72
+      - {x: -143, y: 72}
   red:
     techs:
       officers:
@@ -277,9 +276,6 @@ sides:
     battle_skills:
     - type: mobile_beacon
       positions:
-      - x: -92
-        y: -197
-      - x: -133
-        y: -152
-      - x: -134
-        y: -133
+      - {x: -92, y: -197}
+      - {x: -133, y: -152}
+      - {x: -134, y: -133}
