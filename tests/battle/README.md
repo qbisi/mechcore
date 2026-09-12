@@ -15,31 +15,26 @@ The scalable corpus entry point is:
 python3 scripts/export-replay-corpus.py --offline-only --force-battles
 ```
 
-[SHA256SUMS](SHA256SUMS) records the exact identity of all 35 generated
-documents. Together they contain 319 rounds and 8,555 actions over maps 1001,
-1011, 1021, 1031 and 1032.
+[SHA256SUMS](SHA256SUMS) records the exact identity of all 41 generated
+documents, which is every tracked replay. Together they contain 375 rounds and
+10,059 actions over maps 1001, 1011, 1021, 1031 and 1032.
 
-Six otherwise standard replays are deliberately absent. Each carries commander
-skill `800001` into a later round, but a replay does not record the retained
-Shield Airdrop objects needed to construct a truthful battle state:
+Three documents carry a retained Shield Airdrop, which the converter reads from
+the releasing skill's own `rangeItems` rather than from any object list:
+`[Dre420]VS[[TUFF] Wumple Doodle]` round 7 on both sides,
+`[elRAKAMAKAFON]VS[p站智慧官叫馆]` rounds 3 and 4 red, and
+`[Thorrrin]VS[占星]` round 3 red. The second of those stands one shield across two
+rounds, which is what distinguishes a retained object from a restatement of one
+round's release.
 
-- `2259_20260910--134504097_[Dre420]VS[[TUFF] Wumple Doodle].grbr`
-- `2259_20260910--134505087_[Dr.Reading♠Ace]VS[Burned My Tongue].grbr`
-- `2259_20260910--134505246_[NemoCoda]VS[Camilo.Y].grbr`
-- `2259_20260910--201615750_[KN1FEAR]VS[Píngxí].grbr`
-- `2259_20260910--67396921_[elRAKAMAKAFON]VS[p站智慧官叫馆].grbr`
-- `2259_20260911--134508150_[Thorrrin]VS[占星].grbr`
-
-The supply ledger closes all 568 of 568 convertible round transitions. The
-nine-field turn transition closes 5,110 of 5,112 comparisons. The two open
-comparisons are equipment deliveries in
-`[kulinichstas1985]VS[Menschlein]` round 4 blue and
+The supply ledger closes all 668 of 668 round transitions. The nine-field turn
+transition closes 6,010 of 6,012 comparisons. The two open comparisons are
+equipment deliveries in `[kulinichstas1985]VS[Menschlein]` round 4 blue and
 `[🐙Noname🐙]VS[Rievin]` round 5 blue; the exact missing IDs are pinned by the
 transition tests rather than hidden from the corpus.
 
-`[Dr. crbN]VS[trevorism]` is the only converted document with a `concession`.
-Two more source replays contain concessions but belong to the retained-airdrop
-refused subset above.
+Three converted documents carry a `concession`: `[Dre420]VS[[TUFF] Wumple
+Doodle]`, `[NemoCoda]VS[Camilo.Y]` and `[Dr. crbN]VS[trevorism]`.
 
 `mechcore verify` reads layout documents only, and refuses these by kind. There
 is no battle verifier yet; the conversion's ledger and transition reports are

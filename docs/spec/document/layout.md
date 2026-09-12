@@ -783,6 +783,11 @@ so one shield is never recorded in both places. The retained object uses
 build-2259 `CS_EnergyShield` (ID 800001), which is not short-lived and resets to
 maximum energy between rounds.
 
+A replay records it, in the releasing skill's own `rangeItems` rather than in
+any object list, and the entry survives as long as the shield does. Direct GRBR
+decoding is exposed as `mechcore_document::retained_from_grbr_round`, which
+reads the retained oil terrain from the same place.
+
 Because a retained airdrop is an existing world object rather than a new
 release, it only has to stand on the battlefield: its center must be inside
 `x=[-400,400], y=[-350,350]` in side-local coordinates, and its radius-70 body
@@ -855,7 +860,7 @@ simulated battle. Adapter execution reproduces the build-2259 line branch with
 native `FVector3`/`FPoint` operations, adds only the declared active indexes through
 `RangeItemSystem.AddItem`, then overwrites and reads back each optional
 `GridBlockInt` mask. Direct GRBR decoding is exposed as
-`mechcore_document::terrains_from_grbr_round`; replay recording uses the
+`mechcore_document::retained_from_grbr_round`; replay recording uses the
 independent live `RangeItemSystem` enumeration path and groups items by provider.
 
 ### `battle_skills`

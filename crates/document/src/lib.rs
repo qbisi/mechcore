@@ -33,7 +33,7 @@ pub use catalog::{
     contraption_type_from_id, unit_type_from_id,
 };
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
-pub use grbr::{GrbrRoundTerrains, terrains_from_grbr_round};
+pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
 pub use layout::{
     BattleSkillDefinition, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation,
     Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,

@@ -56,8 +56,8 @@ This directory is build 2259 only. Training Ground recordings carry
 ## Derived corpora
 
 The tracked set contains 41 matches and 750 player-rounds. Battle documents are
-generated under `tests/battle`; its README records the converter's supported
-and refused subsets. Native deployment observations are generated under the
+generated under `tests/battle`, one per replay, and its README records what the
+conversion establishes about them. Native deployment observations are generated under the
 ignored local `work/replay-corpus` directory by:
 
 ```bash
