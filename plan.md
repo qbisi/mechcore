@@ -18,10 +18,14 @@
 
 ## 已经存在
 
-- 五份文档契约互相引用：layout、state、turn、action、battle，
-  外加 mcfr、mcscript、session、adapter、unit-rules 五份其他契约。
-- 离线转换器 `mechcore convert`。下载录像、试验场对局、留存护盾技能和带游戏
-  规则的对局都按名拒绝，不猜。能量塔的债有两种读法，对不上也拒绝。
+- 五份文档契约互相引用：layout、state、turn、action、battle，外加 mcfr、
+  mcscript、session、adapter、unit-rules、rvo、quadtree 七份。全部按
+  `docs/README.md` 的 spec 规范写成，主文档一律英文，由 `scripts/check-docs.py` 把住。
+- 离线转换器 `mechcore convert`。别的 build、下载录像、试验场对局、带游戏规则
+  的对局和回合不连续的录像都按名拒绝，不猜。能量塔的债有两种读法，对不上也拒绝。
+  追踪集没有一份被拒。
+- 留存物体从释放它的技能自己的 `rangeItems` 读出来：空投护盾 800001 和粘性油弹
+  400002。护盾没有寿命，油弹的寿命逐回合减到零就消失，两者由 `round` 分开。
 - 七份配置表进入版本库，覆盖单位价、科技价、卡价、军官效果、开局、蓝图、
   建筑回收和每回合收入，由 `scripts/extract_prices.py` 从 build 2259 生成。
 - 补给账本，接进转换并全闭合。可判定的回合没有留下无法定价的。
@@ -40,10 +44,8 @@
   输出仍是原生 observation，
   尚未完整映射为文档 state，也没有完成纯函数逐动作验证。
 - 批量 oracle 语料器 `scripts/export-replay-corpus.py`。`tests/grbr` 的 build 2259
-  标准 1v1 原样录像逐份独立转换和采集；录像不记录历史空投护盾的子集由 battle
-  文档转换器按名拒绝，但仍能单独生成原生 observation。JSONL 完整输出不覆盖，
-  源/输出身份、拒绝和失败逐步原子写入本机
-  `work/replay-corpus/manifest.json`，中断后可续跑。
+  标准 1v1 原样录像逐份独立转换和采集。JSONL 完整输出不覆盖，源/输出身份、拒绝
+  和失败逐步原子写入本机 `work/replay-corpus/manifest.json`，中断后可续跑。
 
 ## 还不存在
 
@@ -62,16 +64,12 @@
 释放装置、释放技能和能量塔技能；购买、解锁、升级、科技、蓝图和选卡只能装载
 结果。装载一个初始条件和做出一个合法决策是两种能力，后者还没有。
 
-**三个字段转换器填不出来。** 每个都有明确的来源问题：
+**两个字段转换器填不出来。** 每个都有明确的来源问题：
 
 | 字段 | 缺什么 |
 | --- | --- |
 | `opening_offers` | 要复现增援池的概率表与抽取顺序，录像只存了随机状态与池操作日志 |
-| `airdrop_shields` | 录像无字段，需跨回合追踪技能 800001 的释放与留存 |
 | `terrains` | 只覆盖粘性油弹 400002，其余留存地形会报错 |
-
-`travelling` 曾经在这张表里，现在不在了：快照开在回合初，战斗已经清空偷袭集合，
-所以转换出来的每个 state 都没有 travelling 编队，缺字段就是它的值。
 
 **两个数量出来而不是读出来。** 科技步长 200
 （`techUpgradeIncreaseSupplyPerCount` 对每个标准单位都写 0）和放弃增援的 50
@@ -107,19 +105,10 @@
 
 按验证结果补充：
 
-- 试验场的 `apply_snapshot` 用于任意局面恢复和主动构造实验，按已定规则不碰
-  随机流与增援池，不阻塞录像 oracle。验证增援选择先采集录像中的选择前后状态，
-  不以试验场能恢复已发牌未选择阶段为前提；
-- 补齐原生 turn 执行能力，验证正常合法性检查与录像播放路径的差别；
-- 确认两个语料里从不出现的动作：`PAD_Redo` 和 `PAD_ReleaseConstruction`。
-
-### 四、文档
-
-- 把 spec 规范应用到还没改的八份上，先 document 类再接口类；
-- 五份中文主文档转成英文主文档，原文留作 `.zh.md`：
-  mcfr、terrain、rvo、quadtree、map。
+- 补齐原生 turn 执行能力，验证正常合法性检查与录像播放路径的差别。适配器现在
+  能真正做出的是六个动作，其余只能装载结果。
 
 ## 顺序
 
 批量语料生成已经完成；先开展一的样本切分，再推进二的映射与验证。三不阻塞
-录像 oracle，四独立推进。
+录像 oracle。
