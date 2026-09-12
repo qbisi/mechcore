@@ -3,6 +3,7 @@ mod adapter;
 mod convert;
 mod document;
 mod mcfr;
+mod opening;
 mod script;
 mod session;
 mod shell;
@@ -15,6 +16,7 @@ fn usage(program: &str) {
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} verify <document>... | paths on stdin");
+    eprintln!("       {program} opening <seed> <map_id>");
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} diff <left.yaml> <right.yaml>");
     eprintln!("       {program} convert <replay.grbr> <battle.yaml> [--force]");
@@ -62,6 +64,7 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Some("opening") => report("opening", opening::run(arguments).map(|()| true)),
         Some("verify") => report("verify", document::verify(arguments)),
         Some("format") => report("format", document::format(arguments).map(|()| true)),
         Some("diff") => report("diff", document::diff(arguments)),

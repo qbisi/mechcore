@@ -7,12 +7,13 @@
 //! four combinations are a function of a number the document already holds.
 //!
 //! `docs/rules/opening.md` pins the deal parameters and their arithmetic to
-//! build 2259. Verification searches a bounded stream window; it does not
-//! compute how many values the reinforcement pool consumes before the deal.
+//! build 2259. Initialization advances the reinforcement stream explicitly;
+//! map constructions use a separate stream seeded with the same match seed.
 
 use crate::battle::OpeningOffer;
 use crate::economy::{Economy, OpeningKind};
-use serde::Deserialize;
+use crate::layout::{Position, StaticPlacement};
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// How many combinations a side is dealt.
@@ -31,19 +32,6 @@ pub const CHOOSE_COUNT: usize = 4;
 /// name, `RandAdvance` compares a minimum count of distinct units per tier.
 pub const DIFFERENT_UNIT_FLOOR: i32 = 3;
 
-/// How far past the seed the deal can start.
-///
-/// The reinforcement pool draws from the same stream before the opening does,
-/// and how much it draws is not yet settled, so a check from the seed alone
-/// searches this many positions for the one that produces the deal. Every
-/// tracked replay starts between 24 and 33.
-///
-/// A deal agrees at a short contiguous run of positions rather than at one,
-/// because a leading value its own rejection loop discards moves the start
-/// without moving the deal. The run is one or two positions wide across the
-/// tracked set, and the position the replay recorded is inside it every time.
-pub const SEARCH_WINDOW: u32 = 96;
-
 /// The match's reinforcement random stream.
 ///
 /// `GRRandom` delegates to `RanState`, which is Lua 5.4's generator: xoshiro256\*\*
@@ -53,6 +41,7 @@ pub const SEARCH_WINDOW: u32 = 96;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Stream {
     state: [u64; 4],
+    draws: u32,
 }
 
 impl Stream {
@@ -65,7 +54,7 @@ impl Stream {
         if state == [0; 4] {
             return Err("opening random state must not be all zero".into());
         }
-        Ok(Self { state })
+        Ok(Self { state, draws: 0 })
     }
 
     /// The stream a match seed starts, as `math_randomseed(seed, 0)` builds it.
@@ -77,10 +66,12 @@ impl Stream {
     pub fn seeded(seed: i32) -> Self {
         let mut stream = Self {
             state: [i64::from(seed).cast_unsigned(), 0xff, 0, 0],
+            draws: 0,
         };
         for _ in 0..16 {
             stream.value();
         }
+        stream.draws = 0;
         stream
     }
 
@@ -99,6 +90,7 @@ impl Stream {
 
     /// `nextrand`: one xoshiro256\*\* value.
     fn value(&mut self) -> u64 {
+        self.draws += 1;
         let [zero, one, two, three] = self.state;
         let two = two ^ zero;
         let three = three ^ one;
@@ -142,7 +134,7 @@ impl Stream {
 }
 
 /// The four combinations each side was dealt.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct Deal {
     pub blue: Vec<OpeningOffer>,
     pub red: Vec<OpeningOffer>,
@@ -309,32 +301,172 @@ fn passes(
     Ok(true)
 }
 
-/// Where in the seed's own stream a deal starts, when it starts at all.
-///
-/// The pool draws before the opening does and this build has not been read far
-/// enough to say how much, so the position is searched rather than computed.
-/// `accepts` is the caller's test: what a document states about the deal.
-///
-/// # Errors
-///
-/// Returns an error when the pools cannot be read.
-pub fn locate(
-    economy: &Economy,
-    seed: i32,
-    accepts: &dyn Fn(&Deal) -> bool,
-) -> Result<Vec<u32>, String> {
-    let pools = Pools::read(economy)?;
-    let mut found = Vec::new();
-    for offset in 0..SEARCH_WINDOW {
+/// The shipped inputs to initialization, extracted by `scripts/extract_opening.py`.
+#[derive(Deserialize)]
+struct Setup {
+    officer_groups: BTreeMap<i32, Vec<i32>>,
+    unit_round_pools: Vec<i32>,
+    maps: BTreeMap<i32, MapSetup>,
+    constructions: BTreeMap<i32, Vec<Construction>>,
+}
+
+#[derive(Deserialize)]
+struct MapSetup {
+    groups: Vec<i32>,
+    centers: [Position; 2],
+}
+
+#[derive(Deserialize)]
+struct Construction {
+    unit: i32,
+    position: Position,
+}
+
+impl Setup {
+    fn embedded() -> Result<Self, String> {
+        serde_yaml::from_str(include_str!("../../../config/opening.yaml"))
+            .map_err(|error| format!("cannot read opening initialization: {error}"))
+    }
+
+    fn initialize(&self, seed: i32) -> Initialization {
         let mut stream = Stream::seeded(seed);
-        stream.skip(offset);
-        if let Ok(produced) = deal_from_pools(&pools, &mut stream)
-            && accepts(&produced)
-        {
-            found.push(offset);
+        let mut officers = BTreeMap::new();
+        // RandomTypeGroup sorts positive type IDs, then each group's members.
+        // A singleton is retained without calling ServerRand.
+        for (&kind, members) in &self.officer_groups {
+            let at = if members.len() == 1 {
+                0
+            } else {
+                stream.pick(0, members.len())
+            };
+            officers.insert(kind, members[at]);
+        }
+        let officer_draws = stream.draws;
+        let unit_round_pool = self.unit_round_pools[stream.pick(0, self.unit_round_pools.len())];
+        Initialization {
+            stream,
+            officers,
+            officer_draws,
+            unit_round_pool,
         }
     }
-    Ok(found)
+}
+
+/// The reinforcement stream after pool setup and before the opening deal.
+/// Raw draw counts exclude seeding's sixteen warm-up values and include retries.
+#[derive(Debug, Serialize)]
+pub struct Initialization {
+    #[serde(skip)]
+    pub stream: Stream,
+    pub officers: BTreeMap<i32, i32>,
+    pub officer_draws: u32,
+    pub unit_round_pool: i32,
+}
+
+/// Advances the stream through officer selection and unit reinforcement setup.
+///
+/// # Errors
+/// Returns an error if the embedded initialization inputs cannot be read.
+pub fn initialize(seed: i32) -> Result<Initialization, String> {
+    Ok(Setup::embedded()?.initialize(seed))
+}
+
+/// Both initial construction lists in the battle document's side-local frame.
+#[derive(Debug, Serialize)]
+pub struct Constructions {
+    pub blue: Vec<StaticPlacement>,
+    pub red: Vec<StaticPlacement>,
+}
+
+/// A seed-only prediction plus the exact stream boundaries for auditing it.
+#[derive(Debug, Serialize)]
+pub struct Prediction {
+    pub map_id: i32,
+    pub seed: i32,
+    pub initialization: Initialization,
+    pub opening_offset: u32,
+    pub opening_state: [u64; 4],
+    pub after_opening_offset: u32,
+    pub after_opening_state: [u64; 4],
+    pub deal: Deal,
+    pub construction_group: i32,
+    pub reversed: [bool; 2],
+    pub construction_draws: u32,
+    pub constructions: Constructions,
+}
+
+/// Predicts standard 1v1 offers and initial defensive constructions from a seed.
+/// Player choices are inputs to play, so this predicts their options only.
+///
+/// # Errors
+/// Refuses unsupported maps or negative seeds, unreadable configuration, and
+/// pools that cannot deal a complete opening.
+pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, String> {
+    if seed < 0 {
+        return Err("negative match seeds are outside the verified opening scope".into());
+    }
+    let setup = Setup::embedded()?;
+    let map = setup
+        .maps
+        .get(&map_id)
+        .ok_or_else(|| format!("map {map_id} has no supported opening initialization"))?;
+    let initialization = setup.initialize(seed);
+    let mut stream = initialization.stream;
+    let opening_offset = stream.draws;
+    let opening_state = stream.state();
+    let deal = deal(economy, &mut stream)?;
+    // MapSystem copies GRRandom.seed; it does not draw from Match.random.
+    let mut map_stream = Stream::seeded(seed);
+    let construction_group = map.groups[map_stream.pick(0, map.groups.len())];
+    // GRRandom.NextBool is Next(1000) < 500, including range rejection.
+    let reversed = [
+        map_stream.pick(0, 1000) < 500,
+        map_stream.pick(0, 1000) < 500,
+    ];
+    let group = setup
+        .constructions
+        .get(&construction_group)
+        .ok_or_else(|| format!("construction group {construction_group} is missing"))?;
+    let build_side = |side: usize| -> Result<Vec<StaticPlacement>, String> {
+        group
+            .iter()
+            .enumerate()
+            .map(|(index, unit)| {
+                let (type_name, _) = crate::catalog::construction_type_from_id(unit.unit)
+                    .ok_or_else(|| format!("unknown construction {}", unit.unit))?;
+                Ok(StaticPlacement {
+                    type_name: type_name.into(),
+                    index: i32::try_from(index).map_err(|error| error.to_string())?,
+                    position: Position {
+                        x: map.centers[side].x
+                            + if reversed[side] {
+                                -unit.position.x
+                            } else {
+                                unit.position.x
+                            },
+                        y: map.centers[side].y + unit.position.y,
+                    },
+                })
+            })
+            .collect()
+    };
+    Ok(Prediction {
+        map_id,
+        seed,
+        initialization,
+        opening_offset,
+        opening_state,
+        after_opening_offset: stream.draws,
+        after_opening_state: stream.state(),
+        deal,
+        construction_group,
+        reversed,
+        construction_draws: map_stream.draws,
+        constructions: Constructions {
+            blue: build_side(0)?,
+            red: build_side(1)?,
+        },
+    })
 }
 
 /// What a battle document says about its two openings.
@@ -344,6 +476,7 @@ pub fn locate(
 /// the other four kinds can be read back yet.
 #[derive(Debug, Deserialize)]
 pub struct Stated {
+    pub map_id: i32,
     pub seed: i32,
     pub sides: StatedSides,
 }
@@ -357,6 +490,7 @@ pub struct StatedSides {
 #[derive(Debug, Deserialize)]
 pub struct StatedSide {
     pub opening: StatedOpening,
+    pub constructions: Vec<StaticPlacement>,
 }
 
 /// The opening one side states: what it took, and what it chose between.
@@ -394,24 +528,13 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .map_err(|error| format!("battle document has no readable opening: {error}"))
 }
 
-/// What checking a battle's openings against its seed found.
-#[derive(Debug)]
-pub struct Verified {
-    /// The first position of the run that agrees.
-    pub offset: u32,
-    /// Every position that agrees, which is one short run, see
-    /// [`SEARCH_WINDOW`].
-    pub matches: Vec<u32>,
-    pub deal: Deal,
-}
-
-/// Checks that a battle's two openings are the ones its seed deals.
+/// Checks both offer arrays and construction lists against their seed and map.
+/// The chosen index must be in range; a seed cannot determine a player's choice.
 ///
 /// # Errors
-///
-/// Returns an error when no position in the searched window deals them, which
-/// is the failure this check exists to find.
-pub fn verify(economy: &Economy, stated: &Stated) -> Result<Verified, String> {
+/// Returns an error for a mismatched deal, layout, invalid choice or unsupported
+/// initialization scope.
+pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> {
     for (side, opening) in [
         ("blue", &stated.sides.blue.opening),
         ("red", &stated.sides.red.opening),
@@ -426,28 +549,40 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Verified, String> {
             ));
         }
     }
-    let matches = locate(economy, stated.seed, &|deal| {
-        stated.sides.blue.opening.agrees(&deal.blue) && stated.sides.red.opening.agrees(&deal.red)
-    })?;
-    let Some(offset) = matches.first().copied() else {
-        return Err(format!(
-            "seed {} does not deal both stated openings together anywhere in its first {SEARCH_WINDOW} positions",
-            stated.seed
-        ));
-    };
-    let mut stream = Stream::seeded(stated.seed);
-    stream.skip(offset);
-    let deal = deal(economy, &mut stream)?;
-    Ok(Verified {
-        offset,
-        matches,
-        deal,
-    })
+    let found = predict(economy, stated.seed, stated.map_id)?;
+    for (name, side, offers, constructions) in [
+        (
+            "blue",
+            &stated.sides.blue,
+            &found.deal.blue,
+            &found.constructions.blue,
+        ),
+        (
+            "red",
+            &stated.sides.red,
+            &found.deal.red,
+            &found.constructions.red,
+        ),
+    ] {
+        if !side.opening.agrees(offers) {
+            return Err(format!(
+                "seed {} does not deal the stated {name} opening",
+                stated.seed
+            ));
+        }
+        if side.constructions != *constructions {
+            return Err(format!(
+                "seed {} does not produce the stated {name} constructions on map {}",
+                stated.seed, stated.map_id
+            ));
+        }
+    }
+    Ok(found)
 }
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{CHOOSE_COUNT, Deal, SEARCH_WINDOW, Stream, deal, locate, stated, verify};
+    use super::{CHOOSE_COUNT, Stream, deal, initialize, predict, stated, verify};
     use crate::convert::battle_from_grbr;
     use crate::economy::Economy;
 
@@ -489,20 +624,12 @@ mod tests {
             ) else {
                 continue;
             };
-            let mut stream = Stream::seeded(record.info.system_seed);
-            let mut found = None;
-            for offset in 0..SEARCH_WINDOW {
-                if stream.state() == recorded {
-                    found = Some(offset);
-                    break;
-                }
-                stream.skip(1);
-            }
-            assert!(
-                found.is_some(),
-                "{}: seed {} never reaches the state round 0 recorded",
-                path.display(),
-                record.info.system_seed
+            let setup = initialize(record.info.system_seed).unwrap();
+            assert_eq!(
+                setup.stream.state(),
+                recorded,
+                "{}: initialization state",
+                path.display()
             );
             reached += 1;
         }
@@ -513,7 +640,7 @@ mod tests {
     #[test]
     fn every_tracked_seed_deals_the_opening_its_battle_states() {
         let economy = Economy::embedded().unwrap();
-        let (mut checked, mut runs) = (0, Vec::new());
+        let mut checked = 0;
         for battle in battles() {
             let yaml = crate::battle::canonical_yaml(&battle).unwrap();
             let stated = stated(yaml.as_bytes()).unwrap().expect("a battle document");
@@ -521,15 +648,11 @@ mod tests {
                 .unwrap_or_else(|error| panic!("seed {}: {error}", battle.seed));
             assert_eq!(found.deal.blue, battle.sides.blue.opening.offers);
             assert_eq!(found.deal.red, battle.sides.red.opening.offers);
-            runs.push(found.matches.len());
+            assert_eq!(found.constructions.blue, battle.sides.blue.constructions);
+            assert_eq!(found.constructions.red, battle.sides.red.constructions);
             checked += 1;
         }
         assert_eq!(checked, 41);
-        // A leading value the deal's own rejection loop discards moves the
-        // start without moving the deal, so a run of two is not ambiguity
-        // about which deal the seed makes.
-        runs.sort_unstable();
-        assert_eq!((runs.first(), runs.last()), (Some(&1), Some(&2)));
     }
 
     /// A deal states eight combinations and no specialist twice, because the
@@ -630,22 +753,27 @@ mod tests {
         assert!(stated(b"not a document at all").unwrap().is_none());
     }
 
-    /// The searched window is wide enough for every tracked match and no wider
-    /// than the check can afford.
     #[test]
-    fn the_pool_finishes_its_own_setup_inside_the_window() {
+    fn an_edited_construction_or_unsupported_map_is_refused() {
         let economy = Economy::embedded().unwrap();
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
-        let want: Deal = Deal {
-            blue: battle.sides.blue.opening.offers.clone(),
-            red: battle.sides.red.opening.offers.clone(),
-        };
-        let found = locate(&economy, battle.seed, &|made| *made == want).unwrap();
-        assert!(!found.is_empty());
-        assert!(found.iter().all(|offset| *offset < SEARCH_WINDOW));
-        // The stream the seed starts is not where the deal starts, so the
-        // offset is a real quantity rather than zero.
-        assert!(found[0] > 0);
+        let yaml = crate::battle::canonical_yaml(&battle).unwrap();
+        for blue in [true, false] {
+            let mut document = stated(yaml.as_bytes()).unwrap().unwrap();
+            let side = if blue {
+                &mut document.sides.blue
+            } else {
+                &mut document.sides.red
+            };
+            side.constructions[0].position.x += 1;
+            assert!(
+                verify(&economy, &document)
+                    .unwrap_err()
+                    .contains("constructions")
+            );
+        }
+        assert!(predict(&economy, battle.seed, 2001).is_err());
+        assert!(predict(&economy, -1, battle.map_id).is_err());
     }
 
     #[test]
