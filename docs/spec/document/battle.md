@@ -237,10 +237,22 @@ nothing where the round before activated one, is refused rather than converted
 under whichever reading happens to be consulted. An activation in the last round
 is never compared: no snapshot follows it.
 
-Two fields have no recorded source and are refused rather than guessed. A panel
-holding commander skill `800001` is an error instead of a silently missing
-`airdrop_shields`, and `travelling` is left absent rather than inferred from the
-ambush regions.
+`airdrop_shields` and `terrains` are read out of the panel rather than out of
+the object lists. A skill that leaves an object standing keeps it in that
+skill's `rangeItems`, and the snapshot opens the round, so an entry there is an
+object that outlived the round which made it. The two kinds differ in what they
+do with the entry's `round`: an oil terrain counts its remaining lifetime down
+and is dropped at zero, while a Shield Airdrop is not time-limited, always
+records zero, and simply loses its entry once the shield is gone. A `rangeItems`
+entry belonging to any other skill is an error, since this format has not been
+measured against it.
+
+A shield the requested round releases is a `turns` action, not an
+`airdrop_shields` entry, and the two never name the same object: the snapshot is
+taken before the round's own decisions.
+
+`travelling` is the one field with no recorded source. It is left absent rather
+than inferred from the ambush regions.
 
 ## Normal form
 

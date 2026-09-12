@@ -17,7 +17,7 @@ use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, 
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::ledger;
-use crate::{DocumentKind, terrains_from_grbr_round};
+use crate::{DocumentKind, retained_from_grbr_round};
 use std::collections::BTreeMap;
 
 /// The build these catalogues and conventions are pinned to.
@@ -34,8 +34,6 @@ const RAPID_SUPPLY_SKILL: i32 = 1;
 const MASS_RECRUIT_SKILL: i32 = 3;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
 const CHAIN_OFFICERS: [i32; 4] = [20300, 20301, 20310, 20311];
-/// The Shield Airdrop commander skill, whose retained objects a replay omits.
-const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 
 /// Which half of the map a side plays on, and so how its positions are read.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -252,12 +250,6 @@ fn side_state(
 
     let mut battle_skills = Vec::with_capacity(data.commander_skills.entries.len());
     for skill in &data.commander_skills.entries {
-        if skill.id == SHIELD_AIRDROP_SKILL {
-            return Err(format!(
-                "round {round} holds commander skill {SHIELD_AIRDROP_SKILL}, whose retained \
-                 shields a replay does not record; see docs/spec/document/battle.md"
-            ));
-        }
         battle_skills.push(PanelSkill {
             index: skill.index,
             id: skill.id,
@@ -269,11 +261,14 @@ fn side_state(
     }
     battle_skills.sort_by_key(|skill| skill.index);
 
-    let terrains = terrains_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
-    let terrains = match seat {
-        Seat::Blue => terrains.blue,
-        Seat::Red => terrains.red,
+    let retained = retained_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
+    let mut retained = match seat {
+        Seat::Blue => retained.blue,
+        Seat::Red => retained.red,
     };
+    retained
+        .airdrop_shields
+        .sort_unstable_by_key(|position| (position.x, position.y));
 
     let mut blueprints = data.blueprints.values.clone();
     blueprints.sort_unstable();
@@ -322,9 +317,8 @@ fn side_state(
         formations,
         constructions,
         contraptions,
-        // A replay records no retained shield; refused above if one could exist.
-        airdrop_shields: Vec::new(),
-        terrains,
+        airdrop_shields: retained.airdrop_shields,
+        terrains: retained.terrains,
     })
 }
 
@@ -759,12 +753,14 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
 #[cfg(test)]
 mod tests {
     use super::{battle_from_grbr, recorded_unit_ids};
-    use crate::battle::{Action, SkillTarget, canonical_yaml};
+    use crate::battle::{Action, SideState, SkillTarget, Turn, canonical_yaml};
+    use crate::grbr::SHIELD_AIRDROP_SKILL;
     use crate::{DocumentKind, Position};
 
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
     const CRBN: &str = "../../tests/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
+    const THORRRIN: &str = "../../tests/grbr/2259_20260911--134508150_[Thorrrin]VS[占星].grbr";
 
     fn tuff() -> super::Battle {
         battle_from_grbr(&std::fs::read(TUFF).expect("tracked GRBR fixture")).unwrap()
@@ -970,9 +966,8 @@ mod tests {
     }
 
     #[test]
-    fn classifies_every_tracked_standard_replay() {
+    fn converts_every_tracked_standard_replay() {
         let mut converted = 0;
-        let mut refused = 0;
         for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
@@ -993,13 +988,135 @@ mod tests {
                         }
                     }
                 }
-                Err(error) => {
-                    refused += 1;
-                    assert!(error.contains("retained shields"), "{error}");
+                Err(error) => panic!("{}: {error}", path.display()),
+            }
+        }
+        assert_eq!(converted, 41);
+    }
+
+    /// A standing Shield Airdrop is one the round before released or held.
+    ///
+    /// The snapshot records it in the same `rangeItems` the retained oil
+    /// terrain comes from, so the round before is a second witness and the two
+    /// are compared. The tracked set stands five shields, and the one in
+    /// `[elRAKAMAKAFON]` stands for two rounds before a fight destroys it,
+    /// which is what makes the entry a retained object rather than a
+    /// restatement of one round's release.
+    #[test]
+    fn a_standing_shield_is_the_previous_rounds_release_or_its_own_survival() {
+        fn pick<'a>(turn: &'a Turn, side: &str) -> (&'a SideState, &'a [Action]) {
+            match side {
+                "blue" => (&turn.state.sides.blue, &turn.actions.blue),
+                _ => (&turn.state.sides.red, &turn.actions.red),
+            }
+        }
+        let mut standing = Vec::new();
+        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            let battle = battle_from_grbr(&std::fs::read(&path).unwrap()).unwrap();
+            for (position, turn) in battle.turns.iter().enumerate() {
+                let before = position.checked_sub(1).map(|index| &battle.turns[index]);
+                for side_name in ["blue", "red"] {
+                    let (state, _) = pick(turn, side_name);
+                    if state.airdrop_shields.is_empty() {
+                        continue;
+                    }
+                    let centers = state
+                        .airdrop_shields
+                        .iter()
+                        .map(|center| (center.x, center.y))
+                        .collect::<Vec<_>>();
+                    standing.push(format!(
+                        "{name} round {} {side_name}: {centers:?}",
+                        turn.round
+                    ));
+                    let before = before.unwrap_or_else(|| {
+                        panic!(
+                            "{name} round {} {side_name} opens holding a shield",
+                            turn.round
+                        )
+                    });
+                    let (earlier, actions) = pick(before, side_name);
+                    // The panel slot is read from this round and not the one
+                    // before, because a skill taken as a reinforcement is
+                    // released in the round that takes it and only reaches the
+                    // next round's snapshot. The slot itself does not move.
+                    let slot = state
+                        .battle_skills
+                        .iter()
+                        .find(|skill| skill.id == SHIELD_AIRDROP_SKILL)
+                        .map(|skill| skill.index);
+                    for center in &state.airdrop_shields {
+                        let released = actions.iter().any(|action| {
+                            matches!(
+                                action,
+                                Action::ReleaseCommanderSkill {
+                                    skill,
+                                    target: SkillTarget::Area(points),
+                                } if Some(*skill) == slot && points.as_slice() == [*center]
+                            )
+                        });
+                        assert!(
+                            released || earlier.airdrop_shields.contains(center),
+                            "{name} round {} {side_name} stands a shield at ({}, {}) \
+                             that the round before neither released nor held",
+                            turn.round,
+                            center.x,
+                            center.y
+                        );
+                    }
                 }
             }
         }
-        assert_eq!((converted, refused), (35, 6));
+        standing.sort();
+        assert_eq!(
+            standing,
+            [
+                "2259_20260910--134504097_[Dre420]VS[[TUFF] Wumple Doodle].grbr round 7 blue: [(-169, -110)]",
+                "2259_20260910--134504097_[Dre420]VS[[TUFF] Wumple Doodle].grbr round 7 red: [(-210, -130)]",
+                "2259_20260910--67396921_[elRAKAMAKAFON]VS[p站智慧官叫馆].grbr round 3 red: [(72, -29)]",
+                "2259_20260910--67396921_[elRAKAMAKAFON]VS[p站智慧官叫馆].grbr round 4 red: [(72, -29)]",
+                "2259_20260911--134508150_[Thorrrin]VS[占星].grbr round 3 red: [(-235, -74)]",
+            ]
+        );
+    }
+
+    /// A retained object from a skill this reader has not been measured
+    /// against is refused rather than dropped.
+    ///
+    /// The tracked `[Thorrrin]` replay stands one shield, and its skill ID is
+    /// edited in memory to an ID no catalogue holds. The replacement is the
+    /// same number of bytes, so the `BinaryFormatter` framing stays intact.
+    #[test]
+    fn a_retained_object_from_an_unmeasured_skill_is_refused() {
+        let tracked = std::fs::read(THORRRIN).expect("tracked GRBR fixture");
+        let recorded = b"<id>800001</id>";
+        assert!(
+            tracked
+                .windows(recorded.len())
+                .any(|window| window == recorded),
+            "the tracked replay holds the Shield Airdrop"
+        );
+        let mut edited = Vec::with_capacity(tracked.len());
+        let mut rest = tracked.as_slice();
+        while let Some(at) = rest
+            .windows(recorded.len())
+            .position(|window| window == recorded)
+        {
+            edited.extend_from_slice(&rest[..at]);
+            edited.extend_from_slice(b"<id>800009</id>");
+            rest = &rest[at + recorded.len()..];
+        }
+        edited.extend_from_slice(rest);
+        let error = battle_from_grbr(&edited).expect_err("the skill is not measured");
+        assert!(
+            error.contains("unsupported retained commander-skill object 800009"),
+            "{error}"
+        );
     }
 
     /// The recorded energy tower list is the previous round's debt.
@@ -1033,7 +1150,7 @@ mod tests {
                 }
             }
         }
-        assert_eq!((deferred, immediate), (82, 469));
+        assert_eq!((deferred, immediate), (109, 551));
     }
 
     /// A snapshot that names a skill the round before did not activate is

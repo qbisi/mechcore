@@ -285,6 +285,6 @@ mod tests {
                 projected += 1;
             }
         }
-        assert_eq!(projected, 284);
+        assert_eq!(projected, 334);
     }
 }

@@ -737,7 +737,7 @@ mod tests {
             }
         }
         shortfalls.sort();
-        assert_eq!((fits, cards), (107, 86));
+        assert_eq!((fits, cards), (118, 97));
         assert_eq!(held, 22);
         assert_eq!(
             shortfalls,
@@ -814,7 +814,7 @@ mod tests {
         // The contraption allocator would close for free on a set that never
         // released one, so the set has to be known to move it.
         failures.sort();
-        assert_eq!((battles, closed, failed, releases), (35, 5_110, 2, 323));
+        assert_eq!((battles, closed, failed, releases), (41, 6_010, 2, 386));
         assert_eq!(
             failures,
             [

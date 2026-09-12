@@ -483,6 +483,11 @@ The unit roster comes from the per-round player data rather than from the
 match-level fight report, because the first two rounds precede the first fight
 and so have no report to read.
 
+`airdrop_shields` and `terrains` are the two fields that are copied from
+somewhere other than an object list. A skill that leaves an object standing
+keeps it in that skill's `rangeItems`, so both are read out of the recorded
+skill panel; [the battle document](battle.md) states the rule.
+
 ## Excluded fields
 
 | Field | Why it is not in the state |
