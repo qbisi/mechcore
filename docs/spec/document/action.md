@@ -86,13 +86,12 @@ An allocator is settled while the objects it names are board. A contraption is
 destroyed by the fight and a formation can be, but neither index is handed out
 again, so the two counters only ever rise and rise only by a decision.
 
-`reinforce_offers` and `opening_offers` are granted by the round and written by
-no action. The rest of that reading needs qualifying, because a decision can
-reach three fields that a round otherwise owns.
+`reinforce_offers` is granted by the round and written by no action. The rest of
+that reading needs qualifying, because a decision can reach three fields that a
+round otherwise owns.
 
-- `reactor_core` is moved by the round 0 opening and by nothing else. Both
-  halves of that one choice move it, so a team and its specialist are added
-  together.
+- `reactor_core` is moved by the opening and by nothing else. Both halves of
+  that one choice move it, so a team and its specialist are added together.
 - `buys_remaining` counts down as purchases are made, and two decisions add to
   it: energy tower skill `3` and reinforcement card `10004` each grant one more.
   `unlocks_remaining` only ever counts down.
@@ -139,9 +138,17 @@ declining is an item of its own rather than the absence of one.
   specialist: 20005
 ```
 
-The round 0 opening, which is one decision with two halves: the team and the
-specialist officer bound to it. `specialist` is optional and absent when the
-team is itself an officer.
+The opening, which is one decision with two halves: the team and the specialist
+officer bound to it. `specialist` is optional and absent when the team is itself
+an officer.
+
+The game records it in round 0, and a battle states its result under `sides`
+rather than holding that round, so no turn carries this one. Both players see
+what the other took before the first round opens, and a turn's action lists are
+secret, which is why it cannot be one of them; [`battle.md`](battle.md) carries
+that argument. It stays a decision here because the live
+recording records it as one and the recording oracle steps it, which is the only
+place its transition is checked action by action.
 
 A team of units hands out its force, advancing `next_index.unit` once per squad
 and unlocking each unit type it is made of. A team that is an officer joins

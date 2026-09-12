@@ -264,11 +264,6 @@ mod tests {
                 continue;
             };
             for turn in &battle.turns {
-                if turn.round == 0 {
-                    // Round 0 is the opening choice, and neither side has a
-                    // formation to deploy yet.
-                    continue;
-                }
                 let layout = project(
                     &economy,
                     &turn.state,

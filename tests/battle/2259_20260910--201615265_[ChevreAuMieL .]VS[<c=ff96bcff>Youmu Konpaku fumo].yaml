@@ -3,6 +3,21 @@ map_id: 1032
 seed: 1604740021
 sides:
   blue:
+    opening:
+      choose: 2
+      offers:
+      - team: 9905
+        specialist: 20021
+      - team: 9895
+        specialist: 20033
+      - team: 9906
+        specialist: 10010
+      - team: 9892
+        specialist: 10002
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
     tech_loadout:
       1:
       - 1001
@@ -199,6 +214,21 @@ sides:
       - 48400103
       - 48400104
   red:
+    opening:
+      choose: 0
+      offers:
+      - team: 9894
+        specialist: 20024
+      - team: 9897
+        specialist: 20036
+      - team: 9903
+        specialist: 20038
+      - team: 9896
+        specialist: 20029
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: 140, y: -55}
     tech_loadout:
       1:
       - 1001
@@ -394,50 +424,6 @@ sides:
       - 48400103
       - 48400104
 turns:
-- round: 0
-  state:
-    sides:
-      blue:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-      red:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-  actions:
-    blue:
-    - type: choose_advance_team
-      offer: 2
-      id: 9906
-      specialist: 10010
-    red:
-    - type: choose_advance_team
-      offer: 0
-      id: 9894
-      specialist: 20024
 - round: 1
   state:
     sides:

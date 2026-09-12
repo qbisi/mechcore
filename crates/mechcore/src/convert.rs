@@ -50,7 +50,7 @@ pub(crate) fn run(mut arguments: impl Iterator<Item = String>) -> Result<(), Str
         actions
     );
     println!(
-        "  supply ledger: {} of {} round transitions close, \
+        "  supply ledger: {} of {} seams close, \
          {} paid by the fight, {} unpriced",
         ledger.closed,
         ledger.checked(),

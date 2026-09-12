@@ -483,6 +483,12 @@ impl Economy {
         self.advance_teams.get(&team)
     }
 
+    /// Every opening this build ships, in ascending ID, which is the order the
+    /// game's own pools are sorted into before a deal draws from them.
+    pub fn advance_teams(&self) -> impl Iterator<Item = (i32, &AdvanceTeam)> {
+        self.advance_teams.iter().map(|(id, team)| (*id, team))
+    }
+
     /// What a card hands out, when it hands out units.
     #[must_use]
     pub fn unit_reinforcement(&self, card: i32) -> Option<UnitReinforcement> {

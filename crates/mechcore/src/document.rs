@@ -3,8 +3,8 @@
 //! They are named for what they do to a document rather than for one kind.
 //! `format` and `diff` accept a layout, and a state, turn or battle document is
 //! refused by the parser until those two verbs learn the other kinds. `verify`
-//! has learned one other: a deployment recording, whose decisions it replays
-//! through the transition rather than parsing.
+//! also checks deployment recordings through the transition and battle opening
+//! offers against the seeded random stream.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -101,6 +101,9 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
     {
         return verify_observation(path, text);
     }
+    if let Some(stated) = mechcore_document::opening::stated(&bytes)? {
+        return verify_battle(path, &stated);
+    }
     let plan = mechcore_document::compile_layout(mechcore_document::parse_yaml(&bytes)?)?;
     Ok(VerifyReport {
         schema: VERIFY_SCHEMA,
@@ -119,6 +122,63 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
             "terrain_count": plan.terrain_count(),
         }),
     })
+}
+
+/// Checks that a battle's two openings are the ones its own seed deals.
+///
+/// The opening is the one decision a replay does not record the alternatives
+/// for, so a converted battle states four combinations per side that nothing in
+/// the file it came from carries. They are not invented: they are drawn from
+/// the match's reinforcement stream, and that stream starts at the seed. So the
+/// check is to deal them again from the seed and compare, which is what makes
+/// the field evidence rather than decoration.
+///
+/// The pool draws from the same stream before the opening does, and by how much
+/// is not yet settled, so the starting position is searched within a window
+/// rather than computed. A match establishes consistency inside that window,
+/// not the unique stream position or the player's recorded choice.
+fn verify_battle(
+    path: &Path,
+    stated: &mechcore_document::opening::Stated,
+) -> Result<VerifyReport, String> {
+    let economy = mechcore_document::economy::Economy::embedded()?;
+    let checked = mechcore_document::opening::verify(&economy, stated);
+    let detail = |found: Option<&mechcore_document::opening::Verified>| {
+        serde_json::json!({
+            "seed": stated.seed,
+            "openings": 2,
+            "opening_offset": found.map(|found| found.offset),
+            "opening_offsets": found.map(|found| found.matches.clone()),
+            "opening_offers": found.map(|found| {
+                serde_json::json!({
+                    "blue": found.deal.blue.iter().copied().map(pair).collect::<Vec<_>>(),
+                    "red": found.deal.red.iter().copied().map(pair).collect::<Vec<_>>(),
+                })
+            }),
+        })
+    };
+    match checked {
+        Ok(found) => Ok(VerifyReport {
+            schema: VERIFY_SCHEMA,
+            valid: true,
+            kind: "battle",
+            path: path.display().to_string(),
+            error: None,
+            detail: detail(Some(&found)),
+        }),
+        Err(error) => Ok(VerifyReport {
+            schema: VERIFY_SCHEMA,
+            valid: false,
+            kind: "battle",
+            path: path.display().to_string(),
+            error: Some(error),
+            detail: detail(None),
+        }),
+    }
+}
+
+fn pair(offer: mechcore_document::battle::OpeningOffer) -> Value {
+    serde_json::json!({ "team": offer.team, "specialist": offer.specialist })
 }
 
 /// Replays a recording's decisions through the deployment transition.

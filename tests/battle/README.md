@@ -16,8 +16,12 @@ python3 scripts/export-replay-corpus.py --offline-only --force-battles
 ```
 
 [SHA256SUMS](SHA256SUMS) records the exact identity of all 41 generated
-documents, which is every tracked replay. Together they contain 375 rounds and
-10,059 actions over maps 1001, 1011, 1021, 1031 and 1032.
+documents, which is every tracked replay. Together they contain 334 deployment
+rounds and 9,977 actions over maps 1001, 1011, 1021, 1031 and 1032. The opening
+each side took is under `sides` rather than in a round of its own, so the 82
+opening choices are not among those actions. Each opening carries `choose`, a
+zero-based index into its four reconstructed `offers`; the selected team and
+specialist are read from that entry.
 
 Three documents carry a retained Shield Airdrop, which the converter reads from
 the releasing skill's own `rangeItems` rather than from any object list:
@@ -27,7 +31,8 @@ the releasing skill's own `rangeItems` rather than from any object list:
 rounds, which is what distinguishes a retained object from a restatement of one
 round's release.
 
-The supply ledger closes all 668 of 668 round transitions. The nine-field turn
+The supply ledger closes all 668 of 668 seams, which is each side's opening onto
+its first round and then every round onto the next. The nine-field turn
 transition closes 6,010 of 6,012 comparisons. The two open comparisons are
 equipment deliveries in `[kulinichstas1985]VS[Menschlein]` round 4 blue and
 `[🐙Noname🐙]VS[Rievin]` round 5 blue; the exact missing IDs are pinned by the
@@ -39,6 +44,9 @@ Doodle]`, `[NemoCoda]VS[Camilo.Y]` and `[Dr. crbN]VS[trevorism]`.
 CI regenerates this directory on every push and pull request and fails when the
 result differs, so a converter change that left the corpus behind cannot merge.
 
-`mechcore verify` reads layout documents only, and refuses these by kind. There
-is no battle verifier yet; the conversion's ledger and transition reports are
-the checks.
+`mechcore verify tests/battle/*.yaml` checks both sides' complete opening offers
+against each battle's seed and refuses an out-of-range `choose`. It searches a
+bounded window of the seeded stream because the reinforcement pool consumes
+random values before dealing the opening. Deployment seams are checked by the
+conversion's ledger and transition reports; this opening check does not verify
+combat or prove the player's choice without the source replay.

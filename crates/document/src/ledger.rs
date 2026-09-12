@@ -61,6 +61,30 @@ pub struct Failure {
 pub fn check(battle: &Battle, economy: &Economy) -> Report {
     let map = economy.round_supply();
     let mut report = Report::default();
+    // The opening is a seam like any other: a side starts it with nothing,
+    // pays for what it takes, and the first round's income arrives after. It
+    // is stated under `sides` rather than as a round, so it is rebuilt here.
+    let opening = crate::transition::opening_position();
+    if let Some(first) = battle.turns.first() {
+        for (name, taken, following) in [
+            ("blue", &battle.sides.blue.opening, &first.state.sides.blue),
+            ("red", &battle.sides.red.opening, &first.state.sides.red),
+        ] {
+            record(
+                &mut report,
+                economy,
+                &Transition {
+                    round: first.round - 1,
+                    side: name,
+                    state: &opening,
+                    following,
+                    actions: &[taken.action()],
+                    next_round: first.round,
+                    map,
+                },
+            );
+        }
+    }
     for pair in battle.turns.windows(2) {
         let [turn, next] = pair else { continue };
         for (name, state, following, actions) in [
@@ -524,10 +548,13 @@ fn spend(
     Some(total)
 }
 
-/// The turns a report was built from, for a caller that wants to name them.
+/// The seams a report was built from, for a caller that wants to name them.
+///
+/// A battle holding rounds has one seam per round per side: the opening onto
+/// the first round, then each round onto the next.
 #[must_use]
 pub fn transitions(turns: &[Turn]) -> usize {
-    turns.len().saturating_sub(1) * 2
+    turns.len() * 2
 }
 
 #[cfg(all(test, feature = "convert"))]

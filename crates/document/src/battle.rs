@@ -7,7 +7,7 @@
 
 use crate::DocumentKind;
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// One recorded match, as `docs/spec/document/battle.md` defines it.
@@ -22,6 +22,8 @@ pub struct Battle {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub concession: Option<Concession>,
     pub sides: BattleSides,
+    /// The deployment rounds, from the first one. The opening is not among
+    /// them; `sides` holds it.
     pub turns: Vec<Turn>,
 }
 
@@ -54,8 +56,70 @@ pub struct BattleSides {
 /// What a side holds for the whole match rather than for one round.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct BattleSide {
+    /// The opening this side took, which is settled before the first round.
+    pub opening: Opening,
+    /// The construction layout the map dealt this side before the first round.
+    ///
+    /// A state's own `constructions` is the live list, shortened when a
+    /// building is recovered or destroyed. This one is what the side started with, so a battle says
+    /// where the buildings came from rather than having them appear in the
+    /// first round it happens to hold.
+    pub constructions: Vec<StaticPlacement>,
     /// Which technologies each unit may research, keyed by unit ID.
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
+}
+
+/// The opening a side took: a team of formations and the specialist bound to
+/// it, and the four combinations it chose between.
+///
+/// The opening is not a deployment round. A turn's two action lists are secret
+/// from each other, and this choice is not: both players are shown what the
+/// other took before the first round opens, and deploy that round knowing it.
+/// So it is a premise the rounds share and sits beside the tech loadout rather
+/// than as a turn of its own.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct Opening {
+    /// Zero-based index of the combination taken from `offers`.
+    pub choose: i32,
+    /// The four combinations this side was dealt, in the order shown.
+    ///
+    /// The deal is private to the side, which is why it sits here and not
+    /// beside the shared `reinforce_offers`. Conversion reconstructs it from
+    /// the replay's random state.
+    pub offers: Vec<OpeningOffer>,
+}
+
+/// One of the openings a side was dealt: a team of formations and the
+/// specialist officer bound to it.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct OpeningOffer {
+    pub team: i32,
+    pub specialist: i32,
+}
+
+impl Opening {
+    /// The opening as the decision that produced it.
+    ///
+    /// A battle states the opening's result rather than a round 0 whose only
+    /// content it would be, and checking the seam onto the first round means
+    /// applying it again. That is this.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `choose` is not an index into `offers`. Conversion checks this
+    /// before constructing the opening.
+    #[must_use]
+    pub fn action(&self) -> Action {
+        let taken = usize::try_from(self.choose)
+            .ok()
+            .and_then(|at| self.offers.get(at))
+            .expect("opening choice must name a dealt combination");
+        Action::ChooseAdvanceTeam {
+            offer: self.choose,
+            id: taken.team,
+            specialist: Some(taken.specialist),
+        }
+    }
 }
 
 /// One deployment round: the state it starts from and the decisions taken.
@@ -83,14 +147,6 @@ pub struct StateSides {
 
 #[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
 pub struct SideState {
-    /// The four openings this side was dealt, in round 0 and no other round.
-    ///
-    /// A decision needs what it chose between, and this offer is private to
-    /// the side, so it sits here rather than beside the shared
-    /// `reinforce_offers`. A replay records only the one taken, so a converted
-    /// battle leaves it absent.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub opening_offers: Option<Vec<Opening>>,
     pub reactor_core: i32,
     pub supply: i32,
     pub shop: ShopState,
@@ -121,14 +177,6 @@ pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
-}
-
-/// One of the openings a side was dealt: a team of formations and the
-/// specialist officer bound to it.
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
-pub struct Opening {
-    pub team: i32,
-    pub specialist: i32,
 }
 
 /// A formation, and what recovering it pays back.
@@ -212,8 +260,12 @@ pub enum Action {
         #[serde(skip_serializing_if = "Option::is_none")]
         id: Option<i32>,
     },
-    /// The round 0 opening, which is one decision with two halves: the team
-    /// of formations and the specialist officer bound to it.
+    /// The opening, which is one decision with two halves: the team of
+    /// formations and the specialist officer bound to it.
+    ///
+    /// A battle states the opening under `sides` rather than as a round, so
+    /// no turn of a converted battle carries this. It stays a decision because
+    /// the game records it as one and the recording oracle steps it.
     ChooseAdvanceTeam {
         offer: i32,
         id: i32,

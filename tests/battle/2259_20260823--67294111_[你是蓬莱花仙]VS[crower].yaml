@@ -3,6 +3,24 @@ map_id: 1001
 seed: 1204807678
 sides:
   blue:
+    opening:
+      choose: 2
+      offers:
+      - team: 9900
+        specialist: 20034
+      - team: 9909
+        specialist: 20036
+      - team: 9890
+        specialist: 20005
+      - team: 9897
+        specialist: 20035
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+    - type: rapid_fire_turret
+      index: 1
+      position: {x: 140, y: -100}
     tech_loadout:
       1:
       - 701
@@ -199,6 +217,24 @@ sides:
       - 48400103
       - 48400104
   red:
+    opening:
+      choose: 2
+      offers:
+      - team: 9883
+        specialist: 20029
+      - team: 9906
+        specialist: 20033
+      - team: 9904
+        specialist: 20038
+      - team: 9907
+        specialist: 10013
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+    - type: rapid_fire_turret
+      index: 1
+      position: {x: 140, y: -100}
     tech_loadout:
       1:
       - 1105
@@ -395,50 +431,6 @@ sides:
       - 48400103
       - 48400104
 turns:
-- round: 0
-  state:
-    sides:
-      blue:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-      red:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-  actions:
-    blue:
-    - type: choose_advance_team
-      offer: 2
-      id: 9890
-      specialist: 20005
-    red:
-    - type: choose_advance_team
-      offer: 2
-      id: 9904
-      specialist: 20038
 - round: 1
   state:
     sides:

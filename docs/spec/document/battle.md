@@ -16,15 +16,19 @@ concession:
 
 sides:
   blue:
+    opening: { ... }
+    constructions: [ ... ]
     tech_loadout: { ... }
   red:
+    opening: { ... }
+    constructions: [ ... ]
     tech_loadout: { ... }
 
 turns:
-  - round: 0
+  - round: 1
     state: { ... }
     actions: { ... }
-  - round: 1
+  - round: 2
     state: { ... }
     actions: { ... }
 ```
@@ -32,6 +36,9 @@ turns:
 An entry of `turns` carries the [turn](turn.md) shape without `kind`, and
 without the `map_id` and `seed` a standalone turn holds at its own root, since a
 battle states them once for every round. It keeps its `round`.
+
+`turns` starts at the first deployment round. The opening the game numbers round
+zero is not one, and `sides` holds it.
 
 The four documents nest rather than compete. A battle is turns plus what they
 share, a turn is a state plus the [decisions](action.md) taken from it, a
@@ -79,10 +86,85 @@ players, and its `Seat` names the client that recorded the file rather than a
 side. Player names and account IDs are not fields: nothing reads them, and a
 side is identified by which side it is.
 
-## The custom tech loadout
+## What a side brings to the match
 
-One per-side quantity is a property of the match rather than of a round, and it
-is the only thing under `sides`.
+Three per-side facts are properties of the match rather than of a round, and
+they are what `sides` holds. Two of them are settled before either player
+deploys, and the third bounds every round.
+
+### The opening is a side, not a round
+
+```yaml
+    blue:
+      opening:
+        choose: 1
+        offers:
+          - {team: 9899, specialist: 20034}
+          - {team: 9910, specialist: 20005}
+          - {team: 9871, specialist: 20021}
+          - {team: 9875, specialist: 10010}
+```
+
+The opening deals a side four combinations of a team of formations and a
+specialist officer, and taking one takes both. `choose` is the zero-based index
+of the combination taken, from 0 through 3. `offers[choose].team` and
+`offers[choose].specialist` identify its two halves; the opening does not repeat
+them in separate fields.
+
+The game numbers the opening round zero and records the choice as an action in
+it, and a battle does not. The reason is what a turn means. Neither player sees
+the other's decisions while a round is being deployed, so a turn's two action
+lists are simultaneous and secret, and that is the property the whole document
+rests on. The opening is not secret: both players are shown what the other took
+before the first round opens, and the first round is deployed knowing it. A
+decision both sides have already seen is a premise of the rounds, not one of
+them.
+
+That it also has no position worth stating is a second reason and the weaker
+one. Every side of every match enters the opening with nothing bought, nothing
+researched, both towers at level zero and both allocators at zero, and leaves it
+having taken one decision whose result the first round already shows.
+
+So the opening sits here, the turns start at round 1, and
+[`action.md`](action.md) keeps defining `choose_advance_team` because the game
+records it and the recording oracle steps it. No turn of a converted battle
+carries one.
+
+The four combinations dealt are `opening.offers`, in the order shown to the
+player. Both `choose` and the complete `offers` array are required: an index
+alone does not identify a team or specialist. Conversion reconstructs the deal
+from the opening round's random state and checks the chosen entry against the
+recorded team and specialist. A missing or malformed random state, or a choice
+that disagrees with the reconstructed deal, is refused.
+
+Offline opening verification checks both complete offer arrays against the
+match seed and requires each `choose` to name an entry. This checks the deal
+and the choice's range; it does not prove that a player selected that index
+without the source replay, or validate the battle's deployment and combat.
+
+### The construction layout is dealt, not built
+
+```yaml
+    blue:
+      constructions:
+        - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+        - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+```
+
+The map rolls a construction layout and deals it to both sides before the first
+round. It is the one piece of the opening no decision produces, and without this
+field a battle's buildings would appear out of nothing in whichever round it
+starts from.
+
+A state's own `constructions` is a different list with the same shape. That one
+is live: buildings can be recovered or destroyed, so it only ever shortens.
+This one is what the side started with and never moves. The first round's list
+equals it, and every later round's is a subset of the same identities.
+
+Each side reads the layout in its own frame, so the two are the same buildings
+at mirrored coordinates rather than the same positions.
+
+## The custom tech loadout
 
 Each player chooses, before the match, which technologies each unit may
 research. A technology outside a unit's loadout cannot be researched in that
@@ -172,15 +254,21 @@ and these hold across every transition of a well-formed battle.
 | `tower_strengthen_levels` rise or hold |
 | `blueprints` are kept, or replaced by their own next level |
 | `techs.officers` are kept, or replaced by their own next level |
+| `constructions` are kept or dropped, never added, and the first round's are the ones `sides` was dealt |
 | `reactor_core` falls or holds, except across the opening |
 
 The two replacement rows are one mechanism seen twice. Activating a chain
 blueprint replaces its predecessor rather than joining it, and the product
 Officer it grants follows.
 
-The reactor core rises only across the round 0 to round 1 transition, by the
-amount the advance team the opening chose carries. After the opening it only
-falls.
+The reactor core rises only across the opening, by the amount the team and the
+specialist carry between them. After the opening it only falls.
+
+The opening is itself a seam, between `sides` and the first round, and it is
+checked the way the others are: applying the opening to a side that holds
+nothing has to produce what the first round holds. A failure there is reported
+at the round the game takes the opening in, which is one below the first round a
+battle holds.
 
 ## The supply ledger
 
@@ -200,6 +288,11 @@ Two rounds cannot be decided by the identity alone. A side holding an officer
 that pays a bounty for destroying a giant is paid by the fight in an amount no
 document records, so such a round is counted apart rather than failed.
 
+The opening is the first term of that identity rather than an exception to it. A
+side starts holding nothing, pays for the opening it takes, and the first
+round's income arrives after, so the ledger runs from `sides` onto the first
+round exactly as it runs from one round onto the next.
+
 The check is reported, never enforced: a battle is well-formed whether or not
 its ledger closes.
 
@@ -214,6 +307,11 @@ downloaded one, a match mode other than `VS_1_1`, a `Test` match, a match
 carrying game rules, rounds that are not the contiguous sequence both sides
 share, an object this build's catalogues cannot name, and an action this format
 has no representation for are each an error naming what was found.
+
+The opening is read out of round 0 and written under `sides`, and a replay whose
+round 0 stands for anything but one team choice per side is refused. So is a
+replay that holds the opening alone: a battle is deployment rounds, and one
+with none is not a document this format has a use for.
 
 Most fields are copied. Four are not, and each is argued in the document that
 owns it:
@@ -262,7 +360,9 @@ is its value here, not because the conversion could not find it.
 
 | Collection | Order |
 | --- | --- |
-| `turns` | ascending `round` |
+| `turns` | ascending `round`, from the first deployment round |
+| `opening.offers` | as dealt; `choose` names a zero-based position in it |
+| `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
 | `game_rules` | ascending rule ID |
 
@@ -272,6 +372,7 @@ A turn's own collections, and a state's, keep the orders those documents define.
 
 | Field | Why it is not in the battle |
 | --- | --- |
+| `opening.team`, `opening.specialist`, `opening.offer` | The selected pair is `offers[choose]` |
 | `BattleInfo.BattleID` | Names a server record; no rule reads it |
 | `BattleRecord.Seat` | Which client recorded the file, not a property of the match |
 | `PlayerRecord.name`, `id`, `ad` | Account identity; nothing reads it |

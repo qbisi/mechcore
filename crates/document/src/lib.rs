@@ -25,6 +25,7 @@ pub mod layout;
 pub mod ledger;
 #[cfg(feature = "convert")]
 pub mod observe;
+pub mod opening;
 #[cfg(feature = "convert")]
 pub mod oracle;
 pub mod project;

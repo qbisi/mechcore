@@ -801,10 +801,46 @@ pub fn settled(state: &SideState) -> Settled {
     }
 }
 
-/// Checks every round transition of a battle.
+/// The position an opening is taken from.
+///
+/// A battle states the opening under `sides` rather than as a round, so the
+/// position it moves is not a document field. It is the same for every side of
+/// every match: nothing bought, nothing researched, and two towers at level
+/// zero, which is the one field of it [`apply`] reads.
+pub(crate) fn opening_position() -> SideState {
+    SideState {
+        tower_strengthen_levels: vec![0, 0],
+        ..SideState::default()
+    }
+}
+
+/// Checks every round transition of a battle, and the opening that precedes
+/// them.
 #[must_use]
 pub fn check(battle: &Battle, economy: &Economy) -> Report {
     let mut report = Report::default();
+    // The opening is the seam between `sides` and the first round, and it is
+    // checked the same way a round seam is: applying it has to produce what
+    // the first round holds. Its failures are reported at round 0, which is
+    // the round the game takes it in and no turn covers.
+    if let Some(first) = battle.turns.first() {
+        for (side, opening, following) in [
+            ("blue", &battle.sides.blue.opening, &first.state.sides.blue),
+            ("red", &battle.sides.red.opening, &first.state.sides.red),
+        ] {
+            seam(
+                &mut report,
+                economy,
+                Seam {
+                    round: first.round - 1,
+                    side,
+                    state: &opening_position(),
+                    actions: &[opening.action()],
+                    following,
+                },
+            );
+        }
+    }
     for pair in battle.turns.windows(2) {
         let [turn, next] = pair else { continue };
         for (side, state, following, actions) in [
@@ -821,71 +857,102 @@ pub fn check(battle: &Battle, economy: &Economy) -> Report {
                 &turn.actions.red,
             ),
         ] {
-            let produced = apply(economy, turn.round, state, actions);
-            let held = settled(following);
-            for (field, expected, actual) in [
-                (
-                    "next_index.unit",
-                    produced.next_unit_index.to_string(),
-                    held.next_unit_index.to_string(),
-                ),
-                (
-                    "next_index.contraption",
-                    produced.next_contraption_index.to_string(),
-                    held.next_contraption_index.to_string(),
-                ),
-                (
-                    "shop.unlocked_units",
-                    list(&produced.unlocked_units),
-                    list(&held.unlocked_units),
-                ),
-                (
-                    "techs.units",
-                    list(&produced.technologies),
-                    list(&held.technologies),
-                ),
-                (
-                    "blueprints",
-                    list(&produced.blueprints),
-                    list(&held.blueprints),
-                ),
-                (
-                    "tower_strengthen_levels",
-                    list(&produced.tower_strengthen_levels),
-                    list(&held.tower_strengthen_levels),
-                ),
-                (
-                    "battle_skills",
-                    list(&produced.battle_skills),
-                    list(&held.battle_skills),
-                ),
-                (
-                    "techs.officers",
-                    list(&produced.officers),
-                    list(&held.officers),
-                ),
-                (
-                    "equipment",
-                    stock(&produced.equipment, &produced.equipment_shortfall),
-                    stock(&held.equipment, &held.equipment_shortfall),
-                ),
-            ] {
-                if expected == actual {
-                    report.closed += 1;
-                } else {
-                    report.failed += 1;
-                    report.failures.push(Failure {
-                        round: turn.round,
-                        side,
-                        field,
-                        expected,
-                        actual,
-                    });
-                }
-            }
+            seam(
+                &mut report,
+                economy,
+                Seam {
+                    round: turn.round,
+                    side,
+                    state,
+                    actions,
+                    following,
+                },
+            );
         }
     }
     report
+}
+
+/// One transition to check: a position, what was decided from it, and the
+/// position the next round holds.
+#[derive(Clone, Copy)]
+struct Seam<'a> {
+    round: i32,
+    side: &'static str,
+    state: &'a SideState,
+    actions: &'a [Action],
+    following: &'a SideState,
+}
+
+/// Compares the nine settled fields across one transition.
+fn seam(report: &mut Report, economy: &Economy, transition: Seam<'_>) {
+    let produced = apply(
+        economy,
+        transition.round,
+        transition.state,
+        transition.actions,
+    );
+    let held = settled(transition.following);
+    for (field, expected, actual) in [
+        (
+            "next_index.unit",
+            produced.next_unit_index.to_string(),
+            held.next_unit_index.to_string(),
+        ),
+        (
+            "next_index.contraption",
+            produced.next_contraption_index.to_string(),
+            held.next_contraption_index.to_string(),
+        ),
+        (
+            "shop.unlocked_units",
+            list(&produced.unlocked_units),
+            list(&held.unlocked_units),
+        ),
+        (
+            "techs.units",
+            list(&produced.technologies),
+            list(&held.technologies),
+        ),
+        (
+            "blueprints",
+            list(&produced.blueprints),
+            list(&held.blueprints),
+        ),
+        (
+            "tower_strengthen_levels",
+            list(&produced.tower_strengthen_levels),
+            list(&held.tower_strengthen_levels),
+        ),
+        (
+            "battle_skills",
+            list(&produced.battle_skills),
+            list(&held.battle_skills),
+        ),
+        (
+            "techs.officers",
+            list(&produced.officers),
+            list(&held.officers),
+        ),
+        (
+            "equipment",
+            stock(&produced.equipment, &produced.equipment_shortfall),
+            stock(&held.equipment, &held.equipment_shortfall),
+        ),
+    ] {
+        if expected == actual {
+            report.closed += 1;
+        } else {
+            report.failed += 1;
+            report.failures.push(Failure {
+                round: transition.round,
+                side: transition.side,
+                field,
+                expected,
+                actual,
+            });
+        }
+    }
 }
 
 fn sorted(values: &[i32]) -> Vec<i32> {
@@ -1012,7 +1079,7 @@ fn officer_deliveries(economy: &Economy, state: &SideState, granted: &mut Grante
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{apply, check, step, travelling};
+    use super::{apply, check, opening_position, step, travelling};
     use crate::battle::{Action, EquipmentItem, SideState, StateFormation};
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
@@ -1572,12 +1639,37 @@ mod tests {
             let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
                 continue;
             };
+            // The opening is the one seam a battle states under `sides`, and
+            // it is the one the two frames disagree about, so it is stepped
+            // here rather than left out with the round it used to be.
+            let opening = opening_position();
+            let mut seams = vec![
+                (
+                    0,
+                    "blue",
+                    &opening,
+                    vec![battle.sides.blue.opening.action()],
+                ),
+                (0, "red", &opening, vec![battle.sides.red.opening.action()]),
+            ];
             for turn in &battle.turns {
-                for (side, state, actions) in [
-                    ("blue", &turn.state.sides.blue, &turn.actions.blue),
-                    ("red", &turn.state.sides.red, &turn.actions.red),
-                ] {
-                    if delivers(&economy, state, turn.round) {
+                seams.push((
+                    turn.round,
+                    "blue",
+                    &turn.state.sides.blue,
+                    turn.actions.blue.clone(),
+                ));
+                seams.push((
+                    turn.round,
+                    "red",
+                    &turn.state.sides.red,
+                    turn.actions.red.clone(),
+                ));
+            }
+            {
+                for (round, side, state, actions) in &seams {
+                    let (round, state) = (*round, *state);
+                    if delivers(&economy, state, round) {
                         skipped += 1;
                         continue;
                     }
@@ -1604,7 +1696,7 @@ mod tests {
                     }
                     compared += 1;
                     let stepped = crate::transition::settled(&produced);
-                    let mut applied = apply(&economy, turn.round, state, actions);
+                    let mut applied = apply(&economy, round, state, actions);
                     // A shortfall is a statement about the decisions rather
                     // than a field of the position, and stepping has no place
                     // to put one.
@@ -1613,7 +1705,7 @@ mod tests {
                         divergent.push(format!(
                             "{} round {} {side}",
                             path.file_name().unwrap().to_string_lossy(),
-                            turn.round
+                            round
                         ));
                     }
                 }
@@ -1788,7 +1880,7 @@ mod tests {
         }
         assert_eq!(
             (side_rounds, travelled, formations, widest),
-            (750, 100, 146, 5)
+            (668, 100, 146, 5)
         );
         // The flank regions open at round 2, so nothing can travel before it.
         assert_eq!(first_round, 2);

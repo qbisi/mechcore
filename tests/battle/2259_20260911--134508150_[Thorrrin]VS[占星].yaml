@@ -3,6 +3,24 @@ map_id: 1021
 seed: 1365317329
 sides:
   blue:
+    opening:
+      choose: 2
+      offers:
+      - team: 9877
+        specialist: 20024
+      - team: 9907
+        specialist: 20038
+      - team: 9904
+        specialist: 10011
+      - team: 9901
+        specialist: 20029
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: 140, y: -55}
+    - type: anti_armor_turret
+      index: 1
+      position: {x: -140, y: -100}
     tech_loadout:
       1:
       - 1001
@@ -199,6 +217,24 @@ sides:
       - 48400103
       - 48400104
   red:
+    opening:
+      choose: 1
+      offers:
+      - team: 9890
+        specialist: 20032
+      - team: 9892
+        specialist: 20021
+      - team: 9902
+        specialist: 10013
+      - team: 9905
+        specialist: 20039
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: 140, y: -55}
+    - type: anti_armor_turret
+      index: 1
+      position: {x: -140, y: -100}
     tech_loadout:
       1:
       - 1001
@@ -395,50 +431,6 @@ sides:
       - 48400103
       - 48400104
 turns:
-- round: 0
-  state:
-    sides:
-      blue:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-      red:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-  actions:
-    blue:
-    - type: choose_advance_team
-      offer: 2
-      id: 9904
-      specialist: 10011
-    red:
-    - type: choose_advance_team
-      offer: 1
-      id: 9892
-      specialist: 20021
 - round: 1
   state:
     sides:

@@ -9,14 +9,15 @@
 
 use crate::battle::{
     Action, Battle, BattleSide, BattleSides, Concession, DECLINED_OFFER, EquipmentItem, NextIndex,
-    PanelSkill, ShopState, Side, SideState, SkillTarget, State, StateFormation, StateSides, Turn,
-    TurnActions,
+    Opening, OpeningOffer, PanelSkill, ShopState, Side, SideState, SkillTarget, State,
+    StateFormation, StateSides, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::ledger;
+use crate::opening;
 use crate::{DocumentKind, retained_from_grbr_round};
 use std::collections::BTreeMap;
 
@@ -34,6 +35,8 @@ const RAPID_SUPPLY_SKILL: i32 = 1;
 const MASS_RECRUIT_SKILL: i32 = 3;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
 const CHAIN_OFFICERS: [i32; 4] = [20300, 20301, 20310, 20311];
+/// Round 0 is the opening, which `sides` holds and no turn does.
+const OPENING_ROUNDS: usize = 1;
 
 /// Which half of the map a side plays on, and so how its positions are read.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -137,9 +140,24 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         }
     }
 
+    if match_rounds.len() < 2 {
+        return Err(format!(
+            "replay holds {} round, which is the opening alone, and a battle is deployment rounds",
+            match_rounds.len()
+        ));
+    }
+
     let economy = Economy::embedded()?;
-    let mut turns = Vec::with_capacity(match_rounds.len());
-    for (position, round) in match_rounds.iter().copied().enumerate() {
+    // The opening is not a deployment round: it hands out no position and its
+    // two halves are settled before either player deploys. It is read out of
+    // round 0 and written under `sides`, and the turns start at round 1.
+    let mut turns = Vec::with_capacity(match_rounds.len() - 1);
+    for (position, round) in match_rounds
+        .iter()
+        .copied()
+        .enumerate()
+        .skip(OPENING_ROUNDS)
+    {
         let offers = record.match_rounds.entries[position]
             .reinforce_items
             .arrays
@@ -155,19 +173,16 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
                 },
             },
             actions: TurnActions {
-                blue: actions(
-                    &blue.rounds.entries[position],
-                    Seat::Blue,
-                    opening_specialist(&economy, &blue, position),
-                )?,
-                red: actions(
-                    &red.rounds.entries[position],
-                    Seat::Red,
-                    opening_specialist(&economy, &red, position),
-                )?,
+                blue: actions(&blue.rounds.entries[position], Seat::Blue)?,
+                red: actions(&red.rounds.entries[position], Seat::Red)?,
             },
         });
     }
+
+    // The four combinations each side was dealt are recorded nowhere, and are
+    // not lost: they are drawn from the match's reinforcement stream, which the
+    // opening round's snapshot carries. `crate::opening` rebuilds them.
+    let dealt = opening_offers(&economy, &record.match_rounds.entries[0])?;
 
     Ok(Battle {
         kind: DocumentKind::Battle,
@@ -175,11 +190,20 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         seed: record.info.system_seed,
         concession: concession(&blue, &red)?,
         sides: BattleSides {
-            blue: battle_side(&blue),
-            red: battle_side(&red),
+            blue: battle_side(&economy, &blue, Seat::Blue, dealt.blue)?,
+            red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
         },
         turns,
     })
+}
+
+/// Reconstructs both sides' offers from the opening round's random state.
+/// A missing or malformed state cannot supply the offers that `choose` names.
+fn opening_offers(economy: &Economy, round: &record::MatchRound) -> Result<opening::Deal, String> {
+    let state = <[u64; 4]>::try_from(round.random_state.states.values.as_slice())
+        .map_err(|_| "opening requires a random state of four words".to_string())?;
+    let mut stream = opening::Stream::from_state(state)?;
+    opening::deal(economy, &mut stream)
 }
 
 /// How the match ended, when a player ended it.
@@ -221,16 +245,83 @@ fn concession(
     }
 }
 
-fn battle_side(player: &record::PlayerRecord) -> BattleSide {
+fn battle_side(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    seat: Seat,
+    dealt: Vec<OpeningOffer>,
+) -> Result<BattleSide, String> {
     let mut loadout = BTreeMap::new();
     for row in &player.data.unit_datas.entries {
         let mut techs: Vec<i32> = row.techs.entries.iter().map(|tech| tech.data).collect();
         techs.sort_unstable();
         loadout.insert(row.id, techs);
     }
-    BattleSide {
+    Ok(BattleSide {
+        opening: opening_taken(economy, player, seat, dealt)?,
+        // The map deals the layout before the first round and nothing adds to
+        // it, so the first round's list is the one the side started with.
+        constructions: constructions(&player.rounds.entries[OPENING_ROUNDS].data, seat)?,
         tech_loadout: loadout,
+    })
+}
+
+/// The opening a side took, which the record logs as round 0's one decision.
+///
+/// # Errors
+///
+/// Returns an error when round 0 stands for anything other than one opening
+/// choice, which is the only decision that round can hold.
+fn opening_taken(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    seat: Seat,
+    dealt: Vec<OpeningOffer>,
+) -> Result<Opening, String> {
+    let round = &player.rounds.entries[0];
+    let taken = net_actions(&round.actions.entries);
+    let [action] = taken.as_slice() else {
+        return Err(format!(
+            "{} takes {} decisions in the opening, and the opening is one",
+            seat.name(),
+            taken.len()
+        ));
+    };
+    if action.kind != "PAD_ChooseAdvanceTeam" {
+        return Err(format!(
+            "{} opens with {}, and an opening is a team choice",
+            seat.name(),
+            action.kind
+        ));
     }
+    let offer = action
+        .index
+        .ok_or("PAD_ChooseAdvanceTeam has no Index".to_string())?;
+    let team = action
+        .id
+        .ok_or("PAD_ChooseAdvanceTeam has no ID".to_string())?;
+    let specialist = opening_specialist(economy, player)?;
+    let taken = usize::try_from(offer)
+        .ok()
+        .and_then(|at| dealt.get(at))
+        .ok_or_else(|| {
+            format!(
+                "{} took opening {offer}, and the deal holds {}",
+                seat.name(),
+                dealt.len()
+            )
+        })?;
+    if taken.team != team || taken.specialist != specialist {
+        return Err(format!(
+            "{} took team {team} with specialist {specialist:?} at offer {offer}, \
+             and the seed deals {taken:?} there",
+            seat.name()
+        ));
+    }
+    Ok(Opening {
+        choose: offer,
+        offers: dealt,
+    })
 }
 
 fn side_state(
@@ -294,8 +385,6 @@ fn side_state(
     unlocked_units.sort_unstable();
 
     Ok(SideState {
-        // A replay records the opening taken and not the three refused.
-        opening_offers: None,
         reactor_core: data.reactor_core,
         supply: data.supply + round_income(economy, player, position, seat)?,
         shop: ShopState {
@@ -592,29 +681,33 @@ fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
 /// so the specialist is read back from the officer list of the round the
 /// opening produced. Exactly one officer of a side is an opening specialist,
 /// in every player-round of the local set.
-fn opening_specialist(
-    economy: &Economy,
-    player: &record::PlayerRecord,
-    position: usize,
-) -> Option<i32> {
-    let next = player.rounds.entries.get(position + 1)?;
-    next.data
+fn opening_specialist(economy: &Economy, player: &record::PlayerRecord) -> Result<i32, String> {
+    let next = player
+        .rounds
+        .entries
+        .get(OPENING_ROUNDS)
+        .ok_or("opening has no following deployment round")?;
+    let specialists: Vec<i32> = next
+        .data
         .officers
         .values
         .iter()
         .copied()
-        .find(|officer| {
+        .filter(|officer| {
             economy
                 .advance_team(*officer)
                 .is_some_and(|team| team.kind == OpeningKind::Officer)
         })
+        .collect();
+    match specialists.as_slice() {
+        [specialist] => Ok(*specialist),
+        _ => Err(format!(
+            "opening must grant exactly one specialist, found {specialists:?}"
+        )),
+    }
 }
 
-fn actions(
-    round: &PlayerRoundRecord,
-    seat: Seat,
-    specialist: Option<i32>,
-) -> Result<Vec<Action>, String> {
+fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String> {
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {
@@ -640,11 +733,6 @@ fn actions(
                     },
                 }
             }
-            "PAD_ChooseAdvanceTeam" => Action::ChooseAdvanceTeam {
-                offer: field("Index", action.index)?,
-                id: field("ID", action.id)?,
-                specialist,
-            },
             "PAD_BuyUnit" => Action::BuyUnit {
                 unit: field("UID", action.unit_id)?,
                 position: position(&action.buy_position)?,
@@ -753,9 +841,9 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
 #[cfg(test)]
 mod tests {
     use super::{battle_from_grbr, recorded_unit_ids};
-    use crate::battle::{Action, SideState, SkillTarget, Turn, canonical_yaml};
+    use crate::battle::{Action, Battle, SideState, SkillTarget, Turn, canonical_yaml};
     use crate::grbr::SHIELD_AIRDROP_SKILL;
-    use crate::{DocumentKind, Position};
+    use crate::{DocumentKind, Position, StaticPlacement};
 
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
@@ -812,15 +900,115 @@ mod tests {
         );
     }
 
+    /// The turn of one round, which is no longer that round's position in the
+    /// list: the opening is not a turn, so the list starts at round 1.
+    fn round(battle: &Battle, round: i32) -> &Turn {
+        battle
+            .turns
+            .iter()
+            .find(|turn| turn.round == round)
+            .unwrap_or_else(|| panic!("battle holds round {round}"))
+    }
+
     #[test]
     fn hoists_what_every_round_shares() {
         let battle = tuff();
         assert_eq!(battle.kind, DocumentKind::Battle);
         assert_eq!(battle.map_id, 1021);
         assert_eq!(battle.seed, 31_103_914);
-        assert_eq!(battle.turns.len(), 9);
+        assert_eq!(battle.turns.len(), 8);
         let rounds: Vec<i32> = battle.turns.iter().map(|turn| turn.round).collect();
-        assert_eq!(rounds, (0..9).collect::<Vec<_>>());
+        assert_eq!(rounds, (1..9).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn the_opening_is_a_side_rather_than_a_round() {
+        let battle = tuff();
+        // Round 0 holds one decision per side and a position that is the same
+        // in every match, so it is read into `sides` and dropped as a turn.
+        assert!(battle.turns.iter().all(|turn| turn.round > 0));
+        assert!(
+            battle
+                .turns
+                .iter()
+                .flat_map(|turn| turn.actions.blue.iter().chain(&turn.actions.red))
+                .all(|action| !matches!(action, Action::ChooseAdvanceTeam { .. }))
+        );
+        for (side, team, specialist) in [
+            (&battle.sides.blue.opening, 9910, 20005),
+            (&battle.sides.red.opening, 9891, 10002),
+        ] {
+            // A replay records the opening taken and not the three refused,
+            // and the three are rebuilt from the seed rather than left out.
+            let offers = &side.offers;
+            assert_eq!(offers.len(), 4);
+            let taken = &offers[usize::try_from(side.choose).unwrap()];
+            assert_eq!((taken.team, taken.specialist), (team, specialist));
+            assert_eq!(
+                side.action(),
+                Action::ChooseAdvanceTeam {
+                    offer: side.choose,
+                    id: team,
+                    specialist: Some(specialist),
+                }
+            );
+        }
+        // Both halves reach the first round, which is what the opening is for.
+        let first = round(&battle, 1);
+        assert!(first.state.sides.blue.techs.officers.contains(&20005));
+        assert!(first.state.sides.red.techs.officers.contains(&10002));
+    }
+
+    #[test]
+    fn an_opening_requires_a_complete_random_state() {
+        let economy = super::Economy::embedded().unwrap();
+        let mut record = crate::record::read(&std::fs::read(TUFF).unwrap()).unwrap();
+        let round = &mut record.match_rounds.entries[0];
+        for words in [vec![], vec![1, 2, 3], vec![0; 4], vec![1, 2, 3, 4, 5]] {
+            round.random_state.states.values = words;
+            assert!(super::opening_offers(&economy, round).is_err());
+        }
+    }
+
+    #[test]
+    fn the_record_must_identify_one_opening_specialist() {
+        let economy = super::Economy::embedded().unwrap();
+        let mut record = crate::record::read(&std::fs::read(TUFF).unwrap()).unwrap();
+        let player = &mut record.players.entries[0];
+        for officers in [vec![], vec![20005, 10002]] {
+            player.rounds.entries[1].data.officers.values = officers;
+            assert!(super::opening_specialist(&economy, player).is_err());
+        }
+        player.rounds.entries[1].data.officers.values = vec![20005];
+        assert_eq!(super::opening_specialist(&economy, player).unwrap(), 20005);
+    }
+
+    #[test]
+    fn the_opening_construction_layout_is_what_the_first_round_stands_on() {
+        let battle = tuff();
+        let first = round(&battle, 1);
+        assert!(!battle.sides.blue.constructions.is_empty());
+        assert_eq!(
+            battle.sides.blue.constructions,
+            first.state.sides.blue.constructions
+        );
+        assert_eq!(
+            battle.sides.red.constructions,
+            first.state.sides.red.constructions
+        );
+        // The map deals the layout to both sides, and each reads it in its own
+        // frame, so the two lists name the same buildings and not the same
+        // positions.
+        let kinds = |placements: &[StaticPlacement]| {
+            placements
+                .iter()
+                .map(|placement| placement.type_name.clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            kinds(&battle.sides.blue.constructions),
+            kinds(&battle.sides.red.constructions)
+        );
     }
 
     #[test]
@@ -859,7 +1047,7 @@ mod tests {
         // tests/layouts/tuff-replay-round-7.yaml is the position round 7 ends
         // in, so its roster is the round 8 snapshot.
         let battle = tuff();
-        let blue = &battle.turns[8].state.sides.blue;
+        let blue = &round(&battle, 8).state.sides.blue;
         let vortex = blue
             .formations
             .iter()
@@ -870,7 +1058,7 @@ mod tests {
         assert_eq!(vortex.formation.position, Position { x: -250, y: -120 });
         // What recovering it pays back is what the side paid for it.
         assert_eq!(vortex.value, Some(100));
-        let red = &battle.turns[8].state.sides.red;
+        let red = &round(&battle, 8).state.sides.red;
         let marksman = red
             .formations
             .iter()
@@ -885,15 +1073,9 @@ mod tests {
     #[test]
     fn a_round_starts_with_its_income_and_a_full_allowance() {
         let battle = tuff();
-        for state in [
-            &battle.turns[0].state.sides.blue,
-            &battle.turns[0].state.sides.red,
-        ] {
-            assert_eq!(state.supply, 0);
-        }
         // The map pays 200 in round 1, and red holds a supply officer that
         // adds fifty to every round's income.
-        let opening = &battle.turns[1].state.sides;
+        let opening = &round(&battle, 1).state.sides;
         assert_eq!(opening.blue.supply, 200);
         assert_eq!(opening.red.supply, 250);
         for state in [&opening.blue, &opening.red] {
@@ -911,7 +1093,7 @@ mod tests {
     #[test]
     fn collapses_undo_and_flattens_a_move_batch() {
         let battle = tuff();
-        let blue = &battle.turns[7].actions.blue;
+        let blue = &round(&battle, 7).actions.blue;
         // Round 7 records three undos, and every retraction is gone.
         assert!(!blue.iter().any(|action| matches!(
             action,

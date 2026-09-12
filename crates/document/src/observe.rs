@@ -415,7 +415,6 @@ impl Observed {
         energy_tower_skills.sort_unstable();
 
         Ok(SideState {
-            opening_offers: None,
             reactor_core: snapshot.reactor_core,
             // A live supply already holds this round's income.
             supply: snapshot.supply,

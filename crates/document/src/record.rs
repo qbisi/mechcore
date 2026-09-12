@@ -330,6 +330,25 @@ pub struct MatchRound {
     pub round: i32,
     #[serde(default, rename = "reinforceItems")]
     pub reinforce_items: ReinforceItems,
+    /// The match's reinforcement random stream as the round opened.
+    ///
+    /// It is not a state field and no document holds it. The opening is dealt
+    /// from it, so the converter reads it to rebuild what the four
+    /// combinations were; `crate::opening` says how.
+    #[serde(default, rename = "randomStateData")]
+    pub random_state: RandomStateData,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct RandomStateData {
+    #[serde(default, rename = "randomStates")]
+    pub states: RandomStates,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct RandomStates {
+    #[serde(default, rename = "unsignedLong")]
+    pub values: Vec<u64>,
 }
 
 #[derive(Debug, Default, Deserialize)]

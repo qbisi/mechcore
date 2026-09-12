@@ -113,19 +113,17 @@ to stay whole for an undo to pop it, and order is all that survives either way.
 It keeps only the resulting position and rotation, since the recorded
 before-state restates what the turn already holds.
 
-`ChooseAdvanceTeam` belongs to round 0 and to no other round, and it is one
-decision with two halves. The opening deals a side four combinations of a team
-and a specialist officer, and taking one takes both. The same team appears with
-different specialists in different matches, so the specialist is not a property
-of the team; and no second action is recorded, so it is not a second decision
-either.
+`ChooseAdvanceTeam` is not a turn's to carry, and the reason is what a turn
+means rather than where the game files it. A turn's two action lists are
+simultaneous and secret: neither player sees the other's while the round is
+being deployed, which is why no merge between them is attempted above. The
+opening breaks that. Both players are shown what the other took before the first
+round opens, and deploy the first round knowing it, so it is a premise the rounds
+share rather than a decision inside one.
 
-The four combinations are dealt to each side privately. Neither player sees the
-other's, which is why they are not `reinforce_offers`: that field sits above
-`sides` precisely because both players choose from one array, and the opening is
-the one offer that does not work that way. A turn states the one combination
-taken and nothing about the three refused; the state's own `opening_offers` is
-where the four belong, and [the state document](state.md) defines it.
+A battle states it under `sides`, and no turn of a converted battle holds one.
+[`battle.md`](battle.md) carries the argument, and [`action.md`](action.md)
+keeps the decision because the recording oracle steps it.
 
 ## Normal form
 
@@ -242,10 +240,10 @@ one unreadable input does not stop the rest. The exit code says whether every
 input was valid.
 
 The two frames disagree in one place, and the disagreement is a property of the
-question rather than an error. Applying a turn answers what the next round
-holds, so at round 0 it counts the squads the opening delivers; stepping that
-same choice answers what the position is immediately afterwards, and the squads
-have not arrived. They reach the board when round 1 opens, which is not a
+question rather than an error. Applying the opening answers what the first round
+holds, so it counts the squads the opening delivers; stepping that same choice
+answers what the position is immediately afterwards, and the squads have not
+arrived. They reach the board when the first round opens, which is not a
 decision and so is not a step.
 
 ## Unresolved

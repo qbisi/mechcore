@@ -79,38 +79,19 @@ layout holds.
 The reinforcement offer is dealt once per round and both players choose from the
 same array, so it is the one field above `sides`.
 
-Rounds 0 and 1 are dealt no offer. The field is absent there rather than an
-empty array, since no array was dealt.
+Round 1 is dealt no offer, and neither is the opening the game numbers round 0.
+The field is absent there rather than an empty array, since no array was dealt.
 
-### The opening offer is private, so it sits under a side
+### The opening offer is private, and it is not a state field
 
-The round 0 offer is the exception. It deals each side four combinations of an
-advance team and a specialist officer, privately: neither player sees the
-other's. It is therefore not `reinforce_offers`, which is above `sides`
-precisely because both players choose from one array.
+The opening is the exception, and it is not here. It deals each side four
+combinations of an advance team and a specialist officer, privately: neither
+player sees the other's, so it could never be `reinforce_offers`, which is above
+`sides` precisely because both players choose from one array.
 
-```yaml
-    blue:
-      opening_offers:
-        - {team: 9911, specialist: 20005}
-        - {team: 9874, specialist: 10002}
-        - {team: 9883, specialist: 20024}
-        - {team: 9907, specialist: 10014}
-```
-
-`opening_offers` appears in round 0 and in no other round, and it is there for
-the same reason the reinforcement offer is: a decision needs what it chose
-between. A state that named only the opening taken would be a position a
-decision cannot be read from.
-
-The only shared information the opening carries is the construction layout,
-which the map rolls once and deals to both sides, and `constructions` already
-states it.
-
-A replay stores none of the four combinations. The field is therefore absent in
-a converted battle, and filling it means reproducing the game's probability
-tables and draw order, which the format declined to pay for when it decided to
-store an offer as dealt rather than roll it.
+It is not under a side's state either, because the position it is dealt in is
+not a round worth stating. [`battle.md`](battle.md) holds the opening, the four
+combinations included, under the battle's own `sides`.
 
 ## Random state
 
@@ -521,12 +502,6 @@ by a matching add. `RoundExcludeReinforce` does not touch membership at all: an
 excluded item stays in the pool and is merely invisible for one named round.
 
 ## Unresolved
-
-**Whether a state may omit `opening_offers`.** The field is defined and a replay
-does not carry it, so every converted round 0 is a state that cannot be read as
-a decision. Either the field is optional, and a round 0 without it is
-well-formed but incomplete, or filling it is a precondition for converting round
-0 at all. The format currently does the first without saying so.
 
 **Where a fitted item's durability would live.** `durability` belongs to the
 side's inventory, and a formation's `equipment` names only an ID. Under the game

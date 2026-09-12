@@ -6,6 +6,24 @@ concession:
   round: 10
 sides:
   blue:
+    opening:
+      choose: 1
+      offers:
+      - team: 9895
+        specialist: 10010
+      - team: 9896
+        specialist: 20034
+      - team: 9891
+        specialist: 20021
+      - team: 9910
+        specialist: 10014
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+    - type: anti_armor_turret
+      index: 1
+      position: {x: 140, y: -100}
     tech_loadout:
       1:
       - 1001
@@ -202,6 +220,24 @@ sides:
       - 48400103
       - 48400104
   red:
+    opening:
+      choose: 0
+      offers:
+      - team: 9902
+        specialist: 20035
+      - team: 9894
+        specialist: 10011
+      - team: 9897
+        specialist: 20029
+      - team: 9900
+        specialist: 20036
+    constructions:
+    - type: defensive_wall
+      index: 0
+      position: {x: 140, y: -55}
+    - type: anti_armor_turret
+      index: 1
+      position: {x: -140, y: -100}
     tech_loadout:
       1:
       - 1001
@@ -398,50 +434,6 @@ sides:
       - 48400103
       - 48400104
 turns:
-- round: 0
-  state:
-    sides:
-      blue:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-      red:
-        reactor_core: 4500
-        supply: 0
-        shop:
-          unlocked_units: []
-          buys_remaining: 2
-          unlocks_remaining: -1
-        tower_strengthen_levels:
-        - 0
-        - 0
-        next_index:
-          unit: 0
-          contraption: 0
-        techs: {}
-        formations: []
-  actions:
-    blue:
-    - type: choose_advance_team
-      offer: 1
-      id: 9896
-      specialist: 20034
-    red:
-    - type: choose_advance_team
-      offer: 0
-      id: 9902
-      specialist: 20035
 - round: 1
   state:
     sides:
