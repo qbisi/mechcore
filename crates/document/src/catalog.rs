@@ -3,6 +3,8 @@
 //! Every entry here is a fact about one game build. A document names types in
 //! public words, and everything that has to reach the game resolves them here.
 
+use crate::layout::TerrainType;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativeFormation {
     Unit(i32),
@@ -203,6 +205,45 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
     }
 }
 
+/// The battlefield area a commander skill leaves behind, if it leaves one.
+///
+/// Five skill classes derive from `RangeItemCommanderSkill` in build 2259 and
+/// each answers `GetRangeItemType` with a constant: `CS_Fire` with `Fire`,
+/// `CS_Oil` with `Oil`, `CS_Fog` with `Fog`, `CS_Acid` with `Acid` and
+/// `CS_Recovery` with `RecoveryZone`. Four of those five are reached by a skill
+/// this catalogue names, and the shipped description of each names the same
+/// substance its class does, which is what ties an ID to a type here.
+///
+/// `CS_Recovery` is left out because no skill ID in this catalogue reaches it.
+/// A skill that leaves nothing behind answers `None`, and that is most of them.
+#[must_use]
+pub const fn terrain_type_from_skill(id: i32) -> Option<TerrainType> {
+    match id {
+        100_002 => Some(TerrainType::Fire),
+        400_002 => Some(TerrainType::Oil),
+        500_002 => Some(TerrainType::Acid),
+        600_002 => Some(TerrainType::Fog),
+        _ => None,
+    }
+}
+
+/// Which skill produces one terrain, which is what carries its geometry.
+///
+/// A terrain's own document says where it is and how much of it is left; how
+/// wide each of its points is, and how many points a release expands into, are
+/// the producing skill's. Only a type this catalogue can name a skill for can
+/// be compiled into a plan.
+#[must_use]
+pub const fn terrain_skill_from_type(terrain: TerrainType) -> Option<i32> {
+    match terrain {
+        TerrainType::Fire => Some(100_002),
+        TerrainType::Oil => Some(400_002),
+        TerrainType::Acid => Some(500_002),
+        TerrainType::Fog => Some(600_002),
+        TerrainType::RecoveryZone => None,
+    }
+}
+
 #[allow(clippy::too_many_lines)] // Keep the build-pinned public catalog one-to-one and auditable.
 pub(crate) const fn resolve_battle_skill_type(type_name: &str) -> Option<BattleSkillSpec> {
     let spec = match type_name.as_bytes() {
@@ -378,5 +419,44 @@ pub(crate) fn unit_id_from_type(type_name: &str) -> Option<i32> {
     match resolve_unit_type(type_name)?.native {
         NativeFormation::Unit(id) => Some(id),
         NativeFormation::Construction(_) | NativeFormation::Contraption(_) => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TerrainType, terrain_skill_from_type, terrain_type_from_skill};
+
+    /// Every skill that leaves an area behind is routed to its substance, and
+    /// every other skill to none.
+    ///
+    /// The Sticky Oil Bomb is the only one a standard 1v1 ever reads back,
+    /// because it is the only one that lasts two rounds, but the mapping is
+    /// what decides that rather than the reader.
+    #[test]
+    fn a_skill_is_routed_to_the_substance_it_leaves() {
+        assert_eq!(terrain_type_from_skill(400_002), Some(TerrainType::Oil));
+        assert_eq!(terrain_type_from_skill(100_002), Some(TerrainType::Fire));
+        assert_eq!(terrain_type_from_skill(500_002), Some(TerrainType::Acid));
+        assert_eq!(terrain_type_from_skill(600_002), Some(TerrainType::Fog));
+        // A shield stands on the board rather than covering it, and a strike
+        // leaves nothing at all.
+        assert_eq!(terrain_type_from_skill(800_001), None);
+        assert_eq!(terrain_type_from_skill(300_001), None);
+    }
+
+    /// The two directions agree wherever both are defined.
+    #[test]
+    fn the_terrain_mapping_round_trips() {
+        for terrain in [
+            TerrainType::Fire,
+            TerrainType::Oil,
+            TerrainType::Fog,
+            TerrainType::Acid,
+        ] {
+            let skill = terrain_skill_from_type(terrain).expect("a producing skill");
+            assert_eq!(terrain_type_from_skill(skill), Some(terrain));
+        }
+        // No skill this catalogue names reaches `CS_Recovery`.
+        assert_eq!(terrain_skill_from_type(TerrainType::RecoveryZone), None);
     }
 }

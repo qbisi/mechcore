@@ -410,8 +410,18 @@ fn compile_airdrop_shields(
 
 fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terrain>, String> {
     for (terrain_index, terrain) in terrains.iter().enumerate() {
-        let type_name = match terrain.terrain_type {
-            TerrainType::Oil => "oil",
+        let type_name = terrain_type_name(terrain.terrain_type);
+        // A terrain's own document says where it is and how much of it is
+        // left. How wide each point is and how many points a release expands
+        // into belong to the skill that made it, and only one of them is
+        // measured, so the rest are refused here rather than checked against
+        // the wrong numbers. A state may still carry one: a recording that
+        // holds it is described, and a plan is what cannot be built from it.
+        let Some(radius) = terrain_radius(terrain.terrain_type) else {
+            return Err(format!(
+                "side {side_name} terrain[{terrain_index}] type {type_name:?} has no measured \
+                 point radius or count in this build, so it cannot be compiled into a plan"
+            ));
         };
         if terrain.control_points.len() != 2 {
             return Err(format!(
@@ -442,10 +452,10 @@ fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terra
             .map(|position| i64::from(position.y))
             .max()
             .expect("two control points");
-        if max_x + OIL_TERRAIN_RADIUS < BATTLEFIELD_MIN_X
-            || min_x - OIL_TERRAIN_RADIUS > BATTLEFIELD_MAX_X
-            || max_y + OIL_TERRAIN_RADIUS < BATTLEFIELD_MIN_Y
-            || min_y - OIL_TERRAIN_RADIUS > BATTLEFIELD_MAX_Y
+        if max_x + radius < BATTLEFIELD_MIN_X
+            || min_x - radius > BATTLEFIELD_MAX_X
+            || max_y + radius < BATTLEFIELD_MIN_Y
+            || min_y - radius > BATTLEFIELD_MAX_Y
         {
             return Err(format!(
                 "side {side_name} terrain[{terrain_index}] type {type_name:?} path does not overlap the battlefield"
@@ -484,6 +494,31 @@ fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terra
         }
     }
     Ok(terrains)
+}
+
+/// The public word for one terrain.
+pub(crate) const fn terrain_type_name(terrain: TerrainType) -> &'static str {
+    match terrain {
+        TerrainType::Fire => "fire",
+        TerrainType::Oil => "oil",
+        TerrainType::Fog => "fog",
+        TerrainType::Acid => "acid",
+        TerrainType::RecoveryZone => "recovery_zone",
+    }
+}
+
+/// How wide one of a terrain's points is, when this build has been measured
+/// for it.
+///
+/// The radius is the producing skill's `subEffectRange`, and the point count
+/// its `subEffectCount`. `docs/rules/battle_skill.md` carries the first for
+/// every skill and the second for none, so only the terrain whose count was
+/// read out of a snapshot can be bounded, which is Sticky Oil Bomb's.
+const fn terrain_radius(terrain: TerrainType) -> Option<i64> {
+    match terrain {
+        TerrainType::Oil => Some(OIL_TERRAIN_RADIUS),
+        _ => None,
+    }
 }
 
 fn compile_battle_skills(

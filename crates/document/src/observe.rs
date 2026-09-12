@@ -19,7 +19,7 @@ use crate::battle::{
     Action, DECLINED_OFFER, NextIndex, PanelSkill, Release, ShopState, SideState, SkillTarget,
     State, StateFormation, StateSides,
 };
-use crate::catalog::{construction_type_from_id, unit_type_from_id};
+use crate::catalog::{construction_type_from_id, terrain_type_from_skill, unit_type_from_id};
 use crate::grbr::{decode_grbr_byte_mask, decode_grbr_grid_groups, rotate_oil_grid_rows};
 use crate::layout::{
     ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain, TerrainType,
@@ -35,8 +35,6 @@ pub const SCHEMA: &str = "mechcore.battle-observation.v1";
 
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
 const CHAIN_OFFICERS: [i32; 4] = [20300, 20301, 20310, 20311];
-/// Sticky Oil Bomb, whose range items are terrain carrying a remaining lifetime.
-const STICKY_OIL_SKILL: i32 = 400_002;
 /// Shield Airdrop, whose range item is one shield still standing on the board.
 const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 /// How many points a Sticky Oil Bomb terrain carries.
@@ -570,21 +568,25 @@ fn retained(
     let mut shields = Vec::new();
     for skill in skills {
         for item in &skill.range_items {
-            match skill.id {
-                STICKY_OIL_SKILL => {
-                    if item.round <= 0 {
-                        continue;
-                    }
-                    if let Some(terrain) = oil_terrain(item, seat)? {
-                        terrains.push(terrain);
-                    }
-                }
-                SHIELD_AIRDROP_SKILL => shields.push(shield_center(item, seat)?),
-                id => {
-                    return Err(format!(
-                        "observation carries an unsupported retained commander-skill object {id}"
-                    ));
-                }
+            if skill.id == SHIELD_AIRDROP_SKILL {
+                shields.push(shield_center(item, seat)?);
+                continue;
+            }
+            // Any skill that leaves a battlefield area behind leaves one of
+            // these, and which substance it is the catalogue says.
+            let Some(terrain_type) = terrain_type_from_skill(skill.id) else {
+                return Err(format!(
+                    "observation carries an unsupported retained commander-skill object {}",
+                    skill.id
+                ));
+            };
+            // An area counts its remaining lifetime down and is gone at zero,
+            // unlike a shield, which carries none.
+            if item.round <= 0 {
+                continue;
+            }
+            if let Some(terrain) = range_item_terrain(item, terrain_type, seat)? {
+                terrains.push(terrain);
             }
         }
     }
@@ -592,11 +594,16 @@ fn retained(
     Ok((terrains, shields))
 }
 
-/// One retained Sticky Oil Bomb, or nothing when no point of it is still active.
-fn oil_terrain(item: &RangeItem, seat: Seat) -> Result<Option<Terrain>, String> {
+/// One retained battlefield area, or nothing when no point of it is still
+/// active.
+fn range_item_terrain(
+    item: &RangeItem,
+    terrain_type: TerrainType,
+    seat: Seat,
+) -> Result<Option<Terrain>, String> {
     let [start, end] = <[RawVector; 2]>::try_from(item.positions.as_slice()).map_err(|_| {
         format!(
-            "sticky-oil observation requires two line endpoints, got {}",
+            "retained-terrain observation requires two line endpoints, got {}",
             item.positions.len()
         )
     })?;
@@ -608,7 +615,7 @@ fn oil_terrain(item: &RangeItem, seat: Seat) -> Result<Option<Terrain>, String> 
     let grids = decode_grbr_grid_groups(&item.grid_info)?;
     if grids.len() != live {
         return Err(format!(
-            "sticky-oil observation has {live} active points but {} grids",
+            "retained-terrain observation has {live} active points but {} grids",
             grids.len()
         ));
     }
@@ -624,7 +631,8 @@ fn oil_terrain(item: &RangeItem, seat: Seat) -> Result<Option<Terrain>, String> 
             rows = rotate_oil_grid_rows(&rows);
         }
         grid_rows.insert(
-            u32::try_from(point).map_err(|_| "sticky-oil point index exceeds u32".to_owned())?,
+            u32::try_from(point)
+                .map_err(|_| "retained-terrain point index exceeds u32".to_owned())?,
             rows,
         );
     }
@@ -632,7 +640,7 @@ fn oil_terrain(item: &RangeItem, seat: Seat) -> Result<Option<Terrain>, String> 
         grid_rows.clear();
     }
     Ok(Some(Terrain {
-        terrain_type: TerrainType::Oil,
+        terrain_type,
         control_points: vec![seat.local(start.x, start.y), seat.local(end.x, end.y)],
         grid_rows,
     }))

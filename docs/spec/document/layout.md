@@ -814,10 +814,11 @@ field changes.
 
 `terrains` records the active cross-round battlefield terrain owned by one side
 at the start of this single fight. It defaults to `[]`. One entry represents one
-original Sticky Oil Bomb release, rather than one surviving oil circle. Under
-current 1v1 rules a side holds at most one entry: the Sticky Oil Bomb is the only
-release that survives its round, and it is unlocked once through the research
-center. Entry order therefore carries nothing, and canonical layouts sort it:
+original release, rather than one surviving circle of what it left. Under
+current 1v1 rules a side holds at most one entry: the Sticky Oil Bomb is the
+only release that survives its round, and it is unlocked once through the
+research center. Entry order therefore carries nothing, and canonical layouts
+sort it:
 
 ```yaml
 terrains:
@@ -832,9 +833,22 @@ terrains:
       6: [48, 124, 126, 254, 255, 511, 1023, 2047, 2046, 2046, 1020, 240]
 ```
 
-- `type` currently accepts only `oil`, the native terrain type produced by the
-  cross-round battlefield Sticky Oil Bomb. It does not use the producing battle
-  skill name `sticky_oil_bomb`.
+- `type` names the substance, not the skill that made it. The names are the
+  build's own: `fire`, `oil`, `fog`, `acid` and `recovery_zone`, which are its
+  range-item types less the one a unit technology makes rather than a skill.
+  Which skill produces which is a catalogue entry rather than a rule of this
+  format, so a build that gave a second skill the same substance would need no
+  new name here.
+
+  A document may carry any of them; a plan can be built from `oil` alone. The
+  geometry below is the producing skill's rather than the terrain's, and only
+  the Sticky Oil Bomb's is measured: `docs/rules/battle_skill.md` carries every
+  skill's point radius and no skill's point count. A layout naming any other
+  substance is refused by name, which is a stated boundary rather than a
+  silently wrong bound. That the refusal has never fired is a property of the
+  rules rather than of the format: oil lasts two rounds and every other area
+  lasts one, so every other area is gone before the round that would record it
+  opens.
 - `control_points` contains exactly two ordered integer points in the owning
   side's local frame. The first is the skill start point and the second fixes the
   release direction. It is named apart from `positions` because `grid_rows` is
@@ -846,7 +860,7 @@ terrains:
   layout coordinates. Reusing the same native `FixedMath` primitives restores
   them exactly instead.
 - `grid_rows` is an optional map keyed by the native zero-based generated-point
-  index `0..=6`. If the map is omitted or empty, all seven points are active as
+  index, which for oil is `0..=6`. If the map is omitted or empty, all seven points are active as
   complete 30 m circles. If it is non-empty, its key set is the complete set of
   surviving points: an absent key means that point was intercepted or otherwise
   inactive.

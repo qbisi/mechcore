@@ -411,11 +411,24 @@ sides:
 
     #[test]
     fn terrain_fields_and_grid_shape_are_fail_closed() {
-        let unknown = compile(&layout_with_blue_terrains(&json!([
+        // A substance the build makes but this one has no measured geometry
+        // for parses and is then refused by name, so a recording holding one
+        // can be described even though no plan can be built from it.
+        let unmeasured = compile(&layout_with_blue_terrains(&json!([
             {"type": "fire", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
         ])))
         .unwrap_err();
-        assert!(unknown.contains("unknown variant `fire`, expected `oil`"));
+        assert!(
+            unmeasured.contains("has no measured point radius or count"),
+            "{unmeasured}"
+        );
+
+        // A substance the build does not make at all is still a parse error.
+        let unknown = compile(&layout_with_blue_terrains(&json!([
+            {"type": "tar", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
+        ])))
+        .unwrap_err();
+        assert!(unknown.contains("unknown variant `tar`"), "{unknown}");
 
         let outside = compile(&layout_with_blue_terrains(&json!([
             {"type": "oil", "control_points": [{"x": 431, "y": 0}, {"x": 500, "y": 0}]}

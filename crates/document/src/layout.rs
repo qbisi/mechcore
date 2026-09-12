@@ -164,9 +164,26 @@ pub struct BattleSkillDefinition {
     Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
 )]
 
+/// A battlefield area a commander skill leaves behind.
+///
+/// These are the build's own `RangeItemType` names, less `FogSand`, which a
+/// unit technology makes rather than a skill and which no side's skill panel
+/// therefore retains. One name is one substance, not one skill: a skill is what
+/// produced the area and [`crate::catalog::terrain_type_from_skill`] is the
+/// mapping, so a build that gave a second skill the same substance would not
+/// need a second name here.
+///
+/// Under build 2259's standard 1v1 rules only `Oil` is ever read back, because
+/// only the Sticky Oil Bomb lasts two rounds and every other area is gone
+/// before the round that would record it opens. The rest are carried so that a
+/// recording holding one is described rather than refused.
 #[serde(rename_all = "snake_case")]
 pub enum TerrainType {
+    Fire,
     Oil,
+    Fog,
+    Acid,
+    RecoveryZone,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]

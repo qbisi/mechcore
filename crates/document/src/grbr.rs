@@ -1,8 +1,7 @@
 use super::{Position, Terrain, TerrainType};
+use crate::catalog::terrain_type_from_skill;
 use std::collections::BTreeMap;
 
-/// Sticky Oil Bomb, whose range items are terrain carrying a remaining lifetime.
-const STICKY_OIL_SKILL: i32 = 400_002;
 /// Shield Airdrop, whose range item is one shield still standing on the board.
 pub(crate) const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 
@@ -66,25 +65,28 @@ pub fn retained_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundReta
                 continue;
             };
             for item in xml_elements(range_items, "CommanderSkillRangeItemData")? {
-                match id {
-                    STICKY_OIL_SKILL => {
-                        if xml_i32(item, "round")? <= 0 {
-                            continue;
-                        }
-                        if let Some(terrain) = oil_terrain(item, team)? {
-                            sides[team].terrains.push(terrain);
-                        }
-                    }
-                    SHIELD_AIRDROP_SKILL => {
-                        sides[team]
-                            .airdrop_shields
-                            .push(airdrop_shield_center(item, team)?);
-                    }
-                    _ => {
-                        return Err(format!(
-                            "GRBR round {round} contains unsupported retained commander-skill object {id}"
-                        ));
-                    }
+                if id == SHIELD_AIRDROP_SKILL {
+                    sides[team]
+                        .airdrop_shields
+                        .push(airdrop_shield_center(item, team)?);
+                    continue;
+                }
+                // Any skill that leaves a battlefield area behind leaves one of
+                // these, and which substance it is the catalogue says. Only one
+                // of them lasts long enough to be snapshotted under standard
+                // rules, and the reader does not need to know which.
+                let Some(terrain_type) = terrain_type_from_skill(id) else {
+                    return Err(format!(
+                        "GRBR round {round} contains unsupported retained commander-skill object {id}"
+                    ));
+                };
+                // An area counts its remaining lifetime down and is gone at
+                // zero, unlike a shield, which carries none.
+                if xml_i32(item, "round")? <= 0 {
+                    continue;
+                }
+                if let Some(terrain) = range_item_terrain(item, terrain_type, team)? {
+                    sides[team].terrains.push(terrain);
                 }
             }
         }
@@ -93,19 +95,24 @@ pub fn retained_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundReta
     Ok(GrbrRoundRetained { blue, red })
 }
 
-/// One retained Sticky Oil Bomb, or nothing when no point of it is still active.
-fn oil_terrain(item: &str, team: usize) -> Result<Option<Terrain>, String> {
+/// One retained battlefield area, or nothing when no point of it is still
+/// active.
+fn range_item_terrain(
+    item: &str,
+    terrain_type: TerrainType,
+    team: usize,
+) -> Result<Option<Terrain>, String> {
     let positions = item_positions(item)?;
     if positions.len() != 2 {
         return Err(format!(
-            "sticky-oil GRBR snapshot requires two line endpoints, got {}",
+            "retained-terrain GRBR snapshot requires two line endpoints, got {}",
             positions.len()
         ));
     }
     let active = decode_grbr_byte_mask(xml_i32(item, "activeState")?)?;
     if active.len() != 7 {
         return Err(format!(
-            "sticky-oil GRBR activeState has {} points, expected seven",
+            "retained-terrain GRBR activeState has {} points, expected seven",
             active.len()
         ));
     }
@@ -117,7 +124,7 @@ fn oil_terrain(item: &str, team: usize) -> Result<Option<Terrain>, String> {
     }
     if grids.len() != active_count {
         return Err(format!(
-            "sticky-oil GRBR snapshot has {active_count} active points but {} grids",
+            "retained-terrain GRBR snapshot has {active_count} active points but {} grids",
             grids.len()
         ));
     }
@@ -134,7 +141,7 @@ fn oil_terrain(item: &str, team: usize) -> Result<Option<Terrain>, String> {
         }
         grid_rows.insert(
             u32::try_from(point_index)
-                .map_err(|_| "sticky-oil point index exceeds u32".to_owned())?,
+                .map_err(|_| "retained-terrain point index exceeds u32".to_owned())?,
             rows,
         );
     }
@@ -146,7 +153,7 @@ fn oil_terrain(item: &str, team: usize) -> Result<Option<Terrain>, String> {
         grid_rows.clear();
     }
     Ok(Some(Terrain {
-        terrain_type: TerrainType::Oil,
+        terrain_type,
         control_points,
         grid_rows,
     }))
