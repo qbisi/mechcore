@@ -807,8 +807,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 72
-        y: -29
+      - {x: 72, y: -29}
     - type: unlock_unit
       unit: 12
     - type: buy_unit
@@ -984,8 +983,7 @@ turns:
           index: 0
           position: {x: -140, y: -55}
         airdrop_shields:
-        - x: 72
-          y: -29
+        - {x: 72, y: -29}
   actions:
     blue:
     - type: choose_reinforce_item
@@ -1229,8 +1227,7 @@ turns:
           index: 0
           position: {x: -140, y: -55}
         airdrop_shields:
-        - x: 72
-          y: -29
+        - {x: 72, y: -29}
   actions:
     blue:
     - type: choose_reinforce_item
@@ -1606,8 +1603,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 241
-        y: -15
+      - {x: 241, y: -15}
     - type: buy_unit
       unit: 27
       position: {x: 0, y: -160}

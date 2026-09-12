@@ -2326,8 +2326,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -184
-        y: 65
+      - {x: -184, y: 65}
     - type: unlock_unit
       unit: 9
     - type: buy_unit

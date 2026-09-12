@@ -759,8 +759,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 155
-        y: 138
+      - {x: 155, y: 138}
     - type: active_blueprint
       id: 2
     - type: release_commander_skill
@@ -784,8 +783,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 116
-        y: 152
+      - {x: 116, y: 152}
     - type: buy_unit
       unit: 28
       position: {x: 0, y: -160}
@@ -1647,8 +1645,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 160
-        y: 133
+      - {x: 160, y: 133}
     - type: unlock_unit
       unit: 15
     red:
@@ -1677,8 +1674,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -206
-        y: 246
+      - {x: -206, y: 246}
     - type: release_commander_skill
       skill: 0
       target: !unit 19
@@ -2445,10 +2441,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 91
-        y: 55
-      - x: 192
-        y: 82
+      - {x: 91, y: 55}
+      - {x: 192, y: 82}
     - type: move_unit
       index: 24
       position: {x: 45, y: -155}

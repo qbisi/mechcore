@@ -789,8 +789,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 88
-        y: 145
+      - {x: 88, y: 145}
     - type: move_unit
       index: 7
       position: {x: -90, y: -235}
@@ -1413,10 +1412,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -179
-        y: 9
-      - x: -74
-        y: 11
+      - {x: -179, y: 9}
+      - {x: -74, y: 11}
     - type: upgrade_unit
       index: 6
 - round: 5
@@ -1699,8 +1696,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 45
-        y: 261
+      - {x: 45, y: 261}
     - type: upgrade_technology
       unit: 31
       tech: 10231
@@ -2504,10 +2500,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 293
-        y: 258
-      - x: 238
-        y: 168
+      - {x: 293, y: 258}
+      - {x: 238, y: 168}
     - type: buy_unit
       unit: 10
       position: {x: 5, y: -160}
@@ -2783,10 +2777,8 @@ turns:
         terrains:
         - type: oil
           control_points:
-          - x: 293
-            y: 258
-          - x: 238
-            y: 168
+          - {x: 293, y: 258}
+          - {x: 238, y: 168}
       red:
         reactor_core: 95
         supply: 1300
@@ -2969,8 +2961,7 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 0
-        y: 273
+      - {x: 0, y: 273}
     - type: release_contraption
       contraption: 10001
       position: {x: 56, y: -84}
@@ -3017,8 +3008,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -209
-        y: 254
+      - {x: -209, y: 254}
     red:
     - type: choose_reinforce_item
       offer: 1
@@ -3026,15 +3016,12 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 314
-        y: 172
+      - {x: 314, y: 172}
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -178
-        y: -11
-      - x: -73
-        y: -8
+      - {x: -178, y: -11}
+      - {x: -73, y: -8}
     - type: upgrade_unit
       index: 16
     - type: upgrade_unit

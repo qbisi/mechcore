@@ -145,10 +145,8 @@ sides:
     battle_skills:
     - type: acid_blast
       positions:
-      - x: 50
-        y: 44
-      - x: 189
-        y: 38
+      - {x: 50, y: 44}
+      - {x: 189, y: 38}
   red:
     techs:
       officers:

@@ -1297,8 +1297,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 4
-        y: 61
+      - {x: 4, y: 61}
     - type: unlock_unit
       unit: 2
     - type: buy_unit
@@ -1340,8 +1339,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 12
-        y: -270
+      - {x: 12, y: -270}
     - type: upgrade_unit
       index: 3
     - type: upgrade_unit
@@ -1643,10 +1641,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 108
-        y: 47
-      - x: 247
-        y: 36
+      - {x: 108, y: 47}
+      - {x: 247, y: 36}
     - type: buy_unit
       unit: 24
       position: {x: -15, y: -165}
@@ -1675,12 +1671,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -182
-        y: -137
-      - x: -215
-        y: 56
-      - x: -141
-        y: 175
+      - {x: -182, y: -137}
+      - {x: -215, y: 56}
+      - {x: -141, y: 175}
     - type: upgrade_unit
       index: 4
     red:
@@ -1705,10 +1698,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 213
-        y: 191
-      - x: 73
-        y: 205
+      - {x: 213, y: 191}
+      - {x: 73, y: 205}
     - type: release_contraption
       contraption: 10001
       position: {x: -69, y: -108}
@@ -1725,12 +1716,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 308
-        y: 266
-      - x: 113
-        y: 220
-      - x: -85
-        y: 195
+      - {x: 308, y: 266}
+      - {x: 113, y: 220}
+      - {x: -85, y: 195}
     - type: active_blueprint
       id: 5
     - type: unlock_unit
@@ -2090,12 +2078,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -192
-        y: -91
-      - x: -224
-        y: 49
-      - x: -143
-        y: 175
+      - {x: -192, y: -91}
+      - {x: -224, y: 49}
+      - {x: -143, y: 175}
     - type: release_contraption
       contraption: 20001
       position: {x: 269, y: -13}
@@ -2147,12 +2132,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 313
-        y: 265
-      - x: 121
-        y: 237
-      - x: -78
-        y: 236
+      - {x: 313, y: 265}
+      - {x: 121, y: 237}
+      - {x: -78, y: 236}
 - round: 7
   state:
     reinforce_offers:
@@ -2573,8 +2555,7 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 360
-        y: 269
+      - {x: 360, y: 269}
     - type: release_contraption
       contraption: 10001
       position: {x: -66, y: -96}
@@ -2608,12 +2589,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -245
-        y: -50
-      - x: -215
-        y: 98
-      - x: -164
-        y: 153
+      - {x: -245, y: -50}
+      - {x: -215, y: 98}
+      - {x: -164, y: 153}
     - type: active_energy_tower_skill
       skill: 1
     - type: active_energy_tower_skill

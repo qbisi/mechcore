@@ -2420,8 +2420,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 146
-        y: -117
+      - {x: 146, y: -117}
     - type: upgrade_unit
       index: 20
     - type: upgrade_unit

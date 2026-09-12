@@ -2899,10 +2899,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -129
-        y: 68
-      - x: -24
-        y: 71
+      - {x: -129, y: 68}
+      - {x: -24, y: 71}
     - type: move_unit
       index: 26
       position: {x: -10, y: -140}

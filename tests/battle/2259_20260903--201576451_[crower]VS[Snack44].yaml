@@ -1314,12 +1314,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -151
-        y: -97
-      - x: -190
-        y: -120
-      - x: -190
-        y: -121
+      - {x: -151, y: -97}
+      - {x: -190, y: -120}
+      - {x: -190, y: -121}
     - type: release_contraption
       contraption: 20001
       position: {x: 272, y: -11}
@@ -1349,8 +1346,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 272
-        y: 279
+      - {x: 272, y: 279}
     - type: release_commander_skill
       skill: 0
       target: !unit 7
@@ -1674,12 +1670,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -153
-        y: -102
-      - x: -179
-        y: -131
-      - x: -179
-        y: -131
+      - {x: -153, y: -102}
+      - {x: -179, y: -131}
+      - {x: -179, y: -131}
     - type: move_unit
       index: 14
       position: {x: 130, y: -140}
@@ -2039,12 +2032,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 274
-        y: -19
-      - x: 269
-        y: -218
-      - x: 271
-        y: -229
+      - {x: 274, y: -19}
+      - {x: 269, y: -218}
+      - {x: 271, y: -229}
     - type: active_blueprint
       id: 5
     red:
@@ -2417,12 +2407,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -161
-        y: -99
-      - x: -108
-        y: -115
-      - x: -108
-        y: -115
+      - {x: -161, y: -99}
+      - {x: -108, y: -115}
+      - {x: -108, y: -115}
     - type: move_unit
       index: 20
       position: {x: 225, y: -125}
@@ -2853,10 +2840,8 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -235
-        y: -39
-      - x: -78
-        y: -6
+      - {x: -235, y: -39}
+      - {x: -78, y: -6}
     - type: upgrade_technology
       unit: 4
       tech: 1107
@@ -2947,8 +2932,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 268
-        y: 52
+      - {x: 268, y: 52}
     - type: use_equipment
       equipment: 13030001
       unit: 15

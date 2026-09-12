@@ -1632,10 +1632,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 123
-        y: 66
-      - x: 213
-        y: 198
+      - {x: 123, y: 66}
+      - {x: 213, y: 198}
     - type: upgrade_technology
       unit: 13
       tech: 10513
@@ -1678,10 +1676,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -64
-        y: 26
-      - x: 95
-        y: 26
+      - {x: -64, y: 26}
+      - {x: 95, y: 26}
     - type: release_commander_skill
       skill: 0
       target: !unit 10
@@ -1732,12 +1728,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -33
-        y: -131
-      - x: -189
-        y: -98
-      - x: -222
-        y: -80
+      - {x: -33, y: -131}
+      - {x: -189, y: -98}
+      - {x: -222, y: -80}
 - round: 6
   state:
     reinforce_offers:
@@ -2130,12 +2123,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 138
-        y: -124
-      - x: -1
-        y: -138
-      - x: -198
-        y: -137
+      - {x: 138, y: -124}
+      - {x: -1, y: -138}
+      - {x: -198, y: -137}
     - type: unlock_unit
       unit: 13
 - round: 7
@@ -2486,8 +2476,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 180
-        y: 162
+      - {x: 180, y: 162}
     - type: upgrade_unit
       index: 11
     - type: upgrade_unit
@@ -2534,10 +2523,8 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 10
-        y: 85
-      - x: -157
-        y: 19
+      - {x: 10, y: 85}
+      - {x: -157, y: 19}
     - type: release_commander_skill
       skill: 0
       target: !unit 23
@@ -2548,12 +2535,9 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -164
-        y: -100
-      - x: -94
-        y: -193
-      - x: -50
-        y: -202
+      - {x: -164, y: -100}
+      - {x: -94, y: -193}
+      - {x: -50, y: -202}
     - type: upgrade_technology
       unit: 7
       tech: 3307

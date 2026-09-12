@@ -1662,12 +1662,9 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 197
-        y: -40
-      - x: 210
-        y: 114
-      - x: 149
-        y: 166
+      - {x: 197, y: -40}
+      - {x: 210, y: 114}
+      - {x: 149, y: 166}
     - type: active_energy_tower_skill
       skill: 3
     - type: buy_unit

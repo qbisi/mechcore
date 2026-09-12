@@ -145,9 +145,10 @@ it is holding before any of it means anything.
 Every coordinate pair in the schema is one `{x, y}` value rather than two
 sibling fields. `formations`, `constructions` and `contraptions` carry it as
 `position`; `airdrop_shields`, `terrains.control_points` and
-`battle_skills.positions` are lists of the same value. The canonical writer folds
-a placement's `position` onto one line, since spending three lines on one value
-would bury the fields that tell two placements apart.
+`battle_skills.positions` are lists of the same value. The canonical writer
+folds every one of them onto one line, a list item by item, since spending two
+or three lines on a single value would bury whatever tells two of them apart.
+An [action](action.md)'s `!area` target is written the same way.
 
 The `mechcore-document` crate is the authoritative implementation of this public
 shape, its static legality rules, and normalized execution plan. MCP uses its

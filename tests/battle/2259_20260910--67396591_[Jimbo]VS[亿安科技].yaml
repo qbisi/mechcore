@@ -1788,8 +1788,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -178
-        y: 55
+      - {x: -178, y: 55}
     - type: upgrade_unit
       index: 5
     - type: buy_unit
@@ -2550,10 +2549,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -251
-        y: -12
-      - x: -91
-        y: -13
+      - {x: -251, y: -12}
+      - {x: -91, y: -13}
     - type: upgrade_unit
       index: 17
     - type: buy_unit
@@ -3560,8 +3557,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 302
-        y: -171
+      - {x: 302, y: -171}
     - type: buy_unit
       unit: 22
       position: {x: 0, y: -160}

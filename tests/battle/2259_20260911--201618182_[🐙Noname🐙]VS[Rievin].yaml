@@ -1343,12 +1343,9 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 274
-        y: 4
-      - x: 164
-        y: 171
-      - x: -35
-        y: 171
+      - {x: 274, y: 4}
+      - {x: 164, y: 171}
+      - {x: -35, y: 171}
     - type: release_contraption
       contraption: 10001
       position: {x: -109, y: -189}
@@ -1705,12 +1702,9 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -317
-        y: 174
-      - x: -317
-        y: 268
-      - x: -317
-        y: 268
+      - {x: -317, y: 174}
+      - {x: -317, y: 268}
+      - {x: -317, y: 268}
     - type: use_equipment
       equipment: 13030003
       unit: 13
@@ -2169,12 +2163,9 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -318
-        y: 165
-      - x: -317
-        y: 267
-      - x: -317
-        y: 267
+      - {x: -318, y: 165}
+      - {x: -317, y: 267}
+      - {x: -317, y: 267}
     - type: release_commander_skill
       skill: 1
       target: !construction 0
@@ -2659,12 +2650,9 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -317
-        y: 165
-      - x: -316
-        y: 263
-      - x: -315
-        y: 263
+      - {x: -317, y: 165}
+      - {x: -316, y: 263}
+      - {x: -315, y: 263}
     - type: release_contraption
       contraption: 20001
       position: {x: 119, y: -11}
@@ -3145,10 +3133,8 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -75
-        y: 5
-      - x: 29
-        y: 4
+      - {x: -75, y: 5}
+      - {x: 29, y: 4}
     - type: move_unit
       index: 26
       position: {x: -20, y: -160}
@@ -3158,12 +3144,9 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 61
-        y: -135
-      - x: 107
-        y: -243
-      - x: 241
-        y: -262
+      - {x: 61, y: -135}
+      - {x: 107, y: -243}
+      - {x: 241, y: -262}
     - type: upgrade_unit
       index: 23
     - type: upgrade_unit
@@ -3252,10 +3235,8 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: -150
-        y: 94
-      - x: -62
-        y: 151
+      - {x: -150, y: 94}
+      - {x: -62, y: 151}
 - round: 9
   state:
     reinforce_offers:
@@ -3734,12 +3715,9 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: 56
-        y: -103
-      - x: 161
-        y: -136
-      - x: 161
-        y: -136
+      - {x: 56, y: -103}
+      - {x: 161, y: -136}
+      - {x: 161, y: -136}
     - type: upgrade_technology
       unit: 18
       tech: 110181
@@ -3790,8 +3768,7 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: -141
-        y: 51
+      - {x: -141, y: 51}
     red:
     - type: choose_reinforce_item
       offer: 2
@@ -3799,8 +3776,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: 14
-        y: 173
+      - {x: 14, y: 173}
     - type: release_commander_skill
       skill: 0
       target: !unit 28

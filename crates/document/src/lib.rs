@@ -189,6 +189,52 @@ sides:
         );
     }
 
+    /// Every coordinate pair the schema holds is written on one line.
+    ///
+    /// A pair is one value. The writer used to fold only a placement's
+    /// `position`, so the three collections of bare pairs came out three or
+    /// more lines each and a generated document disagreed with the hand-written
+    /// fixtures beside it.
+    #[test]
+    fn every_coordinate_pair_is_written_on_one_line() {
+        let layout: Layout = serde_json::from_value(json!({
+            "kind": "layout",
+            "round": 2,
+            "sides": {
+                "blue": {
+                    "formations": [
+                        {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}
+                    ],
+                    "airdrop_shields": [{"x": -200, "y": -20}],
+                    "terrains": [
+                        {"type": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]}
+                    ],
+                    "battle_skills": [
+                        {"type": "lightning_storm", "positions": [{"x": 20, "y": -150}]}
+                    ]
+                },
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}}]}
+            }
+        }))
+        .unwrap();
+
+        let yaml = canonical_yaml(layout).unwrap();
+        for pair in [
+            "      position: {x: 0, y: -50}\n",
+            "    airdrop_shields:\n    - {x: -200, y: -20}\n",
+            "      control_points:\n      - {x: 100, y: 0}\n      - {x: 120, y: 0}\n",
+            "      positions:\n      - {x: 20, y: -150}\n",
+        ] {
+            assert!(yaml.contains(pair), "{pair:?} is not folded: {yaml}");
+        }
+        assert!(!yaml.contains("\n      y:"), "a pair was left open: {yaml}");
+        assert_eq!(
+            canonical_yaml(parse_yaml(yaml.as_bytes()).unwrap()).unwrap(),
+            yaml,
+            "folding a folded document changes nothing"
+        );
+    }
+
     #[test]
     fn normalization_reaches_its_fixed_point_in_one_pass() {
         let denormalized: Layout = serde_json::from_value(json!({

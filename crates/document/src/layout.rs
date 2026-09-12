@@ -379,13 +379,19 @@ pub fn canonical_embedded_yaml(layout: Layout) -> Result<String, String> {
     Ok(collapse_placement_positions(&yaml))
 }
 
-/// Rewrites each placement's block-style `position` map onto one line.
+/// Rewrites every coordinate pair the schema holds onto one line.
 ///
-/// A placement's coordinate pair is one value, so spending three lines on it
-/// buries the fields that distinguish one placement from another. `serde_yaml`
-/// has no per-field flow style, so the emitted document is folded afterwards.
-/// Only the `position` key is folded: it always holds exactly `x` and `y`, so
-/// the fold is total, whereas the lists of bare positions vary in length.
+/// A coordinate pair is one value, so spending two or three lines on it buries
+/// whatever tells two of them apart. `serde_yaml` has no per-field flow style,
+/// so the emitted document is folded afterwards. Both shapes the schema uses
+/// are folded: the `position` a placement carries, and the bare pairs that make
+/// up `airdrop_shields`, a terrain's `control_points` and a battle skill's
+/// `positions`. A list folds item by item, so its length does not matter.
+///
+/// The fold is refused rather than applied blind. A `position` must hold
+/// exactly `x` and `y`, and a list item is folded only when nothing is indented
+/// under its `y`, so a two-field pair is never confused with the opening of a
+/// longer mapping.
 pub(crate) fn collapse_placement_positions(yaml: &str) -> String {
     let lines: Vec<&str> = yaml.lines().collect();
     let mut out = String::with_capacity(yaml.len());
@@ -394,22 +400,14 @@ pub(crate) fn collapse_placement_positions(yaml: &str) -> String {
         let line = lines[index];
         if let Some(indent) = line
             .strip_suffix("position:")
-            .filter(|indent| indent.chars().all(|character| character == ' ') && !indent.is_empty())
+            .filter(|indent| is_indent(indent) && !indent.is_empty())
         {
             let field = |offset: usize, name: &str| {
                 lines
                     .get(index + offset)
                     .and_then(|line| line.strip_prefix(indent))
                     .and_then(|line| line.strip_prefix("  "))
-                    .and_then(|line| line.strip_prefix(name))
-                    .filter(|value| {
-                        value
-                            .strip_prefix('-')
-                            .unwrap_or(value)
-                            .chars()
-                            .all(|character| character.is_ascii_digit())
-                            && !value.is_empty()
-                    })
+                    .and_then(|line| coordinate(line, name))
             };
             if let (Some(x), Some(y)) = (field(1, "x: "), field(2, "y: ")) {
                 use std::fmt::Write as _;
@@ -419,9 +417,42 @@ pub(crate) fn collapse_placement_positions(yaml: &str) -> String {
                 continue;
             }
         }
+        if let Some((indent, x)) = line
+            .split_once("- ")
+            .filter(|(indent, _)| is_indent(indent))
+            .and_then(|(indent, rest)| Some((indent, coordinate(rest, "x: ")?)))
+        {
+            let continued = format!("{indent}  ");
+            let y = lines
+                .get(index + 1)
+                .and_then(|line| line.strip_prefix(&continued))
+                .and_then(|line| coordinate(line, "y: "));
+            let ends = lines
+                .get(index + 2)
+                .is_none_or(|line| !line.starts_with(&continued));
+            if let (Some(y), true) = (y, ends) {
+                use std::fmt::Write as _;
+                writeln!(out, "{indent}- {{x: {x}, y: {y}}}")
+                    .expect("writing to a String cannot fail");
+                index += 2;
+                continue;
+            }
+        }
         out.push_str(line);
         out.push('\n');
         index += 1;
     }
     out
+}
+
+/// The value of `x: ` or `y: `, when the line is that field and an integer.
+fn coordinate<'a>(line: &'a str, name: &str) -> Option<&'a str> {
+    let value = line.strip_prefix(name)?;
+    let digits = value.strip_prefix('-').unwrap_or(value);
+    (!digits.is_empty() && digits.chars().all(|character| character.is_ascii_digit()))
+        .then_some(value)
+}
+
+fn is_indent(value: &str) -> bool {
+    value.chars().all(|character| character == ' ')
 }

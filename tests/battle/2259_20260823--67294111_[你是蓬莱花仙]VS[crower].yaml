@@ -853,8 +853,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -155
-        y: 153
+      - {x: -155, y: 153}
     - type: unlock_unit
       unit: 6
     - type: buy_unit
@@ -1705,8 +1704,7 @@ turns:
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -231
-        y: 229
+      - {x: -231, y: 229}
     - type: upgrade_technology
       unit: 2
       tech: 3202
@@ -2067,8 +2065,7 @@ turns:
     - type: release_commander_skill
       skill: 2
       target: !area
-      - x: -166
-        y: 103
+      - {x: -166, y: 103}
     - type: move_unit
       index: 8
       position: {x: 275, y: -20}
@@ -2113,12 +2110,9 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 276
-        y: -38
-      - x: 186
-        y: 140
-      - x: 172
-        y: 170
+      - {x: 276, y: -38}
+      - {x: 186, y: 140}
+      - {x: 172, y: 170}
     - type: upgrade_unit
       index: 11
 - round: 7
@@ -2501,12 +2495,9 @@ turns:
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 270
-        y: -68
-      - x: 298
-        y: -188
-      - x: 298
-        y: -188
+      - {x: 270, y: -68}
+      - {x: 298, y: -188}
+      - {x: 298, y: -188}
     - type: move_unit
       index: 8
       position: {x: 25, y: -240}
@@ -2925,8 +2916,7 @@ turns:
     - type: release_commander_skill
       skill: 1
       target: !area
-      - x: 168
-        y: 137
+      - {x: 168, y: 137}
     - type: release_commander_skill
       skill: 0
       target: !unit 6
@@ -2973,24 +2963,19 @@ turns:
     - type: release_commander_skill
       skill: 4
       target: !area
-      - x: -142
-        y: 77
+      - {x: -142, y: 77}
     - type: upgrade_unit
       index: 18
     - type: release_commander_skill
       skill: 3
       target: !area
-      - x: 275
-        y: -103
-      - x: 234
-        y: -229
-      - x: 234
-        y: -229
+      - {x: 275, y: -103}
+      - {x: 234, y: -229}
+      - {x: 234, y: -229}
     - type: release_commander_skill
       skill: 0
       target: !area
-      - x: -238
-        y: 193
+      - {x: -238, y: 193}
     - type: release_commander_skill
       skill: 1
       target: !unit 19
