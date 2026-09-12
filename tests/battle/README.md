@@ -48,5 +48,11 @@ result differs, so a converter change that left the corpus behind cannot merge.
 and initial construction lists against each battle's seed and map ID, and
 refuses an out-of-range `choose`. It computes the reinforcement initialization
 draws and independent map stream directly, without searching stream positions.
-Deployment seams are checked by the conversion's ledger and transition reports; this opening check does not verify
-combat or prove the player's choice without the source replay.
+It also advances that stream through all 293 reinforcement rounds and checks
+1,172 ordered card IDs, using round states and prior choices as inputs. The
+regression test compares every incoming stream state and each available next
+snapshot against the native replay. Missing offers, reordered ordinary or unit
+cards, invalid choices and discontinuous rounds must fail.
+Deployment seams are checked by the conversion's ledger and transition reports;
+these deal checks do not verify combat or authenticate the player's choice
+without the source replay.

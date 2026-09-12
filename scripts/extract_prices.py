@@ -101,10 +101,8 @@ CONFIG_FIELDS = {
 def config_numbers(blob):
     """The match-wide supply numbers `GameRiver.Config` carries.
 
-    `reinforce_item_count` is read only to check the parse. Every round of
-    every tracked replay deals exactly that many offers, so a body parsed at
-    the wrong offset would have to put the right number in the right place by
-    accident to pass.
+    `reinforce_item_count` also feeds the reinforcement predictor. Its known
+    resource value checks the body offset before the supply fields are used.
     """
     body = monobehaviour_body(blob)
     values = {

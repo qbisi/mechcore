@@ -1,0 +1,741 @@
+//! Stateful build-2259 reinforcement prediction; see `docs/rules/reinforcements.md`.
+
+use crate::catalog::{NativeFormation, resolve_unit_type};
+use crate::economy::Economy;
+use crate::layout::Techs;
+use crate::opening::{Prediction, Stated, Stream};
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Deserialize)]
+struct Config {
+    ordinary_count: usize,
+    unit_count: usize,
+    cards: BTreeMap<i32, Card>,
+    units: BTreeMap<i32, UnitCard>,
+    pools: BTreeMap<i32, UnitPool>,
+    weights: BTreeMap<i32, Vec<usize>>,
+    prevented: BTreeMap<i32, Vec<i32>>,
+    unit_costs: BTreeMap<i32, UnitCost>,
+}
+
+#[derive(Deserialize)]
+struct Card {
+    level: i32,
+    group: i32,
+    earliest: i32,
+    latest: i32,
+    repeated: bool,
+    cooldown: bool,
+    absent_units: Vec<i32>,
+}
+
+impl Card {
+    fn condition(&self, units: &BTreeSet<i32>) -> bool {
+        !self.absent_units.iter().any(|unit| units.contains(unit))
+    }
+}
+
+#[derive(Deserialize)]
+struct UnitCard {
+    unit: i32,
+    round: i32,
+}
+
+#[derive(Deserialize)]
+struct UnitPool {
+    rounds: Vec<i32>,
+    supply_round: i32,
+    supplies: Vec<i32>,
+}
+
+#[derive(Deserialize)]
+struct UnitCost {
+    supply: i32,
+    unlock: i32,
+    tech_step: i32,
+    tech_cap: i32,
+}
+
+/// The portion of a battle turn that influences reinforcement generation.
+#[derive(Debug, Deserialize)]
+pub struct Turn {
+    pub round: i32,
+    pub state: State,
+    pub actions: Actions,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct State {
+    pub reinforce_offers: Option<Vec<i32>>,
+    pub sides: Sides,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Sides {
+    pub blue: Side,
+    pub red: Side,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Side {
+    pub formations: Vec<Formation>,
+    pub shop: Shop,
+    pub techs: Techs,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Formation {
+    #[serde(rename = "type")]
+    pub type_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Shop {
+    pub unlocked_units: Vec<i32>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Actions {
+    pub blue: Vec<Action>,
+    pub red: Vec<Action>,
+}
+
+// A struct skips unrelated action payloads directly. An internally tagged
+// enum buffers them and rejects valid YAML tags such as !position.
+#[derive(Debug, Deserialize)]
+pub struct Action {
+    #[serde(rename = "type")]
+    pub type_name: String,
+    pub offer: Option<i32>,
+    pub id: Option<i32>,
+}
+
+/// One computed draw with exact stream boundaries, excluding seed warm-up.
+#[derive(Debug, Serialize)]
+pub struct Round {
+    pub round: i32,
+    pub unit_reinforcement: bool,
+    pub offers: Vec<i32>,
+    pub before_offset: u32,
+    pub after_offset: u32,
+    pub before_state: [u64; 4],
+    pub after_state: [u64; 4],
+}
+
+/// Reinforcement verification covers the complete ordered draw of every turn.
+#[derive(Debug, Serialize)]
+pub struct Verified {
+    pub rounds: Vec<Round>,
+    pub offers_checked: usize,
+}
+
+struct Dealer {
+    config: Config,
+    stream: Stream,
+    offset: u32,
+    pool_id: i32,
+    pools: BTreeMap<i32, Vec<i32>>,
+    groups: BTreeMap<i32, Vec<i32>>,
+    cooldown_rounds: BTreeSet<i32>,
+}
+
+impl Dealer {
+    fn new(opening: &Prediction) -> Result<Self, String> {
+        let config: Config =
+            serde_yaml::from_str(include_str!("../../../config/reinforcements.yaml"))
+                .map_err(|error| format!("cannot read reinforcement configuration: {error}"))?;
+        let mut pools: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
+        let mut groups: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
+        for (&id, card) in &config.cards {
+            if card.group > 0 {
+                groups.entry(card.group).or_default().push(id);
+            }
+            if card.group == 0 || opening.initialization.officers.get(&card.group) == Some(&id) {
+                pools.entry(card.level).or_default().push(id);
+            }
+        }
+        Ok(Self {
+            config,
+            stream: Stream::from_state(opening.after_opening_state)?,
+            offset: opening.after_opening_offset,
+            pool_id: opening.initialization.unit_round_pool,
+            pools,
+            groups,
+            cooldown_rounds: BTreeSet::new(),
+        })
+    }
+
+    fn refresh(&mut self, units: &BTreeSet<i32>) {
+        let mut additions: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
+        // Native OnNewRound visits levels, then sorted IDs. Replacements are
+        // appended only after the original pools have all been visited.
+        for pool in self.pools.values_mut() {
+            pool.retain(|id| {
+                let card = &self.config.cards[id];
+                if card.condition(units) {
+                    return true;
+                }
+                let eligible: Vec<i32> = self
+                    .groups
+                    .get(&card.group)
+                    .into_iter()
+                    .flatten()
+                    .copied()
+                    .filter(|id| self.config.cards[id].condition(units))
+                    .collect();
+                if !eligible.is_empty() {
+                    let replacement = eligible[self.stream.pick(0, eligible.len())];
+                    additions
+                        .entry(self.config.cards[&replacement].level)
+                        .or_default()
+                        .push(replacement);
+                }
+                false
+            });
+        }
+        for (level, ids) in additions {
+            self.pools.entry(level).or_default().extend(ids);
+        }
+        for pool in self.pools.values_mut() {
+            pool.sort_unstable();
+        }
+    }
+
+    fn ordinary(&mut self, round: i32, units: &BTreeSet<i32>) -> Result<Vec<i32>, String> {
+        self.refresh(units);
+        let weights = self
+            .config
+            .weights
+            .range(..=round)
+            .next_back()
+            .ok_or_else(|| format!("round {round} has no reinforcement probabilities"))?
+            .1;
+        let allowed = |id: &i32| {
+            let card = &self.config.cards[id];
+            card.earliest <= round
+                && (card.latest <= 0 || round <= card.latest)
+                && !(card.cooldown && self.cooldown_rounds.contains(&round))
+        };
+        let mut weights: Vec<usize> = weights
+            .iter()
+            .enumerate()
+            .map(|(at, weight)| {
+                let level = i32::try_from(at + 1).unwrap_or(i32::MAX);
+                if self
+                    .pools
+                    .get(&level)
+                    .is_some_and(|pool| pool.iter().any(&allowed))
+                {
+                    *weight
+                } else {
+                    0
+                }
+            })
+            .collect();
+        let mut taken: BTreeMap<i32, usize> = BTreeMap::new();
+        let mut offers = Vec::new();
+        for _ in 0..self.config.ordinary_count {
+            let total = weights.iter().sum();
+            if total == 0 {
+                return Err(format!("round {round} exhausted its reinforcement levels"));
+            }
+            let mut value = self.stream.pick(0, total);
+            let at = weights
+                .iter()
+                .position(|weight| {
+                    if value < *weight {
+                        true
+                    } else {
+                        value -= weight;
+                        false
+                    }
+                })
+                .ok_or("reinforcement level draw exceeds its weights")?;
+            let level = i32::try_from(at + 1).map_err(|error| error.to_string())?;
+            let pool = self
+                .pools
+                .get_mut(&level)
+                .ok_or("reinforcement level has no pool")?;
+            let candidates: Vec<usize> = pool
+                .iter()
+                .enumerate()
+                .filter_map(|(at, id)| allowed(id).then_some(at))
+                .collect();
+            let position = taken.entry(level).or_default();
+            if *position >= candidates.len() {
+                return Err(format!("round {round} exhausted level {level}"));
+            }
+            // RandOnce skips the random call when only one candidate remains.
+            let last = *position + 1 == candidates.len();
+            let selected = if last {
+                *position
+            } else {
+                self.stream.pick(*position, candidates.len())
+            };
+            let index = candidates[selected];
+            offers.push(pool[index]);
+            if !last {
+                pool.swap(*position, index);
+            }
+            *position += 1;
+            if *position == candidates.len() {
+                weights[at] = 0;
+            }
+        }
+        for pool in self.pools.values_mut() {
+            pool.sort_unstable();
+        }
+        if offers.iter().any(|id| self.config.cards[id].cooldown) {
+            self.cooldown_rounds.insert(round + 1);
+        }
+        Ok(offers)
+    }
+
+    fn unit_offers(
+        &mut self,
+        round: i32,
+        units: &BTreeSet<i32>,
+        officers: &BTreeSet<i32>,
+        scores: &BTreeMap<i32, i32>,
+    ) -> Result<Vec<i32>, String> {
+        let mut excluded: BTreeSet<i32> = officers
+            .iter()
+            .filter_map(|id| self.config.prevented.get(id))
+            .flatten()
+            .copied()
+            .collect();
+        let mut candidates: Vec<(i32, i32)> = self
+            .config
+            .units
+            .iter()
+            .filter(|(_, card)| {
+                card.round == round && !units.contains(&card.unit) && !excluded.contains(&card.unit)
+            })
+            .map(|(&id, card)| (id, card.unit))
+            .collect();
+        let mut offers = Vec::new();
+        let mut remaining = self.config.unit_count.min(candidates.len());
+        while remaining > 0 && !candidates.is_empty() {
+            let (id, unit) = candidates[self.stream.pick(0, candidates.len())];
+            offers.push(id);
+            let old_len = candidates.len();
+            candidates.retain(|(_, candidate_unit)| *candidate_unit != unit);
+            // Native UnitFirstRand decrements for the selection AND for each
+            // removed variant, so it can return fewer than the requested count.
+            remaining = remaining.saturating_sub(1 + old_len - candidates.len());
+            excluded.insert(unit);
+        }
+        let mut candidates: Vec<(i32, i32, i32)> = self
+            .config
+            .units
+            .iter()
+            .filter(|(_, card)| card.round == round && !excluded.contains(&card.unit))
+            .map(|(&id, card)| (scores.get(&card.unit).copied().unwrap_or(0), id, card.unit))
+            .collect();
+        candidates.sort_unstable();
+        while offers.len() < self.config.unit_count {
+            let score = candidates
+                .first()
+                .ok_or_else(|| format!("round {round} exhausted unit reinforcements"))?
+                .0;
+            let count = candidates
+                .iter()
+                .take_while(|candidate| candidate.0 == score)
+                .count();
+            let (_, id, unit) = candidates[self.stream.pick(0, count)];
+            offers.push(id);
+            candidates.retain(|candidate| candidate.2 != unit);
+        }
+        let schedule = &self.config.pools[&self.pool_id];
+        if round >= schedule.supply_round {
+            let at = usize::try_from(round - schedule.supply_round)
+                .map_err(|error| error.to_string())?;
+            let at = at.min(schedule.supplies.len().saturating_sub(1));
+            let supply = *schedule
+                .supplies
+                .get(at)
+                .ok_or("unit reinforcement supply list is empty")?;
+            *offers
+                .last_mut()
+                .ok_or("unit reinforcement deal is empty")? = supply;
+        }
+        Ok(offers)
+    }
+
+    fn choose(&mut self, id: i32) {
+        let Some(card) = self.config.cards.get(&id) else {
+            return;
+        };
+        if card.repeated {
+            return;
+        }
+        for pool in self.pools.values_mut() {
+            pool.retain(|candidate| *candidate != id);
+        }
+        if let Some(group) = self.groups.get_mut(&card.group) {
+            group.clear();
+        }
+    }
+
+    fn apply_choices(&mut self, turn: &Turn, offers: &[i32], terminal: bool) -> Result<(), String> {
+        for (name, actions) in [("blue", &turn.actions.blue), ("red", &turn.actions.red)] {
+            let choices: Vec<_> = actions
+                .iter()
+                .filter(|action| action.type_name == "choose_reinforce_item")
+                .map(|action| {
+                    action.offer.map(|offer| (offer, action.id)).ok_or_else(|| {
+                        format!(
+                            "round {} {name} reinforcement choice has no offer index",
+                            turn.round
+                        )
+                    })
+                })
+                .collect::<Result<_, _>>()?;
+            if choices.len() > 1 || (turn.round == 1 && !choices.is_empty()) {
+                return Err(format!(
+                    "round {} {name} has an invalid reinforcement choice count",
+                    turn.round
+                ));
+            }
+            if turn.round > 1 && !terminal && choices.is_empty() {
+                return Err(format!(
+                    "round {} {name} is missing its reinforcement choice",
+                    turn.round
+                ));
+            }
+            for (offer, id) in choices {
+                if offer == crate::battle::DECLINED_OFFER && id.is_none() {
+                    continue;
+                }
+                let predicted = usize::try_from(offer)
+                    .ok()
+                    .and_then(|at| offers.get(at))
+                    .copied();
+                if predicted.is_none() || predicted != id {
+                    return Err(format!(
+                        "round {} {name} reinforcement choice {offer} / {id:?} does not name a predicted offer",
+                        turn.round
+                    ));
+                }
+                self.choose(predicted.ok_or("reinforcement choice is missing")?);
+            }
+        }
+        Ok(())
+    }
+
+    fn unit_cost(&self, unit: i32) -> Result<&UnitCost, String> {
+        self.config
+            .unit_costs
+            .get(&unit)
+            .ok_or_else(|| format!("unit {unit} has no reinforcement investment cost"))
+    }
+
+    fn context(&self, economy: &Economy, stated: &Stated, turn: &Turn) -> Result<Context, String> {
+        let mut context = Context::default();
+        for side in [&turn.state.sides.blue, &turn.state.sides.red] {
+            context.officers.extend(side.techs.officers.iter());
+            for formation in &side.formations {
+                let native = resolve_unit_type(&formation.type_name)
+                    .ok_or_else(|| format!("unknown reinforcement unit {}", formation.type_name))?
+                    .native;
+                let NativeFormation::Unit(unit) = native else {
+                    return Err("formation is not a unit".into());
+                };
+                context.units.insert(unit);
+                *context.scores.entry(unit).or_default() += self.unit_cost(unit)?.supply;
+            }
+            for &unit in &side.shop.unlocked_units {
+                *context.scores.entry(unit).or_default() += self.unit_cost(unit)?.unlock;
+            }
+        }
+        for (side, loadout) in [
+            (&turn.state.sides.blue, &stated.sides.blue.tech_loadout),
+            (&turn.state.sides.red, &stated.sides.red.tech_loadout),
+        ] {
+            for technology in &side.techs.units {
+                let owner = economy
+                    .technology_owner(*technology)
+                    .ok_or_else(|| format!("unknown reinforcement technology {technology}"))?;
+                if !loadout
+                    .get(&owner)
+                    .is_some_and(|ids| ids.contains(technology))
+                {
+                    return Err(format!(
+                        "technology {technology} is outside its unit loadout"
+                    ));
+                }
+            }
+            // CalculateUpgradeCost sums base technology costs with each unit's
+            // configured step/cap, ignoring officer discounts and paid prices.
+            for (&unit, technologies) in loadout {
+                let Some(score) = context.scores.get_mut(&unit) else {
+                    continue;
+                };
+                let cost = self.unit_cost(unit)?;
+                let step = if cost.tech_step > 0 {
+                    cost.tech_step
+                } else {
+                    economy.technology_repeat_step()
+                };
+                for (count, technology) in technologies
+                    .iter()
+                    .filter(|id| side.techs.units.contains(id))
+                    .enumerate()
+                {
+                    let base = economy.technology(*technology).ok_or_else(|| {
+                        format!("technology {technology} has no reinforcement investment cost")
+                    })?;
+                    let count = i32::try_from(count).map_err(|error| error.to_string())?;
+                    let total = base + count * step;
+                    let total = if cost.tech_cap > 0 {
+                        total.min(cost.tech_cap)
+                    } else {
+                        total
+                    };
+                    *score += total;
+                }
+            }
+        }
+        Ok(context)
+    }
+}
+
+#[derive(Default)]
+struct Context {
+    units: BTreeSet<i32>,
+    officers: BTreeSet<i32>,
+    scores: BTreeMap<i32, i32>,
+}
+
+/// Verifies every reinforcement draw, advancing one stream from the opening.
+/// State and prior choices are inputs; future offers never select a stream offset.
+///
+/// # Errors
+/// Refuses missing/noncontiguous turns, mismatched offers or choices, unknown
+/// prediction inputs, and exhausted pools. Reports the first failing round.
+pub fn verify(
+    economy: &Economy,
+    stated: &Stated,
+    opening: &Prediction,
+) -> Result<Verified, String> {
+    if stated.turns.is_empty() {
+        return Err("reinforcement verification requires deployment turns".into());
+    }
+    let mut dealer = Dealer::new(opening)?;
+    let mut rounds = Vec::new();
+    let mut offers_checked = 0;
+    for (at, turn) in stated.turns.iter().enumerate() {
+        let expected = i32::try_from(at + 1).map_err(|error| error.to_string())?;
+        if turn.round != expected {
+            return Err(format!(
+                "reinforcement turns must be contiguous: expected round {expected}, found {}",
+                turn.round
+            ));
+        }
+        let context = dealer
+            .context(economy, stated, turn)
+            .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
+        let before_state = dealer.stream.state();
+        let before_offset = dealer.offset + dealer.stream.draws();
+        let unit_reinforcement = dealer.config.pools[&dealer.pool_id]
+            .rounds
+            .contains(&turn.round);
+        let offers = if turn.round == 1 {
+            Ok(Vec::new())
+        } else if unit_reinforcement {
+            dealer.unit_offers(
+                turn.round,
+                &context.units,
+                &context.officers,
+                &context.scores,
+            )
+        } else {
+            dealer.ordinary(turn.round, &context.units)
+        }
+        .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
+        let expected_offers = if turn.round == 1 { None } else { Some(&offers) };
+        if turn.state.reinforce_offers.as_ref() != expected_offers {
+            return Err(format!(
+                "round {} reinforcement offers disagree: predicted {expected_offers:?}, stated {:?}",
+                turn.round, turn.state.reinforce_offers
+            ));
+        }
+        dealer.apply_choices(turn, &offers, at + 1 == stated.turns.len())?;
+        if turn.round > 1 {
+            offers_checked += offers.len();
+            rounds.push(Round {
+                round: turn.round,
+                unit_reinforcement,
+                offers,
+                before_offset,
+                after_offset: dealer.offset + dealer.stream.draws(),
+                before_state,
+                after_state: dealer.stream.state(),
+            });
+        }
+    }
+    Ok(Verified {
+        rounds,
+        offers_checked,
+    })
+}
+
+#[cfg(all(test, feature = "convert"))]
+mod tests {
+    use super::*;
+
+    fn corpus() -> Vec<(Stated, crate::record::BattleRecord)> {
+        std::fs::read_dir("../../tests/grbr")
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "grbr"))
+            .map(|path| {
+                let bytes = std::fs::read(path).unwrap();
+                let battle = crate::convert::battle_from_grbr(&bytes).unwrap();
+                let document = crate::battle::canonical_yaml(&battle).unwrap();
+                (
+                    crate::opening::stated(document.as_bytes())
+                        .unwrap()
+                        .unwrap(),
+                    crate::record::read(&bytes).unwrap(),
+                )
+            })
+            .collect()
+    }
+
+    fn sample() -> Stated {
+        let bytes = std::fs::read(
+            "../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml",
+        )
+        .unwrap();
+        crate::opening::stated(&bytes).unwrap().unwrap()
+    }
+
+    #[test]
+    fn every_offer_and_stream_boundary_matches_the_native_replays() {
+        let economy = Economy::embedded().unwrap();
+        let mut matches = 0;
+        let mut rounds = 0;
+        let mut offers = 0;
+        for (stated, native) in corpus() {
+            let opening = crate::opening::verify(&economy, &stated).unwrap();
+            let checked = verify(&economy, &stated, &opening)
+                .unwrap_or_else(|error| panic!("seed {}: {error}", stated.seed));
+            for round in &checked.rounds {
+                let snapshot = &native.match_rounds.entries[usize::try_from(round.round).unwrap()];
+                assert_eq!(
+                    round.before_state.as_slice(),
+                    snapshot.random_state.states.values,
+                    "seed {} round {} before state",
+                    stated.seed,
+                    round.round
+                );
+                if let Some(next) = native
+                    .match_rounds
+                    .entries
+                    .get(usize::try_from(round.round + 1).unwrap())
+                {
+                    assert_eq!(
+                        round.after_state.as_slice(),
+                        next.random_state.states.values,
+                        "seed {} round {} after state",
+                        stated.seed,
+                        round.round
+                    );
+                }
+            }
+            rounds += checked.rounds.len();
+            offers += checked.offers_checked;
+            matches += 1;
+        }
+        assert_eq!((matches, rounds, offers), (41, 293, 1172));
+    }
+
+    #[test]
+    fn altered_offers_and_choices_are_refused_at_their_round() {
+        let economy = Economy::embedded().unwrap();
+        let mut stated = sample();
+        let opening = crate::opening::verify(&economy, &stated).unwrap();
+        let original = stated.turns[1].state.reinforce_offers.clone();
+        stated.turns[1]
+            .state
+            .reinforce_offers
+            .as_mut()
+            .unwrap()
+            .swap(0, 1);
+        assert!(
+            verify(&economy, &stated, &opening)
+                .unwrap_err()
+                .contains("round 2 reinforcement offers disagree")
+        );
+        stated.turns[1].state.reinforce_offers = None;
+        assert!(
+            verify(&economy, &stated, &opening)
+                .unwrap_err()
+                .contains("round 2 reinforcement offers disagree")
+        );
+        stated.turns[1].state.reinforce_offers = original;
+        stated.turns[1].actions.blue = vec![Action {
+            type_name: "choose_reinforce_item".into(),
+            offer: Some(4),
+            id: None,
+        }];
+        assert!(
+            verify(&economy, &stated, &opening)
+                .unwrap_err()
+                .contains("round 2 blue reinforcement choice")
+        );
+    }
+
+    #[test]
+    fn omitted_or_noncontiguous_rounds_are_not_successful_verification() {
+        let economy = Economy::embedded().unwrap();
+        let mut stated = sample();
+        let opening = crate::opening::verify(&economy, &stated).unwrap();
+        stated.turns.remove(1);
+        assert!(
+            verify(&economy, &stated, &opening)
+                .unwrap_err()
+                .contains("contiguous")
+        );
+        stated.turns.clear();
+        assert!(verify(&economy, &stated, &opening).is_err());
+    }
+
+    #[test]
+    fn unit_deals_and_prior_choices_are_checked() {
+        let economy = Economy::embedded().unwrap();
+        let mut stated = sample();
+        let opening = crate::opening::verify(&economy, &stated).unwrap();
+        let checked = verify(&economy, &stated, &opening).unwrap();
+        let round = checked
+            .rounds
+            .iter()
+            .find(|round| round.unit_reinforcement)
+            .unwrap()
+            .round;
+        stated.turns[usize::try_from(round - 1).unwrap()]
+            .state
+            .reinforce_offers
+            .as_mut()
+            .unwrap()
+            .swap(0, 1);
+        assert!(
+            verify(&economy, &stated, &opening)
+                .unwrap_err()
+                .contains(&format!("round {round} reinforcement offers disagree"))
+        );
+
+        let mut stated = sample();
+        stated.turns[1]
+            .actions
+            .blue
+            .retain(|action| action.type_name != "choose_reinforce_item");
+        assert!(
+            verify(&economy, &stated, &opening)
+                .unwrap_err()
+                .contains("round 2 blue is missing its reinforcement choice")
+        );
+    }
+}

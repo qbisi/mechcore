@@ -43,7 +43,7 @@ groups. Their sizes in draw order are:
 sorts by ID and calls `ServerRand(0, count)` once. The eligible pool IDs are
 1 through 55. The stream now stands at the state recorded by round zero,
 before `BattleOpeningController` deals blue and then red. Later reinforcement
-consumption is not specified here.
+consumption follows [reinforcement dealing](reinforcements.md).
 
 [config/opening.yaml](../../config/opening.yaml) retains the group members and
 pool IDs, rather than only their counts. All IDs and counts are integers read
@@ -134,8 +134,8 @@ order come from `MapSystem.Init`, `LoadConstructionLayout`, `LoadConstruction`,
 `GRRandom.NextBool`, and `MapRegion.ConvertToWorldPoint`. Resources establish
 the eligible pools, group flags, positions and map geometry.
 
-Modified pools, other modes, negative match seeds, and consumption after the
-opening deal are unverified. A seed determines the alternatives offered, not
+Modified pools, other modes and negative match seeds are unverified.
+[Reinforcement dealing](reinforcements.md) describes consumption after opening. A seed determines the alternatives offered, not
 which alternative either player chooses. Reopen when the artifact identities
 change, a supported map changes its initialization inputs, or a native state,
 construction layout or offer array disagrees with this flow.

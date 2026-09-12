@@ -4,7 +4,7 @@
 //! `format` and `diff` accept a layout, and a state, turn or battle document is
 //! refused by the parser until those two verbs learn the other kinds. `verify`
 //! also checks deployment recordings through the transition and battle opening
-//! offers against the seeded random stream.
+//! and reinforcement offers against the seeded random stream.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -124,21 +124,29 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
     })
 }
 
-/// Checks both sides' offers and constructions using explicit seeded setup.
-/// Player choices are checked for range; the source replay authenticates them.
+/// Checks opening layouts and every reinforcement draw using seeded setup.
+/// Choices must name predicted offers; the source replay authenticates them.
 fn verify_battle(
     path: &Path,
     stated: &mechcore_document::opening::Stated,
 ) -> Result<VerifyReport, String> {
     let economy = mechcore_document::economy::Economy::embedded()?;
-    let checked = mechcore_document::opening::verify(&economy, stated);
-    let detail = |found: Option<&mechcore_document::opening::Prediction>| {
+    let checked = mechcore_document::opening::verify(&economy, stated).and_then(|opening| {
+        mechcore_document::reinforcement::verify(&economy, stated, &opening)
+            .map(|reinforcements| (opening, reinforcements))
+    });
+    let detail = |found: Option<&(
+        mechcore_document::opening::Prediction,
+        mechcore_document::reinforcement::Verified,
+    )>| {
         serde_json::json!({
             "seed": stated.seed,
             "openings": 2,
             "map_id": stated.map_id,
-            "prediction": found,
-
+            "prediction": found.map(|(opening, _)| opening),
+            "reinforcement_rounds": found.map(|(_, checked)| checked.rounds.len()),
+            "reinforcement_offers_checked": found.map(|(_, checked)| checked.offers_checked),
+            "reinforcements": found.map(|(_, checked)| &checked.rounds),
         })
     };
     match checked {
