@@ -32,6 +32,7 @@ pub mod project;
 pub mod transition;
 #[cfg(feature = "convert")]
 pub mod record;
+pub mod reinforcement;
 
 pub use catalog::{
     NativeFormation, battle_skill_type_from_id, construction_type_from_id,

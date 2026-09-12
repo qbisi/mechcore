@@ -144,6 +144,24 @@ result, without searching alternative stream positions. This checks the deal,
 construction layout and choice's range; it does not prove that a player selected
 that index without the source replay, or validate deployment and combat.
 
+`mechcore verify` also checks every turn's complete ordered
+`state.reinforce_offers` array. It advances the reinforcement stream from the
+opening through contiguous turns starting at round 1. Each draw uses that
+turn's stated formations, shop unlocks, active technologies and officers;
+previous `choose_reinforce_item` actions update the pool. Offers being checked
+do not choose the stream position or seed the next draw.
+
+Round 1 carries no offers or reinforcement choice. Every later nonterminal
+round requires one choice per side; a terminal round may omit it. An index and
+ID must name the predicted offer, or use the defined decline form. Missing or
+reordered offers, invalid choices, unsupported inputs and discontinuous turns
+are refusals. The first failing round is reported. A successful report includes
+`reinforcement_rounds`, `reinforcement_offers_checked`, and `reinforcements`,
+whose entries contain the ordered offers, ordinary/unit branch and random
+states and offsets before and after generation. These checks are conditional
+on the stated round inputs; they do not authenticate player decisions or
+validate transitions across combat.
+
 `mechcore opening <seed> <map_id>` predicts the same two offer arrays and
 construction lists without a battle or replay. Its JSON result includes the
 selected officer variants and unit reinforcement round pool, the reinforcement

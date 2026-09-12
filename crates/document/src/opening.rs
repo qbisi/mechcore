@@ -81,6 +81,10 @@ impl Stream {
         self.state
     }
 
+    pub(crate) const fn draws(&self) -> u32 {
+        self.draws
+    }
+
     /// Steps the stream without reading it.
     pub fn skip(&mut self, values: u32) {
         for _ in 0..values {
@@ -126,7 +130,7 @@ impl Stream {
     }
 
     /// `ReinforcePool.ServerRand(bottom, top)`: uniform on `bottom..top`.
-    fn pick(&mut self, bottom: usize, top: usize) -> usize {
+    pub(crate) fn pick(&mut self, bottom: usize, top: usize) -> usize {
         let low = bottom as u64 + 1;
         let up = top as u64;
         usize::try_from(self.range(low, up)).unwrap_or(bottom) - 1
@@ -479,6 +483,7 @@ pub struct Stated {
     pub map_id: i32,
     pub seed: i32,
     pub sides: StatedSides,
+    pub turns: Vec<crate::reinforcement::Turn>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -491,6 +496,7 @@ pub struct StatedSides {
 pub struct StatedSide {
     pub opening: StatedOpening,
     pub constructions: Vec<StaticPlacement>,
+    pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
 /// The opening one side states: what it took, and what it chose between.
