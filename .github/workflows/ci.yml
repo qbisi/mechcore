@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  # A branch is checked through its pull request, so only the mainline needs
+  # the push trigger. Checking both would run every branch twice.
+  push:
+    branches: [master]
+  pull_request:
+
+# A second push to the same branch makes the first run's answer stale, and these
+# are macOS runners.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # The adapter is a macOS `cdylib` that patches code through `vm_protect`,
+    # so the workspace only builds on the platform it is developed on.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # `rust-toolchain.toml` pins the nightly and its components, so the first
+      # cargo invocation installs exactly what the checkout asks for.
+      - name: Show the toolchain the checkout pins
+        run: cargo --version && cargo clippy --version
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      # The replays are byte-exact fixtures: `tests/grbr/README.md` makes hash
+      # equality part of the contract, and the battle documents are generated
+      # from them, so a hand-edited one would otherwise pass unnoticed.
+      - name: Fixtures are the bytes they claim to be
+        run: |
+          shasum -c tests/grbr/SHA256SUMS
+          shasum -c tests/battle/SHA256SUMS
+
+      - name: Lints
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --all-features
+
+      # A converter change that nobody regenerated the corpus for leaves
+      # `tests/battle` describing an older converter. Regenerating has to be a
+      # no-op on a tree that is up to date.
+      - name: The battle corpus is what this converter writes
+        run: |
+          cargo build --release -p mechcore
+          python3 scripts/export-replay-corpus.py --offline-only --force-battles
+          if [ -n "$(git status --porcelain -- tests/battle)" ]; then
+            echo "tests/battle is stale; regenerate it in the same commit:" >&2
+            git status --porcelain -- tests/battle >&2
+            git --no-pager diff -- tests/battle >&2
+            exit 1
+          fi

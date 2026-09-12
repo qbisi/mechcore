@@ -36,6 +36,9 @@ transition tests rather than hidden from the corpus.
 Three converted documents carry a `concession`: `[Dre420]VS[[TUFF] Wumple
 Doodle]`, `[NemoCoda]VS[Camilo.Y]` and `[Dr. crbN]VS[trevorism]`.
 
+CI regenerates this directory on every push and pull request and fails when the
+result differs, so a converter change that left the corpus behind cannot merge.
+
 `mechcore verify` reads layout documents only, and refuses these by kind. There
 is no battle verifier yet; the conversion's ledger and transition reports are
 the checks.

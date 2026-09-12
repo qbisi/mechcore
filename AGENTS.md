@@ -29,6 +29,17 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 反过来同样成立：改动让最近那份 readme 不再成立时，同一次提交里把 readme 一
 起改。它描述的是当前状态，不是历史。
 
+# CI
+
+`.github/workflows/ci.yml` 在 macOS 上跑四件事：fixture 哈希、`cargo clippy
+-D warnings`、`cargo test --workspace --all-features`，以及重新生成
+`tests/battle` 并要求结果没有差异。最后一条意味着改了转换器就必须在同一次提
+交里重新生成语料。`docs.yml` 另跑 `scripts/check-docs.py`。
+
+`cargo fmt --check` 不在其中：仓库现有代码本来就不符合当前 rustfmt 的输出，
+加上去等于要求先做一次全仓格式化。改动过的文件不应该引入新的格式漂移，用
+`rustfmt --check <file>` 与改动前对比来确认。
+
 # 提交规范
 
 提交信息用英文写，仓库现有日志是英文。
