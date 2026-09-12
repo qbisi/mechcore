@@ -264,6 +264,26 @@ not a decision's. The identity covers what the decisions do to the stock.
 Moves the formation at `index` to `position`. `rotated` defaults to false and
 faces the formation the other way. Free, and writes nothing but the board.
 
+A move is also the only decision that writes `travelling`, and it writes it by
+region rather than by coordinate. The coordinate system has three regions per
+side: the main deployment half and the two flank rectangles. A move that ends
+in the region it started in leaves `travelling` alone, so a formation shuffled
+about inside one flank stays travelling and one shuffled about the main half
+stays settled. A move that changes region is settled by the region it arrives
+in: either flank sets `travelling`, and the main half clears it. The two flanks
+are separate regions, so crossing from one to the other sets `travelling` on a
+formation that had already settled.
+
+The fight then empties the set, which is why `travelling` belongs to the
+deployment that produced it rather than to the position the next round starts
+from. A round's opening state carries no travelling formation, and the flank
+regions open at round 2, so the earliest round in which any formation travels
+is round 2.
+
+A formation this round created travels only if a move takes it to a flank. A
+purchase and a card both put their formation in the main half, so neither
+arrives travelling.
+
 ### `release_commander_skill`
 
 ```yaml

@@ -186,6 +186,65 @@ pub struct Position {
     pub y: i32,
 }
 
+/// The two flank rectangles, in the side's own local frame.
+///
+/// They share their `y` span and differ only in `x`, and each is a deployment
+/// region of its own rather than two halves of one ambush zone. [`Region`] is
+/// what reads them.
+pub(crate) const AMBUSH_LEFT_MIN_X: i64 = -360;
+pub(crate) const AMBUSH_LEFT_MAX_X: i64 = -300;
+pub(crate) const AMBUSH_RIGHT_MIN_X: i64 = 300;
+pub(crate) const AMBUSH_RIGHT_MAX_X: i64 = 360;
+pub(crate) const AMBUSH_MIN_Y: i64 = 10;
+pub(crate) const AMBUSH_MAX_Y: i64 = 310;
+
+/// Which of a side's three deployment regions a position lies in.
+///
+/// The game does not read a coordinate where it decides a flank deployment. It
+/// asks its territory which region holds a position, and the main deployment
+/// half and the two flank rectangles are three separate regions. That is the
+/// distinction [`crate::transition::travelling`] turns on, and it is why the
+/// two flanks are told apart here rather than lumped together as "ambush":
+/// crossing from one flank to the other is a change of region like any other.
+///
+/// The three regions do not cover the plane. A position outside all of them is
+/// refused by [`crate::compile`] before it can reach a plan, so this
+/// classification is defined over positions a layout may state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Region {
+    /// The side's own deployment half, `x=[-300,300], y=[-310,-10]`.
+    Main,
+    /// `x=[-360,-300], y=[10,310]`.
+    LeftFlank,
+    /// `x=[300,360], y=[10,310]`.
+    RightFlank,
+}
+
+impl Region {
+    /// Which region holds a position.
+    #[must_use]
+    pub fn of(position: Position) -> Self {
+        if i64::from(position.y) < AMBUSH_MIN_Y {
+            Self::Main
+        } else if position.x < 0 {
+            Self::LeftFlank
+        } else {
+            Self::RightFlank
+        }
+    }
+
+    /// Whether this region is one of the two flanks.
+    ///
+    /// Arriving in one is what puts a formation in the travelling set; the
+    /// main half is where a formation is when it is not. The game reaches the
+    /// same answer by asking whether the region is the side's own main one,
+    /// and the two agree because a side's territory holds no other region.
+    #[must_use]
+    pub fn is_flank(self) -> bool {
+        !matches!(self, Self::Main)
+    }
+}
+
 impl Layout {
     /// Rewrites a layout into the one document that denotes its state.
     ///

@@ -11,8 +11,9 @@
 //! an officer list and an equipment inventory are not.
 
 use crate::battle::{Action, Battle, EquipmentItem, SideState, SkillTarget};
-use std::collections::BTreeMap;
 use crate::economy::{CardKind, Economy, OpeningKind};
+use crate::layout::Region;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 /// The part of a side's next position that its own decisions settle.
@@ -168,6 +169,69 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
         equipment,
         equipment_shortfall,
     }
+}
+
+/// Which of a side's formations are travelling when its deployment ends.
+///
+/// Travelling is native membership of a set the game keeps per match rather
+/// than a field on a formation, and two rules settle it.
+///
+/// **A move settles membership only when it changes region.** The game reads
+/// the region holding the formation's current position and the region holding
+/// the move's target, and leaves the set alone when the two are the same. So
+/// shuffling a formation about inside one flank keeps it travelling, and
+/// shuffling one about inside the main half keeps it settled. When the two
+/// differ, the region arrived in decides: a flank puts the formation in the
+/// set, and the main half takes it out. Crossing directly from one flank to
+/// the other is a change of region like any other, and the corpus has one such
+/// move that puts a settled formation back in the set.
+///
+/// **The fight empties the set.** It is not carried into the next round, which
+/// is why this is the deployment's own state rather than something [`apply`]
+/// produces: every field there is one a fight cannot touch, and this is one it
+/// clears outright. A round's opening state therefore lists no travelling
+/// formation, and the set this returns is built by the round's own moves.
+///
+/// An index no formation in the state holds is one this round created, by a
+/// purchase or by what a card or an officer handed out. Those all arrive in the
+/// main half, so the formation starts settled and only a later move can change
+/// that.
+///
+/// The rules are `TerritoryManager.RefreshSuperDeploymentStatus` and
+/// `SuperDeploymentSystem.OnFightEnd` in build 2259; `docs/spec/document/action.md`
+/// states them beside the action that applies them.
+#[must_use]
+pub fn travelling(state: &SideState, actions: &[Action]) -> Vec<i32> {
+    let mut region: BTreeMap<i32, Region> = state
+        .formations
+        .iter()
+        .map(|entry| (entry.formation.index, Region::of(entry.formation.position)))
+        .collect();
+    let mut set: BTreeSet<i32> = state
+        .formations
+        .iter()
+        .filter(|entry| entry.formation.travelling == Some(true))
+        .map(|entry| entry.formation.index)
+        .collect();
+    for action in actions {
+        let Action::MoveUnit {
+            index, position, ..
+        } = action
+        else {
+            continue;
+        };
+        let arrived = Region::of(*position);
+        let left = region.insert(*index, arrived).unwrap_or(Region::Main);
+        if left == arrived {
+            continue;
+        }
+        if arrived.is_flank() {
+            set.insert(*index);
+        } else {
+            set.remove(index);
+        }
+    }
+    set.into_iter().collect()
 }
 
 /// What a side owns and no formation wears, after the round's decisions.
@@ -474,10 +538,34 @@ fn officer_deliveries(economy: &Economy, state: &SideState, granted: &mut Grante
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{apply, check};
-    use crate::battle::{Action, SideState};
+    use super::{apply, check, travelling};
+    use crate::battle::{Action, SideState, StateFormation};
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
+    use crate::layout::{Formation, Position};
+
+    /// A side holding the given formations and nothing else.
+    fn side_holding(placed: &[(i32, Position)]) -> SideState {
+        SideState {
+            formations: placed
+                .iter()
+                .map(|(index, position)| StateFormation {
+                    formation: Formation {
+                        type_name: "marksman".into(),
+                        index: *index,
+                        position: *position,
+                        level: None,
+                        exp: None,
+                        rotated: None,
+                        equipment: None,
+                        travelling: None,
+                    },
+                    value: None,
+                })
+                .collect(),
+            ..SideState::default()
+        }
+    }
 
     /// A repeatable officer card stacks rather than replacing itself.
     ///
@@ -780,6 +868,161 @@ mod tests {
             5
         );
         assert_eq!(apply(&economy, 5, &state, &[]).next_contraption_index, 3);
+    }
+
+    /// A move into a flank is what puts a formation in the travelling set.
+    ///
+    /// The formation starts in the main half, so the move changes region and
+    /// the region it arrives in decides.
+    #[test]
+    fn arriving_on_a_flank_starts_travelling() {
+        let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        let moved = [Action::MoveUnit {
+            index: 0,
+            position: Position { x: 310, y: 20 },
+            rotated: false,
+        }];
+        assert_eq!(travelling(&state, &moved), vec![0]);
+        assert!(travelling(&state, &[]).is_empty());
+    }
+
+    /// Shuffling a formation about inside one region leaves the set alone.
+    ///
+    /// Both directions matter. A settled formation moved about the main half
+    /// does not join the set, and a travelling one moved about its own flank
+    /// does not leave it.
+    #[test]
+    fn a_move_inside_one_region_settles_nothing() {
+        let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        let about_the_main_half = [Action::MoveUnit {
+            index: 0,
+            position: Position { x: 200, y: -40 },
+            rotated: false,
+        }];
+        assert!(travelling(&state, &about_the_main_half).is_empty());
+
+        let arrived = [
+            Action::MoveUnit {
+                index: 0,
+                position: Position { x: 310, y: 20 },
+                rotated: false,
+            },
+            Action::MoveUnit {
+                index: 0,
+                position: Position { x: 330, y: 290 },
+                rotated: false,
+            },
+        ];
+        assert_eq!(travelling(&state, &arrived), vec![0]);
+    }
+
+    /// Crossing from one flank to the other is a change of region.
+    ///
+    /// Round 6 of `[oolly]VS[二阶唐Cirno]` is the shape: blue's formation 14
+    /// sits settled on the left flank at `(-330, 85)`, crosses to `(350, 285)`
+    /// on the right one, and travels again. Treating the two flanks as one
+    /// ambush zone would leave it settled, and this is the only crossing in
+    /// the tracked set that starts from a settled formation.
+    #[test]
+    fn crossing_between_flanks_travels_again() {
+        let state = side_holding(&[(0, Position { x: -330, y: 100 })]);
+        let crossed = [Action::MoveUnit {
+            index: 0,
+            position: Position { x: 330, y: 100 },
+            rotated: false,
+        }];
+        assert_eq!(travelling(&state, &crossed), vec![0]);
+    }
+
+    /// Coming back to the main half takes a formation out of the set.
+    #[test]
+    fn returning_to_the_main_half_settles() {
+        let mut state = side_holding(&[(0, Position { x: -330, y: 100 })]);
+        state.formations[0].formation.travelling = Some(true);
+        assert_eq!(travelling(&state, &[]), vec![0]);
+        let returned = [Action::MoveUnit {
+            index: 0,
+            position: Position { x: 0, y: -160 },
+            rotated: false,
+        }];
+        assert!(travelling(&state, &returned).is_empty());
+    }
+
+    /// A formation this round created starts in the main half.
+    ///
+    /// A purchase and a card both put their formation there, and neither names
+    /// a position the state already holds, so the index is unknown until the
+    /// round hands it out. Starting it anywhere else would make its first move
+    /// look like a change of region.
+    #[test]
+    fn a_formation_created_this_round_starts_settled() {
+        let bought = [
+            Action::BuyUnit {
+                unit: 1,
+                position: Position { x: 0, y: -160 },
+            },
+            Action::MoveUnit {
+                index: 0,
+                position: Position { x: 100, y: -60 },
+                rotated: false,
+            },
+        ];
+        assert!(travelling(&SideState::default(), &bought).is_empty());
+    }
+
+    /// What the tracked replays say about the travelling set.
+    ///
+    /// The set is the deployment's own state, so no converted document holds
+    /// it to compare against and these are coverage counts rather than a
+    /// transition test. They say the tracked set exercises every arm: moves
+    /// that start a flank deployment, moves that end one, and rounds that
+    /// leave several formations travelling at once.
+    #[test]
+    fn the_tracked_set_pins_travelling_coverage() {
+        let (mut side_rounds, mut travelled, mut formations) = (0, 0, 0);
+        let mut widest = 0;
+        let mut first_round = i32::MAX;
+        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+            let path = entry.expect("directory entry").path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
+                continue;
+            };
+            for turn in &battle.turns {
+                for (state, actions) in [
+                    (&turn.state.sides.blue, &turn.actions.blue),
+                    (&turn.state.sides.red, &turn.actions.red),
+                ] {
+                    // No converted state carries one, which is the fight
+                    // clearing the set between rounds.
+                    assert!(
+                        state
+                            .formations
+                            .iter()
+                            .all(|entry| entry.formation.travelling != Some(true)),
+                        "{} round {} opens with a travelling formation",
+                        path.file_name().unwrap().to_string_lossy(),
+                        turn.round
+                    );
+                    let indices = travelling(state, actions);
+                    side_rounds += 1;
+                    if !indices.is_empty() {
+                        travelled += 1;
+                        first_round = first_round.min(turn.round);
+                    }
+                    widest = widest.max(indices.len());
+                    formations += indices.len();
+                }
+            }
+        }
+        assert_eq!(
+            (side_rounds, travelled, formations, widest),
+            (750, 100, 146, 5)
+        );
+        // The flank regions open at round 2, so nothing can travel before it.
+        assert_eq!(first_round, 2);
     }
 
     /// Every convertible replay the directory tracks, including the exact two

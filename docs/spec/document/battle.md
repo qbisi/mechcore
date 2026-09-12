@@ -251,8 +251,12 @@ A shield the requested round releases is a `turns` action, not an
 `airdrop_shields` entry, and the two never name the same object: the snapshot is
 taken before the round's own decisions.
 
-`travelling` is the one field with no recorded source. It is left absent rather
-than inferred from the ambush regions.
+`travelling` has no recorded source and needs none. A snapshot opens a round,
+the fight empties the travelling set before the round it opens, and so no state
+a battle holds carries a travelling formation. The field is absent because that
+is its value here, not because the conversion could not find it.
+[`turn.md`](turn.md) says why no turn transition compares it, and
+[`action.md`](action.md) states the rule that writes it.
 
 ## Normal form
 

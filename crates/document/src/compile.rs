@@ -9,10 +9,11 @@ use crate::catalog::{
     resolve_construction_type, resolve_contraption_type, resolve_unit_type,
 };
 use crate::layout::{
-    BattleSkillDefinition, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation,
-    Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK, OIL_TERRAIN_GRID_SIZE,
-    OIL_TERRAIN_POINT_COUNT, Position, Side, StaticPlacement, TOWER_COUNT, Techs, Terrain,
-    TerrainType, require_layout_kind,
+    AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,
+    AMBUSH_RIGHT_MIN_X, BattleSkillDefinition, ContraptionPlacement,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, MAX_TOWER_STRENGTHEN_LEVEL,
+    OIL_TERRAIN_GRID_MASK, OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, Position, Region, Side,
+    StaticPlacement, TOWER_COUNT, Techs, Terrain, TerrainType, require_layout_kind,
 };
 use serde_json::Value;
 #[derive(Debug, PartialEq, Eq)]
@@ -62,12 +63,6 @@ const DEPLOYMENT_MIN_X: i64 = -300;
 const DEPLOYMENT_MAX_X: i64 = 300;
 const DEPLOYMENT_MIN_Y: i64 = -310;
 const DEPLOYMENT_MAX_Y: i64 = -10;
-const AMBUSH_LEFT_MIN_X: i64 = -360;
-const AMBUSH_LEFT_MAX_X: i64 = -300;
-const AMBUSH_RIGHT_MIN_X: i64 = 300;
-const AMBUSH_RIGHT_MAX_X: i64 = 360;
-const AMBUSH_MIN_Y: i64 = 10;
-const AMBUSH_MAX_Y: i64 = 310;
 const SHIELD_RADIUS: i64 = 70;
 const BATTLEFIELD_MIN_X: i64 = -400;
 const BATTLEFIELD_MAX_X: i64 = 400;
@@ -964,7 +959,7 @@ pub(crate) fn placement_footprint(placement: &Placement) -> Option<(i64, i64)> {
 
 fn is_ambush_unit(placement: &Placement) -> bool {
     matches!(placement.native, NativeFormation::Unit(_))
-        && i64::from(placement.position.y) >= AMBUSH_MIN_Y
+        && Region::of(placement.position).is_flank()
 }
 
 fn validate_unit_placement(
@@ -974,7 +969,7 @@ fn validate_unit_placement(
     travelling: bool,
     round: i32,
 ) -> Result<(), String> {
-    let in_ambush = i64::from(position.y) >= AMBUSH_MIN_Y;
+    let in_ambush = Region::of(position).is_flank();
     if travelling && !in_ambush {
         return Err(format!(
             "side {side_name} formation type {type_name:?} at ({}, {}) sets travelling=true outside the ambush zones",
