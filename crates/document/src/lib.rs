@@ -30,6 +30,7 @@ pub mod opening;
 #[cfg(feature = "convert")]
 pub mod oracle;
 pub mod project;
+mod spelling;
 pub mod transition;
 #[cfg(feature = "convert")]
 pub mod record;
@@ -194,12 +195,8 @@ sides:
         );
     }
 
-    /// Every coordinate pair the schema holds is written on one line.
-    ///
-    /// A pair is one value. The writer used to fold only a placement's
-    /// `position`, so the three collections of bare pairs came out three or
-    /// more lines each and a generated document disagreed with the hand-written
-    /// fixtures beside it.
+    /// Every coordinate pair the schema holds is written on one line, and so
+    /// is every list item that carries one.
     #[test]
     fn every_coordinate_pair_is_written_on_one_line() {
         let layout: Layout = serde_json::from_value(json!({
@@ -224,15 +221,18 @@ sides:
         .unwrap();
 
         let yaml = canonical_yaml(layout).unwrap();
-        for pair in [
-            "      position: {x: 0, y: -50}\n",
+        for line in [
+            "    formations:\n    - {type: marksman, index: 0, position: {x: 0, y: -50}}\n",
             "    airdrop_shields:\n    - {x: -200, y: -20}\n",
-            "      control_points:\n      - {x: 100, y: 0}\n      - {x: 120, y: 0}\n",
-            "      positions:\n      - {x: 20, y: -150}\n",
+            "    - {type: oil, control_points: [{x: 100, y: 0}, {x: 120, y: 0}]}\n",
+            "    - {type: lightning_storm, positions: [{x: 20, y: -150}]}\n",
         ] {
-            assert!(yaml.contains(pair), "{pair:?} is not folded: {yaml}");
+            assert!(yaml.contains(line), "{line:?} is not one line: {yaml}");
         }
-        assert!(!yaml.contains("\n      y:"), "a pair was left open: {yaml}");
+        assert!(
+            !yaml.contains(" y:\n") && !yaml.contains("\n      y:"),
+            "a pair was left open: {yaml}"
+        );
         assert_eq!(
             canonical_yaml(parse_yaml(yaml.as_bytes()).unwrap()).unwrap(),
             yaml,

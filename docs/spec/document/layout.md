@@ -59,35 +59,20 @@ sides:
     tower_strengthen_levels: [1, 2]
 
     formations:
-      - type: marksman
-        index: 0
-        position: {x: 0, y: -50}
-        equipment: 13030001
-
-      - type: arclight
-        index: 1
-        position: {x: -310, y: 20}
-        travelling: true
+    - {type: marksman, index: 0, position: {x: 0, y: -50}, equipment: 13030001}
+    - {type: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 
     constructions:
-      - type: defensive_wall
-        index: 0
-        position: {x: 140, y: -105}
+    - {type: defensive_wall, index: 0, position: {x: 140, y: -105}}
 
     contraptions:
-      - type: interceptor
-        index: 0
-        position: {x: 5, y: -95}
+    - {type: interceptor, index: 0, position: {x: 5, y: -95}}
 
     airdrop_shields: []
     terrains: []
 
     battle_skills:
-      - type: mobile_beacon
-        positions:
-          - {x: -100, y: -150}
-          - {x: 0, y: -100}
-          - {x: 100, y: -50}
+    - {type: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
 
   red:
     techs:
@@ -96,9 +81,7 @@ sides:
     energy_tower_skills: []
     tower_strengthen_levels: []
     formations:
-      - type: marksman
-        index: 0
-        position: {x: 0, y: -100}
+    - {type: marksman, index: 0, position: {x: 0, y: -100}}
 
     contraptions: []
     airdrop_shields: []
@@ -145,10 +128,22 @@ it is holding before any of it means anything.
 Every coordinate pair in the schema is one `{x, y}` value rather than two
 sibling fields. `formations`, `constructions` and `contraptions` carry it as
 `position`; `airdrop_shields`, `terrains.control_points` and
-`battle_skills.positions` are lists of the same value. The canonical writer
-folds every one of them onto one line, a list item by item, since spending two
-or three lines on a single value would bury whatever tells two of them apart.
-An [action](action.md)'s `!area` target is written the same way.
+`battle_skills.positions` are lists of the same value.
+
+The canonical writer spells a layout by the three rules a
+[battle](battle.md#normal-form) is spelled by, and none of them names a field:
+
+- a sequence item is written on one line, in flow style;
+- a mapping or sequence whose members are all scalars is written in flow style
+  on its key's line;
+- every other value is written in block style.
+
+So every formation, placement, shield, terrain and released skill is one line,
+every ID list and coordinate pair sits on its key's line, and a side and its
+`techs` stay blocks. One line per item keeps a layout on a screen and makes a
+diff name the item that changed. The spelling is part of the canonical form,
+which is what the [MCFR](../mcfr/mcfr.md) embedded `layout.yaml` is compared
+against; a reader parses either style.
 
 The `mechcore-document` crate is the authoritative implementation of this public
 shape, its static legality rules, and normalized execution plan. MCP uses its

@@ -5,71 +5,28 @@ round: 1
 sides:
   blue:
     techs:
-      officers:
-      - 20005
+      officers: [20005]
     formations:
-    - type: vortex
-      index: 0
-      position: {x: -120, y: -100}
-    - type: vortex
-      index: 1
-      position: {x: -160, y: -100}
-    - type: vortex
-      index: 2
-      position: {x: -250, y: -120}
-    - type: fire_badger
-      index: 3
-      position: {x: -210, y: -125}
-      rotated: true
-    - type: fire_badger
-      index: 4
-      position: {x: 105, y: -120}
-    - type: crawler
-      index: 5
-      position: {x: -140, y: -135}
-      rotated: true
-    - type: crawler
-      index: 6
-      position: {x: 120, y: -185}
-      rotated: true
+    - {type: vortex, index: 0, position: {x: -120, y: -100}}
+    - {type: vortex, index: 1, position: {x: -160, y: -100}}
+    - {type: vortex, index: 2, position: {x: -250, y: -120}}
+    - {type: fire_badger, index: 3, position: {x: -210, y: -125}, rotated: true}
+    - {type: fire_badger, index: 4, position: {x: 105, y: -120}}
+    - {type: crawler, index: 5, position: {x: -140, y: -135}, rotated: true}
+    - {type: crawler, index: 6, position: {x: 120, y: -185}, rotated: true}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: 140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: -140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   red:
     techs:
-      officers:
-      - 10002
+      officers: [10002]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 135, y: -190}
-    - type: crawler
-      index: 1
-      position: {x: 190, y: -135}
-      rotated: true
-    - type: crawler
-      index: 2
-      position: {x: 100, y: -135}
-      rotated: true
-    - type: tarantula
-      index: 3
-      position: {x: 195, y: -95}
-    - type: tarantula
-      index: 4
-      position: {x: 95, y: -95}
-    - type: fang
-      index: 5
-      position: {x: 140, y: -225}
-      rotated: true
-    - type: crawler
-      index: 6
-      position: {x: 260, y: -285}
-      rotated: true
+    - {type: crawler, index: 0, position: {x: 135, y: -190}}
+    - {type: crawler, index: 1, position: {x: 190, y: -135}, rotated: true}
+    - {type: crawler, index: 2, position: {x: 100, y: -135}, rotated: true}
+    - {type: tarantula, index: 3, position: {x: 195, y: -95}}
+    - {type: tarantula, index: 4, position: {x: 95, y: -95}}
+    - {type: fang, index: 5, position: {x: 140, y: -225}, rotated: true}
+    - {type: crawler, index: 6, position: {x: 260, y: -285}, rotated: true}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
