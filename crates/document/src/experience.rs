@@ -3,7 +3,7 @@
 //! `config/unit_experience.yaml` carries the build's table verbatim, and
 //! `docs/rules/unit_experience.md` states the formula it follows and how the
 //! game reads it. A level's bar is full at the experience the game asks of the
-//! next level.
+//! next level, which is the `maximum` in a formation's `exp: current/maximum`.
 
 use serde::Deserialize;
 use std::collections::BTreeMap;

@@ -192,13 +192,13 @@ sides:
     techs:
       officers: [10014]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 376, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 16, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 6, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -285, y: -25}, exp: 90, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 512, value: 200}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 90, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 94, rotated: true, value: 100}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 376/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 16/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 6/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -285, y: -25}, exp: 90/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 512/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 90/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 94/450, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
   red:
@@ -216,13 +216,13 @@ sides:
     techs:
       officers: [20024]
     formations:
-    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 38, value: 100}
-    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 366, value: 100}
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 52, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 330, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 380, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 351, rotated: true, value: 100}
+    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 38/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 366/750, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 52/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 330/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 380/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 351/450, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
@@ -272,17 +272,17 @@ sides:
     techs:
       officers: [10014]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 88, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 28, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -285, y: -25}, exp: 212, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 604, value: 200}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 410, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 215, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 168, value: 200}
-    - {type: rhino, index: 8, position: {x: 145, y: -25}, exp: 92, value: 200}
-    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76, value: 100}
-    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 200, value: 100}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 88/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 28/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -285, y: -25}, exp: 212/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 604/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 410/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 215/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 168/1150, value: 200}
+    - {type: rhino, index: 8, position: {x: 145, y: -25}, exp: 92/1150, value: 200}
+    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76/450, value: 100}
+    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 200/450, value: 100}
   red:
     reactor_core: 5200
     supply: 600
@@ -298,16 +298,16 @@ sides:
     techs:
       officers: [20024]
     formations:
-    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 264, value: 100}
-    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 474, value: 100}
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 231, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 587, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1018, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 430, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 438, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450, value: 100}
+    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 264/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 474/750, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 231/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 587/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1018/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 430/1150, value: 200}
+    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 438/600, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450/450, value: 100}
 ---
 kind: action
 round: 3
@@ -354,19 +354,19 @@ sides:
     techs:
       officers: [10014]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 112, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 49, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -285, y: -25}, exp: 341, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 947, value: 200}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 243, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 568, value: 200}
-    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76, value: 100}
-    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 224, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -90}, exp: 333, value: 200}
-    - {type: wasp, index: 12, position: {x: 275, y: -90}, exp: 73, value: 200}
-    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 72, value: 100}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 112/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 49/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -285, y: -25}, exp: 341/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 947/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 243/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 568/1150, value: 200}
+    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76/450, value: 100}
+    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 224/450, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -90}, exp: 333/900, value: 200}
+    - {type: wasp, index: 12, position: {x: 275, y: -90}, exp: 73/900, value: 200}
+    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 72/450, value: 100}
   red:
     reactor_core: 5200
     supply: 800
@@ -382,19 +382,19 @@ sides:
     techs:
       officers: [10009, 20024]
     formations:
-    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 594, value: 100}
-    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 711, value: 100}
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 569, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 902, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1340, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 903, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450, value: 100}
-    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 205, rotated: true, value: 100}
-    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 301, value: 200}
-    - {type: tarantula, index: 12, position: {x: -195, y: -235}, exp: 192, value: 200}
+    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 594/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 711/750, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 569/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 902/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1340/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 903/1150, value: 200}
+    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600/600, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450/450, value: 100}
+    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 205/450, rotated: true, value: 100}
+    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 301/1500, value: 200}
+    - {type: tarantula, index: 12, position: {x: -195, y: -235}, exp: 192/1500, value: 200}
 ---
 kind: action
 round: 4
@@ -438,19 +438,19 @@ sides:
     techs:
       officers: [10014, 20007]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 335, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 97, rotated: true, value: 100}
-    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 1247, value: 200}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 275, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 846, value: 200}
-    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76, value: 100}
-    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 248, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -90}, exp: 900, value: 200}
-    - {type: wasp, index: 12, position: {x: 275, y: -90}, exp: 900, value: 200}
-    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 129, value: 100}
-    - {type: abyss, index: 14, position: {x: -265, y: -45}, exp: 2012, value: 800}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 335/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 97/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 1247/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 275/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 846/1150, value: 200}
+    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76/450, value: 100}
+    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 248/450, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -90}, exp: 900/900, value: 200}
+    - {type: wasp, index: 12, position: {x: 275, y: -90}, exp: 900/900, value: 200}
+    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 129/450, value: 100}
+    - {type: abyss, index: 14, position: {x: -265, y: -45}, exp: 2012/4800, value: 800}
   red:
     reactor_core: 4513
     supply: 1000
@@ -467,22 +467,22 @@ sides:
     techs:
       officers: [10009, 20024]
     formations:
-    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 643, value: 100}
-    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 750, value: 100}
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 608, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1113, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450, value: 100}
-    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 332, rotated: true, value: 100}
-    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 441, value: 200}
-    - {type: tarantula, index: 12, position: {x: -195, y: -235}, exp: 841, value: 200}
-    - {type: hacker, index: 13, position: {x: 175, y: -115}, exp: 13, value: 200}
-    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 413, value: 200}
-    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 212, rotated: true, value: 100}
+    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 643/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 750/750, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 608/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1113/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150/1150, value: 200}
+    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600/600, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450/450, value: 100}
+    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 332/450, rotated: true, value: 100}
+    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 441/1500, value: 200}
+    - {type: tarantula, index: 12, position: {x: -195, y: -235}, exp: 841/1500, value: 200}
+    - {type: hacker, index: 13, position: {x: 175, y: -115}, exp: 13/560, value: 200}
+    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 413/560, value: 200}
+    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 212/600, rotated: true, value: 100}
 ---
 kind: action
 round: 5
@@ -542,22 +542,22 @@ sides:
       officers: [10014, 20007]
       units: [206, 110291]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 354, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 110, rotated: true, value: 100}
-    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 1300, value: 200}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 376, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 852, value: 200}
-    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76, value: 100}
-    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 280, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -90}, exp: 900, value: 200}
-    - {type: wasp, index: 12, position: {x: 275, y: -90}, exp: 900, value: 200}
-    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 237, value: 100}
-    - {type: abyss, index: 14, position: {x: -265, y: -45}, exp: 4800, value: 800}
-    - {type: crawler, index: 16, position: {x: -310, y: 35}, exp: 31, value: 100}
-    - {type: wasp, index: 17, position: {x: -330, y: 35}, exp: 271, value: 200}
-    - {type: wasp, index: 18, position: {x: -200, y: -35}, exp: 359, rotated: true, value: 200}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 354/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 110/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 1300/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 376/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 315, y: 175}, exp: 852/1150, value: 200}
+    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 76/450, value: 100}
+    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 280/450, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -90}, exp: 900/900, value: 200}
+    - {type: wasp, index: 12, position: {x: 275, y: -90}, exp: 900/900, value: 200}
+    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 237/450, value: 100}
+    - {type: abyss, index: 14, position: {x: -265, y: -45}, exp: 4800/4800, value: 800}
+    - {type: crawler, index: 16, position: {x: -310, y: 35}, exp: 31/450, value: 100}
+    - {type: wasp, index: 17, position: {x: -330, y: 35}, exp: 271/900, value: 200}
+    - {type: wasp, index: 18, position: {x: -200, y: -35}, exp: 359/900, rotated: true, value: 200}
   red:
     reactor_core: 4513
     supply: 1200
@@ -575,27 +575,27 @@ sides:
       officers: [10009, 20024]
       units: [4430]
     formations:
-    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 717, value: 100}
-    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 750, value: 100}
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 639, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1140, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450, value: 100}
-    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 450, rotated: true, value: 100}
-    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 586, value: 200}
-    - {type: tarantula, index: 12, position: {x: -195, y: -235}, exp: 1500, value: 200}
-    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 560, value: 200}
-    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 600, rotated: true, value: 100}
-    - {type: void_eye, index: 16, position: {x: 150, y: -120}, level: 2, exp: 306, value: 100}
-    - {type: void_eye, index: 17, position: {x: 80, y: -110}, level: 2, exp: 224, value: 100}
-    - {type: void_eye, index: 18, position: {x: 240, y: -120}, level: 2, exp: 363, value: 100}
-    - {type: mustang, index: 19, position: {x: 225, y: -170}, exp: 165, value: 200}
-    - {type: mustang, index: 20, position: {x: -45, y: -150}, exp: 716, value: 200}
-    - {type: crawler, index: 21, position: {x: -110, y: -115}, exp: 156, rotated: true, value: 100}
+    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 717/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 160, y: -90}, exp: 750/750, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 639/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1140/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150/1150, value: 200}
+    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600/600, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450/450, value: 100}
+    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 586/1500, value: 200}
+    - {type: tarantula, index: 12, position: {x: -195, y: -235}, exp: 1500/1500, value: 200}
+    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 560/560, value: 200}
+    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 600/600, rotated: true, value: 100}
+    - {type: void_eye, index: 16, position: {x: 150, y: -120}, level: 2, exp: 306/1465, value: 100}
+    - {type: void_eye, index: 17, position: {x: 80, y: -110}, level: 2, exp: 224/1465, value: 100}
+    - {type: void_eye, index: 18, position: {x: 240, y: -120}, level: 2, exp: 363/1465, value: 100}
+    - {type: mustang, index: 19, position: {x: 225, y: -170}, exp: 165/1200, value: 200}
+    - {type: mustang, index: 20, position: {x: -45, y: -150}, exp: 716/1200, value: 200}
+    - {type: crawler, index: 21, position: {x: -110, y: -115}, exp: 156/450, rotated: true, value: 100}
 ---
 kind: action
 round: 6
@@ -660,24 +660,24 @@ sides:
       officers: [10014, 20007]
       units: [206, 10206, 110291]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 372, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 161, rotated: true, value: 100}
-    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 1300, value: 200}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 430, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 88, value: 100}
-    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 308, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -90}, level: 2, exp: 88, value: 200}
-    - {type: wasp, index: 12, position: {x: 275, y: -90}, level: 2, exp: 228, value: 200}
-    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 273, value: 100}
-    - {type: abyss, index: 14, position: {x: -265, y: -45}, level: 2, exp: 2154, value: 800}
-    - {type: crawler, index: 16, position: {x: -310, y: 35}, exp: 175, value: 100}
-    - {type: wasp, index: 17, position: {x: -330, y: 35}, exp: 366, value: 200}
-    - {type: wasp, index: 18, position: {x: -200, y: -35}, exp: 429, rotated: true, value: 200}
-    - {type: crawler, index: 19, position: {x: 125, y: -190}, exp: 72, value: 100}
-    - {type: crawler, index: 20, position: {x: 5, y: -20}, exp: 36, value: 100}
-    - {type: crawler, index: 21, position: {x: -275, y: -110}, exp: 90, value: 100}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 372/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 161/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 4, position: {x: 285, y: -25}, exp: 1300/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 430/450, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 88/450, value: 100}
+    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 308/450, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -90}, level: 2, exp: 88/2028, value: 200}
+    - {type: wasp, index: 12, position: {x: 275, y: -90}, level: 2, exp: 228/2028, value: 200}
+    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 273/450, value: 100}
+    - {type: abyss, index: 14, position: {x: -265, y: -45}, level: 2, exp: 2154/10815, value: 800}
+    - {type: crawler, index: 16, position: {x: -310, y: 35}, exp: 175/450, value: 100}
+    - {type: wasp, index: 17, position: {x: -330, y: 35}, exp: 366/900, value: 200}
+    - {type: wasp, index: 18, position: {x: -200, y: -35}, exp: 429/900, rotated: true, value: 200}
+    - {type: crawler, index: 19, position: {x: 125, y: -190}, exp: 72/450, value: 100}
+    - {type: crawler, index: 20, position: {x: 5, y: -20}, exp: 36/450, value: 100}
+    - {type: crawler, index: 21, position: {x: -275, y: -110}, exp: 90/450, value: 100}
   red:
     reactor_core: 4513
     supply: 1400
@@ -695,29 +695,29 @@ sides:
       officers: [10009, 20024]
       units: [3207, 4430]
     formations:
-    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 750, value: 100}
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 731, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1360, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450, value: 100}
-    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 450, rotated: true, value: 100}
-    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 818, value: 200}
-    - {type: tarantula, index: 12, position: {x: -195, y: -235}, level: 2, exp: 509, value: 200}
-    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 560, value: 200}
-    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 600, rotated: true, value: 100}
-    - {type: void_eye, index: 16, position: {x: 150, y: -120}, level: 2, exp: 991, value: 100}
-    - {type: void_eye, index: 17, position: {x: 80, y: -110}, level: 2, exp: 940, value: 100}
-    - {type: void_eye, index: 18, position: {x: 240, y: -120}, level: 2, exp: 1165, value: 100}
-    - {type: mustang, index: 19, position: {x: 225, y: -170}, exp: 1200, value: 200}
-    - {type: mustang, index: 20, position: {x: -45, y: -150}, exp: 1200, value: 200}
-    - {type: crawler, index: 21, position: {x: -110, y: -115}, exp: 313, rotated: true, value: 100}
-    - {type: mustang, index: 22, position: {x: 75, y: -130}, exp: 1187, value: 200}
-    - {type: mustang, index: 23, position: {x: 155, y: -140}, exp: 492, value: 200}
-    - {type: crawler, index: 24, position: {x: -5, y: -20}, exp: 287, value: 100}
+    - {type: vortex, index: 0, position: {x: 50, y: -90}, exp: 750/750, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 731/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1360/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150/1150, value: 200}
+    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600/600, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450/450, value: 100}
+    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 818/1500, value: 200}
+    - {type: tarantula, index: 12, position: {x: -195, y: -235}, level: 2, exp: 509/3380, value: 200}
+    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 560/560, value: 200}
+    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 600/600, rotated: true, value: 100}
+    - {type: void_eye, index: 16, position: {x: 150, y: -120}, level: 2, exp: 991/1465, value: 100}
+    - {type: void_eye, index: 17, position: {x: 80, y: -110}, level: 2, exp: 940/1465, value: 100}
+    - {type: void_eye, index: 18, position: {x: 240, y: -120}, level: 2, exp: 1165/1465, value: 100}
+    - {type: mustang, index: 19, position: {x: 225, y: -170}, exp: 1200/1200, value: 200}
+    - {type: mustang, index: 20, position: {x: -45, y: -150}, exp: 1200/1200, value: 200}
+    - {type: crawler, index: 21, position: {x: -110, y: -115}, exp: 313/450, rotated: true, value: 100}
+    - {type: mustang, index: 22, position: {x: 75, y: -130}, exp: 1187/1200, value: 200}
+    - {type: mustang, index: 23, position: {x: 155, y: -140}, exp: 492/1200, value: 200}
+    - {type: crawler, index: 24, position: {x: -5, y: -20}, exp: 287/450, value: 100}
 ---
 kind: action
 round: 7
@@ -788,25 +788,25 @@ sides:
       officers: [10014, 20007]
       units: [206, 3005, 10206, 110291]
     formations:
-    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 450, value: 100}
-    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 450, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -90}, level: 2, exp: 1645, value: 200}
-    - {type: wasp, index: 12, position: {x: 275, y: -90}, level: 2, exp: 337, value: 200}
-    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 450, value: 100}
-    - {type: abyss, index: 14, position: {x: -265, y: -45}, level: 2, exp: 6869, value: 800}
-    - {type: crawler, index: 16, position: {x: -310, y: 35}, exp: 450, value: 100}
-    - {type: wasp, index: 17, position: {x: -330, y: 35}, exp: 900, value: 200}
-    - {type: wasp, index: 18, position: {x: -200, y: -35}, exp: 900, rotated: true, value: 200}
-    - {type: crawler, index: 19, position: {x: 125, y: -190}, exp: 161, value: 100}
-    - {type: crawler, index: 20, position: {x: 5, y: -20}, exp: 92, value: 100}
-    - {type: crawler, index: 21, position: {x: -275, y: -110}, exp: 450, value: 100}
-    - {type: rhino, index: 22, position: {x: -175, y: -25}, level: 4, exp: 1598, value: 200}
-    - {type: rhino, index: 23, position: {x: -315, y: 165}, level: 2, exp: 118, value: 200}
+    - {type: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -220, y: -35}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 5, position: {x: 5, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 6, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 310, y: 285}, exp: 450/450, value: 100}
+    - {type: crawler, index: 10, position: {x: -310, y: 285}, exp: 450/450, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -90}, level: 2, exp: 1645/2028, value: 200}
+    - {type: wasp, index: 12, position: {x: 275, y: -90}, level: 2, exp: 337/2028, value: 200}
+    - {type: crawler, index: 13, position: {x: -125, y: -190}, exp: 450/450, value: 100}
+    - {type: abyss, index: 14, position: {x: -265, y: -45}, level: 2, exp: 6869/10815, value: 800}
+    - {type: crawler, index: 16, position: {x: -310, y: 35}, exp: 450/450, value: 100}
+    - {type: wasp, index: 17, position: {x: -330, y: 35}, exp: 900/900, value: 200}
+    - {type: wasp, index: 18, position: {x: -200, y: -35}, exp: 900/900, rotated: true, value: 200}
+    - {type: crawler, index: 19, position: {x: 125, y: -190}, exp: 161/450, value: 100}
+    - {type: crawler, index: 20, position: {x: 5, y: -20}, exp: 92/450, value: 100}
+    - {type: crawler, index: 21, position: {x: -275, y: -110}, exp: 450/450, value: 100}
+    - {type: rhino, index: 22, position: {x: -175, y: -25}, level: 4, exp: 1598/5164, value: 200}
+    - {type: rhino, index: 23, position: {x: -315, y: 165}, level: 2, exp: 118/2591, value: 200}
   red:
     reactor_core: 3928
     supply: 1300
@@ -825,31 +825,31 @@ sides:
       officers: [10009, 20024]
       units: [3207, 3307, 4430]
     formations:
-    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 744, value: 100}
-    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1417, value: 200}
-    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500, value: 200}
-    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450, rotated: true, value: 100}
-    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600, rotated: true, value: 100}
-    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450, value: 100}
-    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 450, rotated: true, value: 100}
-    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 1500, value: 200}
-    - {type: tarantula, index: 12, position: {x: -195, y: -235}, level: 2, exp: 2229, value: 200}
-    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 560, value: 200}
-    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 600, rotated: true, value: 100}
-    - {type: void_eye, index: 16, position: {x: 150, y: -120}, level: 2, exp: 1016, value: 100}
-    - {type: void_eye, index: 17, position: {x: 80, y: -110}, level: 2, exp: 1074, value: 100}
-    - {type: void_eye, index: 18, position: {x: 240, y: -120}, level: 2, exp: 1304, value: 100}
-    - {type: mustang, index: 19, position: {x: 225, y: -170}, level: 3, exp: 282, value: 200}
-    - {type: mustang, index: 20, position: {x: -45, y: -150}, level: 2, exp: 2277, value: 200}
-    - {type: crawler, index: 21, position: {x: -110, y: -115}, exp: 432, rotated: true, value: 100}
-    - {type: mustang, index: 22, position: {x: 75, y: -130}, exp: 1200, value: 200}
-    - {type: mustang, index: 23, position: {x: 155, y: -140}, exp: 661, value: 200}
-    - {type: crawler, index: 24, position: {x: -5, y: -20}, exp: 432, value: 100}
-    - {type: mustang, index: 25, position: {x: 15, y: -140}, exp: 925, value: 200}
-    - {type: mustang, index: 26, position: {x: 275, y: -150}, exp: 225, value: 200}
-    - {type: crawler, index: 27, position: {x: 290, y: -115}, exp: 148, rotated: true, value: 100}
+    - {type: vortex, index: 2, position: {x: 120, y: -90}, exp: 744/750, value: 100}
+    - {type: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1417/1500, value: 200}
+    - {type: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500/1500, value: 200}
+    - {type: crawler, index: 5, position: {x: 200, y: -115}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 0, y: -65}, exp: 450/450, rotated: true, value: 100}
+    - {type: rhino, index: 7, position: {x: 15, y: -105}, exp: 1150/1150, value: 200}
+    - {type: fang, index: 8, position: {x: 140, y: -45}, exp: 600/600, rotated: true, value: 100}
+    - {type: crawler, index: 9, position: {x: 275, y: -20}, exp: 450/450, value: 100}
+    - {type: crawler, index: 10, position: {x: 290, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {type: tarantula, index: 11, position: {x: 265, y: -195}, exp: 1500/1500, value: 200}
+    - {type: tarantula, index: 12, position: {x: -195, y: -235}, level: 2, exp: 2229/3380, value: 200}
+    - {type: hacker, index: 14, position: {x: -165, y: -205}, exp: 560/560, value: 200}
+    - {type: fang, index: 15, position: {x: -120, y: -185}, exp: 600/600, rotated: true, value: 100}
+    - {type: void_eye, index: 16, position: {x: 150, y: -120}, level: 2, exp: 1016/1465, value: 100}
+    - {type: void_eye, index: 17, position: {x: 80, y: -110}, level: 2, exp: 1074/1465, value: 100}
+    - {type: void_eye, index: 18, position: {x: 240, y: -120}, level: 2, exp: 1304/1465, value: 100}
+    - {type: mustang, index: 19, position: {x: 225, y: -170}, level: 3, exp: 282/4274, value: 200}
+    - {type: mustang, index: 20, position: {x: -45, y: -150}, level: 2, exp: 2277/2704, value: 200}
+    - {type: crawler, index: 21, position: {x: -110, y: -115}, exp: 432/450, rotated: true, value: 100}
+    - {type: mustang, index: 22, position: {x: 75, y: -130}, exp: 1200/1200, value: 200}
+    - {type: mustang, index: 23, position: {x: 155, y: -140}, exp: 661/1200, value: 200}
+    - {type: crawler, index: 24, position: {x: -5, y: -20}, exp: 432/450, value: 100}
+    - {type: mustang, index: 25, position: {x: 15, y: -140}, exp: 925/1200, value: 200}
+    - {type: mustang, index: 26, position: {x: 275, y: -150}, exp: 225/1200, value: 200}
+    - {type: crawler, index: 27, position: {x: 290, y: -115}, exp: 148/450, rotated: true, value: 100}
     contraptions:
     - {type: shield, index: 8, position: {x: -96, y: -160}}
 ---

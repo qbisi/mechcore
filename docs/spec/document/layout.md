@@ -500,10 +500,7 @@ installed nor dropped from a capture of the side that holds it.
 semantic `type` instead of exposing its native numeric ID:
 
 ```yaml
-- type: marksman
-  index: 0
-  position: {x: 0, y: -50}
-  exp: 12
+- {type: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
 ```
 
 - `type` is the lower `snake_case` form of the unit's English in-game name. It
@@ -513,8 +510,14 @@ semantic `type` instead of exposing its native numeric ID:
   integers, and the pair is one field because it is one value.
 - `index` is the required stable, non-negative native unit index. Indices must
   be strictly increasing in formation declaration order and may contain gaps.
-- `exp` is the unit formation's non-negative integer experience within its
-  current level. The default is `0` and canonical YAML omits that default.
+- `exp` is the unit formation's experience within its current level, written
+  `current/maximum` as in `124/450`. `current` is a non-negative integer and
+  `maximum` is the level's full bar, which the
+  [unit experience index](../../rules/unit_experience.md) gives per unit and
+  level from 1 through 9. The maximum is there to be read rather than to carry
+  information: a document stating another one is refused. The bar is full when
+  `current` reaches `maximum`. An absent `exp` holds nothing, and canonical YAML
+  omits one whose `current` is `0`.
 
 A unit index is an identity, not a position in this array. It is allocated once
 when the unit is bought and survives every later round the unit lives through,
@@ -528,8 +531,8 @@ requiring them makes array order redundant: the index determines it.
 The Adapter creates formations in declaration/index order, assigning each
 requested index directly through `MAD_AddUnit.UIDX`. Missing indices remain
 absent; no placeholder formation is created or removed. It writes experience through the
-formation's native `MechTeam.SetExpInt` and verifies both index lookup and
-`GetExpInt` readback before combat. Replay capture always exports native
+formation's native `MechTeam.SetExpInt` from `exp`'s `current`, and
+verifies both index lookup and `GetExpInt` readback before combat. Replay capture always exports native
 `index`; it exports non-zero `exp` after canonical default elision.
 
 The layout compiler resolves every unit, construction, and interceptor

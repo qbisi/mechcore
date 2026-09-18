@@ -185,12 +185,12 @@ sides:
     techs:
       officers: [20024]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 119, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 195, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 157, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 187, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 43, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, exp: 667, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 119/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 195/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 157/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 187/1200, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 43/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, exp: 667/1300, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -209,12 +209,12 @@ sides:
     techs:
       officers: [20032]
     formations:
-    - {type: crawler, index: 0, position: {x: 290, y: -105}, exp: 34, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, exp: 227, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 401, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, exp: 513, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 246, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 719, value: 100}
+    - {type: crawler, index: 0, position: {x: 290, y: -105}, exp: 34/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, exp: 227/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 401/450, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, exp: 513/1200, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 246/1690, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 719/1690, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -253,13 +253,13 @@ sides:
       officers: [20024]
       units: [10221]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 237, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 351, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 272, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 336, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 97, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, exp: 1201, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 237/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 351/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 272/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 336/1200, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 97/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, exp: 1201/1300, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -279,14 +279,14 @@ sides:
       officers: [20032]
       units: [230]
     formations:
-    - {type: crawler, index: 0, position: {x: 290, y: -105}, exp: 158, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, exp: 969, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 465, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 943, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 154, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 144, value: 100}
+    - {type: crawler, index: 0, position: {x: 290, y: -105}, exp: 158/450, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, exp: 969/1200, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 465/1690, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 943/1690, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 154/1465, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 144/1465, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -331,14 +331,14 @@ sides:
       officers: [20024]
       units: [10221, 11024]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 483, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 372, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 451, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 523, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, exp: 1300, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, exp: 1192, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 483/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 372/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 451/1200, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 523/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, exp: 1300/1300, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, exp: 1192/1300, value: 200}
     - {type: tarantula, index: 8, position: {x: -175, y: -175}, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -361,15 +361,15 @@ sides:
       officers: [20032]
       units: [230, 3207]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 357, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 143, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, exp: 1200, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 618, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 1596, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 936, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 269, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 491, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 345, value: 100}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 357/1014, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 143/1014, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, exp: 1200/1200, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 618/1690, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 1596/1690, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 936/1465, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 269/1465, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 491/1465, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 345/1465, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -418,17 +418,17 @@ sides:
       officers: [20024]
       units: [10221, 10228, 11024]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 390, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 457, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 727, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 2, exp: 1144, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, exp: 1300, equipment: 13020001, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 390/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 457/1200, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 727/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 2, exp: 1144/2929, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, exp: 1300/1300, equipment: 13020001, value: 200}
     - {type: tarantula, index: 8, position: {x: -175, y: -175}, value: 200}
-    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 106, value: 100}
-    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 382, value: 100}
+    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 106/750, value: 100}
+    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 382/750, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -451,17 +451,17 @@ sides:
       officers: [20032]
       units: [230, 3207, 10215]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 363, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 579, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 2, exp: 1277, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 1125, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 1690, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 1461, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 734, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 906, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 970, value: 100}
-    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 91, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 36, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 363/1014, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 579/1014, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 2, exp: 1277/2704, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 1125/1690, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 2, exp: 1690/1690, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 1461/1465, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 734/1465, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 906/1465, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 970/1465, value: 100}
+    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 91/1690, value: 100}
+    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 36/1014, rotated: true, value: 100}
     constructions:
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ---
@@ -512,21 +512,21 @@ sides:
       officers: [20024]
       units: [10221, 10228, 11024, 180110]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 423, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 540, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 936, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 2, exp: 2929, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, exp: 1300, equipment: 13020001, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 423/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 540/1200, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 936/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 2, exp: 2929/2929, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, exp: 1300/1300, equipment: 13020001, value: 200}
     - {type: tarantula, index: 8, position: {x: -175, y: -175}, value: 200}
-    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 324, value: 100}
-    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 307, value: 200}
-    - {type: crawler, index: 12, position: {x: -225, y: -300}, exp: 202, value: 100}
-    - {type: crawler, index: 13, position: {x: -105, y: -300}, exp: 93, value: 100}
-    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, exp: 1002, value: 200}
+    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 324/750, value: 100}
+    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750/750, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 307/3206, value: 200}
+    - {type: crawler, index: 12, position: {x: -225, y: -300}, exp: 202/450, value: 100}
+    - {type: crawler, index: 13, position: {x: -105, y: -300}, exp: 93/450, value: 100}
+    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, exp: 1002/1300, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -549,19 +549,19 @@ sides:
       officers: [20032]
       units: [230, 3207, 10215, 180110]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 585, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 947, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 2, exp: 2704, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 1690, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 353, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 1465, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1180, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 1420, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 1190, value: 100}
-    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 929, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 266, rotated: true, value: 100}
-    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 1347, rotated: true, value: 200}
-    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 312, rotated: true, value: 200}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 585/1014, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 947/1014, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 2, exp: 2704/2704, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 2, exp: 1690/1690, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 353/2671, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 2, exp: 1465/1465, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1180/1465, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 1420/1465, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 1190/1465, value: 100}
+    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 929/1690, value: 100}
+    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 266/1014, rotated: true, value: 100}
+    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 1347/3206, rotated: true, value: 200}
+    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 312/2253, rotated: true, value: 200}
     constructions:
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ---
@@ -613,24 +613,24 @@ sides:
       officers: [20024]
       units: [10221, 10228, 11024, 180110]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 650, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 1200, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 3, exp: 2956, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 812, equipment: 13020001, value: 200}
-    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 50, value: 200}
-    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750, value: 100}
-    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 2416, value: 200}
-    - {type: crawler, index: 12, position: {x: -225, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 13, position: {x: -105, y: -300}, exp: 450, value: 100}
-    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, exp: 1300, value: 200}
-    - {type: crawler, index: 15, position: {x: -45, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 16, position: {x: -165, y: -300}, exp: 450, value: 100}
-    - {type: crawler, index: 17, position: {x: 15, y: -300}, exp: 450, value: 100}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 650/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, exp: 1200/1200, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 3, exp: 2956/4630, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 812/2929, equipment: 13020001, value: 200}
+    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 50/1500, value: 200}
+    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750/750, value: 100}
+    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750/750, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 2416/3206, value: 200}
+    - {type: crawler, index: 12, position: {x: -225, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 13, position: {x: -105, y: -300}, exp: 450/450, value: 100}
+    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, exp: 1300/1300, value: 200}
+    - {type: crawler, index: 15, position: {x: -45, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 16, position: {x: -165, y: -300}, exp: 450/450, value: 100}
+    - {type: crawler, index: 17, position: {x: 15, y: -300}, exp: 450/450, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -655,20 +655,20 @@ sides:
       officers: [20023, 20032]
       units: [206, 230, 3207, 10215, 10710, 180110]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 585, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 1014, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 10, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 527, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 802, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 275, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1284, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 1465, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 1465, value: 100}
-    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 929, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 318, rotated: true, value: 100}
-    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 1466, rotated: true, value: 200}
-    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 361, rotated: true, value: 200}
-    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 2, exp: 630, value: 50}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 585/1014, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 10/4274, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 527/2671, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 802/2671, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 275/2315, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1284/1465, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 2, exp: 1465/1465, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 2, exp: 1465/1465, value: 100}
+    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 929/1690, value: 100}
+    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 318/1014, rotated: true, value: 100}
+    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 1466/3206, rotated: true, value: 200}
+    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 361/2253, rotated: true, value: 200}
+    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 2, exp: 630/1014, value: 50}
     constructions:
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ---
@@ -727,27 +727,27 @@ sides:
       officers: [20024]
       units: [10221, 10228, 10321, 11024, 180110]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 650, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, level: 2, exp: 74, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 3, exp: 4630, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 1114, equipment: 13020001, value: 200}
-    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 50, value: 200}
-    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750, value: 100}
-    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 3197, value: 200}
-    - {type: crawler, index: 12, position: {x: -225, y: -300}, level: 2, exp: 331, value: 100}
-    - {type: crawler, index: 13, position: {x: -105, y: -300}, exp: 450, value: 100}
-    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, level: 2, exp: 1208, equipment: 13030003, value: 200}
-    - {type: crawler, index: 15, position: {x: -45, y: -300}, level: 2, exp: 145, value: 100}
-    - {type: crawler, index: 16, position: {x: -165, y: -300}, level: 2, exp: 267, value: 100}
-    - {type: crawler, index: 17, position: {x: 15, y: -300}, exp: 450, value: 100}
-    - {type: sabertooth, index: 18, position: {x: -285, y: -175}, exp: 1300, value: 200}
-    - {type: crawler, index: 19, position: {x: -105, y: -280}, exp: 41, value: 100}
-    - {type: crawler, index: 20, position: {x: 15, y: -280}, exp: 69, value: 100}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, exp: 650/650, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, level: 2, exp: 74/2704, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 3, exp: 4630/4630, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 1114/2929, equipment: 13020001, value: 200}
+    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 50/1500, value: 200}
+    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750/750, value: 100}
+    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750/750, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 3197/3206, value: 200}
+    - {type: crawler, index: 12, position: {x: -225, y: -300}, level: 2, exp: 331/1014, value: 100}
+    - {type: crawler, index: 13, position: {x: -105, y: -300}, exp: 450/450, value: 100}
+    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, level: 2, exp: 1208/2929, equipment: 13030003, value: 200}
+    - {type: crawler, index: 15, position: {x: -45, y: -300}, level: 2, exp: 145/1014, value: 100}
+    - {type: crawler, index: 16, position: {x: -165, y: -300}, level: 2, exp: 267/1014, value: 100}
+    - {type: crawler, index: 17, position: {x: 15, y: -300}, exp: 450/450, value: 100}
+    - {type: sabertooth, index: 18, position: {x: -285, y: -175}, exp: 1300/1300, value: 200}
+    - {type: crawler, index: 19, position: {x: -105, y: -280}, exp: 41/450, value: 100}
+    - {type: crawler, index: 20, position: {x: 15, y: -280}, exp: 69/450, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -770,23 +770,23 @@ sides:
       officers: [10003, 20023, 20032]
       units: [206, 230, 3207, 10215, 10710, 180110]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 890, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 609, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 2946, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 1518, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 1609, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 1219, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1324, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 3, exp: 683, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 3, exp: 364, value: 100}
-    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 1417, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 645, rotated: true, value: 100}
-    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 3136, rotated: true, value: 200}
-    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 528, rotated: true, value: 200}
-    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 2, exp: 1014, value: 50}
-    - {type: steel_ball, index: 17, position: {x: -310, y: 265}, level: 3, exp: 361, value: 150}
-    - {type: steel_ball, index: 18, position: {x: -310, y: 215}, level: 3, exp: 1410, value: 150}
-    - {type: crawler, index: 19, position: {x: -335, y: 300}, level: 3, exp: 213, rotated: true, value: 50}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 890/1014, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 609/1603, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 2946/4274, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 1518/2671, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 1609/2671, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 1219/2315, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1324/1465, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 3, exp: 683/2315, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 3, exp: 364/2315, value: 100}
+    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 1417/1690, value: 100}
+    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 645/1014, rotated: true, value: 100}
+    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 3136/3206, rotated: true, value: 200}
+    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 528/2253, rotated: true, value: 200}
+    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 2, exp: 1014/1014, value: 50}
+    - {type: steel_ball, index: 17, position: {x: -310, y: 265}, level: 3, exp: 361/3562, value: 150}
+    - {type: steel_ball, index: 18, position: {x: -310, y: 215}, level: 3, exp: 1410/3562, value: 150}
+    - {type: crawler, index: 19, position: {x: -335, y: 300}, level: 3, exp: 213/1603, rotated: true, value: 50}
     constructions:
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ---
@@ -847,30 +847,30 @@ sides:
       officers: [20024]
       units: [10221, 10228, 10321, 10510, 11024, 180110]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, level: 2, exp: 363, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, level: 2, exp: 445, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, level: 2, exp: 725, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 4, exp: 2787, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 1717, equipment: 13020001, value: 200}
-    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 93, value: 200}
-    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750, value: 100}
-    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 3206, value: 200}
-    - {type: crawler, index: 12, position: {x: -225, y: -300}, level: 2, exp: 843, value: 100}
-    - {type: crawler, index: 13, position: {x: -105, y: -300}, level: 2, exp: 262, value: 100}
-    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, level: 2, exp: 2929, equipment: 13030003, value: 200}
-    - {type: crawler, index: 15, position: {x: -45, y: -300}, level: 2, exp: 616, value: 100}
-    - {type: crawler, index: 16, position: {x: -165, y: -300}, level: 2, exp: 522, value: 100}
-    - {type: crawler, index: 17, position: {x: 15, y: -300}, level: 2, exp: 292, value: 100}
-    - {type: sabertooth, index: 18, position: {x: -285, y: -175}, level: 2, exp: 1913, value: 200}
-    - {type: crawler, index: 19, position: {x: -105, y: -280}, exp: 155, value: 100}
-    - {type: crawler, index: 20, position: {x: 15, y: -280}, exp: 450, value: 100}
-    - {type: crawler, index: 21, position: {x: 140, y: -255}, exp: 235, rotated: true, value: 100}
-    - {type: crawler, index: 22, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
-    - {type: sabertooth, index: 23, position: {x: 115, y: -235}, exp: 1300, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, level: 2, exp: 363/1465, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, level: 2, exp: 445/1465, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, level: 2, exp: 725/2704, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 4, exp: 2787/5837, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 1717/2929, equipment: 13020001, value: 200}
+    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 93/1500, value: 200}
+    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750/750, value: 100}
+    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750/750, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 3206/3206, value: 200}
+    - {type: crawler, index: 12, position: {x: -225, y: -300}, level: 2, exp: 843/1014, value: 100}
+    - {type: crawler, index: 13, position: {x: -105, y: -300}, level: 2, exp: 262/1014, value: 100}
+    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, level: 2, exp: 2929/2929, equipment: 13030003, value: 200}
+    - {type: crawler, index: 15, position: {x: -45, y: -300}, level: 2, exp: 616/1014, value: 100}
+    - {type: crawler, index: 16, position: {x: -165, y: -300}, level: 2, exp: 522/1014, value: 100}
+    - {type: crawler, index: 17, position: {x: 15, y: -300}, level: 2, exp: 292/1014, value: 100}
+    - {type: sabertooth, index: 18, position: {x: -285, y: -175}, level: 2, exp: 1913/2929, value: 200}
+    - {type: crawler, index: 19, position: {x: -105, y: -280}, exp: 155/450, value: 100}
+    - {type: crawler, index: 20, position: {x: 15, y: -280}, exp: 450/450, value: 100}
+    - {type: crawler, index: 21, position: {x: 140, y: -255}, exp: 235/450, rotated: true, value: 100}
+    - {type: crawler, index: 22, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 23, position: {x: 115, y: -235}, exp: 1300/1300, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -894,25 +894,25 @@ sides:
       officers: [10003, 10003, 20023, 20032]
       units: [206, 230, 1308, 3207, 10215, 10710, 180110]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 1014, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 1523, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 4274, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 2224, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 2262, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 1698, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1465, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 3, exp: 1347, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 3, exp: 830, value: 100}
-    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 1690, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 994, rotated: true, value: 100}
-    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 3206, rotated: true, value: 200}
-    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 614, rotated: true, value: 200}
-    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 3, exp: 1404, value: 50}
-    - {type: steel_ball, index: 17, position: {x: -310, y: 265}, level: 3, exp: 598, value: 150}
-    - {type: steel_ball, index: 18, position: {x: -310, y: 215}, level: 3, exp: 1562, value: 150}
-    - {type: crawler, index: 19, position: {x: -335, y: 300}, level: 3, exp: 424, rotated: true, value: 50}
-    - {type: wasp, index: 20, position: {x: -330, y: 265}, level: 2, exp: 801, value: 150}
-    - {type: overlord, index: 21, position: {x: 95, y: -75}, level: 2, exp: 3943, equipment: 13020001, value: 500}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 1523/1603, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 4274/4274, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 2224/2671, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 2262/2671, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 1698/2315, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 2, exp: 1465/1465, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 3, exp: 1347/2315, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 3, exp: 830/2315, value: 100}
+    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 2, exp: 1690/1690, value: 100}
+    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 994/1014, rotated: true, value: 100}
+    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 3, exp: 3206/3206, rotated: true, value: 200}
+    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 614/2253, rotated: true, value: 200}
+    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 3, exp: 1404/1603, value: 50}
+    - {type: steel_ball, index: 17, position: {x: -310, y: 265}, level: 3, exp: 598/3562, value: 150}
+    - {type: steel_ball, index: 18, position: {x: -310, y: 215}, level: 3, exp: 1562/3562, value: 150}
+    - {type: crawler, index: 19, position: {x: -335, y: 300}, level: 3, exp: 424/1603, rotated: true, value: 50}
+    - {type: wasp, index: 20, position: {x: -330, y: 265}, level: 2, exp: 801/2028, value: 150}
+    - {type: overlord, index: 21, position: {x: 95, y: -75}, level: 2, exp: 3943/3943, equipment: 13020001, value: 500}
     constructions:
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ---
@@ -980,35 +980,35 @@ sides:
       officers: [20024]
       units: [1812, 10221, 10222, 10228, 10321, 10510, 11024, 180110]
     formations:
-    - {type: void_eye, index: 0, position: {x: 60, y: -220}, level: 2, exp: 995, value: 100}
-    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -220}, level: 2, exp: 487, value: 100}
-    - {type: mustang, index: 3, position: {x: -105, y: -260}, level: 2, exp: 1433, value: 200}
-    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200, value: 200}
-    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 4, exp: 5582, equipment: 1305003, value: 200}
-    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 2553, equipment: 13020001, value: 200}
-    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 135, value: 200}
-    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750, value: 100}
-    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750, value: 100}
-    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 3206, value: 200}
-    - {type: crawler, index: 12, position: {x: -225, y: -300}, level: 2, exp: 1014, value: 100}
-    - {type: crawler, index: 13, position: {x: -105, y: -300}, level: 2, exp: 378, value: 100}
-    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, level: 3, exp: 2077, equipment: 13030003, value: 200}
-    - {type: crawler, index: 15, position: {x: -45, y: -300}, level: 2, exp: 909, value: 100}
-    - {type: crawler, index: 16, position: {x: -165, y: -300}, level: 2, exp: 969, value: 100}
-    - {type: crawler, index: 17, position: {x: 15, y: -300}, level: 2, exp: 608, value: 100}
-    - {type: sabertooth, index: 18, position: {x: -285, y: -175}, level: 2, exp: 2929, value: 200}
-    - {type: crawler, index: 19, position: {x: -105, y: -280}, exp: 357, value: 100}
-    - {type: crawler, index: 20, position: {x: 15, y: -280}, exp: 450, value: 100}
-    - {type: crawler, index: 21, position: {x: 140, y: -255}, exp: 450, rotated: true, value: 100}
-    - {type: crawler, index: 22, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
-    - {type: sabertooth, index: 23, position: {x: 115, y: -235}, level: 2, exp: 1848, value: 200}
-    - {type: typhoon, index: 24, position: {x: -220, y: -200}, exp: 979, value: 300}
-    - {type: typhoon, index: 25, position: {x: 120, y: -290}, exp: 1212, rotated: true, value: 300}
-    - {type: typhoon, index: 26, position: {x: 100, y: -180}, exp: 874, value: 300}
-    - {type: sabertooth, index: 27, position: {x: 165, y: -165}, exp: 1300, value: 200}
-    - {type: stormcaller, index: 28, position: {x: -195, y: -150}, exp: 1100, value: 200}
+    - {type: void_eye, index: 0, position: {x: 60, y: -220}, level: 2, exp: 995/1465, value: 100}
+    - {type: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
+    - {type: void_eye, index: 2, position: {x: 0, y: -220}, level: 2, exp: 487/1465, value: 100}
+    - {type: mustang, index: 3, position: {x: -105, y: -260}, level: 2, exp: 1433/2704, value: 200}
+    - {type: mustang, index: 4, position: {x: 105, y: -260}, exp: 1200/1200, value: 200}
+    - {type: sabertooth, index: 5, position: {x: -65, y: -175}, level: 4, exp: 5582/5837, equipment: 1305003, value: 200}
+    - {type: phoenix, index: 6, position: {x: -280, y: -280}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 7, position: {x: 65, y: -175}, level: 2, exp: 2553/2929, equipment: 13020001, value: 200}
+    - {type: tarantula, index: 8, position: {x: -175, y: -175}, exp: 135/1500, value: 200}
+    - {type: hound, index: 9, position: {x: -50, y: -280}, exp: 750/750, value: 100}
+    - {type: hound, index: 10, position: {x: -160, y: -280}, exp: 750/750, value: 100}
+    - {type: wasp, index: 11, position: {x: -275, y: -300}, level: 3, exp: 3206/3206, value: 200}
+    - {type: crawler, index: 12, position: {x: -225, y: -300}, level: 2, exp: 1014/1014, value: 100}
+    - {type: crawler, index: 13, position: {x: -105, y: -300}, level: 2, exp: 378/1014, value: 100}
+    - {type: sabertooth, index: 14, position: {x: -225, y: -175}, level: 3, exp: 2077/4630, equipment: 13030003, value: 200}
+    - {type: crawler, index: 15, position: {x: -45, y: -300}, level: 2, exp: 909/1014, value: 100}
+    - {type: crawler, index: 16, position: {x: -165, y: -300}, level: 2, exp: 969/1014, value: 100}
+    - {type: crawler, index: 17, position: {x: 15, y: -300}, level: 2, exp: 608/1014, value: 100}
+    - {type: sabertooth, index: 18, position: {x: -285, y: -175}, level: 2, exp: 2929/2929, value: 200}
+    - {type: crawler, index: 19, position: {x: -105, y: -280}, exp: 357/450, value: 100}
+    - {type: crawler, index: 20, position: {x: 15, y: -280}, exp: 450/450, value: 100}
+    - {type: crawler, index: 21, position: {x: 140, y: -255}, exp: 450/450, rotated: true, value: 100}
+    - {type: crawler, index: 22, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
+    - {type: sabertooth, index: 23, position: {x: 115, y: -235}, level: 2, exp: 1848/2929, value: 200}
+    - {type: typhoon, index: 24, position: {x: -220, y: -200}, exp: 979/1950, value: 300}
+    - {type: typhoon, index: 25, position: {x: 120, y: -290}, exp: 1212/1950, rotated: true, value: 300}
+    - {type: typhoon, index: 26, position: {x: 100, y: -180}, exp: 874/1950, value: 300}
+    - {type: sabertooth, index: 27, position: {x: 165, y: -165}, exp: 1300/1300, value: 200}
+    - {type: stormcaller, index: 28, position: {x: -195, y: -150}, exp: 1100/1100, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -1028,28 +1028,28 @@ sides:
       officers: [10003, 10003, 20023, 20032]
       units: [206, 230, 1308, 3207, 10215, 10607, 10710, 180110, 180418]
     formations:
-    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 3, exp: 526, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 1603, rotated: true, value: 100}
-    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 4, exp: 2800, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 2671, value: 100}
-    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 2671, value: 100}
-    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 1825, value: 100}
-    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 3, exp: 168, value: 100}
-    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 3, exp: 1643, value: 100}
-    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 3, exp: 1002, value: 100}
-    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 3, exp: 766, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 1014, rotated: true, value: 100}
-    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 4, exp: 3120, rotated: true, value: 200}
-    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 713, rotated: true, value: 200}
-    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 3, exp: 1479, value: 50}
-    - {type: steel_ball, index: 17, position: {x: -310, y: 265}, level: 3, exp: 783, value: 150}
-    - {type: steel_ball, index: 18, position: {x: -310, y: 215}, level: 3, exp: 1608, value: 150}
-    - {type: crawler, index: 19, position: {x: -335, y: 300}, level: 3, exp: 504, rotated: true, value: 50}
-    - {type: wasp, index: 20, position: {x: -330, y: 265}, level: 2, exp: 1233, value: 150}
-    - {type: overlord, index: 21, position: {x: 95, y: -75}, level: 3, exp: 6161, equipment: 13020001, value: 500}
-    - {type: overlord, index: 23, position: {x: -335, y: 165}, level: 2, exp: 1634, value: 500}
-    - {type: wraith, index: 24, position: {x: -335, y: 225}, level: 2, exp: 1291, value: 250}
-    - {type: mustang, index: 25, position: {x: -350, y: 265}, level: 2, exp: 1360, equipment: 13030003, value: 150}
+    - {type: crawler, index: 1, position: {x: 290, y: -285}, level: 3, exp: 526/1603, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 1603/1603, rotated: true, value: 100}
+    - {type: mustang, index: 4, position: {x: 270, y: -235}, level: 4, exp: 2800/5388, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 110, y: -110}, level: 3, exp: 2671/2671, value: 100}
+    - {type: arclight, index: 6, position: {x: 190, y: -110}, level: 3, exp: 2671/2671, value: 100}
+    - {type: void_eye, index: 8, position: {x: 200, y: -20}, level: 3, exp: 1825/2315, value: 100}
+    - {type: void_eye, index: 9, position: {x: 280, y: -20}, level: 3, exp: 168/2315, value: 100}
+    - {type: void_eye, index: 10, position: {x: 240, y: -20}, level: 3, exp: 1643/2315, value: 100}
+    - {type: void_eye, index: 11, position: {x: 160, y: -20}, level: 3, exp: 1002/2315, value: 100}
+    - {type: arclight, index: 12, position: {x: 270, y: -110}, level: 3, exp: 766/2671, value: 100}
+    - {type: crawler, index: 13, position: {x: 290, y: -105}, level: 2, exp: 1014/1014, rotated: true, value: 100}
+    - {type: wasp, index: 14, position: {x: 250, y: -235}, level: 4, exp: 3120/4041, rotated: true, value: 200}
+    - {type: steel_ball, index: 15, position: {x: 290, y: -55}, level: 2, exp: 713/2253, rotated: true, value: 200}
+    - {type: crawler, index: 16, position: {x: -135, y: -300}, level: 3, exp: 1479/1603, value: 50}
+    - {type: steel_ball, index: 17, position: {x: -310, y: 265}, level: 3, exp: 783/3562, value: 150}
+    - {type: steel_ball, index: 18, position: {x: -310, y: 215}, level: 3, exp: 1608/3562, value: 150}
+    - {type: crawler, index: 19, position: {x: -335, y: 300}, level: 3, exp: 504/1603, rotated: true, value: 50}
+    - {type: wasp, index: 20, position: {x: -330, y: 265}, level: 2, exp: 1233/2028, value: 150}
+    - {type: overlord, index: 21, position: {x: 95, y: -75}, level: 3, exp: 6161/6233, equipment: 13020001, value: 500}
+    - {type: overlord, index: 23, position: {x: -335, y: 165}, level: 2, exp: 1634/3943, value: 500}
+    - {type: wraith, index: 24, position: {x: -335, y: 225}, level: 2, exp: 1291/5070, value: 250}
+    - {type: mustang, index: 25, position: {x: -350, y: 265}, level: 2, exp: 1360/2704, equipment: 13030003, value: 150}
     constructions:
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 ---

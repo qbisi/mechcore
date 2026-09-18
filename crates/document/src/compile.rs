@@ -229,7 +229,6 @@ fn compile_formations(
                 unreachable!("unit resolver returned non-unit placement")
             };
             let level = level.unwrap_or(1);
-            let exp = exp.unwrap_or(0);
             let rotated = rotated.unwrap_or(false);
             let travelling = travelling.unwrap_or(false);
             if !(1..=9).contains(&level) {
@@ -238,6 +237,23 @@ fn compile_formations(
                     position.x, position.y
                 ));
             }
+            // The native call takes the current experience. The maximum is
+            // the level's full bar, which the document states and the table
+            // decides, so the two have to agree.
+            let exp = match exp {
+                None => 0,
+                Some(exp) => {
+                    let full = crate::experience::full(&type_name, level);
+                    if full != Some(exp.maximum) {
+                        return Err(format!(
+                            "side {side_name} formation type {type_name:?} at ({}, {}) exp \
+                             maximum {} is not its level {level} bar {full:?}",
+                            position.x, position.y, exp.maximum
+                        ));
+                    }
+                    exp.current
+                }
+            };
             if index < 0 {
                 return Err(format!(
                     "side {side_name} formation type {type_name:?} at ({}, {}) index must be non-negative",

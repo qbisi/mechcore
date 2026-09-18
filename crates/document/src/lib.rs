@@ -44,8 +44,8 @@ pub use catalog::{
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
 pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
 pub use layout::{
-    BattleSkillDefinition, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation,
-    Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
+    BattleSkillDefinition, ContraptionPlacement, Experience, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
+    Formation, Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
     RANGE_ENHANCEMENT_SKILL, Region, Side, Sides, StaticPlacement, TOWER_COUNT, Techs, Terrain,
     TerrainType, canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml, parse_yaml,
 };
@@ -252,7 +252,7 @@ sides:
                     "formations": [
                         {"index": 4, "type": "marksman", "position": {"x": 40, "y": -50}, "level": 1},
                         {"index": 1, "type": "marksman", "position": {"x": 0, "y": -50},
-                         "exp": 0, "rotated": false, "travelling": false}
+                         "exp": "0/650", "rotated": false, "travelling": false}
                     ],
                     "contraptions": [
                         {"index": 3, "type": "shield", "position": {"x": 0, "y": -120}},
@@ -684,7 +684,8 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [
-                    {"type": "marksman", "index": 0, "position": {"x": -20, "y": -50}, "exp": 7},
+                    {"type": "marksman", "index": 0, "position": {"x": -20, "y": -50},
+                     "exp": "7/650"},
                     {"type": "marksman", "index": 2, "position": {"x": 20, "y": -50}}
                 ]},
                 "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -180}}]}
@@ -716,13 +717,32 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"formations": [
-                    {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}, "exp": -1}
+                    {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50},
+                     "exp": "-1/650"}
                 ]},
                 "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap_err();
         assert!(negative_exp.contains("exp must be non-negative"));
+
+        // The maximum is the level's bar, and a document cannot state another.
+        let wrong_bar = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "sides": {
+                "blue": {"formations": [
+                    {"index": 0, "type": "marksman", "position": {"x": 0, "y": -50}, "level": 2,
+                     "exp": "7/650"}
+                ]},
+                "red": {"formations": [{"index": 0, "type": "marksman", "position": {"x": 0, "y": -180}}]}
+            }
+        }))
+        .unwrap_err();
+        assert!(
+            wrong_bar.contains("exp maximum 650 is not its level 2 bar Some(1465)"),
+            "{wrong_bar}"
+        );
     }
 
     #[test]

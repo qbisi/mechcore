@@ -41,8 +41,8 @@
   含两个分配器和装备清单。
 - 回合内部署转移 `transition::step`：把一个决策作用到它被做出的那个局面上，
   产出完整的下一个局面，棋盘也在内。不由任何表决定的输入单独报出，不猜：
-  卡牌召唤的编队落在哪里。强化训练把经验填到满条，满条上限来自
-  `config/unit_experience.yaml`。
+  卡牌召唤的编队落在哪里。经验写成 `current/maximum`（如 `124/450`），满条上限
+  来自 `config/unit_experience.yaml`，强化训练把 `current` 填到 `maximum`。
 - observation 读取器 `observe` 与 oracle `oracle`，由 `mechcore verify` 驱动。
   把原生录像采集的每个局面映射成文档 state，把每条原生动作映射成文档 action，
   再两种方式核对：逐决策比对全部字段，和把折叠后的整回合序列从回合初推到部署末。

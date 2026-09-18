@@ -7,7 +7,8 @@ follow, what a full bar means, and what Intensive Training does with it.
 A formation's `exp` is its experience within its current level. Paying to
 upgrade a formation starts the new level at zero, whatever the old level held;
 [`action.md`](../spec/document/action.md#upgrade_unit) states that rule. A
-formation's bar is full at the amount below for its level, from 1 through 9.
+document writes `exp` as `current/maximum`, such as `124/450`, whose `maximum`
+is the full bar of the formation's level from 1 through 9.
 
 The machine-readable table is
 [`config/unit_experience.yaml`](../../config/unit_experience.yaml).
@@ -77,8 +78,8 @@ table was built, and it does not describe Vulcan's first column.
 ## Intensive Training fills the bar
 
 Commander skill `1100001`, 强化训练 (Intensive Training), sets the formation it
-targets to a full bar: `exp` becomes the full bar of its level, whatever it held
-before. It changes the level of nothing, costs nothing to
+targets to a full bar: `current` becomes the `maximum` of its level, whatever it
+held before. It changes the level of nothing, costs nothing to
 release, and does its work during deployment, so it is not a release the fight
 sees; [`action.md`](../spec/document/action.md#release_commander_skill) states
 the transition.

@@ -94,15 +94,16 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
         Value::Bool(value) => out.push_str(if *value { "true" } else { "false" }),
         Value::Number(value) => out.push_str(&value.to_string()),
         Value::String(value) => {
-            // An identifier is written bare unless the reader would take it
-            // for something other than a string, as it would `true` or `null`.
+            // An identifier or a gauge such as `124/450` is written bare,
+            // unless the reader would take it for something other than this
+            // string, as it would `true`, `null` or `12`.
             let plain = value
                 .chars()
                 .next()
-                .is_some_and(|first| first.is_ascii_alphabetic())
-                && value
-                    .chars()
-                    .all(|character| character.is_ascii_alphanumeric() || character == '_')
+                .is_some_and(|first| first.is_ascii_alphanumeric())
+                && value.chars().all(|character| {
+                    character.is_ascii_alphanumeric() || character == '_' || character == '/'
+                })
                 && serde_yaml::from_str::<Value>(value).is_ok_and(|read| read == *value.as_str());
             if plain {
                 out.push_str(value);

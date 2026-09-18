@@ -125,13 +125,98 @@ pub struct Formation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub exp: Option<i32>,
+    pub exp: Option<Experience>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub equipment: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
+}
+
+/// A formation's experience within its level, as a gauge written
+/// `current/maximum`, such as `124/450`.
+///
+/// `maximum` is the level's full bar, which [`crate::experience::full`] reads
+/// out of the build's table. It is there to be read: a document shows how far
+/// the bar has to go without sending its reader to the table. The bar is full
+/// when `current` reaches `maximum`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Experience {
+    pub current: i32,
+    pub maximum: i32,
+}
+
+impl std::fmt::Display for Experience {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(formatter, "{}/{}", self.current, self.maximum)
+    }
+}
+
+impl std::str::FromStr for Experience {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Self, String> {
+        let malformed = || format!("experience {text:?} is not current/maximum");
+        let (current, maximum) = text.split_once('/').ok_or_else(malformed)?;
+        Ok(Self {
+            current: current.trim().parse().map_err(|_| malformed())?,
+            maximum: maximum.trim().parse().map_err(|_| malformed())?,
+        })
+    }
+}
+
+impl Serialize for Experience {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for Experience {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(serde::de::Error::custom)
+    }
+}
+
+impl JsonSchema for Experience {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Experience".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "description": "Experience within the formation's level, written current/maximum, where maximum is the level's full bar.",
+            "type": "string",
+            "pattern": "^-?[0-9]+/[0-9]+$"
+        })
+    }
+}
+
+impl Experience {
+    /// The gauge of a formation of this type and level holding `current`, or
+    /// nothing when it holds none.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the experience table has no bar for the type and
+    /// level.
+    pub fn of(current: i32, type_name: &str, level: i32) -> Result<Option<Self>, String> {
+        if current == 0 {
+            return Ok(None);
+        }
+        let maximum = crate::experience::full(type_name, level).ok_or_else(|| {
+            format!("the experience table has no level {level} bar for {type_name:?}")
+        })?;
+        Ok(Some(Self { current, maximum }))
+    }
+
+    /// Whether the bar is full.
+    #[must_use]
+    pub fn is_full(self) -> bool {
+        self.current >= self.maximum
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -306,7 +391,7 @@ impl Layout {
                 if formation.level == Some(1) {
                     formation.level = None;
                 }
-                if formation.exp == Some(0) {
+                if formation.exp.is_some_and(|exp| exp.current == 0) {
                     formation.exp = None;
                 }
                 if formation.rotated == Some(false) {

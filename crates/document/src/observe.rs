@@ -22,7 +22,8 @@ use crate::battle::{
 use crate::catalog::{construction_type_from_id, terrain_type_from_skill, unit_type_from_id};
 use crate::grbr::{decode_grbr_byte_mask, decode_grbr_grid_groups, rotate_oil_grid_rows};
 use crate::layout::{
-    ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain, TerrainType,
+    ContraptionPlacement, Experience, Formation, Position, StaticPlacement, Techs, Terrain,
+    TerrainType,
 };
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -474,7 +475,7 @@ fn formations(
                 // The record counts paid upgrades from zero; a layout displays
                 // the level from one.
                 level: Some(unit.level + 1).filter(|level| *level != 1),
-                exp: Some(unit.exp).filter(|exp| *exp != 0),
+                exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
                 rotated: Some(unit.rotated).filter(|rotated| *rotated),
                 equipment: Some(unit.equipment).filter(|id| *id != 0),
                 travelling: travelling.get(&unit.index).copied().filter(|set| *set),

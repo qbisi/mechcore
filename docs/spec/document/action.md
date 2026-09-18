@@ -335,8 +335,8 @@ position during deployment, so the decision writes that work and marks the slot
 order, and never reaches a layout.
 
 Intensive Training, `1100001`, is one. It targets one of the side's own
-formations with `!unit` and fills its experience bar: `exp` becomes the full bar
-of the formation's level. A full
+formations with `!unit` and fills its experience bar, so `exp` becomes
+`maximum/maximum`. A full
 formation takes no further share of the experience a fight hands out;
 [the unit experience index](../../rules/unit_experience.md) gives the amount a
 full bar stands for per unit and level.

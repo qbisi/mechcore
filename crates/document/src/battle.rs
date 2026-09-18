@@ -767,6 +767,8 @@ mod tests {
             ("true", "\"true\""),
             ("null", "\"null\""),
             ("two words", "\"two words\""),
+            ("124/450", "124/450"),
+            ("12", "\"12\""),
         ] {
             let mut out = String::new();
             crate::spelling::flow(&serde_yaml::Value::from(value), &mut out).unwrap();

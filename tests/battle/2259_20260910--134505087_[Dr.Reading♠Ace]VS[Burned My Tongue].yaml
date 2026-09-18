@@ -201,13 +201,13 @@ sides:
     techs:
       officers: [20029]
     formations:
-    - {type: arclight, index: 0, position: {x: 120, y: -170}, exp: 85, value: 100}
-    - {type: arclight, index: 1, position: {x: -180, y: -170}, exp: 313, value: 100}
-    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 424, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 503, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 477, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 161, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 59, rotated: true, value: 100}
+    - {type: arclight, index: 0, position: {x: 120, y: -170}, exp: 85/750, value: 100}
+    - {type: arclight, index: 1, position: {x: -180, y: -170}, exp: 313/750, value: 100}
+    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 424/750, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 503/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 477/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 161/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 59/450, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -223,13 +223,13 @@ sides:
     techs:
       officers: [20034]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 16, value: 100}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 16/750, value: 100}
     - {type: vortex, index: 1, position: {x: 100, y: -110}, value: 100}
     - {type: vortex, index: 2, position: {x: -110, y: -110}, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 114, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 56, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 172, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 12, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 114/1200, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 56/1200, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 172/1200, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 12/750, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -283,18 +283,18 @@ sides:
     techs:
       officers: [20029]
     formations:
-    - {type: arclight, index: 0, position: {x: 120, y: -170}, exp: 345, value: 100}
-    - {type: arclight, index: 1, position: {x: -180, y: -170}, exp: 750, value: 100}
-    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 704, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 800, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 750, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 246, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 107, rotated: true, value: 100}
-    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 3, exp: 1451, value: 100}
-    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 339, value: 100}
-    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 178, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 22, rotated: true, value: 100}
-    - {type: marksman, index: 11, position: {x: -30, y: -150}, exp: 225, value: 100}
+    - {type: arclight, index: 0, position: {x: 120, y: -170}, exp: 345/750, value: 100}
+    - {type: arclight, index: 1, position: {x: -180, y: -170}, exp: 750/750, value: 100}
+    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 704/750, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 800/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 750/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 246/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 107/450, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 3, exp: 1451/2315, value: 100}
+    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 339/2315, value: 100}
+    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 178/600, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 22/600, rotated: true, value: 100}
+    - {type: marksman, index: 11, position: {x: -30, y: -150}, exp: 225/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -309,16 +309,16 @@ sides:
     techs:
       officers: [20034]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29, value: 100}
-    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 14, value: 100}
-    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 38, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 138, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 170, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 422, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 35, value: 100}
-    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 375, value: 100}
-    - {type: mustang, index: 8, position: {x: 140, y: -205}, exp: 131, rotated: true, value: 200}
-    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 254, rotated: true, value: 200}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 14/750, value: 100}
+    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 38/750, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 138/1200, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 170/1200, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 422/1200, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 35/750, value: 100}
+    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 375/2315, value: 100}
+    - {type: mustang, index: 8, position: {x: 140, y: -205}, exp: 131/1200, rotated: true, value: 200}
+    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 254/1200, rotated: true, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -365,20 +365,20 @@ sides:
     techs:
       officers: [20029]
     formations:
-    - {type: arclight, index: 0, position: {x: 120, y: -170}, exp: 427, value: 100}
-    - {type: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 277, value: 100}
-    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 750, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1006, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 1299, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 268, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 141, rotated: true, value: 100}
-    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 3, exp: 2315, equipment: 13030001, value: 100}
-    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 915, value: 100}
-    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 178, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 22, rotated: true, value: 100}
-    - {type: marksman, index: 11, position: {x: -30, y: -150}, exp: 581, value: 100}
-    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 69, rotated: true, value: 100}
-    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 51, rotated: true, value: 100}
+    - {type: arclight, index: 0, position: {x: 120, y: -170}, exp: 427/750, value: 100}
+    - {type: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 277/1690, value: 100}
+    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 750/750, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1006/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 1299/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 268/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 141/450, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 3, exp: 2315/2315, equipment: 13030001, value: 100}
+    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 915/2315, value: 100}
+    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 178/600, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 22/600, rotated: true, value: 100}
+    - {type: marksman, index: 11, position: {x: -30, y: -150}, exp: 581/650, value: 100}
+    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 69/450, rotated: true, value: 100}
+    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 51/450, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -394,18 +394,18 @@ sides:
       officers: [20034]
       units: [10207]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29, value: 100}
-    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 23, value: 100}
-    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 56, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 1179, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 377, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 818, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43, value: 100}
-    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 553, value: 100}
-    - {type: mustang, index: 8, position: {x: 140, y: -205}, exp: 722, rotated: true, value: 200}
-    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 617, rotated: true, equipment: 13030001, value: 200}
-    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, exp: 1100, rotated: true, value: 200}
-    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 295, value: 100}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 23/750, value: 100}
+    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 56/750, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 1179/1200, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 377/1200, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 818/1200, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43/750, value: 100}
+    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 553/2315, value: 100}
+    - {type: mustang, index: 8, position: {x: 140, y: -205}, exp: 722/1200, rotated: true, value: 200}
+    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 617/1200, rotated: true, equipment: 13030001, value: 200}
+    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, exp: 1100/1100, rotated: true, value: 200}
+    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 295/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -452,21 +452,21 @@ sides:
       officers: [20029]
       units: [10222]
     formations:
-    - {type: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 377, value: 100}
-    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 750, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1168, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 1300, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 274, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 450, rotated: true, value: 100}
-    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 3, exp: 2315, equipment: 13030001, value: 100}
-    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 1314, value: 100}
-    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 178, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 22, rotated: true, value: 100}
-    - {type: marksman, index: 11, position: {x: -30, y: -150}, exp: 650, value: 100}
-    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 94, rotated: true, value: 100}
-    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 68, rotated: true, value: 100}
-    - {type: typhoon, index: 14, position: {x: -210, y: -190}, exp: 1400, equipment: 13030001, value: 300}
-    - {type: typhoon, index: 15, position: {x: 210, y: -190}, exp: 1641, value: 300}
+    - {type: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 377/1690, value: 100}
+    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 750/750, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1168/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, exp: 1300/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 274/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, exp: 450/450, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 3, exp: 2315/2315, equipment: 13030001, value: 100}
+    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 1314/2315, value: 100}
+    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 178/600, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 22/600, rotated: true, value: 100}
+    - {type: marksman, index: 11, position: {x: -30, y: -150}, exp: 650/650, value: 100}
+    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 94/450, rotated: true, value: 100}
+    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 68/450, rotated: true, value: 100}
+    - {type: typhoon, index: 14, position: {x: -210, y: -190}, exp: 1400/1950, equipment: 13030001, value: 300}
+    - {type: typhoon, index: 15, position: {x: 210, y: -190}, exp: 1641/1950, value: 300}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -482,20 +482,20 @@ sides:
       officers: [20034]
       units: [10207, 10607]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29, value: 100}
-    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35, value: 100}
-    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 1200, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 504, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 1200, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43, value: 100}
-    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 567, value: 100}
-    - {type: mustang, index: 8, position: {x: 140, y: -205}, exp: 1200, rotated: true, equipment: 13030001, value: 200}
-    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 1058, rotated: true, equipment: 13030001, value: 200}
-    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 1655, rotated: true, value: 200}
-    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 299, value: 100}
-    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 698, rotated: true, value: 200}
-    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 284, value: 100}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
+    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, exp: 1200/1200, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 504/1200, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, exp: 1200/1200, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43/750, value: 100}
+    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 567/2315, value: 100}
+    - {type: mustang, index: 8, position: {x: 140, y: -205}, exp: 1200/1200, rotated: true, equipment: 13030001, value: 200}
+    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 1058/1200, rotated: true, equipment: 13030001, value: 200}
+    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 1655/2479, rotated: true, value: 200}
+    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 299/650, value: 100}
+    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 698/1200, rotated: true, value: 200}
+    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 284/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -553,24 +553,24 @@ sides:
       officers: [20029]
       units: [10202, 10222]
     formations:
-    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 750, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1300, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 663, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 312, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, level: 2, exp: 105, rotated: true, value: 100}
-    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 4, exp: 1608, equipment: 13030001, value: 100}
-    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 2238, value: 100}
-    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 216, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 60, rotated: true, value: 100}
-    - {type: marksman, index: 11, position: {x: -30, y: -150}, level: 2, exp: 1032, value: 100}
-    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 132, rotated: true, value: 100}
-    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 181, rotated: true, value: 100}
-    - {type: typhoon, index: 14, position: {x: -210, y: -190}, exp: 1950, equipment: 13030001, value: 300}
-    - {type: typhoon, index: 15, position: {x: 210, y: -190}, exp: 1950, value: 300}
-    - {type: sandworm, index: 16, position: {x: -130, y: -270}, exp: 812, value: 400}
-    - {type: marksman, index: 17, position: {x: -180, y: -150}, exp: 650, value: 100}
-    - {type: marksman, index: 18, position: {x: -100, y: -150}, exp: 650, value: 100}
-    - {type: marksman, index: 19, position: {x: 100, y: -150}, exp: 650, value: 100}
+    - {type: arclight, index: 2, position: {x: 180, y: -170}, exp: 750/750, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1300/1300, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 663/2929, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 312/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, level: 2, exp: 105/1014, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 4, exp: 1608/2919, equipment: 13030001, value: 100}
+    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 2238/2315, value: 100}
+    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 216/600, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 60/600, rotated: true, value: 100}
+    - {type: marksman, index: 11, position: {x: -30, y: -150}, level: 2, exp: 1032/1465, value: 100}
+    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 132/450, rotated: true, value: 100}
+    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 181/450, rotated: true, value: 100}
+    - {type: typhoon, index: 14, position: {x: -210, y: -190}, exp: 1950/1950, equipment: 13030001, value: 300}
+    - {type: typhoon, index: 15, position: {x: 210, y: -190}, exp: 1950/1950, value: 300}
+    - {type: sandworm, index: 16, position: {x: -130, y: -270}, exp: 812/2000, value: 400}
+    - {type: marksman, index: 17, position: {x: -180, y: -150}, exp: 650/650, value: 100}
+    - {type: marksman, index: 18, position: {x: -100, y: -150}, exp: 650/650, value: 100}
+    - {type: marksman, index: 19, position: {x: 100, y: -150}, exp: 650/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     contraptions:
@@ -589,23 +589,23 @@ sides:
       officers: [20034]
       units: [10207, 10607]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29, value: 100}
-    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35, value: 100}
-    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, level: 2, exp: 112, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 1200, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, level: 2, exp: 1130, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43, value: 100}
-    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 790, value: 100}
-    - {type: mustang, index: 8, position: {x: 140, y: -205}, level: 2, exp: 765, rotated: true, equipment: 13030001, value: 200}
-    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 1200, rotated: true, equipment: 13030001, value: 200}
-    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 1958, rotated: true, value: 200}
-    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 319, value: 100}
-    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 766, rotated: true, value: 200}
-    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 284, value: 100}
-    - {type: sandworm, index: 14, position: {x: 130, y: -290}, exp: 407, value: 400}
-    - {type: mustang, index: 15, position: {x: -210, y: -285}, exp: 550, rotated: true, value: 200}
-    - {type: sandworm, index: 16, position: {x: -130, y: -290}, exp: 260, value: 400}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
+    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, level: 2, exp: 112/2704, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, exp: 1200/1200, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, level: 2, exp: 1130/2704, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43/750, value: 100}
+    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 790/2315, value: 100}
+    - {type: mustang, index: 8, position: {x: 140, y: -205}, level: 2, exp: 765/2704, rotated: true, equipment: 13030001, value: 200}
+    - {type: mustang, index: 9, position: {x: -140, y: -205}, exp: 1200/1200, rotated: true, equipment: 13030001, value: 200}
+    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 1958/2479, rotated: true, value: 200}
+    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 319/650, value: 100}
+    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 766/1200, rotated: true, value: 200}
+    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 284/650, value: 100}
+    - {type: sandworm, index: 14, position: {x: 130, y: -290}, exp: 407/2000, value: 400}
+    - {type: mustang, index: 15, position: {x: -210, y: -285}, exp: 550/1200, rotated: true, value: 200}
+    - {type: sandworm, index: 16, position: {x: -130, y: -290}, exp: 260/2000, value: 400}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -663,25 +663,25 @@ sides:
       officers: [20029]
       units: [10202, 10222, 10321]
     formations:
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, level: 2, exp: 602, equipment: 13030006, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 731, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 312, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, level: 2, exp: 105, rotated: true, value: 100}
-    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 4, exp: 2098, equipment: 13030001, value: 100}
-    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 2315, value: 100}
-    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 282, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 60, rotated: true, value: 100}
-    - {type: marksman, index: 11, position: {x: -30, y: -150}, level: 2, exp: 1465, value: 100}
-    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 132, rotated: true, value: 100}
-    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 181, rotated: true, value: 100}
-    - {type: typhoon, index: 14, position: {x: -210, y: -190}, level: 2, exp: 2256, equipment: 13030001, value: 300}
-    - {type: typhoon, index: 15, position: {x: 210, y: -190}, level: 2, exp: 2132, value: 300}
-    - {type: sandworm, index: 16, position: {x: -130, y: -270}, exp: 1918, value: 400}
-    - {type: marksman, index: 17, position: {x: -180, y: -150}, level: 2, exp: 502, value: 100}
-    - {type: marksman, index: 18, position: {x: -100, y: -150}, level: 2, exp: 716, value: 100}
-    - {type: marksman, index: 19, position: {x: 100, y: -150}, level: 2, exp: 404, value: 100}
-    - {type: marksman, index: 20, position: {x: 180, y: -150}, exp: 650, value: 100}
-    - {type: marksman, index: 21, position: {x: 40, y: -150}, exp: 204, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, level: 2, exp: 602/2929, equipment: 13030006, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 731/2929, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 312/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, level: 2, exp: 105/1014, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 4, exp: 2098/2919, equipment: 13030001, value: 100}
+    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 3, exp: 2315/2315, value: 100}
+    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 282/600, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 60/600, rotated: true, value: 100}
+    - {type: marksman, index: 11, position: {x: -30, y: -150}, level: 2, exp: 1465/1465, value: 100}
+    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 132/450, rotated: true, value: 100}
+    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 181/450, rotated: true, value: 100}
+    - {type: typhoon, index: 14, position: {x: -210, y: -190}, level: 2, exp: 2256/4394, equipment: 13030001, value: 300}
+    - {type: typhoon, index: 15, position: {x: 210, y: -190}, level: 2, exp: 2132/4394, value: 300}
+    - {type: sandworm, index: 16, position: {x: -130, y: -270}, exp: 1918/2000, value: 400}
+    - {type: marksman, index: 17, position: {x: -180, y: -150}, level: 2, exp: 502/1465, value: 100}
+    - {type: marksman, index: 18, position: {x: -100, y: -150}, level: 2, exp: 716/1465, value: 100}
+    - {type: marksman, index: 19, position: {x: 100, y: -150}, level: 2, exp: 404/1465, value: 100}
+    - {type: marksman, index: 20, position: {x: 180, y: -150}, exp: 650/650, value: 100}
+    - {type: marksman, index: 21, position: {x: 40, y: -150}, exp: 204/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     contraptions:
@@ -700,25 +700,25 @@ sides:
       officers: [20034]
       units: [3823, 10207, 10607]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29, value: 100}
-    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35, value: 100}
-    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, level: 2, exp: 247, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, level: 2, exp: 184, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, level: 2, exp: 1328, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43, value: 100}
-    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 887, value: 100}
-    - {type: mustang, index: 8, position: {x: 140, y: -205}, level: 2, exp: 922, rotated: true, equipment: 13030001, value: 200}
-    - {type: mustang, index: 9, position: {x: -140, y: -205}, level: 2, exp: 1766, rotated: true, equipment: 13030001, value: 200}
-    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 2099, rotated: true, value: 200}
-    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 350, value: 100}
-    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 804, rotated: true, value: 200}
-    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 292, value: 100}
-    - {type: sandworm, index: 14, position: {x: 130, y: -290}, exp: 447, value: 400}
-    - {type: mustang, index: 15, position: {x: -210, y: -285}, exp: 893, rotated: true, value: 200}
-    - {type: sandworm, index: 16, position: {x: -130, y: -290}, exp: 2000, equipment: 13030006, value: 400}
-    - {type: mustang, index: 17, position: {x: -60, y: -285}, exp: 603, rotated: true, value: 200}
-    - {type: mustang, index: 18, position: {x: 60, y: -285}, exp: 40, rotated: true, value: 200}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
+    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, level: 2, exp: 247/2704, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, level: 2, exp: 184/2704, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, level: 2, exp: 1328/2704, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43/750, value: 100}
+    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 887/2315, value: 100}
+    - {type: mustang, index: 8, position: {x: 140, y: -205}, level: 2, exp: 922/2704, rotated: true, equipment: 13030001, value: 200}
+    - {type: mustang, index: 9, position: {x: -140, y: -205}, level: 2, exp: 1766/2704, rotated: true, equipment: 13030001, value: 200}
+    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 2099/2479, rotated: true, value: 200}
+    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 350/650, value: 100}
+    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 804/1200, rotated: true, value: 200}
+    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 292/650, value: 100}
+    - {type: sandworm, index: 14, position: {x: 130, y: -290}, exp: 447/2000, value: 400}
+    - {type: mustang, index: 15, position: {x: -210, y: -285}, exp: 893/1200, rotated: true, value: 200}
+    - {type: sandworm, index: 16, position: {x: -130, y: -290}, exp: 2000/2000, equipment: 13030006, value: 400}
+    - {type: mustang, index: 17, position: {x: -60, y: -285}, exp: 603/1200, rotated: true, value: 200}
+    - {type: mustang, index: 18, position: {x: 60, y: -285}, exp: 40/1200, rotated: true, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -771,28 +771,28 @@ sides:
       officers: [20029]
       units: [3623, 10202, 10222, 10321]
     formations:
-    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, level: 2, exp: 670, equipment: 13030006, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 790, value: 200}
-    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 312, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 70, y: -245}, level: 2, exp: 113, rotated: true, value: 100}
-    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 4, exp: 2520, equipment: 13030001, value: 100}
-    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 4, exp: 1087, value: 100}
-    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 282, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 60, rotated: true, value: 100}
-    - {type: marksman, index: 11, position: {x: -30, y: -150}, level: 3, exp: 1208, value: 100}
-    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 132, rotated: true, value: 100}
-    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 181, rotated: true, value: 100}
-    - {type: typhoon, index: 14, position: {x: -210, y: -190}, level: 2, exp: 4394, equipment: 13030001, value: 300}
-    - {type: typhoon, index: 15, position: {x: 210, y: -190}, level: 2, exp: 3084, value: 300}
-    - {type: sandworm, index: 16, position: {x: -130, y: -270}, exp: 1926, value: 400}
-    - {type: marksman, index: 17, position: {x: -180, y: -150}, level: 2, exp: 1147, value: 100}
-    - {type: marksman, index: 18, position: {x: -100, y: -150}, level: 2, exp: 1465, value: 100}
-    - {type: marksman, index: 19, position: {x: 100, y: -150}, level: 2, exp: 658, value: 100}
-    - {type: marksman, index: 20, position: {x: 180, y: -150}, level: 2, exp: 272, value: 100}
-    - {type: marksman, index: 21, position: {x: 40, y: -150}, exp: 524, value: 100}
+    - {type: sabertooth, index: 3, position: {x: -75, y: -145}, level: 2, exp: 670/2929, equipment: 13030006, value: 200}
+    - {type: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 790/2929, value: 200}
+    - {type: crawler, index: 5, position: {x: -70, y: -245}, exp: 312/450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: 70, y: -245}, level: 2, exp: 113/1014, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 140, y: -150}, level: 4, exp: 2520/2919, equipment: 13030001, value: 100}
+    - {type: marksman, index: 8, position: {x: -140, y: -150}, level: 4, exp: 1087/2919, value: 100}
+    - {type: fang, index: 9, position: {x: -30, y: -115}, exp: 282/600, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 120, y: -95}, exp: 60/600, rotated: true, value: 100}
+    - {type: marksman, index: 11, position: {x: -30, y: -150}, level: 3, exp: 1208/2315, value: 100}
+    - {type: crawler, index: 12, position: {x: -160, y: -265}, exp: 132/450, rotated: true, value: 100}
+    - {type: crawler, index: 13, position: {x: 160, y: -265}, exp: 181/450, rotated: true, value: 100}
+    - {type: typhoon, index: 14, position: {x: -210, y: -190}, level: 2, exp: 4394/4394, equipment: 13030001, value: 300}
+    - {type: typhoon, index: 15, position: {x: 210, y: -190}, level: 2, exp: 3084/4394, value: 300}
+    - {type: sandworm, index: 16, position: {x: -130, y: -270}, exp: 1926/2000, value: 400}
+    - {type: marksman, index: 17, position: {x: -180, y: -150}, level: 2, exp: 1147/1465, value: 100}
+    - {type: marksman, index: 18, position: {x: -100, y: -150}, level: 2, exp: 1465/1465, value: 100}
+    - {type: marksman, index: 19, position: {x: 100, y: -150}, level: 2, exp: 658/1465, value: 100}
+    - {type: marksman, index: 20, position: {x: 180, y: -150}, level: 2, exp: 272/1465, value: 100}
+    - {type: marksman, index: 21, position: {x: 40, y: -150}, exp: 524/650, value: 100}
     - {type: sandworm, index: 22, position: {x: 130, y: -270}, value: 400}
     - {type: sandworm, index: 23, position: {x: 190, y: -270}, value: 400}
-    - {type: marksman, index: 24, position: {x: 10, y: -150}, exp: 650, value: 100}
+    - {type: marksman, index: 24, position: {x: 10, y: -150}, exp: 650/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -809,27 +809,27 @@ sides:
       officers: [20034]
       units: [3023, 3823, 10207, 10607]
     formations:
-    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29, value: 100}
-    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35, value: 100}
-    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77, value: 100}
-    - {type: mustang, index: 3, position: {x: 290, y: -285}, level: 2, exp: 519, rotated: true, value: 200}
-    - {type: mustang, index: 4, position: {x: -290, y: -285}, level: 2, exp: 1317, rotated: true, value: 200}
-    - {type: mustang, index: 5, position: {x: 0, y: -285}, level: 2, exp: 2704, rotated: true, value: 200}
-    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43, value: 100}
-    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 1570, value: 100}
-    - {type: mustang, index: 8, position: {x: 140, y: -205}, level: 2, exp: 1265, rotated: true, equipment: 13030001, value: 200}
-    - {type: mustang, index: 9, position: {x: -140, y: -205}, level: 2, exp: 2704, rotated: true, equipment: 13030001, value: 200}
-    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 2479, rotated: true, value: 200}
-    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 350, value: 100}
-    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 1034, rotated: true, value: 200}
-    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 304, value: 100}
-    - {type: sandworm, index: 14, position: {x: 130, y: -290}, exp: 1628, equipment: 13030002, value: 400}
-    - {type: mustang, index: 15, position: {x: -210, y: -285}, exp: 1200, rotated: true, value: 200}
-    - {type: sandworm, index: 16, position: {x: -130, y: -290}, level: 2, exp: 1353, equipment: 13030006, value: 400}
-    - {type: mustang, index: 17, position: {x: -60, y: -285}, exp: 1200, rotated: true, value: 200}
-    - {type: mustang, index: 18, position: {x: 60, y: -285}, exp: 128, rotated: true, value: 200}
-    - {type: sandworm, index: 19, position: {x: 260, y: -290}, exp: 241, value: 400}
-    - {type: sandworm, index: 20, position: {x: -260, y: -290}, exp: 2000, value: 400}
+    - {type: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
+    - {type: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
+    - {type: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
+    - {type: mustang, index: 3, position: {x: 290, y: -285}, level: 2, exp: 519/2704, rotated: true, value: 200}
+    - {type: mustang, index: 4, position: {x: -290, y: -285}, level: 2, exp: 1317/2704, rotated: true, value: 200}
+    - {type: mustang, index: 5, position: {x: 0, y: -285}, level: 2, exp: 2704/2704, rotated: true, value: 200}
+    - {type: vortex, index: 6, position: {x: 170, y: -110}, exp: 43/750, value: 100}
+    - {type: marksman, index: 7, position: {x: -170, y: -150}, level: 3, exp: 1570/2315, value: 100}
+    - {type: mustang, index: 8, position: {x: 140, y: -205}, level: 2, exp: 1265/2704, rotated: true, equipment: 13030001, value: 200}
+    - {type: mustang, index: 9, position: {x: -140, y: -205}, level: 2, exp: 2704/2704, rotated: true, equipment: 13030001, value: 200}
+    - {type: stormcaller, index: 10, position: {x: 140, y: -95}, level: 2, exp: 2479/2479, rotated: true, value: 200}
+    - {type: marksman, index: 11, position: {x: 160, y: -150}, exp: 350/650, value: 100}
+    - {type: mustang, index: 12, position: {x: 210, y: -285}, exp: 1034/1200, rotated: true, value: 200}
+    - {type: marksman, index: 13, position: {x: 0, y: -160}, exp: 304/650, value: 100}
+    - {type: sandworm, index: 14, position: {x: 130, y: -290}, exp: 1628/2000, equipment: 13030002, value: 400}
+    - {type: mustang, index: 15, position: {x: -210, y: -285}, exp: 1200/1200, rotated: true, value: 200}
+    - {type: sandworm, index: 16, position: {x: -130, y: -290}, level: 2, exp: 1353/4506, equipment: 13030006, value: 400}
+    - {type: mustang, index: 17, position: {x: -60, y: -285}, exp: 1200/1200, rotated: true, value: 200}
+    - {type: mustang, index: 18, position: {x: 60, y: -285}, exp: 128/1200, rotated: true, value: 200}
+    - {type: sandworm, index: 19, position: {x: 260, y: -290}, exp: 241/2000, value: 400}
+    - {type: sandworm, index: 20, position: {x: -260, y: -290}, exp: 2000/2000, value: 400}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}

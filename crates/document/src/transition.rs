@@ -16,7 +16,7 @@ use crate::battle::{
 };
 use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
-use crate::layout::{ContraptionPlacement, Position, Region};
+use crate::layout::{ContraptionPlacement, Experience, Position, Region};
 use crate::ledger::Purse;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -514,10 +514,13 @@ fn release(
         // A unit the experience table does not name has no bar to fill.
         let maximum = crate::experience::full(&formation.type_name, level)
             .ok_or(Unsettled::Unpriced("experience"))?;
-        if formation.exp.is_some_and(|exp| exp >= maximum) {
+        if formation.exp.is_some_and(Experience::is_full) {
             return Err(Unsettled::Refused("training a full formation"));
         }
-        formation.exp = Some(maximum);
+        formation.exp = Some(Experience {
+            current: maximum,
+            maximum,
+        });
         let slot = next
             .battle_skills
             .iter_mut()
@@ -1118,7 +1121,7 @@ mod tests {
     use crate::battle::{Action, EquipmentItem, SideState, StateFormation};
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
-    use crate::layout::{Formation, Position};
+    use crate::layout::{Experience, Formation, Position};
 
     /// A side holding the given formations and nothing else.
     fn side_holding(placed: &[(i32, Position)]) -> SideState {
@@ -1489,7 +1492,10 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         state.supply = 1000;
-        state.formations[0].formation.exp = Some(650);
+        state.formations[0].formation.exp = Some(Experience {
+            current: 650,
+            maximum: 650,
+        });
         let next = step(&economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
         assert_eq!(next.formations[0].formation.level, Some(2));
         assert_eq!(next.formations[0].formation.exp, None);
@@ -1607,7 +1613,10 @@ mod tests {
     fn training_fills_the_bar_and_spends_the_slot() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
-        state.formations[0].formation.exp = Some(54);
+        state.formations[0].formation.exp = Some(Experience {
+            current: 54,
+            maximum: 650,
+        });
         state.battle_skills = vec![crate::battle::PanelSkill {
             index: 0,
             id: 1_100_001,
@@ -1620,7 +1629,13 @@ mod tests {
             target: crate::battle::SkillTarget::Unit(0),
         };
         let next = step(&economy, &state, &train).unwrap();
-        assert_eq!(next.formations[0].formation.exp, Some(650));
+        assert_eq!(
+            next.formations[0].formation.exp,
+            Some(Experience {
+                current: 650,
+                maximum: 650,
+            })
+        );
         assert!(next.battle_skills[0].used);
         assert!(next.battle_skills[0].release.is_none());
         assert_eq!(next.supply, state.supply);
@@ -1636,7 +1651,10 @@ mod tests {
 
         // It refuses the last level too, full or not.
         state.formations[0].formation.level = Some(9);
-        state.formations[0].formation.exp = Some(12);
+        state.formations[0].formation.exp = Some(Experience {
+            current: 12,
+            maximum: 4373,
+        });
         assert_eq!(
             step(&economy, &state, &train),
             Err(crate::transition::Unsettled::Refused(
