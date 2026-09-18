@@ -25,15 +25,9 @@ An action segment holds one round's decisions, one sequence per side.
 kind: action
 round: 7
 blue:
-- type: choose_reinforce_item
-  offer: 3
-  id: 1072213
-- type: buy_unit
-  unit: 30
-  position: {x: 0, y: -160}
-- type: release_commander_skill
-  skill: 0
-  target: !unit 4
+- {type: choose_reinforce_item, offer: 3, id: 1072213}
+- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
+- {type: release_commander_skill, skill: 0, target: !unit 4}
 red:
 - ...
 ```
@@ -46,11 +40,8 @@ An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
 fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
-- type: buy_unit
-  unit: 30
-  position: {x: 0, y: -160}
-- type: upgrade_unit
-  index: 5
+- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
+- {type: upgrade_unit, index: 5}
 ```
 
 Every operand is a 32-bit integer or a position, except
@@ -125,11 +116,8 @@ Answers the round's reinforcement offer. There are two answers and both are
 choices, so both are this one action.
 
 ```yaml
-- type: choose_reinforce_item
-  offer: 3
-  id: 1305003
-- type: choose_reinforce_item
-  offer: -1
+- {type: choose_reinforce_item, offer: 3, id: 1305003}
+- {type: choose_reinforce_item, offer: -1}
 ```
 
 `offer` is the offer's position in `reinforce_offers`, or `-1` for the decline,
@@ -151,10 +139,7 @@ declining is an item of its own rather than the absence of one.
 ### `choose_advance_team`
 
 ```yaml
-- type: choose_advance_team
-  offer: 1
-  id: 9910
-  specialist: 20005
+- {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}
 ```
 
 The opening, which is one decision with two halves: the team and the specialist
@@ -173,9 +158,7 @@ here.
 ### `buy_unit`
 
 ```yaml
-- type: buy_unit
-  unit: 30
-  position: {x: 0, y: -160}
+- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
 ```
 
 Buys one formation of `unit` and deploys it at `position`. Advances
@@ -188,8 +171,7 @@ level above the first.
 ### `upgrade_unit`
 
 ```yaml
-- type: upgrade_unit
-  index: 5
+- {type: upgrade_unit, index: 5}
 ```
 
 Raises the formation at `index` by one level. Costs one upgrade for its unit
@@ -198,8 +180,7 @@ type, less what the formation's equipment discounts, floored at zero.
 ### `unlock_unit`
 
 ```yaml
-- type: unlock_unit
-  unit: 30
+- {type: unlock_unit, unit: 30}
 ```
 
 Adds `unit` to `shop.unlocked_units`. Costs the unit's unlock price.
@@ -207,9 +188,7 @@ Adds `unit` to `shop.unlocked_units`. Costs the unit's unlock price.
 ### `upgrade_technology`
 
 ```yaml
-- type: upgrade_technology
-  unit: 9
-  tech: 3109
+- {type: upgrade_technology, unit: 9, tech: 3109}
 ```
 
 Researches `tech`, which belongs to `unit`, and adds it to `techs.units`.
@@ -221,8 +200,7 @@ unit and not per side.
 ### `active_blueprint`
 
 ```yaml
-- type: active_blueprint
-  id: 2
+- {type: active_blueprint, id: 2}
 ```
 
 Activates a Research Center blueprint and adds it to `blueprints`. A blueprint
@@ -237,8 +215,7 @@ documents are complete; they disagree on purpose.
 ### `active_energy_tower_skill`
 
 ```yaml
-- type: active_energy_tower_skill
-  skill: 3
+- {type: active_energy_tower_skill, skill: 3}
 ```
 
 Activates one Energy Tower skill for this round. Every one of them is a
@@ -251,8 +228,7 @@ this round, which makes every later purchase dearer.
 ### `strengthen_tower`
 
 ```yaml
-- type: strengthen_tower
-  tower: 0
+- {type: strengthen_tower, tower: 0}
 ```
 
 Raises the tower at building-manager position `tower` by one level, writing
@@ -265,9 +241,7 @@ oppositely, so nothing may read a tower's identity out of its position.
 ### `use_equipment`
 
 ```yaml
-- type: use_equipment
-  equipment: 1305003
-  unit: 3
+- {type: use_equipment, equipment: 1305003, unit: 3}
 ```
 
 Fits `equipment` to the formation at index `unit`. The item leaves `equipment`,
@@ -305,10 +279,7 @@ not a decision's. The identity covers what the decisions do to the stock.
 ### `move_unit`
 
 ```yaml
-- type: move_unit
-  index: 0
-  position: {x: 85, y: -80}
-  rotated: true
+- {type: move_unit, index: 0, position: {x: 85, y: -80}, rotated: true}
 ```
 
 Moves the formation at `index` to `position`. `rotated` defaults to false and
@@ -337,9 +308,7 @@ arrives travelling.
 ### `release_commander_skill`
 
 ```yaml
-- type: release_commander_skill
-  skill: 0
-  target: !unit 4
+- {type: release_commander_skill, skill: 0, target: !unit 4}
 ```
 
 Releases the skill in panel slot `skill`. The slot is a panel index and not a
@@ -365,9 +334,7 @@ is a property of its type rather than of its history.
 ### `release_contraption`
 
 ```yaml
-- type: release_contraption
-  contraption: 10001
-  position: {x: -130, y: -153}
+- {type: release_contraption, contraption: 10001, position: {x: -130, y: -153}}
 ```
 
 Buys `contraption` from the shop and places it at `position`. Advances
@@ -379,7 +346,7 @@ index. Costs the contraption's own price.
 ### `concede`
 
 ```yaml
-- type: concede
+- {type: concede}
 ```
 
 Gives up the match. It carries no operand and writes no field: the round is not
@@ -519,6 +486,8 @@ where the two frames differ.
 | `blue`, `red` | as taken |
 
 `kind` comes first in a segment and `round` second, and `blue` precedes `red`.
+Each action is written on one line as a flow mapping, by the spelling rules
+[`battle.md`](battle.md#normal-form) states for every segment.
 
 ## Excluded fields
 

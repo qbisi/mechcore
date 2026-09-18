@@ -9,6 +9,7 @@
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 /// One recorded match, as `docs/spec/document/battle.md` defines it.
@@ -361,8 +362,8 @@ struct StateSegment<'a> {
 #[derive(Serialize)]
 struct ActionSegment<'a> {
     round: i32,
-    blue: &'a [Action],
-    red: &'a [Action],
+    blue: Cow<'a, [Action]>,
+    red: Cow<'a, [Action]>,
 }
 
 /// The line that separates two segments of a stream.
@@ -375,10 +376,20 @@ const SEPARATOR: &str = "---\n";
 ///
 /// Returns an error when a segment cannot be serialized.
 pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
-    let opening = [
-        [battle.sides.blue.opening.action()],
-        [battle.sides.red.opening.action()],
-    ];
+    let mut yaml = String::new();
+    for (at, segment) in segments_of(battle).iter().enumerate() {
+        if at > 0 {
+            yaml.push_str(SEPARATOR);
+        }
+        let value = serde_yaml::to_value(segment)
+            .map_err(|error| format!("cannot serialize battle YAML: {error}"))?;
+        yaml.push_str(&emit(&value)?);
+    }
+    Ok(yaml)
+}
+
+/// A battle's segments, in stream order.
+fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
     let mut segments = vec![
         Segment::Battle(Header {
             map_id: battle.map_id,
@@ -390,8 +401,8 @@ pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
         }),
         Segment::Action(ActionSegment {
             round: 0,
-            blue: &opening[0],
-            red: &opening[1],
+            blue: Cow::Owned(vec![battle.sides.blue.opening.action()]),
+            red: Cow::Owned(vec![battle.sides.red.opening.action()]),
         }),
     ];
     for turn in &battle.turns {
@@ -402,21 +413,147 @@ pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
         }));
         segments.push(Segment::Action(ActionSegment {
             round: turn.round,
-            blue: &turn.actions.blue,
-            red: &turn.actions.red,
+            blue: Cow::Borrowed(&turn.actions.blue),
+            red: Cow::Borrowed(&turn.actions.red),
         }));
     }
-    let mut yaml = String::new();
-    for (at, segment) in segments.iter().enumerate() {
-        if at > 0 {
-            yaml.push_str(SEPARATOR);
+    segments
+}
+
+/// Writes one segment in the normal form's spelling.
+///
+/// `serde_yaml` has no per-field style, so a battle writes its own. Three rules
+/// cover every value, and none names a field:
+///
+/// - a sequence item is written on one line, in flow style;
+/// - a mapping or sequence whose members are all scalars is written in flow
+///   style on its key's line;
+/// - every other value is written in block style.
+///
+/// A battle holds actions, formations and ID lists by the thousand, and one
+/// line each keeps a round on a screen and makes a diff name the item that
+/// changed. A coordinate pair and an allocator are scalar mappings, so they
+/// fold too; a side, a shop or a technology list mixes shapes and stays a
+/// block.
+///
+/// # Errors
+///
+/// Returns an error when the segment is not a mapping, or a scalar cannot be
+/// quoted.
+fn emit(segment: &Value) -> Result<String, String> {
+    let Value::Mapping(fields) = segment else {
+        return Err("a battle segment is a mapping".into());
+    };
+    let mut out = String::new();
+    block_mapping(fields, 0, &mut out)?;
+    Ok(out)
+}
+
+fn block_mapping(
+    fields: &serde_yaml::Mapping,
+    indent: usize,
+    out: &mut String,
+) -> Result<(), String> {
+    let pad = " ".repeat(indent);
+    for (key, value) in fields {
+        out.push_str(&pad);
+        flow(key, out)?;
+        out.push(':');
+        match value {
+            Value::Mapping(inner) if !is_flat(value) => {
+                out.push('\n');
+                block_mapping(inner, indent + 2, out)?;
+            }
+            Value::Sequence(items) if !is_flat(value) => {
+                out.push('\n');
+                for item in items {
+                    out.push_str(&pad);
+                    out.push_str("- ");
+                    flow(item, out)?;
+                    out.push('\n');
+                }
+            }
+            _ => {
+                out.push(' ');
+                flow(value, out)?;
+                out.push('\n');
+            }
         }
-        yaml.push_str(
-            &serde_yaml::to_string(segment)
-                .map_err(|error| format!("cannot serialize battle YAML: {error}"))?,
-        );
     }
-    Ok(crate::layout::collapse_placement_positions(&yaml))
+    Ok(())
+}
+
+/// Whether a value is a scalar, or a collection holding only scalars.
+fn is_flat(value: &Value) -> bool {
+    let scalar = |value: &Value| {
+        matches!(
+            value,
+            Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_)
+        )
+    };
+    match value {
+        Value::Sequence(items) => items.iter().all(scalar),
+        Value::Mapping(fields) => fields.values().all(scalar),
+        Value::Tagged(_) => false,
+        _ => true,
+    }
+}
+
+/// Writes a YAML value in flow style.
+fn flow(value: &Value, out: &mut String) -> Result<(), String> {
+    match value {
+        Value::Null => out.push_str("null"),
+        Value::Bool(value) => out.push_str(if *value { "true" } else { "false" }),
+        Value::Number(value) => out.push_str(&value.to_string()),
+        Value::String(value) => {
+            // An identifier is written bare unless the reader would take it
+            // for something other than a string, as it would `true` or `null`.
+            let plain = value
+                .chars()
+                .next()
+                .is_some_and(|first| first.is_ascii_alphabetic())
+                && value
+                    .chars()
+                    .all(|character| character.is_ascii_alphanumeric() || character == '_')
+                && serde_yaml::from_str::<Value>(value).is_ok_and(|read| read == *value.as_str());
+            if plain {
+                out.push_str(value);
+            } else {
+                out.push_str(
+                    &serde_json::to_string(value)
+                        .map_err(|error| format!("cannot quote {value:?}: {error}"))?,
+                );
+            }
+        }
+        Value::Sequence(items) => {
+            out.push('[');
+            for (at, item) in items.iter().enumerate() {
+                if at > 0 {
+                    out.push_str(", ");
+                }
+                flow(item, out)?;
+            }
+            out.push(']');
+        }
+        Value::Mapping(fields) => {
+            out.push('{');
+            for (at, (key, field)) in fields.iter().enumerate() {
+                if at > 0 {
+                    out.push_str(", ");
+                }
+                flow(key, out)?;
+                out.push_str(": ");
+                flow(field, out)?;
+            }
+            out.push('}');
+        }
+        Value::Tagged(tagged) => {
+            out.push_str(&tagged.tag.to_string());
+            out.push(' ');
+            flow(&tagged.value, out)?;
+        }
+    }
+    Ok(())
 }
 
 /// A battle stream read as the segments it is made of, each checked for its
@@ -707,6 +844,84 @@ mod tests {
                 .unwrap_err()
                 .contains("round 1 state carries a release")
         );
+    }
+
+    /// The spelling follows the three rules and says what the value says, a
+    /// tagged release target included.
+    #[test]
+    fn a_segment_is_spelled_by_shape() {
+        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    formations:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    formations:\n    - type: release_commander_skill\n      target: !area\n      - x: 197\n        y: -40\n    - type: concede\n";
+        let value: serde_yaml::Value = serde_yaml::from_str(block).unwrap();
+        let spelled = super::emit(&value).unwrap();
+        assert_eq!(
+            spelled,
+            "kind: state\nround: 3\nreinforce_offers: [1033115, 1031122]\nsides:\n  blue:\n\
+             \x20   shop:\n      unlocked_units: [2, 10]\n      buys_remaining: 2\n\
+             \x20   next_index: {unit: 7, contraption: 0}\n    formations:\n\
+             \x20   - {type: vortex, index: 0, position: {x: -120, y: -100}}\n\
+             \x20   constructions: []\n  red:\n    formations:\n\
+             \x20   - {type: release_commander_skill, target: !area [{x: 197, y: -40}]}\n\
+             \x20   - {type: concede}\n"
+        );
+        assert_eq!(
+            serde_yaml::from_str::<serde_yaml::Value>(&spelled).unwrap(),
+            value
+        );
+    }
+
+    /// Integer keys, as a tech loadout has, are written bare.
+    #[test]
+    fn a_tech_loadout_row_is_one_line() {
+        let value: serde_yaml::Value = serde_yaml::from_str(
+            "sides:\n  blue:\n    tech_loadout:\n      1: [1001, 1105]\n      2001: [32001]\n",
+        )
+        .unwrap();
+        assert_eq!(
+            super::emit(&value).unwrap(),
+            "sides:\n  blue:\n    tech_loadout:\n      1: [1001, 1105]\n      2001: [32001]\n"
+        );
+    }
+
+    /// A string the reader would take for another type keeps its quotes.
+    #[test]
+    fn a_string_that_reads_as_another_type_is_quoted() {
+        for (value, written) in [
+            ("marksman", "marksman"),
+            ("y", "y"),
+            ("true", "\"true\""),
+            ("null", "\"null\""),
+            ("two words", "\"two words\""),
+        ] {
+            let mut out = String::new();
+            super::flow(&serde_yaml::Value::from(value), &mut out).unwrap();
+            assert_eq!(out, written);
+        }
+    }
+
+    /// Every segment of every tracked battle reads back as the value it was
+    /// spelled from.
+    #[cfg(feature = "convert")]
+    #[test]
+    fn every_tracked_segment_folds_without_changing_its_content() {
+        let mut folded = 0;
+        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = crate::convert::battle_from_grbr(&std::fs::read(&path).unwrap())
+            else {
+                continue;
+            };
+            for segment in super::segments_of(&battle) {
+                let value = serde_yaml::to_value(&segment).unwrap();
+                let spelled = super::emit(&value).unwrap();
+                let read: serde_yaml::Value = serde_yaml::from_str(&spelled).unwrap();
+                assert_eq!(read, value, "{}", path.display());
+                folded += 1;
+            }
+        }
+        assert_eq!(folded, 41 * 2 + 334 * 2);
     }
 
     #[test]

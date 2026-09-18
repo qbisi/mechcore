@@ -4,441 +4,99 @@ seed: 952173250
 sides:
   blue:
     offers:
-    - team: 9874
-      specialist: 20035
-    - team: 9883
-      specialist: 10013
-    - team: 9877
-      specialist: 20029
-    - team: 9889
-      specialist: 20038
+    - {team: 9874, specialist: 20035}
+    - {team: 9883, specialist: 10013}
+    - {team: 9877, specialist: 20029}
+    - {team: 9889, specialist: 20038}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
     tech_loadout:
-      1:
-      - 1001
-      - 1105
-      - 10201
-      - 10301
-      2:
-      - 1802
-      - 3202
-      - 10202
-      - 10802
-      3:
-      - 1203
-      - 10203
-      - 10603
-      - 180203
-      4:
-      - 304
-      - 1106
-      - 1107
-      - 10204
-      5:
-      - 1109
-      - 2505
-      - 3005
-      - 180305
-      6:
-      - 206
-      - 506
-      - 3206
-      - 10206
-      7:
-      - 407
-      - 3207
-      - 4607
-      - 10207
-      8:
-      - 308
-      - 1308
-      - 2408
-      - 10208
-      9:
-      - 209
-      - 10209
-      - 10509
-      - 180209
-      10:
-      - 2610
-      - 3510
-      - 10710
-      - 180110
-      11:
-      - 411
-      - 10211
-      - 10311
-      - 180311
-      12:
-      - 812
-      - 10212
-      - 10312
-      - 10912
-      13:
-      - 913
-      - 3013
-      - 10213
-      - 10513
-      14:
-      - 1014
-      - 1714
-      - 1814
-      - 10214
-      15:
-      - 3015
-      - 4515
-      - 10215
-      - 10815
-      16:
-      - 216
-      - 1816
-      - 10216
-      - 10316
-      17:
-      - 417
-      - 10217
-      - 10317
-      - 12017
-      - 12117
-      - 12217
-      18:
-      - 918
-      - 3018
-      - 10218
-      - 110181
-      19:
-      - 719
-      - 919
-      - 3019
-      - 10219
-      20:
-      - 820
-      - 10220
-      - 10620
-      - 180620
-      21:
-      - 721
-      - 4721
-      - 10221
-      - 10321
-      22:
-      - 2922
-      - 5322
-      - 10222
-      - 1102022
-      23:
-      - 923
-      - 3023
-      - 3623
-      - 10523
-      24:
-      - 424
-      - 924
-      - 10224
-      - 10524
-      25:
-      - 225
-      - 3025
-      - 3225
-      - 10225
-      26:
-      - 1826
-      - 3226
-      - 10226
-      - 180326
-      27:
-      - 1827
-      - 4027
-      - 4127
-      - 10227
-      28:
-      - 3028
-      - 4228
-      - 10228
-      - 10528
-      29:
-      - 2329
-      - 4329
-      - 10229
-      - 12029
-      - 110291
-      - 180329
-      30:
-      - 10230
-      - 10930
-      - 180430
-      - 180530
-      31:
-      - 631
-      - 931
-      - 10231
-      - 503101
-      2001:
-      - 32001
-      - 102001
-      - 1022001
-      - 1102001
-      - 1202001
-      - 11020012
-      2002:
-      - 72002
-      - 302002
-      - 1022002
-      - 11020021
-      - 11020022
-      - 18032002
-      4001:
-      - 1400101
-      - 1400102
-      - 1400103
-      - 1400104
-      - 3400101
-      - 7400201
-      - 10400101
-      - 11400101
-      - 11400102
-      - 11400103
-      - 12400101
-      - 12400102
-      - 12400103
-      - 12400104
-      - 12400105
-      - 18400101
-      - 48400101
-      - 48400102
-      - 48400103
-      - 48400104
+      1: [1001, 1105, 10201, 10301]
+      2: [1802, 3202, 10202, 10802]
+      3: [1203, 10203, 10603, 180203]
+      4: [304, 1106, 1107, 10204]
+      5: [1109, 2505, 3005, 180305]
+      6: [206, 506, 3206, 10206]
+      7: [407, 3207, 4607, 10207]
+      8: [308, 1308, 2408, 10208]
+      9: [209, 10209, 10509, 180209]
+      10: [2610, 3510, 10710, 180110]
+      11: [411, 10211, 10311, 180311]
+      12: [812, 10212, 10312, 10912]
+      13: [913, 3013, 10213, 10513]
+      14: [1014, 1714, 1814, 10214]
+      15: [3015, 4515, 10215, 10815]
+      16: [216, 1816, 10216, 10316]
+      17: [417, 10217, 10317, 12017, 12117, 12217]
+      18: [918, 3018, 10218, 110181]
+      19: [719, 919, 3019, 10219]
+      20: [820, 10220, 10620, 180620]
+      21: [721, 4721, 10221, 10321]
+      22: [2922, 5322, 10222, 1102022]
+      23: [923, 3023, 3623, 10523]
+      24: [424, 924, 10224, 10524]
+      25: [225, 3025, 3225, 10225]
+      26: [1826, 3226, 10226, 180326]
+      27: [1827, 4027, 4127, 10227]
+      28: [3028, 4228, 10228, 10528]
+      29: [2329, 4329, 10229, 12029, 110291, 180329]
+      30: [10230, 10930, 180430, 180530]
+      31: [631, 931, 10231, 503101]
+      2001: [32001, 102001, 1022001, 1102001, 1202001, 11020012]
+      2002: [72002, 302002, 1022002, 11020021, 11020022, 18032002]
+      4001: [1400101, 1400102, 1400103, 1400104, 3400101, 7400201, 10400101, 11400101, 11400102, 11400103, 12400101, 12400102, 12400103, 12400104, 12400105, 18400101, 48400101, 48400102, 48400103, 48400104]
   red:
     offers:
-    - team: 9875
-      specialist: 20032
-    - team: 9900
-      specialist: 20021
-    - team: 9879
-      specialist: 20033
-    - team: 9885
-      specialist: 20005
+    - {team: 9875, specialist: 20032}
+    - {team: 9900, specialist: 20021}
+    - {team: 9879, specialist: 20033}
+    - {team: 9885, specialist: 20005}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
     tech_loadout:
-      1:
-      - 1001
-      - 1105
-      - 10201
-      - 10301
-      2:
-      - 1802
-      - 3202
-      - 10202
-      - 10802
-      3:
-      - 1103
-      - 1203
-      - 10203
-      - 10603
-      4:
-      - 304
-      - 1106
-      - 1107
-      - 10204
-      5:
-      - 1109
-      - 3005
-      - 10505
-      - 180305
-      6:
-      - 506
-      - 3206
-      - 10206
-      - 10606
-      7:
-      - 3207
-      - 4607
-      - 10207
-      - 10607
-      8:
-      - 308
-      - 1308
-      - 10208
-      - 180808
-      9:
-      - 3109
-      - 10209
-      - 10509
-      - 10609
-      10:
-      - 2610
-      - 3510
-      - 10510
-      - 10710
-      11:
-      - 1108
-      - 1211
-      - 1611
-      - 180311
-      12:
-      - 1812
-      - 10212
-      - 10312
-      - 10912
-      13:
-      - 913
-      - 10213
-      - 10513
-      - 10613
-      14:
-      - 1014
-      - 1714
-      - 1814
-      - 10214
-      15:
-      - 4515
-      - 10215
-      - 10815
-      - 10915
-      16:
-      - 2916
-      - 10216
-      - 10316
-      - 10916
-      17:
-      - 417
-      - 3017
-      - 3317
-      - 10217
-      - 12017
-      - 12117
-      18:
-      - 4418
-      - 10218
-      - 110181
-      - 180418
-      19:
-      - 719
-      - 3019
-      - 10219
-      - 180519
-      20:
-      - 10220
-      - 10620
-      - 11020
-      - 180620
-      21:
-      - 3321
-      - 4721
-      - 10221
-      - 10321
-      22:
-      - 2922
-      - 5322
-      - 10222
-      - 1102022
-      23:
-      - 3023
-      - 3623
-      - 3723
-      - 13023
-      24:
-      - 424
-      - 3024
-      - 10224
-      - 11024
-      25:
-      - 225
-      - 425
-      - 3025
-      - 3925
-      26:
-      - 3226
-      - 3326
-      - 180326
-      - 180526
-      27:
-      - 1827
-      - 4127
-      - 10227
-      - 110271
-      28:
-      - 3028
-      - 4228
-      - 10228
-      - 10528
-      29:
-      - 2329
-      - 4329
-      - 10229
-      - 11029
-      - 12029
-      - 110291
-      30:
-      - 4430
-      - 10230
-      - 10930
-      - 180430
-      31:
-      - 631
-      - 10231
-      - 180931
-      - 503101
-      2001:
-      - 32001
-      - 102001
-      - 1022001
-      - 1102001
-      - 1202001
-      - 11020012
-      2002:
-      - 72002
-      - 302002
-      - 312002
-      - 1022002
-      - 1032002
-      - 11020021
-      4001:
-      - 1400101
-      - 1400102
-      - 1400103
-      - 1400104
-      - 3400101
-      - 7400201
-      - 10400101
-      - 11400101
-      - 11400102
-      - 11400103
-      - 12400101
-      - 12400102
-      - 12400103
-      - 12400104
-      - 12400105
-      - 18400101
-      - 48400101
-      - 48400102
-      - 48400103
-      - 48400104
+      1: [1001, 1105, 10201, 10301]
+      2: [1802, 3202, 10202, 10802]
+      3: [1103, 1203, 10203, 10603]
+      4: [304, 1106, 1107, 10204]
+      5: [1109, 3005, 10505, 180305]
+      6: [506, 3206, 10206, 10606]
+      7: [3207, 4607, 10207, 10607]
+      8: [308, 1308, 10208, 180808]
+      9: [3109, 10209, 10509, 10609]
+      10: [2610, 3510, 10510, 10710]
+      11: [1108, 1211, 1611, 180311]
+      12: [1812, 10212, 10312, 10912]
+      13: [913, 10213, 10513, 10613]
+      14: [1014, 1714, 1814, 10214]
+      15: [4515, 10215, 10815, 10915]
+      16: [2916, 10216, 10316, 10916]
+      17: [417, 3017, 3317, 10217, 12017, 12117]
+      18: [4418, 10218, 110181, 180418]
+      19: [719, 3019, 10219, 180519]
+      20: [10220, 10620, 11020, 180620]
+      21: [3321, 4721, 10221, 10321]
+      22: [2922, 5322, 10222, 1102022]
+      23: [3023, 3623, 3723, 13023]
+      24: [424, 3024, 10224, 11024]
+      25: [225, 425, 3025, 3925]
+      26: [3226, 3326, 180326, 180526]
+      27: [1827, 4127, 10227, 110271]
+      28: [3028, 4228, 10228, 10528]
+      29: [2329, 4329, 10229, 11029, 12029, 110291]
+      30: [4430, 10230, 10930, 180430]
+      31: [631, 10231, 180931, 503101]
+      2001: [32001, 102001, 1022001, 1102001, 1202001, 11020012]
+      2002: [72002, 302002, 312002, 1022002, 1032002, 11020021]
+      4001: [1400101, 1400102, 1400103, 1400104, 3400101, 7400201, 10400101, 11400101, 11400102, 11400103, 12400101, 12400102, 12400103, 12400104, 12400105, 18400101, 48400101, 48400102, 48400103, 48400104]
 ---
 kind: action
 round: 0
 blue:
-- type: choose_advance_team
-  offer: 2
-  id: 9877
-  specialist: 20029
+- {type: choose_advance_team, offer: 2, id: 9877, specialist: 20029}
 red:
-- type: choose_advance_team
-  offer: 0
-  id: 9875
-  specialist: 20032
+- {type: choose_advance_team, offer: 0, id: 9875, specialist: 20032}
 ---
 kind: state
 round: 1
@@ -447,2760 +105,819 @@ sides:
     reactor_core: 4400
     supply: 200
     shop:
-      unlocked_units:
-      - 9
-      - 13
+      unlocked_units: [9, 13]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
-    next_index:
-      unit: 5
-      contraption: 0
+    tower_strengthen_levels: [0, 0]
+    next_index: {unit: 5, contraption: 0}
     techs:
-      officers:
-      - 20029
+      officers: [20029]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 5, y: -160}
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 5, y: -180}
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: 5, y: -140}
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: 5, y: -200}
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: 5, y: -120}
-      value: 200
+    - {type: fang, index: 0, position: {x: 5, y: -160}, value: 100}
+    - {type: fang, index: 1, position: {x: 5, y: -180}, value: 100}
+    - {type: fang, index: 2, position: {x: 5, y: -140}, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: 5, y: -200}, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: 5, y: -120}, value: 200}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 5200
     supply: 300
     shop:
-      unlocked_units:
-      - 8
-      - 10
+      unlocked_units: [8, 10]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
-    next_index:
-      unit: 5
-      contraption: 0
+    tower_strengthen_levels: [0, 0]
+    next_index: {unit: 5, contraption: 0}
     techs:
-      officers:
-      - 20032
+      officers: [20032]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: -5, y: -160}
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: -5, y: -140}
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: -5, y: -180}
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: -5, y: -120}
-      value: 200
-    - type: steel_ball
-      index: 4
-      position: {x: -5, y: -200}
-      value: 200
+    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100}
+    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100}
+    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100}
+    - {type: steel_ball, index: 3, position: {x: -5, y: -120}, value: 200}
+    - {type: steel_ball, index: 4, position: {x: -5, y: -200}, value: 200}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 1
 blue:
-- type: move_unit
-  index: 4
-  position: {x: -110, y: -135}
-  rotated: true
-- type: move_unit
-  index: 3
-  position: {x: 110, y: -145}
-  rotated: true
-- type: move_unit
-  index: 3
-  position: {x: 110, y: -135}
-  rotated: true
-- type: move_unit
-  index: 2
-  position: {x: -140, y: -115}
-  rotated: true
-- type: move_unit
-  index: 0
-  position: {x: 160, y: -115}
-  rotated: true
-- type: move_unit
-  index: 2
-  position: {x: -150, y: -115}
-  rotated: true
-- type: move_unit
-  index: 2
-  position: {x: -160, y: -115}
-  rotated: true
-- type: move_unit
-  index: 2
-  position: {x: -150, y: -115}
-  rotated: true
-- type: move_unit
-  index: 1
-  position: {x: 140, y: -225}
-  rotated: true
-- type: unlock_unit
-  unit: 10
-- type: buy_unit
-  unit: 10
-  position: {x: 5, y: -160}
-- type: buy_unit
-  unit: 10
-  position: {x: 5, y: -180}
-- type: move_unit
-  index: 6
-  position: {x: -250, y: -285}
-  rotated: true
-- type: move_unit
-  index: 5
-  position: {x: 250, y: -285}
-  rotated: true
+- {type: move_unit, index: 4, position: {x: -110, y: -135}, rotated: true}
+- {type: move_unit, index: 3, position: {x: 110, y: -145}, rotated: true}
+- {type: move_unit, index: 3, position: {x: 110, y: -135}, rotated: true}
+- {type: move_unit, index: 2, position: {x: -140, y: -115}, rotated: true}
+- {type: move_unit, index: 0, position: {x: 160, y: -115}, rotated: true}
+- {type: move_unit, index: 2, position: {x: -150, y: -115}, rotated: true}
+- {type: move_unit, index: 2, position: {x: -160, y: -115}, rotated: true}
+- {type: move_unit, index: 2, position: {x: -150, y: -115}, rotated: true}
+- {type: move_unit, index: 1, position: {x: 140, y: -225}, rotated: true}
+- {type: unlock_unit, unit: 10}
+- {type: buy_unit, unit: 10, position: {x: 5, y: -160}}
+- {type: buy_unit, unit: 10, position: {x: 5, y: -180}}
+- {type: move_unit, index: 6, position: {x: -250, y: -285}, rotated: true}
+- {type: move_unit, index: 5, position: {x: 250, y: -285}, rotated: true}
 red:
-- type: unlock_unit
-  unit: 15
-- type: buy_unit
-  unit: 15
-  position: {x: 30, y: -160}
-- type: buy_unit
-  unit: 15
-  position: {x: 30, y: -140}
-- type: move_unit
-  index: 6
-  position: {x: 110, y: -70}
-- type: move_unit
-  index: 5
-  position: {x: 200, y: -70}
-- type: move_unit
-  index: 1
-  position: {x: 110, y: -105}
-  rotated: true
-- type: move_unit
-  index: 3
-  position: {x: 150, y: -135}
-  rotated: true
-- type: move_unit
-  index: 0
-  position: {x: 200, y: -105}
-  rotated: true
-- type: move_unit
-  index: 4
-  position: {x: 25, y: -200}
-- type: move_unit
-  index: 4
-  position: {x: 240, y: -135}
-  rotated: true
-- type: move_unit
-  index: 2
-  position: {x: 140, y: -205}
-  rotated: true
-- type: move_unit
-  index: 5
-  position: {x: 190, y: -70}
-- type: move_unit
-  index: 0
-  position: {x: 190, y: -105}
-  rotated: true
-- type: move_unit
-  index: 4
-  position: {x: 230, y: -135}
-  rotated: true
+- {type: unlock_unit, unit: 15}
+- {type: buy_unit, unit: 15, position: {x: 30, y: -160}}
+- {type: buy_unit, unit: 15, position: {x: 30, y: -140}}
+- {type: move_unit, index: 6, position: {x: 110, y: -70}}
+- {type: move_unit, index: 5, position: {x: 200, y: -70}}
+- {type: move_unit, index: 1, position: {x: 110, y: -105}, rotated: true}
+- {type: move_unit, index: 3, position: {x: 150, y: -135}, rotated: true}
+- {type: move_unit, index: 0, position: {x: 200, y: -105}, rotated: true}
+- {type: move_unit, index: 4, position: {x: 25, y: -200}}
+- {type: move_unit, index: 4, position: {x: 240, y: -135}, rotated: true}
+- {type: move_unit, index: 2, position: {x: 140, y: -205}, rotated: true}
+- {type: move_unit, index: 5, position: {x: 190, y: -70}}
+- {type: move_unit, index: 0, position: {x: 190, y: -105}, rotated: true}
+- {type: move_unit, index: 4, position: {x: 230, y: -135}, rotated: true}
 ---
 kind: state
 round: 2
-reinforce_offers:
-- 1021121
-- 1021125
-- 1021124
-- 1021228
+reinforce_offers: [1021121, 1021125, 1021124, 1021228]
 sides:
   blue:
     reactor_core: 3888
     supply: 400
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
+      unlocked_units: [2, 9, 10, 13]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
-    next_index:
-      unit: 7
-      contraption: 0
+    tower_strengthen_levels: [0, 0]
+    next_index: {unit: 7, contraption: 0}
     techs:
-      officers:
-      - 20029
+      officers: [20029]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 74
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 72
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 102
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: 110, y: -135}
-      exp: 261
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 252
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 250, y: -285}
-      exp: 184
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -250, y: -285}
-      exp: 56
-      rotated: true
-      value: 100
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 74, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 72, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 102, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: 110, y: -135}, exp: 261, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 252, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 250, y: -285}, exp: 184, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: -250, y: -285}, exp: 56, rotated: true, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 5200
     supply: 400
     shop:
-      unlocked_units:
-      - 8
-      - 10
-      - 15
+      unlocked_units: [8, 10, 15]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
-    next_index:
-      unit: 7
-      contraption: 0
+    tower_strengthen_levels: [0, 0]
+    next_index: {unit: 7, contraption: 0}
     techs:
-      officers:
-      - 20032
+      officers: [20032]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 157
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 123
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 421
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 539
-      rotated: true
-      value: 200
-    - type: steel_ball
-      index: 4
-      position: {x: 230, y: -135}
-      exp: 424
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 301
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 2
-      exp: 443
-      value: 100
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 157, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 123, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 421, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 539, rotated: true, value: 200}
+    - {type: steel_ball, index: 4, position: {x: 230, y: -135}, exp: 424, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 301, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 2, exp: 443, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 2
 blue:
-- type: choose_reinforce_item
-  offer: 2
-  id: 1021124
-- type: move_unit
-  index: 8
-  position: {x: -75, y: -135}
-- type: move_unit
-  index: 7
-  position: {x: -120, y: -170}
-- type: move_unit
-  index: 8
-  position: {x: -175, y: -125}
-- type: buy_unit
-  unit: 10
-  position: {x: 5, y: -160}
-- type: move_unit
-  index: 9
-  position: {x: 0, y: -285}
-  rotated: true
-- type: buy_unit
-  unit: 2
-  position: {x: 0, y: -160}
-- type: move_unit
-  index: 10
-  position: {x: -160, y: -170}
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 9
-  position: {x: 5, y: -160}
-- type: move_unit
-  index: 11
-  position: {x: -140, y: -225}
-  rotated: true
+- {type: choose_reinforce_item, offer: 2, id: 1021124}
+- {type: move_unit, index: 8, position: {x: -75, y: -135}}
+- {type: move_unit, index: 7, position: {x: -120, y: -170}}
+- {type: move_unit, index: 8, position: {x: -175, y: -125}}
+- {type: buy_unit, unit: 10, position: {x: 5, y: -160}}
+- {type: move_unit, index: 9, position: {x: 0, y: -285}, rotated: true}
+- {type: buy_unit, unit: 2, position: {x: 0, y: -160}}
+- {type: move_unit, index: 10, position: {x: -160, y: -170}}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 9, position: {x: 5, y: -160}}
+- {type: move_unit, index: 11, position: {x: -140, y: -225}, rotated: true}
 red:
-- type: choose_reinforce_item
-  offer: 1
-  id: 1021125
-- type: move_unit
-  index: 7
-  position: {x: 205, y: -170}
-- type: unlock_unit
-  unit: 9
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 8
-  position: {x: 145, y: -70}
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 9
-  position: {x: -160, y: -165}
-  rotated: true
-- type: move_unit
-  index: 9
-  position: {x: -160, y: -175}
-  rotated: true
+- {type: choose_reinforce_item, offer: 1, id: 1021125}
+- {type: move_unit, index: 7, position: {x: 205, y: -170}}
+- {type: unlock_unit, unit: 9}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 8, position: {x: 145, y: -70}}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 9, position: {x: -160, y: -165}, rotated: true}
+- {type: move_unit, index: 9, position: {x: -160, y: -175}, rotated: true}
 ---
 kind: state
 round: 3
-reinforce_offers:
-- 13030002
-- 1000001
-- 20004
-- 300001
+reinforce_offers: [13030002, 1000001, 20004, 300001]
 sides:
   blue:
     reactor_core: 3513
     supply: 650
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
-      - 24
+      unlocked_units: [2, 9, 10, 13, 24]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
-    next_index:
-      unit: 12
-      contraption: 0
+    tower_strengthen_levels: [0, 0]
+    next_index: {unit: 12, contraption: 0}
     techs:
-      officers:
-      - 20029
+      officers: [20029]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 332
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 306
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 254
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: 110, y: -135}
-      exp: 609
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 529
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 250, y: -285}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -250, y: -285}
-      exp: 107
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 7
-      position: {x: -120, y: -170}
-      level: 3
-      exp: 322
-      value: 100
-    - type: tarantula
-      index: 8
-      position: {x: -175, y: -125}
-      exp: 139
-      value: 200
-    - type: crawler
-      index: 9
-      position: {x: 0, y: -285}
-      exp: 48
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 10
-      position: {x: -160, y: -170}
-      exp: 142
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: -140, y: -225}
-      exp: 242
-      rotated: true
-      value: 100
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 332, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 306, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 254, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: 110, y: -135}, exp: 609, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 529, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 250, y: -285}, exp: 450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: -250, y: -285}, exp: 107, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: -120, y: -170}, level: 3, exp: 322, value: 100}
+    - {type: tarantula, index: 8, position: {x: -175, y: -125}, exp: 139, value: 200}
+    - {type: crawler, index: 9, position: {x: 0, y: -285}, exp: 48, rotated: true, value: 100}
+    - {type: marksman, index: 10, position: {x: -160, y: -170}, exp: 142, value: 100}
+    - {type: fang, index: 11, position: {x: -140, y: -225}, exp: 242, rotated: true, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 5200
     supply: 650
     shop:
-      unlocked_units:
-      - 8
-      - 9
-      - 10
-      - 15
-      - 25
+      unlocked_units: [8, 9, 10, 15, 25]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
-    next_index:
-      unit: 10
-      contraption: 0
+    tower_strengthen_levels: [0, 0]
+    next_index: {unit: 10, contraption: 0}
     techs:
-      officers:
-      - 20032
+      officers: [20032]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 216
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 175
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 737
-      rotated: true
-      value: 200
-    - type: steel_ball
-      index: 4
-      position: {x: 230, y: -135}
-      exp: 773
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 900
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 2
-      exp: 1297
-      value: 100
-    - type: phantom_ray
-      index: 7
-      position: {x: 205, y: -170}
-      exp: 1000
-      value: 200
-    - type: fang
-      index: 8
-      position: {x: 145, y: -70}
-      level: 2
-      exp: 559
-      value: 100
-    - type: fang
-      index: 9
-      position: {x: -160, y: -175}
-      level: 2
-      exp: 112
-      rotated: true
-      value: 100
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 216, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 175, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 737, rotated: true, value: 200}
+    - {type: steel_ball, index: 4, position: {x: 230, y: -135}, exp: 773, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 900, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 2, exp: 1297, value: 100}
+    - {type: phantom_ray, index: 7, position: {x: 205, y: -170}, exp: 1000, value: 200}
+    - {type: fang, index: 8, position: {x: 145, y: -70}, level: 2, exp: 559, value: 100}
+    - {type: fang, index: 9, position: {x: -160, y: -175}, level: 2, exp: 112, rotated: true, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 3
 blue:
-- type: choose_reinforce_item
-  offer: 1
-  id: 1000001
-- type: release_commander_skill
-  skill: 0
-  target: !unit 3
-- type: move_unit
-  index: 3
-  position: {x: -200, y: -135}
-  rotated: true
-- type: release_contraption
-  contraption: 10001
-  position: {x: -148, y: -146}
-- type: upgrade_technology
-  unit: 24
-  tech: 10224
-- type: buy_unit
-  unit: 2
-  position: {x: 0, y: -160}
-- type: buy_unit
-  unit: 2
-  position: {x: -20, y: -160}
-- type: move_unit
-  index: 12
-  position: {x: 110, y: -170}
-- type: move_unit
-  index: 13
-  position: {x: -80, y: -170}
+- {type: choose_reinforce_item, offer: 1, id: 1000001}
+- {type: release_commander_skill, skill: 0, target: !unit 3}
+- {type: move_unit, index: 3, position: {x: -200, y: -135}, rotated: true}
+- {type: release_contraption, contraption: 10001, position: {x: -148, y: -146}}
+- {type: upgrade_technology, unit: 24, tech: 10224}
+- {type: buy_unit, unit: 2, position: {x: 0, y: -160}}
+- {type: buy_unit, unit: 2, position: {x: -20, y: -160}}
+- {type: move_unit, index: 12, position: {x: 110, y: -170}}
+- {type: move_unit, index: 13, position: {x: -80, y: -170}}
 red:
-- type: choose_reinforce_item
-  offer: 3
-  id: 300001
-- type: release_commander_skill
-  skill: 0
-  target: !area
-  - {x: 140, y: 131}
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 10
-  position: {x: 350, y: 285}
-- type: upgrade_technology
-  unit: 9
-  tech: 3109
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 11
-  position: {x: 75, y: -70}
-- type: unlock_unit
-  unit: 2
-- type: upgrade_unit
-  index: 7
+- {type: choose_reinforce_item, offer: 3, id: 300001}
+- {type: release_commander_skill, skill: 0, target: !area [{x: 140, y: 131}]}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 10, position: {x: 350, y: 285}}
+- {type: upgrade_technology, unit: 9, tech: 3109}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 11, position: {x: 75, y: -70}}
+- {type: unlock_unit, unit: 2}
+- {type: upgrade_unit, index: 7}
 ---
 kind: state
 round: 4
-reinforce_offers:
-- 31901
-- 13030001
-- 300003
-- 300007
+reinforce_offers: [31901, 13030001, 300003, 300007]
 sides:
   blue:
     reactor_core: 3220
     supply: 800
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
-      - 24
+      unlocked_units: [2, 9, 10, 13, 24]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 1000001
-      cooldown: 0
-    next_index:
-      unit: 14
-      contraption: 1
+    - {index: 0, id: 1000001, cooldown: 0}
+    next_index: {unit: 14, contraption: 1}
     techs:
-      officers:
-      - 20029
-      units:
-      - 10224
+      officers: [20029]
+      units: [10224]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 416
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 369
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 378
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: -200, y: -135}
-      exp: 945
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 885
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 250, y: -285}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -250, y: -285}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 7
-      position: {x: -120, y: -170}
-      level: 3
-      exp: 882
-      value: 100
-    - type: tarantula
-      index: 8
-      position: {x: -175, y: -125}
-      exp: 575
-      value: 200
-    - type: crawler
-      index: 9
-      position: {x: 0, y: -285}
-      exp: 73
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 10
-      position: {x: -160, y: -170}
-      exp: 650
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: -140, y: -225}
-      exp: 305
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 12
-      position: {x: 110, y: -170}
-      exp: 572
-      value: 100
-    - type: marksman
-      index: 13
-      position: {x: -80, y: -170}
-      exp: 286
-      value: 100
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 416, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 369, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 378, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -200, y: -135}, exp: 945, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 885, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 250, y: -285}, exp: 450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: -250, y: -285}, exp: 450, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: -120, y: -170}, level: 3, exp: 882, value: 100}
+    - {type: tarantula, index: 8, position: {x: -175, y: -125}, exp: 575, value: 200}
+    - {type: crawler, index: 9, position: {x: 0, y: -285}, exp: 73, rotated: true, value: 100}
+    - {type: marksman, index: 10, position: {x: -160, y: -170}, exp: 650, value: 100}
+    - {type: fang, index: 11, position: {x: -140, y: -225}, exp: 305, rotated: true, value: 100}
+    - {type: marksman, index: 12, position: {x: 110, y: -170}, exp: 572, value: 100}
+    - {type: marksman, index: 13, position: {x: -80, y: -170}, exp: 286, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 5200
     supply: 850
     shop:
-      unlocked_units:
-      - 2
-      - 8
-      - 9
-      - 10
-      - 15
-      - 25
+      unlocked_units: [2, 8, 9, 10, 15, 25]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 300001
-      cooldown: 0
-    next_index:
-      unit: 12
-      contraption: 0
+    - {index: 0, id: 300001, cooldown: 0}
+    next_index: {unit: 12, contraption: 0}
     techs:
-      officers:
-      - 20032
-      units:
-      - 3109
+      officers: [20032]
+      units: [3109]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 231
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 197
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 774
-      rotated: true
-      value: 200
-    - type: steel_ball
-      index: 4
-      position: {x: 230, y: -135}
-      exp: 927
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 1166
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 2
-      exp: 1690
-      value: 100
-    - type: phantom_ray
-      index: 7
-      position: {x: 205, y: -170}
-      level: 2
-      exp: 1164
-      value: 200
-    - type: fang
-      index: 8
-      position: {x: 145, y: -70}
-      level: 2
-      exp: 1269
-      value: 100
-    - type: fang
-      index: 9
-      position: {x: -160, y: -175}
-      level: 2
-      exp: 640
-      rotated: true
-      value: 100
-    - type: fang
-      index: 10
-      position: {x: 350, y: 285}
-      level: 2
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: 75, y: -70}
-      level: 2
-      exp: 653
-      value: 100
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 231, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 197, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 774, rotated: true, value: 200}
+    - {type: steel_ball, index: 4, position: {x: 230, y: -135}, exp: 927, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 1166, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 2, exp: 1690, value: 100}
+    - {type: phantom_ray, index: 7, position: {x: 205, y: -170}, level: 2, exp: 1164, value: 200}
+    - {type: fang, index: 8, position: {x: 145, y: -70}, level: 2, exp: 1269, value: 100}
+    - {type: fang, index: 9, position: {x: -160, y: -175}, level: 2, exp: 640, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 350, y: 285}, level: 2, value: 100}
+    - {type: fang, index: 11, position: {x: 75, y: -70}, level: 2, exp: 653, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 4
 blue:
-- type: choose_reinforce_item
-  offer: 2
-  id: 300003
-- type: release_commander_skill
-  skill: 1
-  target: !area
-  - {x: -151, y: 91}
-- type: active_blueprint
-  id: 1
-- type: release_commander_skill
-  skill: 2
-  target: !area
-  - {x: -204, y: 5}
-  - {x: -99, y: 5}
-- type: release_contraption
-  contraption: 10001
-  position: {x: -141, y: -144}
-- type: upgrade_unit
-  index: 10
-- type: buy_unit
-  unit: 24
-  position: {x: -5, y: -165}
-- type: move_unit
-  index: 14
-  position: {x: -85, y: -135}
-- type: release_commander_skill
-  skill: 0
-  target: !unit 6
-- type: move_unit
-  index: 6
-  position: {x: -290, y: -275}
-  rotated: true
-- type: move_unit
-  index: 6
-  position: {x: -290, y: -285}
-  rotated: true
-- type: upgrade_unit
-  index: 6
-- type: buy_unit
-  unit: 10
-  position: {x: 5, y: -160}
-- type: move_unit
-  index: 15
-  position: {x: -110, y: -205}
-  rotated: true
+- {type: choose_reinforce_item, offer: 2, id: 300003}
+- {type: release_commander_skill, skill: 1, target: !area [{x: -151, y: 91}]}
+- {type: active_blueprint, id: 1}
+- {type: release_commander_skill, skill: 2, target: !area [{x: -204, y: 5}, {x: -99, y: 5}]}
+- {type: release_contraption, contraption: 10001, position: {x: -141, y: -144}}
+- {type: upgrade_unit, index: 10}
+- {type: buy_unit, unit: 24, position: {x: -5, y: -165}}
+- {type: move_unit, index: 14, position: {x: -85, y: -135}}
+- {type: release_commander_skill, skill: 0, target: !unit 6}
+- {type: move_unit, index: 6, position: {x: -290, y: -275}, rotated: true}
+- {type: move_unit, index: 6, position: {x: -290, y: -285}, rotated: true}
+- {type: upgrade_unit, index: 6}
+- {type: buy_unit, unit: 10, position: {x: 5, y: -160}}
+- {type: move_unit, index: 15, position: {x: -110, y: -205}, rotated: true}
 red:
-- type: choose_reinforce_item
-  offer: 2
-  id: 300003
-- type: release_commander_skill
-  skill: 1
-  target: !area
-  - {x: 135, y: 183}
-- type: release_contraption
-  contraption: 10001
-  position: {x: 138, y: -85}
-- type: upgrade_unit
-  index: 6
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 12
-  position: {x: 235, y: -70}
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 13
-  position: {x: 5, y: -70}
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 14
-  position: {x: -350, y: 285}
+- {type: choose_reinforce_item, offer: 2, id: 300003}
+- {type: release_commander_skill, skill: 1, target: !area [{x: 135, y: 183}]}
+- {type: release_contraption, contraption: 10001, position: {x: 138, y: -85}}
+- {type: upgrade_unit, index: 6}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 12, position: {x: 235, y: -70}}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 13, position: {x: 5, y: -70}}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 14, position: {x: -350, y: 285}}
 ---
 kind: state
 round: 5
-reinforce_offers:
-- 100002
-- 13030004
-- 1000001
-- 20002
+reinforce_offers: [100002, 13030004, 1000001, 20002]
 sides:
   blue:
     reactor_core: 3220
     supply: 1000
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
-      - 24
+      unlocked_units: [2, 9, 10, 13, 24]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 1
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [1]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 1000001
-      cooldown: 0
-    - index: 1
-      id: 300003
-      cooldown: 0
-    - index: 2
-      id: 400002
-      cooldown: 0
-    next_index:
-      unit: 16
-      contraption: 2
+    - {index: 0, id: 1000001, cooldown: 0}
+    - {index: 1, id: 300003, cooldown: 0}
+    - {index: 2, id: 400002, cooldown: 0}
+    next_index: {unit: 16, contraption: 2}
     techs:
-      officers:
-      - 20029
-      units:
-      - 10224
+      officers: [20029]
+      units: [10224]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 582
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: -200, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 250, y: -285}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -290, y: -285}
-      level: 2
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 7
-      position: {x: -120, y: -170}
-      level: 3
-      exp: 2315
-      value: 100
-    - type: tarantula
-      index: 8
-      position: {x: -175, y: -125}
-      exp: 1500
-      value: 200
-    - type: crawler
-      index: 9
-      position: {x: 0, y: -285}
-      exp: 220
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 10
-      position: {x: -160, y: -170}
-      level: 2
-      exp: 310
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: -140, y: -225}
-      exp: 442
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 12
-      position: {x: 110, y: -170}
-      exp: 650
-      value: 100
-    - type: marksman
-      index: 13
-      position: {x: -80, y: -170}
-      exp: 650
-      value: 100
-    - type: tarantula
-      index: 14
-      position: {x: -85, y: -135}
-      exp: 1500
-      value: 200
-    - type: crawler
-      index: 15
-      position: {x: -110, y: -205}
-      exp: 141
-      rotated: true
-      value: 100
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 582, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -200, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 250, y: -285}, exp: 450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: -290, y: -285}, level: 2, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: -120, y: -170}, level: 3, exp: 2315, value: 100}
+    - {type: tarantula, index: 8, position: {x: -175, y: -125}, exp: 1500, value: 200}
+    - {type: crawler, index: 9, position: {x: 0, y: -285}, exp: 220, rotated: true, value: 100}
+    - {type: marksman, index: 10, position: {x: -160, y: -170}, level: 2, exp: 310, value: 100}
+    - {type: fang, index: 11, position: {x: -140, y: -225}, exp: 442, rotated: true, value: 100}
+    - {type: marksman, index: 12, position: {x: 110, y: -170}, exp: 650, value: 100}
+    - {type: marksman, index: 13, position: {x: -80, y: -170}, exp: 650, value: 100}
+    - {type: tarantula, index: 14, position: {x: -85, y: -135}, exp: 1500, value: 200}
+    - {type: crawler, index: 15, position: {x: -110, y: -205}, exp: 141, rotated: true, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
     terrains:
-    - type: oil
-      control_points:
-      - {x: -204, y: 5}
-      - {x: -99, y: 5}
-      grid_rows:
-        0: []
-        1:
-        - 240
-        - 1020
-        - 2046
-        - 2046
-        - 4095
-        - 4095
-        - 2047
-        - 1023
-        - 1022
-        - 510
-        - 508
-        - 240
-        2:
-        - 240
-        - 1020
-        - 2046
-        - 2046
-        - 1023
-        - 1023
-        - 511
-        - 511
-        - 254
-        - 254
-        - 252
-        - 240
-        3:
-        - 240
-        - 1020
-        - 510
-        - 510
-        - 255
-        - 255
-        - 255
-        - 255
-        - 254
-        - 254
-        - 252
-        - 240
-        4:
-        - 240
-        - 252
-        - 254
-        - 254
-        - 255
-        - 255
-        - 255
-        - 255
-        - 254
-        - 510
-        - 508
-        - 240
-        5:
-        - 240
-        - 252
-        - 254
-        - 254
-        - 255
-        - 511
-        - 511
-        - 1023
-        - 1022
-        - 2046
-        - 1020
-        - 240
-        6:
-        - 240
-        - 252
-        - 510
-        - 510
-        - 1023
-        - 1023
-        - 2047
-        - 4095
-        - 2046
-        - 2046
-        - 1020
-        - 240
+    - {type: oil, control_points: [{x: -204, y: 5}, {x: -99, y: 5}], grid_rows: {0: [], 1: [240, 1020, 2046, 2046, 4095, 4095, 2047, 1023, 1022, 510, 508, 240], 2: [240, 1020, 2046, 2046, 1023, 1023, 511, 511, 254, 254, 252, 240], 3: [240, 1020, 510, 510, 255, 255, 255, 255, 254, 254, 252, 240], 4: [240, 252, 254, 254, 255, 255, 255, 255, 254, 510, 508, 240], 5: [240, 252, 254, 254, 255, 511, 511, 1023, 1022, 2046, 1020, 240], 6: [240, 252, 510, 510, 1023, 1023, 2047, 4095, 2046, 2046, 1020, 240]}}
   red:
     reactor_core: 4268
     supply: 1050
     shop:
-      unlocked_units:
-      - 2
-      - 8
-      - 9
-      - 10
-      - 15
-      - 25
+      unlocked_units: [2, 8, 9, 10, 15, 25]
       buys_remaining: 2
       unlocks_remaining: 1
-    tower_strengthen_levels:
-    - 0
-    - 0
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 300001
-      cooldown: 2
-    - index: 1
-      id: 300003
-      cooldown: 0
-    next_index:
-      unit: 15
-      contraption: 1
+    - {index: 0, id: 300001, cooldown: 2}
+    - {index: 1, id: 300003, cooldown: 0}
+    next_index: {unit: 15, contraption: 1}
     techs:
-      officers:
-      - 20032
-      units:
-      - 3109
+      officers: [20032]
+      units: [3109]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 236
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 203
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 806
-      rotated: true
-      value: 200
-    - type: steel_ball
-      index: 4
-      position: {x: 230, y: -135}
-      exp: 929
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 1520
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 3
-      exp: 343
-      value: 100
-    - type: phantom_ray
-      index: 7
-      position: {x: 205, y: -170}
-      level: 2
-      exp: 1260
-      value: 200
-    - type: fang
-      index: 8
-      position: {x: 145, y: -70}
-      level: 2
-      exp: 1352
-      value: 100
-    - type: fang
-      index: 9
-      position: {x: -160, y: -175}
-      level: 2
-      exp: 1057
-      rotated: true
-      value: 100
-    - type: fang
-      index: 10
-      position: {x: 350, y: 285}
-      level: 2
-      exp: 857
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: 75, y: -70}
-      level: 2
-      exp: 878
-      value: 100
-    - type: fang
-      index: 12
-      position: {x: 235, y: -70}
-      level: 2
-      exp: 97
-      value: 100
-    - type: fang
-      index: 13
-      position: {x: 5, y: -70}
-      level: 2
-      exp: 259
-      value: 100
-    - type: fang
-      index: 14
-      position: {x: -350, y: 285}
-      level: 2
-      value: 100
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 236, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 203, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 806, rotated: true, value: 200}
+    - {type: steel_ball, index: 4, position: {x: 230, y: -135}, exp: 929, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 1520, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 3, exp: 343, value: 100}
+    - {type: phantom_ray, index: 7, position: {x: 205, y: -170}, level: 2, exp: 1260, value: 200}
+    - {type: fang, index: 8, position: {x: 145, y: -70}, level: 2, exp: 1352, value: 100}
+    - {type: fang, index: 9, position: {x: -160, y: -175}, level: 2, exp: 1057, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 350, y: 285}, level: 2, exp: 857, value: 100}
+    - {type: fang, index: 11, position: {x: 75, y: -70}, level: 2, exp: 878, value: 100}
+    - {type: fang, index: 12, position: {x: 235, y: -70}, level: 2, exp: 97, value: 100}
+    - {type: fang, index: 13, position: {x: 5, y: -70}, level: 2, exp: 259, value: 100}
+    - {type: fang, index: 14, position: {x: -350, y: 285}, level: 2, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 5
 blue:
-- type: choose_reinforce_item
-  offer: 0
-  id: 100002
-- type: release_commander_skill
-  skill: 3
-  target: !area
-  - {x: -45, y: 1}
-  - {x: 71, y: 78}
-- type: release_contraption
-  contraption: 10001
-  position: {x: -137, y: -137}
-- type: upgrade_unit
-  index: 8
-- type: upgrade_unit
-  index: 14
-- type: upgrade_unit
-  index: 7
-- type: upgrade_unit
-  index: 12
-- type: upgrade_unit
-  index: 13
-- type: release_commander_skill
-  skill: 0
-  target: !unit 6
-- type: move_unit
-  index: 6
-  position: {x: -225, y: -240}
-- type: buy_unit
-  unit: 24
-  position: {x: -5, y: -165}
-- type: move_unit
-  index: 16
-  position: {x: -225, y: -295}
-- type: move_unit
-  index: 6
-  position: {x: -225, y: -250}
-- type: move_unit
-  index: 6
-  position: {x: -215, y: -240}
-- type: buy_unit
-  unit: 2
-  position: {x: 0, y: -160}
-- type: move_unit
-  index: 17
-  position: {x: -50, y: -170}
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 9
-  position: {x: 5, y: -160}
-- type: move_unit
-  index: 18
-  position: {x: -50, y: -125}
-  rotated: true
+- {type: choose_reinforce_item, offer: 0, id: 100002}
+- {type: release_commander_skill, skill: 3, target: !area [{x: -45, y: 1}, {x: 71, y: 78}]}
+- {type: release_contraption, contraption: 10001, position: {x: -137, y: -137}}
+- {type: upgrade_unit, index: 8}
+- {type: upgrade_unit, index: 14}
+- {type: upgrade_unit, index: 7}
+- {type: upgrade_unit, index: 12}
+- {type: upgrade_unit, index: 13}
+- {type: release_commander_skill, skill: 0, target: !unit 6}
+- {type: move_unit, index: 6, position: {x: -225, y: -240}}
+- {type: buy_unit, unit: 24, position: {x: -5, y: -165}}
+- {type: move_unit, index: 16, position: {x: -225, y: -295}}
+- {type: move_unit, index: 6, position: {x: -225, y: -250}}
+- {type: move_unit, index: 6, position: {x: -215, y: -240}}
+- {type: buy_unit, unit: 2, position: {x: 0, y: -160}}
+- {type: move_unit, index: 17, position: {x: -50, y: -170}}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 9, position: {x: 5, y: -160}}
+- {type: move_unit, index: 18, position: {x: -50, y: -125}, rotated: true}
 red:
-- type: choose_reinforce_item
-  offer: 3
-  id: 20002
-- type: active_blueprint
-  id: 4
-- type: upgrade_unit
-  index: 8
-- type: active_blueprint
-  id: 2
-- type: release_commander_skill
-  skill: 2
-  target: !unit 4
-- type: upgrade_technology
-  unit: 9
-  tech: 10209
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 15
-  position: {x: 350, y: 35}
+- {type: choose_reinforce_item, offer: 3, id: 20002}
+- {type: active_blueprint, id: 4}
+- {type: upgrade_unit, index: 8}
+- {type: active_blueprint, id: 2}
+- {type: release_commander_skill, skill: 2, target: !unit 4}
+- {type: upgrade_technology, unit: 9, tech: 10209}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 15, position: {x: 350, y: 35}}
 ---
 kind: state
 round: 6
-reinforce_offers:
-- 1061319
-- 1061421
-- 1061326
-- 1061416
+reinforce_offers: [1061319, 1061421, 1061326, 1061416]
 sides:
   blue:
     reactor_core: 3220
     supply: 1200
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
-      - 24
+      unlocked_units: [2, 9, 10, 13, 24]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 1
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [1]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 1000001
-      cooldown: 0
-    - index: 1
-      id: 300003
-      cooldown: 4
-    - index: 2
-      id: 400002
-      cooldown: 3
-    - index: 3
-      id: 100002
-      cooldown: 0
-    next_index:
-      unit: 19
-      contraption: 3
+    - {index: 0, id: 1000001, cooldown: 0}
+    - {index: 1, id: 300003, cooldown: 4}
+    - {index: 2, id: 400002, cooldown: 3}
+    - {index: 3, id: 100002, cooldown: 0}
+    next_index: {unit: 19, contraption: 3}
     techs:
-      officers:
-      - 20029
-      units:
-      - 10224
+      officers: [20029]
+      units: [10224]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: -200, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 250, y: -285}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -215, y: -240}
-      level: 2
-      exp: 123
-      value: 100
-    - type: marksman
-      index: 7
-      position: {x: -120, y: -170}
-      level: 4
-      exp: 1605
-      value: 100
-    - type: tarantula
-      index: 8
-      position: {x: -175, y: -125}
-      level: 2
-      exp: 1729
-      value: 200
-    - type: crawler
-      index: 9
-      position: {x: 0, y: -285}
-      exp: 307
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 10
-      position: {x: -160, y: -170}
-      level: 2
-      exp: 614
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: -140, y: -225}
-      exp: 566
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 12
-      position: {x: 110, y: -170}
-      level: 2
-      exp: 304
-      value: 100
-    - type: marksman
-      index: 13
-      position: {x: -80, y: -170}
-      level: 2
-      exp: 417
-      value: 100
-    - type: tarantula
-      index: 14
-      position: {x: -85, y: -135}
-      level: 2
-      exp: 2327
-      value: 200
-    - type: crawler
-      index: 15
-      position: {x: -110, y: -205}
-      exp: 278
-      rotated: true
-      value: 100
-    - type: tarantula
-      index: 16
-      position: {x: -225, y: -295}
-      exp: 1240
-      value: 200
-    - type: marksman
-      index: 17
-      position: {x: -50, y: -170}
-      exp: 438
-      value: 100
-    - type: fang
-      index: 18
-      position: {x: -50, y: -125}
-      exp: 87
-      rotated: true
-      value: 100
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -200, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 250, y: -285}, exp: 450, rotated: true, value: 100}
+    - {type: crawler, index: 6, position: {x: -215, y: -240}, level: 2, exp: 123, value: 100}
+    - {type: marksman, index: 7, position: {x: -120, y: -170}, level: 4, exp: 1605, value: 100}
+    - {type: tarantula, index: 8, position: {x: -175, y: -125}, level: 2, exp: 1729, value: 200}
+    - {type: crawler, index: 9, position: {x: 0, y: -285}, exp: 307, rotated: true, value: 100}
+    - {type: marksman, index: 10, position: {x: -160, y: -170}, level: 2, exp: 614, value: 100}
+    - {type: fang, index: 11, position: {x: -140, y: -225}, exp: 566, rotated: true, value: 100}
+    - {type: marksman, index: 12, position: {x: 110, y: -170}, level: 2, exp: 304, value: 100}
+    - {type: marksman, index: 13, position: {x: -80, y: -170}, level: 2, exp: 417, value: 100}
+    - {type: tarantula, index: 14, position: {x: -85, y: -135}, level: 2, exp: 2327, value: 200}
+    - {type: crawler, index: 15, position: {x: -110, y: -205}, exp: 278, rotated: true, value: 100}
+    - {type: tarantula, index: 16, position: {x: -225, y: -295}, exp: 1240, value: 200}
+    - {type: marksman, index: 17, position: {x: -50, y: -170}, exp: 438, value: 100}
+    - {type: fang, index: 18, position: {x: -50, y: -125}, exp: 87, rotated: true, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 3662
     supply: 1200
     shop:
-      unlocked_units:
-      - 2
-      - 8
-      - 9
-      - 10
-      - 15
-      - 25
+      unlocked_units: [2, 8, 9, 10, 15, 25]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 2
-    - 4
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [2, 4]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 300001
-      cooldown: 1
-    - index: 1
-      id: 300003
-      cooldown: 4
-    - index: 2
-      id: 900001
-      cooldown: 0
-    next_index:
-      unit: 16
-      contraption: 1
+    - {index: 0, id: 300001, cooldown: 1}
+    - {index: 1, id: 300003, cooldown: 4}
+    - {index: 2, id: 900001, cooldown: 0}
+    next_index: {unit: 16, contraption: 1}
     techs:
-      officers:
-      - 20002
-      - 20032
-      units:
-      - 3109
-      - 10209
+      officers: [20002, 20032]
+      units: [3109, 10209]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 236
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 203
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 834
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 1568
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 3
-      exp: 529
-      value: 100
-    - type: phantom_ray
-      index: 7
-      position: {x: 205, y: -170}
-      level: 2
-      exp: 1382
-      value: 200
-    - type: fang
-      index: 8
-      position: {x: 145, y: -70}
-      level: 3
-      exp: 1512
-      value: 100
-    - type: fang
-      index: 9
-      position: {x: -160, y: -175}
-      level: 2
-      exp: 1352
-      rotated: true
-      value: 100
-    - type: fang
-      index: 10
-      position: {x: 350, y: 285}
-      level: 2
-      exp: 1001
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: 75, y: -70}
-      level: 2
-      exp: 1240
-      value: 100
-    - type: fang
-      index: 12
-      position: {x: 235, y: -70}
-      level: 2
-      exp: 672
-      value: 100
-    - type: fang
-      index: 13
-      position: {x: 5, y: -70}
-      level: 2
-      exp: 259
-      value: 100
-    - type: fang
-      index: 14
-      position: {x: -350, y: 285}
-      level: 2
-      exp: 609
-      value: 100
-    - type: fang
-      index: 15
-      position: {x: 350, y: 35}
-      level: 2
-      exp: 565
-      value: 100
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 236, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 203, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 834, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 1568, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 3, exp: 529, value: 100}
+    - {type: phantom_ray, index: 7, position: {x: 205, y: -170}, level: 2, exp: 1382, value: 200}
+    - {type: fang, index: 8, position: {x: 145, y: -70}, level: 3, exp: 1512, value: 100}
+    - {type: fang, index: 9, position: {x: -160, y: -175}, level: 2, exp: 1352, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 350, y: 285}, level: 2, exp: 1001, value: 100}
+    - {type: fang, index: 11, position: {x: 75, y: -70}, level: 2, exp: 1240, value: 100}
+    - {type: fang, index: 12, position: {x: 235, y: -70}, level: 2, exp: 672, value: 100}
+    - {type: fang, index: 13, position: {x: 5, y: -70}, level: 2, exp: 259, value: 100}
+    - {type: fang, index: 14, position: {x: -350, y: 285}, level: 2, exp: 609, value: 100}
+    - {type: fang, index: 15, position: {x: 350, y: 35}, level: 2, exp: 565, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 6
 blue:
-- type: choose_reinforce_item
-  offer: 1
-  id: 1061421
-- type: move_unit
-  index: 19
-  position: {x: -25, y: -135}
-- type: upgrade_unit
-  index: 5
-- type: release_commander_skill
-  skill: 0
-  target: !unit 5
-- type: move_unit
-  index: 5
-  position: {x: 215, y: -240}
-- type: buy_unit
-  unit: 24
-  position: {x: -5, y: -165}
-- type: move_unit
-  index: 20
-  position: {x: 215, y: -295}
-- type: move_unit
-  index: 20
-  position: {x: 235, y: -295}
-- type: release_contraption
-  contraption: 10001
-  position: {x: -112, y: -137}
-- type: buy_unit
-  unit: 24
-  position: {x: -5, y: -165}
-- type: move_unit
-  index: 21
-  position: {x: -225, y: -145}
-- type: move_unit
-  index: 21
-  position: {x: -225, y: -135}
-- type: upgrade_technology
-  unit: 24
-  tech: 924
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 24
-  position: {x: -5, y: -165}
-- type: move_unit
-  index: 22
-  position: {x: 5, y: -135}
+- {type: choose_reinforce_item, offer: 1, id: 1061421}
+- {type: move_unit, index: 19, position: {x: -25, y: -135}}
+- {type: upgrade_unit, index: 5}
+- {type: release_commander_skill, skill: 0, target: !unit 5}
+- {type: move_unit, index: 5, position: {x: 215, y: -240}}
+- {type: buy_unit, unit: 24, position: {x: -5, y: -165}}
+- {type: move_unit, index: 20, position: {x: 215, y: -295}}
+- {type: move_unit, index: 20, position: {x: 235, y: -295}}
+- {type: release_contraption, contraption: 10001, position: {x: -112, y: -137}}
+- {type: buy_unit, unit: 24, position: {x: -5, y: -165}}
+- {type: move_unit, index: 21, position: {x: -225, y: -145}}
+- {type: move_unit, index: 21, position: {x: -225, y: -135}}
+- {type: upgrade_technology, unit: 24, tech: 924}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 24, position: {x: -5, y: -165}}
+- {type: move_unit, index: 22, position: {x: 5, y: -135}}
 red:
-- type: choose_reinforce_item
-  offer: 0
-  id: 1061319
-- type: move_unit
-  index: 16
-  position: {x: 185, y: -45}
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 17
-  position: {x: -350, y: 35}
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 18
-  position: {x: 45, y: -90}
-- type: upgrade_technology
-  unit: 9
-  tech: 10509
-- type: release_commander_skill
-  skill: 0
-  target: !area
-  - {x: 60, y: 136}
-- type: upgrade_unit
-  index: 9
+- {type: choose_reinforce_item, offer: 0, id: 1061319}
+- {type: move_unit, index: 16, position: {x: 185, y: -45}}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 17, position: {x: -350, y: 35}}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 18, position: {x: 45, y: -90}}
+- {type: upgrade_technology, unit: 9, tech: 10509}
+- {type: release_commander_skill, skill: 0, target: !area [{x: 60, y: 136}]}
+- {type: upgrade_unit, index: 9}
 ---
 kind: state
 round: 7
-reinforce_offers:
-- 300004
-- 800001
-- 32801
-- 300001
+reinforce_offers: [300004, 800001, 32801, 300001]
 sides:
   blue:
     reactor_core: 3220
     supply: 1400
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
-      - 21
-      - 24
+      unlocked_units: [2, 9, 10, 13, 21, 24]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 1
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [1]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 1000001
-      cooldown: 0
-    - index: 1
-      id: 300003
-      cooldown: 3
-    - index: 2
-      id: 400002
-      cooldown: 2
-    - index: 3
-      id: 100002
-      cooldown: 3
-    next_index:
-      unit: 23
-      contraption: 4
+    - {index: 0, id: 1000001, cooldown: 0}
+    - {index: 1, id: 300003, cooldown: 3}
+    - {index: 2, id: 400002, cooldown: 2}
+    - {index: 3, id: 100002, cooldown: 3}
+    next_index: {unit: 23, contraption: 4}
     techs:
-      officers:
-      - 20029
-      units:
-      - 924
-      - 10224
+      officers: [20029]
+      units: [924, 10224]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: -200, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 215, y: -240}
-      level: 2
-      exp: 48
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -215, y: -240}
-      level: 2
-      exp: 408
-      value: 100
-    - type: marksman
-      index: 7
-      position: {x: -120, y: -170}
-      level: 4
-      exp: 2559
-      value: 100
-    - type: tarantula
-      index: 8
-      position: {x: -175, y: -125}
-      level: 2
-      exp: 1750
-      value: 200
-    - type: crawler
-      index: 9
-      position: {x: 0, y: -285}
-      exp: 328
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 10
-      position: {x: -160, y: -170}
-      level: 2
-      exp: 1465
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: -140, y: -225}
-      exp: 578
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 12
-      position: {x: 110, y: -170}
-      level: 2
-      exp: 436
-      value: 100
-    - type: marksman
-      index: 13
-      position: {x: -80, y: -170}
-      level: 2
-      exp: 1218
-      value: 100
-    - type: tarantula
-      index: 14
-      position: {x: -85, y: -135}
-      level: 2
-      exp: 3380
-      value: 200
-    - type: crawler
-      index: 15
-      position: {x: -110, y: -205}
-      exp: 335
-      rotated: true
-      value: 100
-    - type: tarantula
-      index: 16
-      position: {x: -225, y: -295}
-      exp: 1500
-      value: 200
-    - type: marksman
-      index: 17
-      position: {x: -50, y: -170}
-      exp: 650
-      value: 100
-    - type: fang
-      index: 18
-      position: {x: -50, y: -125}
-      exp: 87
-      rotated: true
-      value: 100
-    - type: sabertooth
-      index: 19
-      position: {x: -25, y: -135}
-      level: 4
-      exp: 986
-      value: 200
-    - type: tarantula
-      index: 20
-      position: {x: 235, y: -295}
-      exp: 1272
-      value: 200
-    - type: tarantula
-      index: 21
-      position: {x: -225, y: -135}
-      exp: 1500
-      value: 200
-    - type: tarantula
-      index: 22
-      position: {x: 5, y: -135}
-      exp: 1500
-      value: 200
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -200, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 215, y: -240}, level: 2, exp: 48, value: 100}
+    - {type: crawler, index: 6, position: {x: -215, y: -240}, level: 2, exp: 408, value: 100}
+    - {type: marksman, index: 7, position: {x: -120, y: -170}, level: 4, exp: 2559, value: 100}
+    - {type: tarantula, index: 8, position: {x: -175, y: -125}, level: 2, exp: 1750, value: 200}
+    - {type: crawler, index: 9, position: {x: 0, y: -285}, exp: 328, rotated: true, value: 100}
+    - {type: marksman, index: 10, position: {x: -160, y: -170}, level: 2, exp: 1465, value: 100}
+    - {type: fang, index: 11, position: {x: -140, y: -225}, exp: 578, rotated: true, value: 100}
+    - {type: marksman, index: 12, position: {x: 110, y: -170}, level: 2, exp: 436, value: 100}
+    - {type: marksman, index: 13, position: {x: -80, y: -170}, level: 2, exp: 1218, value: 100}
+    - {type: tarantula, index: 14, position: {x: -85, y: -135}, level: 2, exp: 3380, value: 200}
+    - {type: crawler, index: 15, position: {x: -110, y: -205}, exp: 335, rotated: true, value: 100}
+    - {type: tarantula, index: 16, position: {x: -225, y: -295}, exp: 1500, value: 200}
+    - {type: marksman, index: 17, position: {x: -50, y: -170}, exp: 650, value: 100}
+    - {type: fang, index: 18, position: {x: -50, y: -125}, exp: 87, rotated: true, value: 100}
+    - {type: sabertooth, index: 19, position: {x: -25, y: -135}, level: 4, exp: 986, value: 200}
+    - {type: tarantula, index: 20, position: {x: 235, y: -295}, exp: 1272, value: 200}
+    - {type: tarantula, index: 21, position: {x: -225, y: -135}, exp: 1500, value: 200}
+    - {type: tarantula, index: 22, position: {x: 5, y: -135}, exp: 1500, value: 200}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 2208
     supply: 1400
     shop:
-      unlocked_units:
-      - 2
-      - 8
-      - 9
-      - 10
-      - 15
-      - 19
-      - 25
+      unlocked_units: [2, 8, 9, 10, 15, 19, 25]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 2
-    - 4
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [2, 4]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 300001
-      cooldown: 0
-    - index: 1
-      id: 300003
-      cooldown: 3
-    - index: 2
-      id: 900001
-      cooldown: 0
-    next_index:
-      unit: 19
-      contraption: 1
+    - {index: 0, id: 300001, cooldown: 0}
+    - {index: 1, id: 300003, cooldown: 3}
+    - {index: 2, id: 900001, cooldown: 0}
+    next_index: {unit: 19, contraption: 1}
     techs:
-      officers:
-      - 20002
-      - 20032
-      units:
-      - 3109
-      - 10209
-      - 10509
+      officers: [20002, 20032]
+      units: [3109, 10209, 10509]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 264
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 235
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 860
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 1660
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 3
-      exp: 632
-      value: 100
-    - type: phantom_ray
-      index: 7
-      position: {x: 205, y: -170}
-      level: 2
-      exp: 1633
-      value: 200
-    - type: fang
-      index: 8
-      position: {x: 145, y: -70}
-      level: 3
-      exp: 2137
-      value: 100
-    - type: fang
-      index: 9
-      position: {x: -160, y: -175}
-      level: 3
-      exp: 854
-      rotated: true
-      value: 100
-    - type: fang
-      index: 10
-      position: {x: 350, y: 285}
-      level: 2
-      exp: 1195
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: 75, y: -70}
-      level: 2
-      exp: 1352
-      value: 100
-    - type: fang
-      index: 12
-      position: {x: 235, y: -70}
-      level: 2
-      exp: 1348
-      value: 100
-    - type: fang
-      index: 13
-      position: {x: 5, y: -70}
-      level: 2
-      exp: 309
-      value: 100
-    - type: fang
-      index: 14
-      position: {x: -350, y: 285}
-      level: 2
-      exp: 611
-      value: 100
-    - type: fang
-      index: 15
-      position: {x: 350, y: 35}
-      level: 2
-      exp: 567
-      value: 100
-    - type: scorpion
-      index: 16
-      position: {x: 185, y: -45}
-      level: 3
-      exp: 926
-      value: 300
-    - type: fang
-      index: 17
-      position: {x: -350, y: 35}
-      level: 2
-      exp: 818
-      value: 100
-    - type: fang
-      index: 18
-      position: {x: 45, y: -90}
-      level: 2
-      exp: 133
-      value: 100
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 264, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 235, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 860, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 1660, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 3, exp: 632, value: 100}
+    - {type: phantom_ray, index: 7, position: {x: 205, y: -170}, level: 2, exp: 1633, value: 200}
+    - {type: fang, index: 8, position: {x: 145, y: -70}, level: 3, exp: 2137, value: 100}
+    - {type: fang, index: 9, position: {x: -160, y: -175}, level: 3, exp: 854, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 350, y: 285}, level: 2, exp: 1195, value: 100}
+    - {type: fang, index: 11, position: {x: 75, y: -70}, level: 2, exp: 1352, value: 100}
+    - {type: fang, index: 12, position: {x: 235, y: -70}, level: 2, exp: 1348, value: 100}
+    - {type: fang, index: 13, position: {x: 5, y: -70}, level: 2, exp: 309, value: 100}
+    - {type: fang, index: 14, position: {x: -350, y: 285}, level: 2, exp: 611, value: 100}
+    - {type: fang, index: 15, position: {x: 350, y: 35}, level: 2, exp: 567, value: 100}
+    - {type: scorpion, index: 16, position: {x: 185, y: -45}, level: 3, exp: 926, value: 300}
+    - {type: fang, index: 17, position: {x: -350, y: 35}, level: 2, exp: 818, value: 100}
+    - {type: fang, index: 18, position: {x: 45, y: -90}, level: 2, exp: 133, value: 100}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 7
 blue:
-- type: choose_reinforce_item
-  offer: 3
-  id: 300001
-- type: upgrade_unit
-  index: 10
-- type: upgrade_unit
-  index: 17
-- type: upgrade_unit
-  index: 21
-- type: upgrade_unit
-  index: 14
-- type: upgrade_unit
-  index: 16
-- type: upgrade_unit
-  index: 22
-- type: buy_unit
-  unit: 24
-  position: {x: -5, y: -165}
-- type: move_unit
-  index: 23
-  position: {x: 195, y: -125}
-- type: move_unit
-  index: 23
-  position: {x: 235, y: -125}
-- type: unlock_unit
-  unit: 16
-- type: buy_unit
-  unit: 16
-  position: {x: 0, y: -160}
-- type: move_unit
-  index: 24
-  position: {x: 350, y: 290}
-- type: release_commander_skill
-  skill: 4
-  target: !area
-  - {x: 183, y: 171}
-- type: active_energy_tower_skill
-  skill: 5
-- type: upgrade_technology
-  unit: 21
-  tech: 10321
-- type: active_blueprint
-  id: 5
+- {type: choose_reinforce_item, offer: 3, id: 300001}
+- {type: upgrade_unit, index: 10}
+- {type: upgrade_unit, index: 17}
+- {type: upgrade_unit, index: 21}
+- {type: upgrade_unit, index: 14}
+- {type: upgrade_unit, index: 16}
+- {type: upgrade_unit, index: 22}
+- {type: buy_unit, unit: 24, position: {x: -5, y: -165}}
+- {type: move_unit, index: 23, position: {x: 195, y: -125}}
+- {type: move_unit, index: 23, position: {x: 235, y: -125}}
+- {type: unlock_unit, unit: 16}
+- {type: buy_unit, unit: 16, position: {x: 0, y: -160}}
+- {type: move_unit, index: 24, position: {x: 350, y: 290}}
+- {type: release_commander_skill, skill: 4, target: !area [{x: 183, y: 171}]}
+- {type: active_energy_tower_skill, skill: 5}
+- {type: upgrade_technology, unit: 21, tech: 10321}
+- {type: active_blueprint, id: 5}
 red:
-- type: choose_reinforce_item
-  offer: 0
-  id: 300004
-- type: release_commander_skill
-  skill: 3
-  target: !area
-  - {x: 130, y: 154}
-- type: upgrade_unit
-  index: 11
-- type: upgrade_unit
-  index: 8
-- type: release_commander_skill
-  skill: 2
-  target: !unit 16
-- type: unlock_unit
-  unit: 14
-- type: buy_unit
-  unit: 14
-  position: {x: 5, y: -155}
-- type: buy_unit
-  unit: 14
-  position: {x: 35, y: -155}
-- type: upgrade_technology
-  unit: 14
-  tech: 10214
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 14
-  position: {x: 5, y: -125}
-- type: move_unit
-  index: 21
-  position: {x: 5, y: -95}
-- type: move_unit
-  index: 20
-  position: {x: 85, y: -95}
-- type: move_unit
-  index: 19
-  position: {x: 215, y: -95}
-- type: release_contraption
-  contraption: 10001
-  position: {x: 197, y: -98}
-- type: active_energy_tower_skill
-  skill: 1
-- type: active_energy_tower_skill
-  skill: 5
-- type: active_energy_tower_skill
-  skill: 6
-- type: release_contraption
-  contraption: 10001
-  position: {x: 58, y: -101}
+- {type: choose_reinforce_item, offer: 0, id: 300004}
+- {type: release_commander_skill, skill: 3, target: !area [{x: 130, y: 154}]}
+- {type: upgrade_unit, index: 11}
+- {type: upgrade_unit, index: 8}
+- {type: release_commander_skill, skill: 2, target: !unit 16}
+- {type: unlock_unit, unit: 14}
+- {type: buy_unit, unit: 14, position: {x: 5, y: -155}}
+- {type: buy_unit, unit: 14, position: {x: 35, y: -155}}
+- {type: upgrade_technology, unit: 14, tech: 10214}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 14, position: {x: 5, y: -125}}
+- {type: move_unit, index: 21, position: {x: 5, y: -95}}
+- {type: move_unit, index: 20, position: {x: 85, y: -95}}
+- {type: move_unit, index: 19, position: {x: 215, y: -95}}
+- {type: release_contraption, contraption: 10001, position: {x: 197, y: -98}}
+- {type: active_energy_tower_skill, skill: 1}
+- {type: active_energy_tower_skill, skill: 5}
+- {type: active_energy_tower_skill, skill: 6}
+- {type: release_contraption, contraption: 10001, position: {x: 58, y: -101}}
 ---
 kind: state
 round: 8
-reinforce_offers:
-- 108146
-- 1081326
-- 108124
-- 1082220
+reinforce_offers: [108146, 1081326, 108124, 1082220]
 sides:
   blue:
     reactor_core: 2021
     supply: 1600
     shop:
-      unlocked_units:
-      - 2
-      - 9
-      - 10
-      - 13
-      - 16
-      - 21
-      - 24
+      unlocked_units: [2, 9, 10, 13, 16, 21, 24]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 1
-    - 5
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [1, 5]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 1000001
-      cooldown: 0
-    - index: 1
-      id: 300003
-      cooldown: 2
-    - index: 2
-      id: 400002
-      cooldown: 1
-    - index: 3
-      id: 100002
-      cooldown: 2
-    - index: 4
-      id: 300001
-      cooldown: 0
-    next_index:
-      unit: 25
-      contraption: 4
+    - {index: 0, id: 1000001, cooldown: 0}
+    - {index: 1, id: 300003, cooldown: 2}
+    - {index: 2, id: 400002, cooldown: 1}
+    - {index: 3, id: 100002, cooldown: 2}
+    - {index: 4, id: 300001, cooldown: 0}
+    next_index: {unit: 25, contraption: 4}
     techs:
-      officers:
-      - 20029
-      units:
-      - 924
-      - 10224
-      - 10321
+      officers: [20029]
+      units: [924, 10224, 10321]
     formations:
-    - type: fang
-      index: 0
-      position: {x: 160, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 1
-      position: {x: 140, y: -225}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: fang
-      index: 2
-      position: {x: -150, y: -115}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: sledgehammer
-      index: 3
-      position: {x: -200, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: sledgehammer
-      index: 4
-      position: {x: -110, y: -135}
-      exp: 1300
-      rotated: true
-      value: 200
-    - type: crawler
-      index: 5
-      position: {x: 215, y: -240}
-      level: 2
-      exp: 153
-      value: 100
-    - type: crawler
-      index: 6
-      position: {x: -215, y: -240}
-      level: 2
-      exp: 661
-      value: 100
-    - type: marksman
-      index: 7
-      position: {x: -120, y: -170}
-      level: 4
-      exp: 2919
-      value: 100
-    - type: tarantula
-      index: 8
-      position: {x: -175, y: -125}
-      level: 2
-      exp: 2603
-      value: 200
-    - type: crawler
-      index: 9
-      position: {x: 0, y: -285}
-      exp: 361
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 10
-      position: {x: -160, y: -170}
-      level: 3
-      exp: 75
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: -140, y: -225}
-      exp: 600
-      rotated: true
-      value: 100
-    - type: marksman
-      index: 12
-      position: {x: 110, y: -170}
-      level: 2
-      exp: 557
-      value: 100
-    - type: marksman
-      index: 13
-      position: {x: -80, y: -170}
-      level: 2
-      exp: 1355
-      value: 100
-    - type: tarantula
-      index: 14
-      position: {x: -85, y: -135}
-      level: 3
-      exp: 552
-      value: 200
-    - type: crawler
-      index: 15
-      position: {x: -110, y: -205}
-      exp: 376
-      rotated: true
-      value: 100
-    - type: tarantula
-      index: 16
-      position: {x: -225, y: -295}
-      level: 2
-      exp: 1028
-      value: 200
-    - type: marksman
-      index: 17
-      position: {x: -50, y: -170}
-      level: 2
-      exp: 36
-      value: 100
-    - type: fang
-      index: 18
-      position: {x: -50, y: -125}
-      exp: 118
-      rotated: true
-      value: 100
-    - type: sabertooth
-      index: 19
-      position: {x: -25, y: -135}
-      level: 4
-      exp: 1067
-      value: 200
-    - type: tarantula
-      index: 20
-      position: {x: 235, y: -295}
-      exp: 1500
-      value: 200
-    - type: tarantula
-      index: 21
-      position: {x: -225, y: -135}
-      level: 2
-      exp: 929
-      value: 200
-    - type: tarantula
-      index: 22
-      position: {x: 5, y: -135}
-      level: 2
-      exp: 698
-      value: 200
-    - type: tarantula
-      index: 23
-      position: {x: 235, y: -125}
-      exp: 1221
-      value: 200
-    - type: phoenix
-      index: 24
-      position: {x: 350, y: 290}
-      exp: 1300
-      value: 200
+    - {type: fang, index: 0, position: {x: 160, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 1, position: {x: 140, y: -225}, exp: 600, rotated: true, value: 100}
+    - {type: fang, index: 2, position: {x: -150, y: -115}, exp: 600, rotated: true, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -200, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -110, y: -135}, exp: 1300, rotated: true, value: 200}
+    - {type: crawler, index: 5, position: {x: 215, y: -240}, level: 2, exp: 153, value: 100}
+    - {type: crawler, index: 6, position: {x: -215, y: -240}, level: 2, exp: 661, value: 100}
+    - {type: marksman, index: 7, position: {x: -120, y: -170}, level: 4, exp: 2919, value: 100}
+    - {type: tarantula, index: 8, position: {x: -175, y: -125}, level: 2, exp: 2603, value: 200}
+    - {type: crawler, index: 9, position: {x: 0, y: -285}, exp: 361, rotated: true, value: 100}
+    - {type: marksman, index: 10, position: {x: -160, y: -170}, level: 3, exp: 75, value: 100}
+    - {type: fang, index: 11, position: {x: -140, y: -225}, exp: 600, rotated: true, value: 100}
+    - {type: marksman, index: 12, position: {x: 110, y: -170}, level: 2, exp: 557, value: 100}
+    - {type: marksman, index: 13, position: {x: -80, y: -170}, level: 2, exp: 1355, value: 100}
+    - {type: tarantula, index: 14, position: {x: -85, y: -135}, level: 3, exp: 552, value: 200}
+    - {type: crawler, index: 15, position: {x: -110, y: -205}, exp: 376, rotated: true, value: 100}
+    - {type: tarantula, index: 16, position: {x: -225, y: -295}, level: 2, exp: 1028, value: 200}
+    - {type: marksman, index: 17, position: {x: -50, y: -170}, level: 2, exp: 36, value: 100}
+    - {type: fang, index: 18, position: {x: -50, y: -125}, exp: 118, rotated: true, value: 100}
+    - {type: sabertooth, index: 19, position: {x: -25, y: -135}, level: 4, exp: 1067, value: 200}
+    - {type: tarantula, index: 20, position: {x: 235, y: -295}, exp: 1500, value: 200}
+    - {type: tarantula, index: 21, position: {x: -225, y: -135}, level: 2, exp: 929, value: 200}
+    - {type: tarantula, index: 22, position: {x: 5, y: -135}, level: 2, exp: 698, value: 200}
+    - {type: tarantula, index: 23, position: {x: 235, y: -125}, exp: 1221, value: 200}
+    - {type: phoenix, index: 24, position: {x: 350, y: 290}, exp: 1300, value: 200}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 2208
     supply: 1350
     shop:
-      unlocked_units:
-      - 2
-      - 8
-      - 9
-      - 10
-      - 14
-      - 15
-      - 19
-      - 25
+      unlocked_units: [2, 8, 9, 10, 14, 15, 19, 25]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints:
-    - 2
-    - 4
-    tower_strengthen_levels:
-    - 0
-    - 0
+    blueprints: [2, 4]
+    tower_strengthen_levels: [0, 0]
     battle_skills:
-    - index: 0
-      id: 300001
-      cooldown: 2
-    - index: 1
-      id: 300003
-      cooldown: 2
-    - index: 2
-      id: 900001
-      cooldown: 0
-    - index: 3
-      id: 300004
-      cooldown: 0
-    next_index:
-      unit: 22
-      contraption: 3
+    - {index: 0, id: 300001, cooldown: 2}
+    - {index: 1, id: 300003, cooldown: 2}
+    - {index: 2, id: 900001, cooldown: 0}
+    - {index: 3, id: 300004, cooldown: 0}
+    next_index: {unit: 22, contraption: 3}
     techs:
-      officers:
-      - 20002
-      - 20032
-      units:
-      - 3109
-      - 10209
-      - 10214
-      - 10509
+      officers: [20002, 20032]
+      units: [3109, 10209, 10214, 10509]
     formations:
-    - type: crawler
-      index: 0
-      position: {x: 190, y: -105}
-      exp: 325
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 1
-      position: {x: 110, y: -105}
-      exp: 254
-      rotated: true
-      value: 100
-    - type: crawler
-      index: 2
-      position: {x: 140, y: -205}
-      exp: 450
-      rotated: true
-      value: 100
-    - type: steel_ball
-      index: 3
-      position: {x: 150, y: -135}
-      exp: 895
-      rotated: true
-      value: 200
-    - type: arclight
-      index: 5
-      position: {x: 190, y: -70}
-      level: 2
-      exp: 1690
-      value: 100
-    - type: arclight
-      index: 6
-      position: {x: 110, y: -70}
-      level: 3
-      exp: 1725
-      value: 100
-    - type: phantom_ray
-      index: 7
-      position: {x: 205, y: -170}
-      level: 2
-      exp: 2253
-      value: 200
-    - type: fang
-      index: 8
-      position: {x: 145, y: -70}
-      level: 4
-      exp: 2694
-      value: 100
-    - type: fang
-      index: 9
-      position: {x: -160, y: -175}
-      level: 3
-      exp: 1574
-      rotated: true
-      value: 100
-    - type: fang
-      index: 10
-      position: {x: 350, y: 285}
-      level: 2
-      exp: 1315
-      value: 100
-    - type: fang
-      index: 11
-      position: {x: 75, y: -70}
-      level: 3
-      exp: 1965
-      value: 100
-    - type: fang
-      index: 12
-      position: {x: 235, y: -70}
-      level: 2
-      exp: 1352
-      value: 100
-    - type: fang
-      index: 13
-      position: {x: 5, y: -70}
-      level: 2
-      exp: 1352
-      value: 100
-    - type: fang
-      index: 14
-      position: {x: -350, y: 285}
-      level: 2
-      exp: 611
-      value: 100
-    - type: fang
-      index: 15
-      position: {x: 350, y: 35}
-      level: 2
-      exp: 1352
-      value: 100
-    - type: fang
-      index: 17
-      position: {x: -350, y: 35}
-      level: 2
-      exp: 818
-      value: 100
-    - type: fang
-      index: 18
-      position: {x: 45, y: -90}
-      level: 2
-      exp: 1352
-      value: 100
-    - type: hacker
-      index: 19
-      position: {x: 215, y: -95}
-      level: 2
-      exp: 961
-      value: 200
-    - type: hacker
-      index: 20
-      position: {x: 85, y: -95}
-      level: 2
-      exp: 1115
-      value: 200
-    - type: hacker
-      index: 21
-      position: {x: 5, y: -95}
-      level: 2
-      exp: 1262
-      value: 200
+    - {type: crawler, index: 0, position: {x: 190, y: -105}, exp: 325, rotated: true, value: 100}
+    - {type: crawler, index: 1, position: {x: 110, y: -105}, exp: 254, rotated: true, value: 100}
+    - {type: crawler, index: 2, position: {x: 140, y: -205}, exp: 450, rotated: true, value: 100}
+    - {type: steel_ball, index: 3, position: {x: 150, y: -135}, exp: 895, rotated: true, value: 200}
+    - {type: arclight, index: 5, position: {x: 190, y: -70}, level: 2, exp: 1690, value: 100}
+    - {type: arclight, index: 6, position: {x: 110, y: -70}, level: 3, exp: 1725, value: 100}
+    - {type: phantom_ray, index: 7, position: {x: 205, y: -170}, level: 2, exp: 2253, value: 200}
+    - {type: fang, index: 8, position: {x: 145, y: -70}, level: 4, exp: 2694, value: 100}
+    - {type: fang, index: 9, position: {x: -160, y: -175}, level: 3, exp: 1574, rotated: true, value: 100}
+    - {type: fang, index: 10, position: {x: 350, y: 285}, level: 2, exp: 1315, value: 100}
+    - {type: fang, index: 11, position: {x: 75, y: -70}, level: 3, exp: 1965, value: 100}
+    - {type: fang, index: 12, position: {x: 235, y: -70}, level: 2, exp: 1352, value: 100}
+    - {type: fang, index: 13, position: {x: 5, y: -70}, level: 2, exp: 1352, value: 100}
+    - {type: fang, index: 14, position: {x: -350, y: 285}, level: 2, exp: 611, value: 100}
+    - {type: fang, index: 15, position: {x: 350, y: 35}, level: 2, exp: 1352, value: 100}
+    - {type: fang, index: 17, position: {x: -350, y: 35}, level: 2, exp: 818, value: 100}
+    - {type: fang, index: 18, position: {x: 45, y: -90}, level: 2, exp: 1352, value: 100}
+    - {type: hacker, index: 19, position: {x: 215, y: -95}, level: 2, exp: 961, value: 200}
+    - {type: hacker, index: 20, position: {x: 85, y: -95}, level: 2, exp: 1115, value: 200}
+    - {type: hacker, index: 21, position: {x: 5, y: -95}, level: 2, exp: 1262, value: 200}
     constructions:
-    - type: defensive_wall
-      index: 0
-      position: {x: -140, y: -55}
-    - type: rapid_fire_turret
-      index: 1
-      position: {x: 140, y: -100}
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
     contraptions:
-    - type: shield
-      index: 1
-      position: {x: 197, y: -98}
-    - type: shield
-      index: 2
-      position: {x: 58, y: -101}
+    - {type: shield, index: 1, position: {x: 197, y: -98}}
+    - {type: shield, index: 2, position: {x: 58, y: -101}}
 ---
 kind: action
 round: 8
 blue:
-- type: choose_reinforce_item
-  offer: 0
-  id: 108146
-- type: move_unit
-  index: 25
-  position: {x: -15, y: -160}
-- type: buy_unit
-  unit: 6
-  position: {x: 5, y: -180}
-- type: buy_unit
-  unit: 6
-  position: {x: 35, y: -160}
-- type: move_unit
-  index: 26
-  position: {x: -180, y: -165}
-  rotated: true
-- type: move_unit
-  index: 27
-  position: {x: 30, y: -145}
-  rotated: true
-- type: move_unit
-  index: 25
-  position: {x: -30, y: -175}
-  rotated: true
-- type: upgrade_unit
-  index: 7
-- type: release_contraption
-  contraption: 10001
-  position: {x: -41, y: -148}
-- type: release_contraption
-  contraption: 10001
-  position: {x: -164, y: -139}
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 10
-  position: {x: 5, y: -180}
-- type: move_unit
-  index: 28
-  position: {x: -10, y: -175}
-  rotated: true
-- type: release_commander_skill
-  skill: 2
-  target: !area
-  - {x: -232, y: 12}
-  - {x: -127, y: 15}
-- type: active_energy_tower_skill
-  skill: 5
-- type: active_energy_tower_skill
-  skill: 6
-- type: active_energy_tower_skill
-  skill: 1
-- type: upgrade_technology
-  unit: 10
-  tech: 2610
-- type: upgrade_unit
-  index: 20
-- type: upgrade_technology
-  unit: 6
-  tech: 506
-- type: release_commander_skill
-  skill: 0
-  target: !unit 24
-- type: move_unit
-  index: 24
-  position: {x: 30, y: -200}
-- type: upgrade_unit
-  index: 24
-- type: move_unit
-  index: 24
-  position: {x: -80, y: -110}
+- {type: choose_reinforce_item, offer: 0, id: 108146}
+- {type: move_unit, index: 25, position: {x: -15, y: -160}}
+- {type: buy_unit, unit: 6, position: {x: 5, y: -180}}
+- {type: buy_unit, unit: 6, position: {x: 35, y: -160}}
+- {type: move_unit, index: 26, position: {x: -180, y: -165}, rotated: true}
+- {type: move_unit, index: 27, position: {x: 30, y: -145}, rotated: true}
+- {type: move_unit, index: 25, position: {x: -30, y: -175}, rotated: true}
+- {type: upgrade_unit, index: 7}
+- {type: release_contraption, contraption: 10001, position: {x: -41, y: -148}}
+- {type: release_contraption, contraption: 10001, position: {x: -164, y: -139}}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 10, position: {x: 5, y: -180}}
+- {type: move_unit, index: 28, position: {x: -10, y: -175}, rotated: true}
+- {type: release_commander_skill, skill: 2, target: !area [{x: -232, y: 12}, {x: -127, y: 15}]}
+- {type: active_energy_tower_skill, skill: 5}
+- {type: active_energy_tower_skill, skill: 6}
+- {type: active_energy_tower_skill, skill: 1}
+- {type: upgrade_technology, unit: 10, tech: 2610}
+- {type: upgrade_unit, index: 20}
+- {type: upgrade_technology, unit: 6, tech: 506}
+- {type: release_commander_skill, skill: 0, target: !unit 24}
+- {type: move_unit, index: 24, position: {x: 30, y: -200}}
+- {type: upgrade_unit, index: 24}
+- {type: move_unit, index: 24, position: {x: -80, y: -110}}
 red:
-- type: choose_reinforce_item
-  offer: 0
-  id: 108146
-- type: move_unit
-  index: 22
-  position: {x: -245, y: -250}
-- type: move_unit
-  index: 22
-  position: {x: -255, y: -270}
-- type: move_unit
-  index: 22
-  position: {x: -255, y: -290}
-- type: active_energy_tower_skill
-  skill: 5
-- type: upgrade_unit
-  index: 12
-- type: upgrade_unit
-  index: 8
-- type: upgrade_unit
-  index: 13
-- type: upgrade_unit
-  index: 15
-- type: upgrade_unit
-  index: 18
-- type: buy_unit
-  unit: 14
-  position: {x: 5, y: -155}
-- type: move_unit
-  index: 23
-  position: {x: -135, y: -145}
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 24
-  position: {x: -105, y: -170}
-- type: active_energy_tower_skill
-  skill: 3
-- type: buy_unit
-  unit: 9
-  position: {x: -5, y: -160}
-- type: move_unit
-  index: 25
-  position: {x: 255, y: -90}
-- type: active_blueprint
-  id: 401
+- {type: choose_reinforce_item, offer: 0, id: 108146}
+- {type: move_unit, index: 22, position: {x: -245, y: -250}}
+- {type: move_unit, index: 22, position: {x: -255, y: -270}}
+- {type: move_unit, index: 22, position: {x: -255, y: -290}}
+- {type: active_energy_tower_skill, skill: 5}
+- {type: upgrade_unit, index: 12}
+- {type: upgrade_unit, index: 8}
+- {type: upgrade_unit, index: 13}
+- {type: upgrade_unit, index: 15}
+- {type: upgrade_unit, index: 18}
+- {type: buy_unit, unit: 14, position: {x: 5, y: -155}}
+- {type: move_unit, index: 23, position: {x: -135, y: -145}}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 24, position: {x: -105, y: -170}}
+- {type: active_energy_tower_skill, skill: 3}
+- {type: buy_unit, unit: 9, position: {x: -5, y: -160}}
+- {type: move_unit, index: 25, position: {x: 255, y: -90}}
+- {type: active_blueprint, id: 401}

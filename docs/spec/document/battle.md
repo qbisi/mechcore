@@ -18,15 +18,9 @@ sides:
 kind: action
 round: 0
 blue:
-- type: choose_advance_team
-  offer: 1
-  id: 9910
-  specialist: 20005
+- {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}
 red:
-- type: choose_advance_team
-  offer: 0
-  id: 9891
-  specialist: 10002
+- {type: choose_advance_team, offer: 0, id: 9891, specialist: 10002}
 ---
 kind: state
 round: 1
@@ -491,6 +485,30 @@ A segment's own collections keep the orders [`state.md`](state.md) and
 [`action.md`](action.md) define. Within a segment, `kind` comes first and
 `round` second, so a reader scanning the stream finds both on the two lines
 after each separator.
+
+Three rules decide how every value is spelled, and none of them names a field:
+
+- a sequence item is written on one line, in flow style;
+- a mapping or sequence whose members are all scalars is written in flow style
+  on its key's line;
+- every other value is written in block style.
+
+```yaml
+    shop:
+      unlocked_units: [2, 10, 20, 24]
+      buys_remaining: 2
+      unlocks_remaining: 1
+    next_index: {unit: 7, contraption: 0}
+    formations:
+    - {type: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
+```
+
+Actions, formations and ID lists are what a battle holds by the thousand, and one
+line each keeps a round on a screen and makes a diff name the item that
+changed. A coordinate pair and an allocator are scalar mappings, so they fold
+by the same rule; a side, a shop and a technology list mix shapes and stay
+blocks. The spelling is part of the normal form, so one battle has one byte
+sequence; a reader parses either style.
 
 ## Excluded fields
 

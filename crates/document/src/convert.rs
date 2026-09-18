@@ -1375,7 +1375,7 @@ mod tests {
             .count();
         assert_eq!(conceded, 1);
         let yaml = canonical_yaml(&battle).unwrap();
-        assert!(yaml.ends_with("- type: concede\n"), "{yaml}");
+        assert!(yaml.ends_with("- {type: concede}\n"), "{yaml}");
     }
 
     /// A match nobody conceded ends on its last round's decisions.
@@ -1425,13 +1425,17 @@ mod tests {
     fn serializes_to_normal_form_yaml() {
         let yaml = canonical_yaml(&tuff()).unwrap();
         assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\nsides:\n"));
-        assert!(
-            yaml.contains("\n---\nkind: action\nround: 0\nblue:\n- type: choose_advance_team\n")
-        );
+        assert!(yaml.contains(
+            "\n---\nkind: action\nround: 0\nblue:\n\
+             - {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}\n"
+        ));
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
-        assert!(yaml.contains("      position: {x: -250, y: -120}\n"));
-        assert!(yaml.contains("\n- type: buy_unit\n"));
+        assert!(yaml.contains(
+            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100}\n"
+        ));
+        assert!(yaml.contains("\n- {type: buy_unit, unit: "));
+        assert!(!yaml.contains("\n- type: "));
         assert!(yaml.ends_with('\n'));
     }
 }
