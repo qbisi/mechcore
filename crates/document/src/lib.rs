@@ -21,6 +21,7 @@ pub mod compile;
 #[cfg(feature = "convert")]
 pub mod convert;
 pub mod economy;
+pub mod experience;
 mod grbr;
 pub mod layout;
 pub mod ledger;

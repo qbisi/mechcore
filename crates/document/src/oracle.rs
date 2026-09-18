@@ -291,7 +291,7 @@ fn compare(produced: &SideState, reached: &SideState) -> Vec<(&'static str, Stri
 }
 
 /// The panel as a snapshot states it: a slot, its skill, its cooldown, and
-/// whether this round released it.
+/// whether this round released or used it, which the game does not tell apart.
 fn panel(state: &SideState) -> String {
     state
         .battle_skills
@@ -302,7 +302,7 @@ fn panel(state: &SideState) -> String {
                 skill.index,
                 skill.id,
                 skill.cooldown,
-                u8::from(skill.release.is_some())
+                u8::from(skill.release.is_some() || skill.used)
             )
         })
         .collect::<Vec<_>>()

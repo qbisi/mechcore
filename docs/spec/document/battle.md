@@ -89,8 +89,9 @@ repeat, or that continues past the end of a match.
 ### A state segment is the position a round opens with
 
 A battle states a round from before its first decision. No skill on its panel
-carries a `release`, and `travelling` is empty, because both are written by the
-round's own decisions. A state segment that holds a release is refused.
+carries a `release` or is `used`, and `travelling` is empty, because all three
+are written by the round's own decisions. A state segment that holds a release
+or a used skill is refused.
 
 Each state segment repeats the whole position rather than what changed. That is
 accepted rather than encoded away: a segment has to stand alone so that one round

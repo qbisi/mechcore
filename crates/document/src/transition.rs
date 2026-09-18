@@ -179,9 +179,9 @@ pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action
 /// What one decision's application could not settle.
 ///
 /// A position that reaches one of these is not a position the transition got
-/// wrong; it is one this build's tables cannot decide. Reporting the reason
-/// rather than a guess is what keeps an unsupported sample out of the closed
-/// count.
+/// wrong; it is one this build's tables cannot decide, or a decision the game
+/// does not allow from it. Reporting the reason rather than a guess is what
+/// keeps an unsupported sample out of the closed count.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Unsettled {
     /// The build's tables carry no price or catalogue row for the decision.
@@ -196,12 +196,20 @@ pub enum Unsettled {
     /// the same card in the same seat lands differently in two matches. The
     /// index, type, level and recovery value are settled; the position is not.
     GrantedPosition,
-    /// The release writes a formation's experience, which no table prices.
-    GrantedExperience,
+    /// The game does not allow the decision from this position.
+    ///
+    /// The fault is the decision's, not the tables': a recording never holds
+    /// one, and a decision written by anything else is refused rather than
+    /// applied.
+    Refused(&'static str),
 }
 
-/// Commander skills that grant a formation experience rather than moving it.
-const EXPERIENCE_SKILLS: [i32; 1] = [1_100_001];
+/// Commander skills that fill a formation's experience bar: 强化训练,
+/// Intensive Training.
+///
+/// A deployment skill: it does its work on the position before the fight, so
+/// its slot is marked used rather than released.
+pub(crate) const TRAINING_SKILLS: [i32; 1] = [1_100_001];
 /// Energy tower skill `3` 批量征召, which adds a purchase to this round.
 const MASS_RECRUIT_SKILL: i32 = 3;
 /// Reinforcement card `10004` 额外部署位, which adds one too.
@@ -492,8 +500,31 @@ fn release(
         .find(|skill| skill.index == slot)
         .map(|skill| skill.id)
         .ok_or(Unsettled::Missing("panel slot"))?;
-    if EXPERIENCE_SKILLS.contains(&id) {
-        return Err(Unsettled::GrantedExperience);
+    if TRAINING_SKILLS.contains(&id) {
+        let SkillTarget::Unit(index) = target else {
+            return Err(Unsettled::Missing("training target"));
+        };
+        let formation = &mut formation_mut(next, *index)?.formation;
+        let level = formation.level.unwrap_or(1);
+        // Training takes neither a formation at the last level nor one whose
+        // bar is already full.
+        if level >= crate::experience::MAX_LEVEL {
+            return Err(Unsettled::Refused("training a formation at the last level"));
+        }
+        // A unit the experience table does not name has no bar to fill.
+        let maximum = crate::experience::full(&formation.type_name, level)
+            .ok_or(Unsettled::Unpriced("experience"))?;
+        if formation.exp.is_some_and(|exp| exp >= maximum) {
+            return Err(Unsettled::Refused("training a full formation"));
+        }
+        formation.exp = Some(maximum);
+        let slot = next
+            .battle_skills
+            .iter_mut()
+            .find(|skill| skill.index == slot)
+            .ok_or(Unsettled::Missing("panel slot"))?;
+        slot.used = true;
+        return Ok(());
     }
     if crate::ledger::RECOVERY_SKILLS.contains(&id) {
         match target {
@@ -621,6 +652,7 @@ fn panel_add(next: &mut SideState, id: i32) {
         index,
         id,
         cooldown: 0,
+        used: false,
         release: None,
     });
     next.battle_skills.sort_by_key(|skill| skill.index);
@@ -1260,6 +1292,7 @@ mod tests {
                 index: 0,
                 id: 900_001,
                 cooldown: 0,
+                used: false,
                 release: None,
             }],
             formations: vec![crate::battle::StateFormation {
@@ -1546,6 +1579,7 @@ mod tests {
             index: 0,
             id: 900_001,
             cooldown: 0,
+            used: false,
             release: None,
         }];
         state.formations[0].value = Some(400);
@@ -1567,30 +1601,47 @@ mod tests {
         assert!(next.battle_skills[0].release.is_some());
     }
 
-    /// A release that writes experience is reported rather than guessed at.
-    ///
-    /// Skill `1100001` raises a formation's experience by an amount no shipped
-    /// table carries, so the decision names the reason it cannot be settled.
+    /// Intensive Training fills its formation's bar and spends its slot, and
+    /// leaves no release behind: its work is done before the fight.
     #[test]
-    fn an_experience_release_is_named_rather_than_guessed() {
+    fn training_fills_the_bar_and_spends_the_slot() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        state.formations[0].formation.exp = Some(54);
         state.battle_skills = vec![crate::battle::PanelSkill {
             index: 0,
             id: 1_100_001,
             cooldown: 0,
+            used: false,
             release: None,
         }];
+        let train = Action::ReleaseCommanderSkill {
+            skill: 0,
+            target: crate::battle::SkillTarget::Unit(0),
+        };
+        let next = step(&economy, &state, &train).unwrap();
+        assert_eq!(next.formations[0].formation.exp, Some(650));
+        assert!(next.battle_skills[0].used);
+        assert!(next.battle_skills[0].release.is_none());
+        assert_eq!(next.supply, state.supply);
+
+        // Training refuses a full formation.
+        state.formations[0].formation.exp = next.formations[0].formation.exp;
         assert_eq!(
-            step(
-                &economy,
-                &state,
-                &Action::ReleaseCommanderSkill {
-                    skill: 0,
-                    target: crate::battle::SkillTarget::Unit(0),
-                }
-            ),
-            Err(crate::transition::Unsettled::GrantedExperience)
+            step(&economy, &state, &train),
+            Err(crate::transition::Unsettled::Refused(
+                "training a full formation"
+            ))
+        );
+
+        // It refuses the last level too, full or not.
+        state.formations[0].formation.level = Some(9);
+        state.formations[0].formation.exp = Some(12);
+        assert_eq!(
+            step(&economy, &state, &train),
+            Err(crate::transition::Unsettled::Refused(
+                "training a formation at the last level"
+            ))
         );
     }
 
@@ -1719,7 +1770,7 @@ mod tests {
             .into_iter()
             .partition(|name| name.contains(" round 0 "));
         assert!(rest.is_empty(), "{rest:?}");
-        assert_eq!((compared, skipped, openings.len()), (655, 95, 82));
+        assert_eq!((compared, skipped, openings.len()), (706, 44, 82));
     }
 
     /// Whether an officer hands this side anything as the round opens.

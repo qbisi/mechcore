@@ -406,6 +406,13 @@ what lets the collection be sorted at all: in a layout the array position *is*
 the order, which is why `battle_skills` is the one collection a layout leaves as
 written.
 
+`used: true` marks a deployment skill this round spent. Such a skill does its
+work on the position before the fight, as [`action.md`](action.md#release_commander_skill)
+states, so its slot records only that it was spent: no target, no order, and
+nothing a layout sees. The game flags a spent deployment skill and a released
+one alike; the skill's ID is what tells them apart. A slot is never both `used`
+and released, and a round's opening position carries neither.
+
 ### The release target is exclusive
 
 A release either covers an area or points at one object, never both.

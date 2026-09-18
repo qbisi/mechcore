@@ -1,0 +1,41 @@
+schema: mechcore.unit_experience
+game_build: 1.11.1.3.2259
+
+# `upgrade_exp` is `mechExpDatas.upgradeLv2` through `upgradeLv9`. Its
+# n-th entry fills the bar of a formation at level n; level 9 fills
+# at the last entry. docs/rules/unit_experience.md states why, and the
+# formula the rows follow.
+
+units:
+  - {type: fortress, unit_id: 1, upgrade_exp: [1600, 3605, 5699, 7184, 8337, 9278, 10074, 10764]}
+  - {type: marksman, unit_id: 2, upgrade_exp: [650, 1465, 2315, 2919, 3387, 3769, 4093, 4373]}
+  - {type: vulcan, unit_id: 3, upgrade_exp: [2200, 5453, 8620, 10866, 12609, 14033, 15237, 16280]}
+  - {type: melting_point, unit_id: 4, upgrade_exp: [1400, 3154, 4987, 6286, 7295, 8118, 8815, 9418]}
+  - {type: rhino, unit_id: 5, upgrade_exp: [1150, 2591, 4096, 5164, 5992, 6669, 7241, 7736]}
+  - {type: wasp, unit_id: 6, upgrade_exp: [900, 2028, 3206, 4041, 4689, 5219, 5667, 6055]}
+  - {type: mustang, unit_id: 7, upgrade_exp: [1200, 2704, 4274, 5388, 6253, 6959, 7556, 8073]}
+  - {type: steel_ball, unit_id: 8, upgrade_exp: [1000, 2253, 3562, 4490, 5210, 5799, 6296, 6727]}
+  - {type: fang, unit_id: 9, upgrade_exp: [600, 1352, 2137, 2694, 3126, 3479, 3778, 4036]}
+  - {type: crawler, unit_id: 10, upgrade_exp: [450, 1014, 1603, 2021, 2345, 2609, 2833, 3027]}
+  - {type: overlord, unit_id: 11, upgrade_exp: [1750, 3943, 6233, 7858, 9118, 10148, 11019, 11773]}
+  - {type: stormcaller, unit_id: 12, upgrade_exp: [1100, 2479, 3918, 4939, 5732, 6379, 6926, 7400]}
+  - {type: sledgehammer, unit_id: 13, upgrade_exp: [1300, 2929, 4630, 5837, 6774, 7539, 8185, 8746]}
+  - {type: hacker, unit_id: 14, upgrade_exp: [560, 1262, 1995, 2515, 2918, 3247, 3526, 3767]}
+  - {type: arclight, unit_id: 15, upgrade_exp: [750, 1690, 2671, 3368, 3908, 4349, 4722, 5046]}
+  - {type: phoenix, unit_id: 16, upgrade_exp: [1300, 2929, 4630, 5837, 6774, 7539, 8185, 8746]}
+  - {type: war_factory, unit_id: 17, upgrade_exp: [3200, 7210, 11398, 14369, 16673, 18556, 20148, 21528]}
+  - {type: wraith, unit_id: 18, upgrade_exp: [2250, 5070, 8014, 10103, 11724, 13047, 14167, 15137]}
+  - {type: scorpion, unit_id: 19, upgrade_exp: [1500, 3380, 5343, 6735, 7816, 8698, 9445, 10091]}
+  - {type: fire_badger, unit_id: 20, upgrade_exp: [1400, 3154, 4987, 6286, 7295, 8118, 8815, 9418]}
+  - {type: sabertooth, unit_id: 21, upgrade_exp: [1300, 2929, 4630, 5837, 6774, 7539, 8185, 8746]}
+  - {type: typhoon, unit_id: 22, upgrade_exp: [1950, 4394, 6946, 8756, 10160, 11308, 12278, 13118]}
+  - {type: sandworm, unit_id: 23, upgrade_exp: [2000, 4506, 7124, 8981, 10421, 11598, 12593, 13455]}
+  - {type: tarantula, unit_id: 24, upgrade_exp: [1500, 3380, 5343, 6735, 7816, 8698, 9445, 10091]}
+  - {type: phantom_ray, unit_id: 25, upgrade_exp: [1000, 2253, 3562, 4490, 5210, 5799, 6296, 6727]}
+  - {type: farseer, unit_id: 26, upgrade_exp: [1800, 4056, 6411, 8083, 9379, 10438, 11334, 12109]}
+  - {type: raiden, unit_id: 27, upgrade_exp: [2400, 5408, 8548, 10777, 12505, 13917, 15111, 16146]}
+  - {type: hound, unit_id: 28, upgrade_exp: [750, 1690, 2671, 3368, 3908, 4349, 4722, 5046]}
+  - {type: abyss, unit_id: 29, upgrade_exp: [4800, 10815, 17097, 21553, 25010, 27835, 30223, 32291]}
+  - {type: void_eye, unit_id: 30, upgrade_exp: [650, 1465, 2315, 2919, 3387, 3769, 4093, 4373]}
+  - {type: vortex, unit_id: 31, upgrade_exp: [750, 1690, 2671, 3368, 3908, 4349, 4722, 5046]}
+  - {type: mountain, unit_id: 2002, upgrade_exp: [3200, 7210, 11398, 14369, 16673, 18556, 20148, 21528]}

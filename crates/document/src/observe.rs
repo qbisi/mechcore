@@ -503,24 +503,31 @@ fn constructions(snapshot: &Snapshot, seat: Seat) -> Result<Vec<StaticPlacement>
     Ok(constructions)
 }
 
-/// The skill panel, and which of its slots this round released.
+/// The skill panel, and which of its slots this round released or used.
 ///
 /// A snapshot says that a slot was released and not where in the round or at
 /// what, so the release read back here carries neither. Comparing a produced
 /// release against one of these compares presence, which is what a snapshot
 /// decides.
+///
+/// The game marks a deployment skill it has spent the way it marks a release,
+/// and a state tells the two apart: a deployment skill is `used`.
 fn panel(snapshot: &Snapshot) -> Vec<PanelSkill> {
     let mut battle_skills: Vec<PanelSkill> = snapshot
         .commander_skills
         .iter()
-        .map(|skill| PanelSkill {
-            index: skill.index,
-            id: skill.id,
-            cooldown: skill.cooling_round,
-            release: skill.released.then(|| Release {
-                order: 0,
-                target: SkillTarget::Area(Vec::new()),
-            }),
+        .map(|skill| {
+            let deployment = crate::transition::TRAINING_SKILLS.contains(&skill.id);
+            PanelSkill {
+                index: skill.index,
+                id: skill.id,
+                cooldown: skill.cooling_round,
+                used: skill.released && deployment,
+                release: (skill.released && !deployment).then(|| Release {
+                    order: 0,
+                    target: SkillTarget::Area(Vec::new()),
+                }),
+            }
         })
         .collect();
     battle_skills.sort_by_key(|skill| skill.index);

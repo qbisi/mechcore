@@ -183,6 +183,14 @@ pub struct PanelSkill {
     pub index: i32,
     pub id: i32,
     pub cooldown: i32,
+    /// True on a deployment skill this round used.
+    ///
+    /// A deployment skill does its work before the fight, as a change to the
+    /// position, so the slot records that it was spent and nothing else: no
+    /// target, no place in the release order, and no entry in a layout. A
+    /// round's opening position carries none.
+    #[serde(skip_serializing_if = "is_false")]
+    pub used: bool,
     /// Present on a skill this round released. A state is defined after each
     /// action, so a round's opening position carries none and a deployment's
     /// closing position carries one per release.
@@ -506,8 +514,8 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
         if kind == "state" {
             if released(&segment) {
                 return Err(format!(
-                    "round {round} state carries a release; a battle states the \
-                     position a round opens with, before any decision"
+                    "round {round} state carries a release or a used skill; a battle \
+                     states the position a round opens with, before any decision"
                 ));
             }
             if core_destroyed(&segment) {
@@ -551,7 +559,11 @@ fn released(state: &Value) -> bool {
     state_sides(state).any(|side| {
         side.get("battle_skills")
             .and_then(Value::as_sequence)
-            .is_some_and(|panel| panel.iter().any(|slot| slot.get("release").is_some()))
+            .is_some_and(|panel| {
+                panel
+                    .iter()
+                    .any(|slot| slot.get("release").is_some() || slot.get("used").is_some())
+            })
     })
 }
 
