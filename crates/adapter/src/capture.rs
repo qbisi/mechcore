@@ -11547,7 +11547,7 @@ mod tests {
             combat_round: 1,
             match_seed: 0,
         };
-        let layout = "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - type: marksman\n      index: 0\n      position: {x: 0, y: -50}\n  red:\n    formations:\n    - type: arclight\n      index: 0\n      position: {x: 0, y: -50}\n";
+        let layout = "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - {type: marksman, index: 0, position: {x: 0, y: -50}}\n  red:\n    formations:\n    - {type: arclight, index: 0, position: {x: 0, y: -50}}\n";
         let mut writer =
             mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
         writer.append_tick(state, &events).unwrap();

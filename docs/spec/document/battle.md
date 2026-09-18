@@ -486,7 +486,8 @@ A segment's own collections keep the orders [`state.md`](state.md) and
 `round` second, so a reader scanning the stream finds both on the two lines
 after each separator.
 
-Three rules decide how every value is spelled, and none of them names a field:
+Three rules decide how every value is spelled, and none of them names a field.
+A [layout](layout.md#normal-form) is spelled by the same three:
 
 - a sequence item is written on one line, in flow style;
 - a mapping or sequence whose members are all scalars is written in flow style

@@ -237,11 +237,11 @@ sides:
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
     assert!(canonical.contains(
-        "terrains:\n    - type: oil\n      control_points:\n      - {x: -60, y: 40}\n      - {x: 60, y: 40}"
+        "terrains:\n    - {type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
     ));
     assert!(
-        canonical.contains("- type: marksman\n      index: 0\n      position: {x: 0, y: -50}\n"),
-        "a placement position stays on one line: {canonical}"
+        canonical.contains("    - {type: marksman, index: 0, position: {x: 0, y: -50}}\n"),
+        "a formation stays on one line: {canonical}"
     );
     assert!(!canonical.contains("grid_rows:"));
 
