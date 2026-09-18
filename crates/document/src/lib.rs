@@ -1,10 +1,11 @@
-//! The document format: layout, state, turn and battle.
+//! The document format: layout, state, action and battle.
 //!
 //! One type system carries all four kinds, because they are one another's
-//! parts. A battle holds turns, a turn holds a state and the decisions taken
-//! from it, and a layout is the projection of a state onto what a fight
-//! simulates. `docs/spec/document/battle.md`, `docs/spec/document/turn.md`, `docs/spec/document/state.md` and
-//! `docs/spec/document/layout.md` define them.
+//! parts. A battle is a stream of state and action segments, and a layout is
+//! the projection of a state onto what a fight simulates.
+//! `docs/spec/document/battle.md`, `docs/spec/document/state.md`,
+//! `docs/spec/document/action.md` and `docs/spec/document/layout.md` define
+//! them.
 //!
 //! The modules are layered. [`layout`] and [`battle`] define documents,
 //! [`catalog`] pins the names they use to one build, [`compile`] turns a
@@ -50,8 +51,8 @@ pub use layout::{
 /// Names the kind of document a file carries.
 ///
 /// The four kinds share most of their shape, since they are one another's
-/// parts: a turn carries a state beside its actions, and a state carries what a
-/// layout projects. Structure alone cannot say which one a file holds, so every
+/// parts: a battle carries states beside their actions, and a state carries
+/// what a layout projects. Structure alone cannot say which one a file holds, so every
 /// document names itself. The tag is a constant, not a version: it never needs
 /// maintaining, and because it takes one value within a kind it cannot split
 /// one state across two documents.
@@ -111,22 +112,20 @@ mod tests {
     #[test]
     fn a_document_of_another_kind_is_rejected_as_that_kind() {
         // The point of the discriminator is that this reads as "not a layout"
-        // rather than as a layout with an unexpected field. A turn carries a
-        // partial layout, so the shapes overlap and the first structural
-        // difference would say nothing about what the file is.
-        let turn = br"
-kind: turn
+        // rather than as a layout with an unexpected field. A state carries
+        // everything a layout projects, so the shapes overlap and the first
+        // structural difference would say nothing about what the file is.
+        let state = br"
+kind: state
 round: 1
-actions:
-  - type: deploy
 sides:
   blue:
     formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
     formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
-        let error = parse_embedded_yaml(turn).unwrap_err();
-        assert_eq!(error, "expected a layout document, found kind \"turn\"");
+        let error = parse_embedded_yaml(state).unwrap_err();
+        assert_eq!(error, "expected a layout document, found kind \"state\"");
 
         let untagged = br"
 round: 1

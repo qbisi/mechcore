@@ -63,7 +63,8 @@ pub fn check(battle: &Battle, economy: &Economy) -> Report {
     let mut report = Report::default();
     // The opening is a seam like any other: a side starts it with nothing,
     // pays for what it takes, and the first round's income arrives after. It
-    // is stated under `sides` rather than as a round, so it is rebuilt here.
+    // has no state segment, since every side enters it holding nothing, so
+    // that position is rebuilt here.
     let opening = crate::transition::opening_position();
     if let Some(first) = battle.turns.first() {
         for (name, taken, following) in [
@@ -542,7 +543,8 @@ fn spend(
                 }
                 0
             }
-            Action::MoveUnit { .. } => 0,
+            // Conceding costs nothing, and nothing follows it to be paid for.
+            Action::MoveUnit { .. } | Action::Concede => 0,
         };
     }
     Some(total)

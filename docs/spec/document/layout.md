@@ -36,7 +36,7 @@ and unit-technology state is grouped under each side's `techs` object.
 The required top-level `kind` names what the document is. It is a constant, not
 a version: it takes the single value `layout` and never needs maintaining. Its
 purpose is to separate this document from the other kinds this format will
-define, such as a turn, which carries a partial layout beside its actions and so
+define, such as a state, which carries everything a layout projects and so
 overlaps this shape too much for structure alone to tell them apart. A reader
 resolves `kind` before anything else, so a document of another kind is refused
 as that kind rather than as a layout with an unexpected field. A document that
@@ -164,8 +164,9 @@ count, construction count, contraption count, and airdrop shield count.
 
 The command is not the layout's alone. It checks each file against the contract
 that file names for itself, so a deployment recording is checked by replaying
-its decisions through the transition instead; [`turn.md`](turn.md) states that
-check and how a batch is given. A layout is routed here by the `kind` at its
+its decisions through the transition instead;
+[`action.md`](action.md#what-a-decision-reproduces) states that check and how a
+batch is given. A layout is routed here by the `kind` at its
 root, never by its extension.
 
 `mechcore diff left.yaml right.yaml` normalizes both documents and reports

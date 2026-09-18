@@ -2,20 +2,16 @@
 
 ## Scope
 
-An action is one decision a side takes during a deployment round. This document
-defines the thirteen of them: what each carries, and what each does to the
-state the round started from.
+An action is one decision a side takes in a round. This document defines the
+fourteen of them, what each carries and what each does to the position it was
+taken from, and the action segment that carries one round's decisions for both
+sides: that order is all a sequence carries, which recorded entries are
+collapsed away before one is written, and which native fields are excluded.
 
-A decision that ends the match is not one of them. Giving up leaves the match
-rather than moving the position its round started from, so a
-[battle](battle.md) states it at its own root and no sequence carries it.
-
-A [turn](turn.md) holds the state and the two action sequences taken from it,
-and owns everything about the sequence itself: that order is all a sequence
-carries, which recorded entries are collapsed away before one is written, and
-which native fields are excluded. A [state](state.md) defines the position an
-action reads and writes. A [layout](layout.md) is a projection of a state and
-holds no actions at all.
+A [battle](battle.md) is the stream the segments are written in, and places an
+action segment after the state it was decided from. A [state](state.md) defines
+the position an action reads and writes. A [layout](layout.md) is a projection
+of a state and holds no actions at all.
 
 Positions are side-local and use the [layout's coordinate
 system](layout.md#coordinate-system). An action never states a side: it belongs
@@ -23,8 +19,31 @@ to the sequence it is in.
 
 ## Document shape
 
+An action segment holds one round's decisions, one sequence per side.
+
+```yaml
+kind: action
+round: 7
+blue:
+- type: choose_reinforce_item
+  offer: 3
+  id: 1072213
+- type: buy_unit
+  unit: 30
+  position: {x: 0, y: -160}
+- type: release_commander_skill
+  skill: 0
+  target: !unit 4
+red:
+- ...
+```
+
+`round` is the round of the state segment before it, or zero for the opening,
+which has no state. Both sides are present in every segment, and a side that
+decided nothing holds an empty sequence.
+
 An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
-fixed per type, and every type carries at least one operand.
+fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
 - type: buy_unit
@@ -66,8 +85,8 @@ All three groups are written one decision at a time, not only at a round's end.
 A position is defined after every decision, so applying one decision to the
 position it was taken from has to reach the position the next decision was
 taken from. That is a stronger statement than the round transition
-[`turn.md`](turn.md) defines, and it is the one this document's per-action rules
-are answerable to.
+[`battle.md`](battle.md#what-a-round-reproduces) defines, and it is the one this
+document's per-action rules are answerable to.
 
 Two inputs no decision carries stop it being a total function, and both are
 named rather than guessed.
@@ -139,16 +158,11 @@ declining is an item of its own rather than the absence of one.
 ```
 
 The opening, which is one decision with two halves: the team and the specialist
-officer bound to it. `specialist` is optional and absent when the team is itself
-an officer.
+officer bound to it. `offer` is the combination's position in the side's
+opening offers, which a battle's header states. `specialist` is optional and
+absent when the team is itself an officer.
 
-The game records it in round 0, and a battle states its result under `sides`
-rather than holding that round, so no turn carries this one. Both players see
-what the other took before the first round opens, and a turn's action lists are
-secret, which is why it cannot be one of them; [`battle.md`](battle.md) carries
-that argument. It stays a decision here because the live
-recording records it as one and the recording oracle steps it, which is the only
-place its transition is checked action by action.
+It is round zero's only decision, and no other round holds one.
 
 A team of units hands out its force, advancing `next_index.unit` once per squad
 and unlocking each unit type it is made of. A team that is an officer joins
@@ -362,6 +376,19 @@ index. Costs the contraption's own price.
 
 `extra_position` is an optional second point, for a contraption that spans two.
 
+### `concede`
+
+```yaml
+- type: concede
+```
+
+Gives up the match. It carries no operand and writes no field: the round is not
+fought, so no position follows it.
+
+It is the last decision its side takes, and the segment that holds it is the
+last one its battle holds. What the side decided earlier in the round stands in
+the sequence, and so does everything the other side decided.
+
 ## Rules no action states
 
 Four rules govern a transition and no action names any of them. Applying
@@ -381,6 +408,131 @@ actions without them produces a position that looks right and is not.
 - **An officer list is a multiset.** An item that may be taken again stacks, so
   taking it a second time adds a copy rather than doing nothing.
 
+## Sequences
+
+A sequence carries order alone. No timestamp is stored, because nothing reads
+one: applying a round means applying each side's actions in sequence, and the
+check that a round reproduces its successor never asks when an action happened.
+
+The two sequences of one segment are simultaneous and secret: neither player
+sees the other's while the round is being deployed. No merge between them is
+attempted, since the interleaving of one side's actions with the other's is not
+observable in a replay.
+
+### Net decision
+
+A sequence stores the decisions that took effect, so a recorded list is
+collapsed before it is written. The game keeps a retraction as an action of its own, and
+there are two kinds.
+
+Replaying the recorded list into a stack defines the collapse. Every recorded
+action is pushed as an entry, and `Undo` pops the newest entry whether or not it
+still stands for a decision. `Redo` pushes it back.
+`CancelReleaseCommanderSkill` stops the newest standing
+`ReleaseCommanderSkill` with the same `SkillIndex` from counting, but the
+release stays on the stack as a spent entry, and the cancel is pushed as one
+too. What remains standing is the sequence, and it contains no retraction of
+either kind.
+
+Counting the spent entries is the part that is easy to get wrong, and it is what
+the game does: undo walks an index back over the recorded list, so an entry that
+no longer means anything still costs an undo. A cancel matches its release on
+the panel index alone and not on the skill ID, and the release it retracts can
+sit many entries back, so a cancel is not a stack pop.
+
+The collapse is lossy on purpose. A sequence states what a side decided, not
+what it considered, so a document cannot express that a player took an action
+and withdrew it.
+
+What the collapse is not is the game's own file format. The method a replay
+calls before playback deletes nothing: it merges a round's actions from both
+players, sorts them, and pads each player's list with a placeholder wherever the
+merged order runs ahead, so that the two lists share an index space. The
+recorded lists still hold every retraction, and collapsing them is this format's
+convention.
+
+### What the collapse and the conversion drop
+
+`FinishDeploy` carries no decision: it appears exactly once per round-side.
+
+`BuyUnit` does not name the unit it creates. Its recorded index is always unset,
+so the index comes from the allocator, and applying a round has to hand out
+`next_index.unit` exactly as the game does. That is one of the two things the
+allocator is in a state for.
+
+`MoveUnit` is recorded as a batch carrying one or more units. A sequence holds
+one move per unit: the collapse has already run by then, so the batch no longer has
+to stay whole for an undo to pop it, and order is all that survives either way.
+It keeps only the resulting position and rotation, since the recorded
+before-state restates what the state segment already holds.
+
+`GiveUp` is kept, as `concede`, and nothing it recorded besides its type
+survives.
+
+## What a decision reproduces
+
+The nine fields [`battle.md`](battle.md#what-a-round-reproduces) compares are
+what two round snapshots can decide between them. A recording that states a position before every decision and after it decides
+more, because it asks a smaller question: not what the next round holds, but
+what this position looks like one decision later.
+
+That is the transition this document defines, and it is checked two ways
+against the same recording.
+
+**One decision at a time.** Each recorded decision is applied to the position it
+was taken from, and every field of the result is compared, the board included.
+A failure names the one decision that caused it rather than the round it was in.
+
+**A whole deployment.** A round's standing sequence, after the net-decision
+collapse above, is applied to the position the round opened with and compared
+against the position it closed with. This is the check the first one cannot
+make: applying one decision at a time reads the position after a retraction out
+of the recording, while a collapsed sequence has to reach the same place without
+the retraction ever having happened.
+
+```bash
+mechcore verify <recording.jsonl>
+find work/replay-corpus/observations -name '*.jsonl' | mechcore verify
+```
+
+runs both checks. `verify` reads whichever contract a file names for itself: a
+recording written by `record_replay_battle`, whose format
+[`adapter.md`](../adapter/adapter.md) defines, declares its schema on its header
+record, and a layout declares `kind: layout` at its root. Nothing is inferred
+from an extension.
+
+A batch is a pipe rather than a flag. Paths come from the arguments, or from
+standard input one per line when there are none, so expanding a directory stays
+the shell's job and there is only ever one expander. One report per input goes
+to standard output as a single JSON object per line, a refusal included, and
+one unreadable input does not stop the rest. The exit code says whether every
+input was valid.
+
+Stepping the opening answers what the position is immediately after it, which is
+not what round 1 holds: [`battle.md`](battle.md#what-a-round-reproduces) says
+where the two frames differ.
+
+## Normal form
+
+| Collection | Order |
+| --- | --- |
+| `blue`, `red` | as taken |
+
+`kind` comes first in a segment and `round` second, and `blue` precedes `red`.
+
+## Excluded fields
+
+| Field | Why it is not in an action |
+| --- | --- |
+| `Time`, `LocalTime` | A sequence carries order, and nothing reads a timestamp |
+| `PAD_Undo`, `PAD_Redo` | Removed by the net-decision collapse |
+| `PAD_CancelReleaseCommanderSkill` | The same, together with the release it retracts |
+| `PAD_FinishDeploy` | Exactly one per round-side, so it carries no decision |
+| `PAD_MoveUnit.positionRecord` | Restates the state before the action |
+| `PAD_MoveUnit.rotateRecord`, `superDeployRecord` | Same |
+| `PAD_BuyUnit.UIDX` | Unset; the allocator names the new unit |
+| `PAD_ReleaseCommanderSkill.Positions` beside an object target | The player's click point, which names no state |
+
 ## Unresolved
 
 **Whether releasing a construction is an action of its own.**
@@ -388,7 +540,7 @@ actions without them produces a position that looks right and is not.
 deployment index and a position, and no action here corresponds to it. Every
 construction this schema can describe arrives through `release_commander_skill`
 instead. Either the type is unreachable in a standard match, in which case
-nothing is missing, or a fourteenth action belongs here.
+nothing is missing, or a fifteenth action belongs here.
 
 **Where a deferred cost lives.** An Energy Tower skill can owe against the next
 round's income, which makes the debt a fact about the next position and not only
@@ -407,3 +559,15 @@ so.
 action has the field. No contraption in this build is known to need a second
 point, and an optional field that nothing populates is a claim the schema cannot
 support.
+
+**Whether a round can be executed rather than only checked.** Applying a round
+produces the settled fields; the board is the other half, and taking a decision
+in a live game is a capability distinct from installing its result. Until both
+exist, an action segment can be verified against a recording but not replayed
+into one.
+
+**Whether a retraction is ever worth stating.** The collapse discards what a
+player withdrew, on the grounds that a sequence records decisions rather than
+deliberation. A reader that wanted to study how a position was arrived at rather
+than what it became would need the recorded list instead, and the format has no
+place to put it.

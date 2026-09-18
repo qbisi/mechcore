@@ -20,7 +20,6 @@ REPO = Path(__file__).resolve().parents[1]
 DOCUMENT_FORMAT = {
     "docs/spec/document/layout.md",
     "docs/spec/document/state.md",
-    "docs/spec/document/turn.md",
     "docs/spec/document/battle.md",
     "docs/spec/document/action.md",
     "docs/spec/mcfr/mcfr.md",

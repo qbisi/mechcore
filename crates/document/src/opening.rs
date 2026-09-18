@@ -473,12 +473,11 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
     })
 }
 
-/// What a battle document says about its two openings.
+/// What a battle document says about its two openings and its rounds.
 ///
-/// Only the fields a seed check reads are declared, so the rest of the document
-/// is skipped rather than parsed. That keeps the check independent of whether
-/// the other four kinds can be read back yet.
-#[derive(Debug, Deserialize)]
+/// Only the fields a seed check reads are declared, so the rest of each segment
+/// is skipped rather than parsed.
+#[derive(Debug)]
 pub struct Stated {
     pub map_id: i32,
     pub seed: i32,
@@ -494,44 +493,123 @@ pub struct StatedSides {
 
 #[derive(Debug, Deserialize)]
 pub struct StatedSide {
+    #[serde(skip)]
     pub opening: StatedOpening,
+    pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
-/// The opening one side states: what it took, and what it chose between.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+/// The opening decision one side states in round zero.
+#[derive(Debug, Default)]
 pub struct StatedOpening {
+    /// The zero-based `offer` the decision names.
     pub choose: i32,
-    pub offers: Vec<OpeningOffer>,
+    /// The team and specialist the decision says that offer holds.
+    pub taken: Option<OpeningOffer>,
 }
 
-impl StatedOpening {
+impl StatedSide {
     /// Checks the complete deal after verification validates its choice.
     fn agrees(&self, dealt: &[OpeningOffer]) -> bool {
         self.offers == dealt
     }
 }
 
-/// Reads the openings out of a battle document, or nothing when it is not one.
+#[derive(Deserialize)]
+struct StatedHeader {
+    map_id: i32,
+    seed: i32,
+    sides: StatedSides,
+}
+
+#[derive(Deserialize)]
+struct StatedOpeningSegment {
+    blue: Vec<StatedChoice>,
+    red: Vec<StatedChoice>,
+}
+
+#[derive(Deserialize)]
+struct StatedChoice {
+    #[serde(rename = "type")]
+    type_name: String,
+    offer: Option<i32>,
+    id: Option<i32>,
+    specialist: Option<i32>,
+}
+
+impl StatedChoice {
+    fn opening(choices: &[Self], side: &str) -> Result<StatedOpening, String> {
+        let [choice] = choices else {
+            return Err(format!(
+                "{side} takes {} decisions in round 0, and the opening is one",
+                choices.len()
+            ));
+        };
+        if choice.type_name != "choose_advance_team" {
+            return Err(format!(
+                "{side} opens with {}, and an opening is choose_advance_team",
+                choice.type_name
+            ));
+        }
+        Ok(StatedOpening {
+            choose: choice
+                .offer
+                .ok_or_else(|| format!("{side} opening names no offer"))?,
+            taken: match (choice.id, choice.specialist) {
+                (Some(team), Some(specialist)) => Some(OpeningOffer { team, specialist }),
+                _ => None,
+            },
+        })
+    }
+}
+
+/// Reads the openings and rounds out of a battle stream, or nothing when the
+/// file is not one.
 ///
 /// # Errors
 ///
-/// Returns an error when the document names itself a battle and then does not
-/// carry the two openings.
+/// Returns an error when the document names itself a battle and then breaks
+/// the stream's grammar, or does not carry the fields a seed check reads.
 pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
-    #[derive(Deserialize)]
-    struct Header {
-        kind: crate::DocumentKind,
-    }
-    let header: Option<Header> = serde_yaml::from_slice(bytes).ok();
-    if !header.is_some_and(|header| header.kind == crate::DocumentKind::Battle) {
+    let Some(stream) = crate::battle::segments(bytes)? else {
         return Ok(None);
-    }
-    serde_yaml::from_slice(bytes)
-        .map(Some)
-        .map_err(|error| format!("battle document has no readable opening: {error}"))
+    };
+    let header: StatedHeader = serde_yaml::from_value(stream.header)
+        .map_err(|error| format!("battle header is not readable: {error}"))?;
+    let opening = stream
+        .opening
+        .ok_or("battle states no round 0 opening decisions")?;
+    let opening: StatedOpeningSegment = serde_yaml::from_value(opening)
+        .map_err(|error| format!("round 0 action segment is not readable: {error}"))?;
+    let mut sides = header.sides;
+    sides.blue.opening = StatedChoice::opening(&opening.blue, "blue")?;
+    sides.red.opening = StatedChoice::opening(&opening.red, "red")?;
+    let turns = stream
+        .rounds
+        .into_iter()
+        .map(|round| {
+            let state = serde_yaml::from_value(round.state)
+                .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
+            let actions = match round.actions {
+                Some(actions) => serde_yaml::from_value(actions).map_err(|error| {
+                    format!("round {} actions are not readable: {error}", round.round)
+                })?,
+                None => crate::reinforcement::Actions::default(),
+            };
+            Ok(crate::reinforcement::Turn {
+                round: round.round,
+                state,
+                actions,
+            })
+        })
+        .collect::<Result<_, String>>()?;
+    Ok(Some(Stated {
+        map_id: header.map_id,
+        seed: header.seed,
+        sides,
+        turns,
+    }))
 }
 
 /// Checks both offer arrays and construction lists against their seed and map.
@@ -541,17 +619,25 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
 /// Returns an error for a mismatched deal, layout, invalid choice or unsupported
 /// initialization scope.
 pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> {
-    for (side, opening) in [
-        ("blue", &stated.sides.blue.opening),
-        ("red", &stated.sides.red.opening),
-    ] {
-        if opening.offers.len() != CHOOSE_COUNT {
-            return Err(format!("{side} opening requires {CHOOSE_COUNT} offers"));
+    for (name, side) in [("blue", &stated.sides.blue), ("red", &stated.sides.red)] {
+        if side.offers.len() != CHOOSE_COUNT {
+            return Err(format!("{name} opening requires {CHOOSE_COUNT} offers"));
         }
-        if !usize::try_from(opening.choose).is_ok_and(|at| at < CHOOSE_COUNT) {
+        let Some(offered) = usize::try_from(side.opening.choose)
+            .ok()
+            .filter(|at| *at < CHOOSE_COUNT)
+            .map(|at| side.offers[at])
+        else {
             return Err(format!(
-                "{side} opening choose {} is outside 0..{CHOOSE_COUNT}",
-                opening.choose
+                "{name} opening offer {} is outside 0..{CHOOSE_COUNT}",
+                side.opening.choose
+            ));
+        };
+        if side.opening.taken != Some(offered) {
+            return Err(format!(
+                "{name} opening offer {} holds team {} and specialist {}, \
+                 and the decision names {:?}",
+                side.opening.choose, offered.team, offered.specialist, side.opening.taken
             ));
         }
     }
@@ -570,7 +656,7 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
             &found.constructions.red,
         ),
     ] {
-        if !side.opening.agrees(offers) {
+        if !side.agrees(offers) {
             return Err(format!(
                 "seed {} does not deal the stated {name} opening",
                 stated.seed
@@ -703,16 +789,47 @@ mod tests {
         assert!(verify(&economy, &stated).is_err());
     }
 
+    fn segments_of(yaml: &str) -> Vec<serde_yaml::Value> {
+        serde_yaml::Deserializer::from_str(yaml)
+            .map(|document| serde::Deserialize::deserialize(document).unwrap())
+            .collect()
+    }
+
+    fn stream_of(segments: &[serde_yaml::Value]) -> String {
+        segments
+            .iter()
+            .map(|segment| serde_yaml::to_string(segment).unwrap())
+            .collect::<Vec<_>>()
+            .join("---\n")
+    }
+
     /// Without offers the choice no longer identifies a team or specialist.
     #[test]
     fn an_opening_requires_its_alternatives() {
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
-        let mut yaml = serde_yaml::to_value(&battle).unwrap();
-        yaml["sides"]["blue"]["opening"]
+        let mut segments = segments_of(&crate::battle::canonical_yaml(&battle).unwrap());
+        segments[0]["sides"]["blue"]
             .as_mapping_mut()
             .unwrap()
             .remove(serde_yaml::Value::from("offers"));
-        assert!(stated(serde_yaml::to_string(&yaml).unwrap().as_bytes()).is_err());
+        assert!(stated(stream_of(&segments).as_bytes()).is_err());
+    }
+
+    /// The decision names what it took, and that has to be what its offer
+    /// holds: an index into edited offers would otherwise read as valid.
+    #[test]
+    fn a_choice_must_name_what_its_offer_holds() {
+        let economy = Economy::embedded().unwrap();
+        let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
+        let yaml = crate::battle::canonical_yaml(&battle).unwrap();
+        for field in ["id", "specialist"] {
+            let mut segments = segments_of(&yaml);
+            let taken = &mut segments[1]["red"][0][field];
+            *taken = serde_yaml::Value::from(taken.as_i64().unwrap() + 1);
+            let stated = stated(stream_of(&segments).as_bytes()).unwrap().unwrap();
+            let error = verify(&economy, &stated).unwrap_err();
+            assert!(error.contains("red opening offer"), "{error}");
+        }
     }
 
     /// Matching offers alone cannot make an out-of-range choice valid.
@@ -732,23 +849,36 @@ mod tests {
                 opening.choose = choose;
                 let error = verify(&economy, &stated).unwrap_err();
                 assert!(
-                    error.contains(&format!("{side} opening choose {choose}")),
+                    error.contains(&format!("{side} opening offer {choose}")),
                     "{error}"
                 );
             }
         }
     }
 
+    /// The header deals and round zero decides, and neither says the other's
+    /// half.
     #[test]
-    fn the_opening_serializes_only_the_choice_and_offers() {
+    fn the_header_deals_and_round_zero_decides() {
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
-        let yaml = serde_yaml::to_value(&battle).unwrap();
-        for side in ["blue", "red"] {
-            let opening = yaml["sides"][side]["opening"].as_mapping().unwrap();
-            assert_eq!(opening.len(), 2);
-            assert!(opening.contains_key(serde_yaml::Value::from("choose")));
-            assert!(opening.contains_key(serde_yaml::Value::from("offers")));
+        let segments = segments_of(&crate::battle::canonical_yaml(&battle).unwrap());
+        for (side, opening) in [
+            ("blue", &battle.sides.blue.opening),
+            ("red", &battle.sides.red.opening),
+        ] {
+            let held = segments[0]["sides"][side].as_mapping().unwrap();
+            let keys: Vec<&str> = held.keys().filter_map(serde_yaml::Value::as_str).collect();
+            assert_eq!(keys, ["offers", "constructions", "tech_loadout"]);
+            let taken = &opening.offers[usize::try_from(opening.choose).unwrap()];
+            let decisions = segments[1][side].as_sequence().unwrap();
+            assert_eq!(decisions.len(), 1);
+            assert_eq!(decisions[0]["type"], "choose_advance_team");
+            assert_eq!(decisions[0]["offer"], i64::from(opening.choose));
+            assert_eq!(decisions[0]["id"], i64::from(taken.team));
+            assert_eq!(decisions[0]["specialist"], i64::from(taken.specialist));
         }
+        assert_eq!(segments[1]["kind"], "action");
+        assert_eq!(segments[1]["round"], 0);
     }
 
     /// Nothing but a battle takes this path.

@@ -1,8 +1,8 @@
 //! The document commands: verify, format and diff.
 //!
 //! They are named for what they do to a document rather than for one kind.
-//! `format` and `diff` accept a layout, and a state, turn or battle document is
-//! refused by the parser until those two verbs learn the other kinds. `verify`
+//! `format` and `diff` accept a layout, and a battle stream is refused by the
+//! parser until those two verbs learn it. `verify`
 //! also checks deployment recordings through the transition and battle opening
 //! and reinforcement offers against the seeded random stream.
 
