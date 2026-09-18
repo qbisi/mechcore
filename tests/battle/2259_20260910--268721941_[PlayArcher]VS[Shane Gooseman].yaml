@@ -189,13 +189,13 @@ sides:
     techs:
       officers: [20034]
     formations:
-    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450, value: 100}
-    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 26, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 95, value: 100}
-    - {type: fire_badger, index: 3, position: {x: -65, y: -140}, exp: 336, value: 200}
-    - {type: fire_badger, index: 4, position: {x: 65, y: -140}, exp: 258, value: 200}
-    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 116, value: 100}
-    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 389, value: 100}
+    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
+    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 26/450, value: 100}
+    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 95/450, value: 100}
+    - {type: fire_badger, index: 3, position: {x: -65, y: -140}, exp: 336/1400, value: 200}
+    - {type: fire_badger, index: 4, position: {x: 65, y: -140}, exp: 258/1400, value: 200}
+    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 116/650, value: 100}
+    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 389/650, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -213,13 +213,13 @@ sides:
     techs:
       officers: [10014]
     formations:
-    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 327, value: 100}
-    - {type: hound, index: 1, position: {x: -140, y: -150}, exp: 539, value: 100}
-    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 267, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 219, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 277, value: 200}
-    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 85, value: 100}
-    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 582, rotated: true, value: 100}
+    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 327/750, value: 100}
+    - {type: hound, index: 1, position: {x: -140, y: -150}, exp: 539/750, value: 100}
+    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 267/750, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 219/1300, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 277/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 85/450, value: 100}
+    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 582/1014, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -267,13 +267,13 @@ sides:
     techs:
       officers: [20034]
     formations:
-    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450, value: 100}
-    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 151, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 304, value: 100}
-    - {type: fire_badger, index: 3, position: {x: -65, y: -140}, exp: 841, value: 200}
-    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 412, value: 100}
-    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 469, value: 100}
-    - {type: vulcan, index: 7, position: {x: 110, y: -140}, exp: 1588, value: 400}
+    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
+    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 151/450, value: 100}
+    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 304/450, value: 100}
+    - {type: fire_badger, index: 3, position: {x: -65, y: -140}, exp: 841/1400, value: 200}
+    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 412/650, value: 100}
+    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 469/650, value: 100}
+    - {type: vulcan, index: 7, position: {x: 110, y: -140}, exp: 1588/2200, value: 400}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -294,16 +294,16 @@ sides:
     techs:
       officers: [10014]
     formations:
-    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 437, value: 100}
-    - {type: hound, index: 1, position: {x: -140, y: -150}, exp: 539, value: 100}
-    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 364, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 396, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 438, value: 200}
-    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 139, value: 100}
-    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 638, rotated: true, value: 100}
-    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 192, value: 100}
-    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 94, rotated: true, value: 100}
-    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 98, value: 100}
+    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 437/750, value: 100}
+    - {type: hound, index: 1, position: {x: -140, y: -150}, exp: 539/750, value: 100}
+    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 364/750, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 396/1300, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 438/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 139/450, value: 100}
+    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 638/1014, rotated: true, value: 100}
+    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 192/750, value: 100}
+    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 94/600, rotated: true, value: 100}
+    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 98/750, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -356,17 +356,17 @@ sides:
     techs:
       officers: [20034]
     formations:
-    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450, value: 100}
-    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 202, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 312, value: 100}
-    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 473, value: 100}
-    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 642, value: 100}
-    - {type: vulcan, index: 7, position: {x: 110, y: -140}, exp: 2163, value: 400}
-    - {type: phoenix, index: 8, position: {x: -210, y: -300}, exp: 696, value: 200}
-    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 236, value: 200}
-    - {type: vulcan, index: 10, position: {x: -110, y: -160}, exp: 561, value: 400}
-    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 186, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 104, rotated: true, value: 100}
+    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
+    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 202/450, value: 100}
+    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 312/450, value: 100}
+    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 473/650, value: 100}
+    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 642/650, value: 100}
+    - {type: vulcan, index: 7, position: {x: 110, y: -140}, exp: 2163/2200, value: 400}
+    - {type: phoenix, index: 8, position: {x: -210, y: -300}, exp: 696/1300, value: 200}
+    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 236/1300, value: 200}
+    - {type: vulcan, index: 10, position: {x: -110, y: -160}, exp: 561/2200, value: 400}
+    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 186/600, rotated: true, value: 100}
+    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 104/600, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -388,20 +388,20 @@ sides:
       officers: [10014]
       units: [3028]
     formations:
-    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 513, value: 100}
-    - {type: hound, index: 1, position: {x: -140, y: -150}, exp: 750, value: 100}
-    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 652, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 929, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 617, value: 200}
-    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 165, value: 100}
-    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 792, rotated: true, value: 100}
-    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 362, value: 100}
-    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 243, rotated: true, value: 100}
-    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 193, value: 100}
-    - {type: phoenix, index: 10, position: {x: -50, y: -170}, exp: 1228, value: 200}
-    - {type: phoenix, index: 11, position: {x: -230, y: -170}, exp: 1300, value: 200}
-    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 45, value: 100}
-    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 145, value: 100}
+    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 513/750, value: 100}
+    - {type: hound, index: 1, position: {x: -140, y: -150}, exp: 750/750, value: 100}
+    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 652/750, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 929/1300, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 617/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 165/450, value: 100}
+    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 792/1014, rotated: true, value: 100}
+    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 362/750, value: 100}
+    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 243/600, rotated: true, value: 100}
+    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 193/750, value: 100}
+    - {type: phoenix, index: 10, position: {x: -50, y: -170}, exp: 1228/1300, value: 200}
+    - {type: phoenix, index: 11, position: {x: -230, y: -170}, exp: 1300/1300, value: 200}
+    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 45/450, value: 100}
+    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 145/750, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -456,19 +456,19 @@ sides:
       officers: [20034]
       units: [10603]
     formations:
-    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450, value: 100}
-    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 256, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 318, value: 100}
-    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 650, value: 100}
-    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 650, value: 100}
-    - {type: vulcan, index: 7, position: {x: 110, y: -140}, exp: 2200, equipment: 13030003, value: 400}
-    - {type: phoenix, index: 8, position: {x: -210, y: -300}, exp: 1300, value: 200}
-    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 538, value: 200}
-    - {type: vulcan, index: 10, position: {x: -110, y: -160}, exp: 1898, value: 400}
-    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 327, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 179, rotated: true, value: 100}
-    - {type: vulcan, index: 13, position: {x: 230, y: -180}, exp: 373, value: 400}
-    - {type: fang, index: 14, position: {x: 240, y: -135}, exp: 32, rotated: true, value: 100}
+    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
+    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 256/450, value: 100}
+    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 318/450, value: 100}
+    - {type: marksman, index: 5, position: {x: 100, y: -190}, exp: 650/650, value: 100}
+    - {type: marksman, index: 6, position: {x: -100, y: -190}, exp: 650/650, value: 100}
+    - {type: vulcan, index: 7, position: {x: 110, y: -140}, exp: 2200/2200, equipment: 13030003, value: 400}
+    - {type: phoenix, index: 8, position: {x: -210, y: -300}, exp: 1300/1300, value: 200}
+    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 538/1300, value: 200}
+    - {type: vulcan, index: 10, position: {x: -110, y: -160}, exp: 1898/2200, value: 400}
+    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 327/600, rotated: true, value: 100}
+    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 179/600, rotated: true, value: 100}
+    - {type: vulcan, index: 13, position: {x: 230, y: -180}, exp: 373/2200, value: 400}
+    - {type: fang, index: 14, position: {x: 240, y: -135}, exp: 32/600, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     contraptions:
@@ -490,23 +490,23 @@ sides:
       officers: [10014]
       units: [3028]
     formations:
-    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 651, value: 100}
-    - {type: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 83, equipment: 13030002, value: 100}
-    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 654, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 936, value: 200}
-    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 197, value: 100}
-    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 792, rotated: true, value: 100}
-    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 414, value: 100}
-    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 267, rotated: true, value: 100}
-    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 230, value: 100}
-    - {type: phoenix, index: 10, position: {x: -50, y: -170}, exp: 1300, value: 200}
-    - {type: phoenix, index: 11, position: {x: -230, y: -170}, level: 2, exp: 1078, value: 200}
-    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 78, value: 100}
-    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 276, value: 100}
-    - {type: sledgehammer, index: 14, position: {x: 95, y: -150}, exp: 191, value: 200}
-    - {type: fang, index: 15, position: {x: 70, y: -105}, exp: 103, rotated: true, value: 100}
-    - {type: crawler, index: 16, position: {x: 290, y: -255}, exp: 5, rotated: true, value: 100}
+    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 651/750, value: 100}
+    - {type: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 83/1690, equipment: 13030002, value: 100}
+    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 654/750, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, exp: 1300/1300, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 936/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 197/450, value: 100}
+    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 792/1014, rotated: true, value: 100}
+    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 414/750, value: 100}
+    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 267/600, rotated: true, value: 100}
+    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 230/750, value: 100}
+    - {type: phoenix, index: 10, position: {x: -50, y: -170}, exp: 1300/1300, value: 200}
+    - {type: phoenix, index: 11, position: {x: -230, y: -170}, level: 2, exp: 1078/2929, value: 200}
+    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 78/450, value: 100}
+    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 276/750, value: 100}
+    - {type: sledgehammer, index: 14, position: {x: 95, y: -150}, exp: 191/1300, value: 200}
+    - {type: fang, index: 15, position: {x: 70, y: -105}, exp: 103/600, rotated: true, value: 100}
+    - {type: crawler, index: 16, position: {x: 290, y: -255}, exp: 5/450, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -570,22 +570,22 @@ sides:
       officers: [20034]
       units: [10203, 10603]
     formations:
-    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450, value: 100}
-    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 389, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 337, value: 100}
-    - {type: marksman, index: 5, position: {x: 100, y: -190}, level: 2, exp: 1465, value: 100}
-    - {type: marksman, index: 6, position: {x: -100, y: -190}, level: 2, exp: 246, value: 100}
-    - {type: vulcan, index: 7, position: {x: 110, y: -140}, level: 2, exp: 3045, equipment: 13030003, value: 400}
-    - {type: phoenix, index: 8, position: {x: -210, y: -300}, level: 2, exp: 755, value: 200}
-    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 554, value: 200}
-    - {type: vulcan, index: 10, position: {x: -110, y: -160}, exp: 2200, value: 400}
-    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 600, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 292, rotated: true, value: 100}
-    - {type: vulcan, index: 13, position: {x: 230, y: -180}, exp: 692, value: 400}
-    - {type: fang, index: 14, position: {x: 240, y: -135}, exp: 54, rotated: true, value: 100}
-    - {type: vulcan, index: 16, position: {x: 10, y: -150}, exp: 653, value: 400}
-    - {type: crawler, index: 17, position: {x: 260, y: -285}, exp: 32, rotated: true, value: 100}
-    - {type: crawler, index: 18, position: {x: -260, y: -285}, exp: 44, rotated: true, value: 100}
+    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
+    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 389/450, value: 100}
+    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 337/450, value: 100}
+    - {type: marksman, index: 5, position: {x: 100, y: -190}, level: 2, exp: 1465/1465, value: 100}
+    - {type: marksman, index: 6, position: {x: -100, y: -190}, level: 2, exp: 246/1465, value: 100}
+    - {type: vulcan, index: 7, position: {x: 110, y: -140}, level: 2, exp: 3045/5453, equipment: 13030003, value: 400}
+    - {type: phoenix, index: 8, position: {x: -210, y: -300}, level: 2, exp: 755/2929, value: 200}
+    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 554/1300, value: 200}
+    - {type: vulcan, index: 10, position: {x: -110, y: -160}, exp: 2200/2200, value: 400}
+    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 600/600, rotated: true, value: 100}
+    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 292/600, rotated: true, value: 100}
+    - {type: vulcan, index: 13, position: {x: 230, y: -180}, exp: 692/2200, value: 400}
+    - {type: fang, index: 14, position: {x: 240, y: -135}, exp: 54/600, rotated: true, value: 100}
+    - {type: vulcan, index: 16, position: {x: 10, y: -150}, exp: 653/2200, value: 400}
+    - {type: crawler, index: 17, position: {x: 260, y: -285}, exp: 32/450, rotated: true, value: 100}
+    - {type: crawler, index: 18, position: {x: -260, y: -285}, exp: 44/450, rotated: true, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -605,27 +605,27 @@ sides:
       officers: [10014]
       units: [3028, 180805]
     formations:
-    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 750, value: 100}
-    - {type: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 104, equipment: 13030002, value: 100}
-    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 687, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, level: 2, exp: 183, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 1020, value: 200}
-    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 224, value: 100}
-    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 830, rotated: true, value: 100}
-    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 541, value: 100}
-    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 296, rotated: true, value: 100}
-    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 404, value: 100}
-    - {type: phoenix, index: 10, position: {x: -50, y: -170}, level: 2, exp: 40, value: 200}
-    - {type: phoenix, index: 11, position: {x: -230, y: -170}, level: 2, exp: 1285, value: 200}
-    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 151, value: 100}
-    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 337, value: 100}
-    - {type: sledgehammer, index: 14, position: {x: 95, y: -150}, exp: 333, value: 200}
-    - {type: fang, index: 15, position: {x: 70, y: -105}, exp: 139, rotated: true, value: 100}
-    - {type: crawler, index: 16, position: {x: 290, y: -255}, exp: 63, rotated: true, value: 100}
-    - {type: rhino, index: 17, position: {x: 285, y: -295}, exp: 45, value: 200}
-    - {type: rhino, index: 18, position: {x: -285, y: -295}, exp: 116, value: 200}
-    - {type: phoenix, index: 19, position: {x: 40, y: -170}, level: 2, exp: 1518, value: 200}
-    - {type: sledgehammer, index: 20, position: {x: 185, y: -150}, exp: 221, value: 200}
+    - {type: hound, index: 0, position: {x: -230, y: -150}, exp: 750/750, value: 100}
+    - {type: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 104/1690, equipment: 13030002, value: 100}
+    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 687/750, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, level: 2, exp: 183/2929, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 1020/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 224/450, value: 100}
+    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 830/1014, rotated: true, value: 100}
+    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 541/750, value: 100}
+    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 296/600, rotated: true, value: 100}
+    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 404/750, value: 100}
+    - {type: phoenix, index: 10, position: {x: -50, y: -170}, level: 2, exp: 40/2929, value: 200}
+    - {type: phoenix, index: 11, position: {x: -230, y: -170}, level: 2, exp: 1285/2929, value: 200}
+    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 151/450, value: 100}
+    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 337/750, value: 100}
+    - {type: sledgehammer, index: 14, position: {x: 95, y: -150}, exp: 333/1300, value: 200}
+    - {type: fang, index: 15, position: {x: 70, y: -105}, exp: 139/600, rotated: true, value: 100}
+    - {type: crawler, index: 16, position: {x: 290, y: -255}, exp: 63/450, rotated: true, value: 100}
+    - {type: rhino, index: 17, position: {x: 285, y: -295}, exp: 45/1150, value: 200}
+    - {type: rhino, index: 18, position: {x: -285, y: -295}, exp: 116/1150, value: 200}
+    - {type: phoenix, index: 19, position: {x: 40, y: -170}, level: 2, exp: 1518/2929, value: 200}
+    - {type: sledgehammer, index: 20, position: {x: 185, y: -150}, exp: 221/1300, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -679,25 +679,25 @@ sides:
       officers: [20034, 30301]
       units: [10202, 10203, 10603]
     formations:
-    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450, value: 100}
-    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 401, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 337, value: 100}
-    - {type: marksman, index: 5, position: {x: 100, y: -190}, level: 3, exp: 100, value: 100}
-    - {type: marksman, index: 6, position: {x: -100, y: -190}, level: 2, exp: 324, value: 100}
-    - {type: vulcan, index: 7, position: {x: 110, y: -140}, level: 2, exp: 4415, equipment: 13030003, value: 400}
-    - {type: phoenix, index: 8, position: {x: -210, y: -300}, level: 2, exp: 1131, value: 200}
-    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 751, value: 200}
-    - {type: vulcan, index: 10, position: {x: -110, y: -160}, level: 2, exp: 1473, value: 400}
-    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 600, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 292, rotated: true, value: 100}
-    - {type: vulcan, index: 13, position: {x: 230, y: -180}, exp: 799, value: 400}
-    - {type: fang, index: 14, position: {x: 240, y: -135}, exp: 89, rotated: true, value: 100}
-    - {type: vulcan, index: 16, position: {x: 10, y: -150}, exp: 653, value: 400}
-    - {type: crawler, index: 17, position: {x: 260, y: -285}, exp: 67, rotated: true, value: 100}
-    - {type: crawler, index: 18, position: {x: -260, y: -285}, exp: 69, rotated: true, value: 100}
-    - {type: marksman, index: 19, position: {x: -170, y: -190}, exp: 194, value: 100}
-    - {type: marksman, index: 20, position: {x: 200, y: -190}, exp: 100, value: 100}
-    - {type: vulcan, index: 21, position: {x: -220, y: -190}, exp: 643, value: 400}
+    - {type: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
+    - {type: crawler, index: 1, position: {x: 135, y: -190}, exp: 401/450, value: 100}
+    - {type: crawler, index: 2, position: {x: 5, y: -300}, exp: 337/450, value: 100}
+    - {type: marksman, index: 5, position: {x: 100, y: -190}, level: 3, exp: 100/2315, value: 100}
+    - {type: marksman, index: 6, position: {x: -100, y: -190}, level: 2, exp: 324/1465, value: 100}
+    - {type: vulcan, index: 7, position: {x: 110, y: -140}, level: 2, exp: 4415/5453, equipment: 13030003, value: 400}
+    - {type: phoenix, index: 8, position: {x: -210, y: -300}, level: 2, exp: 1131/2929, value: 200}
+    - {type: phoenix, index: 9, position: {x: 210, y: -300}, exp: 751/1300, value: 200}
+    - {type: vulcan, index: 10, position: {x: -110, y: -160}, level: 2, exp: 1473/5453, value: 400}
+    - {type: fang, index: 11, position: {x: 140, y: -225}, exp: 600/600, rotated: true, value: 100}
+    - {type: fang, index: 12, position: {x: -140, y: -225}, exp: 292/600, rotated: true, value: 100}
+    - {type: vulcan, index: 13, position: {x: 230, y: -180}, exp: 799/2200, value: 400}
+    - {type: fang, index: 14, position: {x: 240, y: -135}, exp: 89/600, rotated: true, value: 100}
+    - {type: vulcan, index: 16, position: {x: 10, y: -150}, exp: 653/2200, value: 400}
+    - {type: crawler, index: 17, position: {x: 260, y: -285}, exp: 67/450, rotated: true, value: 100}
+    - {type: crawler, index: 18, position: {x: -260, y: -285}, exp: 69/450, rotated: true, value: 100}
+    - {type: marksman, index: 19, position: {x: -170, y: -190}, exp: 194/650, value: 100}
+    - {type: marksman, index: 20, position: {x: 200, y: -190}, exp: 100/650, value: 100}
+    - {type: vulcan, index: 21, position: {x: -220, y: -190}, exp: 643/2200, value: 400}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -717,29 +717,29 @@ sides:
       officers: [10014, 20001]
       units: [3013, 3028, 10216, 180805]
     formations:
-    - {type: hound, index: 0, position: {x: -230, y: -150}, level: 2, exp: 387, value: 100}
-    - {type: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 186, equipment: 13030002, value: 100}
-    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 750, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, level: 2, exp: 221, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 1121, value: 200}
-    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 252, value: 100}
-    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 1014, rotated: true, value: 100}
-    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 657, value: 100}
-    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 304, rotated: true, value: 100}
-    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 429, value: 100}
-    - {type: phoenix, index: 10, position: {x: -50, y: -170}, level: 2, exp: 2929, value: 200}
-    - {type: phoenix, index: 11, position: {x: -230, y: -170}, level: 2, exp: 1973, value: 200}
-    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 179, value: 100}
-    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 397, value: 100}
-    - {type: sledgehammer, index: 14, position: {x: 95, y: -150}, exp: 445, value: 200}
-    - {type: fang, index: 15, position: {x: 70, y: -105}, exp: 142, rotated: true, value: 100}
-    - {type: crawler, index: 16, position: {x: 290, y: -255}, exp: 101, rotated: true, value: 100}
-    - {type: rhino, index: 17, position: {x: 285, y: -295}, exp: 88, value: 200}
-    - {type: rhino, index: 18, position: {x: -285, y: -295}, exp: 886, value: 200}
-    - {type: phoenix, index: 19, position: {x: 40, y: -170}, level: 2, exp: 2929, value: 200}
-    - {type: sledgehammer, index: 20, position: {x: 185, y: -150}, exp: 375, value: 200}
-    - {type: hound, index: 21, position: {x: 140, y: -210}, exp: 21, value: 100}
-    - {type: hound, index: 22, position: {x: -140, y: -210}, exp: 92, value: 100}
+    - {type: hound, index: 0, position: {x: -230, y: -150}, level: 2, exp: 387/1690, value: 100}
+    - {type: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 186/1690, equipment: 13030002, value: 100}
+    - {type: hound, index: 2, position: {x: -50, y: -150}, exp: 750/750, value: 100}
+    - {type: sledgehammer, index: 3, position: {x: -185, y: -150}, level: 2, exp: 221/2929, value: 200}
+    - {type: sledgehammer, index: 4, position: {x: -95, y: -150}, exp: 1121/1300, value: 200}
+    - {type: crawler, index: 5, position: {x: -145, y: -190}, exp: 252/450, value: 100}
+    - {type: crawler, index: 6, position: {x: -140, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
+    - {type: hound, index: 7, position: {x: 140, y: -150}, exp: 657/750, value: 100}
+    - {type: fang, index: 8, position: {x: -140, y: -115}, exp: 304/600, rotated: true, value: 100}
+    - {type: hound, index: 9, position: {x: 230, y: -150}, exp: 429/750, value: 100}
+    - {type: phoenix, index: 10, position: {x: -50, y: -170}, level: 2, exp: 2929/2929, value: 200}
+    - {type: phoenix, index: 11, position: {x: -230, y: -170}, level: 2, exp: 1973/2929, value: 200}
+    - {type: crawler, index: 12, position: {x: 145, y: -190}, exp: 179/450, value: 100}
+    - {type: hound, index: 13, position: {x: 40, y: -150}, exp: 397/750, value: 100}
+    - {type: sledgehammer, index: 14, position: {x: 95, y: -150}, exp: 445/1300, value: 200}
+    - {type: fang, index: 15, position: {x: 70, y: -105}, exp: 142/600, rotated: true, value: 100}
+    - {type: crawler, index: 16, position: {x: 290, y: -255}, exp: 101/450, rotated: true, value: 100}
+    - {type: rhino, index: 17, position: {x: 285, y: -295}, exp: 88/1150, value: 200}
+    - {type: rhino, index: 18, position: {x: -285, y: -295}, exp: 886/1150, value: 200}
+    - {type: phoenix, index: 19, position: {x: 40, y: -170}, level: 2, exp: 2929/2929, value: 200}
+    - {type: sledgehammer, index: 20, position: {x: 185, y: -150}, exp: 375/1300, value: 200}
+    - {type: hound, index: 21, position: {x: 140, y: -210}, exp: 21/750, value: 100}
+    - {type: hound, index: 22, position: {x: -140, y: -210}, exp: 92/750, value: 100}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}

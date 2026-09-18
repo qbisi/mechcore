@@ -22,7 +22,8 @@ use crate::battle::{
 use crate::catalog::{construction_type_from_id, terrain_type_from_skill, unit_type_from_id};
 use crate::grbr::{decode_grbr_byte_mask, decode_grbr_grid_groups, rotate_oil_grid_rows};
 use crate::layout::{
-    ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain, TerrainType,
+    ContraptionPlacement, Experience, Formation, Position, StaticPlacement, Techs, Terrain,
+    TerrainType,
 };
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -474,7 +475,7 @@ fn formations(
                 // The record counts paid upgrades from zero; a layout displays
                 // the level from one.
                 level: Some(unit.level + 1).filter(|level| *level != 1),
-                exp: Some(unit.exp).filter(|exp| *exp != 0),
+                exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
                 rotated: Some(unit.rotated).filter(|rotated| *rotated),
                 equipment: Some(unit.equipment).filter(|id| *id != 0),
                 travelling: travelling.get(&unit.index).copied().filter(|set| *set),
@@ -503,24 +504,31 @@ fn constructions(snapshot: &Snapshot, seat: Seat) -> Result<Vec<StaticPlacement>
     Ok(constructions)
 }
 
-/// The skill panel, and which of its slots this round released.
+/// The skill panel, and which of its slots this round released or used.
 ///
 /// A snapshot says that a slot was released and not where in the round or at
 /// what, so the release read back here carries neither. Comparing a produced
 /// release against one of these compares presence, which is what a snapshot
 /// decides.
+///
+/// The game marks a deployment skill it has spent the way it marks a release,
+/// and a state tells the two apart: a deployment skill is `used`.
 fn panel(snapshot: &Snapshot) -> Vec<PanelSkill> {
     let mut battle_skills: Vec<PanelSkill> = snapshot
         .commander_skills
         .iter()
-        .map(|skill| PanelSkill {
-            index: skill.index,
-            id: skill.id,
-            cooldown: skill.cooling_round,
-            release: skill.released.then(|| Release {
-                order: 0,
-                target: SkillTarget::Area(Vec::new()),
-            }),
+        .map(|skill| {
+            let deployment = crate::transition::TRAINING_SKILLS.contains(&skill.id);
+            PanelSkill {
+                index: skill.index,
+                id: skill.id,
+                cooldown: skill.cooling_round,
+                used: skill.released && deployment,
+                release: (skill.released && !deployment).then(|| Release {
+                    order: 0,
+                    target: SkillTarget::Area(Vec::new()),
+                }),
+            }
         })
         .collect();
     battle_skills.sort_by_key(|skill| skill.index);

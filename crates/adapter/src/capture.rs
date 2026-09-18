@@ -4,11 +4,11 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_document::{
-    BattleSkillDefinition, ContraptionPlacement, DocumentKind, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
-    Formation, Layout, Position, Side, Sides, StaticPlacement, TOWER_COUNT, Techs,
-    Terrain as LayoutTerrain, TerrainType as LayoutTerrainType, battle_skill_type_from_id,
-    canonical_embedded_yaml, construction_type_from_id, contraption_type_from_id,
-    unit_type_from_id,
+    BattleSkillDefinition, ContraptionPlacement, DocumentKind, Experience,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, Position, Side, Sides, StaticPlacement,
+    TOWER_COUNT, Techs, Terrain as LayoutTerrain, TerrainType as LayoutTerrainType,
+    battle_skill_type_from_id, canonical_embedded_yaml, construction_type_from_id,
+    contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
@@ -4922,7 +4922,7 @@ fn read_native_side(
                 index: native_index,
                 position: Position { x, y },
                 level: Some(displayed_level),
-                exp: Some(exp),
+                exp: Experience::of(exp, type_name, displayed_level)?,
                 rotated: Some(rotated),
                 equipment,
                 travelling: Some(travelling),

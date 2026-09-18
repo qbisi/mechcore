@@ -7,7 +7,8 @@ The prices a supply ledger needs live in two Unity objects of `level0`:
   price, its shop unlock price, its member count and the technologies it may
   research; its `defaultTechnologies` are what a new account may unlock
   without paying, which is an account rule rather than a match one) and
-  `mechExpDatas` (the cost of one level). It is read here from the JSON export
+  `mechExpDatas` (the supply and the experience one level costs). It is read
+  here from the JSON export
   in this directory, because reading it back out of the asset needs the type
   tree that a dummy-DLL build supplies.
 * `TechnologyGroupData` at path id 184 carries every `TechnologyData`, and its
@@ -66,6 +67,7 @@ UNIT_REINFORCEMENTS = ROOT / "config/unit_reinforcements.yaml"
 ADVANCE_TEAMS = ROOT / "config/advance_teams.yaml"
 ECONOMY = ROOT / "config/economy.yaml"
 UNIT_PRICES = ROOT / "config/unit_prices.yaml"
+UNIT_EXPERIENCE = ROOT / "config/unit_experience.yaml"
 DOC = ROOT / "docs/rules/unit_techs.md"
 BUILD = "1.11.1.3.2259"
 
@@ -380,6 +382,45 @@ MODIFIERS = (
     ("granted_supply", "addSupply"),
     ("kill_bounty", "destroyHugeMechSupply"),
 )
+
+
+# The multiplier of each level's experience over the first level's, in
+# `docs/rules/unit_experience.md`. They are fitted rather than read: each is a
+# value every standard row admits once rounded half up.
+EXPERIENCE_FACTORS = ("1", "2.25321", "3.5618", "4.49028", "5.21046", "5.79888",
+                      "6.29639", "6.72735")
+
+
+def write_unit_experience(names, levels):
+    """Writes each unit's experience per level, and checks the formula on it.
+
+    The table is read verbatim. The formula is only checked, so a row that
+    breaks it is still written as the build has it, and named here.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+
+    factors = [Decimal(factor) for factor in EXPERIENCE_FACTORS]
+    lines = ["schema: mechcore.unit_experience", f"game_build: {BUILD}", "",
+             "# `upgrade_exp` is `mechExpDatas.upgradeLv2` through `upgradeLv9`. Its",
+             "# n-th entry fills the bar of a formation at level n; level 9 fills",
+             "# at the last entry. docs/rules/unit_experience.md states why, and the",
+             "# formula the rows follow.",
+             "", "units:"]
+    breaking = []
+    for unit_id in sorted(names):
+        row = levels.get(unit_id)
+        if row is None:
+            continue
+        table = [row[f"upgradeLv{level}"] for level in range(2, 10)]
+        predicted = [int((table[0] * factor).quantize(Decimal(1), ROUND_HALF_UP))
+                     for factor in factors]
+        if predicted != table:
+            breaking.append(names[unit_id])
+        values = ", ".join(str(value) for value in table)
+        lines.append(f"  - {{type: {names[unit_id]}, unit_id: {unit_id}, "
+                     f"upgrade_exp: [{values}]}}")
+    UNIT_EXPERIENCE.write_text("\n".join(lines) + "\n")
+    print(f"units whose experience breaks the formula: {breaking}")
 
 
 def write_unit_reinforcements(structure, by_level):
@@ -721,8 +762,11 @@ def main():
 
     UNIT_TECHS.write_text(yaml_units("mechcore.unit_techs", techs))
     UNIT_PRICES.write_text(yaml_units("mechcore.unit_prices", economy))
-    for path in (UNIT_TECHS, UNIT_PRICES, REINFORCE, UNIT_REINFORCEMENTS,
-                 ADVANCE_TEAMS, OFFICERS, ECONOMY):
+    sold = {row["id"] for row in structure["cardDatas"]}
+    write_unit_experience({unit: name for unit, name in names.items() if unit in sold},
+                          levels)
+    for path in (UNIT_TECHS, UNIT_PRICES, UNIT_EXPERIENCE, REINFORCE,
+                 UNIT_REINFORCEMENTS, ADVANCE_TEAMS, OFFICERS, ECONOMY):
         print(f"wrote {path.relative_to(ROOT)}")
 
 

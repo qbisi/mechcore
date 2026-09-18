@@ -13,7 +13,9 @@ use crate::battle::{
     Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
-use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
+use crate::layout::{
+    ContraptionPlacement, Experience, Formation, Position, StaticPlacement, Techs,
+};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::ledger;
@@ -344,6 +346,7 @@ fn side_state(
             index: skill.index,
             id: skill.id,
             cooldown: skill.cooling_round,
+            used: false,
             // A converted state opens a round, and a round opens with nothing
             // released. The round's releases are its actions.
             release: None,
@@ -425,7 +428,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             // The record counts paid upgrades from zero; a layout displays the
             // level from one.
             level: Some(unit.level + 1).filter(|level| *level != 1),
-            exp: Some(unit.exp).filter(|exp| *exp != 0),
+            exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
             rotated: Some(unit.rotated).filter(|rotated| *rotated),
             equipment: Some(unit.equipment_id).filter(|id| *id != 0),
             // No recorded field states it; see docs/spec/document/battle.md.

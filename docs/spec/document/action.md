@@ -79,18 +79,15 @@ taken from. That is a stronger statement than the round transition
 [`battle.md`](battle.md#what-a-round-reproduces) defines, and it is the one this
 document's per-action rules are answerable to.
 
-Two inputs no decision carries stop it being a total function, and both are
-named rather than guessed.
+One input no decision carries stops it being a total function, and it is named
+rather than guessed: **where a summoned formation lands.** A card's squads and
+an opening's force are placed clear of whatever already stands, so the same card
+in the same seat lands differently in two matches. The index each takes, its
+type, its level and what recovering it pays back are all settled; only the
+position is not.
 
-- **Where a summoned formation lands.** A card's squads and an opening's force
-  are placed clear of whatever already stands, so the same card in the same seat
-  lands differently in two matches. The index each takes, its type, its level
-  and what recovering it pays back are all settled; only the position is not.
-- **What an experience release grants.** The commander skill that raises a
-  formation's experience raises it by an amount no shipped table carries.
-
-A decision that hits either is reported unsettled. It is not counted as
-reproduced, and no value is invented for it.
+A decision that hits it is reported unsettled. It is not counted as reproduced,
+and no value is invented for it.
 
 An allocator is settled while the objects it names are board. A contraption is
 destroyed by the fight and a formation can be, but neither index is handed out
@@ -106,7 +103,8 @@ round otherwise owns.
   it: energy tower skill `3` and reinforcement card `10004` each grant one more.
   `unlocks_remaining` only ever counts down.
 - A formation's `exp` is the fight's to grant, except that upgrading a formation
-  discards it. A rank starts at zero however much the rank below it earned.
+  discards it and Intensive Training fills it. A rank starts at zero however much
+  the rank below it earned.
 
 ## The actions
 
@@ -330,6 +328,21 @@ recovers an object, which pays back what that object cost: for a formation, its
 purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that
 is a property of its type rather than of its history.
+
+A deployment skill is not a release the fight sees. It does its work on the
+position during deployment, so the decision writes that work and marks the slot
+`used`: the slot gains no `release`, carries no target or place in the release
+order, and never reaches a layout.
+
+Intensive Training, `1100001`, is one. It targets one of the side's own
+formations with `!unit` and fills its experience bar, so `exp` becomes
+`maximum/maximum`. A full
+formation takes no further share of the experience a fight hands out;
+[the unit experience index](../../rules/unit_experience.md) gives the amount a
+full bar stands for per unit and level.
+
+The skill cannot target a formation at level 9 or one whose bar is already
+full, and a decision that does is refused rather than applied.
 
 ### `release_contraption`
 
