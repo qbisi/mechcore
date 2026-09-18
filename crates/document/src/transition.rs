@@ -1,9 +1,10 @@
-//! Applies a turn's decisions to the position they were taken from.
+//! Applies a round's decisions to the position they were taken from.
 //!
-//! `docs/spec/document/turn.md` calls this the turn's own transition test: a turn states its
-//! round twice over, once as a position and once as the decisions taken from
-//! it, and applying the second to the first has to reproduce the position the
-//! next turn holds. [`apply`] is that application and [`check`] is that test.
+//! `docs/spec/document/battle.md` calls this what a round reproduces: a battle
+//! states each round twice over, once as the position it opens with and once as
+//! the decisions taken from it, and applying the second to the first has to
+//! reproduce the position the next round opens with. [`apply`] is that
+//! application and [`check`] is that test.
 //!
 //! Only what the fight cannot touch is produced here. A roster, a reactor core
 //! and a formation's experience are the fight's to decide; the two allocators,
@@ -442,6 +443,8 @@ pub fn step_placing(
         Action::ReleaseCommanderSkill { skill, target } => {
             release(economy, &mut next, *skill, target)?;
         }
+        // Giving up ends the match without moving the position.
+        Action::Concede => {}
         // A contraption is bought from the shop as it is placed.
         Action::ReleaseContraption {
             contraption,
@@ -819,10 +822,10 @@ pub(crate) fn opening_position() -> SideState {
 #[must_use]
 pub fn check(battle: &Battle, economy: &Economy) -> Report {
     let mut report = Report::default();
-    // The opening is the seam between `sides` and the first round, and it is
-    // checked the same way a round seam is: applying it has to produce what
+    // The opening is the seam between the header and the first round, and it
+    // is checked the same way a round seam is: applying it has to produce what
     // the first round holds. Its failures are reported at round 0, which is
-    // the round the game takes it in and no turn covers.
+    // the round it is decided in and which has no state of its own.
     if let Some(first) = battle.turns.first() {
         for (side, opening, following) in [
             ("blue", &battle.sides.blue.opening, &first.state.sides.blue),

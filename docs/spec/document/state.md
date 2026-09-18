@@ -24,10 +24,10 @@ layout. They belong to the document rather than to a side because both sides
 share them.
 
 A state is defined after each action, not only at a round's ends. A
-[turn](turn.md) carries this shape under its own `state` key, without repeating
-`kind`, and adds the [decisions](action.md) taken from it. A
-[battle](battle.md) carries the turns of one match in order, and hoists `map_id`
-and `seed` to its own root. `kind` marks a document root, not a subtree.
+[battle](battle.md) writes the position each round opens with as a state
+segment, followed by the [decisions](action.md) taken from it. A state segment
+carries `kind: state` and `round`, and leaves `map_id` and `seed` to the
+battle's header, which states them once for every round.
 
 ## Relation to a layout
 
@@ -90,8 +90,8 @@ player sees the other's, so it could never be `reinforce_offers`, which is above
 `sides` precisely because both players choose from one array.
 
 It is not under a side's state either, because the position it is dealt in is
-not a round worth stating. [`battle.md`](battle.md) holds the opening, the four
-combinations included, under the battle's own `sides`.
+not a round worth stating. A battle's [header](battle.md#the-opening-offers)
+holds the four combinations under each side.
 
 ## Random state
 

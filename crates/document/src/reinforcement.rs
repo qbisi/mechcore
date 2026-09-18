@@ -95,7 +95,7 @@ pub struct Shop {
     pub unlocked_units: Vec<i32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Actions {
     pub blue: Vec<Action>,
     pub red: Vec<Action>,

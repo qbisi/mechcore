@@ -2,64 +2,123 @@
 
 ## Scope
 
-A battle is one match. It holds what every round of that match shares, and the
-rounds themselves in order.
+A battle is one match, written as a stream of YAML documents separated by
+`---`. The stream opens with a header, holds the opening's decisions next, and
+then alternates between the position a round opens with and the decisions each
+side takes from it.
 
 ```yaml
 kind: battle
 map_id: 1001
 seed: 2038621361
-
-concession:
-  side: red
-  round: 9
-
 sides:
-  blue:
-    opening: { ... }
-    constructions: [ ... ]
-    tech_loadout: { ... }
-  red:
-    opening: { ... }
-    constructions: [ ... ]
-    tech_loadout: { ... }
-
-turns:
-  - round: 1
-    state: { ... }
-    actions: { ... }
-  - round: 2
-    state: { ... }
-    actions: { ... }
+  blue: {offers: [...], constructions: [...], tech_loadout: {...}}
+  red: {offers: [...], constructions: [...], tech_loadout: {...}}
+---
+kind: action
+round: 0
+blue:
+- type: choose_advance_team
+  offer: 1
+  id: 9910
+  specialist: 20005
+red:
+- type: choose_advance_team
+  offer: 0
+  id: 9891
+  specialist: 10002
+---
+kind: state
+round: 1
+sides:
+  blue: { ... }
+  red: { ... }
+---
+kind: action
+round: 1
+blue: [ ... ]
+red: [ ... ]
+---
+kind: state
+round: 2
+...
 ```
 
-An entry of `turns` carries the [turn](turn.md) shape without `kind`, and
-without the `map_id` and `seed` a standalone turn holds at its own root, since a
-battle states them once for every round. It keeps its `round`.
+Each document in the stream is a segment, and each segment names its `kind`.
+This document defines the header, the grammar of the stream, and what holds
+across its rounds. A state segment carries the [state](state.md) shape and an
+action segment carries two [action](action.md) sequences; those two documents
+define the segments themselves. A [layout](layout.md) is the projection of a
+state onto what the fight simulates, and never appears in a battle.
 
-`turns` starts at the first deployment round. The opening the game numbers round
-zero is not one, and `sides` holds it.
+A segment is a unit a reader can take on its own. The header and one round's
+state are the position a side decides that round from, so a reader that wants
+one round reads the header, that round's state and that round's actions, and
+nothing between them.
 
-The four documents nest rather than compete. A battle is turns plus what they
-share, a turn is a state plus the [decisions](action.md) taken from it, a
-[state](state.md) is one complete position, and a [layout](layout.md) is the
-projection of a state onto what the fight simulates.
+A battle states decisions and the positions they were taken from. It does not
+state a fight: what a fight did is visible only as the difference between one
+round's state and the next.
 
-## What every round shares
+## The stream
 
-Two fields are hoisted out of the rounds, and both keep the meaning and the
-optionality a layout gives them.
+The segments come in one order:
+
+```text
+battle, action(0), state(1), action(1), state(2), action(2), ...
+```
+
+`round` counts up by one from each state to the next, and an action segment
+carries the round of the state before it. Round zero is the opening, which has
+decisions and no state; every later round has both.
+
+A stream may end after any segment. That is what lets a stream grow: a match in
+progress, or a reader that learns the next position later, appends the next
+segment rather than rewriting the file. A stream that ends on an action segment
+says that round's fight is not stated, and says nothing about whether it has
+been fought.
+
+Two segments end a match, and nothing may follow either of them:
+
+- an action segment in which a side concedes, since the round is then not
+  fought;
+- a state segment in which a side's `reactor_core` is zero or below, since the
+  fight that produced it destroyed that side.
+
+Neither is an extra marker. A match's end is read from the last segment's own
+content, so a stream never has to be reopened to append past a marker that
+turned out to be premature.
+
+A reader refuses a stream whose segments are out of order, whose rounds skip or
+repeat, or that continues past the end of a match.
+
+### A state segment is the position a round opens with
+
+A battle states a round from before its first decision. No skill on its panel
+carries a `release`, and `travelling` is empty, because both are written by the
+round's own decisions. A state segment that holds a release is refused.
+
+Each state segment repeats the whole position rather than what changed. That is
+accepted rather than encoded away: a segment has to stand alone so that one round
+can be lifted out of a match, and a delta would make every round depend on all
+of its predecessors.
+
+## The header
+
+The header holds what every round of the match shares.
 
 | Field | Source |
 | --- | --- |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
 
+Both keep the meaning and the optionality a layout gives them.
+
 The rest of the match header is a property of the standard 1v1 rule set rather
 than of a match: the phase durations, the round cap, the advance team,
 reinforcement and construction flags, the game and score modes. A battle states
 the mode once by being this format, rather than restating its consequences in
-every document. A mode that changes them is a different format.
+every segment. A mode that changes them is a different format.
 
 `FightTime` is the only header constant a simulator reads, and it is 120
 seconds.
@@ -77,7 +136,7 @@ A battle that names a rule is outside what this format defines. A reader refuses
 such a document rather than reading the states inside it under premises the rule
 breaks.
 
-## The sides are positional
+### The sides are positional
 
 `blue` is `playerRecords[0]` and `red` is `playerRecords[1]`.
 
@@ -86,99 +145,44 @@ players, and its `Seat` names the client that recorded the file rather than a
 side. Player names and account IDs are not fields: nothing reads them, and a
 side is identified by which side it is.
 
-## What a side brings to the match
+### What a side brings to the match
 
 Three per-side facts are properties of the match rather than of a round, and
-they are what `sides` holds. Two of them are settled before either player
-deploys, and the third bounds every round.
+they are what the header's `sides` holds. Two of them are dealt before either
+player decides anything, and the third bounds every round.
 
-### The opening is a side, not a round
+#### The opening offers
 
 ```yaml
-    blue:
-      opening:
-        choose: 1
-        offers:
-          - {team: 9899, specialist: 20034}
-          - {team: 9910, specialist: 20005}
-          - {team: 9871, specialist: 20021}
-          - {team: 9875, specialist: 10010}
+  blue:
+    offers:
+    - {team: 9899, specialist: 20034}
+    - {team: 9910, specialist: 20005}
+    - {team: 9871, specialist: 10010}
+    - {team: 9875, specialist: 20021}
 ```
 
 The opening deals a side four combinations of a team of formations and a
-specialist officer, and taking one takes both. `choose` is the zero-based index
-of the combination taken, from 0 through 3. `offers[choose].team` and
-`offers[choose].specialist` identify its two halves; the opening does not repeat
-them in separate fields.
+specialist officer, and taking one takes both. `offers` is the four in the
+order shown to the player.
 
-The game numbers the opening round zero and records the choice as an action in
-it, and a battle does not. The reason is what a turn means. Neither player sees
-the other's decisions while a round is being deployed, so a turn's two action
-lists are simultaneous and secret, and that is the property the whole document
-rests on. The opening is not secret: both players are shown what the other took
-before the first round opens, and the first round is deployed knowing it. A
-decision both sides have already seen is a premise of the rounds, not one of
-them.
+The deal is private: neither player sees the other's. That is why it sits under
+a side here and not beside a state's `reinforce_offers`, which both players
+choose from.
 
-That it also has no position worth stating is a second reason and the weaker
-one. Every side of every match enters the opening with nothing bought, nothing
-researched, both towers at level zero and both allocators at zero, and leaves it
-having taken one decision whose result the first round already shows.
+The deal belongs in the header rather than in a state because the opening has no
+position worth stating. Every side of every match enters it holding nothing:
+nothing bought, nothing researched, both towers at level zero and both
+allocators at zero. The header is that position, and the offers are the one
+part of it that differs between matches.
 
-So the opening sits here, the turns start at round 1, and
-[`action.md`](action.md) keeps defining `choose_advance_team` because the game
-records it and the recording oracle steps it. No turn of a converted battle
-carries one.
-
-The four combinations dealt are `opening.offers`, in the order shown to the
-player. Both `choose` and the complete `offers` array are required: an index
-alone does not identify a team or specialist. Conversion reconstructs the deal
-from the opening round's random state and checks the chosen entry against the
-recorded team and specialist. A missing or malformed random state, or a choice
-that disagrees with the reconstructed deal, is refused.
-
-Offline opening verification computes initialization from the match seed and
-map ID, checks both complete offer arrays and initial construction lists, and
-requires each `choose` to name an entry. It compares the directly computed
-result, without searching alternative stream positions. This checks the deal,
-construction layout and choice's range; it does not prove that a player selected
-that index without the source replay, or validate deployment and combat.
-
-`mechcore verify` also checks every turn's complete ordered
-`state.reinforce_offers` array. It advances the reinforcement stream from the
-opening through contiguous turns starting at round 1. Each draw uses that
-turn's stated formations, shop unlocks, active technologies and officers;
-previous `choose_reinforce_item` actions update the pool. Offers being checked
-do not choose the stream position or seed the next draw.
-
-Round 1 carries no offers or reinforcement choice. Every later nonterminal
-round requires one choice per side; a terminal round may omit it. An index and
-ID must name the predicted offer, or use the defined decline form. Missing or
-reordered offers, invalid choices, unsupported inputs and discontinuous turns
-are refusals. The first failing round is reported. A successful report includes
-`reinforcement_rounds`, `reinforcement_offers_checked`, and `reinforcements`,
-whose entries contain the ordered offers, ordinary/unit branch and random
-states and offsets before and after generation. These checks are conditional
-on the stated round inputs; they do not authenticate player decisions or
-validate transitions across combat.
-
-`mechcore opening <seed> <map_id>` predicts the same two offer arrays and
-construction lists without a battle or replay. Its JSON result includes the
-selected officer variants and unit reinforcement round pool, the reinforcement
-state before and after the opening deal, and raw draw counts excluding seed
-warm-up and including range rejection. The map stream reports its chosen
-construction group, reversal flags in blue/red order, and raw draw count.
-Unsupported maps and negative seeds are refused. This operation predicts
-available options; it does not select an option for either player or predict
-subsequent reinforcement deals.
-
-### The construction layout is dealt, not built
+#### The construction layout is dealt, not built
 
 ```yaml
-    blue:
-      constructions:
-        - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-        - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+  blue:
+    constructions:
+    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ```
 
 The map rolls a construction layout and deals it to both sides before the first
@@ -194,19 +198,19 @@ equals it, and every later round's is a subset of the same identities.
 Each side reads the layout in its own frame, so the two are the same buildings
 at mirrored coordinates rather than the same positions.
 
-## The custom tech loadout
+#### The custom tech loadout
 
 Each player chooses, before the match, which technologies each unit may
 research. A technology outside a unit's loadout cannot be researched in that
-match, so the loadout bounds every `upgrade_technology` a turn can hold.
+match, so the loadout bounds every `upgrade_technology` a round can hold.
 
 ```yaml
-    blue:
-      tech_loadout:
-        1: [1105, 10301, 10401, 10801]
-        2: [702, 1802, 3202, 10202]
-        17: [417, 3317, 10217, 12017, 12117, 12217]
-        31: [631, 10231, 180931, 503101]
+  blue:
+    tech_loadout:
+      1: [1105, 10301, 10401, 10801]
+      2: [702, 1802, 3202, 10202]
+      17: [417, 3317, 10217, 12017, 12117, 12217]
+      31: [631, 10231, 180931, 503101]
 ```
 
 It is real state and not a catalogue: two players in one match hold different
@@ -219,59 +223,133 @@ nothing at all about the three units above `2000`. Ownership is still a function
 of the ID, since no technology belongs to two units, and it is resolved against
 the build's catalogue rather than by decoding digits.
 
-## The turns are a sequence
+## The opening is round zero
 
-`round` stays on each turn even though the list is ordered. It is the key the
-record files a snapshot and an action list under, a list position is not, and a
-battle that is sliced or that starts away from zero has to stay readable.
+The opening is the first action segment, and it holds one
+`choose_advance_team` per side and nothing else. `offer` is the zero-based
+position of the combination taken in that side's header `offers`, and `id` and
+`specialist` name the team and specialist that combination holds. A decision
+whose `id` and `specialist` are not what its offer holds is refused.
 
-A battle repeats most of its state in every turn, and that is accepted rather
-than encoded away. Each turn must stand alone as a document, so that one round
-can be lifted out of a match and run on its own, and a delta encoding would make
-every turn depend on all of its predecessors.
+Round zero has no state segment because the header is its position, and the
+first state segment is round 1, which already shows what the opening delivered.
+The seam from the header to round 1 is checked like every other seam, below.
 
-## Between two turns there is a fight
+## Checking the deal against the seed
 
-Consecutive states are not adjacent. Applying a turn's actions to its state
-yields the position at the end of the deployment, projecting that position
-yields the layout the fight starts from, and the fight is what produces the next
-turn's roster and reactor core. A battle is therefore the only one of the four
-documents that states an end-to-end simulator obligation, and the only one whose
-checks can be cross-round.
+Every offer a battle states is drawn from the match's seed, so a battle can be
+checked for having been dealt what it says without the replay it came from.
 
-It also means a battle records no fight result. The last recorded round is a
-deployment like any other, and the fight that ends the match has no successor
-state to show its result. No fight result is a field anywhere, and every earlier
-one is visible only as the difference between two states.
-
-### A concession is the one ending a decision produces
-
-```yaml
-concession:
-  side: red
-  round: 9
+```bash
+mechcore verify <battle.yaml>
 ```
 
-`concession` is optional and names the side that gave up and the round it was in
-when it did. It sits at the battle's root because giving up ends the match
-rather than moving the position its round started from, which is the same
-property that keeps it out of [`action.md`](action.md)'s thirteen decisions.
+The opening check computes initialization from `seed` and `map_id`, and compares
+both complete `offers` arrays and both construction lists against it. It
+compares the directly computed result, without searching alternative stream
+positions, and requires each opening decision to name an offer in range and
+the team and specialist that offer holds. It does not prove that a player chose that offer, and it does not validate
+deployment or combat.
 
-`round` is the last round the battle holds: the match stops there, so no state
-follows the concession and nothing shows its effect.
+The reinforcement check advances the same stream through contiguous rounds from
+round 1 and compares every round's complete ordered `reinforce_offers`. Each draw
+uses that round's stated formations, shop unlocks, active technologies and
+officers, and the previous rounds' `choose_reinforce_item` decisions update the
+pool. Offers being checked do not choose the stream position or seed the next
+draw.
 
-Its absence means no player conceded, and says nothing about how the match did
-end. A crystal destroyed and a round cap reached are both fight results, and
-neither is a field. So a battle answers "did someone give up, and who" and not
-"who won".
+Round 1 carries no offers and no reinforcement choice. Every later round whose
+decisions are stated requires one choice per side; a round that ends the stream
+may omit it. An index and ID must name the predicted offer, or use the defined
+decline form. Missing or reordered offers, invalid choices, unsupported inputs
+and discontinuous rounds are refusals, and the first failing round is reported.
 
-At most one concession exists, because the first one ends the match. A recording
-naming two is refused rather than reduced to the earlier one.
+A successful report includes `reinforcement_rounds`,
+`reinforcement_offers_checked`, and `reinforcements`, whose entries contain the
+ordered offers, the ordinary or unit branch, and the random states and offsets
+before and after generation. These checks are conditional on the stated round
+inputs; they do not authenticate player decisions or validate transitions across
+combat.
 
-## Cross-round invariants
+`mechcore opening <seed> <map_id>` predicts the same two offer arrays and
+construction lists without a battle or replay. Its JSON result includes the
+selected officer variants and unit reinforcement round pool, the reinforcement
+state before and after the opening deal, and raw draw counts excluding seed
+warm-up and including range rejection. The map stream reports its chosen
+construction group, reversal flags in blue/red order, and raw draw count.
+Unsupported maps and negative seeds are refused. This operation predicts
+available options; it does not select an option for either player or predict
+subsequent reinforcement deals.
 
-A turn checks itself within a round. A battle checks the seams between rounds,
-and these hold across every transition of a well-formed battle.
+## Between two states there is a fight
+
+Consecutive states are not adjacent. Applying a round's decisions to its state
+yields the position at the end of the deployment, projecting that position
+yields the layout the fight starts from, and the fight is what produces the next
+round's roster and reactor core. A battle is therefore the only document that
+states an end-to-end simulator obligation, and the only one whose checks can be
+cross-round.
+
+### What a round reproduces
+
+Applying a round's decisions to its state has to reproduce the state the next
+round opens with, in everything the fight does not decide. That application is a
+function rather than a comparison: it takes a position, a round and the round's
+decisions, and returns the nine fields below. Checking a round is then reading
+the same nine out of the next state and comparing.
+
+| Field |
+| --- |
+| `next_index.unit` |
+| `next_index.contraption` |
+| `shop.unlocked_units` |
+| `techs.units` |
+| `techs.officers` |
+| `blueprints` |
+| `tower_strengthen_levels` |
+| `battle_skills` |
+| `equipment` |
+
+`battle_skills` is compared by the IDs on the panel and not by how many slots it
+has, and `techs.officers` by a multiset and not by a set. Both distinctions are
+real: one officer can put two copies of a skill on the panel, and an officer
+card that may be taken again stacks. A slot's index and its cooldown are left
+out, because a cooldown counts down through the fight.
+
+The rules the function applies beyond the decisions themselves are the ones no
+action states, and [`action.md`](action.md#rules-no-action-states) carries them.
+
+Both allocators are here even though the fight destroys what they hand out. An
+index is never reissued, so an allocator records how many objects a side has
+ever had rather than how many it still holds, and no fight can move it.
+
+`equipment` is compared together with what the round's fits could not find. An
+empty stock is reached both by a round that balanced and by a round that fitted
+an item the side never held, and the two must not compare equal.
+
+A roster, a reactor core and a formation's experience are not checked, because
+the fight decides them. The rest of the next position is the board, which
+[`action.md`](action.md) names and which applying a round does not produce.
+
+`travelling` is the board field a round's moves settle outright, and it is not
+among the nine for a reason that is not incompleteness: the fight empties the
+travelling set, so the field never reaches the next position to be compared
+against. It is the mirror image of a reactor core, a field a round produces and
+no seam can check.
+
+The opening is a seam like the others, from the header onto round 1: applying
+round zero's decisions to a side that holds nothing has to produce what round 1
+holds. The two frames the opening can be read in disagree in one place, and the
+disagreement is a property of the question rather than an error. Applying the
+opening answers what the first round holds, so it counts the squads the opening
+delivers; stepping the same decision answers what the position is immediately
+afterwards, and the squads have not arrived. They reach the board when round 1
+opens, which is not a decision and so is not a step.
+
+### Cross-round invariants
+
+A segment checks itself. A battle checks the seams between states, and these
+hold across every seam of a well-formed battle.
 
 | Invariant |
 | --- |
@@ -284,7 +362,7 @@ and these hold across every transition of a well-formed battle.
 | `tower_strengthen_levels` rise or hold |
 | `blueprints` are kept, or replaced by their own next level |
 | `techs.officers` are kept, or replaced by their own next level |
-| `constructions` are kept or dropped, never added, and the first round's are the ones `sides` was dealt |
+| `constructions` are kept or dropped, never added, and round 1's are the ones the header dealt |
 | `reactor_core` falls or holds, except across the opening |
 
 The two replacement rows are one mechanism seen twice. Activating a chain
@@ -294,13 +372,7 @@ Officer it grants follows.
 The reactor core rises only across the opening, by the amount the team and the
 specialist carry between them. After the opening it only falls.
 
-The opening is itself a seam, between `sides` and the first round, and it is
-checked the way the others are: applying the opening to a side that holds
-nothing has to produce what the first round holds. A failure there is reported
-at the round the game takes the opening in, which is one below the first round a
-battle holds.
-
-## The supply ledger
+### The supply ledger
 
 A battle is the level at which supply can be checked, because the identity
 spans two rounds:
@@ -310,18 +382,18 @@ supply(round + 1) = supply(round) - spent(round) + income(round + 1)
 ```
 
 Income is the map's row plus what the side's officers and worn equipment add,
-less what a Rapid Supply owes from the round before. Spending prices the turn's
+less what a Rapid Supply owes from the round before. Spending prices the round's
 decisions; [`action.md`](action.md) says what each costs, and the tables in
 `config/` carry the amounts.
 
 Two rounds cannot be decided by the identity alone. A side holding an officer
 that pays a bounty for destroying a giant is paid by the fight in an amount no
-document records, so such a round is counted apart rather than failed.
+segment records, so such a round is counted apart rather than failed.
 
 The opening is the first term of that identity rather than an exception to it. A
-side starts holding nothing, pays for the opening it takes, and the first
-round's income arrives after, so the ledger runs from `sides` onto the first
-round exactly as it runs from one round onto the next.
+side starts holding nothing, pays for the opening it takes, and round 1's income
+arrives after, so the ledger runs from the header onto round 1 exactly as it
+runs from one round onto the next.
 
 The check is reported, never enforced: a battle is well-formed whether or not
 its ledger closes.
@@ -332,16 +404,37 @@ its ledger closes.
 mechcore convert <replay.grbr> <battle.yaml> [--force]
 ```
 
+Conversion is offline. It reads the replay and nothing else, and it simulates
+no fight.
+
 The converter refuses rather than guesses. A replay from another build, a
 downloaded one, a match mode other than `VS_1_1`, a `Test` match, a match
 carrying game rules, rounds that are not the contiguous sequence both sides
 share, an object this build's catalogues cannot name, and an action this format
 has no representation for are each an error naming what was found.
 
-The opening is read out of round 0 and written under `sides`, and a replay whose
-round 0 stands for anything but one team choice per side is refused. So is a
-replay that holds the opening alone: a battle is deployment rounds, and one
-with none is not a document this format has a use for.
+The opening is read out of round 0: the replay records the team half of each
+side's decision, the specialist half is read back from round 1's officers, and
+the four offers are rebuilt from round 0's random state. A replay whose round 0
+stands for anything but one team choice per side is refused, and so is a missing
+or malformed random state, or a choice that disagrees with the rebuilt deal. A
+replay that holds the opening alone is refused too: a battle is deployment
+rounds, and one with none is not a document this format has a use for.
+
+### A converted battle ends on its last round's decisions
+
+A fight's result is recorded only in the snapshot that opens the next round.
+The fight that ends a match opens none, so a replay holds no position after its
+last round's decisions, and a converted battle's last segment is that round's
+action segment. Its fight is not stated, because the source does not state it
+and conversion does not simulate one.
+
+A concession is the exception that needs no fight. The side's decision list ends
+with `concede`, and the match ends with that segment. At most one concession
+exists, because the first one ends the match. A replay in which a side decides
+after conceding, a round follows a concession, or both sides concede is refused.
+
+### What conversion rebuilds
 
 Most fields are copied. Four are not, and each is argued in the document that
 owns it:
@@ -375,34 +468,36 @@ records zero, and simply loses its entry once the shield is gone. A `rangeItems`
 entry belonging to any other skill is an error, since this format has not been
 measured against it.
 
-A shield the requested round releases is a `turns` action, not an
-`airdrop_shields` entry, and the two never name the same object: the snapshot is
-taken before the round's own decisions.
+A shield the requested round releases is a decision in that round's action
+segment, not an `airdrop_shields` entry, and the two never name the same object:
+the state segment is taken before the round's own decisions.
 
-`travelling` has no recorded source and needs none. A snapshot opens a round,
-the fight empties the travelling set before the round it opens, and so no state
-a battle holds carries a travelling formation. The field is absent because that
-is its value here, not because the conversion could not find it.
-[`turn.md`](turn.md) says why no turn transition compares it, and
-[`action.md`](action.md) states the rule that writes it.
+`travelling` has no recorded source and needs none. The fight empties the
+travelling set before the round it opens, so no state segment carries a
+travelling formation. The field is absent because that is its value here, not
+because the conversion could not find it.
 
 ## Normal form
 
 | Collection | Order |
 | --- | --- |
-| `turns` | ascending `round`, from the first deployment round |
-| `opening.offers` | as dealt; `choose` names a zero-based position in it |
+| segments | header, round zero's actions, then each round's state before its actions, ascending `round` |
+| `offers` | as dealt; an opening decision's `offer` names a zero-based position in it |
 | `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
 | `game_rules` | ascending rule ID |
 
-A turn's own collections, and a state's, keep the orders those documents define.
+A segment's own collections keep the orders [`state.md`](state.md) and
+[`action.md`](action.md) define. Within a segment, `kind` comes first and
+`round` second, so a reader scanning the stream finds both on the two lines
+after each separator.
 
 ## Excluded fields
 
 | Field | Why it is not in the battle |
 | --- | --- |
-| `opening.team`, `opening.specialist`, `opening.offer` | The selected pair is `offers[choose]` |
+| A round-zero state | Every side enters the opening holding nothing; the header is that position |
+| A fight's result | The next state shows it; the last fight has no next state, see above |
 | `BattleInfo.BattleID` | Names a server record; no rule reads it |
 | `BattleRecord.Seat` | Which client recorded the file, not a property of the match |
 | `PlayerRecord.name`, `id`, `ad` | Account identity; nothing reads it |
@@ -411,7 +506,7 @@ A turn's own collections, and a state's, keep the orders those documents define.
 | `PlayerRecord.data` supply and core settings | The map's row in `matchSettings` gives them, keyed by `map_id` |
 | `BattleRecord.reinforceItems` | Carries no offer; the per-round array does |
 | `PlayerRecord.seed` | Nothing draws from that stream, see the state document |
-| `PAD_GiveUp.Time`, `LocalTime` | A concession names its round; no rule reads a clock |
+| `PAD_GiveUp.Time`, `LocalTime` | A concession is placed by its segment; no rule reads a clock |
 | `BattleRecord.Version`, `CreateTime` | Provenance, see below |
 | The 1v1 header constants | Properties of the mode, above |
 
@@ -422,19 +517,28 @@ reader cannot act on except by refusing the document.
 
 ## Unresolved
 
-**Whether provenance belongs in the document.** A build mismatch is currently
-undetectable from a battle alone, because the build is recorded beside the file.
-Making it detectable means a `build` field, and a field is only worth carrying
-if a mismatch is a refusal. That is the same question for all four kinds and
+**Whether a battle states the fight that ends it.** A converted battle ends on
+its last round's decisions, and the stream admits one more state segment after
+them. What that segment would hold is open. The fight writes the roster with
+its experience, the constructions, the contraptions and the reactor cores, and
+nothing else: no income arrives, no allowance resets, no offer is dealt. A state
+holding only those fields would close the last round, but it is not the shape
+[`state.md`](state.md) defines, and its source would be something other than the
+replay, which has to be shown to reproduce the fights the replay does record.
+
+**Whether an appended segment says where it came from.** A stream can be
+extended by something other than conversion, and a segment a simulator produced
+reads the same as one a replay recorded. Marking the difference means a field
+on the segment, and a field is only worth carrying if some reader refuses or
+weighs a segment by it.
+
+**Whether provenance belongs in the document.** A build mismatch is undetectable
+from a battle alone, because the build is recorded beside the file. Making it
+detectable means a `build` field, and a field is only worth carrying if a
+mismatch is a refusal. That is the same question for every document kind and
 should be answered once.
 
-**Whether a battle records a fight result.** `concession` answers the half of
-this that a decision produces. The other half, which side's crystal fell and in
-which round, is the fight's, and a recording carries no field for it. Adding one
-would mean a battle stating something no replay says and only a simulator could
-produce.
-
-**What a battle does with a match that carries game rules.** Refusing is the
-current answer and it is a floor rather than a design. A rule changes premises
-the other documents rest on, so admitting one means each of those documents
-saying what it does under that rule, not just this one recording the rule's ID.
+**What a battle does with a match that carries game rules.** Refusing is a floor
+rather than a design. A rule changes premises the other documents rest on, so
+admitting one means each of those documents saying what it does under that
+rule, not just this one recording the rule's ID.

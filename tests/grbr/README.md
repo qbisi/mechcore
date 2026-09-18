@@ -78,7 +78,7 @@ ls work/replay-corpus/observations/*.jsonl | mechcore verify
 Each recorded decision is applied to the position it was taken from and every
 field of the result compared, and each round's collapsed sequence is applied to
 the position the round opened with and compared against the one it closed with.
-`docs/spec/document/turn.md` defines both checks. Their counts are a fact about this local
+`docs/spec/document/action.md` defines both checks. Their counts are a fact about this local
 corpus rather than about the build, so they live in the commit that moved them
 and not here.
 

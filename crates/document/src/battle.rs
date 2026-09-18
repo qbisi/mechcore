@@ -1,91 +1,68 @@
-//! The battle, turn and state documents.
+//! The battle document and the state and action segments it is made of.
 //!
-//! `docs/spec/document/battle.md`, `docs/spec/document/turn.md` and `docs/spec/document/state.md` define them. A battle
-//! holds what every round of a match shares and the turns in order; a turn
-//! holds the state a round starts from and the decisions taken from it.
-//! Filling one from a replay is [`crate::convert`].
+//! `docs/spec/document/battle.md` defines a battle as a stream of YAML
+//! documents: a header, the opening's decisions, and then each round's opening
+//! state followed by the decisions taken from it. `docs/spec/document/state.md`
+//! and `docs/spec/document/action.md` define the two segment shapes. Filling
+//! one from a replay is [`crate::convert`].
 
-use crate::DocumentKind;
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain};
 use serde::{Deserialize, Serialize};
+use serde_yaml::Value;
 use std::collections::BTreeMap;
 
 /// One recorded match, as `docs/spec/document/battle.md` defines it.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+///
+/// This is the match held whole. Its document is a stream, and
+/// [`canonical_yaml`] writes it as one: the header from `map_id`, `seed` and
+/// `sides`, the opening's decisions from each side's [`Opening`], and a state
+/// segment and an action segment per turn.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Battle {
-    pub kind: DocumentKind,
     pub map_id: i32,
     pub seed: i32,
-    /// Present when a player conceded, which is the one ending a decision
-    /// produces. Absent means the match ended some other way, and which way is
-    /// not recorded.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub concession: Option<Concession>,
     pub sides: BattleSides,
-    /// The deployment rounds, from the first one. The opening is not among
-    /// them; `sides` holds it.
+    /// The deployment rounds, from the first one. The opening is round zero
+    /// and has no state to open it, so each side's [`Opening`] holds it.
     pub turns: Vec<Turn>,
 }
 
-/// Which side a match-level fact belongs to.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum Side {
-    Blue,
-    Red,
-}
-
-/// How a match ended, when it ended because a player said so.
-///
-/// Conceding is a decision, but it is not an action: it ends the match rather
-/// than moving the position the round started from, so it sits here and not in
-/// a turn's sequence. `round` is the round the player was in when they
-/// conceded, which is the last round the battle holds.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
-pub struct Concession {
-    pub side: Side,
-    pub round: i32,
-}
-
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BattleSides {
     pub blue: BattleSide,
     pub red: BattleSide,
 }
 
 /// What a side holds for the whole match rather than for one round.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BattleSide {
-    /// The opening this side took, which is settled before the first round.
+    /// The opening this side was dealt and the one it took.
     pub opening: Opening,
     /// The construction layout the map dealt this side before the first round.
     ///
     /// A state's own `constructions` is the live list, shortened when a
-    /// building is recovered or destroyed. This one is what the side started with, so a battle says
-    /// where the buildings came from rather than having them appear in the
-    /// first round it happens to hold.
+    /// building is recovered or destroyed. This one is what the side started
+    /// with, so a battle says where the buildings came from rather than having
+    /// them appear in the first round it happens to hold.
     pub constructions: Vec<StaticPlacement>,
     /// Which technologies each unit may research, keyed by unit ID.
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
-/// The opening a side took: a team of formations and the specialist bound to
-/// it, and the four combinations it chose between.
+/// The opening a side was dealt, and which of it the side took.
 ///
-/// The opening is not a deployment round. A turn's two action lists are secret
-/// from each other, and this choice is not: both players are shown what the
-/// other took before the first round opens, and deploy that round knowing it.
-/// So it is a premise the rounds share and sits beside the tech loadout rather
-/// than as a turn of its own.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+/// The header states the four combinations and the round-zero action segment
+/// states the choice, so the two halves are written in different places. They
+/// are held together here because every reader of one needs the other.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Opening {
     /// Zero-based index of the combination taken from `offers`.
     pub choose: i32,
     /// The four combinations this side was dealt, in the order shown.
     ///
-    /// The deal is private to the side, which is why it sits here and not
-    /// beside the shared `reinforce_offers`. Conversion reconstructs it from
-    /// the replay's random state.
+    /// The deal is private to the side, which is why it sits under the side in
+    /// the header and not beside a state's shared `reinforce_offers`.
+    /// Conversion reconstructs it from the replay's random state.
     pub offers: Vec<OpeningOffer>,
 }
 
@@ -98,11 +75,8 @@ pub struct OpeningOffer {
 }
 
 impl Opening {
-    /// The opening as the decision that produced it.
-    ///
-    /// A battle states the opening's result rather than a round 0 whose only
-    /// content it would be, and checking the seam onto the first round means
-    /// applying it again. That is this.
+    /// The opening as the decision that took it, which is what the round-zero
+    /// action segment holds.
     ///
     /// # Panics
     ///
@@ -122,15 +96,16 @@ impl Opening {
     }
 }
 
-/// One deployment round: the state it starts from and the decisions taken.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+/// One deployment round: the state it opens with and the decisions taken from
+/// it, which the stream writes as a state segment and an action segment.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Turn {
     pub round: i32,
     pub state: State,
     pub actions: TurnActions,
 }
 
-/// A match position, carrying the state document's shape without its `kind`.
+/// A match position, which a battle writes as a state segment.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct State {
     /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
@@ -231,6 +206,8 @@ pub struct NextIndex {
     pub contraption: i32,
 }
 
+/// Each side's decisions in one round, which a battle writes as an action
+/// segment.
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct TurnActions {
     pub blue: Vec<Action>,
@@ -263,9 +240,7 @@ pub enum Action {
     /// The opening, which is one decision with two halves: the team of
     /// formations and the specialist officer bound to it.
     ///
-    /// A battle states the opening under `sides` rather than as a round, so
-    /// no turn of a converted battle carries this. It stays a decision because
-    /// the game records it as one and the recording oracle steps it.
+    /// It is the only decision of round zero, and no other round holds one.
     ChooseAdvanceTeam {
         offer: i32,
         id: i32,
@@ -315,6 +290,11 @@ pub enum Action {
         #[serde(skip_serializing_if = "Option::is_none")]
         extra_position: Option<Position>,
     },
+    /// Giving up, which ends the match.
+    ///
+    /// It is the last decision its side takes: the round is not fought, so no
+    /// state follows the segment that holds it.
+    Concede,
 }
 
 /// A release covers an area or points at one object, never both.
@@ -331,13 +311,408 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
-/// Serializes a battle in the normal form the three documents define.
+/// One segment of a battle stream, tagged by the `kind` it opens with.
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum Segment<'a> {
+    Battle(Header<'a>),
+    State(StateSegment<'a>),
+    Action(ActionSegment<'a>),
+}
+
+#[derive(Serialize)]
+struct Header<'a> {
+    map_id: i32,
+    seed: i32,
+    sides: HeaderSides<'a>,
+}
+
+#[derive(Serialize)]
+struct HeaderSides<'a> {
+    blue: HeaderSide<'a>,
+    red: HeaderSide<'a>,
+}
+
+#[derive(Serialize)]
+struct HeaderSide<'a> {
+    offers: &'a [OpeningOffer],
+    constructions: &'a [StaticPlacement],
+    tech_loadout: &'a BTreeMap<i32, Vec<i32>>,
+}
+
+impl<'a> HeaderSide<'a> {
+    fn of(side: &'a BattleSide) -> Self {
+        Self {
+            offers: &side.opening.offers,
+            constructions: &side.constructions,
+            tech_loadout: &side.tech_loadout,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct StateSegment<'a> {
+    round: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reinforce_offers: Option<&'a Vec<i32>>,
+    sides: &'a StateSides,
+}
+
+#[derive(Serialize)]
+struct ActionSegment<'a> {
+    round: i32,
+    blue: &'a [Action],
+    red: &'a [Action],
+}
+
+/// The line that separates two segments of a stream.
+const SEPARATOR: &str = "---\n";
+
+/// Serializes a battle as the stream `docs/spec/document/battle.md` defines,
+/// in the normal form the battle, state and action documents define.
 ///
 /// # Errors
 ///
-/// Returns an error when the battle cannot be serialized.
+/// Returns an error when a segment cannot be serialized.
 pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
-    let yaml = serde_yaml::to_string(battle)
-        .map_err(|error| format!("cannot serialize battle YAML: {error}"))?;
+    let opening = [
+        [battle.sides.blue.opening.action()],
+        [battle.sides.red.opening.action()],
+    ];
+    let mut segments = vec![
+        Segment::Battle(Header {
+            map_id: battle.map_id,
+            seed: battle.seed,
+            sides: HeaderSides {
+                blue: HeaderSide::of(&battle.sides.blue),
+                red: HeaderSide::of(&battle.sides.red),
+            },
+        }),
+        Segment::Action(ActionSegment {
+            round: 0,
+            blue: &opening[0],
+            red: &opening[1],
+        }),
+    ];
+    for turn in &battle.turns {
+        segments.push(Segment::State(StateSegment {
+            round: turn.round,
+            reinforce_offers: turn.state.reinforce_offers.as_ref(),
+            sides: &turn.state.sides,
+        }));
+        segments.push(Segment::Action(ActionSegment {
+            round: turn.round,
+            blue: &turn.actions.blue,
+            red: &turn.actions.red,
+        }));
+    }
+    let mut yaml = String::new();
+    for (at, segment) in segments.iter().enumerate() {
+        if at > 0 {
+            yaml.push_str(SEPARATOR);
+        }
+        yaml.push_str(
+            &serde_yaml::to_string(segment)
+                .map_err(|error| format!("cannot serialize battle YAML: {error}"))?,
+        );
+    }
     Ok(crate::layout::collapse_placement_positions(&yaml))
+}
+
+/// A battle stream read as the segments it is made of, each checked for its
+/// place in the sequence and otherwise left as YAML.
+///
+/// A reader that needs only part of a battle deserializes only that part, so
+/// what this checks is the grammar: which segment may follow which, and where
+/// the stream has to stop.
+#[derive(Debug)]
+pub struct Segments {
+    pub header: Value,
+    /// The round-zero action segment, absent from a stream that holds only its
+    /// header.
+    pub opening: Option<Value>,
+    pub rounds: Vec<RoundSegments>,
+}
+
+/// One deployment round: its state, and its decisions once they are known.
+#[derive(Debug)]
+pub struct RoundSegments {
+    pub round: i32,
+    pub state: Value,
+    /// Absent only on the stream's last round, whose decisions are not yet
+    /// stated.
+    pub actions: Option<Value>,
+}
+
+/// Reads a battle stream into its segments, or nothing when the file is not a
+/// battle.
+///
+/// A file is a battle when its first document says `kind: battle`. After that
+/// the stream alternates strictly: round zero's action segment, then each
+/// round's state followed by that round's actions. It may end after any
+/// segment, except that nothing follows a concession or a state in which a
+/// reactor core has fallen to zero.
+///
+/// # Errors
+///
+/// Returns an error when a battle's segments are out of order, misnumbered,
+/// continue past the end of the match, or state a release in a round's
+/// opening position.
+pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
+    let mut documents = serde_yaml::Deserializer::from_slice(bytes);
+    let Some(header) = documents
+        .next()
+        .and_then(|first| Value::deserialize(first).ok())
+    else {
+        return Ok(None);
+    };
+    if kind_of(&header) != Some("battle") {
+        return Ok(None);
+    }
+    let mut stream = Segments {
+        header,
+        opening: None,
+        rounds: Vec::new(),
+    };
+    let mut ended: Option<&str> = None;
+    for (at, document) in documents.enumerate() {
+        let position = at + 2;
+        let segment = Value::deserialize(document)
+            .map_err(|error| format!("battle segment {position} is not YAML: {error}"))?;
+        if let Some(end) = ended {
+            return Err(format!("battle segment {position} follows {end}"));
+        }
+        let kind = kind_of(&segment)
+            .ok_or_else(|| format!("battle segment {position} names no kind"))?
+            .to_owned();
+        let round = segment
+            .get("round")
+            .and_then(Value::as_i64)
+            .and_then(|round| i32::try_from(round).ok())
+            .ok_or_else(|| format!("battle segment {position} ({kind}) names no round"))?;
+        let (expected_kind, expected_round) = match (&stream.opening, stream.rounds.last()) {
+            (None, _) => ("action", 0),
+            (Some(_), None) => ("state", 1),
+            (Some(_), Some(last)) if last.actions.is_none() => ("action", last.round),
+            (Some(_), Some(last)) => ("state", last.round + 1),
+        };
+        if kind != expected_kind || round != expected_round {
+            return Err(format!(
+                "battle segment {position} is {kind} round {round}; \
+                 the stream expects {expected_kind} round {expected_round}"
+            ));
+        }
+        if kind == "state" {
+            if released(&segment) {
+                return Err(format!(
+                    "round {round} state carries a release; a battle states the \
+                     position a round opens with, before any decision"
+                ));
+            }
+            if core_destroyed(&segment) {
+                ended = Some("a destroyed reactor core");
+            }
+            stream.rounds.push(RoundSegments {
+                round,
+                state: segment,
+                actions: None,
+            });
+        } else {
+            if conceded(&segment, round)? {
+                ended = Some("a concession");
+            }
+            match stream.rounds.last_mut() {
+                None => stream.opening = Some(segment),
+                Some(last) => last.actions = Some(segment),
+            }
+        }
+    }
+    Ok(Some(stream))
+}
+
+fn kind_of(segment: &Value) -> Option<&str> {
+    segment.get("kind").and_then(Value::as_str)
+}
+
+fn each_side(segment: &Value) -> impl Iterator<Item = (&'static str, &Value)> {
+    ["blue", "red"]
+        .into_iter()
+        .filter_map(move |side| Some((side, segment.get(side)?)))
+}
+
+fn state_sides(segment: &Value) -> impl Iterator<Item = &Value> {
+    ["blue", "red"]
+        .into_iter()
+        .filter_map(move |side| segment.get("sides")?.get(side))
+}
+
+fn released(state: &Value) -> bool {
+    state_sides(state).any(|side| {
+        side.get("battle_skills")
+            .and_then(Value::as_sequence)
+            .is_some_and(|panel| panel.iter().any(|slot| slot.get("release").is_some()))
+    })
+}
+
+fn core_destroyed(state: &Value) -> bool {
+    state_sides(state).any(|side| {
+        side.get("reactor_core")
+            .and_then(Value::as_i64)
+            .is_some_and(|core| core <= 0)
+    })
+}
+
+/// Whether a side conceded in this action segment, refusing a concession that
+/// is not its side's last decision.
+fn conceded(actions: &Value, round: i32) -> Result<bool, String> {
+    let mut any = false;
+    for (side, list) in each_side(actions) {
+        let Some(list) = list.as_sequence() else {
+            continue;
+        };
+        let concede =
+            |action: &Value| action.get("type").and_then(Value::as_str) == Some("concede");
+        if let Some(at) = list.iter().position(concede) {
+            if at + 1 != list.len() {
+                return Err(format!(
+                    "round {round} {side} decides after conceding; a concession is \
+                     its side's last decision"
+                ));
+            }
+            any = true;
+        }
+    }
+    Ok(any)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::segments;
+
+    const HEADER: &str = "kind: battle\nmap_id: 1021\nseed: 1\n";
+    const OPENING: &str = "---\nkind: action\nround: 0\nblue: []\nred: []\n";
+
+    fn state(round: i32, blue_core: i32) -> String {
+        format!(
+            "---\nkind: state\nround: {round}\nsides:\n  blue: {{reactor_core: {blue_core}}}\n  red: {{reactor_core: 4800}}\n"
+        )
+    }
+
+    fn actions(round: i32, red: &str) -> String {
+        format!("---\nkind: action\nround: {round}\nblue: []\nred: {red}\n")
+    }
+
+    fn read(stream: &str) -> Result<super::Segments, String> {
+        segments(stream.as_bytes()).map(|read| read.expect("a battle stream"))
+    }
+
+    fn read_ok(stream: &str) -> bool {
+        read(stream).is_ok()
+    }
+
+    /// A stream may stop after any segment, which is what lets a later reader
+    /// append the next one.
+    #[test]
+    fn a_stream_may_end_after_any_segment() {
+        let full = format!(
+            "{HEADER}{OPENING}{}{}{}",
+            state(1, 4800),
+            actions(1, "[]"),
+            state(2, 4800)
+        );
+        let read = read(&full).unwrap();
+        assert!(read.opening.is_some());
+        assert_eq!(read.rounds.len(), 2);
+        assert!(read.rounds[0].actions.is_some());
+        assert!(read.rounds[1].actions.is_none());
+        assert!(super::segments(HEADER.as_bytes()).unwrap().is_some());
+        let ends_on_actions = format!("{HEADER}{OPENING}{}{}", state(1, 4800), actions(1, "[]"));
+        assert!(read_ok(&ends_on_actions));
+    }
+
+    #[test]
+    fn segments_alternate_and_count_up() {
+        let skipped = format!("{HEADER}{OPENING}{}", state(2, 4800));
+        assert!(
+            read(&skipped)
+                .unwrap_err()
+                .contains("the stream expects state round 1")
+        );
+        let doubled = format!("{HEADER}{OPENING}{}{}", state(1, 4800), state(2, 4800));
+        assert!(
+            read(&doubled)
+                .unwrap_err()
+                .contains("the stream expects action round 1")
+        );
+        let unopened = format!("{HEADER}{}", state(1, 4800));
+        assert!(
+            read(&unopened)
+                .unwrap_err()
+                .contains("the stream expects action round 0")
+        );
+    }
+
+    #[test]
+    fn nothing_follows_a_concession() {
+        let conceded = format!(
+            "{HEADER}{OPENING}{}{}",
+            state(1, 4800),
+            actions(1, "[{type: concede}]")
+        );
+        assert!(read_ok(&conceded));
+        let continued = format!("{conceded}{}", state(2, 4800));
+        assert!(
+            read(&continued)
+                .unwrap_err()
+                .contains("follows a concession")
+        );
+        let decided_after = format!(
+            "{HEADER}{OPENING}{}{}",
+            state(1, 4800),
+            actions(1, "[{type: concede}, {type: unlock_unit, unit: 9}]")
+        );
+        assert!(
+            read(&decided_after)
+                .unwrap_err()
+                .contains("round 1 red decides after conceding")
+        );
+    }
+
+    #[test]
+    fn nothing_follows_a_destroyed_reactor_core() {
+        let ended = format!(
+            "{HEADER}{OPENING}{}{}{}",
+            state(1, 4800),
+            actions(1, "[]"),
+            state(2, 0)
+        );
+        assert!(read_ok(&ended));
+        let continued = format!("{ended}{}", actions(2, "[]"));
+        assert!(
+            read(&continued)
+                .unwrap_err()
+                .contains("follows a destroyed reactor core")
+        );
+    }
+
+    /// A state segment is the position a round opens with, so no decision of
+    /// that round can have left a release on its panel.
+    #[test]
+    fn a_state_segment_carries_no_release() {
+        let released = format!(
+            "{HEADER}{OPENING}---\nkind: state\nround: 1\nsides:\n  blue:\n    battle_skills:\n    - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: !unit 4}}}}\n"
+        );
+        assert!(
+            read(&released)
+                .unwrap_err()
+                .contains("round 1 state carries a release")
+        );
+    }
+
+    #[test]
+    fn only_a_battle_header_opens_a_battle() {
+        assert!(segments(b"kind: layout\nsides: {}\n").unwrap().is_none());
+        assert!(segments(b"not: [a document").unwrap().is_none());
+        assert!(segments(b"").unwrap().is_none());
+    }
 }

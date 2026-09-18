@@ -671,11 +671,12 @@ fn shield_center(item: &RangeItem, seat: Seat) -> Result<Position, String> {
 impl Record {
     /// The decision this record states, or nothing when it states none.
     ///
-    /// A retraction is a record and not a decision: `docs/spec/document/turn.md` defines a
-    /// turn's sequence as what stands after the collapse, so `PAD_Undo`,
+    /// A retraction is a record and not a decision: `docs/spec/document/action.md`
+    /// defines a sequence as what stands after the collapse, so `PAD_Undo`,
     /// `PAD_Redo` and `PAD_CancelReleaseCommanderSkill` resolve to nothing here
-    /// rather than to an action no document can hold. `PAD_FinishDeploy` and
-    /// `PAD_GiveUp` resolve to nothing for the reasons those documents give.
+    /// rather than to an action no document can hold. `PAD_FinishDeploy`
+    /// carries no decision, and `PAD_GiveUp` ends the match, so no recorded
+    /// position follows it to step onto.
     ///
     /// A move resolves to one action per unit it carries, in the recorded
     /// order, which is the form a turn stores.
@@ -878,7 +879,7 @@ fn read_records(text: &str) -> Result<Vec<Record>, String> {
 
 /// Collapses one side's records of a round onto the decisions that stand.
 ///
-/// This is `docs/spec/document/turn.md`'s net-decision collapse over a live stream rather than
+/// This is `docs/spec/document/action.md`'s net-decision collapse over a live stream rather than
 /// over a serialized list, and it is the same rule: every record is one entry
 /// on the undo stack, `PAD_Undo` pops the newest entry whether or not it still
 /// stands, `PAD_Redo` pushes it back, a cancel spends the newest standing

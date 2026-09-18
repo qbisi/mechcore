@@ -8,9 +8,9 @@
 //! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, BattleSides, Concession, DECLINED_OFFER, EquipmentItem, NextIndex,
-    Opening, OpeningOffer, PanelSkill, ShopState, Side, SideState, SkillTarget, State,
-    StateFormation, StateSides, Turn, TurnActions,
+    Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, Opening,
+    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateFormation, StateSides,
+    Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs};
@@ -18,7 +18,7 @@ use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::ledger;
 use crate::opening;
-use crate::{DocumentKind, retained_from_grbr_round};
+use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
 
 /// The build these catalogues and conventions are pinned to.
@@ -35,7 +35,7 @@ const RAPID_SUPPLY_SKILL: i32 = 1;
 const MASS_RECRUIT_SKILL: i32 = 3;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
 const CHAIN_OFFICERS: [i32; 4] = [20300, 20301, 20310, 20311];
-/// Round 0 is the opening, which `sides` holds and no turn does.
+/// Round 0 is the opening, which has no state and so is no turn.
 const OPENING_ROUNDS: usize = 1;
 
 /// Which half of the map a side plays on, and so how its positions are read.
@@ -46,13 +46,6 @@ enum Seat {
 }
 
 impl Seat {
-    const fn side(self) -> Side {
-        match self {
-            Self::Blue => Side::Blue,
-            Self::Red => Side::Red,
-        }
-    }
-
     const fn name(self) -> &'static str {
         match self {
             Self::Blue => "blue",
@@ -148,9 +141,9 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     }
 
     let economy = Economy::embedded()?;
-    // The opening is not a deployment round: it hands out no position and its
-    // two halves are settled before either player deploys. It is read out of
-    // round 0 and written under `sides`, and the turns start at round 1.
+    // The opening is round 0, and it has no state: every side enters it holding
+    // nothing. Its one decision is read into each side's opening, and the turns
+    // start at round 1.
     let mut turns = Vec::with_capacity(match_rounds.len() - 1);
     for (position, round) in match_rounds
         .iter()
@@ -184,11 +177,11 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     // opening round's snapshot carries. `crate::opening` rebuilds them.
     let dealt = opening_offers(&economy, &record.match_rounds.entries[0])?;
 
+    check_concession(&turns)?;
+
     Ok(Battle {
-        kind: DocumentKind::Battle,
         map_id: record.info.map_id,
         seed: record.info.system_seed,
-        concession: concession(&blue, &red)?,
         sides: BattleSides {
             blue: battle_side(&economy, &blue, Seat::Blue, dealt.blue)?,
             red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
@@ -206,43 +199,49 @@ fn opening_offers(economy: &Economy, round: &record::MatchRound) -> Result<openi
     opening::deal(economy, &mut stream)
 }
 
-/// How the match ended, when a player ended it.
+/// Refuses a replay whose concession does not end it.
 ///
 /// `PAD_GiveUp` is the one recorded action that overrides `IsExitMatchAction`,
-/// and the override returns true unconditionally: it leaves the match rather
-/// than moving the position its round started from. So it is read out of the
-/// action list and written at the battle's root, and no turn carries it.
+/// and the override returns true unconditionally: it leaves the match. So a
+/// battle holds at most one, as the last decision its side takes in the last
+/// round.
 ///
 /// # Errors
 ///
-/// Returns an error when both sides concede, which no match can produce: the
-/// first concession ends it.
-fn concession(
-    blue: &record::PlayerRecord,
-    red: &record::PlayerRecord,
-) -> Result<Option<Concession>, String> {
-    let mut conceded = Vec::new();
-    for (seat, player) in [(Seat::Blue, blue), (Seat::Red, red)] {
-        for entry in &player.rounds.entries {
-            if net_actions(&entry.actions.entries)
+/// Returns an error when a side decides after conceding, a round follows a
+/// concession, or more than one side concedes.
+fn check_concession(turns: &[Turn]) -> Result<(), String> {
+    let mut conceded = 0;
+    for (at, turn) in turns.iter().enumerate() {
+        for (side, actions) in [("blue", &turn.actions.blue), ("red", &turn.actions.red)] {
+            let count = actions
                 .iter()
-                .any(|action| action.kind == "PAD_GiveUp")
-            {
-                conceded.push(Concession {
-                    side: seat.side(),
-                    round: entry.round,
-                });
+                .filter(|action| matches!(action, Action::Concede))
+                .count();
+            if count == 0 {
+                continue;
+            }
+            conceded += count;
+            if actions.last() != Some(&Action::Concede) {
+                return Err(format!(
+                    "round {} {side} decides after conceding",
+                    turn.round
+                ));
+            }
+            if at + 1 != turns.len() {
+                return Err(format!(
+                    "round {} {side} concedes, and the replay continues",
+                    turn.round
+                ));
             }
         }
     }
-    match conceded.as_slice() {
-        [] => Ok(None),
-        [only] => Ok(Some(*only)),
-        many => Err(format!(
-            "replay records {} concessions, and the first one ends the match",
-            many.len()
-        )),
+    if conceded > 1 {
+        return Err(format!(
+            "replay records {conceded} concessions, and the first one ends the match"
+        ));
     }
+    Ok(())
 }
 
 fn battle_side(
@@ -633,7 +632,7 @@ fn allowance(player: &record::PlayerRecord, position: usize, allowance: Allowanc
 /// seven surviving decisions.
 ///
 /// `Redo` pushes the newest undone entry back, and any other action clears what
-/// could be redone. `docs/spec/document/turn.md` states the rule.
+/// could be redone. `docs/spec/document/action.md` states the rule.
 fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
     /// An entry that no longer stands for a decision but still absorbs an undo.
     const SPENT: bool = false;
@@ -789,9 +788,7 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                 }
                 continue;
             }
-            // Conceding ends the match rather than moving the position, so
-            // the battle's root carries it and the sequence does not.
-            "PAD_GiveUp" => continue,
+            "PAD_GiveUp" => Action::Concede,
             other => return Err(format!("action {other} has no turn representation")),
         });
     }
@@ -843,7 +840,7 @@ mod tests {
     use super::{battle_from_grbr, recorded_unit_ids};
     use crate::battle::{Action, Battle, SideState, SkillTarget, Turn, canonical_yaml};
     use crate::grbr::SHIELD_AIRDROP_SKILL;
-    use crate::{DocumentKind, Position, StaticPlacement};
+    use crate::{Position, StaticPlacement};
 
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
@@ -900,8 +897,8 @@ mod tests {
         );
     }
 
-    /// The turn of one round, which is no longer that round's position in the
-    /// list: the opening is not a turn, so the list starts at round 1.
+    /// The turn of one round, which is not that round's position in the list:
+    /// the opening is not a turn, so the list starts at round 1.
     fn round(battle: &Battle, round: i32) -> &Turn {
         battle
             .turns
@@ -913,7 +910,6 @@ mod tests {
     #[test]
     fn hoists_what_every_round_shares() {
         let battle = tuff();
-        assert_eq!(battle.kind, DocumentKind::Battle);
         assert_eq!(battle.map_id, 1021);
         assert_eq!(battle.seed, 31_103_914);
         assert_eq!(battle.turns.len(), 8);
@@ -922,10 +918,11 @@ mod tests {
     }
 
     #[test]
-    fn the_opening_is_a_side_rather_than_a_round() {
+    fn the_opening_is_round_zero_rather_than_a_turn() {
         let battle = tuff();
         // Round 0 holds one decision per side and a position that is the same
-        // in every match, so it is read into `sides` and dropped as a turn.
+        // in every match, so it is read into each side's opening and has no
+        // state of its own.
         assert!(battle.turns.iter().all(|turn| turn.round > 0));
         assert!(
             battle
@@ -1358,40 +1355,83 @@ mod tests {
         assert!(error.contains("decided [1]"), "{error}");
     }
 
-    /// Conceding ends a match, so it is the battle's and not a turn's.
+    /// Conceding is a decision, and the last one its side takes.
     ///
-    /// `[Dr. crbN]VS[trevorism]` is the one tracked replay holding a
-    /// `PAD_GiveUp`. Red concedes in round 9, which is the last round the
-    /// battle holds, and the action leaves no trace in either side's sequence.
+    /// Red concedes in round 9 of `[Dr. crbN]VS[trevorism]`, which is the last
+    /// round the battle holds. The concession closes red's sequence and
+    /// nothing follows it.
     #[test]
-    fn a_conceded_match_says_who_conceded_and_when() {
+    fn a_concession_is_the_last_decision_of_the_last_round() {
         let battle = battle_from_grbr(&std::fs::read(CRBN).expect("tracked GRBR fixture")).unwrap();
-        assert_eq!(
-            battle.concession,
-            Some(crate::battle::Concession {
-                side: crate::battle::Side::Red,
-                round: 9,
-            })
-        );
-        assert_eq!(battle.turns.last().map(|turn| turn.round), Some(9));
+        let last = battle.turns.last().unwrap();
+        assert_eq!(last.round, 9);
+        assert_eq!(last.actions.red.last(), Some(&Action::Concede));
+        assert!(!last.actions.blue.contains(&Action::Concede));
+        let conceded = battle
+            .turns
+            .iter()
+            .flat_map(|turn| turn.actions.blue.iter().chain(&turn.actions.red))
+            .filter(|action| **action == Action::Concede)
+            .count();
+        assert_eq!(conceded, 1);
         let yaml = canonical_yaml(&battle).unwrap();
-        assert!(yaml.contains("concession:\n  side: red\n  round: 9\n"), "{yaml}");
+        assert!(yaml.ends_with("- type: concede\n"), "{yaml}");
     }
 
-    /// Every other tracked match ended in a way no replay records.
+    /// A match nobody conceded ends on its last round's decisions.
     #[test]
-    fn a_match_nobody_conceded_carries_no_concession() {
-        assert_eq!(tuff().concession, None);
-        let yaml = canonical_yaml(&tuff()).unwrap();
-        assert!(!yaml.contains("concession"));
+    fn a_match_nobody_conceded_ends_on_its_last_decisions() {
+        let battle = tuff();
+        assert!(
+            battle
+                .turns
+                .iter()
+                .flat_map(|turn| turn.actions.blue.iter().chain(&turn.actions.red))
+                .all(|action| *action != Action::Concede)
+        );
+        let yaml = canonical_yaml(&battle).unwrap();
+        let last = yaml.rsplit("---\n").next().unwrap();
+        assert!(last.starts_with("kind: action\nround: 8\n"), "{last}");
+    }
+
+    /// Two concessions, or decisions after one, cannot be a match.
+    #[test]
+    fn a_concession_that_does_not_end_the_match_is_refused() {
+        let mut turns = tuff().turns;
+        turns[6].actions.red.push(Action::Concede);
+        assert!(
+            super::check_concession(&turns)
+                .unwrap_err()
+                .contains("round 7 red concedes, and the replay continues")
+        );
+        turns[6].actions.red.pop();
+        turns[7].actions.blue.insert(0, Action::Concede);
+        assert!(
+            super::check_concession(&turns)
+                .unwrap_err()
+                .contains("round 8 blue decides after conceding")
+        );
+        turns[7].actions.blue.remove(0);
+        turns[7].actions.blue.push(Action::Concede);
+        turns[7].actions.red.push(Action::Concede);
+        assert!(
+            super::check_concession(&turns)
+                .unwrap_err()
+                .contains("2 concessions")
+        );
     }
 
     #[test]
     fn serializes_to_normal_form_yaml() {
         let yaml = canonical_yaml(&tuff()).unwrap();
-        assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\n"));
+        assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\nsides:\n"));
+        assert!(
+            yaml.contains("\n---\nkind: action\nround: 0\nblue:\n- type: choose_advance_team\n")
+        );
+        assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
+        assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains("      position: {x: -250, y: -120}\n"));
-        assert!(yaml.contains("  - type: buy_unit\n"));
+        assert!(yaml.contains("\n- type: buy_unit\n"));
         assert!(yaml.ends_with('\n'));
     }
 }
