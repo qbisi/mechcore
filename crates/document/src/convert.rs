@@ -134,6 +134,12 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     }
 
     let economy = Economy::embedded()?;
+    // What a decline pays depends on the unit reinforcement pool the seed
+    // selects. A match whose opening this build cannot deal still converts, as
+    // long as it declines nothing.
+    let pool = crate::opening::predict(&economy, record.info.system_seed, record.info.map_id)
+        .map(|opening| opening.initialization.unit_round_pool)
+        .ok();
     // The opening is round 0, and it has no state: every side enters it holding
     // nothing. Its one decision is read into each side's opening, and the turns
     // start at round 1.
@@ -149,6 +155,9 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             .arrays
             .first()
             .map(|array| array.values.clone());
+        let declined = pool
+            .map(|pool| crate::reinforcement::decline_supply(&economy, pool, round))
+            .transpose()?;
         turns.push(turn(
             grbr,
             &economy,
@@ -156,6 +165,7 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             position,
             round,
             offers,
+            declined,
         )?);
     }
 
@@ -186,14 +196,21 @@ fn turn(
     position: usize,
     round: i32,
     offers: Option<Vec<i32>>,
+    declined: Option<i32>,
 ) -> Result<Turn, String> {
     let sides = StateSides {
         blue: side_state(grbr, economy, blue, position, Seat::Blue)?,
         red: side_state(grbr, economy, red, position, Seat::Red)?,
     };
     let taken = |player: &record::PlayerRecord, seat, opened| {
-        actions(economy, &player.rounds.entries[position], seat, opened)
-            .map_err(|error| format!("round {round}: {error}"))
+        actions(
+            economy,
+            &player.rounds.entries[position],
+            seat,
+            opened,
+            declined,
+        )
+        .map_err(|error| format!("round {round}: {error}"))
     };
     let actions = TurnActions {
         blue: taken(blue, Seat::Blue, &sides.blue)?,
@@ -734,6 +751,7 @@ fn actions(
     round: &PlayerRoundRecord,
     seat: Seat,
     opened: &SideState,
+    declined: Option<i32>,
 ) -> Result<Vec<Action>, String> {
     let red = seat == Seat::Red;
     let step = |position: &SideState, action: &Action, at: usize| {
@@ -741,6 +759,7 @@ fn actions(
             economy,
             position,
             action,
+            declined,
             &mut crate::landing::placement(red),
         )
         .map_err(|reason| {

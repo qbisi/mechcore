@@ -56,7 +56,9 @@ def extract(structure, data):
             continue
         assert row['scope'] == 0 and len(set(row['unitID'])) == 1
         units[row['id']] = dict(unit=row['unitID'][0], round=row['activeRound'])
-    pools = {row['id']: dict(rounds=row['roundGroup'], supply_round=row['supplyRound'],
+    # decline_supply[i] is what declining the unit offer of rounds[i] pays.
+    pools = {row['id']: dict(rounds=row['roundGroup'], decline_supply=row['giveUpSupply'],
+                             supply_round=row['supplyRound'],
                              supplies=row['supplyReinforceID'])
              for row in structure['unitReinforceRoundPool'] if eligible(row)}
     weights = {row['round']: [row[f'level{level}'] for level in range(1, 6)]

@@ -157,10 +157,26 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     }
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
+        // What a decline pays is the deal's to say; without the deal a
+        // decline cannot be settled.
+        let declined = deal.ok().and_then(|verified| {
+            verified
+                .rounds
+                .iter()
+                .find(|round| round.round == turn.round)
+                .map(|round| round.declined)
+        });
         let mut dealt_from = true;
         for (side, red) in [("blue", false), ("red", true)] {
             let (state, actions, recorded) = sides(turn, next, red);
-            dealt_from &= coverage.side(economy, turn.round, state, actions, recorded, side);
+            dealt_from &= coverage.side(
+                economy,
+                (turn.round, declined),
+                state,
+                actions,
+                recorded,
+                side,
+            );
         }
         coverage.deal(turn, next, deal.ok(), dealt_from);
     }
@@ -194,7 +210,7 @@ impl Coverage {
             match crate::opening::reactor_core(stated.map_id, seat) {
                 Ok(core) => {
                     let before = before_opening(core, header.constructions.clone());
-                    self.side(economy, 0, &before, actions, recorded, side);
+                    self.side(economy, (0, None), &before, actions, recorded, side);
                 }
                 Err(reason) => {
                     let leaves: Vec<_> = side_leaves(recorded)
@@ -222,7 +238,7 @@ impl Coverage {
     fn side(
         &mut self,
         economy: &Economy,
-        round: i32,
+        (round, declined): (i32, Option<i32>),
         state: &SideState,
         actions: &[Action],
         recorded: &SideState,
@@ -231,7 +247,7 @@ impl Coverage {
         let red = side == "red";
         // Round zero ends in round 1's opening without a fight.
         let fought = round > 0;
-        let predicted = crate::transition::predict(economy, round, state, actions, red);
+        let predicted = crate::transition::predict(economy, round, state, actions, red, declined);
         let (leaves, unpredicted) = match &predicted {
             Ok(predicted) => (compare(predicted, recorded, fought), None),
             Err(reason) => {

@@ -101,6 +101,23 @@ replaced card have already happened. This branch is specified by the native
 method and resource row; late supply substitution has no replay coverage in
 the verification corpus.
 
+## Declining
+
+Every round offers a decline beside its deal, and the decline pays supply. An
+ordinary round pays `Config.noReinforcementSupply`, 50. A unit round pays the
+selected schedule's `giveUpSupply` at the round's place in `roundGroup`:
+`ReinforcementSystem.m_RoundGiveUpSupply` is built from
+`UnitReinforceRoundPool.GetGiveUpSupply(round)`, which reads exactly that.
+Schedule 1, units in rounds 2, 5, 8 and 11, pays 50, 150, 400 and 700. The 55
+standard schedules hold 55 distinct lists, and the figure grows with the round
+it pays for: 50 to 150 for the first unit round, then 150 to 350, 400 to 600
+and 700 to 900.
+
+No local replay shows a unit-round decline together with the round after it:
+the 51 locally recorded build-2259 replays decline 53 times, all in ordinary
+rounds, and the one unit-round decline among the downloaded ones ends its
+match. The unit-round figure is the configuration's, not a measured one.
+
 ## Inputs and evidence boundary
 
 [config/reinforcements.yaml](../../config/reinforcements.yaml) is extracted by
@@ -114,7 +131,7 @@ weights, stream offsets or score coefficients.
 | Unit count 4 | `commonParms.unit_reinforcement_quantity`; cards |
 | Level weights | `reinforceItemProbabilityDatas`; relative integer weights |
 | Eligibility, levels, groups, round limits, repetition | Officer rows in `ConfigDataContainer`; commander skills at MonoBehaviour 167 and equipment at 188 in `level0` |
-| Unit candidates and schedules | `unitReinforceDatas`, `unitReinforceRoundPool`; IDs and integer rounds |
+| Unit candidates and schedules | `unitReinforceDatas`, `unitReinforceRoundPool`; IDs, integer rounds and each unit round's decline supply |
 | Unit investment | `cardDatas.baseMoney`, `unlockPrice`, technology step and cap fields; supply |
 | Technology prices and global step | [Technology pricing](unit_techs.md); supply |
 

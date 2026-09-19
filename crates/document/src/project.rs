@@ -183,11 +183,22 @@ mod tests {
             .iter()
             .find(|turn| turn.round == 7)
             .expect("the replay reaches round 7");
+        let pool = crate::opening::predict(&economy, battle.seed, battle.map_id)
+            .unwrap()
+            .initialization
+            .unit_round_pool;
+        let declined = crate::reinforcement::decline_supply(&economy, pool, turn.round).unwrap();
         let stepped = |state: &crate::battle::SideState, actions: &[crate::battle::Action], red| {
             let mut placement = crate::landing::placement(red);
             actions.iter().fold(state.clone(), |position, action| {
-                crate::transition::step_placing(&economy, &position, action, &mut placement)
-                    .unwrap()
+                crate::transition::step_placing(
+                    &economy,
+                    &position,
+                    action,
+                    Some(declined),
+                    &mut placement,
+                )
+                .unwrap()
             })
         };
         let deployed = crate::battle::State {

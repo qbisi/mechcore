@@ -638,7 +638,9 @@ def write_economy(structure, contraptions, config):
               "# ships zero, so every standard match uses the fallback, which is",
               "# what this reads.",
               f"technology_repeat_step: {config['upgrade_technology_cost_increase_delta']}"]
-    lines += ["", "# What declining the round's reinforcement pays. Declining is",
+    lines += ["", "# What declining an ordinary round's reinforcement pays; a unit",
+              "# round pays its pool's `decline_supply` in reinforcements.yaml",
+              "# instead. Declining is",
               "# itself an item: `ReinforcementManager.GetGiveUpReinforce`",
               "# returns an `AddSupplyReinforceItem` built per round rather than",
               "# read from a card table. This is `Config.noReinforcementSupply`,",

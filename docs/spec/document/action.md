@@ -140,7 +140,11 @@ squads. Squads advance `next_index.unit` and their unit type joins
 
 A taken item costs its price, less what an officer taken this way grants back at
 once. The decline is the one reinforcement choice that pays the side instead:
-declining is an item of its own rather than the absence of one.
+declining is an item of its own rather than the absence of one. What it pays is
+the round's, not the position's: 50 in an ordinary round, and in a unit round the
+figure the match's unit reinforcement schedule states for that round, which
+grows through the match. [The reinforcement rules](../../rules/reinforcements.md#declining)
+give both.
 
 ### `choose_advance_team`
 

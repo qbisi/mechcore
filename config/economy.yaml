@@ -46,7 +46,9 @@ energy_tower_skills:
 # what this reads.
 technology_repeat_step: 200
 
-# What declining the round's reinforcement pays. Declining is
+# What declining an ordinary round's reinforcement pays; a unit
+# round pays its pool's `decline_supply` in reinforcements.yaml
+# instead. Declining is
 # itself an item: `ReinforcementManager.GetGiveUpReinforce`
 # returns an `AddSupplyReinforceItem` built per round rather than
 # read from a card table. This is `Config.noReinforcementSupply`,

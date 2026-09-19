@@ -76,13 +76,23 @@ const EXTRA_BUYS: i32 = 1;
 /// leaves the caller the position it started from rather than half of the one
 /// it was reaching for.
 ///
+/// `declined` is what declining the round's reinforcement offer pays, which
+/// the match's unit reinforcement pool decides rather than the position:
+/// [`crate::reinforcement::decline_supply`] gives it. `None` says it is not
+/// known, and a decline is then [`Unsettled::Unpriced`].
+///
 /// # Errors
 ///
 /// Returns the reason the decision could not be settled. Every arm of
 /// [`Unsettled`] is a boundary of this build's tables rather than a failure of
 /// the caller's position.
-pub fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
-    step_placing(economy, state, action, &mut |_, _| None)
+pub fn step(
+    economy: &Economy,
+    state: &SideState,
+    action: &Action,
+    declined: Option<i32>,
+) -> Result<SideState, Unsettled> {
+    step_placing(economy, state, action, declined, &mut |_, _| None)
 }
 
 /// [`step`], told where the formations a decision hands out arrive.
@@ -103,6 +113,7 @@ pub fn step_placing(
     economy: &Economy,
     state: &SideState,
     action: &Action,
+    declined: Option<i32>,
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
@@ -117,9 +128,10 @@ pub fn step_placing(
         .sum();
     match action {
         // Declining is one of this decision's two answers, and the one that
-        // pays: the item it takes is a supply grant of its own.
+        // pays: the item it takes is a supply grant of its own, whose size
+        // the round decides.
         Action::ChooseReinforceItem { id: None, .. } => {
-            next.supply += economy.reinforce_decline();
+            next.supply += declined.ok_or(Unsettled::Unpriced("declined reinforcement"))?;
         }
         Action::ChooseReinforceItem { id: Some(card), .. } => {
             let price = economy.card(*card).ok_or(Unsettled::Unpriced("card"))?;
@@ -768,11 +780,12 @@ pub fn predict(
     state: &SideState,
     actions: &[Action],
     red: bool,
+    declined: Option<i32>,
 ) -> Result<SideState, Unsettled> {
     let mut placement = crate::landing::placement(red);
     let mut position = state.clone();
     for action in actions {
-        position = step_placing(economy, &position, action, &mut placement)?;
+        position = step_placing(economy, &position, action, declined, &mut placement)?;
     }
     // Whatever else the fight does, it empties the travelling set: a
     // formation's crossing is over once the fight has run.
@@ -794,7 +807,7 @@ pub fn predict(
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step, step_placing};
+    use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step_placing};
     use crate::battle::{
         Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
     };
@@ -802,17 +815,27 @@ mod tests {
     use crate::economy::{CardKind, Economy};
     use crate::layout::{Experience, Position, UnitPlacement};
 
-    /// Steps `actions` in order from `state`, landing whatever a decision hands
-    /// out at the main region's centre.
+    /// [`super::step`] in an ordinary round, where a decline pays the ordinary
+    /// figure.
+    fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
+        super::step(economy, state, action, Some(economy.reinforce_decline()))
+    }
+
+    /// Steps `actions` in order from `state` in an ordinary round, landing
+    /// whatever a decision hands out at the main region's centre.
     fn fold(
         economy: &Economy,
         state: &SideState,
         actions: &[Action],
     ) -> Result<SideState, Unsettled> {
         actions.iter().try_fold(state.clone(), |position, action| {
-            step_placing(economy, &position, action, &mut |_, _| {
-                Some(Position { x: 0, y: -160 })
-            })
+            step_placing(
+                economy,
+                &position,
+                action,
+                Some(economy.reinforce_decline()),
+                &mut |_, _| Some(Position { x: 0, y: -160 }),
+            )
         })
     }
 
@@ -875,6 +898,29 @@ mod tests {
         ];
         let next = fold(&economy, &state, &taken).unwrap();
         assert_eq!(next.officers, vec![20022, 20022, 20022]);
+    }
+
+    /// A decline pays what the round says it does: the ordinary figure, a unit
+    /// round's own, or, when the caller cannot say, nothing it would guess.
+    #[test]
+    fn a_decline_pays_the_round_figure() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState::default();
+        let declined = Action::ChooseReinforceItem {
+            offer: crate::battle::DECLINED_OFFER,
+            id: None,
+        };
+        let ordinary = crate::reinforcement::decline_supply(&economy, 1, 3).unwrap();
+        let unit = crate::reinforcement::decline_supply(&economy, 1, 8).unwrap();
+        assert_eq!((ordinary, unit), (50, 400));
+        for figure in [ordinary, unit] {
+            let next = super::step(&economy, &state, &declined, Some(figure)).unwrap();
+            assert_eq!(next.supply, state.supply + figure);
+        }
+        assert_eq!(
+            super::step(&economy, &state, &declined, None),
+            Err(Unsettled::Unpriced("declined reinforcement"))
+        );
     }
 
     /// Declining is the same decision, and it hands out nothing.
@@ -1095,7 +1141,7 @@ mod tests {
             id: 9891,
             specialist: Some(10002),
         };
-        let opened = super::predict(&economy, 0, &before, &[choice], true).unwrap();
+        let opened = super::predict(&economy, 0, &before, &[choice], true, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
         assert_eq!(opened.shop.unlocked_units, [10, 24]);
         assert_eq!(opened.next_index.unit, 5);
@@ -1143,7 +1189,7 @@ mod tests {
             value: Some(100),
             movable: false,
         });
-        let predicted = super::predict(&economy, 3, &state, &[], false).unwrap();
+        let predicted = super::predict(&economy, 3, &state, &[], false, None).unwrap();
         assert_eq!(predicted.units[0].unit.travelling, None);
     }
 
@@ -1450,9 +1496,10 @@ mod tests {
         );
         let mut placed = vec![Position { x: 0, y: -160 }, Position { x: -20, y: -160 }];
         placed.reverse();
-        let next =
-            crate::transition::step_placing(&economy, &state, &taken, &mut |_, _| placed.pop())
-                .unwrap();
+        let next = crate::transition::step_placing(&economy, &state, &taken, None, &mut |_, _| {
+            placed.pop()
+        })
+        .unwrap();
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
         assert_eq!(next.shop.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
