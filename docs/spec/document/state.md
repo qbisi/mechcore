@@ -139,7 +139,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       supply: 50
 
       shop:
-        unlocked_units: [2, 9, 10, 15, 18, 21, 22, 25, 28, 30, 31]
+        unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
         buys_remaining: 3
         unlocks_remaining: 1
 
@@ -288,6 +288,9 @@ that, and an installer has to set it even though no state document carries it.
 ### The shop
 
 A state stores two shop numbers, and both differ from what the replay holds.
+
+`unlocked_units` names each unit type by the name a formation's `type` uses,
+and lists them in ascending unit ID.
 
 `locked_units` is dropped because it is the complement of `unlocked_units`
 against the build's unit catalogue. `MaxUnlockCount` is dropped because it is
@@ -470,7 +473,7 @@ absent when its `current` is `0`.
 | `equipment` | ascending `(id, durability)`, a multiset |
 | `formations`, `constructions`, `contraptions` | ascending `index` |
 | `techs.officers`, `techs.units` | ascending ID |
-| `shop.unlocked_units` | ascending ID |
+| `shop.unlocked_units` | ascending unit ID, written as type names |
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |

@@ -26,7 +26,7 @@ kind: action
 round: 7
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 1072213}
-- {type: buy_unit, unit: 30}
+- {type: buy_unit, unit: void_eye}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 4}
 red:
 - ...
@@ -40,13 +40,14 @@ An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
 fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
-- {type: buy_unit, unit: 30}
+- {type: buy_unit, unit: void_eye}
 - {type: upgrade_unit, index: 5}
 ```
 
 Every operand is a 32-bit integer or a position, except
-`release_commander_skill`'s target, which is a tagged union, and `rotated`,
-which is a boolean defaulting to false.
+`release_commander_skill`'s target, which is a tagged union, `rotated`, which
+is a boolean defaulting to false, and `unit`, which names a unit type by the
+name a formation's `type` uses rather than by its ID.
 
 Four keys are not always present. `choose_reinforce_item` omits `id` when the
 offer was declined, `choose_advance_team` omits `specialist` when the opening is
@@ -156,7 +157,7 @@ here.
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, unit: 30}
+- {type: buy_unit, unit: void_eye}
 ```
 
 Buys one formation of `unit`. Advances `next_index.unit` by one and puts a
@@ -181,7 +182,7 @@ type, less what the formation's equipment discounts, floored at zero.
 ### `unlock_unit`
 
 ```yaml
-- {type: unlock_unit, unit: 30}
+- {type: unlock_unit, unit: void_eye}
 ```
 
 Adds `unit` to `shop.unlocked_units`. Costs the unit's unlock price.
@@ -189,7 +190,7 @@ Adds `unit` to `shop.unlocked_units`. Costs the unit's unlock price.
 ### `upgrade_technology`
 
 ```yaml
-- {type: upgrade_technology, unit: 9, tech: 3109}
+- {type: upgrade_technology, unit: fang, tech: 3109}
 ```
 
 Researches `tech`, which belongs to `unit`, and adds it to `techs.units`.

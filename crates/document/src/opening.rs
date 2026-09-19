@@ -527,6 +527,7 @@ pub struct StatedSide {
     pub opening: StatedOpening,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
+    #[serde(with = "crate::battle::unit_names::keyed")]
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 

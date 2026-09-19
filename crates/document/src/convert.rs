@@ -271,6 +271,11 @@ fn battle_side(
 ) -> Result<BattleSide, String> {
     let mut loadout = BTreeMap::new();
     for row in &player.data.unit_datas.entries {
+        // The record lists every unit the account owns a loadout for, and a
+        // standard 1v1 match fields only those this build's catalogue names.
+        if unit_type_from_id(row.id).is_none() {
+            continue;
+        }
         let mut techs: Vec<i32> = row.techs.entries.iter().map(|tech| tech.data).collect();
         techs.sort_unstable();
         loadout.insert(row.id, techs);
@@ -1095,8 +1100,13 @@ mod tests {
     #[test]
     fn reads_the_tech_loadout_of_both_sides() {
         let battle = tuff();
-        assert_eq!(battle.sides.blue.tech_loadout.len(), 34);
-        assert_eq!(battle.sides.red.tech_loadout.len(), 34);
+        // The record also lists Death Knell (2001) and Experimental Death
+        // Knell (4001), which no standard 1v1 match fields.
+        assert_eq!(battle.sides.blue.tech_loadout.len(), 32);
+        assert_eq!(battle.sides.red.tech_loadout.len(), 32);
+        for unit in [2001, 4001] {
+            assert!(!battle.sides.blue.tech_loadout.contains_key(&unit));
+        }
         assert_eq!(
             battle.sides.blue.tech_loadout[&1],
             vec![1105, 10301, 10401, 10801]

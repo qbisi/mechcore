@@ -202,19 +202,24 @@ match, so the loadout bounds every `upgrade_technology` a round can hold.
 ```yaml
   blue:
     tech_loadout:
-      1: [1105, 10301, 10401, 10801]
-      2: [702, 1802, 3202, 10202]
-      17: [417, 3317, 10217, 12017, 12117, 12217]
-      31: [631, 10231, 180931, 503101]
+      fortress: [1105, 10301, 10401, 10801]
+      marksman: [702, 1802, 3202, 10202]
+      war_factory: [417, 3317, 10217, 12017, 12117, 12217]
+      vortex: [631, 10231, 180931, 503101]
 ```
 
 It is real state and not a catalogue: two players in one match hold different
-loadouts. Rows cover units `1` through `31`, then `2001`, `2002` and `4001`.
+loadouts. A row is keyed by the unit's type name, the one a formation's `type`
+uses, and the rows are in ascending unit ID, which is the order the game lists
+units in. There is one row for each unit a standard 1v1 match can field: IDs
+`1` through `31` and `2002`. The record also holds rows for Death Knell (`2001`)
+and Experimental Death Knell (`4001`), which no standard 1v1 match fields, and
+the conversion drops them.
 
 The loadout keeps the per-unit grouping that a state's flat `techs.units` array
 drops, because the rule that lets a state flatten does not hold here. A
 technology's owner cannot be read off the end of its ID for every row, and says
-nothing at all about the three units above `2000`. Ownership is still a function
+nothing at all about Mountain, whose ID is above `2000`. Ownership is still a function
 of the ID, since no technology belongs to two units, and it is resolved against
 the build's catalogue rather than by decoding digits.
 
@@ -562,7 +567,7 @@ A [layout](layout.md#normal-form) is spelled by the same three:
 
 ```yaml
     shop:
-      unlocked_units: [2, 10, 20, 24]
+      unlocked_units: [marksman, crawler, fire_badger, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     next_index: {unit: 7, contraption: 0}

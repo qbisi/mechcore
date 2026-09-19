@@ -12,40 +12,38 @@ sides:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
     tech_loadout:
-      1: [1001, 10201, 10301, 10401]
-      2: [1802, 3202, 10202, 10802]
-      3: [1103, 3003, 10203, 10603]
-      4: [304, 1106, 1204, 10204]
-      5: [905, 1109, 10505, 180805]
-      6: [206, 1806, 3206, 10206]
-      7: [3207, 3307, 10207, 10607]
-      8: [308, 2408, 10208, 180808]
-      9: [209, 10209, 10509, 180209]
-      10: [2610, 2710, 10510, 180110]
-      11: [911, 1211, 10211, 180311]
-      12: [1812, 10212, 10312, 10912]
-      13: [3013, 10213, 10513, 10613]
-      14: [1014, 1714, 10214, 11014]
-      15: [1815, 3115, 10215, 10915]
-      16: [1816, 10216, 10816, 10916]
-      17: [417, 10217, 10317, 12017, 12117, 12217]
-      18: [918, 10218, 110181, 180418]
-      19: [10019, 10219, 10419, 180519]
-      20: [820, 10220, 11020, 180620]
-      21: [721, 3321, 10221, 10321]
-      22: [2922, 5122, 10222, 1102022]
-      23: [923, 3023, 3123, 3623]
-      24: [424, 10224, 10624, 11024]
-      25: [225, 3025, 3925, 10225]
-      26: [1826, 3226, 10226, 180526]
-      27: [1827, 4027, 4127, 10227]
-      28: [3028, 4228, 10228, 10528]
-      29: [2329, 4329, 10229, 11029, 110291, 180329]
-      30: [230, 4430, 10230, 180530]
-      31: [931, 10231, 180931, 503101]
-      2001: [32001, 102001, 1022001, 1102001, 1202001, 11020012]
-      2002: [72002, 312002, 1022002, 1032002, 11020021, 18032002]
-      4001: [1400101, 1400102, 1400103, 1400104, 3400101, 7400201, 10400101, 11400101, 11400102, 11400103, 12400101, 12400102, 12400103, 12400104, 12400105, 18400101, 48400101, 48400102, 48400103, 48400104]
+      fortress: [1001, 10201, 10301, 10401]
+      marksman: [1802, 3202, 10202, 10802]
+      vulcan: [1103, 3003, 10203, 10603]
+      melting_point: [304, 1106, 1204, 10204]
+      rhino: [905, 1109, 10505, 180805]
+      wasp: [206, 1806, 3206, 10206]
+      mustang: [3207, 3307, 10207, 10607]
+      steel_ball: [308, 2408, 10208, 180808]
+      fang: [209, 10209, 10509, 180209]
+      crawler: [2610, 2710, 10510, 180110]
+      overlord: [911, 1211, 10211, 180311]
+      stormcaller: [1812, 10212, 10312, 10912]
+      sledgehammer: [3013, 10213, 10513, 10613]
+      hacker: [1014, 1714, 10214, 11014]
+      arclight: [1815, 3115, 10215, 10915]
+      phoenix: [1816, 10216, 10816, 10916]
+      war_factory: [417, 10217, 10317, 12017, 12117, 12217]
+      wraith: [918, 10218, 110181, 180418]
+      scorpion: [10019, 10219, 10419, 180519]
+      fire_badger: [820, 10220, 11020, 180620]
+      sabertooth: [721, 3321, 10221, 10321]
+      typhoon: [2922, 5122, 10222, 1102022]
+      sandworm: [923, 3023, 3123, 3623]
+      tarantula: [424, 10224, 10624, 11024]
+      phantom_ray: [225, 3025, 3925, 10225]
+      farseer: [1826, 3226, 10226, 180526]
+      raiden: [1827, 4027, 4127, 10227]
+      hound: [3028, 4228, 10228, 10528]
+      abyss: [2329, 4329, 10229, 11029, 110291, 180329]
+      void_eye: [230, 4430, 10230, 180530]
+      vortex: [931, 10231, 180931, 503101]
+      mountain: [72002, 312002, 1022002, 1032002, 11020021, 18032002]
   red:
     offers:
     - {team: 9891, specialist: 10014}
@@ -56,40 +54,38 @@ sides:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
     tech_loadout:
-      1: [1001, 3001, 10201, 110201]
-      2: [1802, 3202, 10102, 10202]
-      3: [1103, 1203, 10203, 11010]
-      4: [304, 1106, 1107, 10204]
-      5: [1109, 3005, 180305, 180805]
-      6: [506, 1806, 3206, 10206]
-      7: [3207, 4607, 10207, 10607]
-      8: [308, 608, 3008, 10208]
-      9: [209, 10209, 10509, 180209]
-      10: [2610, 2710, 3510, 10510]
-      11: [911, 1611, 3011, 180311]
-      12: [812, 1812, 10212, 10912]
-      13: [613, 913, 1813, 3013]
-      14: [1014, 1714, 10214, 11014]
-      15: [1815, 3115, 10215, 10815]
-      16: [1816, 10216, 10816, 10916]
-      17: [3017, 10217, 10317, 12017, 12217, 180317]
-      18: [918, 3018, 10218, 110181]
-      19: [919, 3019, 10219, 10419]
-      20: [10220, 11020, 180220, 180620]
-      21: [3321, 10221, 10321, 110211]
-      22: [2922, 5122, 5222, 10222]
-      23: [923, 3023, 3123, 10523]
-      24: [3024, 3124, 10224, 11024]
-      25: [3025, 3225, 10225, 11025]
-      26: [1826, 3326, 180326, 180526]
-      27: [1827, 4027, 10227, 110271]
-      28: [3028, 4228, 10228, 11028]
-      29: [2329, 10229, 11029, 12029, 110291, 180329]
-      30: [330, 4430, 10230, 10930]
-      31: [631, 4531, 10231, 180931]
-      2001: [32001, 102001, 1022001, 1102001, 1202001, 11020012]
-      2002: [72002, 302002, 312002, 1022002, 1032002, 18032002]
-      4001: [1400101, 1400102, 1400103, 1400104, 3400101, 7400201, 10400101, 11400101, 11400102, 11400103, 12400101, 12400102, 12400103, 12400104, 12400105, 18400101, 48400101, 48400102, 48400103, 48400104]
+      fortress: [1001, 3001, 10201, 110201]
+      marksman: [1802, 3202, 10102, 10202]
+      vulcan: [1103, 1203, 10203, 11010]
+      melting_point: [304, 1106, 1107, 10204]
+      rhino: [1109, 3005, 180305, 180805]
+      wasp: [506, 1806, 3206, 10206]
+      mustang: [3207, 4607, 10207, 10607]
+      steel_ball: [308, 608, 3008, 10208]
+      fang: [209, 10209, 10509, 180209]
+      crawler: [2610, 2710, 3510, 10510]
+      overlord: [911, 1611, 3011, 180311]
+      stormcaller: [812, 1812, 10212, 10912]
+      sledgehammer: [613, 913, 1813, 3013]
+      hacker: [1014, 1714, 10214, 11014]
+      arclight: [1815, 3115, 10215, 10815]
+      phoenix: [1816, 10216, 10816, 10916]
+      war_factory: [3017, 10217, 10317, 12017, 12217, 180317]
+      wraith: [918, 3018, 10218, 110181]
+      scorpion: [919, 3019, 10219, 10419]
+      fire_badger: [10220, 11020, 180220, 180620]
+      sabertooth: [3321, 10221, 10321, 110211]
+      typhoon: [2922, 5122, 5222, 10222]
+      sandworm: [923, 3023, 3123, 10523]
+      tarantula: [3024, 3124, 10224, 11024]
+      phantom_ray: [3025, 3225, 10225, 11025]
+      farseer: [1826, 3326, 180326, 180526]
+      raiden: [1827, 4027, 10227, 110271]
+      hound: [3028, 4228, 10228, 11028]
+      abyss: [2329, 10229, 11029, 12029, 110291, 180329]
+      void_eye: [330, 4430, 10230, 10930]
+      vortex: [631, 4531, 10231, 180931]
+      mountain: [72002, 302002, 312002, 1022002, 1032002, 18032002]
 ---
 kind: action
 round: 0
@@ -105,7 +101,7 @@ sides:
     reactor_core: 4900
     supply: 200
     shop:
-      unlocked_units: [2, 24]
+      unlocked_units: [marksman, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -125,7 +121,7 @@ sides:
     reactor_core: 5100
     supply: 300
     shop:
-      unlocked_units: [9, 24]
+      unlocked_units: [fang, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -156,9 +152,9 @@ blue:
 - {type: move_unit, index: 2, position: {x: 0, y: -240}}
 - {type: move_unit, index: 2, position: {x: 0, y: -210}}
 - {type: move_unit, index: 1, position: {x: -50, y: -210}}
-- {type: unlock_unit, unit: 9}
-- {type: buy_unit, unit: 9}
-- {type: buy_unit, unit: 9}
+- {type: unlock_unit, unit: fang}
+- {type: buy_unit, unit: fang}
+- {type: buy_unit, unit: fang}
 - {type: move_unit, index: 5, position: {x: 0, y: -175}, rotated: true}
 - {type: move_unit, index: 6, position: {x: -50, y: -175}, rotated: true}
 - {type: move_unit, index: 5, position: {x: 50, y: -175}, rotated: true}
@@ -174,8 +170,8 @@ red:
 - {type: move_unit, index: 1, position: {x: 0, y: -65}, rotated: true}
 - {type: move_unit, index: 0, position: {x: -50, y: -65}, rotated: true}
 - {type: move_unit, index: 2, position: {x: 50, y: -65}, rotated: true}
-- {type: unlock_unit, unit: 8}
-- {type: buy_unit, unit: 8}
+- {type: unlock_unit, unit: steel_ball}
+- {type: buy_unit, unit: steel_ball}
 - {type: move_unit, index: 5, position: {x: -105, y: -190}}
 ---
 kind: state
@@ -186,7 +182,7 @@ sides:
     reactor_core: 4714
     supply: 400
     shop:
-      unlocked_units: [2, 9, 24]
+      unlocked_units: [marksman, fang, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -211,7 +207,7 @@ sides:
     reactor_core: 5100
     supply: 400
     shop:
-      unlocked_units: [8, 9, 24]
+      unlocked_units: [steel_ball, fang, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -235,16 +231,16 @@ blue:
 - {type: choose_reinforce_item, offer: 0, id: 300001}
 - {type: release_commander_skill, index: 2, id: 300001, target: !area [{x: -13, y: 54}]}
 - {type: release_contraption, contraption: 10001, position: {x: 0, y: -173}}
-- {type: unlock_unit, unit: 10}
-- {type: buy_unit, unit: 10}
+- {type: unlock_unit, unit: crawler}
+- {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 7, position: {x: 0, y: -285}, rotated: true}
-- {type: buy_unit, unit: 10}
+- {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 8, position: {x: 160, y: -285}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 30503}
-- {type: buy_unit, unit: 8}
+- {type: buy_unit, unit: steel_ball}
 - {type: move_unit, index: 6, position: {x: -35, y: -190}}
-- {type: unlock_unit, unit: 7}
+- {type: unlock_unit, unit: mustang}
 ---
 kind: state
 round: 3
@@ -254,7 +250,7 @@ sides:
     reactor_core: 4714
     supply: 650
     shop:
-      unlocked_units: [2, 9, 10, 24]
+      unlocked_units: [marksman, fang, crawler, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -284,7 +280,7 @@ sides:
     reactor_core: 4658
     supply: 700
     shop:
-      unlocked_units: [7, 8, 9, 24]
+      unlocked_units: [mustang, steel_ball, fang, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -313,10 +309,10 @@ blue:
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 1}
 - {type: release_commander_skill, index: 0, id: 300001, target: !area [{x: 20, y: 54}]}
-- {type: upgrade_technology, unit: 24, tech: 10224}
-- {type: buy_unit, unit: 10}
+- {type: upgrade_technology, unit: tarantula, tech: 10224}
+- {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 12, position: {x: -150, y: -285}, rotated: true}
-- {type: buy_unit, unit: 9}
+- {type: buy_unit, unit: fang}
 - {type: move_unit, index: 13, position: {x: 0, y: -175}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 1032121}
@@ -324,11 +320,11 @@ red:
 - {type: move_unit, index: 7, position: {x: -125, y: -75}}
 - {type: active_blueprint, id: 2}
 - {type: release_commander_skill, index: 0, id: 900001, target: !construction 1}
-- {type: buy_unit, unit: 7}
-- {type: buy_unit, unit: 7}
+- {type: buy_unit, unit: mustang}
+- {type: buy_unit, unit: mustang}
 - {type: move_unit, index: 9, position: {x: -105, y: -210}}
 - {type: move_unit, index: 10, position: {x: -35, y: -210}}
-- {type: unlock_unit, unit: 10}
+- {type: unlock_unit, unit: crawler}
 ---
 kind: state
 round: 4
@@ -338,7 +334,7 @@ sides:
     reactor_core: 4246
     supply: 800
     shop:
-      unlocked_units: [2, 9, 10, 24, 31]
+      unlocked_units: [marksman, fang, crawler, tarantula, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -372,7 +368,7 @@ sides:
     reactor_core: 4658
     supply: 800
     shop:
-      unlocked_units: [7, 8, 9, 10, 21, 24]
+      unlocked_units: [mustang, steel_ball, fang, crawler, sabertooth, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2]
@@ -405,9 +401,9 @@ blue:
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 4}
 - {type: upgrade_unit, index: 0}
-- {type: buy_unit, unit: 24}
+- {type: buy_unit, unit: tarantula}
 - {type: move_unit, index: 14, position: {x: 95, y: -205}}
-- {type: buy_unit, unit: 24}
+- {type: buy_unit, unit: tarantula}
 - {type: move_unit, index: 15, position: {x: -95, y: -205}}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: release_contraption, contraption: 10001, position: {x: 0, y: -145}}
@@ -417,12 +413,12 @@ red:
 - {type: use_equipment, equipment: 13030004, unit: 8}
 - {type: upgrade_unit, index: 8}
 - {type: upgrade_unit, index: 5}
-- {type: upgrade_technology, unit: 7, tech: 10207}
+- {type: upgrade_technology, unit: mustang, tech: 10207}
 - {type: release_commander_skill, index: 0, id: 900001, target: !construction 0}
-- {type: buy_unit, unit: 10}
+- {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 11, position: {x: -105, y: -170}}
 - {type: release_contraption, contraption: 20001, position: {x: -55, y: -12}}
-- {type: unlock_unit, unit: 19}
+- {type: unlock_unit, unit: scorpion}
 ---
 kind: state
 round: 5
@@ -432,7 +428,7 @@ sides:
     reactor_core: 4246
     supply: 750
     shop:
-      unlocked_units: [2, 9, 10, 24, 31]
+      unlocked_units: [marksman, fang, crawler, tarantula, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [4]
@@ -472,7 +468,7 @@ sides:
     reactor_core: 2898
     supply: 1000
     shop:
-      unlocked_units: [7, 8, 9, 10, 19, 21, 24]
+      unlocked_units: [mustang, steel_ball, fang, crawler, scorpion, sabertooth, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2]
@@ -506,22 +502,22 @@ blue:
 - {type: upgrade_unit, index: 9}
 - {type: upgrade_unit, index: 10}
 - {type: active_energy_tower_skill, skill: 1}
-- {type: buy_unit, unit: 10}
+- {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 16, position: {x: 140, y: -135}, rotated: true}
 - {type: release_commander_skill, index: 2, id: 300001, target: !area [{x: 105, y: 162}]}
 - {type: release_commander_skill, index: 1, id: 300001, target: !area [{x: 23, y: 54}]}
-- {type: buy_unit, unit: 2}
+- {type: buy_unit, unit: marksman}
 - {type: move_unit, index: 17, position: {x: 130, y: -210}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: 2}
+- {type: buy_unit, unit: marksman}
 - {type: move_unit, index: 18, position: {x: -130, y: -210}}
 red:
 - {type: choose_reinforce_item, offer: -1}
-- {type: buy_unit, unit: 8}
-- {type: buy_unit, unit: 8}
+- {type: buy_unit, unit: steel_ball}
+- {type: buy_unit, unit: steel_ball}
 - {type: move_unit, index: 12, position: {x: 35, y: -190}}
 - {type: move_unit, index: 13, position: {x: -175, y: -190}}
-- {type: upgrade_technology, unit: 8, tech: 3008}
+- {type: upgrade_technology, unit: steel_ball, tech: 3008}
 - {type: release_contraption, contraption: 10001, position: {x: -73, y: -170}}
 ---
 kind: state
@@ -532,7 +528,7 @@ sides:
     reactor_core: 4246
     supply: 900
     shop:
-      unlocked_units: [2, 9, 10, 24, 31]
+      unlocked_units: [marksman, fang, crawler, tarantula, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [4]
@@ -573,7 +569,7 @@ sides:
     reactor_core: 1898
     supply: 1250
     shop:
-      unlocked_units: [7, 8, 9, 10, 19, 21, 24]
+      unlocked_units: [mustang, steel_ball, fang, crawler, scorpion, sabertooth, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2]
@@ -610,12 +606,12 @@ blue:
 - {type: upgrade_unit, index: 0}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 15}
-- {type: upgrade_technology, unit: 24, tech: 11024}
+- {type: upgrade_technology, unit: tarantula, tech: 11024}
 - {type: active_blueprint, id: 2}
 - {type: release_commander_skill, index: 4, id: 900001, target: !unit 19}
 - {type: active_blueprint, id: 401}
-- {type: buy_unit, unit: 9}
-- {type: buy_unit, unit: 9}
+- {type: buy_unit, unit: fang}
+- {type: buy_unit, unit: fang}
 - {type: move_unit, index: 20, position: {x: -225, y: -210}}
 - {type: move_unit, index: 21, position: {x: 225, y: -210}}
 - {type: active_energy_tower_skill, skill: 5}
@@ -626,11 +622,11 @@ red:
 - {type: move_unit, index: 15, position: {x: 0, y: -100}}
 - {type: move_unit, index: 14, position: {x: -40, y: -100}}
 - {type: release_contraption, contraption: 10001, position: {x: -2, y: -83}}
-- {type: buy_unit, unit: 7}
-- {type: buy_unit, unit: 7}
+- {type: buy_unit, unit: mustang}
+- {type: buy_unit, unit: mustang}
 - {type: move_unit, index: 17, position: {x: 35, y: -210}}
 - {type: move_unit, index: 18, position: {x: -175, y: -210}}
-- {type: upgrade_technology, unit: 7, tech: 10607}
+- {type: upgrade_technology, unit: mustang, tech: 10607}
 ---
 kind: state
 round: 7
@@ -640,7 +636,7 @@ sides:
     reactor_core: 4059
     supply: 1450
     shop:
-      unlocked_units: [2, 9, 10, 18, 24, 31]
+      unlocked_units: [marksman, fang, crawler, wraith, tarantula, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2, 401]
@@ -684,7 +680,7 @@ sides:
     reactor_core: 1898
     supply: 1400
     shop:
-      unlocked_units: [7, 8, 9, 10, 19, 21, 24, 28]
+      unlocked_units: [mustang, steel_ball, fang, crawler, scorpion, sabertooth, tarantula, hound]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2]
@@ -727,13 +723,13 @@ blue:
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 11}
 - {type: upgrade_unit, index: 9}
-- {type: upgrade_technology, unit: 31, tech: 503101}
-- {type: buy_unit, unit: 31}
+- {type: upgrade_technology, unit: vortex, tech: 503101}
+- {type: buy_unit, unit: vortex}
 - {type: move_unit, index: 22, position: {x: 260, y: -230}}
-- {type: buy_unit, unit: 9}
+- {type: buy_unit, unit: fang}
 - {type: move_unit, index: 23, position: {x: 225, y: -300}}
-- {type: upgrade_technology, unit: 2, tech: 10802}
-- {type: upgrade_technology, unit: 31, tech: 180931}
+- {type: upgrade_technology, unit: marksman, tech: 10802}
+- {type: upgrade_technology, unit: vortex, tech: 180931}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: release_contraption, contraption: 10001, position: {x: -1, y: -158}}
 - {type: active_energy_tower_skill, skill: 5}
@@ -743,15 +739,15 @@ red:
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_unit, index: 18}
 - {type: upgrade_unit, index: 13}
-- {type: buy_unit, unit: 8}
-- {type: buy_unit, unit: 8}
+- {type: buy_unit, unit: steel_ball}
+- {type: buy_unit, unit: steel_ball}
 - {type: move_unit, index: 19, position: {x: -245, y: -190}}
 - {type: move_unit, index: 20, position: {x: 105, y: -190}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: 8}
+- {type: buy_unit, unit: steel_ball}
 - {type: move_unit, index: 21, position: {x: 175, y: -190}}
 - {type: release_contraption, contraption: 20001, position: {x: -133, y: -13}}
-- {type: unlock_unit, unit: 13}
+- {type: unlock_unit, unit: sledgehammer}
 ---
 kind: state
 round: 8
@@ -761,7 +757,7 @@ sides:
     reactor_core: 3414
     supply: 1300
     shop:
-      unlocked_units: [2, 9, 10, 18, 24, 31]
+      unlocked_units: [marksman, fang, crawler, wraith, tarantula, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2, 401]
@@ -807,7 +803,7 @@ sides:
     reactor_core: 1898
     supply: 1600
     shop:
-      unlocked_units: [7, 8, 9, 10, 13, 19, 21, 24, 28]
+      unlocked_units: [mustang, steel_ball, fang, crawler, sledgehammer, scorpion, sabertooth, tarantula, hound]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2]
@@ -850,7 +846,7 @@ blue:
 - {type: choose_reinforce_item, offer: 1, id: 1082118}
 - {type: move_unit, index: 25, position: {x: 135, y: -295}}
 - {type: move_unit, index: 24, position: {x: -125, y: -295}}
-- {type: upgrade_technology, unit: 18, tech: 180418}
+- {type: upgrade_technology, unit: wraith, tech: 180418}
 - {type: upgrade_unit, index: 1}
 - {type: upgrade_unit, index: 17}
 - {type: upgrade_unit, index: 10}
@@ -861,9 +857,9 @@ blue:
 - {type: release_commander_skill, index: 3, id: 100002, target: !area [{x: -52, y: -15}, {x: 87, y: -11}]}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: active_energy_tower_skill, skill: 4}
-- {type: buy_unit, unit: 2}
-- {type: buy_unit, unit: 2}
-- {type: buy_unit, unit: 2}
+- {type: buy_unit, unit: marksman}
+- {type: buy_unit, unit: marksman}
+- {type: buy_unit, unit: marksman}
 - {type: move_unit, index: 27, position: {x: -190, y: -210}}
 - {type: move_unit, index: 28, position: {x: -240, y: -250}}
 - {type: move_unit, index: 26, position: {x: 240, y: -250}}
@@ -873,12 +869,12 @@ red:
 - {type: move_unit, index: 23, position: {x: -35, y: -240}}
 - {type: move_unit, index: 23, position: {x: -35, y: -230}}
 - {type: move_unit, index: 22, position: {x: -105, y: -230}}
-- {type: buy_unit, unit: 6}
-- {type: buy_unit, unit: 6}
+- {type: buy_unit, unit: wasp}
+- {type: buy_unit, unit: wasp}
 - {type: move_unit, index: 24, position: {x: -175, y: -230}}
 - {type: move_unit, index: 25, position: {x: 35, y: -230}}
-- {type: upgrade_technology, unit: 6, tech: 10206}
-- {type: upgrade_technology, unit: 28, tech: 4228}
+- {type: upgrade_technology, unit: wasp, tech: 10206}
+- {type: upgrade_technology, unit: hound, tech: 4228}
 - {type: release_contraption, contraption: 10001, position: {x: -14, y: -87}}
 - {type: upgrade_unit, index: 9}
 - {type: release_contraption, contraption: 20001, position: {x: -34, y: -10}}
@@ -892,7 +888,7 @@ sides:
     reactor_core: 3414
     supply: 1900
     shop:
-      unlocked_units: [2, 9, 10, 18, 24, 31]
+      unlocked_units: [marksman, fang, crawler, wraith, tarantula, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2, 401]
@@ -943,7 +939,7 @@ sides:
     reactor_core: 326
     supply: 1800
     shop:
-      unlocked_units: [6, 7, 8, 9, 10, 13, 19, 21, 24, 28]
+      unlocked_units: [wasp, mustang, steel_ball, fang, crawler, sledgehammer, scorpion, sabertooth, tarantula, hound]
       buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2, 4]
@@ -1003,10 +999,10 @@ blue:
 - {type: upgrade_unit, index: 20}
 - {type: upgrade_unit, index: 21}
 - {type: upgrade_unit, index: 23}
-- {type: upgrade_technology, unit: 9, tech: 180209}
-- {type: upgrade_technology, unit: 9, tech: 209}
-- {type: buy_unit, unit: 9}
-- {type: buy_unit, unit: 9}
+- {type: upgrade_technology, unit: fang, tech: 180209}
+- {type: upgrade_technology, unit: fang, tech: 209}
+- {type: buy_unit, unit: fang}
+- {type: buy_unit, unit: fang}
 - {type: move_unit, index: 29, position: {x: -290, y: -245}, rotated: true}
 - {type: move_unit, index: 30, position: {x: -55, y: -290}}
 - {type: active_energy_tower_skill, skill: 5}
@@ -1014,13 +1010,13 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13020001}
 - {type: use_equipment, equipment: 13020001, unit: 13}
-- {type: buy_unit, unit: 7}
-- {type: buy_unit, unit: 7}
+- {type: buy_unit, unit: mustang}
+- {type: buy_unit, unit: mustang}
 - {type: move_unit, index: 26, position: {x: -245, y: -230}}
 - {type: release_contraption, contraption: 10001, position: {x: -214, y: -197}}
 - {type: release_contraption, contraption: 10001, position: {x: 52, y: -181}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: 7}
+- {type: buy_unit, unit: mustang}
 - {type: move_unit, index: 28, position: {x: 105, y: -230}}
 - {type: move_unit, index: 27, position: {x: 175, y: -230}}
 - {type: release_contraption, contraption: 10001, position: {x: 149, y: -191}}

@@ -46,7 +46,9 @@ pub struct BattleSide {
     /// with, so a battle says where the buildings came from rather than having
     /// them appear in the first round it happens to hold.
     pub constructions: Vec<StaticPlacement>,
-    /// Which technologies each unit may research, keyed by unit ID.
+    /// Which technologies each unit may research, keyed by unit ID and
+    /// written keyed by type name, in ID order. Only units a standard 1v1
+    /// match can field have a row.
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
@@ -154,6 +156,8 @@ pub struct SideState {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ShopState {
+    /// Unit IDs, written as their type names in ID order.
+    #[serde(with = "unit_names::units")]
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
@@ -277,15 +281,18 @@ pub enum Action {
     /// formation where [`crate::landing`] says the board has room, and a
     /// `move_unit` is what places it anywhere else.
     BuyUnit {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
     },
     UpgradeUnit {
         index: i32,
     },
     UnlockUnit {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
     },
     UpgradeTechnology {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
         tech: i32,
     },
@@ -370,15 +377,18 @@ enum ActionReader {
         specialist: Option<i32>,
     },
     BuyUnit {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
     },
     UpgradeUnit {
         index: i32,
     },
     UnlockUnit {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
     },
     UpgradeTechnology {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
         tech: i32,
     },
@@ -450,6 +460,100 @@ pub(crate) fn payload<T: serde::de::DeserializeOwned>(
     serde_yaml::from_value(value)
 }
 
+/// A battle names a unit type by the name a layout gives it, never by its ID.
+///
+/// The document still orders unit types by ID, which is the order the game
+/// lists them in, so the fields keep the ID and only their spelling is a name.
+/// A name no unit type of this build carries is refused.
+pub(crate) mod unit_names {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::BTreeMap;
+
+    fn name<E: serde::ser::Error>(id: i32) -> Result<&'static str, E> {
+        crate::catalog::unit_type_from_id(id)
+            .map(|(name, _)| name)
+            .ok_or_else(|| E::custom(format!("unit ID {id} has no type name in this build")))
+    }
+
+    fn id<E: serde::de::Error>(name: &str) -> Result<i32, E> {
+        crate::catalog::unit_id_from_type(name)
+            .ok_or_else(|| E::custom(format!("{name} is not a unit type of this build")))
+    }
+
+    /// One unit type.
+    pub(crate) mod unit {
+        use super::{Deserialize, Deserializer, Serialize, Serializer};
+
+        #[allow(clippy::trivially_copy_pass_by_ref)] // Required by serde's `with` shape.
+        pub(crate) fn serialize<S: Serializer>(
+            unit: &i32,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            super::name(*unit)?.serialize(serializer)
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<i32, D::Error> {
+            super::id(&String::deserialize(deserializer)?)
+        }
+    }
+
+    /// A list of unit types, kept in the order it holds.
+    pub(crate) mod units {
+        use super::{Deserialize, Deserializer, Serializer};
+
+        pub(crate) fn serialize<S: Serializer>(
+            units: &[i32],
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            serializer.collect_seq(
+                units
+                    .iter()
+                    .map(|unit| super::name(*unit))
+                    .collect::<Result<Vec<_>, S::Error>>()?,
+            )
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Vec<i32>, D::Error> {
+            Vec::<String>::deserialize(deserializer)?
+                .iter()
+                .map(|name| super::id(name))
+                .collect()
+        }
+    }
+
+    /// A mapping keyed by unit type, written in ID order.
+    pub(crate) mod keyed {
+        use super::{BTreeMap, Deserialize, Deserializer, Serializer};
+        use std::borrow::Borrow;
+
+        pub(crate) fn serialize<S, M>(map: &M, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+            M: Borrow<BTreeMap<i32, Vec<i32>>>,
+        {
+            let map = map.borrow();
+            serializer.collect_map(
+                map.iter()
+                    .map(|(unit, row)| super::name(*unit).map(|name| (name, row)))
+                    .collect::<Result<Vec<_>, S::Error>>()?,
+            )
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<BTreeMap<i32, Vec<i32>>, D::Error> {
+            BTreeMap::<String, Vec<i32>>::deserialize(deserializer)?
+                .into_iter()
+                .map(|(name, row)| super::id(&name).map(|unit| (unit, row)))
+                .collect()
+        }
+    }
+}
+
 #[allow(clippy::trivially_copy_pass_by_ref)] // Required by serde's predicate shape.
 fn is_false(value: &bool) -> bool {
     !*value
@@ -481,6 +585,7 @@ struct HeaderSides<'a> {
 struct HeaderSide<'a> {
     offers: &'a [OpeningOffer],
     constructions: &'a [StaticPlacement],
+    #[serde(with = "unit_names::keyed")]
     tech_loadout: &'a BTreeMap<i32, Vec<i32>>,
 }
 
@@ -755,6 +860,34 @@ mod tests {
             "{type: upgrade_unit, index: 0, typo: 1}",
             "{type: release_commander_skill, index: 0, id: 300001, target: !unknown 1}",
             "{type: unknown_action}",
+        ] {
+            assert!(
+                serde_yaml::from_str::<super::Action>(yaml).is_err(),
+                "{yaml}"
+            );
+        }
+    }
+
+    /// A unit type is written by name and ordered by ID: Vortex is unit 31
+    /// and Mountain unit 2002, the reverse of their names' order. A number,
+    /// or a name that is not a unit type, is refused.
+    #[test]
+    fn unit_types_are_names_in_id_order() {
+        #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+        struct Loadout {
+            #[serde(with = "super::unit_names::keyed")]
+            rows: std::collections::BTreeMap<i32, Vec<i32>>,
+        }
+        let loadout = Loadout {
+            rows: [(2002, vec![72_002]), (31, vec![631])].into(),
+        };
+        let yaml = serde_yaml::to_string(&loadout).unwrap();
+        assert_eq!(yaml, "rows:\n  vortex:\n  - 631\n  mountain:\n  - 72002\n");
+        assert_eq!(serde_yaml::from_str::<Loadout>(&yaml).unwrap(), loadout);
+        for yaml in [
+            "{type: unlock_unit, unit: 9}",
+            "{type: unlock_unit, unit: defensive_wall}",
+            "{type: buy_unit, unit: death_knell}",
         ] {
             assert!(
                 serde_yaml::from_str::<super::Action>(yaml).is_err(),
