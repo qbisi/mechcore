@@ -14,7 +14,7 @@ use crate::battle::{
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{
-    ContraptionPlacement, Experience, Formation, Position, StaticPlacement, Techs,
+    ContraptionPlacement, Experience, Formation, Position, Region, StaticPlacement, Techs,
 };
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
@@ -715,23 +715,19 @@ fn opening_specialist(economy: &Economy, player: &record::PlayerRecord) -> Resul
 
 /// A recorded decision, before the round is stepped.
 ///
-/// Two decisions carry something a battle does not state, and stepping the
-/// round is what accounts for it. A purchase records where the formation
-/// arrived, which the board decides, so the round has to put it there. A
-/// release records the panel slot, and the skill the slot holds is whatever
-/// the round has put there by then.
+/// A release records the panel slot, and the skill the slot holds is whatever
+/// the round has put there by then, so stepping the round is what names it.
 enum Recorded {
     Taken(Action),
-    Bought { unit: i32, at: Position },
     Released { index: i32, target: SkillTarget },
 }
 
 /// A side's decisions in one round, from the position the round opened with.
 ///
-/// Each decision is stepped as it is read. A purchase is refused unless the
-/// board puts the formation where the replay recorded it, because the battle
-/// keeps only the unit; a release is given the skill its slot holds at that
-/// point in the round.
+/// Each decision is stepped as it is read, which names the skill a release's
+/// slot holds and the index a purchase creates. The moves are then collapsed
+/// by [`collapse_moves`], and the collapsed round is stepped again: it has to
+/// reach exactly the position the recorded one does, or the replay is refused.
 fn actions(
     economy: &Economy,
     round: &PlayerRoundRecord,
@@ -739,26 +735,25 @@ fn actions(
     opened: &SideState,
 ) -> Result<Vec<Action>, String> {
     let red = seat == Seat::Red;
-    let mut placement = crate::landing::placement(red);
+    let step = |position: &SideState, action: &Action, at: usize| {
+        crate::transition::step_placing(
+            economy,
+            position,
+            action,
+            &mut crate::landing::placement(red),
+        )
+        .map_err(|reason| {
+            format!(
+                "{} decision {at} ({action:?}) cannot be stepped: {reason:?}",
+                seat.name()
+            )
+        })
+    };
     let mut position = opened.clone();
     let mut taken = Vec::new();
     for (at, recorded) in recorded_actions(round, seat)?.into_iter().enumerate() {
         let action = match recorded {
             Recorded::Taken(action) => action,
-            Recorded::Bought { unit, at: recorded } => {
-                let (type_name, _) = unit_type_from_id(unit)
-                    .ok_or_else(|| format!("unit ID {unit} has no layout type in build {BUILD}"))?;
-                let landed = crate::landing::landing(&position, type_name, red);
-                if landed != Some(recorded) {
-                    return Err(format!(
-                        "{} buys {type_name} at ({}, {}), and the board puts it at {landed:?}",
-                        seat.name(),
-                        recorded.x,
-                        recorded.y
-                    ));
-                }
-                Action::BuyUnit { unit }
-            }
             Recorded::Released { index, target } => {
                 let id = position
                     .battle_skills
@@ -774,16 +769,120 @@ fn actions(
                 Action::ReleaseCommanderSkill { index, id, target }
             }
         };
-        position = crate::transition::step_placing(economy, &position, &action, &mut placement)
-            .map_err(|reason| {
-                format!(
-                    "{} decision {at} ({action:?}) cannot be stepped: {reason:?}",
-                    seat.name()
-                )
-            })?;
-        taken.push(action);
+        let placed = match &action {
+            Action::BuyUnit { .. } => Placed::Created(position.next_index.unit),
+            Action::MoveUnit { index, .. } => position
+                .formations
+                .iter()
+                .find(|entry| entry.formation.index == *index)
+                .map_or(Placed::Elsewhere, |entry| {
+                    Placed::Moved(Region::of(entry.formation.position))
+                }),
+            _ => Placed::Elsewhere,
+        };
+        position = step(&position, &action, at)?;
+        taken.push((action, placed));
     }
-    Ok(taken)
+    let collapsed = collapse_moves(taken);
+    let mut replayed = opened.clone();
+    for (at, action) in collapsed.iter().enumerate() {
+        replayed = step(&replayed, action, at)?;
+    }
+    if replayed != position {
+        return Err(format!(
+            "{}'s collapsed moves end the round somewhere its recorded ones do not",
+            seat.name()
+        ));
+    }
+    Ok(collapsed)
+}
+
+/// What a stepped decision did to a formation's place on the board.
+enum Placed {
+    /// A purchase, and the index it handed out.
+    Created(i32),
+    /// A move, and the region the formation was in before it.
+    Moved(Region),
+    Elsewhere,
+}
+
+/// How a formation's moves so far collapse, and where the kept one is written.
+#[derive(Clone, Copy)]
+enum Run {
+    /// A purchase this round: every later move is folded into it.
+    Bought(usize),
+    /// A formation that began the round's moves in the main half: only the
+    /// last move is kept.
+    FromMain(usize),
+    /// A formation that began them on a flank: the last move within each
+    /// stretch of moves ending in one region is kept.
+    FromFlank(usize, Region),
+}
+
+/// Keeps what a formation's moves amount to, and nothing of how they got there.
+///
+/// A move settles `travelling` by the region it arrives in, and a round's
+/// opening holds no travelling formation. So a formation that begins its moves
+/// in the main half, including one bought or handed out this round, travels
+/// exactly when its last move ends on a flank, whatever route it took: its
+/// last move is all it needs. A purchase is what creates its formation, so the
+/// purchase itself carries where the moves end, and step marks it travelling
+/// when that is a flank. A formation that begins on a flank is different: going
+/// to the main half and back travels, staying does not. For it, only a run of
+/// moves ending in the same region collapses to its last.
+fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
+    let mut kept: Vec<Option<Action>> = Vec::with_capacity(taken.len());
+    let mut runs: BTreeMap<i32, Run> = BTreeMap::new();
+    for (action, placed) in taken {
+        match (&action, placed) {
+            (Action::BuyUnit { .. }, Placed::Created(index)) => {
+                runs.insert(index, Run::Bought(kept.len()));
+            }
+            (
+                Action::MoveUnit {
+                    index,
+                    position,
+                    rotated,
+                },
+                Placed::Moved(from),
+            ) => {
+                let arrives = Region::of(*position);
+                match runs.get(index).copied() {
+                    Some(Run::Bought(at)) => {
+                        if let Some(Action::BuyUnit {
+                            position: bought,
+                            rotated: turned,
+                            ..
+                        }) = &mut kept[at]
+                        {
+                            *bought = *position;
+                            *turned = *rotated;
+                        }
+                        continue;
+                    }
+                    Some(Run::FromMain(at)) => {
+                        kept[at] = None;
+                        runs.insert(*index, Run::FromMain(kept.len()));
+                    }
+                    Some(Run::FromFlank(at, region)) if region == arrives => {
+                        kept[at] = None;
+                        runs.insert(*index, Run::FromFlank(kept.len(), arrives));
+                    }
+                    None if from == Region::Main => {
+                        runs.insert(*index, Run::FromMain(kept.len()));
+                    }
+                    // A flank run that changes region, or a first move from a
+                    // flank, starts a run of its own.
+                    Some(Run::FromFlank(..)) | None => {
+                        runs.insert(*index, Run::FromFlank(kept.len(), arrives));
+                    }
+                }
+            }
+            _ => {}
+        }
+        kept.push(Some(action));
+    }
+    kept.into_iter().flatten().collect()
 }
 
 fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorded>, String> {
@@ -812,13 +911,11 @@ fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorde
                     },
                 }
             }
-            "PAD_BuyUnit" => {
-                converted.push(Recorded::Bought {
-                    unit: field("UID", action.unit_id)?,
-                    at: position(&action.buy_position)?,
-                });
-                continue;
-            }
+            "PAD_BuyUnit" => Action::BuyUnit {
+                unit: field("UID", action.unit_id)?,
+                position: position(&action.buy_position)?,
+                rotated: false,
+            },
             "PAD_UpgradeUnit" => Action::UpgradeUnit {
                 index: field("UIDX", action.unit_index_allocated)?,
             },
@@ -928,6 +1025,53 @@ mod tests {
     use crate::grbr::SHIELD_AIRDROP_SKILL;
     use crate::{Position, StaticPlacement};
 
+    /// A formation that begins its moves in the main half keeps only its
+    /// last, a purchase takes every move of its own formation, and one that
+    /// begins on a flank keeps the last move of each region it passes through.
+    #[test]
+    fn a_formation_keeps_what_its_moves_amount_to() {
+        use super::{Placed, collapse_moves};
+        use crate::layout::Region;
+        let moved = |index, x, y| Action::MoveUnit {
+            index,
+            position: Position { x, y },
+            rotated: false,
+        };
+        let bought = |x, y| Action::BuyUnit {
+            unit: 10,
+            position: Position { x, y },
+            rotated: false,
+        };
+        // From the main half: out to a flank and back, and only the last stays.
+        assert_eq!(
+            collapse_moves(vec![
+                (moved(0, 0, -160), Placed::Moved(Region::Main)),
+                (moved(1, 50, -160), Placed::Moved(Region::Main)),
+                (moved(0, 330, 100), Placed::Moved(Region::Main)),
+                (moved(0, 100, -100), Placed::Moved(Region::RightFlank)),
+            ]),
+            [moved(1, 50, -160), moved(0, 100, -100)]
+        );
+        // A purchase takes its formation's moves, a flank included.
+        assert_eq!(
+            collapse_moves(vec![
+                (bought(0, -160), Placed::Created(5)),
+                (moved(5, 100, -100), Placed::Moved(Region::Main)),
+                (moved(5, -330, 100), Placed::Moved(Region::Main)),
+            ]),
+            [bought(-330, 100)]
+        );
+        // From a flank: the main half twice, then the flank again. Going out
+        // and back travels where staying would not, so both regions keep one.
+        assert_eq!(
+            collapse_moves(vec![
+                (moved(7, 0, -160), Placed::Moved(Region::LeftFlank)),
+                (moved(7, 100, -100), Placed::Moved(Region::Main)),
+                (moved(7, -330, 200), Placed::Moved(Region::Main)),
+            ]),
+            [moved(7, 100, -100), moved(7, -330, 200)]
+        );
+    }
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
     const CRBN: &str = "../../tests/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
@@ -1182,7 +1326,7 @@ mod tests {
     }
 
     #[test]
-    fn collapses_undo_and_flattens_a_move_batch() {
+    fn collapses_undo_and_folds_a_purchase_s_moves_into_it() {
         let battle = tuff();
         let blue = &round(&battle, 7).actions.blue;
         // Round 7 records three undos, and every retraction is gone.
@@ -1190,22 +1334,29 @@ mod tests {
             action,
             Action::ChooseReinforceItem { id: Some(0), .. }
         )));
-        let bought: Vec<i32> = blue
+        // The three purchases are moved in one recorded batch, and each
+        // purchase takes where its formation's moves end: the Crawler ends on
+        // the left flank, which is what makes it travel.
+        let bought: Vec<(i32, Position)> = blue
             .iter()
             .filter_map(|action| match action {
-                Action::BuyUnit { unit, .. } => Some(*unit),
+                Action::BuyUnit { unit, position, .. } => Some((*unit, *position)),
                 _ => None,
             })
             .collect();
-        assert_eq!(bought, vec![10, 31, 31]);
-        let moved: Vec<i32> = blue
-            .iter()
-            .filter_map(|action| match action {
-                Action::MoveUnit { index, .. } => Some(*index),
-                _ => None,
-            })
-            .collect();
-        assert_eq!(moved, vec![21, 22, 23]);
+        assert_eq!(
+            bought,
+            [
+                (10, Position { x: -310, y: 245 }),
+                (31, Position { x: -50, y: -120 }),
+                (31, Position { x: -10, y: -120 }),
+            ]
+        );
+        assert!(
+            !blue
+                .iter()
+                .any(|action| matches!(action, Action::MoveUnit { .. }))
+        );
     }
 
     #[test]

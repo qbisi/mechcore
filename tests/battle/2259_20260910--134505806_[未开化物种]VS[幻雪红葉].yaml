@@ -140,32 +140,21 @@ kind: action
 round: 1
 blue:
 - {type: unlock_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 6, position: {x: -290, y: -35}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -90, y: -125}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -190, y: -125}, rotated: true}
 - {type: move_unit, index: 2, position: {x: -280, y: -90}}
-- {type: move_unit, index: 6, position: {x: -290, y: -125}, rotated: true}
-- {type: move_unit, index: 3, position: {x: -245, y: -85}}
 - {type: move_unit, index: 4, position: {x: -215, y: -85}}
 - {type: move_unit, index: 0, position: {x: -180, y: -90}}
-- {type: move_unit, index: 3, position: {x: -145, y: -85}}
 - {type: move_unit, index: 1, position: {x: -80, y: -90}}
 - {type: move_unit, index: 3, position: {x: -115, y: -85}}
-- {type: move_unit, index: 6, position: {x: -190, y: -125}, rotated: true}
-- {type: move_unit, index: 5, position: {x: -90, y: -125}, rotated: true}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 0}
 - {type: upgrade_unit, index: 0}
 red:
 - {type: unlock_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 5, position: {x: -290, y: -35}, rotated: true}
-- {type: move_unit, index: 3, position: {x: -235, y: -50}}
-- {type: move_unit, index: 2, position: {x: 140, y: -225}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -290, y: -35}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -135, y: -20}}
 - {type: move_unit, index: 2, position: {x: 160, y: -175}, rotated: true}
 - {type: move_unit, index: 0, position: {x: -160, y: -175}, rotated: true}
-- {type: move_unit, index: 4, position: {x: -145, y: -70}}
-- {type: move_unit, index: 6, position: {x: -135, y: -20}}
 - {type: move_unit, index: 1, position: {x: 0, y: -205}, rotated: true}
 - {type: move_unit, index: 4, position: {x: -135, y: -40}}
 - {type: move_unit, index: 3, position: {x: -235, y: -40}}
@@ -225,30 +214,22 @@ blue:
 - {type: choose_reinforce_item, offer: 1, id: 1200002}
 - {type: active_blueprint, id: 2}
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 3}
-- {type: buy_unit, unit: hound}
+- {type: buy_unit, unit: hound, position: {x: 130, y: -190}}
 - {type: unlock_unit, unit: fang}
-- {type: buy_unit, unit: fang}
-- {type: move_unit, index: 8, position: {x: 160, y: -205}, rotated: true}
-- {type: move_unit, index: 7, position: {x: 110, y: -170}}
-- {type: move_unit, index: 8, position: {x: 160, y: -165}, rotated: true}
-- {type: move_unit, index: 7, position: {x: 130, y: -190}}
+- {type: buy_unit, unit: fang, position: {x: 160, y: -165}, rotated: true}
 - {type: release_commander_skill, index: 1, id: 1200002, target: !area [{x: -134, y: -288}]}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: fang}
-- {type: move_unit, index: 9, position: {x: -160, y: -205}, rotated: true}
+- {type: buy_unit, unit: fang, position: {x: -160, y: -205}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 1200002}
 - {type: release_commander_skill, index: 0, id: 1200002, target: !area [{x: 259, y: 281}]}
 - {type: active_blueprint, id: 2}
 - {type: release_commander_skill, index: 1, id: 900001, target: !unit 4}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
+- {type: buy_unit, unit: crawler, position: {x: -140, y: -285}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 310, y: 285}}
 - {type: upgrade_technology, unit: crawler, tech: 10510}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 9, position: {x: -310, y: 285}}
-- {type: move_unit, index: 8, position: {x: 310, y: 285}}
-- {type: move_unit, index: 7, position: {x: -140, y: -285}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -310, y: 285}}
 - {type: unlock_unit, unit: hound}
 ---
 kind: state
@@ -321,11 +302,8 @@ blue:
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 2}
 - {type: upgrade_unit, index: 2}
 - {type: unlock_unit, unit: fire_badger}
-- {type: buy_unit, unit: fire_badger}
-- {type: move_unit, index: 11, position: {x: 160, y: -215}, rotated: true}
-- {type: buy_unit, unit: fang}
-- {type: move_unit, index: 12, position: {x: -130, y: -35}, rotated: true}
-- {type: move_unit, index: 11, position: {x: 135, y: -210}}
+- {type: buy_unit, unit: fire_badger, position: {x: 135, y: -210}}
+- {type: buy_unit, unit: fang, position: {x: -130, y: -35}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: 0, id: 103215}
 - {type: upgrade_technology, unit: rhino, tech: 1109}
@@ -334,13 +312,10 @@ red:
 - {type: upgrade_unit, index: 5}
 - {type: upgrade_unit, index: 6}
 - {type: release_commander_skill, index: 1, id: 900001, target: !unit 3}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: crawler}
+- {type: buy_unit, unit: rhino, position: {x: -245, y: -25}}
+- {type: buy_unit, unit: crawler, position: {x: -325, y: 150}, rotated: true}
 - {type: strengthen_tower, tower: 0}
-- {type: move_unit, index: 12, position: {x: -245, y: -35}}
-- {type: move_unit, index: 13, position: {x: -325, y: 150}, rotated: true}
 - {type: unlock_unit, unit: void_eye}
-- {type: move_unit, index: 12, position: {x: -245, y: -25}}
 ---
 kind: state
 round: 4
@@ -414,35 +389,22 @@ blue:
 - {type: choose_reinforce_item, offer: 2, id: 1000001}
 - {type: unlock_unit, unit: typhoon}
 - {type: release_commander_skill, index: 3, id: 1000001, target: !unit 10}
-- {type: move_unit, index: 10, position: {x: -205, y: -215}}
-- {type: move_unit, index: 10, position: {x: -205, y: -205}}
 - {type: move_unit, index: 10, position: {x: -205, y: -195}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 13, position: {x: -200, y: -255}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -200, y: -255}, rotated: true}
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 7}
 - {type: active_energy_tower_skill, skill: 4}
-- {type: buy_unit, unit: typhoon}
-- {type: buy_unit, unit: typhoon}
+- {type: buy_unit, unit: typhoon, position: {x: -200, y: -220}}
+- {type: buy_unit, unit: typhoon, position: {x: -180, y: -70}}
 - {type: upgrade_technology, unit: fire_badger, tech: 11020}
-- {type: move_unit, index: 14, position: {x: -200, y: -220}}
-- {type: move_unit, index: 15, position: {x: -180, y: -70}}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 20001}
 - {type: upgrade_unit, index: 7}
 - {type: release_commander_skill, index: 1, id: 900001, target: !construction 0}
-- {type: buy_unit, unit: rhino}
-- {type: move_unit, index: 14, position: {x: -315, y: 115}}
+- {type: buy_unit, unit: rhino, position: {x: -325, y: 105}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 15, position: {x: 325, y: 150}, rotated: true}
-- {type: move_unit, index: 14, position: {x: 315, y: 125}}
-- {type: move_unit, index: 14, position: {x: -315, y: 125}}
-- {type: move_unit, index: 14, position: {x: -315, y: 115}}
-- {type: move_unit, index: 14, position: {x: -315, y: 105}}
-- {type: move_unit, index: 14, position: {x: -325, y: 105}}
-- {type: move_unit, index: 16, position: {x: 140, y: -285}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 325, y: 150}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 140, y: -285}, rotated: true}
 - {type: unlock_unit, unit: arclight}
 - {type: active_energy_tower_skill, skill: 6}
 ---
@@ -521,18 +483,14 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: -1}
-- {type: buy_unit, unit: fire_badger}
-- {type: move_unit, index: 16, position: {x: 135, y: -130}}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 17, position: {x: -145, y: -75}}
+- {type: buy_unit, unit: fire_badger, position: {x: 175, y: -110}}
+- {type: buy_unit, unit: scorpion, position: {x: -145, y: -75}}
 - {type: upgrade_technology, unit: scorpion, tech: 719}
 - {type: release_commander_skill, index: 3, id: 1000001, target: !unit 14}
 - {type: upgrade_technology, unit: typhoon, tech: 5322}
 - {type: unlock_unit, unit: void_eye}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 14}
 - {type: upgrade_unit, index: 14}
-- {type: move_unit, index: 16, position: {x: 145, y: -110}}
-- {type: move_unit, index: 16, position: {x: 175, y: -110}}
 - {type: strengthen_tower, tower: 1}
 - {type: move_unit, index: 14, position: {x: -180, y: -210}, rotated: true}
 red:
@@ -543,19 +501,10 @@ red:
 - {type: upgrade_unit, index: 11}
 - {type: active_energy_tower_skill, skill: 6}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: crawler}
+- {type: buy_unit, unit: rhino, position: {x: 315, y: 105}}
+- {type: buy_unit, unit: crawler, position: {x: -120, y: -155}, rotated: true}
 - {type: active_blueprint, id: 5}
-- {type: move_unit, index: 17, position: {x: 5, y: -85}}
-- {type: move_unit, index: 18, position: {x: -5, y: -60}}
-- {type: move_unit, index: 17, position: {x: 315, y: 105}}
-- {type: move_unit, index: 18, position: {x: -15, y: -110}}
-- {type: buy_unit, unit: rhino}
-- {type: move_unit, index: 19, position: {x: -135, y: -45}}
-- {type: move_unit, index: 18, position: {x: -160, y: -95}, rotated: true}
-- {type: move_unit, index: 18, position: {x: -150, y: -105}, rotated: true}
-- {type: move_unit, index: 19, position: {x: -95, y: -25}}
-- {type: move_unit, index: 18, position: {x: -120, y: -155}, rotated: true}
+- {type: buy_unit, unit: rhino, position: {x: -95, y: -25}}
 - {type: unlock_unit, unit: marksman}
 ---
 kind: state
@@ -640,43 +589,28 @@ blue:
 - {type: choose_reinforce_item, offer: 0, id: 1061326}
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 18}
 - {type: upgrade_unit, index: 10}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 19, position: {x: -215, y: -75}}
-- {type: buy_unit, unit: fire_badger}
-- {type: move_unit, index: 20, position: {x: 10, y: -165}, rotated: true}
-- {type: move_unit, index: 20, position: {x: 0, y: -175}, rotated: true}
+- {type: buy_unit, unit: scorpion, position: {x: -215, y: -75}}
+- {type: buy_unit, unit: fire_badger, position: {x: 5, y: -170}}
 - {type: unlock_unit, unit: arclight}
 - {type: release_commander_skill, index: 1, id: 1200002, target: !area [{x: -316, y: -111}]}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: fire_badger}
-- {type: move_unit, index: 20, position: {x: 25, y: -290}}
-- {type: move_unit, index: 20, position: {x: 5, y: -120}}
-- {type: move_unit, index: 21, position: {x: 5, y: -300}}
-- {type: move_unit, index: 20, position: {x: 5, y: -140}}
+- {type: buy_unit, unit: fire_badger, position: {x: 5, y: -300}}
 - {type: strengthen_tower, tower: 1}
 - {type: strengthen_tower, tower: 0}
 - {type: strengthen_tower, tower: 0}
 - {type: strengthen_tower, tower: 0}
 - {type: release_commander_skill, index: 3, id: 1000001, target: !unit 10}
-- {type: move_unit, index: 10, position: {x: -205, y: -215}}
 - {type: move_unit, index: 10, position: {x: -175, y: -245}}
-- {type: move_unit, index: 20, position: {x: 5, y: -170}}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 1062221}
 - {type: release_commander_skill, index: 1, id: 900001, target: !unit 21}
-- {type: move_unit, index: 20, position: {x: 225, y: -65}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 22, position: {x: 145, y: -85}}
-- {type: move_unit, index: 23, position: {x: 135, y: -60}}
-- {type: move_unit, index: 23, position: {x: 130, y: -35}, rotated: true}
-- {type: move_unit, index: 22, position: {x: 195, y: -25}}
+- {type: buy_unit, unit: rhino, position: {x: 195, y: -25}}
+- {type: buy_unit, unit: crawler, position: {x: 130, y: -35}, rotated: true}
 - {type: release_commander_skill, index: 0, id: 1200002, target: !area [{x: 26, y: 286}]}
 - {type: upgrade_technology, unit: rhino, tech: 2805}
 - {type: active_energy_tower_skill, skill: 6}
-- {type: buy_unit, unit: rhino}
-- {type: move_unit, index: 24, position: {x: 65, y: -25}}
+- {type: buy_unit, unit: rhino, position: {x: 65, y: -25}}
 - {type: move_unit, index: 20, position: {x: 235, y: -55}}
 - {type: unlock_unit, unit: fire_badger}
 - {type: active_blueprint, id: 501}
@@ -771,15 +705,11 @@ blue:
 - {type: unlock_unit, unit: marksman}
 - {type: upgrade_technology, unit: scorpion, tech: 180519}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: scorpion}
+- {type: buy_unit, unit: scorpion, position: {x: -45, y: -95}}
 - {type: release_commander_skill, index: 3, id: 1000001, target: !unit 17}
-- {type: move_unit, index: 17, position: {x: -215, y: -135}}
-- {type: move_unit, index: 22, position: {x: -45, y: -95}}
 - {type: active_energy_tower_skill, skill: 5}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: hound}
-- {type: move_unit, index: 23, position: {x: -245, y: -20}}
-- {type: move_unit, index: 24, position: {x: -10, y: -60}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -245, y: -20}}
+- {type: buy_unit, unit: hound, position: {x: -10, y: -60}, rotated: true}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 17}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: upgrade_unit, index: 17}
@@ -794,18 +724,9 @@ red:
 - {type: active_energy_tower_skill, skill: 3}
 - {type: upgrade_unit, index: 17}
 - {type: upgrade_technology, unit: rhino, tech: 3005}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 25, position: {x: 165, y: -105}}
-- {type: move_unit, index: 26, position: {x: 195, y: -105}}
-- {type: move_unit, index: 27, position: {x: 155, y: -80}}
-- {type: move_unit, index: 27, position: {x: 240, y: -35}, rotated: true}
-- {type: move_unit, index: 27, position: {x: 220, y: -35}, rotated: true}
-- {type: move_unit, index: 27, position: {x: 250, y: -35}, rotated: true}
-- {type: move_unit, index: 26, position: {x: 285, y: -25}}
-- {type: move_unit, index: 27, position: {x: 240, y: -35}, rotated: true}
-- {type: move_unit, index: 25, position: {x: -5, y: -25}}
+- {type: buy_unit, unit: rhino, position: {x: -5, y: -25}}
+- {type: buy_unit, unit: rhino, position: {x: 285, y: -25}}
+- {type: buy_unit, unit: crawler, position: {x: 240, y: -35}, rotated: true}
 - {type: unlock_unit, unit: tarantula}
 ---
 kind: state
@@ -900,17 +821,13 @@ kind: action
 round: 8
 blue:
 - {type: choose_reinforce_item, offer: 2, id: 108228}
-- {type: move_unit, index: 26, position: {x: 5, y: -280}}
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 25}
 - {type: release_commander_skill, index: 3, id: 1000001, target: !unit 19}
-- {type: move_unit, index: 19, position: {x: -145, y: -75}}
 - {type: unlock_unit, unit: rhino}
 - {type: active_energy_tower_skill, skill: 4}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: rhino}
+- {type: buy_unit, unit: rhino, position: {x: -245, y: -45}}
+- {type: buy_unit, unit: rhino, position: {x: 55, y: -295}}
 - {type: upgrade_technology, unit: rhino, tech: 2805}
-- {type: move_unit, index: 27, position: {x: -235, y: -45}}
-- {type: move_unit, index: 28, position: {x: 55, y: -295}}
 - {type: move_unit, index: 26, position: {x: 30, y: -265}, rotated: true}
 - {type: active_blueprint, id: 3}
 - {type: upgrade_technology, unit: rhino, tech: 3005}
@@ -919,12 +836,9 @@ blue:
 - {type: active_energy_tower_skill, skill: 5}
 - {type: active_blueprint, id: 5}
 - {type: release_contraption, contraption: 20001, position: {x: -299, y: -283}}
-- {type: move_unit, index: 27, position: {x: -245, y: -45}}
-- {type: move_unit, index: 19, position: {x: -145, y: -85}}
 - {type: move_unit, index: 19, position: {x: -145, y: -75}}
 red:
 - {type: choose_reinforce_item, offer: 0, id: 1082118}
-- {type: move_unit, index: 28, position: {x: 165, y: -55}}
 - {type: move_unit, index: 29, position: {x: 195, y: -55}}
 - {type: move_unit, index: 28, position: {x: -5, y: -55}}
 - {type: upgrade_unit, index: 22}
@@ -935,14 +849,9 @@ red:
 - {type: upgrade_unit, index: 9}
 - {type: upgrade_unit, index: 27}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: rhino}
-- {type: buy_unit, unit: rhino}
-- {type: move_unit, index: 31, position: {x: 285, y: -295}}
-- {type: move_unit, index: 30, position: {x: -285, y: -295}}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 32, position: {x: 30, y: -35}, rotated: true}
-- {type: move_unit, index: 32, position: {x: 0, y: -95}, rotated: true}
-- {type: move_unit, index: 32, position: {x: 120, y: -155}, rotated: true}
+- {type: buy_unit, unit: rhino, position: {x: -285, y: -295}}
+- {type: buy_unit, unit: rhino, position: {x: 285, y: -295}}
+- {type: buy_unit, unit: crawler, position: {x: 120, y: -155}, rotated: true}
 - {type: unlock_unit, unit: steel_ball}
 - {type: active_blueprint, id: 4}
 ---
@@ -1049,18 +958,15 @@ blue:
 - {type: choose_reinforce_item, offer: 1, id: 300001}
 - {type: active_energy_tower_skill, skill: 4}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: rhino}
+- {type: buy_unit, unit: rhino, position: {x: -15, y: -95}}
 - {type: active_blueprint, id: 501}
-- {type: move_unit, index: 29, position: {x: -15, y: -95}}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 28}
 - {type: upgrade_unit, index: 28}
 - {type: release_commander_skill, index: 4, id: 1500001, target: !area [{x: -180, y: -97}, {x: -108, y: -162}, {x: -108, y: -162}]}
 - {type: active_energy_tower_skill, skill: 5}
-- {type: buy_unit, unit: rhino}
+- {type: buy_unit, unit: rhino, position: {x: -65, y: -295}}
 - {type: active_energy_tower_skill, skill: 1}
-- {type: buy_unit, unit: rhino}
-- {type: move_unit, index: 31, position: {x: -285, y: -115}}
-- {type: move_unit, index: 30, position: {x: -65, y: -295}}
+- {type: buy_unit, unit: rhino, position: {x: -285, y: -115}}
 - {type: unlock_unit, unit: vortex}
 - {type: active_blueprint, id: 4}
 - {type: release_commander_skill, index: 5, id: 300001, target: !area [{x: -141, y: 143}]}
@@ -1075,13 +981,10 @@ red:
 - {type: active_energy_tower_skill, skill: 6}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: active_energy_tower_skill, skill: 4}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
+- {type: buy_unit, unit: crawler, position: {x: 260, y: -285}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 0, y: -285}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -260, y: -285}, rotated: true}
 - {type: upgrade_technology, unit: crawler, tech: 2610}
-- {type: move_unit, index: 33, position: {x: 260, y: -285}, rotated: true}
-- {type: move_unit, index: 35, position: {x: -260, y: -285}, rotated: true}
-- {type: move_unit, index: 34, position: {x: 0, y: -285}, rotated: true}
 - {type: unlock_unit, unit: mustang}
 - {type: active_blueprint, id: 401}
 - {type: release_commander_skill, index: 2, id: 300001, target: !area [{x: 178, y: 199}]}

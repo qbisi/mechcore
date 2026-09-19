@@ -26,7 +26,7 @@ kind: action
 round: 7
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 1072213}
-- {type: buy_unit, unit: void_eye}
+- {type: buy_unit, unit: void_eye, position: {x: 0, y: -160}}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 4}
 red:
 - ...
@@ -40,7 +40,7 @@ An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
 fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
-- {type: buy_unit, unit: void_eye}
+- {type: buy_unit, unit: void_eye, position: {x: 0, y: -160}}
 - {type: upgrade_unit, index: 5}
 ```
 
@@ -157,14 +157,19 @@ here.
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, unit: void_eye}
+- {type: buy_unit, unit: void_eye, position: {x: 0, y: -160}, rotated: true}
 ```
 
 Buys one formation of `unit`. Advances `next_index.unit` by one and puts a
-formation on the board under that index, where [the board puts
-it](../../rules/landing.md): the main region's centre, or the nearest free
-grid position to it. A purchase names no position because the player does not
-choose one; a `move_unit` is what puts the formation anywhere else.
+formation on the board under that index, at `position` and facing the way
+`rotated` says, which defaults to false.
+
+The game lands a purchase where [the board puts it](../../rules/landing.md) and
+the player moves it from there, and a purchase states where those moves end
+rather than where it landed: the round's moves of the formation it creates are
+written into it, and not again as moves. A position on a flank therefore means
+the formation was moved there, so the purchase sets its `travelling`, which a
+move from the main half would have set.
 
 The formation arrives at the shop's level for that unit, which an officer or an
 Energy Tower skill can raise. Costs the unit's price plus one upgrade for each
@@ -316,9 +321,9 @@ from. A round's opening state carries no travelling formation, and the flank
 regions open at round 2, so the earliest round in which any formation travels
 is round 2.
 
-A formation this round created travels only if a move takes it to a flank. A
-purchase and a card both put their formation in the main half, so neither
-arrives travelling.
+A formation this round created travels only if it reaches a flank. A card puts
+its formation in the main half, and a purchase whose position is on a flank is
+one whose moves took it there.
 
 ### `release_commander_skill`
 
@@ -464,11 +469,6 @@ so the index comes from the allocator, and applying a round has to hand out
 `next_index.unit` exactly as the game does. That is one of the two things the
 allocator is in a state for.
 
-`BuyUnit` records where the formation arrived, and a purchase keeps only the
-unit: the board decides where it lands. The conversion steps each round and
-refuses a replay whose recorded position is not where the board puts the
-formation, so the position a battle leaves out is one it can reproduce.
-
 `ReleaseCommanderSkill` records only the panel slot. The conversion reads the
 skill that slot holds from the position the round has reached by then, which
 is what `id` states.
@@ -478,6 +478,24 @@ one move per unit: the collapse has already run by then, so the batch no longer 
 to stay whole for an undo to pop it, and order is all that survives either way.
 It keeps only the resulting position and rotation, since the recorded
 before-state restates what the state segment already holds.
+
+A formation's moves keep what they amount to, not the route. A move settles
+`travelling` by the region it arrives in, and a round's opening holds no
+travelling formation, so a formation that begins its moves in the main half
+travels exactly when its last move ends on a flank, whichever way it went:
+
+- A formation this round bought keeps none of its moves. The purchase carries
+  where they end.
+- Any other formation that begins its moves in the main half, one a card handed
+  out included, keeps its last move alone.
+- A formation that begins them on a flank keeps the last move of each stretch
+  that ends in one region, the main half or one flank. Going to the main half
+  and back travels where staying would not, so the route between regions
+  matters for it.
+
+The conversion steps the collapsed round from the position the round opened
+with and refuses a replay where it does not end exactly where the recorded
+round does.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.
@@ -521,7 +539,6 @@ Each action is written on one line as a flow mapping, by the spelling rules
 | `PAD_MoveUnit.positionRecord` | Restates the state before the action |
 | `PAD_MoveUnit.rotateRecord`, `superDeployRecord` | Same |
 | `PAD_BuyUnit.UIDX` | Unset; the allocator names the new unit |
-| `PAD_BuyUnit.position` | The board decides it, and the conversion checks it does |
 | `PAD_ReleaseCommanderSkill.Positions` beside an object target | The player's click point, which names no state |
 
 ## Unresolved

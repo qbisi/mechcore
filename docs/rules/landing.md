@@ -2,7 +2,8 @@
 
 This index is pinned to game build 2259. It states where the board puts a
 formation that no decision places: a purchase, a reinforcement card's squads,
-an opening's force, and an officer's delivery. [`action.md`](../spec/document/action.md) and
+an opening's force, and an officer's delivery. A battle states where a
+purchase's moves end, so it reads this rule only for the other three. [`action.md`](../spec/document/action.md) and
 the round-opening deliveries of [`battle.md`](../spec/document/battle.md) rest
 on it.
 
@@ -53,8 +54,6 @@ did. With the rule in place of the recorded landings, the native oracle still
 closes every decision and every deployment it checks.
 
 Every purchase in the tracked replays lands where the rule puts it: all 1,632,
-each read against the position the round had reached when it was bought. A
-battle therefore keeps a purchase's unit and not its position, and the
-conversion refuses a replay whose recorded purchase lands anywhere else.
+each read against the position the round had reached when it was bought.
 
 The rule has not been observed on a full region, where no free position exists.

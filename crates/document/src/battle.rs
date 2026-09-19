@@ -277,12 +277,18 @@ pub enum Action {
         #[serde(skip_serializing_if = "Option::is_none")]
         specialist: Option<i32>,
     },
-    /// A purchase names the unit and nothing else: the game puts the new
-    /// formation where [`crate::landing`] says the board has room, and a
-    /// `move_unit` is what places it anywhere else.
+    /// A purchase and where the new formation is deployed.
+    ///
+    /// The game lands a purchase where [`crate::landing`] says the board has
+    /// room, and the player moves it from there. A battle writes the position
+    /// the formation reaches within the main half, which is where the
+    /// purchase's own moves end, so those moves are not written again.
     BuyUnit {
         #[serde(with = "unit_names::unit")]
         unit: i32,
+        position: Position,
+        #[serde(skip_serializing_if = "is_false")]
+        rotated: bool,
     },
     UpgradeUnit {
         index: i32,
@@ -379,6 +385,9 @@ enum ActionReader {
     BuyUnit {
         #[serde(with = "unit_names::unit")]
         unit: i32,
+        position: Position,
+        #[serde(default)]
+        rotated: bool,
     },
     UpgradeUnit {
         index: i32,
@@ -854,7 +863,7 @@ mod tests {
             );
         }
         for yaml in [
-            "{type: buy_unit, unit: 2, position: {x: 0, y: -160}}",
+            "{type: buy_unit, unit: marksman}",
             "{type: release_commander_skill, index: 0, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
             "{type: upgrade_unit, index: 0, typo: 1}",
@@ -918,7 +927,11 @@ mod tests {
                 id: 3,
                 specialist: Some(4),
             },
-            Action::BuyUnit { unit: 2 },
+            Action::BuyUnit {
+                unit: 2,
+                position: at,
+                rotated: true,
+            },
             Action::UpgradeUnit { index: 0 },
             Action::UnlockUnit { unit: 9 },
             Action::UpgradeTechnology { unit: 2, tech: 201 },

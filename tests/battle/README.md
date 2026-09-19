@@ -19,7 +19,7 @@ python3 scripts/export-replay-corpus.py
 documents, which is every tracked replay. Each is a stream of segments: a
 header, the round-zero action segment holding the 82 opening choices, and then
 334 deployment rounds, each a state segment followed by an action segment,
-holding 9,980 actions over maps 1001, 1011, 1021, 1031 and 1032. Each opening
+holding 7,124 actions over maps 1001, 1011, 1021, 1031 and 1032. Each opening
 choice names a zero-based `offer` into its side's four reconstructed header
 `offers`, together with the team and specialist that entry holds.
 
@@ -36,7 +36,7 @@ rounds, which is what distinguishes a retained object from a restatement of one
 round's release.
 
 Three converted documents end with a `concede` decision, and those three are
-among the 9,980 actions: `[Dre420]VS[[TUFF] Wumple Doodle]`,
+among the 7,124 actions: `[Dre420]VS[[TUFF] Wumple Doodle]`,
 `[NemoCoda]VS[Camilo.Y]` and `[Dr. crbN]VS[trevorism]`. The other 38 matches
 ended in a fight whose result no replay records.
 

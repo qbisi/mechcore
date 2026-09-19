@@ -146,29 +146,20 @@ blue:
 - {type: move_unit, index: 4, position: {x: 85, y: -90}}
 - {type: move_unit, index: 3, position: {x: 5, y: -90}}
 - {type: move_unit, index: 2, position: {x: 50, y: -45}, rotated: true}
-- {type: move_unit, index: 0, position: {x: 140, y: -225}, rotated: true}
 - {type: move_unit, index: 0, position: {x: 100, y: -135}, rotated: true}
 - {type: move_unit, index: 1, position: {x: -10, y: -135}, rotated: true}
 - {type: unlock_unit, unit: arclight}
-- {type: buy_unit, unit: arclight}
-- {type: buy_unit, unit: arclight}
-- {type: move_unit, index: 6, position: {x: 80, y: -110}}
-- {type: move_unit, index: 5, position: {x: 10, y: -110}}
+- {type: buy_unit, unit: arclight, position: {x: 10, y: -110}}
+- {type: buy_unit, unit: arclight, position: {x: 80, y: -110}}
 red:
-- {type: move_unit, index: 3, position: {x: 245, y: -105}}
 - {type: move_unit, index: 4, position: {x: -255, y: -95}}
 - {type: move_unit, index: 3, position: {x: -195, y: -115}}
 - {type: move_unit, index: 2, position: {x: -140, y: -70}}
-- {type: move_unit, index: 0, position: {x: -250, y: -190}}
-- {type: move_unit, index: 1, position: {x: -190, y: -150}}
 - {type: move_unit, index: 0, position: {x: -250, y: -210}}
 - {type: move_unit, index: 1, position: {x: -190, y: -160}}
 - {type: unlock_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 5, position: {x: 260, y: -285}, rotated: true}
-- {type: move_unit, index: 6, position: {x: -260, y: -285}, rotated: true}
-- {type: move_unit, index: 6, position: {x: -140, y: -205}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 260, y: -285}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -140, y: -205}, rotated: true}
 ---
 kind: state
 round: 2
@@ -226,28 +217,20 @@ round: 2
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 102116}
 - {type: move_unit, index: 7, position: {x: -250, y: -205}, rotated: true}
-- {type: buy_unit, unit: wasp}
-- {type: move_unit, index: 8, position: {x: 250, y: -195}, rotated: true}
+- {type: buy_unit, unit: wasp, position: {x: 250, y: -195}, rotated: true}
 - {type: unlock_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 9, position: {x: 145, y: -190}}
+- {type: buy_unit, unit: crawler, position: {x: 145, y: -190}}
 red:
 - {type: choose_reinforce_item, offer: 0, id: 1021120}
-- {type: move_unit, index: 7, position: {x: -45, y: -80}}
 - {type: active_blueprint, id: 2}
 - {type: release_commander_skill, index: 0, id: 900001, target: !construction 1}
 - {type: move_unit, index: 7, position: {x: -45, y: -140}}
 - {type: upgrade_unit, index: 0}
 - {type: unlock_unit, unit: fang}
-- {type: buy_unit, unit: fang}
-- {type: move_unit, index: 8, position: {x: -30, y: -105}, rotated: true}
-- {type: move_unit, index: 8, position: {x: 60, y: -105}, rotated: true}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 9, position: {x: 120, y: -120}}
-- {type: move_unit, index: 9, position: {x: 110, y: -140}}
+- {type: buy_unit, unit: fang, position: {x: 60, y: -105}, rotated: true}
+- {type: buy_unit, unit: marksman, position: {x: 110, y: -140}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: fire_badger}
-- {type: move_unit, index: 10, position: {x: 95, y: -120}}
+- {type: buy_unit, unit: fire_badger, position: {x: 95, y: -120}}
 ---
 kind: state
 round: 3
@@ -313,25 +296,18 @@ kind: action
 round: 3
 blue:
 - {type: choose_reinforce_item, offer: 2, id: 1309001}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 10, position: {x: 165, y: -90}}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 11, position: {x: -75, y: -90}}
+- {type: buy_unit, unit: sledgehammer, position: {x: 165, y: -90}}
+- {type: buy_unit, unit: sledgehammer, position: {x: -75, y: -90}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 12, position: {x: -290, y: -135}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -290, y: -135}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 30701}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 4}
 - {type: unlock_unit, unit: mustang}
-- {type: buy_unit, unit: mustang}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 11, position: {x: -235, y: -230}}
-- {type: move_unit, index: 12, position: {x: 215, y: -220}}
+- {type: buy_unit, unit: mustang, position: {x: -235, y: -230}}
+- {type: buy_unit, unit: mustang, position: {x: 225, y: -230}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 13, position: {x: -15, y: -250}}
-- {type: move_unit, index: 12, position: {x: 225, y: -230}}
+- {type: buy_unit, unit: mustang, position: {x: -15, y: -250}}
 - {type: active_blueprint, id: 5}
 - {type: active_blueprint, id: 4}
 ---
@@ -408,28 +384,20 @@ blue:
 - {type: choose_reinforce_item, offer: 3, id: 31301}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_technology, unit: sledgehammer, tech: 3013}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 13, position: {x: -165, y: -90}}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 14, position: {x: -245, y: -90}}
+- {type: buy_unit, unit: sledgehammer, position: {x: -165, y: -90}}
+- {type: buy_unit, unit: sledgehammer, position: {x: -245, y: -90}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 15, position: {x: -350, y: 285}}
+- {type: buy_unit, unit: sledgehammer, position: {x: -350, y: 285}}
 - {type: active_blueprint, id: 5}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 31301}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 3}
 - {type: upgrade_unit, index: 1}
-- {type: buy_unit, unit: mustang}
-- {type: buy_unit, unit: mustang}
+- {type: buy_unit, unit: mustang, position: {x: -225, y: -140}}
+- {type: buy_unit, unit: mustang, position: {x: 165, y: -130}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 16, position: {x: -55, y: -120}}
-- {type: move_unit, index: 16, position: {x: -45, y: -120}}
+- {type: buy_unit, unit: mustang, position: {x: -45, y: -120}}
 - {type: upgrade_technology, unit: mustang, tech: 10207}
-- {type: move_unit, index: 14, position: {x: -225, y: -140}}
-- {type: move_unit, index: 15, position: {x: 165, y: -120}}
-- {type: move_unit, index: 15, position: {x: 165, y: -130}}
 - {type: unlock_unit, unit: sabertooth}
 - {type: upgrade_unit, index: 5}
 ---
@@ -513,14 +481,11 @@ blue:
 - {type: choose_reinforce_item, offer: 0, id: 600002}
 - {type: release_commander_skill, index: 1, id: 600002, target: !area [{x: 123, y: 66}, {x: 213, y: 198}]}
 - {type: upgrade_technology, unit: sledgehammer, tech: 10513}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 16, position: {x: 255, y: -90}}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 17, position: {x: 350, y: 285}}
+- {type: buy_unit, unit: sledgehammer, position: {x: 255, y: -90}}
+- {type: buy_unit, unit: sledgehammer, position: {x: 350, y: 285}}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: unlock_unit, unit: marksman}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 18, position: {x: 70, y: -180}}
+- {type: buy_unit, unit: marksman, position: {x: 70, y: -180}}
 - {type: active_blueprint, id: 4}
 - {type: use_equipment, equipment: 1309001, index: 3}
 - {type: release_commander_skill, index: 0, id: 900001, target: !construction 0}
@@ -531,18 +496,10 @@ red:
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 10}
 - {type: upgrade_unit, index: 12}
 - {type: unlock_unit, unit: scorpion}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 17, position: {x: 235, y: -275}}
-- {type: move_unit, index: 17, position: {x: 205, y: -275}}
-- {type: move_unit, index: 17, position: {x: 235, y: -275}}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 18, position: {x: 185, y: -225}}
+- {type: buy_unit, unit: scorpion, position: {x: 235, y: -275}}
+- {type: buy_unit, unit: scorpion, position: {x: -185, y: -135}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 19, position: {x: -105, y: -155}}
-- {type: move_unit, index: 18, position: {x: -235, y: -165}}
-- {type: move_unit, index: 19, position: {x: -115, y: -155}}
-- {type: move_unit, index: 18, position: {x: -185, y: -135}}
+- {type: buy_unit, unit: scorpion, position: {x: -115, y: -155}}
 - {type: release_contraption, contraption: 10001, position: {x: -158, y: -155}}
 - {type: active_blueprint, id: 3}
 - {type: release_commander_skill, index: 2, id: 1500001, target: !area [{x: -33, y: -131}, {x: -189, y: -98}, {x: -222, y: -80}]}
@@ -632,36 +589,23 @@ blue:
 - {type: move_unit, index: 20, position: {x: 165, y: -140}}
 - {type: upgrade_technology, unit: stormcaller, tech: 10312}
 - {type: move_unit, index: 19, position: {x: 45, y: -140}}
-- {type: buy_unit, unit: stormcaller}
-- {type: move_unit, index: 21, position: {x: -65, y: -140}}
-- {type: buy_unit, unit: stormcaller}
-- {type: move_unit, index: 22, position: {x: -185, y: -140}}
+- {type: buy_unit, unit: stormcaller, position: {x: -65, y: -140}}
+- {type: buy_unit, unit: stormcaller, position: {x: -185, y: -140}}
 - {type: active_energy_tower_skill, skill: 6}
 - {type: active_energy_tower_skill, skill: 5}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 23, position: {x: -200, y: -45}, rotated: true}
-- {type: move_unit, index: 23, position: {x: 210, y: -45}, rotated: true}
+- {type: buy_unit, unit: sledgehammer, position: {x: 210, y: -45}, rotated: true}
 - {type: release_contraption, contraption: 10001, position: {x: -173, y: -84}}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 1061127}
-- {type: move_unit, index: 20, position: {x: 200, y: -260}}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 5}
-- {type: move_unit, index: 20, position: {x: -190, y: -230}}
-- {type: move_unit, index: 20, position: {x: -220, y: -200}}
 - {type: move_unit, index: 20, position: {x: -240, y: -180}}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 21, position: {x: -205, y: -255}}
-- {type: move_unit, index: 21, position: {x: -225, y: -255}}
+- {type: buy_unit, unit: scorpion, position: {x: -255, y: -255}}
 - {type: upgrade_unit, index: 11}
-- {type: move_unit, index: 21, position: {x: -245, y: -255}}
-- {type: move_unit, index: 21, position: {x: -255, y: -255}}
 - {type: upgrade_unit, index: 9}
-- {type: buy_unit, unit: raiden}
-- {type: move_unit, index: 22, position: {x: -80, y: -170}}
+- {type: buy_unit, unit: raiden, position: {x: -80, y: -170}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: raiden}
-- {type: move_unit, index: 23, position: {x: -270, y: -140}}
+- {type: buy_unit, unit: raiden, position: {x: -270, y: -140}}
 - {type: strengthen_tower, tower: 0}
 - {type: release_commander_skill, index: 2, id: 1500001, target: !area [{x: 138, y: -124}, {x: -1, y: -138}, {x: -198, y: -137}]}
 - {type: unlock_unit, unit: sledgehammer}
@@ -768,10 +712,8 @@ blue:
 - {type: active_energy_tower_skill, skill: 5}
 - {type: active_energy_tower_skill, skill: 6}
 - {type: upgrade_unit, index: 7}
-- {type: buy_unit, unit: sledgehammer}
-- {type: move_unit, index: 24, position: {x: -260, y: -35}, rotated: true}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 25, position: {x: -140, y: -120}}
+- {type: buy_unit, unit: sledgehammer, position: {x: -260, y: -35}, rotated: true}
+- {type: buy_unit, unit: marksman, position: {x: -140, y: -120}}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: release_contraption, contraption: 10001, position: {x: 175, y: -106}}
 - {type: release_contraption, contraption: 10001, position: {x: 29, y: -107}}
@@ -784,15 +726,11 @@ red:
 - {type: release_commander_skill, index: 2, id: 1500001, target: !area [{x: -164, y: -100}, {x: -94, y: -193}, {x: -50, y: -202}]}
 - {type: upgrade_technology, unit: mustang, tech: 3307}
 - {type: upgrade_unit, index: 17}
-- {type: buy_unit, unit: mustang}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 25, position: {x: -155, y: -90}}
-- {type: move_unit, index: 24, position: {x: 35, y: -160}}
-- {type: move_unit, index: 24, position: {x: -185, y: -200}}
+- {type: buy_unit, unit: mustang, position: {x: -185, y: -200}}
+- {type: buy_unit, unit: mustang, position: {x: -155, y: -90}}
 - {type: upgrade_technology, unit: scorpion, tech: 10419}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 26, position: {x: -45, y: -165}}
+- {type: buy_unit, unit: scorpion, position: {x: -45, y: -165}}
 - {type: strengthen_tower, tower: 1}
 - {type: active_energy_tower_skill, skill: 5}
 - {type: unlock_unit, unit: steel_ball}

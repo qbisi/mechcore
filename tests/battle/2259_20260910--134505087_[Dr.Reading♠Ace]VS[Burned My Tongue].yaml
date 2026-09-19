@@ -147,38 +147,16 @@ blue:
 - {type: move_unit, index: 1, position: {x: -180, y: -170}}
 - {type: move_unit, index: 3, position: {x: -75, y: -145}}
 - {type: unlock_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 5, position: {x: -70, y: -245}, rotated: true}
-- {type: move_unit, index: 6, position: {x: 70, y: -245}, rotated: true}
-- {type: move_unit, index: 6, position: {x: 90, y: -225}, rotated: true}
-- {type: move_unit, index: 5, position: {x: -70, y: -225}, rotated: true}
-- {type: move_unit, index: 6, position: {x: 70, y: -225}, rotated: true}
-- {type: move_unit, index: 6, position: {x: 70, y: -255}, rotated: true}
-- {type: move_unit, index: 6, position: {x: 70, y: -245}, rotated: true}
-- {type: move_unit, index: 5, position: {x: -70, y: -245}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -70, y: -245}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 70, y: -245}, rotated: true}
 red:
-- {type: buy_unit, unit: mustang}
-- {type: buy_unit, unit: vortex}
+- {type: buy_unit, unit: mustang, position: {x: 0, y: -285}, rotated: true}
+- {type: buy_unit, unit: vortex, position: {x: 170, y: -110}}
 - {type: move_unit, index: 4, position: {x: -290, y: -285}, rotated: true}
-- {type: move_unit, index: 5, position: {x: -140, y: -285}, rotated: true}
-- {type: move_unit, index: 3, position: {x: 140, y: -285}, rotated: true}
-- {type: move_unit, index: 1, position: {x: 120, y: -130}}
-- {type: move_unit, index: 6, position: {x: 160, y: -130}}
-- {type: move_unit, index: 2, position: {x: -120, y: -120}}
-- {type: move_unit, index: 2, position: {x: -120, y: -130}}
-- {type: move_unit, index: 0, position: {x: -170, y: -130}}
-- {type: move_unit, index: 0, position: {x: -160, y: -130}}
 - {type: move_unit, index: 3, position: {x: 290, y: -285}, rotated: true}
-- {type: move_unit, index: 5, position: {x: 0, y: -285}, rotated: true}
-- {type: move_unit, index: 6, position: {x: 160, y: -110}}
-- {type: move_unit, index: 1, position: {x: 110, y: -110}}
-- {type: move_unit, index: 2, position: {x: -120, y: -110}}
-- {type: move_unit, index: 0, position: {x: -160, y: -110}}
 - {type: move_unit, index: 0, position: {x: -170, y: -110}}
 - {type: move_unit, index: 2, position: {x: -110, y: -110}}
 - {type: move_unit, index: 1, position: {x: 100, y: -110}}
-- {type: move_unit, index: 6, position: {x: 170, y: -110}}
 - {type: unlock_unit, unit: crawler}
 ---
 kind: state
@@ -240,25 +218,14 @@ blue:
 - {type: move_unit, index: 8, position: {x: -140, y: -150}}
 - {type: move_unit, index: 7, position: {x: 140, y: -150}}
 - {type: unlock_unit, unit: fang}
-- {type: buy_unit, unit: fang}
-- {type: buy_unit, unit: fang}
-- {type: move_unit, index: 9, position: {x: -30, y: -135}, rotated: true}
-- {type: move_unit, index: 10, position: {x: 120, y: -95}, rotated: true}
-- {type: move_unit, index: 9, position: {x: -30, y: -125}, rotated: true}
+- {type: buy_unit, unit: fang, position: {x: -30, y: -115}, rotated: true}
+- {type: buy_unit, unit: fang, position: {x: 120, y: -95}, rotated: true}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 11, position: {x: -10, y: -150}}
-- {type: move_unit, index: 9, position: {x: -30, y: -115}, rotated: true}
-- {type: move_unit, index: 11, position: {x: -30, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: -30, y: -150}}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 102132}
-- {type: buy_unit, unit: mustang}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 8, position: {x: 140, y: -285}, rotated: true}
-- {type: move_unit, index: 9, position: {x: -140, y: -205}, rotated: true}
-- {type: move_unit, index: 8, position: {x: 140, y: -205}, rotated: true}
-- {type: move_unit, index: 7, position: {x: -120, y: -150}}
-- {type: move_unit, index: 7, position: {x: -110, y: -150}}
+- {type: buy_unit, unit: mustang, position: {x: 140, y: -205}, rotated: true}
+- {type: buy_unit, unit: mustang, position: {x: -140, y: -205}, rotated: true}
 - {type: move_unit, index: 7, position: {x: -170, y: -150}}
 ---
 kind: state
@@ -326,10 +293,8 @@ blue:
 - {type: choose_reinforce_item, offer: 1, id: 13030001}
 - {type: use_equipment, equipment: 13030001, index: 7}
 - {type: upgrade_unit, index: 1}
-- {type: buy_unit, unit: crawler}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 13, position: {x: 160, y: -265}, rotated: true}
-- {type: move_unit, index: 12, position: {x: -160, y: -265}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: -160, y: -265}, rotated: true}
+- {type: buy_unit, unit: crawler, position: {x: 160, y: -265}, rotated: true}
 - {type: active_blueprint, id: 4}
 - {type: active_blueprint, id: 5}
 red:
@@ -337,11 +302,8 @@ red:
 - {type: use_equipment, equipment: 13030001, index: 9}
 - {type: upgrade_technology, unit: mustang, tech: 10207}
 - {type: unlock_unit, unit: stormcaller}
-- {type: buy_unit, unit: stormcaller}
-- {type: move_unit, index: 10, position: {x: 140, y: -135}, rotated: true}
-- {type: move_unit, index: 10, position: {x: 140, y: -95}, rotated: true}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 11, position: {x: 160, y: -150}}
+- {type: buy_unit, unit: stormcaller, position: {x: 140, y: -95}, rotated: true}
+- {type: buy_unit, unit: marksman, position: {x: 160, y: -150}}
 ---
 kind: state
 round: 4
@@ -413,21 +375,17 @@ blue:
 - {type: choose_reinforce_item, offer: 3, id: 13030001}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 0}
 - {type: unlock_unit, unit: typhoon}
-- {type: buy_unit, unit: typhoon}
-- {type: buy_unit, unit: typhoon}
+- {type: buy_unit, unit: typhoon, position: {x: -210, y: -190}}
+- {type: buy_unit, unit: typhoon, position: {x: 210, y: -190}}
 - {type: upgrade_technology, unit: typhoon, tech: 10222}
-- {type: move_unit, index: 15, position: {x: 210, y: -190}}
-- {type: move_unit, index: 14, position: {x: -210, y: -190}}
 - {type: use_equipment, equipment: 13030001, index: 14}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030001}
 - {type: use_equipment, equipment: 13030001, index: 8}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_technology, unit: mustang, tech: 10607}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 12, position: {x: 220, y: -285}, rotated: true}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 12, position: {x: 210, y: -285}, rotated: true}
+- {type: buy_unit, unit: mustang, position: {x: 210, y: -285}, rotated: true}
+- {type: buy_unit, unit: marksman, position: {x: 0, y: -160}}
 ---
 kind: state
 round: 5
@@ -508,13 +466,10 @@ blue:
 - {type: upgrade_unit, index: 7}
 - {type: upgrade_unit, index: 4}
 - {type: upgrade_unit, index: 6}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 17, position: {x: -180, y: -150}}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 18, position: {x: -100, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: -180, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: -100, y: -150}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 19, position: {x: 100, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: 100, y: -150}}
 - {type: release_contraption, contraption: 20001, position: {x: -141, y: -54}}
 - {type: release_contraption, contraption: 10001, position: {x: 150, y: -128}}
 red:
@@ -523,11 +478,8 @@ red:
 - {type: upgrade_unit, index: 8}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 5}
-- {type: buy_unit, unit: mustang}
-- {type: move_unit, index: 15, position: {x: -210, y: -285}, rotated: true}
-- {type: buy_unit, unit: sandworm}
-- {type: move_unit, index: 16, position: {x: -100, y: -290}}
-- {type: move_unit, index: 16, position: {x: -130, y: -290}}
+- {type: buy_unit, unit: mustang, position: {x: -210, y: -285}, rotated: true}
+- {type: buy_unit, unit: sandworm, position: {x: -130, y: -290}}
 - {type: active_blueprint, id: 4}
 ---
 kind: state
@@ -621,11 +573,8 @@ blue:
 - {type: upgrade_unit, index: 14}
 - {type: upgrade_unit, index: 15}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 2}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 20, position: {x: 180, y: -150}}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 21, position: {x: 30, y: -150}}
-- {type: move_unit, index: 21, position: {x: 40, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: 180, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: 40, y: -150}}
 - {type: release_contraption, contraption: 20001, position: {x: 138, y: -20}}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030006}
@@ -633,12 +582,10 @@ red:
 - {type: upgrade_unit, index: 4}
 - {type: use_equipment, equipment: 13030006, index: 16}
 - {type: active_blueprint, id: 5}
-- {type: buy_unit, unit: mustang}
-- {type: buy_unit, unit: mustang}
+- {type: buy_unit, unit: mustang, position: {x: -60, y: -285}, rotated: true}
+- {type: buy_unit, unit: mustang, position: {x: 60, y: -285}, rotated: true}
 - {type: active_blueprint, id: 401}
 - {type: upgrade_technology, unit: sandworm, tech: 3823}
-- {type: move_unit, index: 17, position: {x: -60, y: -285}, rotated: true}
-- {type: move_unit, index: 18, position: {x: 60, y: -285}, rotated: true}
 ---
 kind: state
 round: 7
@@ -728,24 +675,19 @@ blue:
 - {type: upgrade_unit, index: 20}
 - {type: upgrade_unit, index: 8}
 - {type: upgrade_unit, index: 11}
-- {type: buy_unit, unit: sandworm}
+- {type: buy_unit, unit: sandworm, position: {x: 130, y: -270}}
 - {type: upgrade_technology, unit: sandworm, tech: 3623}
-- {type: move_unit, index: 22, position: {x: 130, y: -270}}
-- {type: buy_unit, unit: sandworm}
-- {type: move_unit, index: 23, position: {x: 190, y: -270}}
+- {type: buy_unit, unit: sandworm, position: {x: 190, y: -270}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 24, position: {x: 10, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: 10, y: -150}}
 - {type: unlock_unit, unit: hound}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 13030002}
 - {type: upgrade_unit, index: 16}
 - {type: use_equipment, equipment: 13030002, index: 14}
 - {type: upgrade_technology, unit: sandworm, tech: 3023}
-- {type: buy_unit, unit: sandworm}
-- {type: buy_unit, unit: sandworm}
-- {type: move_unit, index: 19, position: {x: 260, y: -290}}
-- {type: move_unit, index: 20, position: {x: -260, y: -290}}
+- {type: buy_unit, unit: sandworm, position: {x: 260, y: -290}}
+- {type: buy_unit, unit: sandworm, position: {x: -260, y: -290}}
 ---
 kind: state
 round: 8
@@ -839,16 +781,13 @@ blue:
 - {type: upgrade_technology, unit: marksman, tech: 1802}
 - {type: upgrade_unit, index: 24}
 - {type: upgrade_unit, index: 18}
-- {type: buy_unit, unit: typhoon}
-- {type: buy_unit, unit: typhoon}
-- {type: move_unit, index: 26, position: {x: -60, y: -190}}
-- {type: move_unit, index: 27, position: {x: 40, y: -190}}
+- {type: buy_unit, unit: typhoon, position: {x: -60, y: -190}}
+- {type: buy_unit, unit: typhoon, position: {x: 40, y: -190}}
 - {type: upgrade_unit, index: 14}
 - {type: release_contraption, contraption: 20001, position: {x: -144, y: -46}}
 - {type: release_contraption, contraption: 10001, position: {x: 146, y: -131}}
 - {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: marksman}
-- {type: move_unit, index: 28, position: {x: 220, y: -150}}
+- {type: buy_unit, unit: marksman, position: {x: 220, y: -150}}
 - {type: upgrade_technology, unit: sandworm, tech: 3723}
 red:
 - {type: choose_reinforce_item, offer: 0, id: 1082119}
@@ -860,14 +799,10 @@ red:
 - {type: upgrade_unit, index: 10}
 - {type: active_blueprint, id: 501}
 - {type: upgrade_technology, unit: scorpion, tech: 10019}
-- {type: move_unit, index: 22, position: {x: -15, y: -125}}
 - {type: move_unit, index: 22, position: {x: -115, y: -145}}
 - {type: move_unit, index: 21, position: {x: 115, y: -145}}
-- {type: buy_unit, unit: scorpion}
-- {type: move_unit, index: 23, position: {x: -5, y: -135}}
-- {type: buy_unit, unit: crawler}
-- {type: move_unit, index: 24, position: {x: 0, y: -35}, rotated: true}
-- {type: move_unit, index: 24, position: {x: -20, y: -175}, rotated: true}
+- {type: buy_unit, unit: scorpion, position: {x: -5, y: -135}}
+- {type: buy_unit, unit: crawler, position: {x: -20, y: -175}, rotated: true}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: active_energy_tower_skill, skill: 5}
 - {type: active_energy_tower_skill, skill: 6}

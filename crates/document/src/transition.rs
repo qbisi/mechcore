@@ -32,10 +32,10 @@ pub enum Unsettled {
     /// The decision names a formation, panel slot or construction the position
     /// does not hold.
     Missing(&'static str),
-    /// Where the formations a purchase, a card or an opening hands out arrive
-    /// is decided by the board they arrive on, not by the decision that
-    /// summoned them, and the caller did not say which side's board that is,
-    /// or the board has no room. [`crate::landing`] is the board's rule.
+    /// Where the formations a card or an opening hands out arrive is decided by
+    /// the board they arrive on, not by the decision that summoned them, and
+    /// the caller did not say which side's board that is, or the board has no
+    /// room. [`crate::landing`] is the board's rule.
     GrantedPosition,
     /// The game does not allow the decision from this position.
     ///
@@ -87,8 +87,8 @@ pub fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<Sid
 
 /// [`step`], told where the formations a decision hands out arrive.
 ///
-/// A purchase, a card and an opening summon formations that no decision gives
-/// a position to, and the board places each one clear of what already stands, so the same
+/// A card and an opening summon formations that no decision gives a position
+/// to, and the board places each one clear of what already stands, so the same
 /// card lands differently in two matches. [`crate::landing::placement`] is the
 /// board's rule, and it needs to know the side. `placement` is asked, for each
 /// formation handed out and in order, with the position just before it arrives
@@ -182,7 +182,11 @@ pub fn step_placing(
             }
             next.techs.officers.sort_unstable();
         }
-        Action::BuyUnit { unit } => {
+        Action::BuyUnit {
+            unit,
+            position,
+            rotated,
+        } => {
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
             let level = purse.shop_level(*unit);
             let upgrade = purse.upgrade(*unit).ok_or(Unsettled::Unpriced("upgrade"))?;
@@ -190,8 +194,13 @@ pub fn step_placing(
             // one upgrade per level above the first.
             next.supply -= price + (level - 1) * upgrade;
             next.shop.buys_remaining -= 1;
-            // The board puts a bought formation where it puts a handed-out one.
-            place(&mut next, *unit, level, price, placement)?;
+            place(&mut next, *unit, level, price, &mut |_, _| Some(*position))?;
+            // The position is where the formation's moves this round end, and
+            // one that ends on a flank arrived there from the main half.
+            let created = next.next_index.unit - 1;
+            let formation = &mut formation_mut(&mut next, created)?.formation;
+            formation.rotated = Some(*rotated).filter(|rotated| *rotated);
+            formation.travelling = Region::of(*position).is_flank().then_some(true);
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
@@ -1394,16 +1403,12 @@ mod tests {
             },
             ..SideState::default()
         };
-        let bought = Action::BuyUnit { unit: 9 };
-        // The board decides where it lands, so a bare step cannot.
-        assert_eq!(
-            step(&economy, &state, &bought),
-            Err(Unsettled::GrantedPosition)
-        );
-        let next = step_placing(&economy, &state, &bought, &mut |_, _| {
-            Some(Position { x: 0, y: -160 })
-        })
-        .unwrap();
+        let bought = Action::BuyUnit {
+            unit: 9,
+            position: Position { x: 0, y: -160 },
+            rotated: false,
+        };
+        let next = step(&economy, &state, &bought).unwrap();
         assert_eq!(next.next_index.unit, 8);
         assert_eq!(next.shop.buys_remaining, 1);
         assert_eq!(next.formations.len(), 1);
@@ -1830,7 +1835,11 @@ mod tests {
     fn a_formation_created_this_round_starts_settled() {
         let economy = Economy::embedded().unwrap();
         let bought = [
-            Action::BuyUnit { unit: 1 },
+            Action::BuyUnit {
+                unit: 1,
+                position: Position { x: 0, y: -160 },
+                rotated: false,
+            },
             Action::MoveUnit {
                 index: 0,
                 position: Position { x: 100, y: -60 },
