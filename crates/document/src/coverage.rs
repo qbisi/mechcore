@@ -37,7 +37,7 @@ pub const FIGHT: &[&str] = &[
 /// hold yet. Their leaves count as unimplemented whatever the prediction says,
 /// because a value no rule produced can only agree by accident. A group leaves
 /// this list with the rule that predicts it.
-pub const UNIMPLEMENTED: &[&str] = &["supply"];
+pub const UNIMPLEMENTED: &[&str] = &[];
 
 /// The fields the reinforcement deal reads from the position it is dealt in.
 /// A deal checked against the recorded position is a deal of the predicted
@@ -564,7 +564,7 @@ mod tests {
             ("shop.buys_remaining", [668, 0, 0, 0]),
             ("shop.unlocked_units", [668, 0, 0, 0]),
             ("shop.unlocks_remaining", [668, 0, 0, 0]),
-            ("supply", [0, 0, 668, 0]),
+            ("supply", [668, 0, 0, 0]),
             ("techs.officers", [668, 0, 0, 0]),
             ("techs.units", [389, 0, 0, 0]),
             ("terrains", [0, 0, 0, 10]),
@@ -660,7 +660,11 @@ mod tests {
             .iter()
             .map(|difference| (difference.round, difference.side, difference.path.as_str()))
             .collect();
-        assert_eq!(at, [(round, "blue", "techs.units")]);
+        // The research is missing, and so is what it cost.
+        assert_eq!(
+            at,
+            [(round, "blue", "supply"), (round, "blue", "techs.units")]
+        );
     }
 
     /// A decision naming a formation the position does not hold is the record

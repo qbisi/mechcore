@@ -1123,9 +1123,10 @@ pub(crate) const UNLOCK_COUNT_PER_ROUND: i32 = 1;
 ///
 /// Two things happen, in this order, before either side takes a decision, so
 /// both belong to the position a round opens with. First the round resets what
-/// lasts one round: the skill panel counts down, the shop's allowances refill,
-/// the energy tower skills lapse, and the board's formations are fixed again
-/// unless something frees them. Then the officers deliver: an officer's squad,
+/// lasts one round and pays its income: the skill panel counts down, the
+/// shop's allowances refill, the income arrives less what an energy tower skill
+/// still owes, the energy tower skills lapse, and the board's formations are
+/// fixed again unless something frees them. Then the officers deliver: an officer's squad,
 /// its commander skills and its equipment arrive in its `active_round`, and its
 /// unit joins the shop in its `unlock_round`. The squad lands where the board
 /// puts it, which `placement` supplies; it arrived this round, so it may move,
@@ -1133,8 +1134,9 @@ pub(crate) const UNLOCK_COUNT_PER_ROUND: i32 = 1;
 ///
 /// # Errors
 ///
-/// Returns [`Unsettled`] when a spent skill has no cooldown, or a delivered
-/// unit has no price or no landing.
+/// Returns [`Unsettled`] when a spent skill has no cooldown, an activated
+/// energy tower skill has no price, or a delivered unit has no price or no
+/// landing.
 pub fn open_round(
     economy: &Economy,
     state: &SideState,
@@ -1178,13 +1180,16 @@ pub fn open_round(
     Ok(next)
 }
 
-/// Resets what lasts one round, as `round` opens.
+/// Resets what lasts one round, as `round` opens, and pays its income.
 ///
 /// A panel slot spent in the previous round, by a release or as a deployment
 /// skill, restarts at its skill's cooldown; every other counts down by one to
 /// no lower than zero. The shop allows two purchases, one more for every
 /// Extra Deployment card the side holds, and one unlock. Every energy tower
-/// skill lasts one round. A formation on the board was there last round, so
+/// skill lasts one round, and one that defers part of its price is paid for
+/// out of this round's income. The income is the map's schedule, the officers
+/// the side holds, and the equipment its formations wear; standard 1v1 pays
+/// nothing during a fight, so nothing else reaches the supply between rounds. A formation on the board was there last round, so
 /// it is fixed unless [`crate::mobility::free`] frees it, except in round 1,
 /// whose whole board arrived with the opening. `docs/rules/commander_skills.md`
 /// and `docs/rules/mobility.md` state the rules.
@@ -1209,6 +1214,25 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         .count();
     next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
     next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
+    // The round's income: the map's schedule and what the side's officers add
+    // to it, what the equipment on the board pays, and less what an energy
+    // tower skill the previous round activated still owes.
+    let mut owed = 0;
+    for skill in &next.energy_tower_skills {
+        owed += economy
+            .energy_tower_skill(*skill)
+            .ok_or(Unsettled::Unpriced("energy tower skill"))?
+            .owed;
+    }
+    let worn: i32 = next
+        .formations
+        .iter()
+        .filter_map(|entry| entry.formation.equipment)
+        .map(|equipment| economy.equipment_round_supply(equipment))
+        .sum();
+    let income =
+        crate::ledger::round_income(economy, round, &next.techs.officers, economy.round_supply());
+    next.supply += income + worn - owed;
     next.energy_tower_skills.clear();
     let techs = next.techs.units.clone();
     for entry in &mut next.formations {
@@ -1571,6 +1595,45 @@ mod tests {
         };
         assert_eq!(movable(1), [true, true]);
         assert_eq!(movable(2), [false, true]);
+    }
+
+    /// The opening pays the map's schedule, the officers' income and what
+    /// worn equipment pays, less what a Rapid Supply activated in the previous
+    /// round still owes.
+    #[test]
+    fn an_opening_pays_the_income_less_what_rapid_supply_owes() {
+        let economy = Economy::embedded().unwrap();
+        let worn = |index| StateFormation {
+            formation: crate::layout::Formation {
+                type_name: "crawler".into(),
+                index,
+                position: Position { x: 0, y: -160 },
+                level: None,
+                exp: None,
+                rotated: None,
+                // Command Core pays 50 a round to the side wearing it.
+                equipment: Some(13_030_010),
+                travelling: None,
+            },
+            value: Some(100),
+            movable: false,
+        };
+        let state = SideState {
+            supply: 10,
+            // Supply Specialist adds 50 a round.
+            techs: crate::layout::Techs {
+                officers: vec![10002],
+                units: Vec::new(),
+            },
+            formations: vec![worn(0), worn(1)],
+            // Rapid Supply and one skill that owes nothing.
+            energy_tower_skills: vec![1, 3],
+            ..SideState::default()
+        };
+        let opened = super::open_round(&economy, &state, 3, &mut |_, _| None).unwrap();
+        // Round 3 of the shared schedule pays 200 + 2 × 200.
+        assert_eq!(opened.supply, 10 + 600 + 50 + 2 * 50 - 300);
+        assert!(opened.energy_tower_skills.is_empty());
     }
 
     /// Round zero opens round 1 on the chosen team: its unit types join the

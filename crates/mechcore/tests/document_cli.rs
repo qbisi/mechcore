@@ -350,29 +350,29 @@ fn battle_verification_reports_transition_coverage() {
     let fixture = BattleFixture::new();
     let original = &fixture.original;
     let run = |documents: &[Value]| fixture.verify(documents);
-    // Every rule the transition lacks fails the battle, and none of what it
-    // does predict disagrees with the record.
+    // The recorded battle is predicted in every leaf outside the fight.
     let recorded = run(original);
     let report: serde_json::Value = serde_json::from_slice(&recorded.stdout).unwrap();
-    assert!(!recorded.status.success(), "{report}");
-    assert!(
-        report["error"]
-            .as_str()
-            .unwrap()
-            .starts_with("transitions are not fully predicted: 0 leaves unequal"),
-        "{report}"
-    );
+    assert!(recorded.status.success(), "{report}");
+    assert_eq!(report["valid"], true);
     let coverage = &report["coverage"];
     assert_eq!(coverage["total"]["unequal"], 0);
+    assert_eq!(coverage["total"]["unimplemented"], 0);
     assert!(coverage["total"]["equal"].as_u64().unwrap() > 0);
-    assert_eq!(coverage["fields"]["supply"]["unimplemented"], 16);
+    assert_eq!(coverage["fields"]["supply"]["equal"], 16);
     assert!(report["reinforcement_offers_checked"].as_u64().unwrap() > 0);
 
-    // A well-formed wrong value in a predicted field is found where it is.
+    // A well-formed wrong value in a predicted field is found where it is, and
+    // fails the battle.
     let mut documents = original.clone();
-    let levels = &mut documents[4]["sides"]["red"]["tower_strengthen_levels"][0];
-    *levels = Value::Number((levels.as_i64().unwrap() + 1).into());
-    let report: serde_json::Value = serde_json::from_slice(&run(&documents).stdout).unwrap();
+    let red = &mut documents[4]["sides"]["red"];
+    let level = red["tower_strengthen_levels"][0].as_i64().unwrap();
+    red["tower_strengthen_levels"][0] = Value::Number((level + 1).into());
+    let supply = red["supply"].as_i64().unwrap();
+    red["supply"] = Value::Number((supply + 50).into());
+    let broken = run(&documents);
+    assert!(!broken.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&broken.stdout).unwrap();
     let paths: Vec<_> = report["coverage"]["unequal"]
         .as_array()
         .unwrap()
@@ -388,7 +388,9 @@ fn battle_verification_reports_transition_coverage() {
     assert_eq!(
         paths,
         [
+            (1, "red".to_owned(), "supply".to_owned()),
             (1, "red".to_owned(), "tower_strengthen_levels".to_owned()),
+            (2, "red".to_owned(), "supply".to_owned()),
             (2, "red".to_owned(), "tower_strengthen_levels".to_owned()),
         ]
     );

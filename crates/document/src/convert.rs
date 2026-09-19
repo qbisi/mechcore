@@ -18,15 +18,12 @@ use crate::layout::{
 };
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
-use crate::ledger;
 use crate::opening;
 use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
 
 /// The build these catalogues and conventions are pinned to.
 const BUILD: &str = "2259";
-/// Energy tower skill `1` 快速补给 pays 200 now against this at the next round.
-const RAPID_SUPPLY_DEBT: i32 = 300;
 /// Energy tower skill `1`, the only one carrying a next-round supply change.
 const RAPID_SUPPLY_SKILL: i32 = 1;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
@@ -329,6 +326,7 @@ fn side_state(
     let entry = &player.rounds.entries[position];
     let data = &entry.data;
     let round = entry.round;
+    shared_income(economy, player, seat)?;
 
     let formations = formations(data, seat)?;
     let constructions = constructions(data, seat)?;
@@ -395,7 +393,8 @@ fn side_state(
 
     let snapshot = SideState {
         reactor_core: data.reactor_core,
-        supply: data.supply + round_income(economy, player, position, seat)?,
+        // The snapshot precedes the round's income, which the opening pays.
+        supply: data.supply,
         // The allowances are the opening's to set.
         shop: ShopState {
             unlocked_units,
@@ -403,8 +402,13 @@ fn side_state(
             unlocks_remaining: 0,
         },
         blueprints,
-        // The opening lapses whatever the previous round activated.
-        energy_tower_skills: Vec::new(),
+        // What the previous round activated and still owes for, which the
+        // opening charges against the income and then lapses.
+        energy_tower_skills: if energy_tower_debt(player, position, seat)? {
+            vec![RAPID_SUPPLY_SKILL]
+        } else {
+            Vec::new()
+        },
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
         equipment: unfitted_equipment(data),
         battle_skills,
@@ -427,6 +431,32 @@ fn side_state(
     let mut placement = crate::landing::placement(seat == Seat::Red);
     crate::transition::open_round(economy, &snapshot, round, &mut placement)
         .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
+}
+
+/// Refuses a side whose map pays a round income other than the one every
+/// versus map shares. The opening pays the shared schedule, and the record
+/// carries the map's own row, so a match on a map that pays differently would
+/// otherwise be given an income its map never paid.
+fn shared_income(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    seat: Seat,
+) -> Result<(), String> {
+    let shared: RoundSupply = economy.round_supply();
+    let recorded = (
+        player.data.first_round_supply,
+        player.data.round_supply_increase,
+        player.data.max_round_supply,
+    );
+    if recorded == (shared.first, shared.increase, shared.max) {
+        return Ok(());
+    }
+    Err(format!(
+        "{} pays a round income of {recorded:?} (first, increase, max), and \
+         every versus map pays {:?}",
+        seat.name(),
+        (shared.first, shared.increase, shared.max)
+    ))
 }
 
 /// The unit roster, as the layout formations a projection would keep.
@@ -560,48 +590,6 @@ fn energy_tower_debt(
         seat.name(),
         entry.round
     ))
-}
-
-/// The income this round adds, which the recorded supply precedes.
-///
-/// The map's own row is recorded per player, so no map catalogue is consulted.
-/// An energy tower skill activated last round is paid for here.
-fn round_income(
-    economy: &Economy,
-    player: &record::PlayerRecord,
-    position: usize,
-    seat: Seat,
-) -> Result<i32, String> {
-    let debt = energy_tower_debt(player, position, seat)?;
-    let entry = &player.rounds.entries[position];
-    let round = entry.round;
-    if round < 1 {
-        return Ok(0);
-    }
-    let setup = &player.data;
-    let officers = &entry.data.officers.values;
-    let base = ledger::round_income(
-        economy,
-        round,
-        officers,
-        // The record carries the map's own row per player, so the income comes
-        // from the replay rather than from the shared rule.
-        RoundSupply {
-            first: setup.first_round_supply,
-            increase: setup.round_supply_increase,
-            max: setup.max_round_supply,
-        },
-    );
-    // Equipment that pays an income pays it as the round opens, for the board
-    // the round opens with.
-    let worn: i32 = entry
-        .data
-        .units
-        .entries
-        .iter()
-        .map(|unit| economy.equipment_round_supply(unit.equipment_id))
-        .sum();
-    Ok(base + worn - if debt { RAPID_SUPPLY_DEBT } else { 0 })
 }
 
 /// Collapses a recorded action list onto the decisions that took effect.
