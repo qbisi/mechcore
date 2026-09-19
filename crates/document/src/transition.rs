@@ -1167,6 +1167,35 @@ pub fn open_round(
     Ok(next)
 }
 
+/// Predicts the position a side opens `round + 1` with, from the position it
+/// opened `round` with and the decisions it took there.
+///
+/// The decisions are stepped in order, and then the next round opens on the
+/// result. What a fight changes in between is not applied, and neither is any
+/// opening rule [`open_round`] does not hold yet; [`crate::coverage`] names
+/// those fields rather than reading them from the recorded next position.
+/// `red` names the side, because where the board lands a formation depends on
+/// it.
+///
+/// # Errors
+///
+/// Returns [`Unsettled`] for the first decision, or the first delivery, this
+/// build's tables cannot settle from the position it meets.
+pub fn predict(
+    economy: &Economy,
+    round: i32,
+    state: &SideState,
+    actions: &[Action],
+    red: bool,
+) -> Result<SideState, Unsettled> {
+    let mut placement = crate::landing::placement(red);
+    let mut position = state.clone();
+    for action in actions {
+        position = step_placing(economy, &position, action, &mut placement)?;
+    }
+    open_round(economy, &position, round + 1, &mut placement)
+}
+
 /// What the officers a side holds hand out as `round` opens.
 ///
 /// An officer hands out on a schedule of its own rather than when it arrives.

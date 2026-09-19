@@ -124,8 +124,12 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
     })
 }
 
-/// Checks opening layouts and every reinforcement draw using seeded setup.
+/// Checks opening layouts and every reinforcement draw using seeded setup,
+/// then measures how much of each next opening the transition predicts.
 /// Choices must name predicted offers; the source replay authenticates them.
+///
+/// A battle verifies only when every leaf outside the fight is predicted and
+/// agrees: a field no rule predicts yet fails it as surely as a wrong one.
 fn verify_battle(
     path: &Path,
     stated: &mechcore_document::opening::Stated,
@@ -135,11 +139,30 @@ fn verify_battle(
         mechcore_document::reinforcement::verify(&economy, stated, &opening)
             .map(|reinforcements| (opening, reinforcements))
     });
-    let detail = |found: Option<&(
-        mechcore_document::opening::Prediction,
-        mechcore_document::reinforcement::Verified,
-    )>| {
-        serde_json::json!({
+    let coverage = mechcore_document::coverage::measure(
+        &economy,
+        stated,
+        match &checked {
+            Ok((_, reinforcements)) => Ok(reinforcements),
+            Err(error) => Err(error.as_str()),
+        },
+    );
+    let error = match &checked {
+        Err(error) => Some(error.clone()),
+        Ok(_) if !coverage.complete() => Some(format!(
+            "transitions are not fully predicted: {} leaves unequal, {} unimplemented",
+            coverage.total.unequal, coverage.total.unimplemented
+        )),
+        Ok(_) => None,
+    };
+    let found = checked.as_ref().ok();
+    Ok(VerifyReport {
+        schema: VERIFY_SCHEMA,
+        valid: error.is_none(),
+        kind: "battle",
+        path: path.display().to_string(),
+        error,
+        detail: serde_json::json!({
             "seed": stated.seed,
             "openings": 2,
             "map_id": stated.map_id,
@@ -147,26 +170,9 @@ fn verify_battle(
             "reinforcement_rounds": found.map(|(_, checked)| checked.rounds.len()),
             "reinforcement_offers_checked": found.map(|(_, checked)| checked.offers_checked),
             "reinforcements": found.map(|(_, checked)| &checked.rounds),
-        })
-    };
-    match checked {
-        Ok(found) => Ok(VerifyReport {
-            schema: VERIFY_SCHEMA,
-            valid: true,
-            kind: "battle",
-            path: path.display().to_string(),
-            error: None,
-            detail: detail(Some(&found)),
+            "coverage": coverage,
         }),
-        Err(error) => Ok(VerifyReport {
-            schema: VERIFY_SCHEMA,
-            valid: false,
-            kind: "battle",
-            path: path.display().to_string(),
-            error: Some(error),
-            detail: detail(None),
-        }),
-    }
+    })
 }
 
 /// Replays a recording's decisions through the deployment transition.

@@ -483,6 +483,10 @@ pub struct Stated {
     pub seed: i32,
     pub sides: StatedSides,
     pub turns: Vec<Turn>,
+    /// Whether the last round's decisions are written with no position after
+    /// them, which a converted battle does because no replay records the last
+    /// fight's result.
+    pub ends_on_actions: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -570,6 +574,10 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     let mut sides = header.sides;
     sides.blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
     sides.red.opening = StatedOpening::opening(&opening.red, "red")?;
+    let ends_on_actions = stream
+        .rounds
+        .last()
+        .is_some_and(|round| round.actions.is_some());
     let turns = stream
         .rounds
         .into_iter()
@@ -594,6 +602,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         seed: header.seed,
         sides,
         turns,
+        ends_on_actions,
     }))
 }
 

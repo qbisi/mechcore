@@ -352,6 +352,63 @@ delivers; stepping the same decision answers what the position is immediately
 afterwards, and the squads have not arrived. They reach the board when round 1
 opens, which is not a decision and so is not a step.
 
+### Transition coverage
+
+`mechcore verify <battle.yaml>` measures each transition against the whole next
+position, not only the nine fields above. A transition starts from a round's
+state and that round's decisions, steps the decisions in order, and opens the
+next round on the result. Every leaf of the recorded next state is then put in
+one of four classes:
+
+| Class | Meaning |
+| --- | --- |
+| `equal` | Predicted, and the recorded value agrees |
+| `unequal` | Predicted, and the recorded value differs, or the side's decisions contradict the position they were taken from |
+| `unimplemented` | No rule predicts the leaf yet, or the build's tables cannot settle one of the side's decisions |
+| `fight` | The fight decides the leaf |
+
+A leaf is a scalar reached through mappings, a field of a formation, panel
+slot, construction or contraption aligned by its `index`, or a whole list
+otherwise, so an ID set and an inventory with repeats are one leaf each. A leaf
+only one of the two positions has is still a leaf: a formation the prediction
+lacks counts against it. The recorded next state is compared against and never
+read by the prediction.
+
+The `fight` class is the fixed set of fields below. Standard 1v1 has no income
+during the fight, so `supply` is not among them and is predicted like any other
+field.
+
+| Field | What the fight does to it |
+| --- | --- |
+| `reactor_core` | Damage |
+| `formations.exp` | Experience from the fight |
+| `contraptions` | Which survive |
+| `terrains` | Which remain |
+| `airdrop_shields` | Which remain |
+
+A leaf outside those fields is `unimplemented` when no rule produces it, even
+where the unchanged value happens to agree; which fields those are changes as
+rules are added, and the report names them. `reinforce_offers` is dealt from
+the stream the header seeds, and is `equal` only where the deal agrees and
+every field it is dealt from agrees on both sides too, since the deal is
+checked against the recorded position. The opening transition, from round zero
+onto round 1, is counted and is `unimplemented`: nothing builds yet the
+position an opening is chosen from.
+
+When a side's decisions cannot be stepped, nothing of that side's transition is
+predicted. A decision naming what the position does not hold, or one the game
+refuses there, is reported once at the path `actions`, and the side's leaves
+outside the fight count as `unequal`. A decision the tables cannot price, or a
+grant the board has no landing rule for, makes them `unimplemented`.
+
+The report's `coverage` holds the four counts in `total`, by field group in
+`fields`, whose key is a leaf's path with its `[index]` parts removed, and by
+round and side in `transitions`, where `side: match` holds `reinforce_offers`.
+`unequal` lists each disagreeing leaf with its round, side, path, predicted and
+recorded values, and `untargeted_round` names a last round whose decisions have
+no state after them, which is not a transition. A battle verifies only when no
+leaf is `unequal` or `unimplemented`.
+
 ### Cross-round invariants
 
 A segment checks itself. A battle checks the seams between states, and these
