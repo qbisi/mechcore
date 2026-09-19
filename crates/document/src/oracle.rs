@@ -1,7 +1,7 @@
 //! Checks the deployment transition against what the game actually did.
 //!
-//! [`crate::transition::check`] compares a round's decisions against the round
-//! after it, which is the only comparison a replay's snapshots allow. A native
+//! [`crate::coverage`] compares a round's decisions against the round after
+//! it, which is the only comparison a replay's snapshots allow. A native
 //! observation states a position before each decision and after it, so the same
 //! transition can be checked one decision at a time, from a position the game
 //! itself was in rather than from one a round boundary reconstructed.

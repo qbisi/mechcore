@@ -79,7 +79,7 @@ Two filters decide whether a card is in the tables at all.
 `limitedScene` names the modes a card belongs to, and a card that names others
 and not the standard one is left out. An empty list restricts nothing rather
 than everything: that is how Field Recovery is listed, and reading it the other
-way dropped the one skill a supply ledger most needs to name.
+way dropped the one skill supply most needs to price.
 
 `scope` says whether the reinforcement pool can deal the card. Only one value
 means it can, and the corpus is unambiguous about it: of the 120 distinct cards

@@ -161,8 +161,6 @@ fn project_releases(
 mod tests {
     use super::project;
     use crate::compile::compile_layout;
-    use crate::battle::Action;
-    use crate::transition::apply;
     use crate::convert::battle_from_grbr;
     use crate::economy::Economy;
 
@@ -172,24 +170,18 @@ mod tests {
     /// executor: it resolves every unit, construction and contraption type,
     /// and puts every position through the footprint, region and collision
     /// rules `docs/spec/document/layout.md` states.
-    /// A layout captured live pins the projection, composed with the turn's
-    /// transition function.
+    /// A layout captured live pins the projection, composed with the round's
+    /// deployment.
     ///
     /// `tests/layouts/tuff-replay-round-7.yaml` was captured at the end of
-    /// round 7's deployment, so it is `project(apply(state, actions))` rather
-    /// than `project(state)`. `apply` settles the three fields the projection
-    /// translates rather than copies, so those three can be checked today:
-    /// the Officer list, which gains the Officer each blueprint chain hands
-    /// out, the Energy Tower skills, of which a layout keeps two, and the
-    /// tower levels, whose all-zero form a layout drops. Blue is the side that
-    /// makes this worth composing: it activates both enhancement chains during
-    /// round 7, so its Officer list is right only if the transition runs first.
-    ///
-    /// The rest of the layout waits on a deployment executor, which is what
-    /// would carry formations from a round's opening position to its closing
-    /// one.
+    /// round 7's deployment, so it is `project(step*(state, actions))` rather
+    /// than `project(state)`: the round's decisions, stepped in order from the
+    /// position it opened with, and every formation handed out landed where the
+    /// board puts it. The whole captured layout has to come out, both sides,
+    /// board included. Blue activates both enhancement chains during the
+    /// round, so its Officer list is right only if the deployment runs first.
     #[test]
-    fn a_captured_layout_pins_what_the_transition_settles() {
+    fn a_captured_layout_is_the_projection_of_the_stepped_round() {
         let economy = Economy::embedded().unwrap();
         let battle = battle_from_grbr(
             &std::fs::read(
@@ -203,52 +195,29 @@ mod tests {
             .iter()
             .find(|turn| turn.round == 7)
             .expect("the replay reaches round 7");
+        let stepped = |state: &crate::battle::SideState, actions: &[crate::battle::Action], red| {
+            let mut placement = crate::landing::placement(red);
+            actions.iter().fold(state.clone(), |position, action| {
+                crate::transition::step_placing(&economy, &position, action, &mut placement)
+                    .unwrap()
+            })
+        };
+        let deployed = crate::battle::State {
+            reinforce_offers: turn.state.reinforce_offers.clone(),
+            sides: crate::battle::StateSides {
+                blue: stepped(&turn.state.sides.blue, &turn.actions.blue, false),
+                red: stepped(&turn.state.sides.red, &turn.actions.red, true),
+            },
+        };
+        let projected =
+            project(&economy, &deployed, turn.round, battle.map_id, battle.seed).unwrap();
 
         let bytes = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml").unwrap();
         let captured = crate::layout::parse_yaml(&bytes).unwrap();
-
-        for (name, state, actions, captured) in [
-            (
-                "blue",
-                &turn.state.sides.blue,
-                &turn.actions.blue,
-                &captured.sides.blue,
-            ),
-            (
-                "red",
-                &turn.state.sides.red,
-                &turn.actions.red,
-                &captured.sides.red,
-            ),
-        ] {
-            let settled = apply(&economy, turn.round, state, actions);
-            assert_eq!(
-                super::officers(&economy, &settled.officers, &settled.blueprints),
-                captured.techs.officers,
-                "side {name} officers"
-            );
-            assert_eq!(
-                super::tower_strengthen_levels(&settled.tower_strengthen_levels),
-                captured.tower_strengthen_levels,
-                "side {name} tower levels"
-            );
-            // A round opens with nothing activated, because the list a replay
-            // records is a debt rather than an activation. What the capture
-            // holds is what this round switched on, so the filter is checked
-            // against the round's own actions.
-            let activated: Vec<i32> = actions
-                .iter()
-                .filter_map(|action| match action {
-                    Action::ActiveEnergyTowerSkill { skill } => Some(*skill),
-                    _ => None,
-                })
-                .collect();
-            assert_eq!(
-                super::energy_tower_skills(&activated),
-                captured.energy_tower_skills,
-                "side {name} energy tower skills"
-            );
-        }
+        assert_eq!(
+            crate::layout::canonical_yaml(projected).unwrap(),
+            crate::layout::canonical_yaml(captured).unwrap()
+        );
     }
 
     #[test]
