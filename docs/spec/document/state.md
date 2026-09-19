@@ -548,6 +548,15 @@ excluded item stays in the pool and is merely invisible for one named round.
 
 ## Unresolved
 
+**Whether a slot joining the panel reads its initial cooldown.** Every
+commander skill of build 2259 has an `initial_cooldown` of 0, and the
+transition adds a slot at 0 rather than reading the table. The two agree on
+this build, so the question is what a later build does: whether Lightning
+Storm and Nuclear Strike, which a specialist or a card can hand out, join the
+panel ready to release or already cooling down. Reading the table only
+answers it if the table is where a later build puts that difference, so this
+waits on how a later build handles those two skills.
+
 **Where a fitted item's durability would live.** `durability` belongs to the
 side's inventory, and a formation's `equipment` names only an ID. Under the game
 rule that makes equipment expire, a fitted item has a durability and this format
