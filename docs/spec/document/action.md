@@ -79,15 +79,14 @@ taken from. That is a stronger statement than the round transition
 [`battle.md`](battle.md#what-a-round-reproduces) defines, and it is the one this
 document's per-action rules are answerable to.
 
-One input no decision carries stops it being a total function, and it is named
-rather than guessed: **where a summoned formation lands.** A card's squads and
-an opening's force are placed clear of whatever already stands, so the same card
-in the same seat lands differently in two matches. The index each takes, its
-type, its level and what recovering it pays back are all settled; only the
-position is not.
-
-A decision that hits it is reported unsettled. It is not counted as reproduced,
-and no value is invented for it.
+Where a summoned formation lands is the board's rule rather than the
+decision's. A card's squads, an opening's force and an officer's delivery each
+land at the main deployment region's centre, aligned to the world's ten-metre
+grid, or at the free grid position nearest it, which is why the same card lands
+differently in two matches. [The landing index](../../rules/landing.md) states
+the rule. It depends on which side is placing, because the grid and the search
+are the world's, so a transition not told the side reports the landing
+unsettled rather than inventing one.
 
 An allocator is settled while the objects it names are board. A contraption is
 destroyed by the fight and a formation can be, but neither index is handed out

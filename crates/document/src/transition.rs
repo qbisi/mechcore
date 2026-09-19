@@ -190,11 +190,9 @@ pub enum Unsettled {
     /// does not hold.
     Missing(&'static str),
     /// Where the formations a card or an opening hands out arrive is decided by
-    /// the board they arrive on, not by the decision that summoned them.
-    ///
-    /// `MechPositionManager` places each one clear of what already stands, so
-    /// the same card in the same seat lands differently in two matches. The
-    /// index, type, level and recovery value are settled; the position is not.
+    /// the board they arrive on, not by the decision that summoned them, and
+    /// the caller did not say which side's board that is, or the board has no
+    /// room. [`crate::landing`] is the board's rule.
     GrantedPosition,
     /// The game does not allow the decision from this position.
     ///
@@ -247,16 +245,17 @@ const EXTRA_BUYS: i32 = 1;
 /// [`Unsettled`] is a boundary of this build's tables rather than a failure of
 /// the caller's position.
 pub fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
-    step_placing(economy, state, action, &mut |_| None)
+    step_placing(economy, state, action, &mut |_, _| None)
 }
 
 /// [`step`], told where the formations a decision hands out arrive.
 ///
 /// A card and an opening summon formations that no decision gives a position
-/// to: `MechPositionManager` places each one clear of what already stands, so
-/// the same card in the same seat lands differently in two matches. `placement`
-/// is asked for the position of each index handed out, in the order they are
-/// handed out, and answering `None` is what makes [`step`] report
+/// to, and the board places each one clear of what already stands, so the same
+/// card lands differently in two matches. [`crate::landing::placement`] is the
+/// board's rule, and it needs to know the side. `placement` is asked, for each
+/// formation handed out and in order, with the position just before it arrives
+/// and its unit type; answering `None` is what makes [`step`] report
 /// [`Unsettled::GrantedPosition`] rather than invent one.
 ///
 /// # Errors
@@ -267,7 +266,7 @@ pub fn step_placing(
     economy: &Economy,
     state: &SideState,
     action: &Action,
-    placement: &mut dyn FnMut(i32) -> Option<Position>,
+    placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
     let mut purse = Purse::new(economy, &state.techs.officers);
@@ -354,7 +353,7 @@ pub fn step_placing(
             // one upgrade per level above the first.
             next.supply -= price + (level - 1) * upgrade;
             next.shop.buys_remaining -= 1;
-            place(&mut next, *unit, level, price, &mut |_| Some(*position))?;
+            place(&mut next, *unit, level, price, &mut |_, _| Some(*position))?;
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
@@ -620,7 +619,7 @@ fn hand_out(
     unit: i32,
     squads: i32,
     level: i32,
-    placement: &mut dyn FnMut(i32) -> Option<Position>,
+    placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<(), Unsettled> {
     // Recovering one pays back the unit's own price: the side never bought it,
     // so no officer discount ever applied to it.
@@ -649,14 +648,14 @@ fn place(
     unit: i32,
     level: i32,
     value: i32,
-    placement: &mut dyn FnMut(i32) -> Option<Position>,
+    placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<(), Unsettled> {
     let (type_name, _) = unit_type_from_id(unit).ok_or(Unsettled::Unpriced("unit"))?;
-    let index = next.next_index.unit;
-    next.next_index.unit += 1;
-    let Some(position) = placement(index) else {
+    let Some(position) = placement(next, type_name) else {
         return Err(Unsettled::GrantedPosition);
     };
+    let index = next.next_index.unit;
+    next.next_index.unit += 1;
     next.formations.push(StateFormation {
         formation: crate::layout::Formation {
             type_name: type_name.to_owned(),
@@ -1571,8 +1570,9 @@ mod tests {
         );
         let mut placed = vec![Position { x: 0, y: -160 }, Position { x: -20, y: -160 }];
         placed.reverse();
-        let next = crate::transition::step_placing(&economy, &state, &taken, &mut |_| placed.pop())
-            .unwrap();
+        let next =
+            crate::transition::step_placing(&economy, &state, &taken, &mut |_, _| placed.pop())
+                .unwrap();
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
         assert_eq!(next.shop.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.formations.len(), 2);
@@ -1880,7 +1880,7 @@ mod tests {
                             &economy,
                             &produced,
                             action,
-                            &mut |_| Some(crate::layout::Position { x: 0, y: -160 }),
+                            &mut |_, _| Some(crate::layout::Position { x: 0, y: -160 }),
                         );
                         let Ok(next) = stepped else {
                             reachable = false;

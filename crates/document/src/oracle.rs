@@ -22,10 +22,8 @@
 
 use crate::battle::{Action, SideState};
 use crate::economy::{Economy, OpeningKind};
-use crate::layout::Position;
 use crate::observe::{Observed, Record, Seat, net_records};
 use crate::transition::{Unsettled, step_placing};
-use std::collections::BTreeMap;
 
 /// What checking one observation found.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -99,7 +97,7 @@ pub fn step_check(economy: &Economy, records: &[Record]) -> Result<Report, Strin
             report.retractions += 1;
             continue;
         }
-        match fold(economy, &held, &actions, &arrivals(&held, &reached)) {
+        match fold(economy, &held, &actions, seat) {
             Err(reason) => report.unsettle(&reason),
             Ok(produced) => {
                 let mut failures = compare(&produced, &reached);
@@ -142,44 +140,21 @@ fn specialist(economy: &Economy, held: &SideState, reached: &SideState) -> Optio
 /// Applies one record's decisions in order.
 ///
 /// A move carries several units in one record and resolves to one decision per
-/// unit, so a record is a short sequence rather than a single step.
-///
-/// Where a card's formations land is taken from the position the game reached,
-/// because no table decides it. Everything else about those formations, and
-/// every other field, is still the transition's to produce, so borrowing the
-/// one thing the build cannot say keeps the rest under test.
+/// unit, so a record is a short sequence rather than a single step. Where a
+/// card's formations land is the board's rule, [`crate::landing`], so it is
+/// produced like every other field and compared with what the game did.
 fn fold(
     economy: &Economy,
     held: &SideState,
     actions: &[Action],
-    granted: &BTreeMap<i32, Position>,
+    seat: Seat,
 ) -> Result<SideState, Unsettled> {
     let mut produced = held.clone();
+    let mut placement = crate::landing::placement(seat == Seat::Red);
     for action in actions {
-        let mut placement = |index: i32| granted.get(&index).copied();
         produced = step_placing(economy, &produced, action, &mut placement)?;
     }
     Ok(produced)
-}
-
-/// Where each formation a position gained arrived.
-///
-/// A card's squads land where the board put them, so the oracle reads that one
-/// input back rather than inventing it. Taking it from the position the grant
-/// itself produced, and not from the one a round closed with, is what keeps a
-/// later move of the same formation under test.
-fn arrivals(held: &SideState, reached: &SideState) -> BTreeMap<i32, Position> {
-    reached
-        .formations
-        .iter()
-        .filter(|entry| {
-            !held
-                .formations
-                .iter()
-                .any(|placed| placed.formation.index == entry.formation.index)
-        })
-        .map(|entry| (entry.formation.index, entry.formation.position))
-        .collect()
 }
 
 /// Every field of a side's position, compared one at a time.
@@ -415,26 +390,11 @@ pub fn round_check(economy: &Economy, records: &[Record]) -> Result<RoundReport,
                 .collect();
             let held = opening.side_state(seat)?;
             let reached = terminal.side_state(seat)?;
-            // Where each grant of the round arrived, read off the record that
-            // produced it rather than off the position the round closed with:
-            // a formation moved after it arrived would otherwise look as if it
-            // had been summoned where it ended up.
-            let mut granted = BTreeMap::new();
-            for record in &taken {
-                let (Some(before), Some(after)) = (record.before.as_ref(), record.after.as_ref())
-                else {
-                    continue;
-                };
-                granted.extend(arrivals(
-                    &before.side_state(seat)?,
-                    &after.side_state(seat)?,
-                ));
-            }
             let mut actions = Vec::new();
             for record in net_records(&taken) {
                 actions.extend(record.actions(seat, specialist(economy, &held, &reached))?);
             }
-            match fold(economy, &held, &actions, &granted) {
+            match fold(economy, &held, &actions, seat) {
                 Err(_) => report.unsettled += 1,
                 Ok(produced) => {
                     let mut failures = compare(&produced, &reached);
