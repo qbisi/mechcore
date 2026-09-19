@@ -142,7 +142,7 @@ kind: action
 round: 1
 blue:
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 1}}
 - {type: move_unit, index: 0, position: {x: -110, y: -100}}
 - {type: move_unit, index: 1, position: {x: -200, y: -100}}
 - {type: move_unit, index: 3, position: {x: -85, y: -85}, rotated: true}
@@ -216,7 +216,7 @@ kind: action
 round: 2
 blue:
 - {type: choose_reinforce_item, offer: 3, name: missile_strike}
-- {type: release_commander_skill, index: 1, name: missile_strike, target: !area [{x: -4, y: 184}]}
+- {type: release_commander_skill, index: 1, name: missile_strike, target: {area: [{x: -4, y: 184}]}}
 - {type: unlock_unit, name: fang}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: fang, position: {x: -60, y: -65}, rotated: true}
@@ -224,9 +224,9 @@ blue:
 - {type: buy_unit, name: fang, position: {x: -140, y: -205}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: 0, name: rhino_assault}
-- {type: release_commander_skill, index: 0, name: rhino_assault, target: !area [{x: -265, y: 275}]}
+- {type: release_commander_skill, index: 0, name: rhino_assault, target: {area: [{x: -265, y: 275}]}}
 - {type: active_blueprint, name: mobile_beacon}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 76, y: -228}, {x: 19, y: -267}, {x: 64, y: -263}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 76, y: -228}, {x: 19, y: -267}, {x: 64, y: -263}]}}
 - {type: unlock_unit, name: crawler}
 - {type: buy_unit, name: crawler, position: {x: 140, y: -135}, rotated: true}
 - {type: buy_unit, name: sledgehammer, position: {x: 225, y: -140}}
@@ -299,7 +299,7 @@ blue:
 - {type: move_unit, index: 11, position: {x: -200, y: -120}}
 - {type: move_unit, index: 10, position: {x: -120, y: -120}}
 - {type: move_unit, index: 12, position: {x: -40, y: -120}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 3}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: arclight, position: {x: -40, y: -100}}
 - {type: upgrade_technology, unit: arclight, tech: range_enhancement}
@@ -316,7 +316,7 @@ red:
 - {type: buy_unit, name: crawler, position: {x: 135, y: -190}}
 - {type: move_unit, index: 11, position: {x: 170, y: -190}}
 - {type: release_contraption, name: missile, position: {x: -299, y: -258}}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 123, y: -265}, {x: 200, y: -247}, {x: 200, y: -247}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 123, y: -265}, {x: 200, y: -247}, {x: 200, y: -247}]}}
 ---
 kind: state
 round: 4
@@ -404,7 +404,7 @@ blue:
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 11}
 - {type: buy_unit, name: fang, position: {x: -20, y: -135}, rotated: true}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: arclight, position: {x: -270, y: -90}}
 - {type: buy_unit, name: crawler, position: {x: -270, y: -125}, rotated: true}
@@ -413,11 +413,11 @@ red:
 - {type: release_contraption, name: shield, position: {x: 158, y: -157}}
 - {type: active_blueprint, name: defense_enhancement}
 - {type: buy_unit, name: crawler, position: {x: -310, y: 285}}
-- {type: release_commander_skill, index: 2, name: missile_strike, target: !area [{x: -158, y: 197}]}
+- {type: release_commander_skill, index: 2, name: missile_strike, target: {area: [{x: -158, y: 197}]}}
 - {type: buy_unit, name: mustang, position: {x: 85, y: -210}}
 - {type: upgrade_technology, unit: mustang, tech: culling_rounds}
 - {type: unlock_unit, name: steel_ball}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 122, y: -268}, {x: 161, y: -247}, {x: 161, y: -249}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 122, y: -268}, {x: 161, y: -247}, {x: 161, y: -249}]}}
 ---
 kind: state
 round: 5
@@ -514,7 +514,7 @@ blue:
 - {type: upgrade_technology, unit: arclight, tech: shockwave}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: fang, position: {x: 140, y: -115}, rotated: true}
-- {type: release_commander_skill, index: 1, name: missile_strike, target: !area [{x: -72, y: 175}]}
+- {type: release_commander_skill, index: 1, name: missile_strike, target: {area: [{x: -72, y: 175}]}}
 - {type: buy_unit, name: crawler, position: {x: 5, y: -300}}
 - {type: release_contraption, name: missile, position: {x: -250, y: -282}}
 - {type: active_energy_tower_skill, name: enhanced_range}
@@ -522,7 +522,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 0, name: wraith_1x_lv2}
 - {type: move_unit, index: 16, position: {x: -135, y: -25}}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -131, y: -9}, {x: -123, y: 162}, {x: 76, y: 162}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -131, y: -9}, {x: -123, y: 162}, {x: 76, y: 162}]}}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 5}
 - {type: active_energy_tower_skill, name: enhanced_range}
@@ -631,7 +631,7 @@ kind: action
 round: 6
 blue:
 - {type: choose_reinforce_item, offer: 2, name: underground_threat}
-- {type: release_commander_skill, index: 2, name: underground_threat, target: !area [{x: 2, y: 276}]}
+- {type: release_commander_skill, index: 2, name: underground_threat, target: {area: [{x: 2, y: 276}]}}
 - {type: upgrade_unit, index: 1}
 - {type: upgrade_unit, index: 0}
 - {type: upgrade_unit, index: 17}
@@ -645,8 +645,8 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 0, name: absorption_module}
 - {type: use_equipment, name: absorption_module, index: 16}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -133, y: -24}, {x: -136, y: 160}, {x: 63, y: 153}]}
-- {type: release_commander_skill, index: 0, name: rhino_assault, target: !area [{x: -216, y: 29}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -133, y: -24}, {x: -136, y: 160}, {x: 63, y: 153}]}}
+- {type: release_commander_skill, index: 0, name: rhino_assault, target: {area: [{x: -216, y: 29}]}}
 - {type: upgrade_technology, unit: mustang, tech: range_enhancement}
 - {type: release_contraption, name: shield, position: {x: 144, y: -167}}
 - {type: buy_unit, name: mustang, position: {x: -85, y: -210}}
@@ -762,18 +762,18 @@ blue:
 - {type: release_contraption, name: shield, position: {x: -3, y: -139}}
 - {type: release_contraption, name: missile, position: {x: -283, y: -252}}
 - {type: buy_unit, name: scorpion, position: {x: -235, y: -275}}
-- {type: release_commander_skill, index: 3, name: incendiary_bomb, target: !area [{x: -280, y: 71}, {x: -140, y: 67}]}
+- {type: release_commander_skill, index: 3, name: incendiary_bomb, target: {area: [{x: -280, y: 71}, {x: -140, y: 67}]}}
 - {type: active_blueprint, name: mobile_beacon}
-- {type: release_commander_skill, index: 4, name: mobile_beacon, target: !area [{x: -256, y: -113}, {x: -247, y: -80}, {x: -238, y: -65}]}
+- {type: release_commander_skill, index: 4, name: mobile_beacon, target: {area: [{x: -256, y: -113}, {x: -247, y: -80}, {x: -238, y: -65}]}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: buy_unit, name: fang, position: {x: 50, y: -145}, rotated: true}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: scorpion, position: {x: -85, y: -95}}
 red:
 - {type: choose_reinforce_item, offer: 0, name: smoke_bomb}
-- {type: release_commander_skill, index: 3, name: smoke_bomb, target: !area [{x: 57, y: 20}, {x: 216, y: 23}]}
-- {type: release_commander_skill, index: 2, name: missile_strike, target: !area [{x: 132, y: 199}]}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -133, y: -13}, {x: -134, y: 161}, {x: 65, y: 177}]}
+- {type: release_commander_skill, index: 3, name: smoke_bomb, target: {area: [{x: 57, y: 20}, {x: 216, y: 23}]}}
+- {type: release_commander_skill, index: 2, name: missile_strike, target: {area: [{x: 132, y: 199}]}}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -133, y: -13}, {x: -134, y: 161}, {x: 65, y: 177}]}}
 - {type: unlock_unit, name: hacker}
 - {type: buy_unit, name: hacker, position: {x: 75, y: -185}}
 - {type: buy_unit, name: hacker, position: {x: 195, y: -185}}
@@ -900,10 +900,10 @@ blue:
 - {type: choose_reinforce_item, offer: 1, name: improved_firepower_control_system}
 - {type: upgrade_unit, index: 11}
 - {type: upgrade_unit, index: 23}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 24}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 24}}
 - {type: buy_unit, name: fang, position: {x: -260, y: -285}, rotated: true}
 - {type: release_contraption, name: missile, position: {x: -274, y: -261}}
-- {type: release_commander_skill, index: 1, name: missile_strike, target: !area [{x: -280, y: 257}]}
+- {type: release_commander_skill, index: 1, name: missile_strike, target: {area: [{x: -280, y: 257}]}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: unlock_unit, name: melting_point}
 - {type: buy_unit, name: melting_point, position: {x: 110, y: -130}}
@@ -919,12 +919,12 @@ red:
 - {type: upgrade_unit, index: 24}
 - {type: use_equipment, name: improved_firepower_control_system, index: 23}
 - {type: upgrade_unit, index: 16}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -135, y: -9}, {x: -139, y: 163}, {x: 60, y: 167}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -135, y: -9}, {x: -139, y: 163}, {x: 60, y: 167}]}}
 - {type: upgrade_unit, index: 5}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_unit, index: 11}
 - {type: active_blueprint, name: sticky_oil_bomb}
-- {type: release_commander_skill, index: 4, name: sticky_oil_bomb, target: !area [{x: 73, y: 23}, {x: 177, y: 26}]}
+- {type: release_commander_skill, index: 4, name: sticky_oil_bomb, target: {area: [{x: 73, y: 23}, {x: 177, y: 26}]}}
 - {type: upgrade_technology, unit: hacker, tech: electromagnetic_interference}
 - {type: buy_unit, name: hacker, position: {x: 265, y: -175}}
 - {type: active_energy_tower_skill, name: enhanced_range}

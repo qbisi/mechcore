@@ -214,7 +214,7 @@ blue:
 - {type: choose_reinforce_item, offer: 1, name: phoenix_1x_lv1}
 - {type: move_unit, index: 7, position: {x: 70, y: -240}}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 1}}
 - {type: buy_unit, name: crawler, position: {x: 120, y: -225}, rotated: true}
 - {type: unlock_unit, name: phantom_ray}
 - {type: buy_unit, name: phantom_ray, position: {x: -275, y: -20}}
@@ -289,17 +289,17 @@ kind: action
 round: 3
 blue:
 - {type: choose_reinforce_item, offer: 2, name: redeployment}
-- {type: release_commander_skill, index: 1, name: redeployment, target: !unit 9}
+- {type: release_commander_skill, index: 1, name: redeployment, target: {unit: 9}}
 - {type: move_unit, index: 9, position: {x: -275, y: -40}}
 - {type: upgrade_technology, unit: phantom_ray, tech: high_explosive_ammo}
 - {type: buy_unit, name: crawler, position: {x: -275, y: -20}}
 - {type: buy_unit, name: phantom_ray, position: {x: 330, y: 285}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 0}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 0}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: hound, position: {x: 280, y: -190}}
 red:
 - {type: choose_reinforce_item, offer: 2, name: redeployment}
-- {type: release_commander_skill, index: 0, name: redeployment, target: !unit 7}
+- {type: release_commander_skill, index: 0, name: redeployment, target: {unit: 7}}
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 0}
 - {type: buy_unit, name: vortex, position: {x: -60, y: -100}}
@@ -307,7 +307,7 @@ red:
 - {type: move_unit, index: 7, position: {x: -245, y: -200}}
 - {type: buy_unit, name: vortex, position: {x: -20, y: -100}}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {construction: 1}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: crawler, position: {x: -20, y: -135}, rotated: true}
 ---
@@ -388,7 +388,7 @@ blue:
 - {type: move_unit, index: 13, position: {x: 270, y: -220}, rotated: true}
 - {type: buy_unit, name: crawler, position: {x: 290, y: -225}, rotated: true}
 - {type: buy_unit, name: crawler, position: {x: 310, y: 195}}
-- {type: release_commander_skill, index: 1, name: redeployment, target: !unit 11}
+- {type: release_commander_skill, index: 1, name: redeployment, target: {unit: 11}}
 - {type: move_unit, index: 11, position: {x: 330, y: 195}}
 - {type: upgrade_unit, index: 9}
 - {type: upgrade_unit, index: 7}
@@ -403,7 +403,7 @@ red:
 - {type: release_contraption, name: missile, position: {x: 275, y: -10}}
 - {type: use_equipment, name: dominion_core, index: 13}
 - {type: buy_unit, name: crawler, position: {x: -275, y: -250}}
-- {type: release_commander_skill, index: 0, name: redeployment, target: !unit 7}
+- {type: release_commander_skill, index: 0, name: redeployment, target: {unit: 7}}
 - {type: move_unit, index: 7, position: {x: -240, y: -265}, rotated: true}
 - {type: release_contraption, name: missile, position: {x: -165, y: -258}}
 ---
@@ -489,9 +489,9 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: 1, name: super_supply_enhancement}
-- {type: release_commander_skill, index: 1, name: redeployment, target: !unit 9}
+- {type: release_commander_skill, index: 1, name: redeployment, target: {unit: 9}}
 - {type: move_unit, index: 9, position: {x: -330, y: 285}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: upgrade_unit, index: 1}
 - {type: upgrade_unit, index: 2}
 - {type: unlock_unit, name: marksman}
@@ -505,12 +505,12 @@ blue:
 - {type: release_contraption, name: missile, position: {x: 21, y: -13}}
 red:
 - {type: choose_reinforce_item, offer: 1, name: super_supply_enhancement}
-- {type: release_commander_skill, index: 0, name: redeployment, target: !unit 13}
+- {type: release_commander_skill, index: 0, name: redeployment, target: {unit: 13}}
 - {type: unlock_unit, name: tarantula}
 - {type: buy_unit, name: tarantula, position: {x: -235, y: -165}}
 - {type: buy_unit, name: tarantula, position: {x: 125, y: -105}}
 - {type: upgrade_technology, unit: tarantula, tech: armor_enhancement}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !unit 7}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {unit: 7}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: raiden, position: {x: 130, y: -140}}
 - {type: active_blueprint, name: attack_enhancement}
@@ -603,8 +603,8 @@ kind: action
 round: 6
 blue:
 - {type: choose_reinforce_item, offer: 1, name: vulcan_1x_lv1}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 20}
-- {type: release_commander_skill, index: 1, name: redeployment, target: !unit 10}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 20}}
+- {type: release_commander_skill, index: 1, name: redeployment, target: {unit: 10}}
 - {type: move_unit, index: 10, position: {x: -310, y: 275}}
 - {type: unlock_unit, name: abyss}
 - {type: buy_unit, name: abyss, position: {x: 65, y: -185}}
@@ -617,7 +617,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 0, name: farseer_1x_lv3}
 - {type: move_unit, index: 18, position: {x: -95, y: -125}}
-- {type: release_commander_skill, index: 0, name: redeployment, target: !unit 17}
+- {type: release_commander_skill, index: 0, name: redeployment, target: {unit: 17}}
 - {type: move_unit, index: 17, position: {x: 190, y: -170}}
 - {type: buy_unit, name: tarantula, position: {x: 235, y: -185}}
 - {type: upgrade_unit, index: 1}

@@ -216,18 +216,18 @@ round: 2
 blue:
 - {type: choose_reinforce_item, offer: 3, name: tarantula_1x_lv1}
 - {type: move_unit, index: 7, position: {x: -345, y: 295}}
-- {type: release_commander_skill, index: 1, name: missile_strike, target: !area [{x: 239, y: 255}]}
+- {type: release_commander_skill, index: 1, name: missile_strike, target: {area: [{x: 239, y: 255}]}}
 - {type: unlock_unit, name: crawler}
 - {type: buy_unit, name: crawler, position: {x: 70, y: -35}, rotated: true}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 2, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 2, name: field_recovery, target: {construction: 1}}
 - {type: buy_unit, name: crawler, position: {x: 190, y: -105}, rotated: true}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: arclight, position: {x: 240, y: -70}}
 red:
 - {type: choose_reinforce_item, offer: 3, name: tarantula_1x_lv1}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 3}}
 - {type: unlock_unit, name: phantom_ray}
 - {type: buy_unit, name: phantom_ray, position: {x: 330, y: 285}}
 - {type: buy_unit, name: phantom_ray, position: {x: 275, y: -60}}
@@ -300,14 +300,14 @@ round: 3
 blue:
 - {type: choose_reinforce_item, offer: 2, name: absorption_module}
 - {type: unlock_unit, name: melting_point}
-- {type: release_commander_skill, index: 2, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 2, name: field_recovery, target: {unit: 3}}
 - {type: buy_unit, name: melting_point, position: {x: -240, y: -220}}
 - {type: upgrade_technology, unit: melting_point, tech: energy_diffraction}
 - {type: use_equipment, name: absorption_module, index: 11}
-- {type: release_commander_skill, index: 0, name: missile_strike, target: !area [{x: -317, y: -271}]}
+- {type: release_commander_skill, index: 0, name: missile_strike, target: {area: [{x: -317, y: -271}]}}
 red:
 - {type: choose_reinforce_item, offer: 0, name: deployment_module}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: buy_unit, name: phantom_ray, position: {x: 270, y: -285}, rotated: true}
 - {type: upgrade_unit, index: 9}
 - {type: upgrade_unit, index: 8}
@@ -394,18 +394,18 @@ blue:
 - {type: buy_unit, name: melting_point, position: {x: -110, y: -160}}
 - {type: upgrade_unit, index: 11}
 - {type: use_equipment, name: mustang_production_line, index: 12}
-- {type: release_commander_skill, index: 2, name: field_recovery, target: !unit 7}
+- {type: release_commander_skill, index: 2, name: field_recovery, target: {unit: 7}}
 - {type: unlock_unit, name: mustang}
 - {type: buy_unit, name: arclight, position: {x: 210, y: -300}}
 - {type: release_contraption, name: missile, position: {x: 144, y: -186}}
 - {type: upgrade_unit, index: 5}
 red:
 - {type: choose_reinforce_item, offer: -1}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 0}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 0}}
 - {type: use_equipment, name: deployment_module, index: 8}
 - {type: move_unit, index: 8, position: {x: -245, y: -300}}
 - {type: active_blueprint, name: mobile_beacon}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 262, y: -54}, {x: 150, y: -158}, {x: 151, y: -158}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 262, y: -54}, {x: 150, y: -158}, {x: 151, y: -158}]}}
 - {type: unlock_unit, name: vulcan}
 - {type: buy_unit, name: vulcan, position: {x: -130, y: -140}}
 - {type: buy_unit, name: crawler, position: {x: -120, y: -225}, rotated: true}
@@ -488,21 +488,21 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: 2, name: steel_ball_production_line}
-- {type: release_commander_skill, index: 1, name: missile_strike, target: !area [{x: 131, y: 248}]}
+- {type: release_commander_skill, index: 1, name: missile_strike, target: {area: [{x: 131, y: 248}]}}
 - {type: buy_unit, name: melting_point, position: {x: 240, y: -180}}
 - {type: use_equipment, name: steel_ball_production_line, index: 14}
 - {type: active_blueprint, name: mobile_beacon}
-- {type: release_commander_skill, index: 2, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 2, name: field_recovery, target: {unit: 4}}
 - {type: upgrade_technology, unit: melting_point, tech: range_enhancement}
-- {type: release_commander_skill, index: 3, name: mobile_beacon, target: !area [{x: 215, y: -95}, {x: 100, y: -79}, {x: 20, y: 6}]}
+- {type: release_commander_skill, index: 3, name: mobile_beacon, target: {area: [{x: 215, y: -95}, {x: 100, y: -79}, {x: 20, y: 6}]}}
 - {type: unlock_unit, name: hound}
 red:
 - {type: choose_reinforce_item, offer: 2, name: steel_ball_production_line}
 - {type: buy_unit, name: vulcan, position: {x: 140, y: -140}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 9}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 9}}
 - {type: upgrade_technology, unit: vulcan, tech: range_enhancement}
 - {type: buy_unit, name: crawler, position: {x: 135, y: -190}}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 261, y: -54}, {x: 260, y: -156}, {x: 260, y: -156}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 261, y: -54}, {x: 260, y: -156}, {x: 260, y: -156}]}}
 - {type: use_equipment, name: steel_ball_production_line, index: 16}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: crawler, position: {x: -290, y: -285}, rotated: true}
@@ -592,18 +592,18 @@ round: 6
 blue:
 - {type: choose_reinforce_item, offer: 1, name: laser_sights}
 - {type: upgrade_technology, unit: arclight, tech: range_enhancement}
-- {type: release_commander_skill, index: 3, name: mobile_beacon, target: !area [{x: 105, y: -42}, {x: 64, y: -45}, {x: 105, y: -108}]}
+- {type: release_commander_skill, index: 3, name: mobile_beacon, target: {area: [{x: 105, y: -42}, {x: 64, y: -45}, {x: 105, y: -108}]}}
 - {type: buy_unit, name: arclight, position: {x: 40, y: -140}}
 - {type: buy_unit, name: melting_point, position: {x: 110, y: -160}}
 - {type: use_equipment, name: laser_sights, index: 16}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: arclight, position: {x: -250, y: -150}}
-- {type: release_commander_skill, index: 0, name: missile_strike, target: !area [{x: 136, y: 246}]}
+- {type: release_commander_skill, index: 0, name: missile_strike, target: {area: [{x: 136, y: 246}]}}
 - {type: upgrade_unit, index: 12}
 - {type: unlock_unit, name: void_eye}
 red:
 - {type: choose_reinforce_item, offer: 1, name: laser_sights}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 8}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 8}}
 - {type: use_equipment, name: deployment_module, index: 7}
 - {type: unlock_unit, name: melting_point}
 - {type: buy_unit, name: melting_point, position: {x: -190, y: -140}}
@@ -611,7 +611,7 @@ red:
 - {type: upgrade_technology, unit: melting_point, tech: range_enhancement}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: use_equipment, name: laser_sights, index: 20}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 272, y: -53}, {x: 273, y: -235}, {x: 273, y: -235}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 272, y: -53}, {x: 273, y: -235}, {x: 273, y: -235}]}}
 - {type: move_unit, index: 7, position: {x: -75, y: -25}}
 ---
 kind: state
@@ -708,13 +708,13 @@ blue:
 - {type: buy_unit, name: phantom_ray, position: {x: -330, y: 285}}
 - {type: move_unit, index: 18, position: {x: 350, y: 290}}
 - {type: upgrade_technology, unit: melting_point, tech: electromagnetic_barrage}
-- {type: release_commander_skill, index: 3, name: mobile_beacon, target: !area [{x: 101, y: -42}, {x: 97, y: -140}, {x: 97, y: -140}]}
-- {type: release_commander_skill, index: 2, name: field_recovery, target: !unit 13}
+- {type: release_commander_skill, index: 3, name: mobile_beacon, target: {area: [{x: 101, y: -42}, {x: 97, y: -140}, {x: 97, y: -140}]}}
+- {type: release_commander_skill, index: 2, name: field_recovery, target: {unit: 13}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: active_blueprint, name: attack_enhancement}
 red:
 - {type: choose_reinforce_item, offer: 1, name: typhoon_2x_lv1}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 22}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 22}}
 - {type: buy_unit, name: melting_point, position: {x: -70, y: -140}}
 - {type: buy_unit, name: melting_point, position: {x: 200, y: -160}}
 - {type: upgrade_technology, unit: melting_point, tech: electromagnetic_barrage}
@@ -724,7 +724,7 @@ red:
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: crawler, position: {x: 290, y: -285}, rotated: true}
 - {type: upgrade_unit, index: 13}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 268, y: -57}, {x: 273, y: -226}, {x: 75, y: -259}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 268, y: -57}, {x: 273, y: -226}, {x: 75, y: -259}]}}
 ---
 kind: state
 round: 8
@@ -820,8 +820,8 @@ kind: action
 round: 8
 blue:
 - {type: choose_reinforce_item, offer: 2, name: rhino_assault}
-- {type: release_commander_skill, index: 4, name: rhino_assault, target: !area [{x: -279, y: 283}]}
-- {type: release_commander_skill, index: 1, name: missile_strike, target: !area [{x: 153, y: 270}]}
+- {type: release_commander_skill, index: 4, name: rhino_assault, target: {area: [{x: -279, y: 283}]}}
+- {type: release_commander_skill, index: 1, name: missile_strike, target: {area: [{x: 153, y: 270}]}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: upgrade_technology, unit: phantom_ray, tech: burst_mode}
 - {type: upgrade_technology, unit: typhoon, tech: field_reassembly}
@@ -830,12 +830,12 @@ blue:
 - {type: upgrade_technology, unit: fang, tech: range_enhancement}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: fang, position: {x: 210, y: -145}, rotated: true}
-- {type: release_commander_skill, index: 3, name: mobile_beacon, target: !area [{x: 107, y: -46}, {x: 103, y: -130}, {x: 103, y: -130}]}
+- {type: release_commander_skill, index: 3, name: mobile_beacon, target: {area: [{x: 107, y: -46}, {x: 103, y: -130}, {x: 103, y: -130}]}}
 - {type: upgrade_unit, index: 16}
 - {type: active_blueprint, name: defense_enhancement}
 red:
 - {type: choose_reinforce_item, offer: 3, name: barrier}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 21}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 21}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: buy_unit, name: melting_point, position: {x: -260, y: -180}}
 - {type: buy_unit, name: vulcan, position: {x: 0, y: -140}}
@@ -844,5 +844,5 @@ red:
 - {type: buy_unit, name: vulcan, position: {x: 260, y: -200}}
 - {type: upgrade_unit, index: 16}
 - {type: upgrade_unit, index: 10}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 267, y: -55}, {x: 138, y: -169}, {x: 138, y: -169}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 267, y: -55}, {x: 138, y: -169}, {x: 138, y: -169}]}}
 - {type: move_unit, index: 7, position: {x: -285, y: -245}}

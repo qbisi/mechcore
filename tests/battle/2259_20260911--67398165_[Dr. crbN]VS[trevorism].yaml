@@ -363,7 +363,7 @@ round: 4
 blue:
 - {type: choose_reinforce_item, offer: 2, name: fire_badger_1x_lv3}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 14}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 14}}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_unit, index: 6}
 - {type: unlock_unit, name: marksman}
@@ -377,7 +377,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 2, name: fire_badger_1x_lv3}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 12}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 12}}
 - {type: unlock_unit, name: sandworm}
 - {type: buy_unit, name: sandworm, position: {x: 340, y: 210}}
 - {type: upgrade_technology, unit: sandworm, tech: replicate}
@@ -482,7 +482,7 @@ red:
 - {type: strengthen_tower, tower: 1}
 - {type: buy_unit, name: phoenix, position: {x: 350, y: 170}}
 - {type: upgrade_unit, index: 14}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 3}}
 - {type: buy_unit, name: crawler, position: {x: 310, y: 225}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: fang, position: {x: -160, y: -165}, rotated: true}
@@ -594,7 +594,7 @@ red:
 - {type: buy_unit, name: sandworm, position: {x: 320, y: 170}}
 - {type: buy_unit, name: phoenix, position: {x: 350, y: 130}}
 - {type: release_contraption, name: missile, position: {x: -299, y: -227}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: arclight, position: {x: -80, y: -200}}
 ---
@@ -708,7 +708,7 @@ blue:
 - {type: buy_unit, name: rhino, position: {x: 15, y: -25}}
 - {type: upgrade_technology, unit: rhino, tech: mechanical_rage}
 - {type: buy_unit, name: marksman, position: {x: 120, y: -150}}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -6, y: -28}, {x: -8, y: 113}, {x: -132, y: 167}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -6, y: -28}, {x: -8, y: 113}, {x: -132, y: 167}]}}
 - {type: release_contraption, name: missile, position: {x: -155, y: -11}}
 - {type: release_contraption, name: missile, position: {x: -300, y: -228}}
 - {type: release_contraption, name: missile, position: {x: -299, y: -291}}
@@ -724,7 +724,7 @@ red:
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: phoenix, position: {x: -50, y: -190}}
 - {type: upgrade_technology, unit: phoenix, tech: charged_shot}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 2}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 2}}
 - {type: active_blueprint, name: attack_enhancement}
 - {type: active_blueprint, name: defense_enhancement}
 ---
@@ -836,12 +836,12 @@ round: 8
 blue:
 - {type: choose_reinforce_item, offer: 0, name: intensive_training}
 - {type: upgrade_technology, unit: steel_ball, tech: fortified_target_lock}
-- {type: release_commander_skill, index: 2, name: intensive_training, target: !unit 22}
+- {type: release_commander_skill, index: 2, name: intensive_training, target: {unit: 22}}
 - {type: upgrade_unit, index: 22}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: upgrade_unit, index: 29}
 - {type: upgrade_unit, index: 24}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: upgrade_technology, unit: steel_ball, tech: range_enhancement}
 - {type: active_energy_tower_skill, name: rapid_resupply}
 - {type: release_contraption, name: missile, position: {x: -299, y: -121}}
@@ -853,19 +853,19 @@ blue:
 - {type: upgrade_unit, index: 6}
 - {type: upgrade_unit, index: 20}
 - {type: buy_unit, name: crawler, position: {x: -60, y: -285}, rotated: true}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -13, y: -32}, {x: -163, y: -137}, {x: -245, y: -157}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -13, y: -32}, {x: -163, y: -137}, {x: -245, y: -157}]}}
 - {type: unlock_unit, name: vortex}
 red:
 - {type: choose_reinforce_item, offer: 0, name: intensive_training}
 - {type: upgrade_unit, index: 13}
-- {type: release_commander_skill, index: 1, name: intensive_training, target: !unit 13}
+- {type: release_commander_skill, index: 1, name: intensive_training, target: {unit: 13}}
 - {type: upgrade_unit, index: 13}
 - {type: upgrade_unit, index: 19}
 - {type: buy_unit, name: arclight, position: {x: 330, y: 280}}
 - {type: release_contraption, name: missile, position: {x: 21, y: -12}}
 - {type: strengthen_tower, tower: 0}
 - {type: active_blueprint, name: sticky_oil_bomb}
-- {type: release_commander_skill, index: 2, name: sticky_oil_bomb, target: !area [{x: 92, y: -133}, {x: 25, y: -52}]}
+- {type: release_commander_skill, index: 2, name: sticky_oil_bomb, target: {area: [{x: 92, y: -133}, {x: 25, y: -52}]}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: active_energy_tower_skill, name: elite_recruitment}
 - {type: buy_unit, name: phoenix, position: {x: -200, y: -270}}
@@ -991,7 +991,7 @@ blue:
 - {type: choose_reinforce_item, offer: 2, name: raiden_1x_lv2}
 - {type: upgrade_unit, index: 29}
 - {type: upgrade_unit, index: 16}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -13, y: -31}, {x: -94, y: -188}, {x: -183, y: -189}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: -13, y: -31}, {x: -94, y: -188}, {x: -183, y: -189}]}}
 - {type: upgrade_technology, unit: raiden, tech: ionization}
 - {type: upgrade_technology, unit: raiden, tech: fork}
 - {type: buy_unit, name: raiden, position: {x: -230, y: -220}}

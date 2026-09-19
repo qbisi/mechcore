@@ -151,7 +151,7 @@ blue:
 - {type: buy_unit, name: crawler, position: {x: -135, y: -190}}
 red:
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 1}}
 - {type: unlock_unit, name: fang}
 - {type: buy_unit, name: crawler, position: {x: -150, y: -85}, rotated: true}
 - {type: buy_unit, name: crawler, position: {x: 290, y: -215}, rotated: true}
@@ -301,7 +301,7 @@ red:
 - {type: unlock_unit, name: phantom_ray}
 - {type: buy_unit, name: phantom_ray, position: {x: -105, y: -70}}
 - {type: buy_unit, name: phantom_ray, position: {x: -185, y: -70}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 10}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 10}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: phantom_ray, position: {x: -15, y: -70}}
 - {type: upgrade_technology, unit: phantom_ray, tech: stealth_cloak}
@@ -493,7 +493,7 @@ red:
 - {type: upgrade_unit, index: 14}
 - {type: active_blueprint, name: mobile_beacon}
 - {type: move_unit, index: 17, position: {x: 200, y: -50}}
-- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: 197, y: -40}, {x: 210, y: 114}, {x: 149, y: 166}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: {area: [{x: 197, y: -40}, {x: 210, y: 114}, {x: 149, y: 166}]}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: phantom_ray, position: {x: -105, y: -90}}
 - {type: buy_unit, name: phantom_ray, position: {x: -185, y: -90}}

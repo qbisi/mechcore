@@ -215,16 +215,16 @@ blue:
 - {type: choose_reinforce_item, offer: 2, name: missile_strike}
 - {type: unlock_unit, name: fang}
 - {type: buy_unit, name: fang, position: {x: -90, y: -235}, rotated: true}
-- {type: release_commander_skill, index: 0, name: missile_strike, target: !area [{x: 88, y: 145}]}
+- {type: release_commander_skill, index: 0, name: missile_strike, target: {area: [{x: 88, y: 145}]}}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {construction: 1}}
 - {type: buy_unit, name: vortex, position: {x: 210, y: -70}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: crawler, position: {x: 50, y: -155}, rotated: true}
 red:
 - {type: choose_reinforce_item, offer: -1}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 1}}
 - {type: move_unit, index: 7, position: {x: -180, y: -190}}
 - {type: buy_unit, name: fang, position: {x: -145, y: -110}}
 - {type: buy_unit, name: fang, position: {x: -140, y: -225}, rotated: true}
@@ -307,7 +307,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 3, name: wasp_2x_lv1}
 - {type: unlock_unit, name: vulcan}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: buy_unit, name: vulcan, position: {x: -140, y: -140}}
 - {type: move_unit, index: 12, position: {x: 195, y: -300}}
 - {type: move_unit, index: 11, position: {x: -55, y: -300}}
@@ -400,9 +400,9 @@ red:
 - {type: unlock_unit, name: hacker}
 - {type: buy_unit, name: hacker, position: {x: -105, y: -155}}
 - {type: buy_unit, name: hacker, position: {x: -205, y: -155}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 3}}
 - {type: active_blueprint, name: sticky_oil_bomb}
-- {type: release_commander_skill, index: 1, name: sticky_oil_bomb, target: !area [{x: -179, y: 9}, {x: -74, y: 11}]}
+- {type: release_commander_skill, index: 1, name: sticky_oil_bomb, target: {area: [{x: -179, y: 9}, {x: -74, y: 11}]}}
 - {type: upgrade_unit, index: 6}
 ---
 kind: state
@@ -489,7 +489,7 @@ blue:
 - {type: upgrade_unit, index: 8}
 - {type: upgrade_unit, index: 10}
 - {type: buy_unit, name: crawler, position: {x: 275, y: -250}}
-- {type: release_commander_skill, index: 0, name: missile_strike, target: !area [{x: 45, y: 261}]}
+- {type: release_commander_skill, index: 0, name: missile_strike, target: {area: [{x: 45, y: 261}]}}
 - {type: upgrade_technology, unit: vortex, tech: range_enhancement}
 - {type: buy_unit, name: crawler, position: {x: 210, y: -105}, rotated: true}
 - {type: unlock_unit, name: hound}
@@ -499,7 +499,7 @@ red:
 - {type: upgrade_unit, index: 15}
 - {type: buy_unit, name: vulcan, position: {x: 0, y: -140}}
 - {type: buy_unit, name: hacker, position: {x: -35, y: -155}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 11}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 11}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: crawler, position: {x: -210, y: -195}, rotated: true}
 - {type: active_blueprint, name: attack_enhancement}
@@ -604,7 +604,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 0, name: barrier}
 - {type: use_equipment, name: barrier, index: 13}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 17}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 17}}
 - {type: buy_unit, name: vulcan, position: {x: -260, y: -140}}
 - {type: upgrade_technology, unit: vulcan, tech: range_enhancement}
 - {type: upgrade_technology, unit: hacker, tech: range_enhancement}
@@ -715,7 +715,7 @@ blue:
 - {type: choose_reinforce_item, offer: 0, name: anti_interference_module}
 - {type: use_equipment, name: anti_interference_module, index: 3}
 - {type: active_energy_tower_skill, name: enhanced_range}
-- {type: release_commander_skill, index: 2, name: sticky_oil_bomb, target: !area [{x: 293, y: 258}, {x: 238, y: 168}]}
+- {type: release_commander_skill, index: 2, name: sticky_oil_bomb, target: {area: [{x: 293, y: 258}, {x: 238, y: 168}]}}
 - {type: buy_unit, name: crawler, position: {x: 310, y: 285}}
 - {type: unlock_unit, name: typhoon}
 - {type: active_energy_tower_skill, name: high_mobility}
@@ -732,7 +732,7 @@ red:
 - {type: buy_unit, name: fang, position: {x: -10, y: -185}, rotated: true}
 - {type: buy_unit, name: crawler, position: {x: -125, y: -300}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 0}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 0}}
 - {type: unlock_unit, name: stormcaller}
 - {type: active_energy_tower_skill, name: rapid_resupply}
 - {type: active_energy_tower_skill, name: enhanced_range}
@@ -842,7 +842,7 @@ kind: action
 round: 8
 blue:
 - {type: choose_reinforce_item, offer: 1, name: underground_threat}
-- {type: release_commander_skill, index: 3, name: underground_threat, target: !area [{x: 0, y: 273}]}
+- {type: release_commander_skill, index: 3, name: underground_threat, target: {area: [{x: 0, y: 273}]}}
 - {type: release_contraption, name: shield, position: {x: 56, y: -84}}
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 1}
@@ -854,20 +854,20 @@ blue:
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: active_energy_tower_skill, name: high_mobility}
 - {type: active_energy_tower_skill, name: rapid_resupply}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !construction 0}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {construction: 0}}
 - {type: active_blueprint, name: defense_enhancement_ii}
 - {type: unlock_unit, name: void_eye}
-- {type: release_commander_skill, index: 0, name: missile_strike, target: !area [{x: -209, y: 254}]}
+- {type: release_commander_skill, index: 0, name: missile_strike, target: {area: [{x: -209, y: 254}]}}
 red:
 - {type: choose_reinforce_item, offer: 1, name: underground_threat}
-- {type: release_commander_skill, index: 2, name: underground_threat, target: !area [{x: 314, y: 172}]}
-- {type: release_commander_skill, index: 1, name: sticky_oil_bomb, target: !area [{x: -178, y: -11}, {x: -73, y: -8}]}
+- {type: release_commander_skill, index: 2, name: underground_threat, target: {area: [{x: 314, y: 172}]}}
+- {type: release_commander_skill, index: 1, name: sticky_oil_bomb, target: {area: [{x: -178, y: -11}, {x: -73, y: -8}]}}
 - {type: upgrade_unit, index: 16}
 - {type: upgrade_unit, index: 15}
 - {type: upgrade_unit, index: 19}
 - {type: release_contraption, name: missile, position: {x: -299, y: -286}}
 - {type: upgrade_technology, unit: fang, tech: portable_shield}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 12}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 12}}
 - {type: release_contraption, name: missile, position: {x: 294, y: -273}}
 - {type: upgrade_technology, unit: crawler, tech: loose_formation}
 - {type: active_energy_tower_skill, name: enhanced_range}

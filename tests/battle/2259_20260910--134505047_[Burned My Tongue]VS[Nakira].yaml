@@ -155,13 +155,13 @@ red:
 - {type: move_unit, index: 3, position: {x: -255, y: -300}}
 - {type: move_unit, index: 4, position: {x: 255, y: -300}}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {construction: 1}}
 - {type: move_unit, index: 2, position: {x: -290, y: -285}, rotated: true}
 - {type: move_unit, index: 0, position: {x: 290, y: -285}, rotated: true}
 - {type: unlock_unit, name: hound}
 - {type: buy_unit, name: hound, position: {x: -120, y: -190}}
 - {type: buy_unit, name: hound, position: {x: 120, y: -190}}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 1}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 1}}
 - {type: upgrade_unit, index: 1}
 - {type: move_unit, index: 1, position: {x: -5, y: -300}}
 ---
@@ -309,7 +309,7 @@ red:
 - {type: buy_unit, name: hound, position: {x: 280, y: -190}}
 - {type: buy_unit, name: hound, position: {x: -280, y: -190}}
 - {type: upgrade_technology, unit: hound, tech: incendiary_bomb}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !construction 0}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {construction: 0}}
 - {type: upgrade_technology, unit: steel_ball, tech: kinetic_charge}
 ---
 kind: state
@@ -693,12 +693,12 @@ blue:
 - {type: active_blueprint, name: defense_enhancement_ii}
 red:
 - {type: choose_reinforce_item, offer: 1, name: nuke}
-- {type: release_commander_skill, index: 2, name: nuke, target: !area [{x: -184, y: 65}]}
+- {type: release_commander_skill, index: 2, name: nuke, target: {area: [{x: -184, y: 65}]}}
 - {type: unlock_unit, name: fang}
 - {type: buy_unit, name: fang, position: {x: -185, y: -100}}
 - {type: buy_unit, name: fang, position: {x: 185, y: -100}}
 - {type: upgrade_technology, unit: fortress, tech: barrier}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 14}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 14}}
 - {type: upgrade_unit, index: 14}
 - {type: upgrade_unit, index: 8}
 - {type: upgrade_unit, index: 5}

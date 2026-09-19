@@ -144,8 +144,8 @@ kind: action
 round: 1
 blue:
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !construction 1}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 0}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {construction: 1}}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 0}}
 - {type: upgrade_unit, index: 0}
 - {type: unlock_unit, name: crawler}
 - {type: buy_unit, name: crawler, position: {x: -200, y: -115}, rotated: true}
@@ -299,7 +299,7 @@ blue:
 - {type: move_unit, index: 11, position: {x: 225, y: -260}}
 - {type: upgrade_unit, index: 1}
 - {type: upgrade_unit, index: 2}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {unit: 3}}
 - {type: unlock_unit, name: stormcaller}
 - {type: buy_unit, name: stormcaller, position: {x: -170, y: -125}, rotated: true}
 - {type: buy_unit, name: stormcaller, position: {x: 110, y: -175}, rotated: true}
@@ -387,12 +387,12 @@ kind: action
 round: 4
 blue:
 - {type: choose_reinforce_item, offer: 1, name: enhancement_module}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {unit: 4}}
 - {type: upgrade_unit, index: 5}
 - {type: unlock_unit, name: wraith}
 - {type: buy_unit, name: wraith, position: {x: -335, y: 295}}
 - {type: use_equipment, name: enhancement_module, index: 15}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 15}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 15}}
 - {type: upgrade_unit, index: 15}
 - {type: strengthen_tower, tower: 1}
 - {type: buy_unit, name: crawler, position: {x: -270, y: -285}, rotated: true}
@@ -407,7 +407,7 @@ red:
 - {type: unlock_unit, name: marksman}
 - {type: buy_unit, name: marksman, position: {x: -210, y: -110}}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 1}}
 - {type: buy_unit, name: marksman, position: {x: -140, y: -110}}
 ---
 kind: state
@@ -497,7 +497,7 @@ blue:
 - {type: buy_unit, name: crawler, position: {x: -310, y: 165}}
 red:
 - {type: choose_reinforce_item, offer: 3, name: additional_deployment_slot}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 10}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 10}}
 - {type: unlock_unit, name: sandworm}
 - {type: buy_unit, name: sandworm, position: {x: 250, y: -290}}
 - {type: upgrade_technology, unit: sandworm, tech: anti_aerial}
@@ -602,9 +602,9 @@ blue:
 - {type: move_unit, index: 22, position: {x: -265, y: -75}}
 - {type: move_unit, index: 21, position: {x: -125, y: -85}}
 - {type: upgrade_technology, unit: scorpion, tech: range_enhancement}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 15}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 15}}
 - {type: upgrade_unit, index: 15}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !unit 15}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {unit: 15}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: buy_unit, name: fang, position: {x: 60, y: -145}, rotated: true}
 - {type: upgrade_technology, unit: fang, tech: ignite}
@@ -625,7 +625,7 @@ red:
 - {type: upgrade_unit, index: 15}
 - {type: upgrade_unit, index: 12}
 - {type: buy_unit, name: crawler, position: {x: 290, y: -165}, rotated: true}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 7}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 7}}
 - {type: buy_unit, name: fire_badger, position: {x: 250, y: -225}, rotated: true}
 - {type: unlock_unit, name: arclight}
 - {type: strengthen_tower, tower: 0}
@@ -738,12 +738,12 @@ blue:
 - {type: buy_unit, name: scorpion, position: {x: 215, y: -175}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: crawler, position: {x: 110, y: -285}, rotated: true}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !unit 18}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {unit: 18}}
 - {type: active_energy_tower_skill, name: enhanced_range}
 - {type: active_blueprint, name: attack_enhancement}
 red:
 - {type: choose_reinforce_item, offer: 2, name: orbital_bombardment}
-- {type: release_commander_skill, index: 1, name: orbital_bombardment, target: !area [{x: 169, y: 59}]}
+- {type: release_commander_skill, index: 1, name: orbital_bombardment, target: {area: [{x: 169, y: 59}]}}
 - {type: upgrade_unit, index: 21}
 - {type: upgrade_unit, index: 2}
 - {type: unlock_unit, name: vulcan}
@@ -864,7 +864,7 @@ blue:
 - {type: choose_reinforce_item, offer: 1, name: enhancement_module}
 - {type: use_equipment, name: enhancement_module, index: 28}
 - {type: upgrade_unit, index: 28}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 28}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 28}}
 - {type: upgrade_unit, index: 28}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_technology, unit: mustang, tech: range_enhancement}
@@ -874,10 +874,10 @@ blue:
 - {type: buy_unit, name: steel_ball, position: {x: 75, y: -300}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: mustang, position: {x: 5, y: -180}}
-- {type: release_commander_skill, index: 2, name: orbital_bombardment, target: !area [{x: 176, y: 111}]}
+- {type: release_commander_skill, index: 2, name: orbital_bombardment, target: {area: [{x: 176, y: 111}]}}
 red:
 - {type: choose_reinforce_item, offer: 0, name: lightning_storm}
-- {type: release_commander_skill, index: 2, name: lightning_storm, target: !area [{x: 160, y: 99}]}
+- {type: release_commander_skill, index: 2, name: lightning_storm, target: {area: [{x: 160, y: 99}]}}
 - {type: release_contraption, name: shield, position: {x: 212, y: -102}}
 - {type: release_contraption, name: shield, position: {x: 80, y: -100}}
 - {type: upgrade_unit, index: 8}
@@ -888,7 +888,7 @@ red:
 - {type: upgrade_unit, index: 1}
 - {type: buy_unit, name: vulcan, position: {x: -200, y: -70}}
 - {type: upgrade_technology, unit: vulcan, tech: range_enhancement}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: buy_unit, name: crawler, position: {x: -275, y: -20}}
 - {type: buy_unit, name: crawler, position: {x: -65, y: -70}}
 - {type: release_contraption, name: shield, position: {x: -206, y: -81}}
@@ -1015,7 +1015,7 @@ blue:
 - {type: choose_reinforce_item, offer: 1, name: farseer_3x_lv1}
 - {type: upgrade_technology, unit: farseer, tech: photon_emission}
 - {type: upgrade_unit, index: 12}
-- {type: release_commander_skill, index: 1, name: field_recovery, target: !unit 12}
+- {type: release_commander_skill, index: 1, name: field_recovery, target: {unit: 12}}
 - {type: use_equipment, name: enhancement_module, index: 27}
 - {type: upgrade_unit, index: 27}
 - {type: upgrade_technology, unit: steel_ball, tech: mechanical_division}
@@ -1031,7 +1031,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 3, name: arclight_2x_lv5}
 - {type: upgrade_unit, index: 25}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 29}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 29}}
 - {type: upgrade_technology, unit: vulcan, tech: ignite}
 - {type: active_energy_tower_skill, name: elite_recruitment}
 - {type: buy_unit, name: vulcan, position: {x: -110, y: -70}}

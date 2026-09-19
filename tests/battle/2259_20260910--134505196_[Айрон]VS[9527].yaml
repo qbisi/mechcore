@@ -142,7 +142,7 @@ kind: action
 round: 1
 blue:
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 1}}
 - {type: unlock_unit, name: crawler}
 - {type: buy_unit, name: crawler, position: {x: -110, y: -135}, rotated: true}
 - {type: buy_unit, name: crawler, position: {x: 110, y: -135}, rotated: true}
@@ -224,7 +224,7 @@ blue:
 - {type: active_energy_tower_skill, name: mass_recruitment}
 - {type: buy_unit, name: marksman, position: {x: -120, y: -170}}
 - {type: buy_unit, name: marksman, position: {x: 120, y: -170}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 0}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 0}}
 - {type: unlock_unit, name: sabertooth}
 red:
 - {type: choose_reinforce_item, offer: 1, name: stormcaller_1x_lv1}
@@ -294,7 +294,7 @@ kind: action
 round: 3
 blue:
 - {type: choose_reinforce_item, offer: 2, name: orbital_bombardment}
-- {type: release_commander_skill, index: 1, name: orbital_bombardment, target: !area [{x: 1, y: 146}]}
+- {type: release_commander_skill, index: 1, name: orbital_bombardment, target: {area: [{x: 1, y: 146}]}}
 - {type: release_contraption, name: shield, position: {x: 96, y: -127}}
 - {type: release_contraption, name: shield, position: {x: -52, y: -124}}
 - {type: buy_unit, name: crawler, position: {x: -140, y: -205}, rotated: true}
@@ -303,7 +303,7 @@ blue:
 - {type: unlock_unit, name: tarantula}
 red:
 - {type: choose_reinforce_item, offer: 2, name: orbital_bombardment}
-- {type: release_commander_skill, index: 0, name: orbital_bombardment, target: !area [{x: 1, y: 97}]}
+- {type: release_commander_skill, index: 0, name: orbital_bombardment, target: {area: [{x: 1, y: 97}]}}
 - {type: release_contraption, name: shield, position: {x: 57, y: -134}}
 - {type: release_contraption, name: shield, position: {x: -63, y: -132}}
 - {type: unlock_unit, name: fang}
@@ -393,7 +393,7 @@ blue:
 - {type: unlock_unit, name: arclight}
 red:
 - {type: choose_reinforce_item, offer: 3, name: lightning_storm}
-- {type: release_commander_skill, index: 1, name: lightning_storm, target: !area [{x: -8, y: 133}]}
+- {type: release_commander_skill, index: 1, name: lightning_storm, target: {area: [{x: -8, y: 133}]}}
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 0}
 - {type: upgrade_unit, index: 1}
@@ -613,7 +613,7 @@ red:
 - {type: upgrade_unit, index: 12}
 - {type: upgrade_unit, index: 13}
 - {type: active_blueprint, name: sticky_oil_bomb}
-- {type: release_commander_skill, index: 2, name: sticky_oil_bomb, target: !area [{x: -49, y: 13}, {x: 55, y: 12}]}
+- {type: release_commander_skill, index: 2, name: sticky_oil_bomb, target: {area: [{x: -49, y: 13}, {x: 55, y: 12}]}}
 - {type: upgrade_technology, unit: raiden, tech: range_enhancement}
 - {type: buy_unit, name: raiden, position: {x: 80, y: -160}}
 - {type: move_unit, index: 16, position: {x: -80, y: -160}}
@@ -732,7 +732,7 @@ blue:
 - {type: upgrade_unit, index: 24}
 - {type: buy_unit, name: mustang, position: {x: -35, y: -170}}
 - {type: buy_unit, name: mustang, position: {x: -175, y: -170}}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 21}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 21}}
 - {type: active_energy_tower_skill, name: rapid_resupply}
 - {type: upgrade_technology, unit: mustang, tech: missile_interceptor}
 - {type: upgrade_unit, index: 8}
@@ -868,7 +868,7 @@ blue:
 - {type: upgrade_unit, index: 7}
 - {type: upgrade_unit, index: 12}
 - {type: upgrade_unit, index: 1}
-- {type: release_commander_skill, index: 1, name: orbital_bombardment, target: !area [{x: 1, y: 172}]}
+- {type: release_commander_skill, index: 1, name: orbital_bombardment, target: {area: [{x: 1, y: 172}]}}
 - {type: active_energy_tower_skill, name: rapid_resupply}
 - {type: release_contraption, name: shield, position: {x: 3, y: -112}}
 - {type: release_contraption, name: shield, position: {x: 142, y: -114}}
@@ -880,8 +880,8 @@ blue:
 - {type: unlock_unit, name: steel_ball}
 red:
 - {type: choose_reinforce_item, offer: 1, name: ion_blast}
-- {type: release_commander_skill, index: 3, name: ion_blast, target: !area [{x: -89, y: 76}, {x: 89, y: 50}]}
-- {type: release_commander_skill, index: 0, name: orbital_bombardment, target: !area [{x: -1, y: 113}]}
+- {type: release_commander_skill, index: 3, name: ion_blast, target: {area: [{x: -89, y: 76}, {x: 89, y: 50}]}}
+- {type: release_commander_skill, index: 0, name: orbital_bombardment, target: {area: [{x: -1, y: 113}]}}
 - {type: release_contraption, name: shield, position: {x: 114, y: -146}}
 - {type: release_contraption, name: shield, position: {x: -104, y: -149}}
 - {type: release_contraption, name: shield, position: {x: 6, y: -148}}

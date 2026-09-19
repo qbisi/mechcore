@@ -438,13 +438,13 @@ slot and a slot the state does not carry cannot be resolved.
           cooldown: 0
           release:
             order: 1
-            target: !area [{x: 50, y: 44}, {x: 189, y: 38}]
+            target: {area: [{x: 50, y: 44}, {x: 189, y: 38}]}
         - index: 3
           name: field_recovery
           cooldown: 0
           release:
             order: 2
-            target: !unit 12
+            target: {unit: 12}
 ```
 
 `index` is the position at which the skill joined the panel, and it is the key a

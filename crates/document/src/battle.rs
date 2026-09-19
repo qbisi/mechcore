@@ -253,6 +253,7 @@ pub struct PanelSkill {
 #[serde(deny_unknown_fields)]
 pub struct Release {
     pub order: i32,
+    #[serde(with = "serde_yaml::with::singleton_map")]
     pub target: SkillTarget,
 }
 
@@ -370,6 +371,7 @@ pub enum Action {
         index: i32,
         #[serde(rename = "name", with = "crate::names::commander_skill::one")]
         id: i32,
+        #[serde(with = "serde_yaml::with::singleton_map")]
         target: SkillTarget,
     },
     ReleaseContraption {
@@ -386,7 +388,9 @@ pub enum Action {
     Concede,
 }
 
-/// A release covers an area or points at one object, never both.
+/// A release covers an area or points at one object, never both. A document
+/// writes it as a one-key mapping, `{unit: 4}` or `{area: [...]}`, which every
+/// YAML and JSON reader takes, rather than `serde_yaml`'s `!unit 4` tag.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTarget {
@@ -397,12 +401,10 @@ pub enum SkillTarget {
 
 impl<'de> Deserialize<'de> for Action {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // Serde reads an internally tagged enum through a buffer that cannot
-        // hold a YAML tag, so `target: !area [...]` fails there. The value is
-        // read first, and each tag is spelled as the one-key mapping that
-        // buffer does hold, which is how the derived reader takes an enum.
-        let value = name_technology(untag(Value::deserialize(deserializer)?))
-            .map_err(serde::de::Error::custom)?;
+        // A technology's name is resolved against the unit beside it, so the
+        // value is read first and the name replaced by its ID.
+        let value =
+            name_technology(Value::deserialize(deserializer)?).map_err(serde::de::Error::custom)?;
         ActionReader::deserialize(value).map_err(serde::de::Error::custom)
     }
 }
@@ -475,6 +477,7 @@ enum ActionReader {
         index: i32,
         #[serde(rename = "name", with = "crate::names::commander_skill::one")]
         id: i32,
+        #[serde(with = "serde_yaml::with::singleton_map")]
         target: SkillTarget,
     },
     ReleaseContraption {
@@ -510,30 +513,6 @@ fn name_technology(mut value: Value) -> Result<Value, String> {
         .map_err(|error| error.to_string())?;
     fields.insert("tech".into(), Value::Number(id.into()));
     Ok(value)
-}
-
-/// Spells every YAML tag in `value` as a one-key mapping from the tag's name.
-fn untag(value: Value) -> Value {
-    match value {
-        Value::Tagged(tagged) => {
-            let tagged = *tagged;
-            let name = tagged.tag.to_string();
-            let mut mapping = serde_yaml::Mapping::new();
-            mapping.insert(
-                Value::String(name.trim_start_matches('!').to_owned()),
-                untag(tagged.value),
-            );
-            Value::Mapping(mapping)
-        }
-        Value::Sequence(items) => Value::Sequence(items.into_iter().map(untag).collect()),
-        Value::Mapping(fields) => Value::Mapping(
-            fields
-                .into_iter()
-                .map(|(key, field)| (key, untag(field)))
-                .collect(),
-        ),
-        other => other,
-    }
 }
 
 /// Segment framing has already been checked by `segments`; payload readers
@@ -938,13 +917,18 @@ fn conceded(actions: &Value, round: i32) -> Result<bool, String> {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn actions_read_tagged_targets_and_refuse_lost_operands() {
-        for target in ["!area [{x: 10, y: -20}]", "!unit 4", "!construction 2"] {
+    fn actions_read_targets_and_refuse_lost_operands() {
+        for target in [
+            "{area: [{x: 10, y: -20}]}",
+            "{unit: 4}",
+            "{construction: 2}",
+        ] {
             let yaml = format!(
                 "{{type: release_commander_skill, index: 3, name: missile_strike, target: {target}}}"
             );
             let action: super::Action = serde_yaml::from_str(&yaml).unwrap();
             let spelled = serde_yaml::to_string(&action).unwrap();
+            assert!(!spelled.contains('!'), "{spelled}");
             assert_eq!(
                 serde_yaml::from_str::<super::Action>(&spelled).unwrap(),
                 action
@@ -952,10 +936,11 @@ mod tests {
         }
         for yaml in [
             "{type: buy_unit, name: marksman}",
-            "{type: release_commander_skill, index: 0, target: !unit 4}",
+            "{type: release_commander_skill, index: 0, target: {unit: 4}}",
+            "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
             "{type: upgrade_unit, index: 0, typo: 1}",
-            "{type: release_commander_skill, index: 0, name: missile_strike, target: !unknown 1}",
+            "{type: release_commander_skill, index: 0, name: missile_strike, target: {unknown: 1}}",
             "{type: unknown_action}",
         ] {
             assert!(
@@ -1215,7 +1200,7 @@ mod tests {
     #[test]
     fn a_state_segment_carries_no_release() {
         let released = format!(
-            "{HEADER}{OPENING}---\nkind: state\nround: 1\nsides:\n  blue:\n    battle_skills:\n    - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: !unit 4}}}}\n"
+            "{HEADER}{OPENING}---\nkind: state\nround: 1\nsides:\n  blue:\n    battle_skills:\n    - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: {{unit: 4}}}}}}\n"
         );
         assert!(
             read(&released)
@@ -1224,11 +1209,10 @@ mod tests {
         );
     }
 
-    /// The spelling follows the three rules and says what the value says, a
-    /// tagged release target included.
+    /// The spelling follows the three rules and says what the value says.
     #[test]
     fn a_segment_is_spelled_by_shape() {
-        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    units:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    units:\n    - type: release_commander_skill\n      target: !area\n      - x: 197\n        y: -40\n    - type: concede\n";
+        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    units:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    units:\n    - type: release_commander_skill\n      target:\n        area:\n        - x: 197\n          y: -40\n    - type: concede\n";
         let value: serde_yaml::Value = serde_yaml::from_str(block).unwrap();
         let spelled = crate::spelling::document(&value).unwrap();
         assert_eq!(
@@ -1238,7 +1222,7 @@ mod tests {
              \x20   next_index: {unit: 7, contraption: 0}\n    units:\n\
              \x20   - {type: vortex, index: 0, position: {x: -120, y: -100}}\n\
              \x20   constructions: []\n  red:\n    units:\n\
-             \x20   - {type: release_commander_skill, target: !area [{x: 197, y: -40}]}\n\
+             \x20   - {type: release_commander_skill, target: {area: [{x: 197, y: -40}]}}\n\
              \x20   - {type: concede}\n"
         );
         assert_eq!(

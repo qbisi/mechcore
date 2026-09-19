@@ -27,7 +27,7 @@ round: 7
 blue:
 - {type: choose_reinforce_item, offer: 3, name: sledgehammer_2x_lv2}
 - {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
 red:
 - ...
 ```
@@ -50,7 +50,7 @@ contraption taken, fitted or released. It is the name [`state.md`](state.md#name
 gives that kind, and never an ID. `upgrade_technology` is the one decision about
 two named things, and says `unit` and `tech`. Every other operand is a 32-bit
 integer or a position, except `release_commander_skill`'s target, which is a
-tagged union, and `rotated`, which is a boolean defaulting to false.
+one-key mapping, and `rotated`, which is a boolean defaulting to false.
 
 Four keys are not always present. `choose_reinforce_item` omits `name` when the
 offer was declined, `choose_advance_team` omits `specialist` when the opening is
@@ -338,7 +338,7 @@ one whose moves took it there.
 ### `release_commander_skill`
 
 ```yaml
-- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
 ```
 
 Releases the skill in panel slot `index`, which holds the skill `name`. The slot
@@ -347,13 +347,17 @@ beside it so that a release reads without the panel. A release whose slot does
 not hold that skill at that point in the round is refused, and the panel can change
 within a round, since a card or a blueprint adds a skill to it.
 
-`target` is a tagged union with exactly one of three forms, never two:
+`target` is a mapping with exactly one of three keys, never two:
 
 | Form | Means |
 | --- | --- |
-| `!area [{x, y}, ...]` | the points the skill covers, in order |
-| `!unit <index>` | one of the side's own units |
-| `!construction <index>` | one of the side's own constructions |
+| `{area: [{x, y}, ...]}` | the points the skill covers, in order |
+| `{unit: <index>}` | one of the side's own units |
+| `{construction: <index>}` | one of the side's own constructions |
+
+The key names the kind of target, as the list the index points into is named,
+and the form is plain YAML rather than a tag such as `!unit 4`, so any YAML or
+JSON reader takes a battle as it is.
 
 What a release writes depends on the skill. It may put a construction, a
 retained airdrop shield or a terrain on the board, or take one of the side's own
@@ -370,7 +374,7 @@ position during deployment, so the decision writes that work and marks the slot
 order, and never reaches a layout.
 
 Intensive Training, `1100001`, is one. It targets one of the side's own
-units with `!unit` and fills its experience bar, so `exp` becomes
+units with `{unit: <index>}` and fills its experience bar, so `exp` becomes
 `maximum/maximum`. A full
 unit takes no further share of the experience a fight hands out;
 [the unit experience index](../../rules/unit_experience.md) gives the amount a
@@ -380,7 +384,7 @@ The skill cannot target a unit at level 9 or one whose bar is already
 full, and a decision that does is refused rather than applied.
 
 Redeploy, `1000001`, is the other. It targets one of the side's own units
-with `!unit` and sets its `movable`, so the unit may move for the rest of
+with `{unit: <index>}` and sets its `movable`, so the unit may move for the rest of
 the round.
 
 ### `release_contraption`

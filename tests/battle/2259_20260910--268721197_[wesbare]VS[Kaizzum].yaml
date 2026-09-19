@@ -208,7 +208,7 @@ blue:
 - {type: choose_reinforce_item, offer: 1, name: phoenix_1x_lv1}
 - {type: move_unit, index: 7, position: {x: 90, y: -230}}
 - {type: active_blueprint, name: field_recovery}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 0}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {construction: 0}}
 - {type: unlock_unit, name: vulcan}
 - {type: buy_unit, name: crawler, position: {x: 290, y: -285}, rotated: true}
 - {type: buy_unit, name: crawler, position: {x: -290, y: -285}, rotated: true}
@@ -276,7 +276,7 @@ kind: action
 round: 3
 blue:
 - {type: choose_reinforce_item, offer: 1, name: efficient_giant_manufacturing}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 3}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 3}}
 - {type: buy_unit, name: vulcan, position: {x: 130, y: -120}}
 - {type: buy_unit, name: marksman, position: {x: 80, y: -150}}
 - {type: active_energy_tower_skill, name: mass_recruitment}
@@ -353,7 +353,7 @@ kind: action
 round: 4
 blue:
 - {type: choose_reinforce_item, offer: 1, name: efficient_giant_manufacturing}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 4}}
 - {type: buy_unit, name: vulcan, position: {x: -130, y: -120}}
 - {type: upgrade_technology, unit: vulcan, tech: range_enhancement}
 - {type: unlock_unit, name: fortress}
@@ -653,7 +653,7 @@ blue:
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_technology, unit: vulcan, tech: scorching_fire}
 - {type: upgrade_unit, index: 15}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 19}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 19}}
 - {type: upgrade_technology, unit: marksman, tech: range_enhancement}
 - {type: buy_unit, name: crawler, position: {x: 80, y: -185}, rotated: true}
 - {type: release_contraption, name: missile, position: {x: 0, y: -12}}
@@ -775,7 +775,7 @@ blue:
 - {type: buy_unit, name: fortress, position: {x: -220, y: -120}}
 - {type: active_energy_tower_skill, name: rapid_resupply}
 - {type: active_energy_tower_skill, name: enhanced_range}
-- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 21}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: {unit: 21}}
 - {type: upgrade_unit, index: 6}
 - {type: upgrade_unit, index: 5}
 - {type: upgrade_unit, index: 11}
@@ -783,7 +783,7 @@ blue:
 - {type: release_contraption, name: missile, position: {x: -124, y: -11}}
 red:
 - {type: choose_reinforce_item, offer: 3, name: orbital_bombardment}
-- {type: release_commander_skill, index: 0, name: orbital_bombardment, target: !area [{x: -65, y: 122}]}
+- {type: release_commander_skill, index: 0, name: orbital_bombardment, target: {area: [{x: -65, y: 122}]}}
 - {type: upgrade_unit, index: 17}
 - {type: unlock_unit, name: wasp}
 - {type: buy_unit, name: wasp, position: {x: -225, y: -300}}
