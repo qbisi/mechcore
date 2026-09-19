@@ -41,13 +41,29 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 `rustfmt --check <file>` 与改动前对比来确认。
 
 `.github/workflows/automerge.yml` 在 ci 通过后运行。当一个 PR 的每一条提交都
-带 `Co-Authored-By: Claude` 落款、来自本仓库的分支、不是草稿、且该 commit 上
-的其它检查也全绿时，它直接合并并删除分支。任何一条提交没有落款就不合并：那
-是人写的，由人来合。
+带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、
+来自本仓库的分支、不是草稿、且该 commit 上的其它检查也全绿时，它直接合并
+并删除分支。GPT 与 Claude 的提交可以混合；任何一条提交没有上述署名，就留
+给人来合并。
 
 # 提交规范
 
 提交信息用英文写，仓库现有日志是英文。
+
+## 智能体署名
+
+智能体或模型创建的每一条提交，都必须在提交信息末尾用 `Co-Authored-By`
+署上自己的真实模型名称；知道具体型号时写明型号，不冒用其它模型的署名。
+GPT（包括通过 Codex 工作的 GPT）使用以 `GPT` 开头的模型名称，Claude 使用
+以 `Claude` 开头的模型名称，例如：
+
+```text
+Co-Authored-By: GPT-6 <noreply@openai.com>
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+```
+
+只添加实际参与该提交的模型署名；其它模型同样如实署名，但不因此获得自动
+合并资格。修改或压缩提交时也必须保留真实的贡献者署名。
 
 ## 标题
 

@@ -55,12 +55,12 @@ jobs:
             exit 0
           fi
 
-          # Every commit has to be an agent's. One hand-written commit in the
-          # series is a person's work, and a person merges their own.
+          # Every commit needs a GPT or Claude co-author, optionally including
+          # its model version. Match a trailer line, not a mention in prose.
           authored=$(gh api --paginate "repos/$REPOSITORY/pulls/$number/commits" \
-            --jq '.[] | .commit.message | test("Co-Authored-By: Claude"; "i")')
+            --jq '.[] | .commit.message | test("(^|\\n)Co-Authored-By:[ \\t]+(GPT|Claude)([- \\t\\r\\n]|$)"; "i")')
           if [ -z "$authored" ] || grep -qx false <<<"$authored"; then
-            echo "#$number carries a commit no agent co-authored"
+            echo "#$number carries a commit without a GPT or Claude co-author"
             exit 0
           fi
 
@@ -78,4 +78,5 @@ jobs:
             exit 0
           fi
 
-          gh pr merge "$number" --repo "$REPOSITORY" --merge --delete-branch
+          gh pr merge "$number" --repo "$REPOSITORY" --merge --delete-branch \
+            --match-head-commit "$HEAD_SHA"
