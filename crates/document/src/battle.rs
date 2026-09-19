@@ -71,9 +71,9 @@ pub struct Opening {
 
 /// One of the openings a side was dealt: a team of formations and the
 /// specialist officer bound to it.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct OpeningOffer {
-    /// Written as the team's name: its two unit types, or the officer it is.
+    /// Written as the team's name, its two unit types.
     #[serde(with = "crate::names::advance_team::one")]
     pub team: i32,
     #[serde(with = "crate::names::officer::one")]
@@ -97,7 +97,7 @@ impl Opening {
         Action::ChooseAdvanceTeam {
             offer: self.choose,
             id: taken.team,
-            specialist: Some(taken.specialist),
+            specialist: taken.specialist,
         }
     }
 }
@@ -308,11 +308,8 @@ pub enum Action {
         offer: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
         id: i32,
-        #[serde(
-            skip_serializing_if = "Option::is_none",
-            with = "crate::names::officer::option"
-        )]
-        specialist: Option<i32>,
+        #[serde(with = "crate::names::officer::one")]
+        specialist: i32,
     },
     /// A purchase and where the new formation is deployed.
     ///
@@ -428,8 +425,8 @@ enum ActionReader {
         offer: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
         id: i32,
-        #[serde(default, with = "crate::names::officer::option")]
-        specialist: Option<i32>,
+        #[serde(with = "crate::names::officer::one")]
+        specialist: i32,
     },
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
@@ -936,6 +933,7 @@ mod tests {
         }
         for yaml in [
             "{type: buy_unit, name: marksman}",
+            "{type: choose_advance_team, offer: 1, name: vortex-fire_badger}",
             "{type: release_commander_skill, index: 0, target: {unit: 4}}",
             "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
@@ -1001,7 +999,7 @@ mod tests {
             Action::ChooseAdvanceTeam {
                 offer: 1,
                 id: 9910,
-                specialist: Some(20005),
+                specialist: 20005,
             },
             Action::BuyUnit {
                 unit: 2,

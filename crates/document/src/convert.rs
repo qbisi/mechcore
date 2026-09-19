@@ -1199,7 +1199,7 @@ mod tests {
                 Action::ChooseAdvanceTeam {
                     offer: side.choose,
                     id: team,
-                    specialist: Some(specialist),
+                    specialist,
                 }
             );
         }

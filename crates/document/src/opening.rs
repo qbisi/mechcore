@@ -537,7 +537,7 @@ pub struct StatedOpening {
     /// The zero-based `offer` the decision names.
     pub choose: i32,
     /// The team and specialist the decision says that offer holds.
-    pub taken: Option<OpeningOffer>,
+    pub taken: OpeningOffer,
 }
 
 impl StatedSide {
@@ -572,10 +572,10 @@ impl StatedOpening {
         };
         Ok(Self {
             choose: *offer,
-            taken: specialist.map(|specialist| OpeningOffer {
+            taken: OpeningOffer {
                 team: *id,
-                specialist,
-            }),
+                specialist: *specialist,
+            },
         })
     }
 }
@@ -655,7 +655,7 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
                 side.opening.choose
             ));
         };
-        if side.opening.taken != Some(offered) {
+        if side.opening.taken != offered {
             return Err(format!(
                 "{name} opening offer {} holds team {} and specialist {}, \
                  and the decision names {:?}",

@@ -52,9 +52,8 @@ two named things, and says `unit` and `tech`. Every other operand is a 32-bit
 integer or a position, except `release_commander_skill`'s target, which is a
 one-key mapping, and `rotated`, which is a boolean defaulting to false.
 
-Four keys are not always present. `choose_reinforce_item` omits `name` when the
-offer was declined, `choose_advance_team` omits `specialist` when the opening is
-itself an officer, `release_contraption` omits `extra_position` unless the
+Three keys are not always present. `choose_reinforce_item` omits `name` when the
+offer was declined, `release_contraption` omits `extra_position` unless the
 contraption spans two points, and `move_unit` omits `rotated` when it is false.
 
 `index` is a unit's deployment index, or a panel slot in
@@ -154,15 +153,15 @@ give both.
 
 The opening, which is one decision with two halves: the team and the specialist
 officer bound to it. `name` names the team as the header's offers do, and
-`specialist` names the officer. `offer` is the combination's position in the side's
-opening offers, which a battle's header states. `specialist` is optional and
-absent when the team is itself an officer.
+`specialist` names the officer; both are required. `offer` is the combination's
+position in the side's opening offers, which a battle's header states.
 
 It is round zero's only decision, and no other round holds one.
 
-A team of units hands out its force, advancing `next_index.unit` once per squad
-and unlocking each unit type it is made of. A team that is an officer joins
-`officers` instead. The specialist joins `officers` either way. An
+The team hands out its force as round 1 opens, advancing `next_index.unit` once
+per squad and unlocking each unit type it is made of, and the specialist joins
+`officers`. The deal draws a team only from teams of units and a specialist only
+from specialist officers, so a decision pairing anything else is refused. An
 opening also moves `reactor_core`, which is the fight's field and not settled
 here.
 

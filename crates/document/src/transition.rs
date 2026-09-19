@@ -176,22 +176,23 @@ pub fn step_placing(
             let team = economy
                 .advance_team(*id)
                 .ok_or(Unsettled::Unpriced("opening"))?;
+            let officer = economy
+                .advance_team(*specialist)
+                .ok_or(Unsettled::Unpriced("opening"))?;
+            // The deal draws the team half from teams of units and the other
+            // half from specialist officers, so nothing else is an opening.
+            if team.kind != OpeningKind::Units || officer.kind != OpeningKind::Officer {
+                return Err(Unsettled::Refused(
+                    "an opening pairs a team of units with a specialist officer",
+                ));
+            }
             // The opening is one choice with two halves and each half prices
             // the reactor core, so a team and its specialist both move it.
-            next.reactor_core += team.reactor_core
-                + specialist
-                    .filter(|chosen| chosen != id)
-                    .and_then(|chosen| economy.advance_team(chosen))
-                    .map_or(0, |officer| officer.reactor_core);
-            // An opening of formations delivers nothing now. Its squads and
-            // the shop rows they unlock arrive when the first deployment round
-            // opens, which is not a decision and so not a step.
-            if team.kind != OpeningKind::Units {
-                next.officers.push(*id);
-            }
-            if let Some(specialist) = specialist.filter(|chosen| chosen != id) {
-                next.officers.push(specialist);
-            }
+            next.reactor_core += team.reactor_core + officer.reactor_core;
+            // The team delivers nothing now. Its squads and the shop rows they
+            // unlock arrive when the first deployment round opens, which is
+            // not a decision and so not a step.
+            next.officers.push(*specialist);
             next.officers.sort_unstable();
         }
         Action::BuyUnit {
@@ -737,10 +738,10 @@ pub fn before_opening(reactor_core: i32, constructions: Vec<StaticPlacement>) ->
     }
 }
 
-/// Hands out a team of formations, as round 1 opens: each unit type the team
-/// is made of joins the shop, and each of its formations lands at level 1 where
-/// the board puts it, in the team's order. A specialist opening hands out
-/// nothing here; its officer delivers on its own schedule.
+/// Hands out an opening's team, as round 1 opens: each unit type the team is
+/// made of joins the shop, and each of its formations lands at level 1 where
+/// the board puts it, in the team's order. The specialist taken with it hands
+/// out nothing here; its officer delivers on its own schedule.
 fn deliver_team(
     economy: &Economy,
     next: &mut SideState,
@@ -751,7 +752,9 @@ fn deliver_team(
         .advance_team(team)
         .ok_or(Unsettled::Unpriced("opening"))?;
     if team.kind != OpeningKind::Units {
-        return Ok(());
+        return Err(Unsettled::Refused(
+            "an opening pairs a team of units with a specialist officer",
+        ));
     }
     for unit in &team.units {
         unlock(next, *unit);
@@ -1139,7 +1142,7 @@ mod tests {
         let choice = Action::ChooseAdvanceTeam {
             offer: 2,
             id: 9891,
-            specialist: Some(10002),
+            specialist: 10002,
         };
         let opened = super::predict(&economy, 0, &before, &[choice], true, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
@@ -1521,13 +1524,34 @@ mod tests {
         let chosen = Action::ChooseAdvanceTeam {
             offer: 2,
             id: 9890,
-            specialist: Some(20005),
+            specialist: 20005,
         };
         let next = step(&economy, &state, &chosen).unwrap();
         assert_eq!(next.reactor_core, 100);
         assert!(next.units.is_empty());
         assert_eq!(next.next_index.unit, 0);
         assert_eq!(next.officers, vec![20005]);
+    }
+
+    /// An opening is a team of units and a specialist officer, and a decision
+    /// pairing anything else is refused rather than settled.
+    #[test]
+    fn an_opening_pairs_a_team_with_a_specialist() {
+        let economy = Economy::embedded().unwrap();
+        for (id, specialist) in [(20005, 9890), (9890, 9891), (20005, 20032)] {
+            let chosen = Action::ChooseAdvanceTeam {
+                offer: 0,
+                id,
+                specialist,
+            };
+            assert_eq!(
+                step(&economy, &SideState::default(), &chosen),
+                Err(Unsettled::Refused(
+                    "an opening pairs a team of units with a specialist officer"
+                )),
+                "{id} with {specialist}"
+            );
+        }
     }
 
     /// The specialist half prices the core as well as the team half.
@@ -1537,7 +1561,7 @@ mod tests {
         let chosen = Action::ChooseAdvanceTeam {
             offer: 0,
             id: 9890,
-            specialist: Some(20032),
+            specialist: 20032,
         };
         let next = step(&economy, &SideState::default(), &chosen).unwrap();
         assert_eq!(next.reactor_core, 600);

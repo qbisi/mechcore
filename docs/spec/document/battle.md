@@ -227,9 +227,9 @@ above `2000`; it is resolved against the build's catalogue.
 
 The opening is the first action segment, and it holds one
 `choose_advance_team` per side and nothing else. `offer` is the zero-based
-position of the combination taken in that side's header `offers`, and `id` and
+position of the combination taken in that side's header `offers`, and `name` and
 `specialist` name the team and specialist that combination holds. A decision
-whose `id` and `specialist` are not what its offer holds is refused.
+whose `name` and `specialist` are not what its offer holds is refused.
 
 Round zero has no state segment because the header is its position, and the
 first state segment is round 1, which already shows what the opening delivered.
