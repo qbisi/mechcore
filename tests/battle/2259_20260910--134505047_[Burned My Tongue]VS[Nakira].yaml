@@ -105,7 +105,7 @@ sides:
     reactor_core: 3900
     supply: 200
     shop:
-      unlocked_units: [15, 21]
+      unlocked_units: [5, 15, 21]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [20033]
     formations:
-    - {type: arclight, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: arclight, index: 1, position: {x: -20, y: -160}, value: 100}
-    - {type: arclight, index: 2, position: {x: 0, y: -180}, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -25, y: -185}, value: 200}
-    - {type: sabertooth, index: 4, position: {x: -5, y: -135}, value: 200}
+    - {type: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
+    - {type: arclight, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: sabertooth, index: 3, position: {x: -25, y: -185}, value: 200, movable: true}
+    - {type: sabertooth, index: 4, position: {x: -5, y: -135}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
@@ -129,15 +129,17 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
+    battle_skills:
+    - {index: 0, id: 1100001, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
     techs:
       officers: [10014]
     formations:
-    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100}
-    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100}
-    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -5, y: -120}, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -5, y: -200}, value: 200}
+    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
+    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
+    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
+    - {type: steel_ball, index: 3, position: {x: -5, y: -120}, value: 200, movable: true}
+    - {type: steel_ball, index: 4, position: {x: -5, y: -200}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -339,7 +341,7 @@ sides:
       unlocks_remaining: 1
     blueprints: [4, 5]
     tower_strengthen_levels: [0, 0]
-    next_index: {unit: 13, contraption: 0}
+    next_index: {unit: 14, contraption: 0}
     techs:
       officers: [20033]
       units: [10915]
@@ -357,6 +359,7 @@ sides:
     - {type: phoenix, index: 10, position: {x: 140, y: -250}, level: 2, exp: 586/2929, rotated: true, value: 200}
     - {type: arclight, index: 11, position: {x: 280, y: -120}, exp: 320/750, value: 100}
     - {type: arclight, index: 12, position: {x: -120, y: -120}, exp: 162/750, value: 100}
+    - {type: rhino, index: 13, position: {x: -5, y: -165}, level: 2, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

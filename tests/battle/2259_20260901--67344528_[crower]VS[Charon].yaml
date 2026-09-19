@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [10011]
     formations:
-    - {type: fang, index: 0, position: {x: 5, y: -160}, value: 100}
-    - {type: fang, index: 1, position: {x: 5, y: -180}, value: 100}
-    - {type: fang, index: 2, position: {x: 5, y: -140}, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -35, y: -165}, value: 200}
-    - {type: sabertooth, index: 4, position: {x: -5, y: -205}, value: 200}
+    - {type: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
+    - {type: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
+    - {type: fang, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
+    - {type: sabertooth, index: 3, position: {x: -35, y: -165}, value: 200, movable: true}
+    - {type: sabertooth, index: 4, position: {x: -5, y: -205}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -133,11 +133,11 @@ sides:
     techs:
       officers: [20024]
     formations:
-    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: hound, index: 1, position: {x: 0, y: -140}, value: 100}
-    - {type: hound, index: 2, position: {x: 0, y: -180}, value: 100}
-    - {type: mustang, index: 3, position: {x: -5, y: -120}, value: 200}
-    - {type: mustang, index: 4, position: {x: -5, y: -200}, value: 200}
+    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: mustang, index: 3, position: {x: -5, y: -120}, value: 200, movable: true}
+    - {type: mustang, index: 4, position: {x: -5, y: -200}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -211,6 +211,9 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
+    battle_skills:
+    - {index: 0, id: 300001, cooldown: 0}
+    - {index: 1, id: 300001, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
     techs:
       officers: [10011]
@@ -434,7 +437,7 @@ sides:
       officers: [20024]
       units: [425]
     formations:
-    - {type: hound, index: 0, position: {x: -350, y: 290}, exp: 750/750, equipment: 13040001, value: 100}
+    - {type: hound, index: 0, position: {x: -350, y: 290}, exp: 750/750, equipment: 13040001, value: 100, movable: true}
     - {type: hound, index: 1, position: {x: -120, y: -190}, exp: 750/750, value: 100}
     - {type: hound, index: 2, position: {x: 0, y: -190}, exp: 294/750, value: 100}
     - {type: crawler, index: 5, position: {x: -135, y: -300}, exp: 134/450, value: 100}
@@ -541,7 +544,7 @@ sides:
     - {type: crawler, index: 5, position: {x: -135, y: -300}, exp: 435/450, value: 100}
     - {type: crawler, index: 6, position: {x: 135, y: -300}, exp: 122/450, value: 100}
     - {type: tarantula, index: 7, position: {x: 235, y: -25}, exp: 335/1500, value: 200}
-    - {type: phantom_ray, index: 8, position: {x: -245, y: -300}, level: 2, exp: 1805/2253, equipment: 13040001, value: 200}
+    - {type: phantom_ray, index: 8, position: {x: -245, y: -300}, level: 2, exp: 1805/2253, equipment: 13040001, value: 200, movable: true}
     - {type: phantom_ray, index: 9, position: {x: 275, y: -60}, level: 2, exp: 674/2253, value: 200}
     - {type: phantom_ray, index: 10, position: {x: 270, y: -285}, exp: 605/1000, rotated: true, value: 200}
     - {type: crawler, index: 11, position: {x: 310, y: 285}, value: 100}
@@ -648,7 +651,7 @@ sides:
     - {type: crawler, index: 5, position: {x: -135, y: -300}, exp: 435/450, value: 100}
     - {type: crawler, index: 6, position: {x: 135, y: -300}, exp: 173/450, value: 100}
     - {type: tarantula, index: 7, position: {x: 235, y: -25}, exp: 408/1500, value: 200}
-    - {type: phantom_ray, index: 8, position: {x: -335, y: 300}, level: 2, exp: 1805/2253, rotated: true, equipment: 13040001, value: 200}
+    - {type: phantom_ray, index: 8, position: {x: -335, y: 300}, level: 2, exp: 1805/2253, rotated: true, equipment: 13040001, value: 200, movable: true}
     - {type: phantom_ray, index: 10, position: {x: 270, y: -285}, exp: 786/1000, rotated: true, value: 200}
     - {type: crawler, index: 11, position: {x: 310, y: 285}, value: 100}
     - {type: crawler, index: 12, position: {x: 275, y: -20}, exp: 124/450, value: 100}
@@ -761,7 +764,7 @@ sides:
     - {type: hound, index: 2, position: {x: 0, y: -190}, exp: 750/750, value: 100}
     - {type: crawler, index: 5, position: {x: -135, y: -300}, exp: 435/450, value: 100}
     - {type: crawler, index: 6, position: {x: 135, y: -300}, exp: 179/450, value: 100}
-    - {type: tarantula, index: 7, position: {x: -75, y: -25}, exp: 565/1500, equipment: 13040001, value: 200}
+    - {type: tarantula, index: 7, position: {x: -75, y: -25}, exp: 565/1500, equipment: 13040001, value: 200, movable: true}
     - {type: phantom_ray, index: 10, position: {x: 270, y: -285}, exp: 786/1000, rotated: true, value: 200}
     - {type: crawler, index: 11, position: {x: 310, y: 285}, value: 100}
     - {type: crawler, index: 12, position: {x: 275, y: -20}, exp: 124/450, value: 100}
@@ -887,7 +890,7 @@ sides:
     - {type: hound, index: 2, position: {x: 0, y: -190}, exp: 750/750, value: 100}
     - {type: crawler, index: 5, position: {x: -135, y: -300}, exp: 450/450, value: 100}
     - {type: crawler, index: 6, position: {x: 135, y: -300}, exp: 254/450, value: 100}
-    - {type: tarantula, index: 7, position: {x: 5, y: -45}, exp: 601/1500, equipment: 13040001, value: 200}
+    - {type: tarantula, index: 7, position: {x: 5, y: -45}, exp: 601/1500, equipment: 13040001, value: 200, movable: true}
     - {type: phantom_ray, index: 10, position: {x: 270, y: -285}, exp: 1000/1000, rotated: true, value: 200}
     - {type: crawler, index: 11, position: {x: 310, y: 285}, value: 100}
     - {type: crawler, index: 12, position: {x: 275, y: -20}, exp: 450/450, value: 100}

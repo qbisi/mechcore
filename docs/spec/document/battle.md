@@ -288,7 +288,9 @@ cross-round.
 ### What a round reproduces
 
 Applying a round's decisions to its state has to reproduce the state the next
-round opens with, in everything the fight does not decide. That application is a
+round opens with, in everything the fight does not decide. That position holds
+what the next round's officers deliver as it opens, so applying a round delivers
+those too. That application is a
 function rather than a comparison: it takes a position, a round and the round's
 decisions, and returns the nine fields below. Checking a round is then reading
 the same nine out of the next state and comparing.
@@ -431,7 +433,7 @@ after conceding, a round follows a concession, or both sides concede is refused.
 
 ### What conversion rebuilds
 
-Most fields are copied. Four are not, and each is argued in the document that
+Most fields are copied. Six are not, and each is argued in the document that
 owns it:
 
 | Field | Why it is rebuilt |
@@ -440,6 +442,8 @@ owns it:
 | `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder, so the allowance is read back from the next snapshot plus what this round spent |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the formations already name |
+| `movable` | No recorded field states it. Every formation of round 1 arrived with the opening, and a delivery arrived as its round opened; any other formation moves only if a Deployment Module or a Jump Drive frees it |
+| Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
 The last round has no next snapshot to read the shop allowance from, so it falls
 back to the shipped constants, two and one.

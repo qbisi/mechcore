@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [10002]
     formations:
-    - {type: void_eye, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: void_eye, index: 1, position: {x: 0, y: -180}, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: fire_badger, index: 3, position: {x: 5, y: -200}, value: 200}
-    - {type: fire_badger, index: 4, position: {x: 5, y: -120}, value: 200}
+    - {type: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: fire_badger, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {type: fire_badger, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -129,15 +129,17 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
+    battle_skills:
+    - {index: 0, id: 1100001, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
     techs:
       officers: [10014]
     formations:
-    - {type: arclight, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: arclight, index: 1, position: {x: 20, y: -160}, value: 100}
-    - {type: arclight, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 25, y: -135}, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 5, y: -185}, value: 200}
+    - {type: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
+    - {type: arclight, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: sabertooth, index: 3, position: {x: 25, y: -135}, value: 200, movable: true}
+    - {type: sabertooth, index: 4, position: {x: 5, y: -185}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

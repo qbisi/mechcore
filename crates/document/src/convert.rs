@@ -336,7 +336,7 @@ fn side_state(
     let data = &entry.data;
     let round = entry.round;
 
-    let formations = formations(data, seat)?;
+    let mut formations = formations(data, seat)?;
     let constructions = constructions(data, seat)?;
     let contraptions = contraptions(data, seat)?;
 
@@ -383,10 +383,18 @@ fn side_state(
         .collect();
     units.sort_unstable();
 
+    // Every formation of round 1 arrived as it opened, with the opening. A
+    // later round's snapshot is taken before that round's deliveries, which are
+    // made below and arrive free to move, so what the snapshot holds was on the
+    // board last round and moves only if something frees it.
+    for entry in &mut formations {
+        entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &units);
+    }
+
     let mut unlocked_units = data.shop.unlocked_units.values.clone();
     unlocked_units.sort_unstable();
 
-    Ok(SideState {
+    let snapshot = SideState {
         reactor_core: data.reactor_core,
         supply: data.supply + round_income(economy, player, position, seat)?,
         shop: ShopState {
@@ -410,7 +418,15 @@ fn side_state(
         contraptions,
         airdrop_shields: retained.airdrop_shields,
         terrains: retained.terrains,
-    })
+    };
+
+    // The snapshot is taken before the round's deliveries, which the game
+    // makes as the round opens and before either side decides anything. They
+    // belong to the position the round opens with, so they are made here, and
+    // each lands where the board puts it.
+    let mut placement = crate::landing::placement(seat == Seat::Red);
+    crate::transition::open_round(economy, &snapshot, round, &mut placement)
+        .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
 }
 
 /// The unit roster, as the layout formations a projection would keep.
@@ -421,6 +437,8 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
         formations.push(StateFormation {
             value: Some(unit.sell_supply),
+            // Settled by `side_state`, which knows the round.
+            movable: false,
             formation: Formation {
             type_name: type_name.to_owned(),
             index: unit.index,
@@ -848,6 +866,9 @@ mod tests {
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
     const CRBN: &str = "../../tests/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
+    const READING: &str =
+        "../../tests/grbr/2259_20260910--134505087_[Dr.Reading♠Ace]VS[Burned My Tongue].grbr";
+    const BORK: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
     const THORRRIN: &str = "../../tests/grbr/2259_20260911--134508150_[Thorrrin]VS[占星].grbr";
 
     fn tuff() -> super::Battle {
@@ -1358,6 +1379,61 @@ mod tests {
         assert!(error.contains("decided [1]"), "{error}");
     }
 
+    /// A round opens with what its officers deliver, which the replay's
+    /// snapshot of that round was taken too early to hold.
+    ///
+    /// Longbow Specialist hands `[Dr.Reading♠Ace]`'s blue a rank 3 Marksman as
+    /// round 2 opens. It takes the next index, lands at the main region's
+    /// centre, and may move, since it arrived this round. The native opening
+    /// of that round holds exactly this.
+    #[test]
+    fn a_round_opens_with_what_its_officers_deliver() {
+        let battle = battle_from_grbr(&std::fs::read(READING).unwrap()).unwrap();
+        let opened = &round(&battle, 2).state.sides.blue;
+        let delivered = opened
+            .formations
+            .iter()
+            .find(|entry| entry.formation.index == 7)
+            .expect("the delivered squad");
+        assert_eq!(delivered.formation.type_name, "marksman");
+        assert_eq!(delivered.formation.level, Some(3));
+        assert_eq!(delivered.formation.position, Position { x: 0, y: -160 });
+        assert!(delivered.movable);
+        assert_eq!(opened.next_index.unit, 8);
+        // Round 1 opens with the specialist's unit already in the shop.
+        assert!(
+            round(&battle, 1)
+                .state
+                .sides
+                .blue
+                .shop
+                .unlocked_units
+                .contains(&2)
+        );
+    }
+
+    /// A delivered squad lands where the board puts it even when nothing the
+    /// replay records says where that was.
+    ///
+    /// `[crower]VS[[BORK]  Caine]` red recovers its round 4 Typhoon before
+    /// moving it, so no move and no later snapshot names its landing. The
+    /// board's rule does, and the native opening agrees: red's local
+    /// `(0, -160)`.
+    #[test]
+    fn a_delivery_the_round_never_moved_still_lands() {
+        let battle = battle_from_grbr(&std::fs::read(BORK).unwrap()).unwrap();
+        let delivered = round(&battle, 4)
+            .state
+            .sides
+            .red
+            .formations
+            .iter()
+            .find(|entry| entry.formation.index == 12)
+            .expect("the delivered squad");
+        assert_eq!(delivered.formation.type_name, "typhoon");
+        assert_eq!(delivered.formation.position, Position { x: 0, y: -160 });
+    }
+
     /// Conceding is a decision, and the last one its side takes.
     ///
     /// Red concedes in round 9 of `[Dr. crbN]VS[trevorism]`, which is the last
@@ -1435,7 +1511,7 @@ mod tests {
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
-            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100}\n"
+            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
         assert!(yaml.contains("\n- {type: buy_unit, unit: "));
         assert!(!yaml.contains("\n- type: "));

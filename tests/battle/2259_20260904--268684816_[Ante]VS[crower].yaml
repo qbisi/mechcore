@@ -105,7 +105,7 @@ sides:
     reactor_core: 4400
     supply: 200
     shop:
-      unlocked_units: [8, 28]
+      unlocked_units: [8, 22, 28]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [20039]
     formations:
-    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: hound, index: 1, position: {x: 0, y: -180}, value: 100}
-    - {type: hound, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: steel_ball, index: 3, position: {x: 5, y: -200}, value: 200}
-    - {type: steel_ball, index: 4, position: {x: 5, y: -120}, value: 200}
+    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: steel_ball, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {type: steel_ball, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
@@ -133,11 +133,11 @@ sides:
     techs:
       officers: [10002]
     formations:
-    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: vortex, index: 1, position: {x: 20, y: -160}, value: 100}
-    - {type: vortex, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: fire_badger, index: 3, position: {x: -5, y: -180}, value: 200}
-    - {type: fire_badger, index: 4, position: {x: -35, y: -160}, value: 200}
+    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
+    - {type: vortex, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: fire_badger, index: 3, position: {x: -5, y: -180}, value: 200, movable: true}
+    - {type: fire_badger, index: 4, position: {x: -35, y: -160}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
@@ -358,7 +358,7 @@ sides:
     battle_skills:
     - {index: 0, id: 900001, cooldown: 0}
     - {index: 1, id: 1000001, cooldown: 0}
-    next_index: {unit: 13, contraption: 0}
+    next_index: {unit: 14, contraption: 0}
     techs:
       officers: [20039]
       units: [425]
@@ -376,6 +376,7 @@ sides:
     - {type: crawler, index: 10, position: {x: -275, y: -20}, exp: 450/450, value: 100}
     - {type: phantom_ray, index: 11, position: {x: 330, y: 285}, exp: 204/1000, value: 200}
     - {type: hound, index: 12, position: {x: 280, y: -190}, exp: 149/750, value: 100}
+    - {type: typhoon, index: 13, position: {x: 0, y: -160}, value: 300, movable: true}
   red:
     reactor_core: 3479
     supply: 900

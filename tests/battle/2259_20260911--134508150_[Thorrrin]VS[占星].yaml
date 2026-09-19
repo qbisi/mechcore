@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [10011]
     formations:
-    - {type: crawler, index: 0, position: {x: 5, y: -160}, value: 100}
-    - {type: crawler, index: 1, position: {x: 5, y: -180}, value: 100}
-    - {type: crawler, index: 2, position: {x: 5, y: -140}, value: 100}
-    - {type: fire_badger, index: 3, position: {x: 5, y: -200}, value: 200}
-    - {type: fire_badger, index: 4, position: {x: 5, y: -120}, value: 200}
+    - {type: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
+    - {type: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
+    - {type: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
+    - {type: fire_badger, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {type: fire_badger, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -133,11 +133,11 @@ sides:
     techs:
       officers: [20021]
     formations:
-    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100}
-    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100}
-    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 35, y: -155}, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 5, y: -115}, value: 200}
+    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
+    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
+    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
+    - {type: sabertooth, index: 3, position: {x: 35, y: -155}, value: 200, movable: true}
+    - {type: sabertooth, index: 4, position: {x: 5, y: -115}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -195,6 +195,8 @@ sides:
     tower_strengthen_levels: [0, 0]
     battle_skills:
     - {index: 0, id: 900001, cooldown: 0}
+    - {index: 1, id: 300001, cooldown: 0}
+    - {index: 2, id: 300001, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
     techs:
       officers: [10011]

@@ -111,11 +111,11 @@ sides:
     techs:
       officers: [10010]
     formations:
-    - {type: void_eye, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: void_eye, index: 1, position: {x: 0, y: -180}, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: fire_badger, index: 3, position: {x: 5, y: -200}, value: 200}
-    - {type: fire_badger, index: 4, position: {x: 5, y: -120}, value: 200}
+    - {type: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: fire_badger, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {type: fire_badger, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -130,11 +130,11 @@ sides:
     techs:
       officers: [20024]
     formations:
-    - {type: arclight, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: arclight, index: 1, position: {x: 20, y: -160}, value: 100}
-    - {type: arclight, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 25, y: -135}, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 5, y: -185}, value: 200}
+    - {type: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
+    - {type: arclight, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: sabertooth, index: 3, position: {x: 25, y: -135}, value: 200, movable: true}
+    - {type: sabertooth, index: 4, position: {x: 5, y: -185}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
@@ -353,9 +353,9 @@ sides:
     - {type: crawler, index: 6, position: {x: 250, y: -105}, exp: 177/450, rotated: true, value: 100}
     - {type: fang, index: 7, position: {x: 90, y: -35}, exp: 186/600, rotated: true, value: 100}
     - {type: fang, index: 8, position: {x: 250, y: -35}, exp: 216/600, rotated: true, value: 100}
-    - {type: phoenix, index: 9, position: {x: 100, y: -110}, exp: 404/1300, value: 200}
-    - {type: phoenix, index: 10, position: {x: 210, y: -110}, exp: 866/1300, value: 200}
-    - {type: phoenix, index: 11, position: {x: -310, y: 290}, value: 200}
+    - {type: phoenix, index: 9, position: {x: 100, y: -110}, exp: 404/1300, value: 200, movable: true}
+    - {type: phoenix, index: 10, position: {x: 210, y: -110}, exp: 866/1300, value: 200, movable: true}
+    - {type: phoenix, index: 11, position: {x: -310, y: 290}, value: 200, movable: true}
     - {type: fire_badger, index: 12, position: {x: -225, y: -250}, exp: 180/1400, value: 200}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -446,12 +446,12 @@ sides:
     - {type: crawler, index: 6, position: {x: 250, y: -105}, exp: 241/450, rotated: true, value: 100}
     - {type: fang, index: 7, position: {x: 90, y: -35}, exp: 220/600, rotated: true, value: 100}
     - {type: fang, index: 8, position: {x: 250, y: -35}, exp: 261/600, rotated: true, value: 100}
-    - {type: phoenix, index: 9, position: {x: 160, y: -110}, exp: 1145/1300, value: 200}
-    - {type: phoenix, index: 10, position: {x: 210, y: -110}, exp: 930/1300, value: 200}
-    - {type: phoenix, index: 11, position: {x: 90, y: -110}, exp: 317/1300, value: 200}
+    - {type: phoenix, index: 9, position: {x: 160, y: -110}, exp: 1145/1300, value: 200, movable: true}
+    - {type: phoenix, index: 10, position: {x: 210, y: -110}, exp: 930/1300, value: 200, movable: true}
+    - {type: phoenix, index: 11, position: {x: 90, y: -110}, exp: 317/1300, value: 200, movable: true}
     - {type: fire_badger, index: 12, position: {x: -225, y: -250}, exp: 180/1400, value: 200}
     - {type: fire_badger, index: 13, position: {x: 25, y: -70}, exp: 208/1400, value: 200}
-    - {type: phoenix, index: 14, position: {x: 10, y: -110}, exp: 12/1300, value: 200}
+    - {type: phoenix, index: 14, position: {x: 10, y: -110}, exp: 12/1300, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -571,11 +571,11 @@ sides:
     - {type: crawler, index: 6, position: {x: 250, y: -105}, exp: 450/450, rotated: true, value: 100}
     - {type: fang, index: 7, position: {x: 90, y: -35}, exp: 280/600, rotated: true, value: 100}
     - {type: fang, index: 8, position: {x: 250, y: -35}, exp: 320/600, rotated: true, value: 100}
-    - {type: phoenix, index: 9, position: {x: -250, y: -100}, exp: 1300/1300, rotated: true, value: 200}
-    - {type: phoenix, index: 10, position: {x: -230, y: -100}, exp: 1300/1300, rotated: true, value: 200}
-    - {type: phoenix, index: 11, position: {x: -270, y: -100}, exp: 1300/1300, rotated: true, value: 200}
+    - {type: phoenix, index: 9, position: {x: -250, y: -100}, exp: 1300/1300, rotated: true, value: 200, movable: true}
+    - {type: phoenix, index: 10, position: {x: -230, y: -100}, exp: 1300/1300, rotated: true, value: 200, movable: true}
+    - {type: phoenix, index: 11, position: {x: -270, y: -100}, exp: 1300/1300, rotated: true, value: 200, movable: true}
     - {type: fire_badger, index: 12, position: {x: -225, y: -250}, exp: 180/1400, value: 200}
-    - {type: phoenix, index: 14, position: {x: -290, y: -100}, exp: 1300/1300, rotated: true, value: 200}
+    - {type: phoenix, index: 14, position: {x: -290, y: -100}, exp: 1300/1300, rotated: true, value: 200, movable: true}
     - {type: crawler, index: 15, position: {x: -275, y: -20}, exp: 102/450, value: 100}
     - {type: overlord, index: 16, position: {x: -275, y: -55}, exp: 1750/1750, value: 500}
     constructions:
@@ -695,10 +695,10 @@ sides:
     - {type: crawler, index: 6, position: {x: 250, y: -105}, exp: 450/450, rotated: true, value: 100}
     - {type: fang, index: 7, position: {x: 90, y: -35}, exp: 321/600, rotated: true, value: 100}
     - {type: fang, index: 8, position: {x: 250, y: -35}, exp: 344/600, rotated: true, value: 100}
-    - {type: phoenix, index: 9, position: {x: -250, y: -120}, exp: 1300/1300, rotated: true, value: 200}
-    - {type: phoenix, index: 11, position: {x: -270, y: -120}, exp: 1300/1300, rotated: true, value: 200}
+    - {type: phoenix, index: 9, position: {x: -250, y: -120}, exp: 1300/1300, rotated: true, value: 200, movable: true}
+    - {type: phoenix, index: 11, position: {x: -270, y: -120}, exp: 1300/1300, rotated: true, value: 200, movable: true}
     - {type: fire_badger, index: 12, position: {x: -225, y: -250}, exp: 249/1400, value: 200}
-    - {type: phoenix, index: 14, position: {x: -290, y: -120}, exp: 1300/1300, rotated: true, value: 200}
+    - {type: phoenix, index: 14, position: {x: -290, y: -120}, exp: 1300/1300, rotated: true, value: 200, movable: true}
     - {type: crawler, index: 15, position: {x: -275, y: -20}, exp: 450/450, value: 100}
     - {type: overlord, index: 16, position: {x: -275, y: -55}, level: 2, exp: 2737/3943, value: 500}
     - {type: wraith, index: 17, position: {x: -345, y: 295}, exp: 429/2250, value: 300}

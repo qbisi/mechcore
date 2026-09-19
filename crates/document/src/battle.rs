@@ -166,6 +166,13 @@ pub struct StateFormation {
     pub formation: Formation,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<i32>,
+    /// Whether the side may move the formation this round.
+    ///
+    /// A formation moves in the round it arrives and is fixed after that,
+    /// unless [`crate::mobility`] frees it. The round it arrived in is not
+    /// otherwise part of a position, so the answer is a field.
+    #[serde(skip_serializing_if = "is_false")]
+    pub movable: bool,
 }
 
 /// An owned item no formation carries; a fitted one is named by its formation.

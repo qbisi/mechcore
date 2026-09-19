@@ -105,7 +105,7 @@ sides:
     reactor_core: 4600
     supply: 200
     shop:
-      unlocked_units: [13, 30]
+      unlocked_units: [2, 13, 30]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [20029]
     formations:
-    - {type: void_eye, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: void_eye, index: 1, position: {x: 0, y: -180}, value: 100}
-    - {type: void_eye, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 5, y: -200}, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: 5, y: -120}, value: 200}
+    - {type: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: sledgehammer, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {type: sledgehammer, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -133,11 +133,11 @@ sides:
     techs:
       officers: [20035]
     formations:
-    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: hound, index: 1, position: {x: 0, y: -140}, value: 100}
-    - {type: hound, index: 2, position: {x: 0, y: -180}, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -5, y: -120}, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -5, y: -200}, value: 200}
+    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: steel_ball, index: 3, position: {x: -5, y: -120}, value: 200, movable: true}
+    - {type: steel_ball, index: 4, position: {x: -5, y: -200}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -195,7 +195,7 @@ sides:
     tower_strengthen_levels: [0, 0]
     battle_skills:
     - {index: 0, id: 900001, cooldown: 0}
-    next_index: {unit: 7, contraption: 0}
+    next_index: {unit: 8, contraption: 0}
     techs:
       officers: [20029]
     formations:
@@ -206,6 +206,7 @@ sides:
     - {type: sledgehammer, index: 4, position: {x: 55, y: -100}, exp: 247/1300, value: 200}
     - {type: crawler, index: 5, position: {x: -110, y: -135}, exp: 26/450, rotated: true, value: 100}
     - {type: crawler, index: 6, position: {x: 110, y: -135}, exp: 33/450, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 0, y: -160}, level: 3, value: 100, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
   red:
