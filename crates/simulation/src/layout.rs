@@ -110,7 +110,7 @@ fn compile_side(
             "side {name} airdrop shields are outside the current baseline simulator slice"
         )));
     }
-    side.formations
+    side.units
         .iter()
         .enumerate()
         .map(|(index, formation)| compile_formation(name, team, index, formation, units))
@@ -130,13 +130,13 @@ fn compile_formation(
         || formation.travelling
     {
         return Err(Error::new(format!(
-            "side {side_name} requires level-one, unequipped, non-travelling formations"
+            "side {side_name} requires level-one, unequipped, non-travelling units"
         )));
     }
     let rotated = formation.rotated;
     let rules = units.get(&formation.type_name).ok_or_else(|| {
         Error::new(format!(
-            "side {side_name} formation type {:?} has no unit configuration",
+            "side {side_name} unit type {:?} has no unit configuration",
             formation.type_name
         ))
     })?;
@@ -172,7 +172,7 @@ fn validate_formation_footprint(
         Ok(())
     } else {
         Err(Error::new(format!(
-            "side {side_name} formation type {:?} layout footprint {:?} does not match simulator configuration {:?}",
+            "side {side_name} unit type {:?} layout footprint {:?} does not match simulator configuration {:?}",
             formation.type_name, formation.footprint, configured
         )))
     }
@@ -188,9 +188,9 @@ kind: layout
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ";
 
     fn compile_default(value: &str) -> Result<CompiledLayout> {
@@ -212,8 +212,8 @@ sides:
     #[test]
     fn formation_index_preserves_native_declaration_order_before_seeded_generation() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "formations:\n      - {type: arclight, index: 0, position: {x: 20, y: -100}}\n      - {type: rhino, index: 1, position: {x: -15, y: -105}}",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units:\n      - {name: arclight, index: 0, position: {x: 20, y: -100}}\n      - {name: rhino, index: 1, position: {x: -15, y: -105}}",
         );
         let layout = compile_default(&value).unwrap();
         assert_eq!(layout.placements.len(), 3);
@@ -233,8 +233,8 @@ sides:
     #[test]
     fn rejects_features_not_owned_by_this_slice() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "techs: {units: [10202]}\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "techs: {marksman: [range_enhancement]}\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
         );
         assert!(compile_default(&value).is_err());
     }
@@ -242,8 +242,8 @@ sides:
     #[test]
     fn rejects_constructions_outside_the_baseline_slice() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n    constructions: [{type: defensive_wall, index: 0, position: {x: 140, y: -105}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n    constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
@@ -254,8 +254,8 @@ sides:
     #[test]
     fn rejects_persistent_terrains_outside_simulator_closure() {
         let value = LAYOUT.replace(
-            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n    terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
@@ -266,8 +266,8 @@ sides:
     #[test]
     fn compiles_multi_member_formations_as_one_deployment_placement() {
         let value = LAYOUT.replace(
-            "{type: marksman, index: 0, position: {x: 0, y: -50}}",
-            "{type: crawler, index: 0, position: {x: 5, y: -50}}",
+            "{name: marksman, index: 0, position: {x: 0, y: -50}}",
+            "{name: crawler, index: 0, position: {x: 5, y: -50}}",
         );
         let layout = compile_default(&value).unwrap();
         assert_eq!(layout.placements.len(), 2);
@@ -277,8 +277,8 @@ sides:
     #[test]
     fn rotated_formation_swaps_config_footprint_without_rotating_unit_facing() {
         let value = LAYOUT.replace(
-            "{type: arclight, index: 0, position: {x: 0, y: -50}}",
-            "{type: crawler, index: 0, rotated: true, position: {x: 0, y: -105}}",
+            "{name: arclight, index: 0, position: {x: 0, y: -50}}",
+            "{name: crawler, index: 0, rotated: true, position: {x: 0, y: -105}}",
         );
         let layout = compile_default(&value).unwrap();
         let red = &layout.placements[1];

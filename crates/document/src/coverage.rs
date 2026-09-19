@@ -27,7 +27,7 @@ use std::collections::BTreeMap;
 /// has no fight-phase income, which is why `supply` is not here.
 pub const FIGHT: &[&str] = &[
     "reactor_core",
-    "formations.exp",
+    "units.exp",
     "contraptions",
     "terrains",
     "airdrop_shields",
@@ -43,12 +43,12 @@ pub const UNIMPLEMENTED: &[&str] = &[];
 /// A deal checked against the recorded position is a deal of the predicted
 /// one only where these leaves agree on both sides.
 const DEALT_FROM: &[&str] = &[
-    "formations.index",
-    "formations.type",
+    "units.index",
+    "units.name",
     "next_index.unit",
     "shop.unlocked_units",
-    "techs.units",
-    "techs.officers",
+    "techs",
+    "officers",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -157,10 +157,26 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     }
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
+        // What a decline pays is the deal's to say; without the deal a
+        // decline cannot be settled.
+        let declined = deal.ok().and_then(|verified| {
+            verified
+                .rounds
+                .iter()
+                .find(|round| round.round == turn.round)
+                .map(|round| round.declined)
+        });
         let mut dealt_from = true;
         for (side, red) in [("blue", false), ("red", true)] {
             let (state, actions, recorded) = sides(turn, next, red);
-            dealt_from &= coverage.side(economy, turn.round, state, actions, recorded, side);
+            dealt_from &= coverage.side(
+                economy,
+                (turn.round, declined),
+                state,
+                actions,
+                recorded,
+                side,
+            );
         }
         coverage.deal(turn, next, deal.ok(), dealt_from);
     }
@@ -194,7 +210,7 @@ impl Coverage {
             match crate::opening::reactor_core(stated.map_id, seat) {
                 Ok(core) => {
                     let before = before_opening(core, header.constructions.clone());
-                    self.side(economy, 0, &before, actions, recorded, side);
+                    self.side(economy, (0, None), &before, actions, recorded, side);
                 }
                 Err(reason) => {
                     let leaves: Vec<_> = side_leaves(recorded)
@@ -222,7 +238,7 @@ impl Coverage {
     fn side(
         &mut self,
         economy: &Economy,
-        round: i32,
+        (round, declined): (i32, Option<i32>),
         state: &SideState,
         actions: &[Action],
         recorded: &SideState,
@@ -231,7 +247,7 @@ impl Coverage {
         let red = side == "red";
         // Round zero ends in round 1's opening without a fight.
         let fought = round > 0;
-        let predicted = crate::transition::predict(economy, round, state, actions, red);
+        let predicted = crate::transition::predict(economy, round, state, actions, red, declined);
         let (leaves, unpredicted) = match &predicted {
             Ok(predicted) => (compare(predicted, recorded, fought), None),
             Err(reason) => {
@@ -512,6 +528,103 @@ mod tests {
     /// The tracked corpus, by field group, as `[equal, unequal, unimplemented,
     /// fight]`. A change in any count is a change in what the transition
     /// predicts, and has to be made here to pass.
+    /// What the tracked battles hold, field group by field group.
+    fn pinned() -> BTreeMap<String, Counts> {
+        [
+            ("airdrop_shields", [0, 0, 0, 9]),
+            ("battle_skills.cooldown", [1062, 0, 0, 0]),
+            ("battle_skills.index", [1062, 0, 0, 0]),
+            ("battle_skills.name", [1062, 0, 0, 0]),
+            ("blueprints", [433, 0, 0, 0]),
+            ("constructions.index", [794, 0, 0, 0]),
+            ("constructions.name", [794, 0, 0, 0]),
+            ("constructions.position.x", [794, 0, 0, 0]),
+            ("constructions.position.y", [794, 0, 0, 0]),
+            ("contraptions.index", [0, 0, 0, 346]),
+            ("contraptions.name", [0, 0, 0, 346]),
+            ("contraptions.position.x", [0, 0, 0, 346]),
+            ("contraptions.position.y", [0, 0, 0, 346]),
+            ("equipment", [24, 0, 0, 0]),
+            ("next_index.contraption", [668, 0, 0, 0]),
+            ("next_index.unit", [668, 0, 0, 0]),
+            ("officers", [668, 0, 0, 0]),
+            ("reactor_core", [82, 0, 0, 586]),
+            ("reinforce_offers", [293, 0, 0, 0]),
+            ("shop.buys_remaining", [668, 0, 0, 0]),
+            ("shop.unlocked_units", [668, 0, 0, 0]),
+            ("shop.unlocks_remaining", [668, 0, 0, 0]),
+            ("supply", [668, 0, 0, 0]),
+            ("techs.abyss", [7, 0, 0, 0]),
+            ("techs.arclight", [77, 0, 0, 0]),
+            ("techs.crawler", [36, 0, 0, 0]),
+            ("techs.fang", [37, 0, 0, 0]),
+            ("techs.farseer", [12, 0, 0, 0]),
+            ("techs.fire_badger", [44, 0, 0, 0]),
+            ("techs.fortress", [14, 0, 0, 0]),
+            ("techs.hacker", [6, 0, 0, 0]),
+            ("techs.hound", [31, 0, 0, 0]),
+            ("techs.marksman", [43, 0, 0, 0]),
+            ("techs.melting_point", [17, 0, 0, 0]),
+            ("techs.mustang", [77, 0, 0, 0]),
+            ("techs.overlord", [7, 0, 0, 0]),
+            ("techs.phantom_ray", [62, 0, 0, 0]),
+            ("techs.phoenix", [11, 0, 0, 0]),
+            ("techs.raiden", [10, 0, 0, 0]),
+            ("techs.rhino", [21, 0, 0, 0]),
+            ("techs.sabertooth", [24, 0, 0, 0]),
+            ("techs.sandworm", [21, 0, 0, 0]),
+            ("techs.scorpion", [27, 0, 0, 0]),
+            ("techs.sledgehammer", [32, 0, 0, 0]),
+            ("techs.steel_ball", [15, 0, 0, 0]),
+            ("techs.stormcaller", [3, 0, 0, 0]),
+            ("techs.tarantula", [50, 0, 0, 0]),
+            ("techs.typhoon", [14, 0, 0, 0]),
+            ("techs.void_eye", [53, 0, 0, 0]),
+            ("techs.vortex", [39, 0, 0, 0]),
+            ("techs.vulcan", [27, 0, 0, 0]),
+            ("techs.wasp", [31, 0, 0, 0]),
+            ("techs.wraith", [17, 0, 0, 0]),
+            ("terrains", [0, 0, 0, 10]),
+            ("tower_strengthen_levels", [668, 0, 0, 0]),
+            ("units.equipment", [319, 0, 0, 0]),
+            ("units.exp", [0, 0, 0, 8902]),
+            ("units.index", [9494, 0, 0, 0]),
+            ("units.level", [2600, 0, 0, 0]),
+            ("units.movable", [455, 0, 0, 0]),
+            ("units.name", [9494, 0, 0, 0]),
+            ("units.position.x", [9494, 0, 0, 0]),
+            ("units.position.y", [9494, 0, 0, 0]),
+            ("units.rotated", [3058, 0, 0, 0]),
+            ("units.value", [9494, 0, 0, 0]),
+        ]
+        .into_iter()
+        .map(|(group, [equal, unequal, unimplemented, fight])| {
+            (
+                group.to_owned(),
+                Counts {
+                    equal,
+                    unequal,
+                    unimplemented,
+                    fight,
+                },
+            )
+        })
+        .collect()
+    }
+
+    /// Every field the lists name is one the battles hold, so renaming a field
+    /// cannot leave an entry that no leaf matches.
+    #[test]
+    fn every_listed_field_is_one_the_battles_hold() {
+        let pinned = pinned();
+        for field in DEALT_FROM.iter().chain(FIGHT).chain(UNIMPLEMENTED) {
+            assert!(
+                pinned.keys().any(|group| within(group, field)),
+                "{field} names no field of the tracked battles"
+            );
+        }
+    }
+
     #[test]
     fn tracked_battles_cover_what_the_table_says() {
         let economy = Economy::embedded().unwrap();
@@ -532,58 +645,7 @@ mod tests {
             untargeted += usize::from(coverage.untargeted_round.is_some());
         }
         assert!(unequal.is_empty(), "{unequal:#?}");
-        let expected: BTreeMap<String, Counts> = [
-            ("airdrop_shields", [0, 0, 0, 9]),
-            ("battle_skills.cooldown", [1062, 0, 0, 0]),
-            ("battle_skills.id", [1062, 0, 0, 0]),
-            ("battle_skills.index", [1062, 0, 0, 0]),
-            ("blueprints", [433, 0, 0, 0]),
-            ("constructions.index", [794, 0, 0, 0]),
-            ("constructions.position.x", [794, 0, 0, 0]),
-            ("constructions.position.y", [794, 0, 0, 0]),
-            ("constructions.type", [794, 0, 0, 0]),
-            ("contraptions.index", [0, 0, 0, 346]),
-            ("contraptions.position.x", [0, 0, 0, 346]),
-            ("contraptions.position.y", [0, 0, 0, 346]),
-            ("contraptions.type", [0, 0, 0, 346]),
-            ("equipment", [24, 0, 0, 0]),
-            ("formations.equipment", [319, 0, 0, 0]),
-            ("formations.exp", [0, 0, 0, 8902]),
-            ("formations.index", [9494, 0, 0, 0]),
-            ("formations.level", [2600, 0, 0, 0]),
-            ("formations.movable", [455, 0, 0, 0]),
-            ("formations.position.x", [9494, 0, 0, 0]),
-            ("formations.position.y", [9494, 0, 0, 0]),
-            ("formations.rotated", [3058, 0, 0, 0]),
-            ("formations.type", [9494, 0, 0, 0]),
-            ("formations.value", [9494, 0, 0, 0]),
-            ("next_index.contraption", [668, 0, 0, 0]),
-            ("next_index.unit", [668, 0, 0, 0]),
-            ("reactor_core", [82, 0, 0, 586]),
-            ("reinforce_offers", [293, 0, 0, 0]),
-            ("shop.buys_remaining", [668, 0, 0, 0]),
-            ("shop.unlocked_units", [668, 0, 0, 0]),
-            ("shop.unlocks_remaining", [668, 0, 0, 0]),
-            ("supply", [668, 0, 0, 0]),
-            ("techs.officers", [668, 0, 0, 0]),
-            ("techs.units", [389, 0, 0, 0]),
-            ("terrains", [0, 0, 0, 10]),
-            ("tower_strengthen_levels", [668, 0, 0, 0]),
-        ]
-        .into_iter()
-        .map(|(group, [equal, unequal, unimplemented, fight])| {
-            (
-                group.to_owned(),
-                Counts {
-                    equal,
-                    unequal,
-                    unimplemented,
-                    fight,
-                },
-            )
-        })
-        .collect();
-        assert_eq!(fields, expected);
+        assert_eq!(fields, pinned());
         assert_eq!(untargeted, 41);
     }
 
@@ -600,33 +662,20 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let mut stated = first_battle();
         stated.turns[2].state.sides.red.tower_strengthen_levels[0] += 1;
-        stated.turns[2].state.sides.blue.formations[0]
-            .formation
-            .position
-            .x += 10;
+        stated.turns[2].state.sides.blue.units[0].unit.position.x += 10;
         let coverage = measured(&economy, &stated);
         let at: Vec<_> = coverage
             .unequal
             .iter()
             .map(|difference| (difference.round, difference.side, difference.path.as_str()))
             .collect();
-        let index = stated.turns[2].state.sides.blue.formations[0]
-            .formation
-            .index;
+        let index = stated.turns[2].state.sides.blue.units[0].unit.index;
         assert_eq!(
             at,
             [
-                (
-                    2,
-                    "blue",
-                    format!("formations[{index}].position.x").as_str()
-                ),
+                (2, "blue", format!("units[{index}].position.x").as_str()),
                 (2, "red", "tower_strengthen_levels"),
-                (
-                    3,
-                    "blue",
-                    format!("formations[{index}].position.x").as_str()
-                ),
+                (3, "blue", format!("units[{index}].position.x").as_str()),
                 (3, "red", "tower_strengthen_levels"),
             ]
         );
@@ -661,9 +710,12 @@ mod tests {
             .map(|difference| (difference.round, difference.side, difference.path.as_str()))
             .collect();
         // The research is missing, and so is what it cost.
-        assert_eq!(
-            at,
-            [(round, "blue", "supply"), (round, "blue", "techs.units")]
+        assert_eq!(at.len(), 2, "{at:?}");
+        assert_eq!(at[0], (round, "blue", "supply"));
+        // The unit's row of `techs`, whichever unit it was.
+        assert!(
+            at[1].0 == round && at[1].1 == "blue" && at[1].2.starts_with("techs."),
+            "{at:?}"
         );
     }
 

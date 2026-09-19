@@ -45,6 +45,9 @@ struct UnitCard {
 #[derive(Deserialize)]
 struct UnitPool {
     rounds: Vec<i32>,
+    /// What declining the unit offer of the round at the same position in
+    /// `rounds` pays.
+    decline_supply: Vec<i32>,
     supply_round: i32,
     supplies: Vec<i32>,
 }
@@ -72,7 +75,7 @@ struct UnitCost {
 /// unlocks. No officer of this build unlocks after round 1, which deals none.
 fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i32, String> {
     let mut squads = 0;
-    for officer in &side.techs.officers {
+    for officer in &side.officers {
         let Some(row) = economy.officer(*officer) else {
             continue;
         };
@@ -92,12 +95,51 @@ fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i
     Ok(side.next_index.unit - squads)
 }
 
+impl Config {
+    fn embedded() -> Result<Self, String> {
+        serde_yaml::from_str(include_str!("../../../config/reinforcements.yaml"))
+            .map_err(|error| format!("cannot read reinforcement configuration: {error}"))
+    }
+
+    fn decline_supply(&self, economy: &Economy, pool: i32, round: i32) -> Result<i32, String> {
+        let schedule = self
+            .pools
+            .get(&pool)
+            .ok_or_else(|| format!("unit reinforcement pool {pool} is not in this build"))?;
+        match schedule.rounds.iter().position(|unit| *unit == round) {
+            Some(at) => schedule.decline_supply.get(at).copied().ok_or_else(|| {
+                format!("unit reinforcement pool {pool} states no decline for round {round}")
+            }),
+            None => Ok(economy.reinforce_decline()),
+        }
+    }
+}
+
+/// What declining round `round`'s reinforcement offer pays, in a match dealt
+/// from unit reinforcement pool `pool`.
+///
+/// An ordinary round pays [`Economy::reinforce_decline`]. A unit round pays
+/// its pool's own figure for that round, `UnitReinforceRoundPool.giveUpSupply`
+/// at the round's place in `roundGroup`, which grows through the match: pool 1
+/// pays 50, 150, 400 and 700 across rounds 2, 5, 8 and 11. No local replay
+/// shows a unit-round decline and the round after it, so the figure is the
+/// configuration's rather than a measured one.
+///
+/// # Errors
+/// Refuses a pool this build does not configure, or one that states no figure
+/// for the round.
+pub fn decline_supply(economy: &Economy, pool: i32, round: i32) -> Result<i32, String> {
+    Config::embedded()?.decline_supply(economy, pool, round)
+}
+
 /// One computed draw with exact stream boundaries, excluding seed warm-up.
 #[derive(Debug, Serialize)]
 pub struct Round {
     pub round: i32,
     pub unit_reinforcement: bool,
     pub offers: Vec<i32>,
+    /// What declining this round's offer pays; see [`decline_supply`].
+    pub declined: i32,
     pub before_offset: u32,
     pub after_offset: u32,
     pub before_state: [u64; 4],
@@ -123,9 +165,7 @@ struct Dealer {
 
 impl Dealer {
     fn new(opening: &Prediction) -> Result<Self, String> {
-        let config: Config =
-            serde_yaml::from_str(include_str!("../../../config/reinforcements.yaml"))
-                .map_err(|error| format!("cannot read reinforcement configuration: {error}"))?;
+        let config = Config::embedded()?;
         let mut pools: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
         let mut groups: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
         for (&id, card) in &config.cards {
@@ -410,19 +450,16 @@ impl Dealer {
     fn context(&self, economy: &Economy, stated: &Stated, turn: &Turn) -> Result<Context, String> {
         let mut context = Context::default();
         for side in [&turn.state.sides.blue, &turn.state.sides.red] {
-            context.officers.extend(side.techs.officers.iter());
+            context.officers.extend(side.officers.iter());
             let delivered = delivered_before(economy, side, turn.round)?;
             for formation in side
-                .formations
+                .units
                 .iter()
-                .filter(|entry| entry.formation.index < delivered)
+                .filter(|entry| entry.unit.index < delivered)
             {
-                let native = resolve_unit_type(&formation.formation.type_name)
+                let native = resolve_unit_type(&formation.unit.type_name)
                     .ok_or_else(|| {
-                        format!(
-                            "unknown reinforcement unit {}",
-                            formation.formation.type_name
-                        )
+                        format!("unknown reinforcement unit {}", formation.unit.type_name)
                     })?
                     .native;
                 let NativeFormation::Unit(unit) = native else {
@@ -439,7 +476,7 @@ impl Dealer {
             (&turn.state.sides.blue, &stated.sides.blue.tech_loadout),
             (&turn.state.sides.red, &stated.sides.red.tech_loadout),
         ] {
-            for technology in &side.techs.units {
+            for technology in &side.techs {
                 let owner = economy
                     .technology_owner(*technology)
                     .ok_or_else(|| format!("unknown reinforcement technology {technology}"))?;
@@ -466,7 +503,7 @@ impl Dealer {
                 };
                 for (count, technology) in technologies
                     .iter()
-                    .filter(|id| side.techs.units.contains(id))
+                    .filter(|id| side.techs.contains(id))
                     .enumerate()
                 {
                     let base = economy.technology(*technology).ok_or_else(|| {
@@ -554,6 +591,9 @@ pub fn verify(
                 round: turn.round,
                 unit_reinforcement,
                 offers,
+                declined: dealer
+                    .config
+                    .decline_supply(economy, dealer.pool_id, turn.round)?,
                 before_offset,
                 after_offset: dealer.offset + dealer.stream.draws(),
                 before_state,
@@ -570,6 +610,23 @@ pub fn verify(
 #[cfg(all(test, feature = "convert"))]
 mod tests {
     use super::*;
+
+    /// A unit round's decline pays its pool's figure for that round, and any
+    /// other round the ordinary one.
+    #[test]
+    fn a_decline_pays_by_pool_and_round() {
+        let economy = Economy::embedded().unwrap();
+        let paid = |pool, round| decline_supply(&economy, pool, round).unwrap();
+        // Pool 1 deals units in rounds 2, 5, 8 and 11.
+        assert_eq!(
+            [2, 5, 8, 11].map(|round| paid(1, round)),
+            [50, 150, 400, 700]
+        );
+        assert_eq!(paid(1, 3), economy.reinforce_decline());
+        // Pool 22's first unit round is 3, and it pays more than round 2 would.
+        assert_eq!(paid(22, 3), 100);
+        assert!(decline_supply(&economy, 0, 2).is_err());
+    }
 
     fn corpus() -> Vec<(Stated, crate::record::BattleRecord)> {
         std::fs::read_dir("../../tests/grbr")

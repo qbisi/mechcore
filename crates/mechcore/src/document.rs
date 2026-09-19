@@ -107,7 +107,7 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
             "seed": plan.seed,
             "map_id": plan.map_id,
             "round": plan.round,
-            "formation_count": plan.formation_count(),
+            "unit_count": plan.unit_count(),
             "construction_count": plan.construction_count(),
             "contraption_count": plan.contraption_count(),
             "airdrop_shield_count": plan.airdrop_shield_count(),
@@ -273,7 +273,7 @@ fn reject_extra(arguments: &mut impl Iterator<Item = String>) -> Result<(), Stri
 /// middle as a change to every later entry plus one removal at the end. Keying
 /// by `index` instead reports what actually happened, which is what makes a
 /// difference correspond to a decision rather than to a shift in the list.
-const IDENTITY_KEYED_COLLECTIONS: [&str; 3] = ["formations", "constructions", "contraptions"];
+const IDENTITY_KEYED_COLLECTIONS: [&str; 3] = ["units", "constructions", "contraptions"];
 
 fn collect_differences(
     path: &str,
@@ -388,30 +388,29 @@ mod tests {
     #[test]
     fn placement_diff_aligns_by_deployment_index() {
         let entry = |index: i32, x: i32| serde_json::json!({"index": index, "position": {"x": x}});
-        let left = serde_json::json!({"formations": [entry(0, 0), entry(3, 40), entry(7, 80)]});
-        let right = serde_json::json!({"formations": [entry(0, 0), entry(7, 85), entry(9, 120)]});
+        let left = serde_json::json!({"units": [entry(0, 0), entry(3, 40), entry(7, 80)]});
+        let right = serde_json::json!({"units": [entry(0, 0), entry(7, 85), entry(9, 120)]});
         let mut differences = Vec::new();
         collect_differences("", Some(&left), Some(&right), &mut differences);
 
         // One removal, one field change, one addition: no entry is reported as
         // changed merely because a neighbour moved along the list.
         assert_eq!(differences.len(), 3);
-        assert_eq!(differences[0].path, "/formations/index=3");
+        assert_eq!(differences[0].path, "/units/index=3");
         assert!(differences[0].right.is_none());
-        assert_eq!(differences[1].path, "/formations/index=7/position/x");
-        assert_eq!(differences[2].path, "/formations/index=9");
+        assert_eq!(differences[1].path, "/units/index=7/position/x");
+        assert_eq!(differences[2].path, "/units/index=9");
         assert!(differences[2].left.is_none());
     }
 
     #[test]
     fn placement_diff_falls_back_to_position_without_usable_indices() {
         let repeated = serde_json::json!({"index": 0, "position": {"x": 0}});
-        let left = serde_json::json!({"formations": [repeated, repeated]});
-        let right =
-            serde_json::json!({"formations": [repeated, {"index": 0, "position": {"x": 5}}]});
+        let left = serde_json::json!({"units": [repeated, repeated]});
+        let right = serde_json::json!({"units": [repeated, {"index": 0, "position": {"x": 5}}]});
         let mut differences = Vec::new();
         collect_differences("", Some(&left), Some(&right), &mut differences);
         assert_eq!(differences.len(), 1);
-        assert_eq!(differences[0].path, "/formations/1/position/x");
+        assert_eq!(differences[0].path, "/units/1/position/x");
     }
 }

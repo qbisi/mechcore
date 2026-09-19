@@ -25,9 +25,9 @@ An action segment holds one round's decisions, one sequence per side.
 kind: action
 round: 7
 blue:
-- {type: choose_reinforce_item, offer: 3, id: 1072213}
-- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
-- {type: release_commander_skill, skill: 0, target: !unit 4}
+- {type: choose_reinforce_item, offer: 3, name: sledgehammer_2x_lv2}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
 red:
 - ...
 ```
@@ -40,23 +40,25 @@ An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
 fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
-- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 - {type: upgrade_unit, index: 5}
 ```
 
-Every operand is a 32-bit integer or a position, except
-`release_commander_skill`'s target, which is a tagged union, and `rotated`,
-which is a boolean defaulting to false.
+`name` names what a decision is about: the unit type bought or unlocked, the
+card, team, blueprint, energy tower skill, equipment item, commander skill or
+contraption taken, fitted or released. It is the name [`state.md`](state.md#names)
+gives that kind, and never an ID. `upgrade_technology` is the one decision about
+two named things, and says `unit` and `tech`. Every other operand is a 32-bit
+integer or a position, except `release_commander_skill`'s target, which is a
+one-key mapping, and `rotated`, which is a boolean defaulting to false.
 
-Four keys are not always present. `choose_reinforce_item` omits `id` when the
-offer was declined, `choose_advance_team` omits `specialist` when the opening is
-itself an officer, `release_contraption` omits `extra_position` unless the
+Three keys are not always present. `choose_reinforce_item` omits `name` when the
+offer was declined, `release_contraption` omits `extra_position` unless the
 contraption spans two points, and `move_unit` omits `rotated` when it is false.
 
-An ID names a catalogue entry and is never a display name. `unit` is a unit
-type, `index` a formation's deployment index, and `tech`, `id`, `skill`,
-`equipment` and `contraption` their own catalogues. `tower` is a position in
-`BuildingManager.buildings`, the key `tower_strengthen_levels` uses.
+`index` is a unit's deployment index, or a panel slot in
+`release_commander_skill`. `tower` is a position in `BuildingManager.buildings`,
+the key `tower_strengthen_levels` uses.
 
 ## What a transition writes
 
@@ -65,9 +67,9 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs.units`, `techs.officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
+| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
 | Supply | `supply` |
-| Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
+| Board | `units`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
 
 Settled is the group no fight can touch, so a round's decisions determine it
 outright. The board is what the decisions arrange and the fight then consumes.
@@ -79,7 +81,7 @@ taken from. That is a stronger statement than the round transition
 [`battle.md`](battle.md#what-a-round-reproduces) defines, and it is the one this
 document's per-action rules are answerable to.
 
-Where a summoned formation lands is the board's rule rather than the
+Where a summoned unit lands is the board's rule rather than the
 decision's. A card's squads, an opening's force and an officer's delivery each
 land at the main deployment region's centre, aligned to the world's ten-metre
 grid, or at the free grid position nearest it, which is why the same card lands
@@ -89,7 +91,7 @@ are the world's, so a transition not told the side reports the landing
 unsettled rather than inventing one.
 
 An allocator is settled while the objects it names are board. A contraption is
-destroyed by the fight and a formation can be, but neither index is handed out
+destroyed by the fight and a unit can be, but neither index is handed out
 again, so the two counters only ever rise and rise only by a decision.
 
 `reinforce_offers` is granted by the round and written by no action. The rest of
@@ -102,7 +104,7 @@ round otherwise owns.
   it: energy tower skill `3` and reinforcement card `10004` each grant one more.
   The card is an officer the side keeps, so every later round opens with the
   extra purchase too. `unlocks_remaining` only ever counts down.
-- A formation's `exp` is the fight's to grant, except that upgrading a formation
+- A unit's `exp` is the fight's to grant, except that upgrading a unit
   discards it and Intensive Training fills it. A rank starts at zero however much
   the rank below it earned.
 
@@ -114,55 +116,73 @@ Answers the round's reinforcement offer. There are two answers and both are
 choices, so both are this one action.
 
 ```yaml
-- {type: choose_reinforce_item, offer: 3, id: 1305003}
+- {type: choose_reinforce_item, offer: 3, name: photon_coating}
 - {type: choose_reinforce_item, offer: -1}
 ```
 
 `offer` is the offer's position in `reinforce_offers`, or `-1` for the decline,
 which is a choice the round always makes available and never one of the items it
-dealt. `id` names the item taken and is present exactly when `offer` is not
+dealt. `name` names the item taken and is present exactly when `offer` is not
 `-1`: what the decline hands back is built from the match's progress rather than
-drawn from a catalogue, so it has no ID a document could carry.
+drawn from a catalogue, so it has nothing a document could name.
 
-A taken item grants the thing its own ID names, and which thing that is decides
-the effect: an officer joins `techs.officers`, a commander skill joins
+A card is named by what it grants, and a card of units as its unit, squads and
+level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
+the round that deals them, so a unit card's name is read within the round of
+the segment that holds it.
+
+A taken item grants the thing it names, and which thing that is decides
+the effect: an officer joins `officers`, a commander skill joins
 `battle_skills`, an equipment joins `equipment`, and a unit card hands out
 squads. Squads advance `next_index.unit` and their unit type joins
 `shop.unlocked_units`. The decline writes none of those.
 
 A taken item costs its price, less what an officer taken this way grants back at
 once. The decline is the one reinforcement choice that pays the side instead:
-declining is an item of its own rather than the absence of one.
+declining is an item of its own rather than the absence of one. What it pays is
+the round's, not the position's: 50 in an ordinary round, and in a unit round the
+figure the match's unit reinforcement schedule states for that round, which
+grows through the match. [The reinforcement rules](../../rules/reinforcements.md#declining)
+give both.
 
 ### `choose_advance_team`
 
 ```yaml
-- {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}
+- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
 ```
 
 The opening, which is one decision with two halves: the team and the specialist
-officer bound to it. `offer` is the combination's position in the side's
-opening offers, which a battle's header states. `specialist` is optional and
-absent when the team is itself an officer.
+officer bound to it. `name` names the team as the header's offers do, and
+`specialist` names the officer; both are required. `offer` is the combination's
+position in the side's opening offers, which a battle's header states.
 
 It is round zero's only decision, and no other round holds one.
 
-A team of units hands out its force, advancing `next_index.unit` once per squad
-and unlocking each unit type it is made of. A team that is an officer joins
-`techs.officers` instead. The specialist joins `techs.officers` either way. An
+The team hands out its force as round 1 opens, advancing `next_index.unit` once
+per squad and unlocking each unit type it is made of, and the specialist joins
+`officers`. The deal draws a team only from teams of units and a specialist only
+from specialist officers, so a decision pairing anything else is refused. An
 opening also moves `reactor_core`, which is the fight's field and not settled
 here.
 
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}, rotated: true}
 ```
 
-Buys one formation of `unit` and deploys it at `position`. Advances
-`next_index.unit` by one and puts a formation on the board under that index.
+Buys one unit of the unit type `name`. Advances `next_index.unit` by one and puts a
+unit on the board under that index, at `position` and facing the way
+`rotated` says, which defaults to false.
 
-The formation arrives at the shop's level for that unit, which an officer or an
+The game lands a purchase where [the board puts it](../../rules/landing.md) and
+the player moves it from there, and a purchase states where those moves end
+rather than where it landed: the round's moves of the unit it creates are
+written into it, and not again as moves. A position on a flank therefore means
+the unit was moved there, so the purchase sets its `travelling`, which a
+move from the main half would have set.
+
+The unit arrives at the shop's level for its type, which an officer or an
 Energy Tower skill can raise. Costs the unit's price plus one upgrade for each
 level above the first.
 
@@ -172,37 +192,39 @@ level above the first.
 - {type: upgrade_unit, index: 5}
 ```
 
-Raises the formation at `index` by one level. Costs one upgrade for its unit
-type, less what the formation's equipment discounts, floored at zero.
+Raises the unit at `index` by one level. Costs one upgrade for its unit
+type, less what the unit's equipment discounts, floored at zero.
 
 ### `unlock_unit`
 
 ```yaml
-- {type: unlock_unit, unit: 30}
+- {type: unlock_unit, name: void_eye}
 ```
 
-Adds `unit` to `shop.unlocked_units`. Costs the unit's unlock price.
+Adds the unit type `name` to `shop.unlocked_units`. Costs the unit's unlock price.
 
 ### `upgrade_technology`
 
 ```yaml
-- {type: upgrade_technology, unit: 9, tech: 3109}
+- {type: upgrade_technology, unit: fang, tech: grenade_launcher}
 ```
 
-Researches `tech`, which belongs to `unit`, and adds it to `techs.units`.
+Researches `tech`, which belongs to `unit`, and adds it to that unit's row of
+`techs`. A technology's name is only unique within its unit, and `unit` is what
+resolves it.
 
 The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per
 unit and not per side.
 
-A Jump Drive, 高速引擎, frees every formation of its unit to move in this round
+A Jump Drive, 高速引擎, frees every unit of its type to move in this round
 and every later one, and sets their `movable`: `1606` for Wasp, `1611` for
 Overlord and `1616` for Phoenix.
 
 ### `active_blueprint`
 
 ```yaml
-- {type: active_blueprint, id: 2}
+- {type: active_blueprint, name: field_recovery}
 ```
 
 Activates a Research Center blueprint and adds it to `blueprints`. A blueprint
@@ -210,14 +232,14 @@ that grants a commander skill puts it on `battle_skills`.
 
 A chain's second level replaces its first in `blueprints` rather than joining
 it. A chain blueprint also hands the side an Officer, but a state names the
-chain and not the Officer, so `techs.officers` does not move. A layout has no
+chain and not the Officer, so `officers` does not move. A layout has no
 blueprint list, so the projection onto one names the Officer instead. Both
 documents are complete; they disagree on purpose.
 
 ### `active_energy_tower_skill`
 
 ```yaml
-- {type: active_energy_tower_skill, skill: 3}
+- {type: active_energy_tower_skill, name: mass_recruitment}
 ```
 
 Activates one Energy Tower skill for this round. Every one of them is a
@@ -243,17 +265,18 @@ oppositely, so nothing may read a tower's identity out of its position.
 ### `use_equipment`
 
 ```yaml
-- {type: use_equipment, equipment: 1305003, unit: 3}
+- {type: use_equipment, name: photon_coating, index: 3}
 ```
 
-Fits `equipment` to the formation at index `unit`. The item leaves `equipment`,
-the side's list of what it owns and no formation wears, and becomes that
-formation's.
+Fits the item `name` to the unit at `index`, as `upgrade_unit` and
+`move_unit` name one. The item leaves `equipment`,
+the side's list of what it owns and no unit wears, and becomes that
+unit's.
 
 Fitting is free, because the item was paid for when it was taken. What it can
-change is later: an item may discount every upgrade of its formation, or pay its
+change is later: an item may discount every upgrade of its unit, or pay its
 side an income every round it is worn. Fitting the Deployment Module,
-`13040001`, frees its formation to move in this round and every later one, and
+`13040001`, frees its unit to move in this round and every later one, and
 sets its `movable`.
 
 The inventory follows one identity across a round:
@@ -262,7 +285,7 @@ The inventory follows one identity across a round:
 equipment(R+1) = equipment(R)
                + what this round's cards granted
                + what this round's officers delivered
-               + what recovering a formation handed back
+               + what recovering a unit handed back
                − what this round fitted
 ```
 
@@ -277,7 +300,7 @@ Every fit takes a copy out of the stock. A side that fits an item it does not
 hold describes a position the match cannot reach, which is a stronger statement
 than the stock merely staying where it was.
 
-A formation also leaves the board by being destroyed, which is the fight's and
+A unit also leaves the board by being destroyed, which is the fight's and
 not a decision's. The identity covers what the decisions do to the stock.
 
 ### `move_unit`
@@ -286,11 +309,11 @@ not a decision's. The identity covers what the decisions do to the stock.
 - {type: move_unit, index: 0, position: {x: 85, y: -80}, rotated: true}
 ```
 
-Moves the formation at `index` to `position`. `rotated` defaults to false and
-faces the formation the other way. Free, and writes nothing but the board.
+Moves the unit at `index` to `position`. `rotated` defaults to false and
+faces the unit the other way. Free, and writes nothing but the board.
 
-Only a formation whose `movable` is true may move, and a move of any other is
-refused rather than applied. A formation is free to move in the round it
+Only a unit whose `movable` is true may move, and a move of any other is
+refused rather than applied. A unit is free to move in the round it
 arrives. In a later round, what frees it is a decision of this document: fitting
 a Deployment Module, researching its unit's Jump Drive, or releasing Redeploy at
 it.
@@ -298,45 +321,52 @@ it.
 A move is also the only decision that writes `travelling`, and it writes it by
 region rather than by coordinate. The coordinate system has three regions per
 side: the main deployment half and the two flank rectangles. A move that ends
-in the region it started in leaves `travelling` alone, so a formation shuffled
+in the region it started in leaves `travelling` alone, so a unit shuffled
 about inside one flank stays travelling and one shuffled about the main half
 stays settled. A move that changes region is settled by the region it arrives
 in: either flank sets `travelling`, and the main half clears it. The two flanks
 are separate regions, so crossing from one to the other sets `travelling` on a
-formation that had already settled.
+unit that had already settled.
 
 The fight then empties the set, which is why `travelling` belongs to the
 deployment that produced it rather than to the position the next round starts
-from. A round's opening state carries no travelling formation, and the flank
-regions open at round 2, so the earliest round in which any formation travels
+from. A round's opening state carries no travelling unit, and the flank
+regions open at round 2, so the earliest round in which any unit travels
 is round 2.
 
-A formation this round created travels only if a move takes it to a flank. A
-purchase and a card both put their formation in the main half, so neither
-arrives travelling.
+A unit this round created travels only if it reaches a flank. A card puts
+its unit in the main half, and a purchase whose position is on a flank is
+one whose moves took it there.
 
 ### `release_commander_skill`
 
 ```yaml
-- {type: release_commander_skill, skill: 0, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
 ```
 
-Releases the skill in panel slot `skill`. The slot is a panel index and not a
-skill ID, which is what a retraction matches on.
+Releases the skill in panel slot `index`, which holds the skill `name`. The slot
+is what the game releases and what a retraction matches on; the skill is stated
+beside it so that a release reads without the panel. A release whose slot does
+not hold that skill at that point in the round is refused, and the panel can change
+within a round, since a card or a blueprint adds a skill to it.
 
-`target` is a tagged union with exactly one of three forms, never two:
+`target` is a mapping with exactly one of three keys, never two:
 
 | Form | Means |
 | --- | --- |
-| `!area [{x, y}, ...]` | the points the skill covers, in order |
-| `!unit <index>` | one of the side's own formations |
-| `!construction <index>` | one of the side's own constructions |
+| `{area: [{x, y}, ...]}` | the points the skill covers, in order |
+| `{unit: <index>}` | one of the side's own units |
+| `{construction: <index>}` | one of the side's own constructions |
+
+The key names the kind of target, as the list the index points into is named,
+and the form is plain YAML rather than a tag such as `!unit 4`, so any YAML or
+JSON reader takes a battle as it is.
 
 What a release writes depends on the skill. It may put a construction, a
 retained airdrop shield or a terrain on the board, or take one of the side's own
-formations or constructions away. Taking a formation away returns what it wore
-to `equipment`, where the same round can fit it to another formation. Releasing is free, except a skill that
-recovers an object, which pays back what that object cost: for a formation, its
+units or constructions away. Taking a unit away returns what it wore
+to `equipment`, where the same round can fit it to another unit. Releasing is free, except a skill that
+recovers an object, which pays back what that object cost: for a unit, its
 purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that
 is a property of its type rather than of its history.
@@ -347,26 +377,27 @@ position during deployment, so the decision writes that work and marks the slot
 order, and never reaches a layout.
 
 Intensive Training, `1100001`, is one. It targets one of the side's own
-formations with `!unit` and fills its experience bar, so `exp` becomes
+units with `{unit: <index>}` and fills its experience bar, so `exp` becomes
 `maximum/maximum`. A full
-formation takes no further share of the experience a fight hands out;
+unit takes no further share of the experience a fight hands out;
 [the unit experience index](../../rules/unit_experience.md) gives the amount a
 full bar stands for per unit and level.
 
-The skill cannot target a formation at level 9 or one whose bar is already
+The skill cannot target a unit at level 9 or one whose bar is already
 full, and a decision that does is refused rather than applied.
 
-Redeploy, `1000001`, is the other. It targets one of the side's own formations
-with `!unit` and sets its `movable`, so the formation may move for the rest of
+Redeploy, `1000001`, is the other. It targets one of the side's own units
+with `{unit: <index>}` and sets its `movable`, so the unit may move for the rest of
 the round.
 
 ### `release_contraption`
 
 ```yaml
-- {type: release_contraption, contraption: 10001, position: {x: -130, y: -153}}
+- {type: release_contraption, name: shield, position: {x: -130, y: -153}}
 ```
 
-Buys `contraption` from the shop and places it at `position`. Advances
+Buys the contraption `name` names, by the name a layout gives it, from the shop
+and places it at `position`. Advances
 `next_index.contraption` by one and puts the object on the board under that
 index. Costs the contraption's own price.
 
@@ -390,11 +421,11 @@ the sequence, and so does everything the other side decided.
 Four rules govern a transition and no action names any of them. Applying
 actions without them produces a position that looks right and is not.
 
-- **A card or an officer allocates formations.** A card that hands out squads
+- **A card or an officer allocates units.** A card that hands out squads
   takes the next indices as it is taken, and an officer's squad arrives before
   any of the round's own decisions. Everything bought afterwards is filed one
   along, so ignoring this files later purchases under indices that belong to
-  something else, and a recovery then names the wrong formation.
+  something else, and a recovery then names the wrong unit.
 - **An officer delivers on a schedule of its own,** not when it arrives. Its
   squad, its commander skills and its equipment come in its `active_round`, and
   its unit joins the shop in its `unlock_round`. Both are absolute rounds and
@@ -456,11 +487,33 @@ so the index comes from the allocator, and applying a round has to hand out
 `next_index.unit` exactly as the game does. That is one of the two things the
 allocator is in a state for.
 
+`ReleaseCommanderSkill` records only the panel slot. The conversion reads the
+skill that slot holds from the position the round has reached by then, which
+is what `id` states.
+
 `MoveUnit` is recorded as a batch carrying one or more units. A sequence holds
 one move per unit: the collapse has already run by then, so the batch no longer has
 to stay whole for an undo to pop it, and order is all that survives either way.
 It keeps only the resulting position and rotation, since the recorded
 before-state restates what the state segment already holds.
+
+A unit's moves keep what they amount to, not the route. A move settles
+`travelling` by the region it arrives in, and a round's opening holds no
+travelling unit, so a unit that begins its moves in the main half
+travels exactly when its last move ends on a flank, whichever way it went:
+
+- A unit this round bought keeps none of its moves. The purchase carries
+  where they end.
+- Any other unit that begins its moves in the main half, one a card handed
+  out included, keeps its last move alone.
+- A unit that begins them on a flank keeps the last move of each stretch
+  that ends in one region, the main half or one flank. Going to the main half
+  and back travels where staying would not, so the route between regions
+  matters for it.
+
+The conversion steps the collapsed round from the position the round opened
+with and refuses a replay where it does not end exactly where the recorded
+round does.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.

@@ -11,9 +11,9 @@ use crate::catalog::{
 use crate::layout::{
     AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,
     AMBUSH_RIGHT_MIN_X, BattleSkillDefinition, ContraptionPlacement,
-    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, MAX_TOWER_STRENGTHEN_LEVEL,
-    OIL_TERRAIN_GRID_MASK, OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, Position, Region, Side,
-    StaticPlacement, TOWER_COUNT, Techs, Terrain, TerrainType, require_layout_kind,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK,
+    OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, Position, Region, Side, StaticPlacement,
+    TOWER_COUNT, Techs, Terrain, TerrainType, UnitPlacement, require_layout_kind,
 };
 use serde_json::Value;
 #[derive(Debug, PartialEq, Eq)]
@@ -42,7 +42,7 @@ pub struct SidePlan {
     pub techs: Techs,
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
-    pub formations: Vec<Placement>,
+    pub units: Vec<Placement>,
     pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
     pub airdrop_shields: Vec<Position>,
@@ -75,8 +75,8 @@ const ENEMY_TOWER_PROTECTION_RANGE: i64 = 140;
 
 impl Plan {
     #[must_use]
-    pub fn formation_count(&self) -> usize {
-        self.blue.formations.len() + self.red.formations.len()
+    pub fn unit_count(&self) -> usize {
+        self.blue.units.len() + self.red.units.len()
     }
 
     #[must_use]
@@ -136,8 +136,8 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
     }
     let blue = compile_side("blue", layout.sides.blue, layout.round)?;
     let red = compile_side("red", layout.sides.red, layout.round)?;
-    validate_placement_footprints("blue", &blue.formations)?;
-    validate_placement_footprints("red", &red.formations)?;
+    validate_placement_footprints("blue", &blue.units)?;
+    validate_placement_footprints("red", &red.units)?;
     validate_placement_footprints("blue", &blue.constructions)?;
     validate_placement_footprints("red", &red.constructions)?;
     validate_placement_footprints("blue", &blue.contraptions)?;
@@ -156,30 +156,44 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
 }
 
 fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, String> {
-    validate_techs(side_name, &side.techs)?;
+    validate_techs(side_name, &side)?;
     validate_side_modifiers(side_name, &side)?;
     let Side {
+        officers,
         techs,
+        blueprints,
         energy_tower_skills,
         tower_strengthen_levels,
-        formations,
+        units,
         constructions,
         contraptions,
         airdrop_shields,
         terrains,
         battle_skills,
     } = side;
-    let formations = compile_formations(side_name, formations, round)?;
+    let units = compile_units(side_name, units, round)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
     let airdrop_shields = compile_airdrop_shields(side_name, airdrop_shields)?;
     let terrains = compile_terrains(side_name, terrains)?;
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
+    // A chain blueprint is applied as the officer it hands out, which is what
+    // a fight reads.
+    let mut officers = officers;
+    officers.extend(
+        blueprints
+            .iter()
+            .filter_map(|blueprint| crate::catalog::chain_officer(*blueprint)),
+    );
+    officers.sort_unstable();
     Ok(SidePlan {
-        techs,
+        techs: Techs {
+            officers,
+            units: techs,
+        },
         energy_tower_skills,
         tower_strengthen_levels,
-        formations,
+        units,
         constructions,
         contraptions,
         airdrop_shields,
@@ -189,15 +203,15 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
 }
 
 #[allow(clippy::too_many_lines)]
-fn compile_formations(
+fn compile_units(
     side_name: &str,
-    definitions: Vec<Formation>,
+    definitions: Vec<UnitPlacement>,
     round: i32,
 ) -> Result<Vec<Placement>, String> {
     let placements = definitions
         .into_iter()
         .map(|formation| {
-            let Formation {
+            let UnitPlacement {
                 type_name,
                 index,
                 position,
@@ -210,18 +224,18 @@ fn compile_formations(
             let spec = resolve_unit_type(&type_name).ok_or_else(|| {
                 if resolve_construction_type(&type_name).is_some() {
                     return format!(
-                        "side {side_name} formation type {type_name:?} at ({}, {}) belongs in constructions",
+                        "side {side_name} unit type {type_name:?} at ({}, {}) belongs in constructions",
                         position.x, position.y
                     );
                 }
                 if resolve_contraption_type(&type_name).is_some() {
                     return format!(
-                        "side {side_name} formation type {type_name:?} at ({}, {}) belongs in contraptions",
+                        "side {side_name} unit type {type_name:?} at ({}, {}) belongs in contraptions",
                         position.x, position.y
                     );
                 }
                 format!(
-                    "side {side_name} formation type {type_name:?} at ({}, {}) is unknown",
+                    "side {side_name} unit type {type_name:?} at ({}, {}) is unknown",
                     position.x, position.y
                 )
             })?;
@@ -233,7 +247,7 @@ fn compile_formations(
             let travelling = travelling.unwrap_or(false);
             if !(1..=9).contains(&level) {
                 return Err(format!(
-                    "side {side_name} formation type {type_name:?} at ({}, {}) level must be 1..=9",
+                    "side {side_name} unit type {type_name:?} at ({}, {}) level must be 1..=9",
                     position.x, position.y
                 ));
             }
@@ -246,7 +260,7 @@ fn compile_formations(
                     let full = crate::experience::full(&type_name, level);
                     if full != Some(exp.maximum) {
                         return Err(format!(
-                            "side {side_name} formation type {type_name:?} at ({}, {}) exp \
+                            "side {side_name} unit type {type_name:?} at ({}, {}) exp \
                              maximum {} is not its level {level} bar {full:?}",
                             position.x, position.y, exp.maximum
                         ));
@@ -256,19 +270,19 @@ fn compile_formations(
             };
             if index < 0 {
                 return Err(format!(
-                    "side {side_name} formation type {type_name:?} at ({}, {}) index must be non-negative",
+                    "side {side_name} unit type {type_name:?} at ({}, {}) index must be non-negative",
                     position.x, position.y
                 ));
             }
             if exp < 0 {
                 return Err(format!(
-                    "side {side_name} formation type {type_name:?} at ({}, {}) exp must be non-negative",
+                    "side {side_name} unit type {type_name:?} at ({}, {}) exp must be non-negative",
                     position.x, position.y
                 ));
             }
             if equipment.is_some_and(|id| id <= 0) {
                 return Err(format!(
-                    "side {side_name} formation type {type_name:?} at ({}, {}) equipment must be a positive integer",
+                    "side {side_name} unit type {type_name:?} at ({}, {}) equipment must be a positive integer",
                     position.x, position.y
                 ));
             }
@@ -289,10 +303,10 @@ fn compile_formations(
         .collect::<Result<Vec<_>, _>>()?;
     if placements.is_empty() {
         return Err(format!(
-            "side {side_name} formations must contain at least one valid unit"
+            "side {side_name} units must contain at least one valid unit"
         ));
     }
-    validate_increasing_indices(side_name, "formation", &placements)?;
+    validate_increasing_indices(side_name, "unit", &placements)?;
     Ok(placements)
 }
 
@@ -919,15 +933,15 @@ pub(crate) fn grid_center_remainder(extent: i64) -> Option<i64> {
 
 fn validate_placement_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), String> {
     let mut world = Vec::with_capacity(
-        blue.formations.len()
+        blue.units.len()
             + blue.constructions.len()
             + blue.contraptions.len()
-            + red.formations.len()
+            + red.units.len()
             + red.constructions.len()
             + red.contraptions.len(),
     );
     world.extend(
-        blue.formations
+        blue.units
             .iter()
             .chain(&blue.constructions)
             .chain(&blue.contraptions)
@@ -942,7 +956,7 @@ fn validate_placement_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), 
             }),
     );
     world.extend(
-        red.formations
+        red.units
             .iter()
             .chain(&red.constructions)
             .chain(&red.contraptions)
@@ -1023,7 +1037,7 @@ fn validate_unit_placement(
     let in_ambush = Region::of(position).is_flank();
     if travelling && !in_ambush {
         return Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) sets travelling=true outside the ambush zones",
+            "side {side_name} unit type {type_name:?} at ({}, {}) sets travelling=true outside the ambush zones",
             position.x, position.y
         ));
     }
@@ -1032,32 +1046,57 @@ fn validate_unit_placement(
     }
     if round == 1 {
         return Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) cannot occupy an ambush zone in round 1",
+            "side {side_name} unit type {type_name:?} at ({}, {}) cannot occupy an ambush zone in round 1",
             position.x, position.y
         ));
     }
     if round == 2 && !travelling {
         return Err(format!(
-            "side {side_name} formation type {type_name:?} at ({}, {}) must set travelling=true: a round 2 ambush unit is always a first flank deployment",
+            "side {side_name} unit type {type_name:?} at ({}, {}) must set travelling=true: a round 2 ambush unit is always a first flank deployment",
             position.x, position.y
         ));
     }
     Ok(())
 }
 
-fn validate_techs(side_name: &str, techs: &Techs) -> Result<(), String> {
+fn validate_techs(side_name: &str, side: &Side) -> Result<(), String> {
     // An Officer may repeat. Some Officer cards can be taken again, and taking
     // one twice stacks it rather than doing nothing: two copies of Advanced
     // Offensive Tactics are +60% damage, which a fight plainly sees. A unit
     // technology has no second copy to hold.
-    for (index, &id) in techs.officers.iter().enumerate() {
+    for (index, &id) in side.officers.iter().enumerate() {
         if id <= 0 {
             return Err(format!(
-                "side {side_name} techs.officers[{index}] must be a positive integer"
+                "side {side_name} officers[{index}] must be a positive integer"
+            ));
+        }
+        // A chain's officer is stated by its blueprint, once.
+        if crate::catalog::chain_blueprint(id).is_some() {
+            return Err(format!(
+                "side {side_name} officers[{index}] is a chain blueprint's officer; \
+                 name its blueprint in blueprints instead"
             ));
         }
     }
-    validate_unique_positive_ids(side_name, "techs.units", &techs.units)
+    validate_unique_positive_ids(side_name, "techs", &side.techs)?;
+    validate_unique_positive_ids(side_name, "blueprints", &side.blueprints)?;
+    for &blueprint in &side.blueprints {
+        if crate::catalog::chain_officer(blueprint).is_none() {
+            return Err(format!(
+                "side {side_name} blueprints holds {blueprint}, which is not an \
+                 enhancement chain; a layout lists only the chains a fight sees"
+            ));
+        }
+    }
+    // A chain's second level replaces its first.
+    for (first, second) in [(4, 401), (5, 501)] {
+        if side.blueprints.contains(&first) && side.blueprints.contains(&second) {
+            return Err(format!(
+                "side {side_name} blueprints holds both levels of one chain"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn validate_unique_positive_ids(side_name: &str, field: &str, ids: &[i32]) -> Result<(), String> {

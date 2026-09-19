@@ -7,17 +7,15 @@
 //! and the tower levels do.
 //!
 //! The three that are neither dropped nor copied are the Research Center's
-//! blueprint chains, which a layout says by naming the Officer each one hands
-//! out, the Energy Tower's skills, of which a layout keeps only the two a fight
-//! can see, and the skill panel, of which a layout keeps only what this round
-//! released.
+//! blueprints, of which a layout keeps only the two enhancement chains, the
+//! Energy Tower's skills, of which it keeps only the two a fight can see, and
+//! the skill panel, of which it keeps only what this round released.
 
 use crate::DocumentKind;
 use crate::battle::{Release, SideState, SkillTarget, State};
 use crate::catalog::battle_skill_type_from_id;
-use crate::economy::Economy;
 use crate::layout::{
-    BattleSkillDefinition, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side, Sides, Techs,
+    BattleSkillDefinition, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side, Sides,
 };
 
 /// Projects one round's position onto a layout.
@@ -26,21 +24,15 @@ use crate::layout::{
 ///
 /// Returns an error when a released skill has no layout type or aims at a
 /// target a layout cannot state.
-pub fn project(
-    economy: &Economy,
-    state: &State,
-    round: i32,
-    map_id: i32,
-    seed: i32,
-) -> Result<Layout, String> {
+pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layout, String> {
     Ok(Layout {
         kind: DocumentKind::Layout,
         map_id: Some(map_id),
         seed: Some(seed),
         round,
         sides: Sides {
-            blue: project_side(economy, &state.sides.blue, "blue")?,
-            red: project_side(economy, &state.sides.red, "red")?,
+            blue: project_side(&state.sides.blue, "blue")?,
+            red: project_side(&state.sides.red, "red")?,
         },
     })
 }
@@ -51,25 +43,22 @@ pub fn project(
 ///
 /// Returns an error when a released skill has no layout type or aims at a
 /// target a layout cannot state.
-pub fn project_side(
-    economy: &Economy,
-    state: &SideState,
-    side_name: &str,
-) -> Result<Side, String> {
-    let mut units = state.techs.units.clone();
-    units.sort_unstable();
+pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> {
+    let mut techs = state.techs.clone();
+    techs.sort_unstable();
+    let mut officers = state.officers.clone();
+    officers.sort_unstable();
 
     Ok(Side {
-        techs: Techs {
-            officers: officers(economy, &state.techs.officers, &state.blueprints),
-            units,
-        },
+        officers,
+        techs,
+        blueprints: chain_blueprints(&state.blueprints),
         energy_tower_skills: energy_tower_skills(&state.energy_tower_skills),
         tower_strengthen_levels: tower_strengthen_levels(&state.tower_strengthen_levels),
-        formations: state
-            .formations
+        units: state
+            .units
             .iter()
-            .map(|formation| formation.formation.clone())
+            .map(|formation| formation.unit.clone())
             .collect(),
         constructions: state.constructions.clone(),
         contraptions: state.contraptions.clone(),
@@ -81,21 +70,20 @@ pub fn project_side(
 
 /// The Officer list a layout carries.
 ///
-/// A state keeps the Research Center's two enhancement chains in `blueprints`
-/// and leaves their Officers out of its own list. A layout has no blueprint
-/// list, so each chain arrives here as the Officer it hands out. Everything
-/// else is copied, duplicates included: an Officer card that may be taken again
-/// stacks.
+/// The blueprints a layout carries: the Research Center's enhancement chains,
+/// which a fight sees as the officer each hands out.
+///
+/// A blueprint that grants a commander skill reaches a fight only as that
+/// skill's release, so a layout leaves it out.
 #[must_use]
-pub fn officers(economy: &Economy, held: &[i32], blueprints: &[i32]) -> Vec<i32> {
-    let mut officers = held.to_vec();
-    officers.extend(
-        blueprints
-            .iter()
-            .filter_map(|blueprint| economy.blueprint_officer(*blueprint)),
-    );
-    officers.sort_unstable();
-    officers
+pub fn chain_blueprints(blueprints: &[i32]) -> Vec<i32> {
+    let mut kept: Vec<i32> = blueprints
+        .iter()
+        .copied()
+        .filter(|blueprint| crate::catalog::chain_officer(*blueprint).is_some())
+        .collect();
+    kept.sort_unstable();
+    kept
 }
 
 /// The Energy Tower skills a layout carries: the two a fight can see.
@@ -195,11 +183,22 @@ mod tests {
             .iter()
             .find(|turn| turn.round == 7)
             .expect("the replay reaches round 7");
+        let pool = crate::opening::predict(&economy, battle.seed, battle.map_id)
+            .unwrap()
+            .initialization
+            .unit_round_pool;
+        let declined = crate::reinforcement::decline_supply(&economy, pool, turn.round).unwrap();
         let stepped = |state: &crate::battle::SideState, actions: &[crate::battle::Action], red| {
             let mut placement = crate::landing::placement(red);
             actions.iter().fold(state.clone(), |position, action| {
-                crate::transition::step_placing(&economy, &position, action, &mut placement)
-                    .unwrap()
+                crate::transition::step_placing(
+                    &economy,
+                    &position,
+                    action,
+                    Some(declined),
+                    &mut placement,
+                )
+                .unwrap()
             })
         };
         let deployed = crate::battle::State {
@@ -209,8 +208,7 @@ mod tests {
                 red: stepped(&turn.state.sides.red, &turn.actions.red, true),
             },
         };
-        let projected =
-            project(&economy, &deployed, turn.round, battle.map_id, battle.seed).unwrap();
+        let projected = project(&deployed, turn.round, battle.map_id, battle.seed).unwrap();
 
         let bytes = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml").unwrap();
         let captured = crate::layout::parse_yaml(&bytes).unwrap();
@@ -222,7 +220,6 @@ mod tests {
 
     #[test]
     fn every_recorded_position_projects_onto_a_layout_that_compiles() {
-        let economy = Economy::embedded().unwrap();
         let mut projected = 0;
         for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
@@ -233,16 +230,10 @@ mod tests {
                 continue;
             };
             for turn in &battle.turns {
-                let layout = project(
-                    &economy,
-                    &turn.state,
-                    turn.round,
-                    battle.map_id,
-                    battle.seed,
-                )
-                .unwrap_or_else(|error| {
-                    panic!("{} round {}: {error}", path.display(), turn.round)
-                });
+                let layout = project(&turn.state, turn.round, battle.map_id, battle.seed)
+                    .unwrap_or_else(|error| {
+                        panic!("{} round {}: {error}", path.display(), turn.round)
+                    });
                 compile_layout(layout).unwrap_or_else(|error| {
                     panic!("{} round {} does not compile: {error}", path.display(), turn.round)
                 });

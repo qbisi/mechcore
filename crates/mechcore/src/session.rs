@@ -1021,8 +1021,8 @@ mod tests {
                     "kind": "layout",
                     "round": 1,
                     "sides": {
-                        "blue": {"formations": [{"type": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
-                        "red": {"formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
+                        "blue": {"units": [{"name": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
+                        "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                     }
                 }),
                 None,
@@ -1030,7 +1030,7 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(error.contains("formation type \"unknown\""));
+        assert!(error.contains("unit type \"unknown\""));
     }
 
     #[tokio::test]
@@ -1042,13 +1042,13 @@ mod tests {
                     "round": 1,
                     "sides": {
                         "blue": {
-                            "formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                            "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
                             "terrains": [{
-                                "type": "oil",
+                                "name": "oil",
                                 "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
                             }]
                         },
-                        "red": {"formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
+                        "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                     }
                 }),
                 None,

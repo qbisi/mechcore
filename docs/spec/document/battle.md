@@ -18,9 +18,9 @@ sides:
 kind: action
 round: 0
 blue:
-- {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}
+- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
 red:
-- {type: choose_advance_team, offer: 0, id: 9891, specialist: 10002}
+- {type: choose_advance_team, offer: 0, name: crawler-tarantula, specialist: supply_specialist}
 ---
 kind: state
 round: 1
@@ -151,13 +151,13 @@ player decides anything, and the third bounds every round.
 ```yaml
   blue:
     offers:
-    - {team: 9899, specialist: 20034}
-    - {team: 9910, specialist: 20005}
-    - {team: 9871, specialist: 10010}
-    - {team: 9875, specialist: 20021}
+    - {team: void_eye-sledgehammer, specialist: cost_control_specialist}
+    - {team: vortex-fire_badger, specialist: giant_specialist}
+    - {team: marksman-sledgehammer, specialist: quick_supply_specialist}
+    - {team: crawler-steel_ball, specialist: aerial_specialist}
 ```
 
-The opening deals a side four combinations of a team of formations and a
+The opening deals a side four combinations of a team of units and a
 specialist officer, and taking one takes both. `offers` is the four in the
 order shown to the player.
 
@@ -176,8 +176,8 @@ part of it that differs between matches.
 ```yaml
   blue:
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ```
 
 The map rolls a construction layout and deals it to both sides before the first
@@ -202,29 +202,34 @@ match, so the loadout bounds every `upgrade_technology` a round can hold.
 ```yaml
   blue:
     tech_loadout:
-      1: [1105, 10301, 10401, 10801]
-      2: [702, 1802, 3202, 10202]
-      17: [417, 3317, 10217, 12017, 12117, 12217]
-      31: [631, 10231, 180931, 503101]
+      fortress: [anti_air_barrage, launcher_overload, solid_shot, elite_marksman]
+      marksman: [doubleshot, electromagnetic_shot, aerial_specialization, range_enhancement]
+      war_factory: [high_explosive_ammo, missile_interceptor, range_enhancement, phoenix_production, steel_ball_production, sledgehammer_production]
+      vortex: [grid_integration, range_enhancement, mobile_power_station, emergency_armor]
 ```
 
 It is real state and not a catalogue: two players in one match hold different
-loadouts. Rows cover units `1` through `31`, then `2001`, `2002` and `4001`.
+loadouts. A row is keyed by the unit type's name, the one a unit's `name`
+gives, and lists its technologies by name, as a state's `techs` does; the rows
+are in ascending unit ID and a row's technologies in ascending technology ID,
+which is the order the game lists both in. There is one row for each unit a standard 1v1 match can field: IDs
+`1` through `31` and `2002`. The record also holds rows for Death Knell (`2001`)
+and Experimental Death Knell (`4001`), which no standard 1v1 match fields, and
+the conversion drops them.
 
-The loadout keeps the per-unit grouping that a state's flat `techs.units` array
-drops, because the rule that lets a state flatten does not hold here. A
-technology's owner cannot be read off the end of its ID for every row, and says
-nothing at all about the three units above `2000`. Ownership is still a function
-of the ID, since no technology belongs to two units, and it is resolved against
-the build's catalogue rather than by decoding digits.
+A technology's name is unique only within its unit, so it is always written
+under one: here under its row, in a state under its unit type, and in an
+`upgrade_technology` beside the `unit` it names. Its owner cannot be read off the
+end of its ID for every row, and says nothing at all about Mountain, whose ID is
+above `2000`; it is resolved against the build's catalogue.
 
 ## The opening is round zero
 
 The opening is the first action segment, and it holds one
 `choose_advance_team` per side and nothing else. `offer` is the zero-based
-position of the combination taken in that side's header `offers`, and `id` and
+position of the combination taken in that side's header `offers`, and `name` and
 `specialist` name the team and specialist that combination holds. A decision
-whose `id` and `specialist` are not what its offer holds is refused.
+whose `name` and `specialist` are not what its offer holds is refused.
 
 Round zero has no state segment because the header is its position, and the
 first state segment is round 1, which already shows what the opening delivered.
@@ -256,7 +261,7 @@ deployment or combat.
 
 The reinforcement check advances the same stream through contiguous rounds from
 round 1 and compares every round's complete ordered `reinforce_offers`. Each draw
-uses that round's stated formations, shop unlocks, active technologies and
+uses that round's stated units, shop unlocks, active technologies and
 officers, and the previous rounds' `choose_reinforce_item` decisions update the
 pool. Offers being checked do not choose the stream position or seed the next
 draw.
@@ -346,10 +351,10 @@ one of four classes:
 | `unimplemented` | No rule predicts the leaf yet, or the build's tables cannot settle one of the side's decisions |
 | `fight` | The fight decides the leaf |
 
-A leaf is a scalar reached through mappings, a field of a formation, panel
+A leaf is a scalar reached through mappings, a field of a unit, panel
 slot, construction or contraption aligned by its `index`, or a whole list
 otherwise, so an ID set and an inventory with repeats are one leaf each. A leaf
-only one of the two positions has is still a leaf: a formation the prediction
+only one of the two positions has is still a leaf: a unit the prediction
 lacks counts against it. The recorded next state is compared against and never
 read by the prediction.
 
@@ -361,7 +366,7 @@ field.
 | Field | What the fight does to it |
 | --- | --- |
 | `reactor_core` | Damage |
-| `formations.exp` | Experience from the fight |
+| `units.exp` | Experience from the fight |
 | `contraptions` | Which survive |
 | `terrains` | Which remain |
 | `airdrop_shields` | Which remain |
@@ -378,7 +383,7 @@ the header deals rather than a state segment: the map's reactor core for that
 seat, the side's `constructions`, and two towers at level zero. A standard 1v1
 map unlocks no unit and hands out no commander skill before the opening. The
 side's opening decision is stepped on it, and as round 1 opens the chosen team
-arrives: its unit types join the shop, and its formations land at level 1
+arrives: its unit types join the shop, and its units land at level 1
 where the board puts them, in the team's order. Nothing is fought in between,
 so no leaf of this transition is in the `fight` class.
 
@@ -411,7 +416,7 @@ hold across every seam of a well-formed battle.
 | `shop.unlocked_units` are kept |
 | `tower_strengthen_levels` rise or hold |
 | `blueprints` are kept, or replaced by their own next level |
-| `techs.officers` are kept, or replaced by their own next level |
+| `officers` are kept, or replaced by their own next level |
 | `constructions` are kept or dropped, never added, and round 1's are the ones the header dealt |
 | `reactor_core` falls or holds, except across the opening |
 
@@ -495,8 +500,8 @@ owns it:
 | `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder. A round opens with two purchases, one more per Additional Deployment Slot held, and one unlock |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
-| `equipment` | The recorded inventory includes fitted items, which the formations already name |
-| `movable` | No recorded field states it. Every formation of round 1 arrived with the opening, and a delivery arrived as its round opened; any other formation moves only if a Deployment Module or a Jump Drive frees it |
+| `equipment` | The recorded inventory includes fitted items, which the units already name |
+| `movable` | No recorded field states it. Every unit of round 1 arrived with the opening, and a delivery arrived as its round opened; any other unit moves only if a Deployment Module or a Jump Drive frees it |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
 Only `equipment` is rebuilt by conversion's own rule. The income, the
@@ -534,7 +539,7 @@ the state segment is taken before the round's own decisions.
 
 `travelling` has no recorded source and needs none. The fight empties the
 travelling set before the round it opens, so no state segment carries a
-travelling formation. The field is absent because that is its value here, not
+travelling unit. The field is absent because that is its value here, not
 because the conversion could not find it.
 
 ## Normal form
@@ -545,6 +550,11 @@ because the conversion could not find it.
 | `offers` | as dealt; an opening decision's `offer` names a zero-based position in it |
 | `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
+
+A team is written as its two unit types joined by a hyphen, the one it holds
+three of first, such as `vortex-fire_badger`. A specialist is an officer, and it
+and the other rows [`state.md`](state.md#names) names are written by the game's
+English names in snake case.
 | `game_rules` | ascending rule ID |
 
 A segment's own collections keep the orders [`state.md`](state.md) and
@@ -562,15 +572,15 @@ A [layout](layout.md#normal-form) is spelled by the same three:
 
 ```yaml
     shop:
-      unlocked_units: [2, 10, 20, 24]
+      unlocked_units: [marksman, crawler, fire_badger, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
     next_index: {unit: 7, contraption: 0}
-    formations:
-    - {type: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
+    units:
+    - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
 ```
 
-Actions, formations and ID lists are what a battle holds by the thousand, and one
+Actions, units and ID lists are what a battle holds by the thousand, and one
 line each keeps a round on a screen and makes a diff name the item that
 changed. A coordinate pair and an allocator are scalar mappings, so they fold
 by the same rule; a side, a shop and a technology list mix shapes and stay

@@ -200,7 +200,8 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
         1_200_003 => Some("wasp_swarm"),
         1_200_004 => Some("mobilize_battleship"),
         1_200_005 => Some("vulcans_descent"),
-        1_500_001 | 1_500_002 => Some("mobile_beacon"),
+        1_500_001 => Some("mobile_beacon"),
+        1_500_002 => Some("mobile_beacon_card"),
         _ => None,
     }
 }
@@ -386,7 +387,16 @@ pub(crate) const fn resolve_battle_skill_type(type_name: &str) -> Option<BattleS
             BattleSkillMapRule::Contained,
             Some(25),
         ),
+        // The blueprint's Mobile Beacon and the card's are two skills with one
+        // path, named apart as `config/names.yaml` names them.
         b"mobile_beacon" => battle_skill_spec(
+            1_500_001,
+            3,
+            BattleSkillShape::Path { width: 40 },
+            BattleSkillMapRule::Contained,
+            None,
+        ),
+        b"mobile_beacon_card" => battle_skill_spec(
             1_500_002,
             3,
             BattleSkillShape::Path { width: 40 },
@@ -415,6 +425,30 @@ pub(crate) const fn battle_skill_spec(
 }
 
 /// The native unit ID a public type name denotes.
+/// The Research Center's two enhancement chains: each blueprint and the officer
+/// it hands out, as `config/economy.yaml` states them. A blueprint that grants
+/// a commander skill is not here: a fight sees it only as the skill.
+pub const CHAIN_BLUEPRINTS: [(i32, i32); 4] =
+    [(4, 20_310), (401, 20_311), (5, 20_300), (501, 20_301)];
+
+/// The officer a chain blueprint hands out.
+#[must_use]
+pub fn chain_officer(blueprint: i32) -> Option<i32> {
+    CHAIN_BLUEPRINTS
+        .iter()
+        .find(|(chain, _)| *chain == blueprint)
+        .map(|(_, officer)| *officer)
+}
+
+/// The chain blueprint that hands out an officer.
+#[must_use]
+pub fn chain_blueprint(officer: i32) -> Option<i32> {
+    CHAIN_BLUEPRINTS
+        .iter()
+        .find(|(_, granted)| *granted == officer)
+        .map(|(blueprint, _)| *blueprint)
+}
+
 pub(crate) fn unit_id_from_type(type_name: &str) -> Option<i32> {
     match resolve_unit_type(type_name)?.native {
         NativeFormation::Unit(id) => Some(id),

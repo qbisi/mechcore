@@ -3,13 +3,13 @@ round: 1
 
 sides:
   blue:
-    formations:
-      - type: mustang
+    units:
+      - name: mustang
         index: 0
         position: {x: 5, y: -100}
 
   red:
-    formations:
-      - type: mustang
+    units:
+      - name: mustang
         index: 0
         position: {x: 5, y: -100}

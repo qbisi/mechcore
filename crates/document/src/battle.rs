@@ -6,7 +6,7 @@
 //! and `docs/spec/document/action.md` define the two segment shapes. Filling
 //! one from a replay is [`crate::convert`].
 
-use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Techs, Terrain};
+use crate::layout::{ContraptionPlacement, Position, StaticPlacement, Terrain, UnitPlacement};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::borrow::Cow;
@@ -46,7 +46,9 @@ pub struct BattleSide {
     /// with, so a battle says where the buildings came from rather than having
     /// them appear in the first round it happens to hold.
     pub constructions: Vec<StaticPlacement>,
-    /// Which technologies each unit may research, keyed by unit ID.
+    /// Which technologies each unit may research, keyed by unit ID and
+    /// written keyed by type name, in ID order. Only units a standard 1v1
+    /// match can field have a row.
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
@@ -69,9 +71,12 @@ pub struct Opening {
 
 /// One of the openings a side was dealt: a team of formations and the
 /// specialist officer bound to it.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct OpeningOffer {
+    /// Written as the team's name, its two unit types.
+    #[serde(with = "crate::names::advance_team::one")]
     pub team: i32,
+    #[serde(with = "crate::names::officer::one")]
     pub specialist: i32,
 }
 
@@ -92,7 +97,7 @@ impl Opening {
         Action::ChooseAdvanceTeam {
             offer: self.choose,
             id: taken.team,
-            specialist: Some(taken.specialist),
+            specialist: taken.specialist,
         }
     }
 }
@@ -111,7 +116,12 @@ pub struct Turn {
 #[serde(deny_unknown_fields)]
 pub struct State {
     /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Written as card names, a unit card's read within this round.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::names::card::offers"
+    )]
     pub reinforce_offers: Option<Vec<i32>>,
     pub sides: StateSides,
 }
@@ -129,9 +139,17 @@ pub struct SideState {
     pub reactor_core: i32,
     pub supply: i32,
     pub shop: ShopState,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::blueprint::many"
+    )]
     pub blueprints: Vec<i32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::energy_tower_skill::many"
+    )]
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -139,8 +157,18 @@ pub struct SideState {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<PanelSkill>,
     pub next_index: NextIndex,
-    pub techs: Techs,
-    pub formations: Vec<StateFormation>,
+    /// The officers the side holds, a multiset in ascending ID, by name.
+    #[serde(default, with = "crate::names::officer::many")]
+    pub officers: Vec<i32>,
+    /// The unit technologies the side has researched, in ascending ID,
+    /// written grouped by the unit they belong to.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::technologies"
+    )]
+    pub techs: Vec<i32>,
+    pub units: Vec<StateUnit>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -154,6 +182,8 @@ pub struct SideState {
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ShopState {
+    /// Unit IDs, written as their type names in ID order.
+    #[serde(with = "unit_names::units")]
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
@@ -166,9 +196,9 @@ pub struct ShopState {
 /// looking formations bought a round apart can be worth different amounts.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct StateFormation {
+pub struct StateUnit {
     #[serde(flatten)]
-    pub formation: Formation,
+    pub unit: UnitPlacement,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<i32>,
     /// Whether the side may move the formation this round.
@@ -184,6 +214,7 @@ pub struct StateFormation {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 pub struct EquipmentItem {
+    #[serde(rename = "name", with = "crate::names::equipment::one")]
     pub id: i32,
     /// Absent means `-1`, which is every item a standard 1v1 hands out.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -195,6 +226,7 @@ pub struct EquipmentItem {
 #[serde(deny_unknown_fields)]
 pub struct PanelSkill {
     pub index: i32,
+    #[serde(rename = "name", with = "crate::names::commander_skill::one")]
     pub id: i32,
     pub cooldown: i32,
     /// True on a deployment skill this round used.
@@ -221,6 +253,7 @@ pub struct PanelSkill {
 #[serde(deny_unknown_fields)]
 pub struct Release {
     pub order: i32,
+    #[serde(with = "serde_yaml::with::singleton_map")]
     pub target: SkillTarget,
 }
 
@@ -260,7 +293,11 @@ pub enum Action {
     /// it has no ID to carry.
     ChooseReinforceItem {
         offer: i32,
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "name",
+            skip_serializing_if = "Option::is_none",
+            with = "crate::names::card::option"
+        )]
         id: Option<i32>,
     },
     /// The opening, which is one decision with two halves: the team of
@@ -269,36 +306,53 @@ pub enum Action {
     /// It is the only decision of round zero, and no other round holds one.
     ChooseAdvanceTeam {
         offer: i32,
+        #[serde(rename = "name", with = "crate::names::advance_team::one")]
         id: i32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        specialist: Option<i32>,
+        #[serde(with = "crate::names::officer::one")]
+        specialist: i32,
     },
+    /// A purchase and where the new formation is deployed.
+    ///
+    /// The game lands a purchase where [`crate::landing`] says the board has
+    /// room, and the player moves it from there. A battle writes the position
+    /// the formation reaches within the main half, which is where the
+    /// purchase's own moves end, so those moves are not written again.
     BuyUnit {
+        #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
         position: Position,
+        #[serde(skip_serializing_if = "is_false")]
+        rotated: bool,
     },
     UpgradeUnit {
         index: i32,
     },
     UnlockUnit {
+        #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
     },
+    /// `tech` is written by its name, which is only unique within `unit`.
     UpgradeTechnology {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
+        #[serde(serialize_with = "crate::names::technology::serialize")]
         tech: i32,
     },
     ActiveBlueprint {
+        #[serde(rename = "name", with = "crate::names::blueprint::one")]
         id: i32,
     },
     ActiveEnergyTowerSkill {
+        #[serde(rename = "name", with = "crate::names::energy_tower_skill::one")]
         skill: i32,
     },
     StrengthenTower {
         tower: i32,
     },
     UseEquipment {
+        #[serde(rename = "name", with = "crate::names::equipment::one")]
         equipment: i32,
-        unit: i32,
+        index: i32,
     },
     MoveUnit {
         index: i32,
@@ -306,11 +360,19 @@ pub enum Action {
         #[serde(skip_serializing_if = "is_false")]
         rotated: bool,
     },
+    /// `index` is the panel slot released and `id` the skill it holds. The
+    /// slot is what the game names; the skill is stated beside it so a
+    /// release reads without the panel, and a release whose slot holds
+    /// another skill is refused.
     ReleaseCommanderSkill {
-        skill: i32,
+        index: i32,
+        #[serde(rename = "name", with = "crate::names::commander_skill::one")]
+        id: i32,
+        #[serde(with = "serde_yaml::with::singleton_map")]
         target: SkillTarget,
     },
     ReleaseContraption {
+        #[serde(rename = "name", with = "crate::names::contraption::one")]
         contraption: i32,
         position: Position,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -323,7 +385,9 @@ pub enum Action {
     Concede,
 }
 
-/// A release covers an area or points at one object, never both.
+/// A release covers an area or points at one object, never both. A document
+/// writes it as a one-key mapping, `{unit: 4}` or `{area: [...]}`, which every
+/// YAML and JSON reader takes, rather than `serde_yaml`'s `!unit 4` tag.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTarget {
@@ -334,11 +398,10 @@ pub enum SkillTarget {
 
 impl<'de> Deserialize<'de> for Action {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // Serde reads an internally tagged enum through a buffer that cannot
-        // hold a YAML tag, so `target: !area [...]` fails there. The value is
-        // read first, and each tag is spelled as the one-key mapping that
-        // buffer does hold, which is how the derived reader takes an enum.
-        let value = untag(Value::deserialize(deserializer)?);
+        // A technology's name is resolved against the unit beside it, so the
+        // value is read first and the name replaced by its ID.
+        let value =
+            name_technology(Value::deserialize(deserializer)?).map_err(serde::de::Error::custom)?;
         ActionReader::deserialize(value).map_err(serde::de::Error::custom)
     }
 }
@@ -355,39 +418,51 @@ impl<'de> Deserialize<'de> for Action {
 enum ActionReader {
     ChooseReinforceItem {
         offer: i32,
+        #[serde(rename = "name", default, with = "crate::names::card::option")]
         id: Option<i32>,
     },
     ChooseAdvanceTeam {
         offer: i32,
+        #[serde(rename = "name", with = "crate::names::advance_team::one")]
         id: i32,
-        specialist: Option<i32>,
+        #[serde(with = "crate::names::officer::one")]
+        specialist: i32,
     },
     BuyUnit {
+        #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
         position: Position,
+        #[serde(default)]
+        rotated: bool,
     },
     UpgradeUnit {
         index: i32,
     },
     UnlockUnit {
+        #[serde(rename = "name", with = "unit_names::unit")]
         unit: i32,
     },
     UpgradeTechnology {
+        #[serde(with = "unit_names::unit")]
         unit: i32,
+        /// Already an ID: [`name_technology`] resolves it within its unit.
         tech: i32,
     },
     ActiveBlueprint {
+        #[serde(rename = "name", with = "crate::names::blueprint::one")]
         id: i32,
     },
     ActiveEnergyTowerSkill {
+        #[serde(rename = "name", with = "crate::names::energy_tower_skill::one")]
         skill: i32,
     },
     StrengthenTower {
         tower: i32,
     },
     UseEquipment {
+        #[serde(rename = "name", with = "crate::names::equipment::one")]
         equipment: i32,
-        unit: i32,
+        index: i32,
     },
     MoveUnit {
         index: i32,
@@ -396,10 +471,14 @@ enum ActionReader {
         rotated: bool,
     },
     ReleaseCommanderSkill {
-        skill: i32,
+        index: i32,
+        #[serde(rename = "name", with = "crate::names::commander_skill::one")]
+        id: i32,
+        #[serde(with = "serde_yaml::with::singleton_map")]
         target: SkillTarget,
     },
     ReleaseContraption {
+        #[serde(rename = "name", with = "crate::names::contraption::one")]
         contraption: i32,
         position: Position,
         extra_position: Option<Position>,
@@ -407,40 +486,142 @@ enum ActionReader {
     Concede,
 }
 
-/// Spells every YAML tag in `value` as a one-key mapping from the tag's name.
-fn untag(value: Value) -> Value {
-    match value {
-        Value::Tagged(tagged) => {
-            let tagged = *tagged;
-            let name = tagged.tag.to_string();
-            let mut mapping = serde_yaml::Mapping::new();
-            mapping.insert(
-                Value::String(name.trim_start_matches('!').to_owned()),
-                untag(tagged.value),
-            );
-            Value::Mapping(mapping)
-        }
-        Value::Sequence(items) => Value::Sequence(items.into_iter().map(untag).collect()),
-        Value::Mapping(fields) => Value::Mapping(
-            fields
-                .into_iter()
-                .map(|(key, field)| (key, untag(field)))
-                .collect(),
-        ),
-        other => other,
+/// Resolves an `upgrade_technology`'s `tech` name to its ID, within the unit
+/// the same decision names, which a field's own reader cannot see. A number
+/// there is refused: a technology is written by name.
+fn name_technology(mut value: Value) -> Result<Value, String> {
+    let Value::Mapping(fields) = &mut value else {
+        return Ok(value);
+    };
+    if fields.get("type").and_then(Value::as_str) != Some("upgrade_technology") {
+        return Ok(value);
     }
+    let unit = fields
+        .get("unit")
+        .and_then(Value::as_str)
+        .ok_or("upgrade_technology names no unit type")?;
+    let unit = crate::catalog::unit_id_from_type(unit)
+        .ok_or_else(|| format!("{unit} is not a unit type of this build"))?;
+    let tech = fields
+        .get("tech")
+        .and_then(Value::as_str)
+        .ok_or("upgrade_technology names no technology")?;
+    let id = crate::names::technology_id::<serde_yaml::Error>(unit, tech)
+        .map_err(|error| error.to_string())?;
+    fields.insert("tech".into(), Value::Number(id.into()));
+    Ok(value)
 }
 
 /// Segment framing has already been checked by `segments`; payload readers
 /// reject unknown fields after removing those two framing keys.
+///
+/// A unit reinforcement card is named without its round, which the segment
+/// states, so each such name in a state's offers or a reinforcement choice is
+/// read as `name@round` before the fields are.
 pub(crate) fn payload<T: serde::de::DeserializeOwned>(
     mut value: Value,
 ) -> Result<T, serde_yaml::Error> {
     if let Value::Mapping(fields) = &mut value {
         fields.remove(Value::String("kind".into()));
-        fields.remove(Value::String("round".into()));
+        let round = fields
+            .remove(Value::String("round".into()))
+            .and_then(|round| round.as_i64());
+        if let Some(round) = round {
+            within_round(fields, round);
+        }
     }
     serde_yaml::from_value(value)
+}
+
+/// Appends `@round` to every unit card name a segment holds.
+fn within_round(fields: &mut serde_yaml::Mapping, round: i64) {
+    let qualify = |name: &mut Value| {
+        if let Value::String(text) = name
+            && crate::names::is_unit_card(text)
+        {
+            *text = format!("{text}@{round}");
+        }
+    };
+    if let Some(Value::Sequence(offers)) = fields.get_mut("reinforce_offers") {
+        offers.iter_mut().for_each(qualify);
+    }
+    for side in ["blue", "red"] {
+        let Some(Value::Sequence(actions)) = fields.get_mut(side) else {
+            continue;
+        };
+        for action in actions {
+            if action.get("type").and_then(Value::as_str) == Some("choose_reinforce_item")
+                && let Some(name) = action.get_mut("name")
+            {
+                qualify(name);
+            }
+        }
+    }
+}
+
+/// A battle names a unit type by the name a layout gives it, never by its ID.
+///
+/// The document still orders unit types by ID, which is the order the game
+/// lists them in, so the fields keep the ID and only their spelling is a name.
+/// A name no unit type of this build carries is refused.
+pub(crate) mod unit_names {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    fn name<E: serde::ser::Error>(id: i32) -> Result<&'static str, E> {
+        crate::catalog::unit_type_from_id(id)
+            .map(|(name, _)| name)
+            .ok_or_else(|| E::custom(format!("unit ID {id} has no type name in this build")))
+    }
+
+    fn id<E: serde::de::Error>(name: &str) -> Result<i32, E> {
+        crate::catalog::unit_id_from_type(name)
+            .ok_or_else(|| E::custom(format!("{name} is not a unit type of this build")))
+    }
+
+    /// One unit type.
+    pub(crate) mod unit {
+        use super::{Deserialize, Deserializer, Serialize, Serializer};
+
+        #[allow(clippy::trivially_copy_pass_by_ref)] // Required by serde's `with` shape.
+        pub(crate) fn serialize<S: Serializer>(
+            unit: &i32,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            super::name(*unit)?.serialize(serializer)
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<i32, D::Error> {
+            super::id(&String::deserialize(deserializer)?)
+        }
+    }
+
+    /// A list of unit types, kept in the order it holds.
+    pub(crate) mod units {
+        use super::{Deserialize, Deserializer, Serializer};
+
+        pub(crate) fn serialize<S: Serializer>(
+            units: &[i32],
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            serializer.collect_seq(
+                units
+                    .iter()
+                    .map(|unit| super::name(*unit))
+                    .collect::<Result<Vec<_>, S::Error>>()?,
+            )
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Vec<i32>, D::Error> {
+            Vec::<String>::deserialize(deserializer)?
+                .iter()
+                .map(|name| super::id(name))
+                .collect()
+        }
+    }
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // Required by serde's predicate shape.
@@ -474,6 +655,7 @@ struct HeaderSides<'a> {
 struct HeaderSide<'a> {
     offers: &'a [OpeningOffer],
     constructions: &'a [StaticPlacement],
+    #[serde(with = "crate::names::loadout")]
     tech_loadout: &'a BTreeMap<i32, Vec<i32>>,
 }
 
@@ -490,8 +672,11 @@ impl<'a> HeaderSide<'a> {
 #[derive(Serialize)]
 struct StateSegment<'a> {
     round: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reinforce_offers: Option<&'a Vec<i32>>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::names::card::offers::serialize"
+    )]
+    reinforce_offers: Option<Cow<'a, [i32]>>,
     sides: &'a StateSides,
 }
 
@@ -544,7 +729,7 @@ fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
     for turn in &battle.turns {
         segments.push(Segment::State(StateSegment {
             round: turn.round,
-            reinforce_offers: turn.state.reinforce_offers.as_ref(),
+            reinforce_offers: turn.state.reinforce_offers.as_deref().map(Cow::Borrowed),
             sides: &turn.state.sides,
         }));
         segments.push(Segment::Action(ActionSegment {
@@ -729,22 +914,63 @@ fn conceded(actions: &Value, round: i32) -> Result<bool, String> {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn actions_read_tagged_targets_and_refuse_lost_operands() {
-        for target in ["!area [{x: 10, y: -20}]", "!unit 4", "!construction 2"] {
-            let yaml = format!("{{type: release_commander_skill, skill: 3, target: {target}}}");
+    fn actions_read_targets_and_refuse_lost_operands() {
+        for target in [
+            "{area: [{x: 10, y: -20}]}",
+            "{unit: 4}",
+            "{construction: 2}",
+        ] {
+            let yaml = format!(
+                "{{type: release_commander_skill, index: 3, name: missile_strike, target: {target}}}"
+            );
             let action: super::Action = serde_yaml::from_str(&yaml).unwrap();
             let spelled = serde_yaml::to_string(&action).unwrap();
+            assert!(!spelled.contains('!'), "{spelled}");
             assert_eq!(
                 serde_yaml::from_str::<super::Action>(&spelled).unwrap(),
                 action
             );
         }
         for yaml in [
-            "{type: buy_unit, unit: 2}",
+            "{type: buy_unit, name: marksman}",
+            "{type: choose_advance_team, offer: 1, name: vortex-fire_badger}",
+            "{type: release_commander_skill, index: 0, target: {unit: 4}}",
+            "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
             "{type: upgrade_unit, index: 0, typo: 1}",
-            "{type: release_commander_skill, skill: 0, target: !unknown 1}",
+            "{type: release_commander_skill, index: 0, name: missile_strike, target: {unknown: 1}}",
             "{type: unknown_action}",
+        ] {
+            assert!(
+                serde_yaml::from_str::<super::Action>(yaml).is_err(),
+                "{yaml}"
+            );
+        }
+    }
+
+    /// A unit type is written by name and ordered by ID: Vortex is unit 31
+    /// and Mountain unit 2002, the reverse of their names' order. A number,
+    /// or a name that is not a unit type, is refused.
+    #[test]
+    fn unit_types_are_names_in_id_order() {
+        #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+        struct Loadout {
+            #[serde(with = "crate::names::loadout")]
+            rows: std::collections::BTreeMap<i32, Vec<i32>>,
+        }
+        let loadout = Loadout {
+            rows: [(2002, vec![72_002]), (31, vec![631])].into(),
+        };
+        let yaml = serde_yaml::to_string(&loadout).unwrap();
+        assert_eq!(
+            yaml,
+            "rows:\n  vortex:\n  - grid_integration\n  mountain:\n  - saturation_bombardment\n"
+        );
+        assert_eq!(serde_yaml::from_str::<Loadout>(&yaml).unwrap(), loadout);
+        for yaml in [
+            "{type: unlock_unit, name: 9}",
+            "{type: unlock_unit, name: defensive_wall}",
+            "{type: buy_unit, name: death_knell, position: {x: 0, y: -160}}",
         ] {
             assert!(
                 serde_yaml::from_str::<super::Action>(yaml).is_err(),
@@ -768,26 +994,27 @@ mod tests {
             },
             Action::ChooseReinforceItem {
                 offer: 2,
-                id: Some(7),
+                id: Some(1_305_003),
             },
             Action::ChooseAdvanceTeam {
                 offer: 1,
-                id: 3,
-                specialist: Some(4),
+                id: 9910,
+                specialist: 20005,
             },
             Action::BuyUnit {
                 unit: 2,
                 position: at,
+                rotated: true,
             },
             Action::UpgradeUnit { index: 0 },
             Action::UnlockUnit { unit: 9 },
-            Action::UpgradeTechnology { unit: 2, tech: 201 },
+            Action::UpgradeTechnology { unit: 2, tech: 702 },
             Action::ActiveBlueprint { id: 5 },
             Action::ActiveEnergyTowerSkill { skill: 1 },
             Action::StrengthenTower { tower: 1 },
             Action::UseEquipment {
-                equipment: 3,
-                unit: 0,
+                equipment: 13_030_001,
+                index: 0,
             },
             Action::MoveUnit {
                 index: 0,
@@ -795,19 +1022,22 @@ mod tests {
                 rotated: true,
             },
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 300_001,
                 target: SkillTarget::Area(vec![at]),
             },
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 300_001,
                 target: SkillTarget::Unit(4),
             },
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 300_001,
                 target: SkillTarget::Construction(2),
             },
             Action::ReleaseContraption {
-                contraption: 1,
+                contraption: 10_001,
                 position: at,
                 extra_position: Some(at),
             },
@@ -842,9 +1072,9 @@ mod tests {
 
     #[test]
     fn a_state_refuses_a_field_it_does_not_define() {
-        let formation = "{type: crawler, index: 0, position: {x: 0, y: -160}, value: 100}";
+        let formation = "{name: crawler, index: 0, position: {x: 0, y: -160}, value: 100}";
         let read =
-            |formation: &str| serde_yaml::from_str::<super::StateFormation>(formation).map(|_| ());
+            |formation: &str| serde_yaml::from_str::<super::StateUnit>(formation).map(|_| ());
         read(formation).unwrap();
         for broken in [
             formation.replace("value: 100", "value: 100, typo: 1"),
@@ -968,7 +1198,7 @@ mod tests {
     #[test]
     fn a_state_segment_carries_no_release() {
         let released = format!(
-            "{HEADER}{OPENING}---\nkind: state\nround: 1\nsides:\n  blue:\n    battle_skills:\n    - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: !unit 4}}}}\n"
+            "{HEADER}{OPENING}---\nkind: state\nround: 1\nsides:\n  blue:\n    battle_skills:\n    - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: {{unit: 4}}}}}}\n"
         );
         assert!(
             read(&released)
@@ -977,21 +1207,20 @@ mod tests {
         );
     }
 
-    /// The spelling follows the three rules and says what the value says, a
-    /// tagged release target included.
+    /// The spelling follows the three rules and says what the value says.
     #[test]
     fn a_segment_is_spelled_by_shape() {
-        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    formations:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    formations:\n    - type: release_commander_skill\n      target: !area\n      - x: 197\n        y: -40\n    - type: concede\n";
+        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    units:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    units:\n    - type: release_commander_skill\n      target:\n        area:\n        - x: 197\n          y: -40\n    - type: concede\n";
         let value: serde_yaml::Value = serde_yaml::from_str(block).unwrap();
         let spelled = crate::spelling::document(&value).unwrap();
         assert_eq!(
             spelled,
             "kind: state\nround: 3\nreinforce_offers: [1033115, 1031122]\nsides:\n  blue:\n\
              \x20   shop:\n      unlocked_units: [2, 10]\n      buys_remaining: 2\n\
-             \x20   next_index: {unit: 7, contraption: 0}\n    formations:\n\
+             \x20   next_index: {unit: 7, contraption: 0}\n    units:\n\
              \x20   - {type: vortex, index: 0, position: {x: -120, y: -100}}\n\
-             \x20   constructions: []\n  red:\n    formations:\n\
-             \x20   - {type: release_commander_skill, target: !area [{x: 197, y: -40}]}\n\
+             \x20   constructions: []\n  red:\n    units:\n\
+             \x20   - {type: release_commander_skill, target: {area: [{x: 197, y: -40}]}}\n\
              \x20   - {type: concede}\n"
         );
         assert_eq!(

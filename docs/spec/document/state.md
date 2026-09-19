@@ -12,7 +12,7 @@ map_id: 1001
 seed: 2038621361
 round: 7
 
-reinforce_offers: [1072216, 1072221, 107228, 1072213]
+reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2]
 
 sides:
   blue: { ... }
@@ -47,20 +47,20 @@ What the projection drops is everything the fight cannot observe: supply, the
 shop, the reinforcement offer, the allocators, and the parts of the skill panel
 that were not released this round.
 
-Six side fields project unchanged: `formations`, `constructions`,
-`contraptions`, `airdrop_shields`, `terrains` and `tower_strengthen_levels`.
-Three more reach a layout transformed rather than copied straight:
+Eight side fields project unchanged: `officers`, `techs`, `units`,
+`constructions`, `contraptions`, `airdrop_shields`, `terrains` and
+`tower_strengthen_levels`. Two more reach a layout filtered rather than copied
+straight:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
-| `techs` | `techs` | copied, duplicates included |
-| `blueprints` | `techs.officers` | `4` → `20310`; `401` → `20311`; `5` → `20300`; `501` → `20301` |
+| `blueprints` | `blueprints` | the enhancement chains alone: `4`, `401`, `5`, `501` |
 | `energy_tower_skills` | `energy_tower_skills` | copied, keeping `5` and `6` |
 
 A valid blueprint list cannot hold both levels of one chain, so each chain
 contributes at most one Officer. Blueprint IDs `1`, `2` and `3`, and Energy
 Tower skill IDs `1`, `3` and `4`, reach no layout field: their fight-visible
-consequences are already carried by the skill panel or by formations, while
+consequences are already carried by the skill panel or by units, while
 their economic consequences are not part of a layout.
 
 `battle_skills` is projected rather than copied. The projection keeps only
@@ -139,31 +139,34 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       supply: 50
 
       shop:
-        unlocked_units: [2, 9, 10, 15, 18, 21, 22, 25, 28, 30, 31]
+        unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
         buys_remaining: 3
         unlocks_remaining: 1
 
-      blueprints: [1, 2, 401]
-      energy_tower_skills: [1]
+      blueprints: [sticky_oil_bomb, field_recovery, attack_enhancement_ii]
+      energy_tower_skills: [rapid_resupply]
       tower_strengthen_levels: [1, 1]
 
       equipment:
-        - {id: 13030003}
+        - {name: improved_firepower_control_system}
 
       battle_skills:
         - index: 0
-          id: 1100001
+          name: intensive_training
           cooldown: 1
         - index: 1
-          id: 300005
+          name: lightning_storm
           cooldown: 0
 
       next_index:
         unit: 29
         contraption: 15
 
-      techs: { ... }
-      formations: [ ... ]
+      officers: [supply_specialist, efficient_light_manufacturing]
+      techs:
+        fang: [grenade_launcher]
+        tarantula: [field_maintenance, spider_mine]
+      units: [ ... ]
       constructions: [ ... ]
       contraptions: [ ... ]
       airdrop_shields: [ ... ]
@@ -174,27 +177,27 @@ The last six keys are the layout fields that project unchanged, elided here
 because [the layout document](layout.md) already defines them. A side always
 writes all six, empty where it holds nothing.
 
-### A formation carries two fields a layout does not
+### A unit carries two fields a layout does not
 
 ```yaml
-      formations:
-      - {type: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
-      - {type: hound, index: 9, position: {x: 0, y: -160}, value: 100, movable: true}
+      units:
+      - {name: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
+      - {name: hound, index: 9, position: {x: 0, y: -160}, value: 100, movable: true}
 ```
 
-`value` is what the side paid for the formation, at the prices its officers made
-at the time, and it is what recovering the formation pays back. Two formations of
+`value` is what the side paid for the unit, at the prices its officers made
+at the time, and it is what recovering the unit pays back. Two units of
 one type and level can differ in it.
 
-`movable` says whether the side may move the formation this round, and is
-absent when it may not. A formation moves in the round it arrives, whether it
+`movable` says whether the side may move the unit this round, and is
+absent when it may not. A unit moves in the round it arrives, whether it
 was bought, handed out by a card, or delivered as the round opened, and stays
 where it is in every later round unless something frees it: a Deployment Module
 it wears, its unit's Jump Drive, or a Redeploy release this round.
 [The mobility index](../../rules/mobility.md) gives the rule and its evidence.
-It is a field rather than a derivation because the round a formation arrived in
+It is a field rather than a derivation because the round a unit arrived in
 is history no other field keeps. A layout does not carry it: the fight moves
-every formation.
+every unit.
 
 ### The allocators
 
@@ -239,13 +242,13 @@ rows raise the crystal's life, so a level is in `0..=4` for either tower.
 ### Equipment is stock plus what is fitted
 
 A state stores the difference rather than the record. `equipment` lists only
-what the side owns and no formation wears, and a formation's own `equipment`
+what the side owns and no unit wears, and a unit's own `equipment`
 names what it carries. The two together enumerate everything owned, and neither
 can be derived from the other: dropping the side list would lose an unfitted
-item, and dropping the formation field would lose which unit carries what.
+item, and dropping the unit's field would lose which unit carries what.
 
 Storing the recorded inventory whole would instead let one document contradict
-itself, by listing an item no formation carries beside a formation carrying an
+itself, by listing an item no unit carries beside a unit carrying an
 item the list omits.
 
 `equipment` is a multiset: a side can own two copies of one item.
@@ -289,6 +292,9 @@ that, and an installer has to set it even though no state document carries it.
 
 A state stores two shop numbers, and both differ from what the replay holds.
 
+`unlocked_units` names each unit type by the name a unit's `name` gives,
+and lists them in ascending unit ID.
+
 `locked_units` is dropped because it is the complement of `unlocked_units`
 against the build's unit catalogue. `MaxUnlockCount` is dropped because it is
 the shipped constant plus a modifier no standard 1v1 source provides.
@@ -302,17 +308,43 @@ A round opens with two purchases, one more for every Additional Deployment Slot
 for the same reason `supply` cannot: the recorded counters describe the previous
 round, because the snapshot is taken before the round's own reset.
 
-### Technologies stay flat
+### Officers and technologies
 
-The replay groups technologies under the unit they belong to. A state stores one
-flat ascending array instead, as a layout does. Ownership is a function of the
-ID and is resolved against the build's catalogue, so the grouping is
-recoverable without being stored. A battle's `tech_loadout` keeps the grouping,
-because it has to say which technologies a unit may research rather than which
-it has.
+`officers` lists the officers the side holds. An officer card that may be
+taken again appears once per copy. `techs` holds unit technologies alone, grouped under the unit type they
+belong to, as the replay groups them and as a battle's `tech_loadout` does. A
+unit that has researched nothing has no row.
 
 The state of being unlocked but not active does not arise under standard 1v1
-rules, so the flat array loses nothing.
+rules, so a technology is either listed or not.
+
+### Names
+
+A state names what it holds rather than numbering it, and a document that names
+something writes the key `name`. A unit type is the name a unit's `name`
+gives, and a contraption the name a layout gives it. An officer, a technology, a
+blueprint, an energy tower skill, a commander skill and an equipment item are
+the game's own English names in snake case, apostrophes dropped, which
+[`config/names.yaml`](../../../config/names.yaml) holds for build 2259: the
+officer `supply_specialist`, the technology `grenade_launcher`, the blueprint
+`field_recovery`, the energy tower skill `rapid_resupply`, the commander skill
+`intensive_training`, the equipment item `photon_coating`.
+
+What is named is what a standard 1v1 match can hand a side: the opening
+specialists and the officers a reinforcement card grants, the commander skills
+a card, one of those officers or a blueprint grants, and the equipment a card or
+one of those officers hands out. Names are distinct within a kind, and a
+technology's within its unit, which is the only place a state names one. One
+clash is resolved by rule: the Mobile Beacon a card grants is
+`mobile_beacon_card`, beside the blueprint's `mobile_beacon`.
+
+A reinforcement card is named by what it grants, and a card of units as its
+unit, squads and level, `sledgehammer_2x_lv2`. That leaves out the round the card
+belongs to, which two cards can differ in alone, so a unit card's name is read
+within the round of the segment holding it.
+
+What a name stands for is still ordered by ID, the order the game lists it in,
+and a name the build does not carry is refused.
 
 ### The research centre and the energy tower
 
@@ -359,11 +391,9 @@ Activating a chain blueprint also grants its product officer: `4` grants
 replaces rather than appends, so a side holding the second level lists it alone.
 
 The blueprint list and those officers are two spellings of one fact.
-`blueprints` owns it in a state, and `techs.officers` must not name `20300`,
-`20301`, `20310` or `20311`. A layout spells it the other way: it has no
-blueprint list, so the projection puts the chain's product Officer into
-`techs.officers`, which is the only place a layout says a persistent Officer
-effect.
+`blueprints` owns it, and `officers` must not name `20300`, `20301`, `20310` or
+`20311`. A layout spells it the same way, keeping the chains alone: a blueprint
+that grants a skill reaches a fight only as that skill's release.
 
 #### The energy tower keeps all five
 
@@ -398,20 +428,20 @@ slot and a slot the state does not carry cannot be resolved.
 ```yaml
       battle_skills:
         - index: 0
-          id: 1100001
+          name: intensive_training
           cooldown: 1
         - index: 2
-          id: 300005
+          name: lightning_storm
           cooldown: 0
           release:
             order: 1
-            target: !area [{x: 50, y: 44}, {x: 189, y: 38}]
+            target: {area: [{x: 50, y: 44}, {x: 189, y: 38}]}
         - index: 3
-          id: 900001
+          name: field_recovery
           cooldown: 0
           release:
             order: 2
-            target: !unit 12
+            target: {unit: 12}
 ```
 
 `index` is the position at which the skill joined the panel, and it is the key a
@@ -461,16 +491,17 @@ the `Positions` column of the [battle skill index](../../rules/battle_skill.md).
 
 ## Normal form
 
-A formation's `exp` is written `current/maximum` as a layout writes it, and is
+A unit's `exp` is written `current/maximum` as a layout writes it, and is
 absent when its `current` is `0`.
 
 | Collection | Order |
 | --- | --- |
 | `battle_skills` | ascending `index` |
-| `equipment` | ascending `(id, durability)`, a multiset |
-| `formations`, `constructions`, `contraptions` | ascending `index` |
-| `techs.officers`, `techs.units` | ascending ID |
-| `shop.unlocked_units` | ascending ID |
+| `equipment` | ascending item ID, then `durability`, a multiset |
+| `units`, `constructions`, `contraptions` | ascending `index` |
+| `officers` | ascending ID, a multiset |
+| `techs` | ascending unit ID, each unit's technologies ascending ID |
+| `shop.unlocked_units` | ascending unit ID |
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
@@ -558,7 +589,7 @@ answers it if the table is where a later build puts that difference, so this
 waits on how a later build handles those two skills.
 
 **Where a fitted item's durability would live.** `durability` belongs to the
-side's inventory, and a formation's `equipment` names only an ID. Under the game
+side's inventory, and a unit's `equipment` names only an ID. Under the game
 rule that makes equipment expire, a fitted item has a durability and this format
 has nowhere to put it.
 

@@ -3,17 +3,17 @@ round: 1
 
 sides:
   blue:
-    formations:
-      - type: marksman
+    units:
+      - name: marksman
         index: 0
         position: {x: 140, y: -100}
     constructions:
-      - type: defensive_wall
+      - name: defensive_wall
         index: 0
         position: {x: 140, y: -105}
 
   red:
-    formations:
-      - type: marksman
+    units:
+      - name: marksman
         index: 0
         position: {x: 0, y: -50}

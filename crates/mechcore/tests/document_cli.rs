@@ -12,12 +12,12 @@ seed: -17
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
-    constructions: [{type: defensive_wall, index: 0, position: {x: 140, y: -105}}]
-    contraptions: [{type: interceptor, index: 0, position: {x: 35, y: -85}}]
-    terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+    constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]
+    contraptions: [{name: interceptor, index: 0, position: {x: 35, y: -85}}]
+    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -37,7 +37,7 @@ sides:
     assert_eq!(report["kind"], "layout");
     assert_eq!(report["seed"], -17);
     assert_eq!(report["round"], 1);
-    assert_eq!(report["formation_count"], 2);
+    assert_eq!(report["unit_count"], 2);
     assert_eq!(report["construction_count"], 1);
     assert_eq!(report["contraption_count"], 1);
     assert_eq!(report["terrain_count"], 1);
@@ -49,7 +49,7 @@ fn verify_rejects_the_zero_seed_sentinel() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -84,11 +84,11 @@ kind: layout
 round: 1
 sides:
   blue:
-    formations:
-      - {type: marksman, index: 0, position: {x: 0, y: -50}}
-      - {type: shield, index: 1, position: {x: 0, y: -100}}
+    units:
+      - {name: marksman, index: 0, position: {x: 0, y: -50}}
+      - {name: shield, index: 1, position: {x: 0, y: -100}}
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -124,9 +124,9 @@ fn verify_reads_a_batch_of_paths_from_standard_input() {
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -189,10 +189,10 @@ kind: layout
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
-    terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
+    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
+    units: [{name: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
 ",
     )
     .unwrap();
@@ -210,11 +210,11 @@ sides:
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
     assert!(canonical.contains(
-        "terrains:\n    - {type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
+        "terrains:\n    - {name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
     ));
     assert!(
-        canonical.contains("    - {type: marksman, index: 0, position: {x: 0, y: -50}}\n"),
-        "a formation stays on one line: {canonical}"
+        canonical.contains("    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n"),
+        "a unit stays on one line: {canonical}"
     );
     assert!(!canonical.contains("grid_rows:"));
 
@@ -235,12 +235,12 @@ fn diff_compares_normalized_fields() {
     let right = directory.path().join("right.yaml");
     fs::write(
         &left,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     fs::write(
         &right,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -258,7 +258,7 @@ fn diff_compares_normalized_fields() {
 
     fs::write(
         &right,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))
@@ -271,7 +271,7 @@ fn diff_compares_normalized_fields() {
     let report: serde_json::Value = serde_json::from_slice(&different.stdout).unwrap();
     assert_eq!(
         report["differences"][0]["path"],
-        "/sides/blue/formations/index=0/position/x"
+        "/sides/blue/units/index=0/position/x"
     );
 }
 
@@ -393,10 +393,10 @@ fn battle_verification_reads_fields_outside_the_deal() {
                     serde_yaml::from_str("[{index: 0, id: 1000001, cooldown: broken}]").unwrap();
             }
             "equipment" => blue["equipment"] = serde_yaml::from_str("[{id: broken}]").unwrap(),
-            "position" => blue["formations"][0]["position"]["x"] = Value::String("broken".into()),
+            "position" => blue["units"][0]["position"]["x"] = Value::String("broken".into()),
             "unknown_state_field" => blue["supply_typo"] = Value::Number(1.into()),
             "missing_operand" => {
-                documents[3]["blue"] = serde_yaml::from_str("[{type: buy_unit, unit: 2}]").unwrap();
+                documents[3]["blue"] = serde_yaml::from_str("[{type: upgrade_unit}]").unwrap();
             }
             "unknown_action" => {
                 documents[3]["blue"] = serde_yaml::from_str("[{type: unknown_action}]").unwrap();

@@ -3,21 +3,21 @@ round: 1
 
 sides:
   blue:
-    formations:
-      - type: arclight
+    units:
+      - name: arclight
         index: 0
         position: {x: 0, y: -100}
-      - type: crawler
+      - name: crawler
         index: 1
         rotated: true
         position: {x: 0, y: -135}
 
   red:
-    formations:
-      - type: arclight
+    units:
+      - name: arclight
         index: 0
         position: {x: 0, y: -100}
-      - type: crawler
+      - name: crawler
         index: 1
         rotated: true
         position: {x: 0, y: -135}

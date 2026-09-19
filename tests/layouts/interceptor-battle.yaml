@@ -3,21 +3,21 @@ round: 1
 
 sides:
   blue:
-    formations:
-      - type: stormcaller
+    units:
+      - name: stormcaller
         index: 0
         position: {x: 5, y: -120}
     contraptions:
-      - type: interceptor
+      - name: interceptor
         index: 0
         position: {x: 5, y: -85}
 
   red:
-    formations:
-      - type: stormcaller
+    units:
+      - name: stormcaller
         index: 0
         position: {x: 5, y: -120}
     contraptions:
-      - type: interceptor
+      - name: interceptor
         index: 0
         position: {x: 5, y: -85}

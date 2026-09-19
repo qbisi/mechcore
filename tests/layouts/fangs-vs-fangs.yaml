@@ -3,13 +3,13 @@ round: 1
 
 sides:
   blue:
-    formations:
-      - type: fang
+    units:
+      - name: fang
         index: 0
         position: {x: 5, y: -100}
 
   red:
-    formations:
-      - type: fang
+    units:
+      - name: fang
         index: 0
         position: {x: 5, y: -100}

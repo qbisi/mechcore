@@ -527,6 +527,7 @@ pub struct StatedSide {
     pub opening: StatedOpening,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
+    #[serde(with = "crate::names::loadout")]
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
 }
 
@@ -536,7 +537,7 @@ pub struct StatedOpening {
     /// The zero-based `offer` the decision names.
     pub choose: i32,
     /// The team and specialist the decision says that offer holds.
-    pub taken: Option<OpeningOffer>,
+    pub taken: OpeningOffer,
 }
 
 impl StatedSide {
@@ -571,10 +572,10 @@ impl StatedOpening {
         };
         Ok(Self {
             choose: *offer,
-            taken: specialist.map(|specialist| OpeningOffer {
+            taken: OpeningOffer {
                 team: *id,
-                specialist,
-            }),
+                specialist: *specialist,
+            },
         })
     }
 }
@@ -654,7 +655,7 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
                 side.opening.choose
             ));
         };
-        if side.opening.taken != Some(offered) {
+        if side.opening.taken != offered {
             return Err(format!(
                 "{name} opening offer {} holds team {} and specialist {}, \
                  and the decision names {:?}",
@@ -810,8 +811,18 @@ mod tests {
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
         let yaml = crate::battle::canonical_yaml(&battle).unwrap();
         let dealt = &battle.sides.blue.opening.offers;
-        let swapped = format!("team: {}", dealt[0].team);
-        let edited = yaml.replacen(&swapped, &format!("team: {}", dealt[0].team + 1), 1);
+        let team = |id| <crate::names::AdvanceTeam as crate::names::Kind>::name(id).unwrap();
+        // Another team of the build, one this side was not dealt.
+        let other = economy
+            .advance_teams()
+            .map(|(id, _)| id)
+            .find(|id| {
+                <crate::names::AdvanceTeam as crate::names::Kind>::name(*id).is_some()
+                    && dealt.iter().all(|offer| offer.team != *id)
+            })
+            .unwrap();
+        let swapped = format!("team: {}", team(dealt[0].team));
+        let edited = yaml.replacen(&swapped, &format!("team: {}", team(other)), 1);
         assert_ne!(edited, yaml);
         let stated = stated(edited.as_bytes())
             .unwrap()
@@ -852,10 +863,16 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
         let yaml = crate::battle::canonical_yaml(&battle).unwrap();
-        for field in ["id", "specialist"] {
+        // Red took crawler-tarantula with supply_specialist; each field is
+        // swapped for another of its kind the offer does not hold.
+        for (field, other) in [
+            ("name", "crawler-steel_ball"),
+            ("specialist", "giant_specialist"),
+        ] {
             let mut segments = segments_of(&yaml);
             let taken = &mut segments[1]["red"][0][field];
-            *taken = serde_yaml::Value::from(taken.as_i64().unwrap() + 1);
+            assert_ne!(taken.as_str(), Some(other));
+            *taken = serde_yaml::Value::from(other);
             let stated = stated(stream_of(&segments).as_bytes()).unwrap().unwrap();
             let error = verify(&economy, &stated).unwrap_err();
             assert!(error.contains("red opening offer"), "{error}");
@@ -904,8 +921,19 @@ mod tests {
             assert_eq!(decisions.len(), 1);
             assert_eq!(decisions[0]["type"], "choose_advance_team");
             assert_eq!(decisions[0]["offer"], i64::from(opening.choose));
-            assert_eq!(decisions[0]["id"], i64::from(taken.team));
-            assert_eq!(decisions[0]["specialist"], i64::from(taken.specialist));
+            let name = |kind: Option<&str>| serde_yaml::Value::from(kind.unwrap());
+            assert_eq!(
+                decisions[0]["name"],
+                name(<crate::names::AdvanceTeam as crate::names::Kind>::name(
+                    taken.team
+                ))
+            );
+            assert_eq!(
+                decisions[0]["specialist"],
+                name(<crate::names::Officer as crate::names::Kind>::name(
+                    taken.specialist
+                ))
+            );
         }
         assert_eq!(segments[1]["kind"], "action");
         assert_eq!(segments[1]["round"], 0);

@@ -696,6 +696,11 @@ mod tests {
         assert_eq!(small.unit_supply, -50);
         assert!(small.units.contains(&2) && !small.units.contains(&1));
         assert_eq!(economy.officer(10002).unwrap().round_supply, 50);
+        // The catalogue's chains are the blueprints the tables grant an
+        // officer through.
+        for (blueprint, officer) in crate::catalog::CHAIN_BLUEPRINTS {
+            assert_eq!(economy.blueprint_officer(blueprint), Some(officer));
+        }
         assert_eq!(economy.officer(10005).unwrap().kill_bounty, 50);
     }
 

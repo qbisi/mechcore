@@ -3,29 +3,29 @@ round: 3
 
 sides:
   blue:
-    formations:
-      - type: crawler
+    units:
+      - name: crawler
         index: 0
         position: {x: 310, y: 285}
         travelling: true
-      - type: phantom_ray
+      - name: phantom_ray
         index: 1
         position: {x: 330, y: 285}
-      - type: typhoon
+      - name: typhoon
         index: 2
         position: {x: 350, y: 290}
 
   red:
-    formations:
-      - type: typhoon
+    units:
+      - name: typhoon
         index: 0
         position: {x: -250, y: -290}
         rotated: true
-      - type: phantom_ray
+      - name: phantom_ray
         index: 1
         position: {x: -270, y: -285}
         rotated: true
-      - type: crawler
+      - name: crawler
         index: 2
         position: {x: -290, y: -285}
         rotated: true

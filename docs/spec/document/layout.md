@@ -25,13 +25,14 @@ validates, and publishes an MCFR at the requested path.
 Unit combat values are resolved from the typed, one-file-per-unit
 [unit configuration contract](../simulation/unit-rules.md), not stored in the
 layout. The simulator's closure is narrower than native layout application, and
-it rejects a formation or mechanism outside that closure before recording
+it rejects a unit or mechanism outside that closure before recording
 begins rather than recording an approximation.
 
 ## Document shape
 
-A layout contains exactly two player sides, `blue` and `red`. Persistent Officer
-and unit-technology state is grouped under each side's `techs` object.
+A layout contains exactly two player sides, `blue` and `red`. Each side lists
+its Officers, its unit technologies grouped by unit, and its enhancement-chain
+blueprints, then what stands on its board.
 
 The required top-level `kind` names what the document is. It is a constant, not
 a version: it takes the single value `layout` and never needs maintaining. Its
@@ -51,37 +52,38 @@ round: 3
 
 sides:
   blue:
+    officers: [supply_specialist, efficient_tech_research, extended_range_marksman]
     techs:
-      officers: [10002, 20003, 30201]
-      units: [10202, 10402]
+      marksman: [range_enhancement, quick_reload]
+    blueprints: [attack_enhancement]
 
-    energy_tower_skills: [5, 6]
+    energy_tower_skills: [enhanced_range, high_mobility]
     tower_strengthen_levels: [1, 2]
 
-    formations:
-    - {type: marksman, index: 0, position: {x: 0, y: -50}, equipment: 13030001}
-    - {type: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
+    units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: laser_sights}
+    - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -105}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
 
     contraptions:
-    - {type: interceptor, index: 0, position: {x: 5, y: -95}}
+    - {name: interceptor, index: 0, position: {x: 5, y: -95}}
 
     airdrop_shields: []
     terrains: []
 
     battle_skills:
-    - {type: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
+    - {name: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
 
   red:
-    techs:
-      officers: []
-      units: []
+    officers: []
+    techs: {}
+    blueprints: []
     energy_tower_skills: []
     tower_strengthen_levels: []
-    formations:
-    - {type: marksman, index: 0, position: {x: 0, y: -100}}
+    units:
+    - {name: marksman, index: 0, position: {x: 0, y: -100}}
 
     contraptions: []
     airdrop_shields: []
@@ -100,10 +102,11 @@ in its defined order:
 
 | Collection | Order |
 | --- | --- |
-| `formations`, `constructions`, `contraptions` | ascending `index` |
-| `techs.officers`, `techs.units`, `energy_tower_skills` | ascending ID; `techs.officers` may repeat one |
+| `units`, `constructions`, `contraptions` | ascending `index` |
+| `officers`, `blueprints`, `energy_tower_skills` | ascending ID; `officers` may repeat one |
+| `techs` | ascending unit ID, each unit's technologies ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
-| `terrains` | ascending `type`, then control points |
+| `terrains` | ascending `name`, then control points |
 | `battle_skills` | as written: release order is what it records |
 
 `tower_strengthen_levels` is absent from that table because its order is its
@@ -126,7 +129,7 @@ A canonical document begins with `kind: layout`, since a reader has to know what
 it is holding before any of it means anything.
 
 Every coordinate pair in the schema is one `{x, y}` value rather than two
-sibling fields. `formations`, `constructions` and `contraptions` carry it as
+sibling fields. `units`, `constructions` and `contraptions` carry it as
 `position`; `airdrop_shields`, `terrains.control_points` and
 `battle_skills.positions` are lists of the same value.
 
@@ -138,8 +141,8 @@ The canonical writer spells a layout by the three rules a
   on its key's line;
 - every other value is written in block style.
 
-So every formation, placement, shield, terrain and released skill is one line,
-every ID list and coordinate pair sits on its key's line, and a side and its
+So every unit, placement, shield, terrain and released skill is one line,
+every name list and coordinate pair sits on its key's line, and a side and its
 `techs` stay blocks. One line per item keeps a layout on a screen and makes a
 diff name the item that changed. The spelling is part of the canonical form,
 which is what the [MCFR](../mcfr/mcfr.md) embedded `layout.yaml` is compared
@@ -154,7 +157,7 @@ Runtime catalog availability and native readback remain Adapter-owned.
 
 `mechcore verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. It prints one JSON object per input, and a
-layout's carries `kind: layout` beside the normalized seed, round, formation
+layout's carries `kind: layout` beside the normalized seed, round, unit
 count, construction count, contraption count, and airdrop shield count.
 
 The command is not the layout's alone. It checks each file against the contract
@@ -171,7 +174,7 @@ input was valid.
 
 `mechcore diff left.yaml right.yaml` normalizes both documents and reports
 the fields that differ. Each difference carries a JSON pointer, except that
-`formations`, `constructions` and `contraptions` are aligned by their entries'
+`units`, `constructions` and `contraptions` are aligned by their entries'
 `index` rather than by position, and their path segment reads `index=<value>`.
 Aligning those by position would report an object inserted or removed in the
 middle as a change to every later entry plus one addition or removal at the end;
@@ -271,7 +274,7 @@ does not require that its deployment be reachable by play, and the sandbox
 deliberately keeps that freedom. A consumer that needs reachability rather than
 reproducibility must check it against the preceding state, outside this schema.
 
-All formations are deployed in declaration order after the activation round
+All units are deployed in declaration order after the activation round
 begins.
 
 ## Coordinate system
@@ -311,20 +314,20 @@ The same transform applies independently to every coordinate in
 also expressed in the owning side's local frame: rows advance along local `+y`
 and low-order bits advance along local `+x`. The native terrain executor
 therefore rotates both row order and bit order for the red side. A
-180-degree transform does not change a formation's `rotated` boolean.
+180-degree transform does not change a unit's `rotated` boolean.
 Authoritative native readback remains in world coordinates; the adapter verifies
 that world state against the compiled position and returns the layout-local
 position publicly.
 
 ## Side definition
 
-`formations` is required for each side and must contain at least one valid
+`units` is required for each side and must contain at least one valid
 unit. Every other side field is optional and has its empty or baseline value
 when omitted:
 
-- Omitting `techs` is equivalent to setting both nested arrays to `[]`.
-- `techs.officers` defaults to `[]`.
-- `techs.units` defaults to `[]`.
+- `officers` defaults to `[]`.
+- `techs` defaults to no unit technologies.
+- `blueprints` defaults to `[]`.
 - `energy_tower_skills` defaults to `[]`.
 - `tower_strengthen_levels` defaults to `[]`, which puts every tower at level
   `0`.
@@ -333,29 +336,26 @@ when omitted:
 - `airdrop_shields` defaults to `[]`.
 - `terrains` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
-- A unit formation's `index` is required and has no default.
-- A unit formation's `level` defaults to `1`.
-- A unit formation's `rotated` defaults to `false`.
-- A unit formation's `equipment` defaults to no equipment.
-- A unit formation's `travelling` defaults to `false`.
+- A unit's `index` is required and has no default.
+- A unit's `level` defaults to `1`.
+- A unit's `rotated` defaults to `false`.
+- A unit's `equipment` defaults to no equipment.
+- A unit's `travelling` defaults to `false`.
 
 Unknown fields must be rejected, and so is a document whose `kind` is absent or
-names another kind. Numeric IDs outside formation definitions must
-be positive integers unless the field explicitly defines `0` as a baseline
-level.
+names another kind, and a name the build does not carry.
 
-### `techs`
+### Names
 
-```yaml
-techs:
-  officers: [10002, 20003, 30201]
-  units: [10202, 10402]
-```
-
-`techs` groups two disjoint native ID spaces under one public layout concept.
-The nested fields are retained because Officers and unit technologies use
-different native catalogs and application operations. A bare combined ID array
-would lose that distinction.
+A layout names what it holds rather than numbering it, as a battle's
+[state](state.md#names) does, and writes the key `name` for a placement and a
+released skill. A unit, construction or contraption type is the catalog's name,
+and an officer, a technology, a blueprint, an Energy Tower skill, a commander
+skill and an equipment item are the game's English names in snake case, which
+[`config/names.yaml`](../../../config/names.yaml) holds for build 2259. A name
+the build does not carry is refused, and so is a number where a name belongs.
+The compiler and the adapter work with the IDs the names stand for, and a
+collection is ordered by those IDs.
 
 Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
 
@@ -364,75 +364,95 @@ Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
 - Unit technologies:
   [English](../../rules/unit_techs.md) / [简体中文](../../rules/unit_techs.zh.md)
 
-#### `techs.officers`
+### `officers`
 
-`techs.officers` is the multiset of native `OfficerData.ID` values whose
-persistent effects belong to the side. It covers ordinary and opening Officers
-regardless of how they were acquired.
+```yaml
+officers: [supply_specialist, efficient_tech_research, extended_range_marksman]
+```
 
-Unit modifications are also native Officer entries. An Officer with a nonzero
-`typeID` targets that unit type; it is not a separate technology kind and does
-not require a `unit_modifications` field. For example, reference build 2227
-uses Officer `30101` for Mass-Produced Fortress and Officer `30201` for
-Range-Extended Marksman. Generic Officers use `typeID: 0` and remain in the
-same array.
+`officers` is the multiset of Officers whose persistent effects belong to the
+side. It covers ordinary and opening Officers regardless
+of how they were acquired.
 
-An ID may repeat. An Officer card whose `canRepeated` is set may be taken
+Unit modifications are also Officers. An Officer with a nonzero `typeID`
+targets that unit type; it is not a separate technology kind and does not
+require a `unit_modifications` field. For example, `extended_range_marksman`
+is Officer `30201`. Generic Officers use `typeID: 0` and stand in the same
+list.
+
+A name may repeat. An Officer card whose `canRepeated` is set may be taken
 again, and taking it twice stacks it rather than doing nothing: two copies of
 Advanced Offensive Tactics are +60% damage and two of Advanced Targeting System
 are +20 m of range, both of which a fight sees. One side in the local replay set
 holds three copies of `20022`. The executor therefore adds one Officer per
 entry and reads the count back, rather than reading a presence.
 
-IDs carry no order semantics, so canonical layouts sort them ascending; that
-sorted order is then the deterministic application order. Commander skills,
-equipment, and extra formations granted by an Officer are not themselves
-Officer modifiers. Their resulting state belongs to `battle_skills`, equipment,
-or formation definitions.
+Canonical layouts order Officers by ascending ID; that order is then the
+deterministic application order. Commander skills, equipment, and extra
+units granted by an Officer are not themselves Officer modifiers. Their
+resulting state belongs to `battle_skills`, equipment, or unit
+definitions.
 
 The Officers the Research Center's two enhancement chains hand out, `20310`,
-`20311`, `20300` and `20301`, belong here like any other Officer. A layout has
-no separate attack or defense level, because the Officer is the whole of what
-those levels do to a fight.
+`20311`, `20300` and `20301`, are not listed here: `blueprints` states the
+chain, once, and a layout naming one of those Officers is refused.
 
 The deterministic implementation must add an Officer by ID through the native
 Training Ground test action and verify the resulting `OfficerManager` count.
 Choosing a random opening or reinforcement candidate by index is not an
 implementation of this field.
 
-#### `techs.units`
+### `techs`
 
 ```yaml
 techs:
-  units: [10202, 10402, 10802, 10215]
+  marksman: [range_enhancement, quick_reload, elite_marksman]
+  arclight: [range_enhancement]
 ```
 
-`techs.units` is a flat array of native `TechnologyData.ID` values. Unit
-technology IDs are globally unique in reference build 2227, and their final
-two decimal digits encode the owning ordinary `unit_id`, so repeating that ID
-in the layout would be redundant. The compiler resolves the owner from this
-decompiled static contract, then confirms that the current runtime's unit and
-technology catalogs still contain the same relationship. Catalog drift is
-rejected before any layout mutation.
+`techs` holds unit technologies, grouped under the unit type they belong to.
+A technology's name is unique only within its unit, which is why it is always
+written under one. The compiler resolves each to its native `TechnologyData.ID`
+and confirms that the current runtime's unit and technology catalogs still hold
+the same relationship; catalog drift is rejected before any layout mutation.
 
 Every declared technology is both added and activated. The format does not
-represent an acquired but inactive technology. IDs must be unique and carry no
-order semantics, so canonical layouts sort them ascending; that sorted order is
-then the deterministic order of native add and activate operations.
+represent an acquired but inactive technology. A technology appears once.
+Canonical layouts order units by ascending unit ID and a unit's technologies by
+ascending technology ID; the flattened order is then the deterministic order of
+native add and activate operations.
+
+### `blueprints`
+
+```yaml
+blueprints: [defense_enhancement, attack_enhancement_ii]
+```
+
+`blueprints` lists the Research Center's enhancement chains the side holds:
+`attack_enhancement` and `attack_enhancement_ii`, `defense_enhancement` and
+`defense_enhancement_ii`. A chain's second level replaces its first, so a
+layout holds at most one level of each. Each is applied as the Officer it hands
+out, `20310`, `20311`, `20300` or `20301`, which is the whole of what the chain
+does to a fight.
+
+A blueprint that grants a commander skill, `sticky_oil_bomb`, `field_recovery`
+or `mobile_beacon`, is refused here: a fight sees it only as that skill's
+release in `battle_skills`. A battle's [state](state.md) lists every blueprint,
+and a projection keeps the chains alone.
 
 ### `energy_tower_skills`
 
 ```yaml
-energy_tower_skills: [5, 6]
+energy_tower_skills: [enhanced_range, high_mobility]
 ```
 
 `energy_tower_skills` lists the Energy Tower skills this round has activated,
-by native ID, ascending. Two of them change what a fight does:
+by name, in ascending ID. Two of them change what a fight does:
 
-| ID | Effect |
-| --- | --- |
-| `5` | ranged-unit attack range +15 m |
-| `6` | all-unit movement speed +3 m/s |
+| Name | ID | Effect |
+| --- | --- | --- |
+| `enhanced_range` | `5` | ranged-unit attack range +15 m |
+| `high_mobility` | `6` | all-unit movement speed +3 m/s |
 
 Only those two may appear. The tower's other skills buy supply or discount a
 round's shopping, so they change a [state](state.md) and not a fight, and a
@@ -474,22 +494,21 @@ tower of each native kind, in whichever order, and refuses a scene that does
 not. A side that lost a tower or grew one fails loudly rather than having its
 levels written to the wrong building.
 
-The Research Center's two persistent enhancements are not a field of their own.
-They are Officers, and they live in `techs.officers` with every other Officer:
+The Research Center's two persistent enhancements are `blueprints`, each
+applied as the Officer it hands out:
 
-| Enhancement | Officer | Effect |
+| Blueprint | Officer | Effect |
 | --- | --- | --- |
-| attack 1 | `20310` | attack +12% |
-| attack 2 | `20311` | attack +36% |
-| defense 1 | `20300` | life +15% |
-| defense 2 | `20301` | life +45% |
+| `attack_enhancement` | `20310` | attack +12% |
+| `attack_enhancement_ii` | `20311` | attack +36% |
+| `defense_enhancement` | `20300` | life +15% |
+| `defense_enhancement_ii` | `20301` | life +45% |
 
 A native match reaches them by researching blueprints `4`, `401`, `5` and
-`501`, which is what a [state](state.md) records. A layout carries the Officer
-the blueprint hands out, because that Officer is the whole of what a fight sees,
-and a level of a chain is the second name for a thing `techs.officers` already
-had a name for. Each chain contributes at most one Officer: its second level
-replaces its first rather than joining it.
+`501`, which is what a [state](state.md) records, and a layout names the same
+blueprints. The Officer is the whole of what a fight sees, and `officers` does
+not name it a second time. Each chain contributes at most one Officer: its
+second level replaces its first rather than joining it.
 
 The executor installs these the way it installs any other Officer, without
 researching a blueprint. `OfficerManager` keeps two lists and routes each
@@ -499,23 +518,23 @@ readback that verifies an apply and the capture that exports a side read both
 lists, so one of these Officers is neither reported missing right after it was
 installed nor dropped from a capture of the side that holds it.
 
-### `formations`
+### `units`
 
-`formations` contains the side's unit formations. Each entry uses the unit's
-semantic `type` instead of exposing its native numeric ID:
+`units` contains the side's units. Each entry uses the unit's
+semantic `name` instead of exposing its native numeric ID:
 
 ```yaml
-- {type: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
+- {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/650}
 ```
 
-- `type` is the lower `snake_case` form of the unit's English in-game name. It
+- `name` is the lower `snake_case` form of the unit's English in-game name. It
   selects both the native catalog and the valid unit fields.
 - `position` is the required `{x, y}` center in the owning side's fixed local
   frame defined above, not native world or screen pixels. Both are exact signed
   integers, and the pair is one field because it is one value.
 - `index` is the required stable, non-negative native unit index. Indices must
-  be strictly increasing in formation declaration order and may contain gaps.
-- `exp` is the unit formation's experience within its current level, written
+  be strictly increasing in unit declaration order and may contain gaps.
+- `exp` is the unit's experience within its current level, written
   `current/maximum` as in `124/450`. `current` is a non-negative integer and
   `maximum` is the level's full bar, which the
   [unit experience index](../../rules/unit_experience.md) gives per unit and
@@ -533,10 +552,10 @@ it is describing, and inserting or removing an entry would silently rename
 every unit after it. Since indices must also increase in declaration order,
 requiring them makes array order redundant: the index determines it.
 
-The Adapter creates formations in declaration/index order, assigning each
+The Adapter creates units in declaration/index order, assigning each
 requested index directly through `MAD_AddUnit.UIDX`. Missing indices remain
-absent; no placeholder formation is created or removed. It writes experience through the
-formation's native `MechTeam.SetExpInt` from `exp`'s `current`, and
+absent; no placeholder unit is created or removed. It writes experience through the
+unit's native `MechTeam.SetExpInt` from `exp`'s `current`, and
 verifies both index lookup and `GetExpInt` readback before combat. Replay capture always exports native
 `index`; it exports non-zero `exp` after canonical default elision.
 
@@ -627,7 +646,7 @@ spatial rule:
   round 2 ambush Marksman that omits `travelling`.
 
 Native catalog IDs are adapter details and do not appear in a layout. The
-following values form the closed public `type` vocabulary for each field:
+following values form the closed public `name` vocabulary for each field:
 
 - Units: `abyss`, `arclight`, `crawler`, `fang`, `farseer`, `fire_badger`,
   `fortress`, `hacker`, `hound`, `marksman`, `melting_point`, `mountain`,
@@ -642,24 +661,25 @@ following values form the closed public `type` vocabulary for each field:
 #### Unit
 
 ```yaml
-- type: marksman
+- name: marksman
   index: 0
   position: {x: 0, y: -50}
   exp: 12
-  equipment: 13030001
+  equipment: laser_sights
   travelling: false
 ```
 
-The adapter resolves `type` to a native `CardData.ID`; that catalog ID is not
-public layout state. `index` is the required stable native formation index.
+The adapter resolves `name` to a native `CardData.ID`; that catalog ID is not
+public layout state. `index` is the required stable native unit index.
 `level` is the optional displayed level,
 defaults to `1`, and must be in `1..=9`. `exp` is optional, defaults to `0`,
-and records the formation's current-level experience. `rotated` is an optional
+and records the unit's current-level experience. `rotated` is an optional
 boolean, defaults to `false`, and declares the native unit-orientation flag. It
 is region-relative rather than absolute, so the owning region's own orientation
 still contributes to the world footprint; see the footprint rules above for the
 exact transposition.
-`equipment` is an optional positive native `EquipmentData.ID`. A unit has at
+`equipment` optionally names the item the unit wears, which the adapter
+resolves to its native `EquipmentData.ID`. A unit has at
 most one equipment slot, so this field is singular rather than an array.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
 effect only for an ambush-zone unit. `travelling: true` is invalid outside the
@@ -679,13 +699,13 @@ ownership readback. Available IDs and effects are listed in the
 
 ```yaml
 constructions:
-  - type: defensive_wall
+  - name: defensive_wall
     index: 0
     position: {x: 140, y: -105}
 ```
 
-`constructions` is parallel to `formations` under one side and defaults to
-`[]`. Each entry requires `type`, `index`, and `position`.
+`constructions` is parallel to `units` under one side and defaults to
+`[]`. Each entry requires `name`, `index`, and `position`.
 
 `index` is the construction's deployment identity, allocated in release order by
 `ConstructionManager` and stable for as long as the object lives. It is never
@@ -700,7 +720,7 @@ offset visible in a Test match's `constructionIndex` snapshot field is written b
 live index that `GetConstructionIndex` reports is zero-based in both modes.
 
 At prepare time, the executor first reconciles the same-seed Training Ground
-opening constructions by `(type, position)`: exact matches are retained, while
+opening constructions by `(name, position)`: exact matches are retained, while
 entries absent from or different in the target layout are removed. A retained
 construction must already carry its declared index, otherwise application fails
 rather than proceeding with a different identity. At activation the executor
@@ -723,18 +743,18 @@ the capture boundary.
 
 ```yaml
 contraptions:
-  - type: interceptor
+  - name: interceptor
     index: 0
     position: {x: 5, y: -95}
-  - type: shield
+  - name: shield
     index: 3
     position: {x: 275, y: 20}
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
-contraption kind. `contraptions` is parallel to `formations` and
+contraption kind. `contraptions` is parallel to `units` and
 `constructions` under one side and defaults to `[]`. A contraption entry
-requires `type`, `index`, and `position`, and none of these types requires an extra
+requires `name`, `index`, and `position`, and none of these types requires an extra
 position.
 
 `index` is the contraption's deployment identity, allocated in release order by
@@ -826,7 +846,7 @@ sort it:
 
 ```yaml
 terrains:
-  - type: oil
+  - name: oil
     control_points:
       - {x: -24, y: 11}
       - {x: 80, y: 1}
@@ -837,7 +857,7 @@ terrains:
       6: [48, 124, 126, 254, 255, 511, 1023, 2047, 2046, 2046, 1020, 240]
 ```
 
-- `type` names the substance, not the skill that made it. The names are the
+- `name` names the substance, not the skill that made it. The names are the
   build's own: `fire`, `oil`, `fog`, `acid` and `recovery_zone`, which are its
   range-item types less the one a unit technology makes rather than a skill.
   Which skill produces which is a catalogue entry rather than a rule of this
@@ -903,12 +923,12 @@ standard 1v1 are outside this layout contract.
 
 ```yaml
 battle_skills:
-  - type: missile_strike
+  - name: missile_strike
     positions:
       - x: 0
         y: -100
 
-  - type: mobile_beacon
+  - name: mobile_beacon
     positions:
       - x: -100
         y: -150
@@ -920,7 +940,7 @@ battle_skills:
 
 Each entry has exactly two fields:
 
-- `type` is the lower `snake_case` form of the skill's English in-game name;
+- `name` is the lower `snake_case` form of the skill's English in-game name;
   the adapter resolves it to the canonical native `CommanderSkillData` ID in
   the battle-skill index, so a native skill ID does not appear in the layout.
 - `positions` is an ordered array of exact side-local coordinates. It remains
@@ -928,7 +948,7 @@ Each entry has exactly two fields:
   `position_1`, `position_2`, or `position_3` are not part of the schema.
 
 Each `x` and `y` is an `i32`; decimal values, including `10.0`, are rejected.
-Battle-skill positions do not inherit formation grid-alignment or footprint
+Battle-skill positions do not inherit unit grid-alignment or footprint
 rules. One-position skills use a target position. Two-position skills use the
 ordered pair `[start_position, end_position]`; the second coordinate is the
 concrete skill endpoint, not a direction vector. `mobile_beacon` uses three
@@ -945,9 +965,9 @@ and consumed by `CalculateAttackPositions`, so scattering skills take their
 values in release order. Two properties bound the effect: the stream belongs to
 one team, so blue's order and red's order are independent, and
 `BattleSystem.OnEnterDeployment` resets it every deployment, so nothing carries
-across rounds and a single-round layout still reproduces the battle. Formation
+across rounds and a single-round layout still reproduces the battle. Unit
 placement is the deliberate contrast: `MechPositionManager` builds a fresh
-`GRRandom` per call, so declaration order does not affect where a formation
+`GRRandom` per call, so declaration order does not affect where a unit
 lands.
 
 The order that matters is the order the skills are released, not the order the
@@ -1023,9 +1043,9 @@ Applying a layout is fail-closed:
 4. Mutations are executed in document order within each array.
 5. Every mutation is followed by authoritative native readback.
 6. A rejected action, missing catalog entry, ambiguous tower, transport error,
-   or readback mismatch stops the application. Formation failures identify the
-   declared `type` and `position`; battle-skill failures identify the declared
-   `type` and ordered `positions`. Mutations are never retried automatically.
+   or readback mismatch stops the application. Unit failures identify the
+   declared `name` and `position`; battle-skill failures identify the declared
+   `name` and ordered `positions`. Mutations are never retried automatically.
 7. Success means that the game is in the requested activation-round deployment
    and both sides match all state defined in this document; an accepted native
    action alone is insufficient.
@@ -1040,15 +1060,15 @@ level, or active Energy Tower effect from an earlier layout.
 The following names are intentionally absent:
 
 - `unit_modifications`: unit modifications are native Officer entries and live
-  in `techs.officers`.
-- `research_blueprints`: a blueprint's fight-visible product is an Officer, and
-  it lives in `techs.officers`.
+  in `officers`.
+- `research_blueprints`: an enhancement chain is in `blueprints`, and a
+  blueprint that grants a skill reaches a fight only as that skill's release.
 - `reactor_core` and `supply`: resource provisioning is an executor concern.
 - `opening_techs` and `reinforcement_techs`: a layout states the state that
   holds, never the route taken to reach it, and Officer acquisition source does
-  not change the resulting state in `techs.officers`. For the same reason
+  not change the resulting state in `officers`. For the same reason
   `choose_opening` and `choose_reinforcement` are not a way to write
-  `techs.officers`: they take transient candidate indices, and such an index
+  `officers`: they take transient candidate indices, and such an index
   does not denote the same thing twice.
 
 ## Unresolved

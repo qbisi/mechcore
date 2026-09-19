@@ -3,13 +3,13 @@ round: 1
 
 sides:
   blue:
-    formations:
-      - type: steel_ball
+    units:
+      - name: steel_ball
         index: 0
         position: {x: 5, y: -100}
 
   red:
-    formations:
-      - type: steel_ball
+    units:
+      - name: steel_ball
         index: 0
         position: {x: 5, y: -100}

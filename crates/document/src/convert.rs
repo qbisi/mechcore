@@ -9,12 +9,12 @@
 
 use crate::battle::{
     Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, Opening,
-    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateFormation, StateSides,
+    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit, StateSides,
     Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{
-    ContraptionPlacement, Experience, Formation, Position, StaticPlacement, Techs,
+    ContraptionPlacement, Experience, UnitPlacement, Position, Region, StaticPlacement,
 };
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
@@ -134,6 +134,12 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     }
 
     let economy = Economy::embedded()?;
+    // What a decline pays depends on the unit reinforcement pool the seed
+    // selects. A match whose opening this build cannot deal still converts, as
+    // long as it declines nothing.
+    let pool = crate::opening::predict(&economy, record.info.system_seed, record.info.map_id)
+        .map(|opening| opening.initialization.unit_round_pool)
+        .ok();
     // The opening is round 0, and it has no state: every side enters it holding
     // nothing. Its one decision is read into each side's opening, and the turns
     // start at round 1.
@@ -149,20 +155,18 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             .arrays
             .first()
             .map(|array| array.values.clone());
-        turns.push(Turn {
+        let declined = pool
+            .map(|pool| crate::reinforcement::decline_supply(&economy, pool, round))
+            .transpose()?;
+        turns.push(turn(
+            grbr,
+            &economy,
+            [&blue, &red],
+            position,
             round,
-            state: State {
-                reinforce_offers: offers,
-                sides: StateSides {
-                    blue: side_state(grbr, &economy, &blue, position, Seat::Blue)?,
-                    red: side_state(grbr, &economy, &red, position, Seat::Red)?,
-                },
-            },
-            actions: TurnActions {
-                blue: actions(&blue.rounds.entries[position], Seat::Blue)?,
-                red: actions(&red.rounds.entries[position], Seat::Red)?,
-            },
-        });
+            offers,
+            declined,
+        )?);
     }
 
     // The four combinations each side was dealt are recorded nowhere, and are
@@ -180,6 +184,45 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
         },
         turns,
+    })
+}
+
+/// One deployment round: the position each side opens it with, and the
+/// decisions each takes from there.
+fn turn(
+    grbr: &[u8],
+    economy: &Economy,
+    [blue, red]: [&record::PlayerRecord; 2],
+    position: usize,
+    round: i32,
+    offers: Option<Vec<i32>>,
+    declined: Option<i32>,
+) -> Result<Turn, String> {
+    let sides = StateSides {
+        blue: side_state(grbr, economy, blue, position, Seat::Blue)?,
+        red: side_state(grbr, economy, red, position, Seat::Red)?,
+    };
+    let taken = |player: &record::PlayerRecord, seat, opened| {
+        actions(
+            economy,
+            &player.rounds.entries[position],
+            seat,
+            opened,
+            declined,
+        )
+        .map_err(|error| format!("round {round}: {error}"))
+    };
+    let actions = TurnActions {
+        blue: taken(blue, Seat::Blue, &sides.blue)?,
+        red: taken(red, Seat::Red, &sides.red)?,
+    };
+    Ok(Turn {
+        round,
+        state: State {
+            reinforce_offers: offers,
+            sides,
+        },
+        actions,
     })
 }
 
@@ -245,6 +288,11 @@ fn battle_side(
 ) -> Result<BattleSide, String> {
     let mut loadout = BTreeMap::new();
     for row in &player.data.unit_datas.entries {
+        // The record lists every unit the account owns a loadout for, and a
+        // standard 1v1 match fields only those this build's catalogue names.
+        if unit_type_from_id(row.id).is_none() {
+            continue;
+        }
         let mut techs: Vec<i32> = row.techs.entries.iter().map(|tech| tech.data).collect();
         techs.sort_unstable();
         loadout.insert(row.id, techs);
@@ -416,8 +464,9 @@ fn side_state(
             unit: data.unit_index,
             contraption: data.contraption_index,
         },
-        techs: Techs { officers, units },
-        formations,
+        officers,
+        techs: units,
+        units: formations,
         constructions,
         contraptions,
         airdrop_shields: retained.airdrop_shields,
@@ -460,16 +509,16 @@ fn shared_income(
 }
 
 /// The unit roster, as the layout formations a projection would keep.
-fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, String> {
+fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
     let mut formations = Vec::with_capacity(data.units.entries.len());
     for unit in &data.units.entries {
         let (type_name, _) = unit_type_from_id(unit.id)
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
-        formations.push(StateFormation {
+        formations.push(StateUnit {
             value: Some(unit.sell_supply),
             // Settled by the opening, which knows the round.
             movable: false,
-            formation: Formation {
+            unit: UnitPlacement {
             type_name: type_name.to_owned(),
             index: unit.index,
             position: seat.position(&unit.position),
@@ -484,7 +533,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             },
         });
     }
-    formations.sort_by_key(|entry| entry.formation.index);
+    formations.sort_by_key(|entry| entry.unit.index);
     Ok(formations)
 }
 
@@ -682,7 +731,181 @@ fn opening_specialist(economy: &Economy, player: &record::PlayerRecord) -> Resul
     }
 }
 
-fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String> {
+/// A recorded decision, before the round is stepped.
+///
+/// A release records the panel slot, and the skill the slot holds is whatever
+/// the round has put there by then, so stepping the round is what names it.
+enum Recorded {
+    Taken(Action),
+    Released { index: i32, target: SkillTarget },
+}
+
+/// A side's decisions in one round, from the position the round opened with.
+///
+/// Each decision is stepped as it is read, which names the skill a release's
+/// slot holds and the index a purchase creates. The moves are then collapsed
+/// by [`collapse_moves`], and the collapsed round is stepped again: it has to
+/// reach exactly the position the recorded one does, or the replay is refused.
+fn actions(
+    economy: &Economy,
+    round: &PlayerRoundRecord,
+    seat: Seat,
+    opened: &SideState,
+    declined: Option<i32>,
+) -> Result<Vec<Action>, String> {
+    let red = seat == Seat::Red;
+    let step = |position: &SideState, action: &Action, at: usize| {
+        crate::transition::step_placing(
+            economy,
+            position,
+            action,
+            declined,
+            &mut crate::landing::placement(red),
+        )
+        .map_err(|reason| {
+            format!(
+                "{} decision {at} ({action:?}) cannot be stepped: {reason:?}",
+                seat.name()
+            )
+        })
+    };
+    let mut position = opened.clone();
+    let mut taken = Vec::new();
+    for (at, recorded) in recorded_actions(round, seat)?.into_iter().enumerate() {
+        let action = match recorded {
+            Recorded::Taken(action) => action,
+            Recorded::Released { index, target } => {
+                let id = position
+                    .battle_skills
+                    .iter()
+                    .find(|skill| skill.index == index)
+                    .map(|skill| skill.id)
+                    .ok_or_else(|| {
+                        format!(
+                            "{} releases panel slot {index}, which it does not hold",
+                            seat.name()
+                        )
+                    })?;
+                Action::ReleaseCommanderSkill { index, id, target }
+            }
+        };
+        let placed = match &action {
+            Action::BuyUnit { .. } => Placed::Created(position.next_index.unit),
+            Action::MoveUnit { index, .. } => position
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == *index)
+                .map_or(Placed::Elsewhere, |entry| {
+                    Placed::Moved(Region::of(entry.unit.position))
+                }),
+            _ => Placed::Elsewhere,
+        };
+        position = step(&position, &action, at)?;
+        taken.push((action, placed));
+    }
+    let collapsed = collapse_moves(taken);
+    let mut replayed = opened.clone();
+    for (at, action) in collapsed.iter().enumerate() {
+        replayed = step(&replayed, action, at)?;
+    }
+    if replayed != position {
+        return Err(format!(
+            "{}'s collapsed moves end the round somewhere its recorded ones do not",
+            seat.name()
+        ));
+    }
+    Ok(collapsed)
+}
+
+/// What a stepped decision did to a formation's place on the board.
+enum Placed {
+    /// A purchase, and the index it handed out.
+    Created(i32),
+    /// A move, and the region the formation was in before it.
+    Moved(Region),
+    Elsewhere,
+}
+
+/// How a formation's moves so far collapse, and where the kept one is written.
+#[derive(Clone, Copy)]
+enum Run {
+    /// A purchase this round: every later move is folded into it.
+    Bought(usize),
+    /// A formation that began the round's moves in the main half: only the
+    /// last move is kept.
+    FromMain(usize),
+    /// A formation that began them on a flank: the last move within each
+    /// stretch of moves ending in one region is kept.
+    FromFlank(usize, Region),
+}
+
+/// Keeps what a formation's moves amount to, and nothing of how they got there.
+///
+/// A move settles `travelling` by the region it arrives in, and a round's
+/// opening holds no travelling formation. So a formation that begins its moves
+/// in the main half, including one bought or handed out this round, travels
+/// exactly when its last move ends on a flank, whatever route it took: its
+/// last move is all it needs. A purchase is what creates its formation, so the
+/// purchase itself carries where the moves end, and step marks it travelling
+/// when that is a flank. A formation that begins on a flank is different: going
+/// to the main half and back travels, staying does not. For it, only a run of
+/// moves ending in the same region collapses to its last.
+fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
+    let mut kept: Vec<Option<Action>> = Vec::with_capacity(taken.len());
+    let mut runs: BTreeMap<i32, Run> = BTreeMap::new();
+    for (action, placed) in taken {
+        match (&action, placed) {
+            (Action::BuyUnit { .. }, Placed::Created(index)) => {
+                runs.insert(index, Run::Bought(kept.len()));
+            }
+            (
+                Action::MoveUnit {
+                    index,
+                    position,
+                    rotated,
+                },
+                Placed::Moved(from),
+            ) => {
+                let arrives = Region::of(*position);
+                match runs.get(index).copied() {
+                    Some(Run::Bought(at)) => {
+                        if let Some(Action::BuyUnit {
+                            position: bought,
+                            rotated: turned,
+                            ..
+                        }) = &mut kept[at]
+                        {
+                            *bought = *position;
+                            *turned = *rotated;
+                        }
+                        continue;
+                    }
+                    Some(Run::FromMain(at)) => {
+                        kept[at] = None;
+                        runs.insert(*index, Run::FromMain(kept.len()));
+                    }
+                    Some(Run::FromFlank(at, region)) if region == arrives => {
+                        kept[at] = None;
+                        runs.insert(*index, Run::FromFlank(kept.len(), arrives));
+                    }
+                    None if from == Region::Main => {
+                        runs.insert(*index, Run::FromMain(kept.len()));
+                    }
+                    // A flank run that changes region, or a first move from a
+                    // flank, starts a run of its own.
+                    Some(Run::FromFlank(..)) | None => {
+                        runs.insert(*index, Run::FromFlank(kept.len(), arrives));
+                    }
+                }
+            }
+            _ => {}
+        }
+        kept.push(Some(action));
+    }
+    kept.into_iter().flatten().collect()
+}
+
+fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorded>, String> {
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {
@@ -694,7 +917,7 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                 .map(|position| seat.position(position))
                 .ok_or_else(|| format!("{} has no position", action.kind))
         };
-        converted.push(match action.kind.as_str() {
+        converted.push(Recorded::Taken(match action.kind.as_str() {
             "PAD_ChooseReinforceItem" => {
                 // Declining is the same decision at the declined offer, and
                 // the game records its `ID` as zero rather than omitting it.
@@ -711,6 +934,7 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
             "PAD_BuyUnit" => Action::BuyUnit {
                 unit: field("UID", action.unit_id)?,
                 position: position(&action.buy_position)?,
+                rotated: false,
             },
             "PAD_UpgradeUnit" => Action::UpgradeUnit {
                 index: field("UIDX", action.unit_index_allocated)?,
@@ -733,12 +957,15 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
             },
             "PAD_UseEquipment" => Action::UseEquipment {
                 equipment: field("EquipmentID", action.equipment_id)?,
-                unit: field("UnitIndex", action.unit_index)?,
+                index: field("UnitIndex", action.unit_index)?,
             },
-            "PAD_ReleaseCommanderSkill" => Action::ReleaseCommanderSkill {
-                skill: field("SkillIndex", action.skill_index)?,
-                target: skill_target(action, seat)?,
-            },
+            "PAD_ReleaseCommanderSkill" => {
+                converted.push(Recorded::Released {
+                    index: field("SkillIndex", action.skill_index)?,
+                    target: skill_target(action, seat)?,
+                });
+                continue;
+            }
             "PAD_ReleaseContraption" => Action::ReleaseContraption {
                 contraption: field("ContraptionID", action.contraption_id)?,
                 position: position(&action.release_position)?,
@@ -756,17 +983,17 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                     .as_ref()
                     .ok_or_else(|| "PAD_MoveUnit has no moveUnitDatas".to_owned())?;
                 for moved in &moves.entries {
-                    converted.push(Action::MoveUnit {
+                    converted.push(Recorded::Taken(Action::MoveUnit {
                         index: moved.unit_index,
                         position: seat.position(&moved.position),
                         rotated: moved.rotated,
-                    });
+                    }));
                 }
                 continue;
             }
             "PAD_GiveUp" => Action::Concede,
             other => return Err(format!("action {other} has no turn representation")),
-        });
+        }));
     }
     Ok(converted)
 }
@@ -807,7 +1034,7 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
         .turns
         .iter()
         .flat_map(|turn| [&turn.state.sides.blue, &turn.state.sides.red])
-        .flat_map(|side| side.formations.iter().map(|unit| unit.formation.type_name.clone()))
+        .flat_map(|side| side.units.iter().map(|unit| unit.unit.type_name.clone()))
         .collect()
 }
 
@@ -818,6 +1045,53 @@ mod tests {
     use crate::grbr::SHIELD_AIRDROP_SKILL;
     use crate::{Position, StaticPlacement};
 
+    /// A formation that begins its moves in the main half keeps only its
+    /// last, a purchase takes every move of its own formation, and one that
+    /// begins on a flank keeps the last move of each region it passes through.
+    #[test]
+    fn a_formation_keeps_what_its_moves_amount_to() {
+        use super::{Placed, collapse_moves};
+        use crate::layout::Region;
+        let moved = |index, x, y| Action::MoveUnit {
+            index,
+            position: Position { x, y },
+            rotated: false,
+        };
+        let bought = |x, y| Action::BuyUnit {
+            unit: 10,
+            position: Position { x, y },
+            rotated: false,
+        };
+        // From the main half: out to a flank and back, and only the last stays.
+        assert_eq!(
+            collapse_moves(vec![
+                (moved(0, 0, -160), Placed::Moved(Region::Main)),
+                (moved(1, 50, -160), Placed::Moved(Region::Main)),
+                (moved(0, 330, 100), Placed::Moved(Region::Main)),
+                (moved(0, 100, -100), Placed::Moved(Region::RightFlank)),
+            ]),
+            [moved(1, 50, -160), moved(0, 100, -100)]
+        );
+        // A purchase takes its formation's moves, a flank included.
+        assert_eq!(
+            collapse_moves(vec![
+                (bought(0, -160), Placed::Created(5)),
+                (moved(5, 100, -100), Placed::Moved(Region::Main)),
+                (moved(5, -330, 100), Placed::Moved(Region::Main)),
+            ]),
+            [bought(-330, 100)]
+        );
+        // From a flank: the main half twice, then the flank again. Going out
+        // and back travels where staying would not, so both regions keep one.
+        assert_eq!(
+            collapse_moves(vec![
+                (moved(7, 0, -160), Placed::Moved(Region::LeftFlank)),
+                (moved(7, 100, -100), Placed::Moved(Region::Main)),
+                (moved(7, -330, 200), Placed::Moved(Region::Main)),
+            ]),
+            [moved(7, 100, -100), moved(7, -330, 200)]
+        );
+    }
     const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
     const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
     const CRBN: &str = "../../tests/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
@@ -925,14 +1199,14 @@ mod tests {
                 Action::ChooseAdvanceTeam {
                     offer: side.choose,
                     id: team,
-                    specialist: Some(specialist),
+                    specialist,
                 }
             );
         }
         // Both halves reach the first round, which is what the opening is for.
         let first = round(&battle, 1);
-        assert!(first.state.sides.blue.techs.officers.contains(&20005));
-        assert!(first.state.sides.red.techs.officers.contains(&10002));
+        assert!(first.state.sides.blue.officers.contains(&20005));
+        assert!(first.state.sides.red.officers.contains(&10002));
     }
 
     #[test]
@@ -990,8 +1264,13 @@ mod tests {
     #[test]
     fn reads_the_tech_loadout_of_both_sides() {
         let battle = tuff();
-        assert_eq!(battle.sides.blue.tech_loadout.len(), 34);
-        assert_eq!(battle.sides.red.tech_loadout.len(), 34);
+        // The record also lists Death Knell (2001) and Experimental Death
+        // Knell (4001), which no standard 1v1 match fields.
+        assert_eq!(battle.sides.blue.tech_loadout.len(), 32);
+        assert_eq!(battle.sides.red.tech_loadout.len(), 32);
+        for unit in [2001, 4001] {
+            assert!(!battle.sides.blue.tech_loadout.contains_key(&unit));
+        }
         assert_eq!(
             battle.sides.blue.tech_loadout[&1],
             vec![1105, 10301, 10401, 10801]
@@ -1007,7 +1286,7 @@ mod tests {
                 (&turn.state.sides.blue, &battle.sides.blue),
                 (&turn.state.sides.red, &battle.sides.red),
             ] {
-                for tech in &state.techs.units {
+                for tech in &state.techs {
                     assert!(
                         side.tech_loadout.values().any(|row| row.contains(tech)),
                         "round {} researched {tech}, which its loadout does not offer",
@@ -1025,25 +1304,25 @@ mod tests {
         let battle = tuff();
         let blue = &round(&battle, 8).state.sides.blue;
         let vortex = blue
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 2)
+            .find(|entry| entry.unit.index == 2)
             .unwrap();
-        assert_eq!(vortex.formation.type_name, "vortex");
-        assert_eq!(vortex.formation.level, Some(3));
-        assert_eq!(vortex.formation.position, Position { x: -250, y: -120 });
+        assert_eq!(vortex.unit.type_name, "vortex");
+        assert_eq!(vortex.unit.level, Some(3));
+        assert_eq!(vortex.unit.position, Position { x: -250, y: -120 });
         // What recovering it pays back is what the side paid for it.
         assert_eq!(vortex.value, Some(100));
         let red = &round(&battle, 8).state.sides.red;
         let marksman = red
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 20)
+            .find(|entry| entry.unit.index == 20)
             .unwrap();
-        assert_eq!(marksman.formation.type_name, "marksman");
-        assert_eq!(marksman.formation.level, Some(4));
+        assert_eq!(marksman.unit.type_name, "marksman");
+        assert_eq!(marksman.unit.level, Some(4));
         // Red's recorded (-190, 170) is (190, -170) in its own frame.
-        assert_eq!(marksman.formation.position, Position { x: 190, y: -170 });
+        assert_eq!(marksman.unit.position, Position { x: 190, y: -170 });
     }
 
     #[test]
@@ -1067,7 +1346,7 @@ mod tests {
     }
 
     #[test]
-    fn collapses_undo_and_flattens_a_move_batch() {
+    fn collapses_undo_and_folds_a_purchase_s_moves_into_it() {
         let battle = tuff();
         let blue = &round(&battle, 7).actions.blue;
         // Round 7 records three undos, and every retraction is gone.
@@ -1075,22 +1354,29 @@ mod tests {
             action,
             Action::ChooseReinforceItem { id: Some(0), .. }
         )));
-        let bought: Vec<i32> = blue
+        // The three purchases are moved in one recorded batch, and each
+        // purchase takes where its formation's moves end: the Crawler ends on
+        // the left flank, which is what makes it travel.
+        let bought: Vec<(i32, Position)> = blue
             .iter()
             .filter_map(|action| match action {
-                Action::BuyUnit { unit, .. } => Some(*unit),
+                Action::BuyUnit { unit, position, .. } => Some((*unit, *position)),
                 _ => None,
             })
             .collect();
-        assert_eq!(bought, vec![10, 31, 31]);
-        let moved: Vec<i32> = blue
-            .iter()
-            .filter_map(|action| match action {
-                Action::MoveUnit { index, .. } => Some(*index),
-                _ => None,
-            })
-            .collect();
-        assert_eq!(moved, vec![21, 22, 23]);
+        assert_eq!(
+            bought,
+            [
+                (10, Position { x: -310, y: 245 }),
+                (31, Position { x: -50, y: -120 }),
+                (31, Position { x: -10, y: -120 }),
+            ]
+        );
+        assert!(
+            !blue
+                .iter()
+                .any(|action| matches!(action, Action::MoveUnit { .. }))
+        );
     }
 
     #[test]
@@ -1140,8 +1426,8 @@ mod tests {
                         for state in [&turn.state.sides.blue, &turn.state.sides.red] {
                             assert!(state.supply >= 0);
                             assert!(state.next_index.unit >= 0);
-                            for formation in &state.formations {
-                                assert!(formation.formation.index < state.next_index.unit);
+                            for formation in &state.units {
+                                assert!(formation.unit.index < state.next_index.unit);
                             }
                         }
                     }
@@ -1213,9 +1499,10 @@ mod tests {
                             matches!(
                                 action,
                                 Action::ReleaseCommanderSkill {
-                                    skill,
+                                    index,
                                     target: SkillTarget::Area(points),
-                                } if Some(*skill) == slot && points.as_slice() == [*center]
+                                    ..
+                                } if Some(*index) == slot && points.as_slice() == [*center]
                             )
                         });
                         assert!(
@@ -1346,13 +1633,13 @@ mod tests {
         let battle = battle_from_grbr(&std::fs::read(READING).unwrap()).unwrap();
         let opened = &round(&battle, 2).state.sides.blue;
         let delivered = opened
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 7)
+            .find(|entry| entry.unit.index == 7)
             .expect("the delivered squad");
-        assert_eq!(delivered.formation.type_name, "marksman");
-        assert_eq!(delivered.formation.level, Some(3));
-        assert_eq!(delivered.formation.position, Position { x: 0, y: -160 });
+        assert_eq!(delivered.unit.type_name, "marksman");
+        assert_eq!(delivered.unit.level, Some(3));
+        assert_eq!(delivered.unit.position, Position { x: 0, y: -160 });
         assert!(delivered.movable);
         assert_eq!(opened.next_index.unit, 8);
         // Round 1 opens with the specialist's unit already in the shop.
@@ -1381,12 +1668,12 @@ mod tests {
             .state
             .sides
             .red
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 12)
+            .find(|entry| entry.unit.index == 12)
             .expect("the delivered squad");
-        assert_eq!(delivered.formation.type_name, "typhoon");
-        assert_eq!(delivered.formation.position, Position { x: 0, y: -160 });
+        assert_eq!(delivered.unit.type_name, "typhoon");
+        assert_eq!(delivered.unit.position, Position { x: 0, y: -160 });
     }
 
     /// Conceding is a decision, and the last one its side takes.
@@ -1461,14 +1748,15 @@ mod tests {
         assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\nsides:\n"));
         assert!(yaml.contains(
             "\n---\nkind: action\nround: 0\nblue:\n\
-             - {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}\n"
+             - {type: choose_advance_team, offer: 1, name: vortex-fire_badger, \
+             specialist: giant_specialist}\n"
         ));
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
-            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
+            "    units:\n    - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
-        assert!(yaml.contains("\n- {type: buy_unit, unit: "));
+        assert!(yaml.contains("\n- {type: buy_unit, name: "));
         assert!(!yaml.contains("\n- type: "));
         assert!(yaml.ends_with('\n'));
     }

@@ -242,7 +242,7 @@ rule or a schema rule.
 Typical output:
 
 ```json
-{"applied":true,"round":3,"formation_count":12,"construction_count":1,"contraption_count":0,"skipped_rounds":[1,2],"stages":[{"stage":"prepare"},{"stage":"activation"}]}
+{"applied":true,"round":3,"unit_count":12,"construction_count":1,"contraption_count":0,"skipped_rounds":[1,2],"stages":[{"stage":"prepare"},{"stage":"activation"}]}
 ```
 
 The operation begins only during first-round Training Ground deployment. It

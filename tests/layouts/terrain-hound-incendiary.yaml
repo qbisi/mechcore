@@ -4,21 +4,21 @@ round: 1
 sides:
   blue:
     techs:
-      units: [11028]
+      hound: [incendiary_bomb]
 
-    formations:
-      - type: hound
+    units:
+      - name: hound
         index: 0
         position: {x: 0, y: -80}
 
   red:
-    formations:
-      - type: crawler
+    units:
+      - name: crawler
         index: 0
         position: {x: -45, y: -60}
-      - type: crawler
+      - name: crawler
         index: 1
         position: {x: 5, y: -60}
-      - type: crawler
+      - name: crawler
         index: 2
         position: {x: 55, y: -60}
