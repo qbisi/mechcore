@@ -172,11 +172,10 @@ fn record(report: &mut Report, economy: &Economy, transition: &Transition<'_>) {
         .map(|skill| skill.owed)
         .sum();
     // A formation can carry an income as well as a stat: Command Core pays its
-    // side 50 a round. What it pays for the next round is decided by the board
-    // this round opened with, so fitting one mid-round first pays a round
-    // later.
+    // side 50 a round. It pays as a round opens, for the board that round opens
+    // with, so an item fitted this round first pays as the next one opens.
     let worn: i32 = transition
-        .state
+        .following
         .formations
         .iter()
         .filter_map(|entry| entry.formation.equipment)

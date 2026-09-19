@@ -1,0 +1,53 @@
+schema: mechcore.commander_skills
+game_build: 1.11.1.3.2259
+
+# Every commander skill and its two cooldowns, in rounds.
+# `initial_cooldown` is `initialCoolDown`, where a slot starts when
+# the skill joins the panel. `cooldown` is `releaseInterval`, where it
+# goes when a round spends the skill. docs/rules/commander_skills.md
+# says how a round counts it down.
+
+skills:
+  - {id: 100002, name: 燃烧弹, initial_cooldown: 0, cooldown: 3}
+  - {id: 100003, name: 燃烧弹, initial_cooldown: 0, cooldown: 6}
+  - {id: 200001, name: 电磁冲击, initial_cooldown: 0, cooldown: 2}
+  - {id: 200002, name: 巨型电磁冲击, initial_cooldown: 0, cooldown: 4}
+  - {id: 200003, name: 光子投射, initial_cooldown: 0, cooldown: 3}
+  - {id: 200004, name: 巨型电磁冲击, initial_cooldown: 0, cooldown: 8}
+  - {id: 300001, name: 导弹打击, initial_cooldown: 0, cooldown: 2}
+  - {id: 300003, name: 轨道轰炸, initial_cooldown: 0, cooldown: 4}
+  - {id: 300004, name: 核弹, initial_cooldown: 0, cooldown: 4}
+  - {id: 300005, name: 闪电风暴, initial_cooldown: 0, cooldown: 4}
+  - {id: 300006, name: 离子轰炸, initial_cooldown: 0, cooldown: 3}
+  - {id: 300007, name: 轨道标枪, initial_cooldown: 0, cooldown: 3}
+  - {id: 300008, name: 核弹, initial_cooldown: 0, cooldown: 8}
+  - {id: 300009, name: 闪电风暴, initial_cooldown: 0, cooldown: 8}
+  - {id: 300010, name: 离子轰炸, initial_cooldown: 0, cooldown: 6}
+  - {id: 400002, name: 黏油弹, initial_cooldown: 0, cooldown: 3}
+  - {id: 400003, name: 黏油弹, initial_cooldown: 0, cooldown: 3}
+  - {id: 500002, name: 酸液弹, initial_cooldown: 0, cooldown: 3}
+  - {id: 600002, name: 烟雾弹, initial_cooldown: 0, cooldown: 3}
+  - {id: 800001, name: 空投护盾, initial_cooldown: 0, cooldown: 2}
+  - {id: 900001, name: 战地回收, initial_cooldown: 0, cooldown: 0}
+  - {id: 900002, name: 低效回收, initial_cooldown: 0, cooldown: 0}
+  - {id: 900003, name: 低效回收, initial_cooldown: 0, cooldown: 0}
+  - {id: 900004, name: 机械进化, initial_cooldown: 0, cooldown: 0}
+  - {id: 1000001, name: 再部署, initial_cooldown: 0, cooldown: 0}
+  - {id: 1000002, name: 再部署, initial_cooldown: 0, cooldown: 0}
+  - {id: 1100001, name: 强化训练, initial_cooldown: 0, cooldown: 1}
+  - {id: 1200001, name: 地底威胁, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200002, name: 犀牛来袭, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200003, name: 呼叫机群, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200004, name: 呼叫战舰, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200005, name: 天降火神, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200006, name: 犀牛来袭, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200007, name: 呼叫凤凰, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200008, name: 呼叫恶灵, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200009, name: 狂蝎来袭, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200010, name: 台风来袭, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200011, name: 火獾来袭, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200012, name: 天降堡垒, initial_cooldown: 0, cooldown: 3}
+  - {id: 1200013, name: 天降熔点, initial_cooldown: 0, cooldown: 3}
+  - {id: 1500001, name: 移动信标, initial_cooldown: 0, cooldown: 0}
+  - {id: 1500002, name: 移动信标, initial_cooldown: 0, cooldown: 0}
+  - {id: 1500003, name: 干扰信标, initial_cooldown: 0, cooldown: 0}

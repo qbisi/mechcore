@@ -100,7 +100,8 @@ round otherwise owns.
   that one choice move it, so a team and its specialist are added together.
 - `buys_remaining` counts down as purchases are made, and two decisions add to
   it: energy tower skill `3` and reinforcement card `10004` each grant one more.
-  `unlocks_remaining` only ever counts down.
+  The card is an officer the side keeps, so every later round opens with the
+  extra purchase too. `unlocks_remaining` only ever counts down.
 - A formation's `exp` is the fight's to grant, except that upgrading a formation
   discards it and Intensive Training fills it. A rank starts at zero however much
   the rank below it earned.
@@ -545,12 +546,6 @@ about this round's decisions. A state can carry it as a field, or a reader can
 derive it from the previous round's actions. The two are not equivalent: only
 the first survives a position that arrives without the round before it.
 
-**Whether the shop's allowances are settled.** `buys_remaining` and
-`unlocks_remaining` are allowances that reset each round rather than counters an
-action decrements, which is why they are listed above as granted by the round.
-But the allowance is not constant, and what raises it is not established. If a
-decision raises it, it belongs in the Settled group and some action has to say
-so.
 
 **Whether `extra_position` stays.** It is carried because the native release
 action has the field. No contraption in this build is known to need a second

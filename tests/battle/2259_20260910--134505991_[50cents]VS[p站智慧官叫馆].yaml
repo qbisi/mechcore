@@ -443,7 +443,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 1]
     battle_skills:
-    - {index: 0, id: 1200001, cooldown: 0}
+    - {index: 0, id: 1200001, cooldown: 3}
     next_index: {unit: 18, contraption: 0}
     techs:
       officers: [20024]
@@ -478,7 +478,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [1, 0]
     battle_skills:
-    - {index: 0, id: 1200001, cooldown: 0}
+    - {index: 0, id: 1200001, cooldown: 3}
     next_index: {unit: 16, contraption: 0}
     techs:
       officers: [10002]
@@ -550,8 +550,8 @@ sides:
     blueprints: [3]
     tower_strengthen_levels: [0, 1]
     battle_skills:
-    - {index: 0, id: 1200001, cooldown: 3}
-    - {index: 1, id: 100002, cooldown: 0}
+    - {index: 0, id: 1200001, cooldown: 2}
+    - {index: 1, id: 100002, cooldown: 3}
     - {index: 2, id: 1500001, cooldown: 0}
     next_index: {unit: 20, contraption: 2}
     techs:
@@ -592,8 +592,8 @@ sides:
     blueprints: [3, 5]
     tower_strengthen_levels: [1, 0]
     battle_skills:
-    - {index: 0, id: 1200001, cooldown: 3}
-    - {index: 1, id: 100002, cooldown: 0}
+    - {index: 0, id: 1200001, cooldown: 2}
+    - {index: 1, id: 100002, cooldown: 3}
     - {index: 2, id: 1500001, cooldown: 0}
     next_index: {unit: 18, contraption: 2}
     techs:
@@ -675,8 +675,8 @@ sides:
     blueprints: [3]
     tower_strengthen_levels: [0, 1]
     battle_skills:
-    - {index: 0, id: 1200001, cooldown: 2}
-    - {index: 1, id: 100002, cooldown: 3}
+    - {index: 0, id: 1200001, cooldown: 1}
+    - {index: 1, id: 100002, cooldown: 2}
     - {index: 2, id: 1500001, cooldown: 0}
     next_index: {unit: 24, contraption: 4}
     techs:
@@ -719,8 +719,8 @@ sides:
     blueprints: [3, 5]
     tower_strengthen_levels: [1, 0]
     battle_skills:
-    - {index: 0, id: 1200001, cooldown: 2}
-    - {index: 1, id: 100002, cooldown: 3}
+    - {index: 0, id: 1200001, cooldown: 1}
+    - {index: 1, id: 100002, cooldown: 2}
     - {index: 2, id: 1500001, cooldown: 0}
     next_index: {unit: 22, contraption: 2}
     techs:

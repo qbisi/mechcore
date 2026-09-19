@@ -98,10 +98,12 @@ turn 是另外的能力，不作为前置条件。
 
 ### 一、回合开局与 layout 验收
 
-1. 把回合开局本身写成转移：军官交付已由 `transition::open_round` 写入回合开局，
-   增援发牌、补给收入和技能冷却还不是。它们都发生在 `OnEnterDeploy` 而不是某个
-   动作上，语料里每回合最后一次 initialization 的 after 就是它的验收目标。做完
-   之后 `apply` 的九字段可以由 `step` 折叠推出，两条路径不再各算各的。
+1. 把回合开局本身写成转移：军官交付已由 `transition::open_round` 写入回合开局。
+   技能冷却、购买额度和装备收入由 convert 按开局规则重建，battle 文档 668 个
+   回合开局与原生开局逐字段一致；但它们还不是 transition 的一部分，增援发牌也
+   不是。它们都发生在 `OnEnterDeploy` 而不是某个动作上，语料里每回合最后一次
+   initialization 的 after 就是它的验收目标。做完之后 `apply` 的九字段可以由
+   `step` 折叠推出，两条路径不再各算各的。
 2. 验收 `project(step*(state, actions))` 与实机 layout 的相等。跨战斗的反应堆、
    经验、存活和留存效果另由模拟器负责。
 
