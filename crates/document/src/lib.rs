@@ -28,6 +28,7 @@ pub mod landing;
 pub mod layout;
 pub mod ledger;
 pub mod mobility;
+pub mod names;
 pub mod opening;
 pub mod project;
 mod spelling;

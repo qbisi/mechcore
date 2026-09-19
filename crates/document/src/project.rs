@@ -56,12 +56,12 @@ pub fn project_side(
     state: &SideState,
     side_name: &str,
 ) -> Result<Side, String> {
-    let mut units = state.techs.units.clone();
+    let mut units = state.techs.clone();
     units.sort_unstable();
 
     Ok(Side {
         techs: Techs {
-            officers: officers(economy, &state.techs.officers, &state.blueprints),
+            officers: officers(economy, &state.officers, &state.blueprints),
             units,
         },
         energy_tower_skills: energy_tower_skills(&state.energy_tower_skills),

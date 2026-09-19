@@ -2,8 +2,9 @@
 //!
 //! A layout and a battle segment are written by the same three rules, stated in
 //! `docs/spec/document/layout.md` and `docs/spec/document/battle.md`. They
-//! decide spelling by the shape of a value and never by its field, so one
-//! document has one byte sequence and a new field needs no rule of its own.
+//! decide spelling by the shape of a value, so one document has one byte
+//! sequence and a new field needs no rule of its own. One field is the
+//! exception, a state's `officers`, which [`BLOCK_LISTS`] names.
 //!
 //! `serde_yaml` has no per-field style, so the documents are written here from
 //! the value `serde_yaml` would have written. A list item is what a document
@@ -15,13 +16,18 @@
 
 use serde_yaml::Value;
 
+/// Fields whose list is written one item per line although its items are
+/// scalars. A side holds any number of officers, and a list that only grows
+/// reads better down the page than across it.
+const BLOCK_LISTS: &[&str] = &["officers"];
+
 /// Writes one document in the normal form's spelling.
 ///
-/// Three rules cover every value, and none names a field:
+/// Three rules cover every value:
 ///
 /// - a sequence item is written on one line, in flow style;
 /// - a mapping or sequence whose members are all scalars is written in flow
-///   style on its key's line;
+///   style on its key's line, except a non-empty list [`BLOCK_LISTS`] names;
 /// - every other value is written in block style.
 ///
 /// # Errors
@@ -52,7 +58,11 @@ fn block_mapping(
                 out.push('\n');
                 block_mapping(inner, indent + 2, out)?;
             }
-            Value::Sequence(items) if !is_flat(value) => {
+            Value::Sequence(items)
+                if !is_flat(value)
+                    || (!items.is_empty()
+                        && key.as_str().is_some_and(|key| BLOCK_LISTS.contains(&key))) =>
+            {
                 out.push('\n');
                 for item in items {
                     out.push_str(&pad);
@@ -94,15 +104,16 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
         Value::Bool(value) => out.push_str(if *value { "true" } else { "false" }),
         Value::Number(value) => out.push_str(&value.to_string()),
         Value::String(value) => {
-            // An identifier or a gauge such as `124/450` is written bare,
-            // unless the reader would take it for something other than this
-            // string, as it would `true`, `null` or `12`.
+            // An identifier, a gauge such as `124/450` or a team such as
+            // `vortex-fire_badger` is written bare, unless the reader would
+            // take it for something other than this string, as it would
+            // `true`, `null` or `12`.
             let plain = value
                 .chars()
                 .next()
                 .is_some_and(|first| first.is_ascii_alphanumeric())
                 && value.chars().all(|character| {
-                    character.is_ascii_alphanumeric() || character == '_' || character == '/'
+                    character.is_ascii_alphanumeric() || matches!(character, '_' | '/' | '-')
                 })
                 && serde_yaml::from_str::<Value>(value).is_ok_and(|read| read == *value.as_str());
             if plain {

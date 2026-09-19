@@ -47,8 +47,8 @@ const DEALT_FROM: &[&str] = &[
     "formations.type",
     "next_index.unit",
     "shop.unlocked_units",
-    "techs.units",
-    "techs.officers",
+    "techs",
+    "officers",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -535,8 +535,8 @@ mod tests {
         let expected: BTreeMap<String, Counts> = [
             ("airdrop_shields", [0, 0, 0, 9]),
             ("battle_skills.cooldown", [1062, 0, 0, 0]),
-            ("battle_skills.id", [1062, 0, 0, 0]),
             ("battle_skills.index", [1062, 0, 0, 0]),
+            ("battle_skills.name", [1062, 0, 0, 0]),
             ("blueprints", [433, 0, 0, 0]),
             ("constructions.index", [794, 0, 0, 0]),
             ("constructions.position.x", [794, 0, 0, 0]),
@@ -559,14 +559,43 @@ mod tests {
             ("formations.value", [9494, 0, 0, 0]),
             ("next_index.contraption", [668, 0, 0, 0]),
             ("next_index.unit", [668, 0, 0, 0]),
+            ("officers", [668, 0, 0, 0]),
             ("reactor_core", [82, 0, 0, 586]),
             ("reinforce_offers", [293, 0, 0, 0]),
             ("shop.buys_remaining", [668, 0, 0, 0]),
             ("shop.unlocked_units", [668, 0, 0, 0]),
             ("shop.unlocks_remaining", [668, 0, 0, 0]),
             ("supply", [668, 0, 0, 0]),
-            ("techs.officers", [668, 0, 0, 0]),
-            ("techs.units", [389, 0, 0, 0]),
+            ("techs.abyss", [7, 0, 0, 0]),
+            ("techs.arclight", [77, 0, 0, 0]),
+            ("techs.crawler", [36, 0, 0, 0]),
+            ("techs.fang", [37, 0, 0, 0]),
+            ("techs.farseer", [12, 0, 0, 0]),
+            ("techs.fire_badger", [44, 0, 0, 0]),
+            ("techs.fortress", [14, 0, 0, 0]),
+            ("techs.hacker", [6, 0, 0, 0]),
+            ("techs.hound", [31, 0, 0, 0]),
+            ("techs.marksman", [43, 0, 0, 0]),
+            ("techs.melting_point", [17, 0, 0, 0]),
+            ("techs.mustang", [77, 0, 0, 0]),
+            ("techs.overlord", [7, 0, 0, 0]),
+            ("techs.phantom_ray", [62, 0, 0, 0]),
+            ("techs.phoenix", [11, 0, 0, 0]),
+            ("techs.raiden", [10, 0, 0, 0]),
+            ("techs.rhino", [21, 0, 0, 0]),
+            ("techs.sabertooth", [24, 0, 0, 0]),
+            ("techs.sandworm", [21, 0, 0, 0]),
+            ("techs.scorpion", [27, 0, 0, 0]),
+            ("techs.sledgehammer", [32, 0, 0, 0]),
+            ("techs.steel_ball", [15, 0, 0, 0]),
+            ("techs.stormcaller", [3, 0, 0, 0]),
+            ("techs.tarantula", [50, 0, 0, 0]),
+            ("techs.typhoon", [14, 0, 0, 0]),
+            ("techs.void_eye", [53, 0, 0, 0]),
+            ("techs.vortex", [39, 0, 0, 0]),
+            ("techs.vulcan", [27, 0, 0, 0]),
+            ("techs.wasp", [31, 0, 0, 0]),
+            ("techs.wraith", [17, 0, 0, 0]),
             ("terrains", [0, 0, 0, 10]),
             ("tower_strengthen_levels", [668, 0, 0, 0]),
         ]
@@ -661,9 +690,12 @@ mod tests {
             .map(|difference| (difference.round, difference.side, difference.path.as_str()))
             .collect();
         // The research is missing, and so is what it cost.
-        assert_eq!(
-            at,
-            [(round, "blue", "supply"), (round, "blue", "techs.units")]
+        assert_eq!(at.len(), 2, "{at:?}");
+        assert_eq!(at[0], (round, "blue", "supply"));
+        // The unit's row of `techs`, whichever unit it was.
+        assert!(
+            at[1].0 == round && at[1].1 == "blue" && at[1].2.starts_with("techs."),
+            "{at:?}"
         );
     }
 

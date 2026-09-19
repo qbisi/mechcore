@@ -72,7 +72,7 @@ struct UnitCost {
 /// unlocks. No officer of this build unlocks after round 1, which deals none.
 fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i32, String> {
     let mut squads = 0;
-    for officer in &side.techs.officers {
+    for officer in &side.officers {
         let Some(row) = economy.officer(*officer) else {
             continue;
         };
@@ -410,7 +410,7 @@ impl Dealer {
     fn context(&self, economy: &Economy, stated: &Stated, turn: &Turn) -> Result<Context, String> {
         let mut context = Context::default();
         for side in [&turn.state.sides.blue, &turn.state.sides.red] {
-            context.officers.extend(side.techs.officers.iter());
+            context.officers.extend(side.officers.iter());
             let delivered = delivered_before(economy, side, turn.round)?;
             for formation in side
                 .formations
@@ -439,7 +439,7 @@ impl Dealer {
             (&turn.state.sides.blue, &stated.sides.blue.tech_loadout),
             (&turn.state.sides.red, &stated.sides.red.tech_loadout),
         ] {
-            for technology in &side.techs.units {
+            for technology in &side.techs {
                 let owner = economy
                     .technology_owner(*technology)
                     .ok_or_else(|| format!("unknown reinforcement technology {technology}"))?;
@@ -466,7 +466,7 @@ impl Dealer {
                 };
                 for (count, technology) in technologies
                     .iter()
-                    .filter(|id| side.techs.units.contains(id))
+                    .filter(|id| side.techs.contains(id))
                     .enumerate()
                 {
                     let base = economy.technology(*technology).ok_or_else(|| {

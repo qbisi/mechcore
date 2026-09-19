@@ -12,7 +12,7 @@ map_id: 1001
 seed: 2038621361
 round: 7
 
-reinforce_offers: [1072216, 1072221, 107228, 1072213]
+reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2]
 
 sides:
   blue: { ... }
@@ -49,11 +49,12 @@ that were not released this round.
 
 Six side fields project unchanged: `formations`, `constructions`,
 `contraptions`, `airdrop_shields`, `terrains` and `tower_strengthen_levels`.
-Three more reach a layout transformed rather than copied straight:
+Four more reach a layout transformed rather than copied straight:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
-| `techs` | `techs` | copied, duplicates included |
+| `officers` | `techs.officers` | copied, duplicates included |
+| `techs` | `techs.units` | the per-unit groups, flattened in ascending ID |
 | `blueprints` | `techs.officers` | `4` → `20310`; `401` → `20311`; `5` → `20300`; `501` → `20301` |
 | `energy_tower_skills` | `energy_tower_skills` | copied, keeping `5` and `6` |
 
@@ -143,26 +144,31 @@ reach a layout transformed, and the fields a layout has no reason to hold.
         buys_remaining: 3
         unlocks_remaining: 1
 
-      blueprints: [1, 2, 401]
-      energy_tower_skills: [1]
+      blueprints: [sticky_oil_bomb, field_recovery, attack_enhancement_ii]
+      energy_tower_skills: [rapid_resupply]
       tower_strengthen_levels: [1, 1]
 
       equipment:
-        - {id: 13030003}
+        - {name: improved_firepower_control_system}
 
       battle_skills:
         - index: 0
-          id: 1100001
+          name: intensive_training
           cooldown: 1
         - index: 1
-          id: 300005
+          name: lightning_storm
           cooldown: 0
 
       next_index:
         unit: 29
         contraption: 15
 
-      techs: { ... }
+      officers:
+        - supply_specialist
+        - efficient_light_manufacturing
+      techs:
+        fang: [grenade_launcher]
+        tarantula: [field_maintenance, spider_mine]
       formations: [ ... ]
       constructions: [ ... ]
       contraptions: [ ... ]
@@ -305,17 +311,44 @@ A round opens with two purchases, one more for every Additional Deployment Slot
 for the same reason `supply` cannot: the recorded counters describe the previous
 round, because the snapshot is taken before the round's own reset.
 
-### Technologies stay flat
+### Officers and technologies
 
-The replay groups technologies under the unit they belong to. A state stores one
-flat ascending array instead, as a layout does. Ownership is a function of the
-ID and is resolved against the build's catalogue, so the grouping is
-recoverable without being stored. A battle's `tech_loadout` keeps the grouping,
-because it has to say which technologies a unit may research rather than which
-it has.
+`officers` lists the officers the side holds, one per line: a side holds any
+number of them, and an officer card that may be taken again appears once per
+copy. `techs` holds unit technologies alone, grouped under the unit type they
+belong to, as the replay groups them and as a battle's `tech_loadout` does. A
+unit that has researched nothing has no row.
 
 The state of being unlocked but not active does not arise under standard 1v1
-rules, so the flat array loses nothing.
+rules, so a technology is either listed or not.
+
+### Names
+
+A state names what it holds rather than numbering it, and a document that names
+something writes the key `name`. A unit type is the name a formation's `type`
+uses, and a contraption the name a layout gives it. An officer, a technology, a
+blueprint, an energy tower skill, a commander skill and an equipment item are
+the game's own English names in snake case, apostrophes dropped, which
+[`config/names.yaml`](../../../config/names.yaml) holds for build 2259: the
+officer `supply_specialist`, the technology `grenade_launcher`, the blueprint
+`field_recovery`, the energy tower skill `rapid_resupply`, the commander skill
+`intensive_training`, the equipment item `photon_coating`.
+
+What is named is what a standard 1v1 match can hand a side: the opening
+specialists and the officers a reinforcement card grants, the commander skills
+a card, one of those officers or a blueprint grants, and the equipment a card or
+one of those officers hands out. Names are distinct within a kind, and a
+technology's within its unit, which is the only place a state names one. One
+clash is resolved by rule: the Mobile Beacon a card grants is
+`mobile_beacon_card`, beside the blueprint's `mobile_beacon`.
+
+A reinforcement card is named by what it grants, and a card of units as its
+unit, squads and level, `sledgehammer_2x_lv2`. That leaves out the round the card
+belongs to, which two cards can differ in alone, so a unit card's name is read
+within the round of the segment holding it.
+
+What a name stands for is still ordered by ID, the order the game lists it in,
+and a name the build does not carry is refused.
 
 ### The research centre and the energy tower
 
@@ -362,7 +395,7 @@ Activating a chain blueprint also grants its product officer: `4` grants
 replaces rather than appends, so a side holding the second level lists it alone.
 
 The blueprint list and those officers are two spellings of one fact.
-`blueprints` owns it in a state, and `techs.officers` must not name `20300`,
+`blueprints` owns it in a state, and `officers` must not name `20300`,
 `20301`, `20310` or `20311`. A layout spells it the other way: it has no
 blueprint list, so the projection puts the chain's product Officer into
 `techs.officers`, which is the only place a layout says a persistent Officer
@@ -401,16 +434,16 @@ slot and a slot the state does not carry cannot be resolved.
 ```yaml
       battle_skills:
         - index: 0
-          id: 1100001
+          name: intensive_training
           cooldown: 1
         - index: 2
-          id: 300005
+          name: lightning_storm
           cooldown: 0
           release:
             order: 1
             target: !area [{x: 50, y: 44}, {x: 189, y: 38}]
         - index: 3
-          id: 900001
+          name: field_recovery
           cooldown: 0
           release:
             order: 2
@@ -470,10 +503,11 @@ absent when its `current` is `0`.
 | Collection | Order |
 | --- | --- |
 | `battle_skills` | ascending `index` |
-| `equipment` | ascending `(id, durability)`, a multiset |
+| `equipment` | ascending item ID, then `durability`, a multiset |
 | `formations`, `constructions`, `contraptions` | ascending `index` |
-| `techs.officers`, `techs.units` | ascending ID |
-| `shop.unlocked_units` | ascending unit ID, written as type names |
+| `officers` | ascending ID, a multiset |
+| `techs` | ascending unit ID, each unit's technologies ascending ID |
+| `shop.unlocked_units` | ascending unit ID |
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |

@@ -14,7 +14,7 @@ installation, and `tests/grbr/README.md` explains which replays are usable.
 | --- | --- | --- |
 | Commander skill | The skill joins `battle_skills` | [`config/reinforce_items.yaml`](../../config/reinforce_items.yaml) |
 | Equipment | The item joins the side's `equipment` | the same file |
-| Officer | The officer joins `techs.officers` | the same file, effects in [`config/officers.yaml`](../../config/officers.yaml) |
+| Officer | The officer joins a state's `officers` | the same file, effects in [`config/officers.yaml`](../../config/officers.yaml) |
 | Unit | Formations arrive | [`config/unit_reinforcements.yaml`](../../config/unit_reinforcements.yaml) |
 | Advance team | The round 0 opening, a force or a specialist officer | [`config/advance_teams.yaml`](../../config/advance_teams.yaml) |
 

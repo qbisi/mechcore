@@ -106,7 +106,7 @@ pub fn step_placing(
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
-    let mut purse = Purse::new(economy, &state.techs.officers);
+    let mut purse = Purse::new(economy, &state.officers);
     // Elite Recruitment raises the shop for the rest of the round, and the
     // round's activations are in the position rather than in the decision.
     purse.raised = state
@@ -135,8 +135,8 @@ pub fn step_placing(
                     if *card == EXTRA_DEPLOYMENT_CARD {
                         next.shop.buys_remaining += EXTRA_BUYS;
                     }
-                    next.techs.officers.push(*card);
-                    next.techs.officers.sort_unstable();
+                    next.officers.push(*card);
+                    next.officers.sort_unstable();
                 }
                 Some(CardKind::CommanderSkill) => panel_add(&mut next, *card),
                 Some(CardKind::Equipment) => next.equipment.push(EquipmentItem {
@@ -175,12 +175,12 @@ pub fn step_placing(
             // the shop rows they unlock arrive when the first deployment round
             // opens, which is not a decision and so not a step.
             if team.kind != OpeningKind::Units {
-                next.techs.officers.push(*id);
+                next.officers.push(*id);
             }
             if let Some(specialist) = specialist.filter(|chosen| chosen != id) {
-                next.techs.officers.push(specialist);
+                next.officers.push(specialist);
             }
-            next.techs.officers.sort_unstable();
+            next.officers.sort_unstable();
         }
         Action::BuyUnit {
             unit,
@@ -229,7 +229,6 @@ pub fn step_placing(
             let researched = i32::try_from(
                 state
                     .techs
-                    .units
                     .iter()
                     .filter(|held| economy.technology_owner(**held) == Some(unit))
                     .count(),
@@ -238,8 +237,8 @@ pub fn step_placing(
             next.supply -= purse
                 .technology(*tech, unit, researched)
                 .ok_or(Unsettled::Unpriced("technology"))?;
-            next.techs.units.push(*tech);
-            next.techs.units.sort_unstable();
+            next.techs.push(*tech);
+            next.techs.sort_unstable();
             // A Jump Drive frees every formation of its unit to move.
             free_to_move(&mut next);
         }
@@ -449,7 +448,7 @@ fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Res
         .ok_or(Unsettled::Missing("formation"))?;
     let entry = next.formations.remove(position);
     let unit = unit_id_from_type(&entry.formation.type_name).ok_or(Unsettled::Unpriced("unit"))?;
-    let purse = Purse::new(economy, &next.techs.officers);
+    let purse = Purse::new(economy, &next.officers);
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
     next.supply += entry.value.unwrap_or(0) + (entry.formation.level.unwrap_or(1) - 1) * upgrade;
     if let Some(worn) = entry.formation.equipment {
@@ -489,7 +488,7 @@ fn hand_out(
 /// Frees every formation that [`crate::mobility::free`] says moves in every
 /// round. A formation already free stays free.
 fn free_to_move(next: &mut SideState) {
-    let techs = next.techs.units.clone();
+    let techs = next.techs.clone();
     for entry in &mut next.formations {
         entry.movable |= crate::mobility::free(&entry.formation, &techs);
     }
@@ -616,7 +615,7 @@ pub fn open_round(
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
     reset(economy, &mut next, round)?;
-    for officer in state.techs.officers.clone() {
+    for officer in state.officers.clone() {
         let Some(row) = economy.officer(officer) else {
             continue;
         };
@@ -678,7 +677,6 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         slot.release = None;
     }
     let extra = next
-        .techs
         .officers
         .iter()
         .filter(|officer| **officer == EXTRA_DEPLOYMENT_CARD)
@@ -702,10 +700,10 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         .map(|equipment| economy.equipment_round_supply(equipment))
         .sum();
     let income =
-        crate::ledger::round_income(economy, round, &next.techs.officers, economy.round_supply());
+        crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
     next.supply += income + worn - owed;
     next.energy_tower_skills.clear();
-    let techs = next.techs.units.clone();
+    let techs = next.techs.clone();
     for entry in &mut next.formations {
         entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &techs);
     }
@@ -862,10 +860,7 @@ mod tests {
     fn a_repeatable_officer_card_stacks() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            techs: crate::layout::Techs {
-                officers: vec![20022],
-                units: Vec::new(),
-            },
+            officers: vec![20022],
             ..SideState::default()
         };
         let taken = [
@@ -879,7 +874,7 @@ mod tests {
             },
         ];
         let next = fold(&economy, &state, &taken).unwrap();
-        assert_eq!(next.techs.officers, vec![20022, 20022, 20022]);
+        assert_eq!(next.officers, vec![20022, 20022, 20022]);
     }
 
     /// Declining is the same decision, and it hands out nothing.
@@ -1003,10 +998,7 @@ mod tests {
                 unlocks_remaining: 0,
             },
             energy_tower_skills: vec![1],
-            techs: crate::layout::Techs {
-                officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
-                units: Vec::new(),
-            },
+            officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
             ..SideState::default()
         };
         let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
@@ -1079,10 +1071,7 @@ mod tests {
         let state = SideState {
             supply: 10,
             // Supply Specialist adds 50 a round.
-            techs: crate::layout::Techs {
-                officers: vec![10002],
-                units: Vec::new(),
-            },
+            officers: vec![10002],
             formations: vec![worn(0), worn(1)],
             // Rapid Supply and one skill that owes nothing.
             energy_tower_skills: vec![1, 3],
@@ -1110,7 +1099,7 @@ mod tests {
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
         assert_eq!(opened.shop.unlocked_units, [10, 24]);
         assert_eq!(opened.next_index.unit, 5);
-        assert_eq!(opened.techs.officers, [10002]);
+        assert_eq!(opened.officers, [10002]);
         let team: Vec<_> = opened
             .formations
             .iter()
@@ -1166,10 +1155,7 @@ mod tests {
     fn an_officer_delivers_its_equipment_on_its_own_schedule() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            techs: crate::layout::Techs {
-                officers: vec![10013],
-                units: Vec::new(),
-            },
+            officers: vec![10013],
             ..SideState::default()
         };
         // Round 1 opens with the three items, and applying round 0 is what
@@ -1196,10 +1182,7 @@ mod tests {
     fn fitting_takes_one_copy_out_of_a_stack() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            techs: crate::layout::Techs {
-                officers: vec![10013],
-                units: Vec::new(),
-            },
+            officers: vec![10013],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
         let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
@@ -1497,7 +1480,7 @@ mod tests {
         assert_eq!(next.reactor_core, 100);
         assert!(next.formations.is_empty());
         assert_eq!(next.next_index.unit, 0);
-        assert_eq!(next.techs.officers, vec![20005]);
+        assert_eq!(next.officers, vec![20005]);
     }
 
     /// The specialist half prices the core as well as the team half.

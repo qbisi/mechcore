@@ -18,9 +18,9 @@ sides:
 kind: action
 round: 0
 blue:
-- {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}
+- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
 red:
-- {type: choose_advance_team, offer: 0, id: 9891, specialist: 10002}
+- {type: choose_advance_team, offer: 0, name: crawler-tarantula, specialist: supply_specialist}
 ---
 kind: state
 round: 1
@@ -151,10 +151,10 @@ player decides anything, and the third bounds every round.
 ```yaml
   blue:
     offers:
-    - {team: 9899, specialist: 20034}
-    - {team: 9910, specialist: 20005}
-    - {team: 9871, specialist: 10010}
-    - {team: 9875, specialist: 20021}
+    - {team: void_eye-sledgehammer, specialist: cost_control_specialist}
+    - {team: vortex-fire_badger, specialist: giant_specialist}
+    - {team: marksman-sledgehammer, specialist: quick_supply_specialist}
+    - {team: crawler-steel_ball, specialist: aerial_specialist}
 ```
 
 The opening deals a side four combinations of a team of formations and a
@@ -202,26 +202,26 @@ match, so the loadout bounds every `upgrade_technology` a round can hold.
 ```yaml
   blue:
     tech_loadout:
-      fortress: [1105, 10301, 10401, 10801]
-      marksman: [702, 1802, 3202, 10202]
-      war_factory: [417, 3317, 10217, 12017, 12117, 12217]
-      vortex: [631, 10231, 180931, 503101]
+      fortress: [anti_air_barrage, launcher_overload, solid_shot, elite_marksman]
+      marksman: [doubleshot, electromagnetic_shot, aerial_specialization, range_enhancement]
+      war_factory: [high_explosive_ammo, missile_interceptor, range_enhancement, phoenix_production, steel_ball_production, sledgehammer_production]
+      vortex: [grid_integration, range_enhancement, mobile_power_station, emergency_armor]
 ```
 
 It is real state and not a catalogue: two players in one match hold different
 loadouts. A row is keyed by the unit's type name, the one a formation's `type`
-uses, and the rows are in ascending unit ID, which is the order the game lists
-units in. There is one row for each unit a standard 1v1 match can field: IDs
+uses, and lists its technologies by name, as a state's `techs` does; the rows
+are in ascending unit ID and a row's technologies in ascending technology ID,
+which is the order the game lists both in. There is one row for each unit a standard 1v1 match can field: IDs
 `1` through `31` and `2002`. The record also holds rows for Death Knell (`2001`)
 and Experimental Death Knell (`4001`), which no standard 1v1 match fields, and
 the conversion drops them.
 
-The loadout keeps the per-unit grouping that a state's flat `techs.units` array
-drops, because the rule that lets a state flatten does not hold here. A
-technology's owner cannot be read off the end of its ID for every row, and says
-nothing at all about Mountain, whose ID is above `2000`. Ownership is still a function
-of the ID, since no technology belongs to two units, and it is resolved against
-the build's catalogue rather than by decoding digits.
+A technology's name is unique only within its unit, so it is always written
+under one: here under its row, in a state under its unit type, and in an
+`upgrade_technology` beside the `unit` it names. Its owner cannot be read off the
+end of its ID for every row, and says nothing at all about Mountain, whose ID is
+above `2000`; it is resolved against the build's catalogue.
 
 ## The opening is round zero
 
@@ -416,7 +416,7 @@ hold across every seam of a well-formed battle.
 | `shop.unlocked_units` are kept |
 | `tower_strengthen_levels` rise or hold |
 | `blueprints` are kept, or replaced by their own next level |
-| `techs.officers` are kept, or replaced by their own next level |
+| `officers` are kept, or replaced by their own next level |
 | `constructions` are kept or dropped, never added, and round 1's are the ones the header dealt |
 | `reactor_core` falls or holds, except across the opening |
 
@@ -550,6 +550,11 @@ because the conversion could not find it.
 | `offers` | as dealt; an opening decision's `offer` names a zero-based position in it |
 | `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
+
+A team is written as its two unit types joined by a hyphen, the one it holds
+three of first, such as `vortex-fire_badger`. A specialist is an officer, and it
+and the other rows [`state.md`](state.md#names) names are written by the game's
+English names in snake case.
 | `game_rules` | ascending rule ID |
 
 A segment's own collections keep the orders [`state.md`](state.md) and
@@ -557,13 +562,17 @@ A segment's own collections keep the orders [`state.md`](state.md) and
 `round` second, so a reader scanning the stream finds both on the two lines
 after each separator.
 
-Three rules decide how every value is spelled, and none of them names a field.
-A [layout](layout.md#normal-form) is spelled by the same three:
+Three rules decide how every value is spelled, and one field is an exception
+to them. A [layout](layout.md#normal-form) is spelled by the same three:
 
 - a sequence item is written on one line, in flow style;
 - a mapping or sequence whose members are all scalars is written in flow style
   on its key's line;
 - every other value is written in block style.
+
+The exception is a state's `officers`, written one per line although each is a
+scalar: a side holds any number of them, and a list that only grows reads better
+down the page than across it. An empty list is still written `[]`.
 
 ```yaml
     shop:

@@ -25,9 +25,9 @@ An action segment holds one round's decisions, one sequence per side.
 kind: action
 round: 7
 blue:
-- {type: choose_reinforce_item, offer: 3, id: 1072213}
-- {type: buy_unit, unit: void_eye, position: {x: 0, y: -160}}
-- {type: release_commander_skill, index: 0, id: 1100001, target: !unit 4}
+- {type: choose_reinforce_item, offer: 3, name: sledgehammer_2x_lv2}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 4}
 red:
 - ...
 ```
@@ -40,24 +40,26 @@ An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
 fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
-- {type: buy_unit, unit: void_eye, position: {x: 0, y: -160}}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 - {type: upgrade_unit, index: 5}
 ```
 
-Every operand is a 32-bit integer or a position, except
-`release_commander_skill`'s target, which is a tagged union, `rotated`, which
-is a boolean defaulting to false, and `unit`, which names a unit type by the
-name a formation's `type` uses rather than by its ID.
+`name` names what a decision is about: the unit type bought or unlocked, the
+card, team, blueprint, energy tower skill, equipment item, commander skill or
+contraption taken, fitted or released. It is the name [`state.md`](state.md#names)
+gives that kind, and never an ID. `upgrade_technology` is the one decision about
+two named things, and says `unit` and `tech`. Every other operand is a 32-bit
+integer or a position, except `release_commander_skill`'s target, which is a
+tagged union, and `rotated`, which is a boolean defaulting to false.
 
-Four keys are not always present. `choose_reinforce_item` omits `id` when the
+Four keys are not always present. `choose_reinforce_item` omits `name` when the
 offer was declined, `choose_advance_team` omits `specialist` when the opening is
 itself an officer, `release_contraption` omits `extra_position` unless the
 contraption spans two points, and `move_unit` omits `rotated` when it is false.
 
-An ID names a catalogue entry and is never a display name. `unit` is a unit
-type, `index` a formation's deployment index, and `tech`, `id`, `skill`,
-`equipment` and `contraption` their own catalogues. `tower` is a position in
-`BuildingManager.buildings`, the key `tower_strengthen_levels` uses.
+`index` is a formation's deployment index, or a panel slot in
+`release_commander_skill`. `tower` is a position in `BuildingManager.buildings`,
+the key `tower_strengthen_levels` uses.
 
 ## What a transition writes
 
@@ -66,7 +68,7 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs.units`, `techs.officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
+| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
 | Supply | `supply` |
 | Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
 
@@ -115,18 +117,23 @@ Answers the round's reinforcement offer. There are two answers and both are
 choices, so both are this one action.
 
 ```yaml
-- {type: choose_reinforce_item, offer: 3, id: 1305003}
+- {type: choose_reinforce_item, offer: 3, name: photon_coating}
 - {type: choose_reinforce_item, offer: -1}
 ```
 
 `offer` is the offer's position in `reinforce_offers`, or `-1` for the decline,
 which is a choice the round always makes available and never one of the items it
-dealt. `id` names the item taken and is present exactly when `offer` is not
+dealt. `name` names the item taken and is present exactly when `offer` is not
 `-1`: what the decline hands back is built from the match's progress rather than
-drawn from a catalogue, so it has no ID a document could carry.
+drawn from a catalogue, so it has nothing a document could name.
 
-A taken item grants the thing its own ID names, and which thing that is decides
-the effect: an officer joins `techs.officers`, a commander skill joins
+A card is named by what it grants, and a card of units as its unit, squads and
+level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
+the round that deals them, so a unit card's name is read within the round of
+the segment that holds it.
+
+A taken item grants the thing it names, and which thing that is decides
+the effect: an officer joins `officers`, a commander skill joins
 `battle_skills`, an equipment joins `equipment`, and a unit card hands out
 squads. Squads advance `next_index.unit` and their unit type joins
 `shop.unlocked_units`. The decline writes none of those.
@@ -138,11 +145,12 @@ declining is an item of its own rather than the absence of one.
 ### `choose_advance_team`
 
 ```yaml
-- {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}
+- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
 ```
 
 The opening, which is one decision with two halves: the team and the specialist
-officer bound to it. `offer` is the combination's position in the side's
+officer bound to it. `name` names the team as the header's offers do, and
+`specialist` names the officer. `offer` is the combination's position in the side's
 opening offers, which a battle's header states. `specialist` is optional and
 absent when the team is itself an officer.
 
@@ -150,17 +158,17 @@ It is round zero's only decision, and no other round holds one.
 
 A team of units hands out its force, advancing `next_index.unit` once per squad
 and unlocking each unit type it is made of. A team that is an officer joins
-`techs.officers` instead. The specialist joins `techs.officers` either way. An
+`officers` instead. The specialist joins `officers` either way. An
 opening also moves `reactor_core`, which is the fight's field and not settled
 here.
 
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, unit: void_eye, position: {x: 0, y: -160}, rotated: true}
+- {type: buy_unit, name: void_eye, position: {x: 0, y: -160}, rotated: true}
 ```
 
-Buys one formation of `unit`. Advances `next_index.unit` by one and puts a
+Buys one formation of the unit type `name`. Advances `next_index.unit` by one and puts a
 formation on the board under that index, at `position` and facing the way
 `rotated` says, which defaults to false.
 
@@ -187,18 +195,20 @@ type, less what the formation's equipment discounts, floored at zero.
 ### `unlock_unit`
 
 ```yaml
-- {type: unlock_unit, unit: void_eye}
+- {type: unlock_unit, name: void_eye}
 ```
 
-Adds `unit` to `shop.unlocked_units`. Costs the unit's unlock price.
+Adds the unit type `name` to `shop.unlocked_units`. Costs the unit's unlock price.
 
 ### `upgrade_technology`
 
 ```yaml
-- {type: upgrade_technology, unit: fang, tech: 3109}
+- {type: upgrade_technology, unit: fang, tech: grenade_launcher}
 ```
 
-Researches `tech`, which belongs to `unit`, and adds it to `techs.units`.
+Researches `tech`, which belongs to `unit`, and adds it to that unit's row of
+`techs`. A technology's name is only unique within its unit, and `unit` is what
+resolves it.
 
 The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per
@@ -211,7 +221,7 @@ Overlord and `1616` for Phoenix.
 ### `active_blueprint`
 
 ```yaml
-- {type: active_blueprint, id: 2}
+- {type: active_blueprint, name: field_recovery}
 ```
 
 Activates a Research Center blueprint and adds it to `blueprints`. A blueprint
@@ -219,14 +229,14 @@ that grants a commander skill puts it on `battle_skills`.
 
 A chain's second level replaces its first in `blueprints` rather than joining
 it. A chain blueprint also hands the side an Officer, but a state names the
-chain and not the Officer, so `techs.officers` does not move. A layout has no
+chain and not the Officer, so `officers` does not move. A layout has no
 blueprint list, so the projection onto one names the Officer instead. Both
 documents are complete; they disagree on purpose.
 
 ### `active_energy_tower_skill`
 
 ```yaml
-- {type: active_energy_tower_skill, skill: 3}
+- {type: active_energy_tower_skill, name: mass_recruitment}
 ```
 
 Activates one Energy Tower skill for this round. Every one of them is a
@@ -252,10 +262,10 @@ oppositely, so nothing may read a tower's identity out of its position.
 ### `use_equipment`
 
 ```yaml
-- {type: use_equipment, equipment: 1305003, index: 3}
+- {type: use_equipment, name: photon_coating, index: 3}
 ```
 
-Fits `equipment` to the formation at `index`, as `upgrade_unit` and
+Fits the item `name` to the formation at `index`, as `upgrade_unit` and
 `move_unit` name one. The item leaves `equipment`,
 the side's list of what it owns and no formation wears, and becomes that
 formation's.
@@ -328,13 +338,13 @@ one whose moves took it there.
 ### `release_commander_skill`
 
 ```yaml
-- {type: release_commander_skill, index: 0, id: 1100001, target: !unit 4}
+- {type: release_commander_skill, index: 0, name: intensive_training, target: !unit 4}
 ```
 
-Releases the skill in panel slot `index`, which holds skill `id`. The slot is
-what the game releases and what a retraction matches on; the skill is stated
+Releases the skill in panel slot `index`, which holds the skill `name`. The slot
+is what the game releases and what a retraction matches on; the skill is stated
 beside it so that a release reads without the panel. A release whose slot does
-not hold `id` at that point in the round is refused, and the panel can change
+not hold that skill at that point in the round is refused, and the panel can change
 within a round, since a card or a blueprint adds a skill to it.
 
 `target` is a tagged union with exactly one of three forms, never two:
@@ -376,10 +386,11 @@ the round.
 ### `release_contraption`
 
 ```yaml
-- {type: release_contraption, contraption: 10001, position: {x: -130, y: -153}}
+- {type: release_contraption, name: shield, position: {x: -130, y: -153}}
 ```
 
-Buys `contraption` from the shop and places it at `position`. Advances
+Buys the contraption `name` names, by the name a layout gives it, from the shop
+and places it at `position`. Advances
 `next_index.contraption` by one and puts the object on the board under that
 index. Costs the contraption's own price.
 

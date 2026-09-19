@@ -14,7 +14,7 @@ use crate::battle::{
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{
-    ContraptionPlacement, Experience, Formation, Position, Region, StaticPlacement, Techs,
+    ContraptionPlacement, Experience, Formation, Position, Region, StaticPlacement,
 };
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
@@ -447,7 +447,8 @@ fn side_state(
             unit: data.unit_index,
             contraption: data.contraption_index,
         },
-        techs: Techs { officers, units },
+        officers,
+        techs: units,
         formations,
         constructions,
         contraptions,
@@ -1185,8 +1186,8 @@ mod tests {
         }
         // Both halves reach the first round, which is what the opening is for.
         let first = round(&battle, 1);
-        assert!(first.state.sides.blue.techs.officers.contains(&20005));
-        assert!(first.state.sides.red.techs.officers.contains(&10002));
+        assert!(first.state.sides.blue.officers.contains(&20005));
+        assert!(first.state.sides.red.officers.contains(&10002));
     }
 
     #[test]
@@ -1266,7 +1267,7 @@ mod tests {
                 (&turn.state.sides.blue, &battle.sides.blue),
                 (&turn.state.sides.red, &battle.sides.red),
             ] {
-                for tech in &state.techs.units {
+                for tech in &state.techs {
                     assert!(
                         side.tech_loadout.values().any(|row| row.contains(tech)),
                         "round {} researched {tech}, which its loadout does not offer",
@@ -1728,14 +1729,15 @@ mod tests {
         assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\nsides:\n"));
         assert!(yaml.contains(
             "\n---\nkind: action\nround: 0\nblue:\n\
-             - {type: choose_advance_team, offer: 1, id: 9910, specialist: 20005}\n"
+             - {type: choose_advance_team, offer: 1, name: vortex-fire_badger, \
+             specialist: giant_specialist}\n"
         ));
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
             "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
-        assert!(yaml.contains("\n- {type: buy_unit, unit: "));
+        assert!(yaml.contains("\n- {type: buy_unit, name: "));
         assert!(!yaml.contains("\n- type: "));
         assert!(yaml.ends_with('\n'));
     }

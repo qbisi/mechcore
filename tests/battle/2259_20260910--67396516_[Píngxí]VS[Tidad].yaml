@@ -4,95 +4,95 @@ seed: 931505404
 sides:
   blue:
     offers:
-    - {team: 9885, specialist: 20039}
-    - {team: 9896, specialist: 10002}
-    - {team: 9910, specialist: 10014}
-    - {team: 9890, specialist: 20032}
+    - {team: arclight-sledgehammer, specialist: typhoon_specialist}
+    - {team: hound-mustang, specialist: supply_specialist}
+    - {team: vortex-fire_badger, specialist: training_specialist}
+    - {team: fang-tarantula, specialist: elite_specialist}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
     tech_loadout:
-      fortress: [1001, 1105, 10301, 10401]
-      marksman: [702, 1802, 3202, 10202]
-      vulcan: [1203, 10203, 10603, 11010]
-      melting_point: [304, 1106, 1107, 10204]
-      rhino: [1109, 2305, 3005, 10505]
-      wasp: [506, 1806, 3206, 10206]
-      mustang: [3207, 3307, 4607, 10207]
-      steel_ball: [308, 1308, 2408, 180808]
-      fang: [10209, 10509, 10609, 180209]
-      crawler: [2610, 10510, 10710, 180110]
-      overlord: [1108, 1211, 1611, 180311]
-      stormcaller: [1812, 10212, 10312, 10912]
-      sledgehammer: [613, 3013, 10513, 10613]
-      hacker: [1014, 1714, 1814, 10214]
-      arclight: [3015, 10215, 10815, 10915]
-      phoenix: [1816, 2916, 10316, 10916]
-      war_factory: [417, 3317, 10217, 12017, 12117, 12217]
-      wraith: [3018, 10218, 110181, 180418]
-      scorpion: [719, 919, 10219, 180519]
-      fire_badger: [10620, 11020, 180220, 180620]
-      sabertooth: [721, 3321, 10221, 10321]
-      typhoon: [2922, 4722, 5222, 5322]
-      sandworm: [3123, 3623, 3823, 13023]
-      tarantula: [924, 10224, 10624, 11024]
-      phantom_ray: [725, 3025, 3225, 3925]
-      farseer: [3226, 3326, 180326, 180526]
-      raiden: [227, 1827, 10227, 110271]
-      hound: [3028, 10228, 10528, 11028]
-      abyss: [2329, 4329, 10229, 11029, 12029, 110291]
-      void_eye: [4430, 10230, 10930, 180430]
-      vortex: [631, 10231, 180931, 503101]
-      mountain: [302002, 312002, 1032002, 11020021, 11020022, 18032002]
+      fortress: [barrier, anti_air_barrage, launcher_overload, solid_shot]
+      marksman: [doubleshot, electromagnetic_shot, aerial_specialization, range_enhancement]
+      vulcan: [best_partner, range_enhancement, scorching_fire, sticky_oil_bomb]
+      melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, range_enhancement]
+      rhino: [whirlwind, wreckage_recycling, armor_enhancement, mechanical_rage]
+      wasp: [ground_specialization, electromagnetic_shot, aerial_specialization, range_enhancement]
+      mustang: [aerial_specialization, missile_interceptor, culling_rounds, range_enhancement]
+      steel_ball: [energy_absorption, mechanical_division, fortified_target_lock, kinetic_charge]
+      fang: [range_enhancement, mechanical_rage, armor_piercing_bullets, ignite]
+      crawler: [subterranean_blitz, mechanical_rage, impact_drill, replicate]
+      overlord: [overlord_artillery, mothership, jump_drive, photon_emission]
+      stormcaller: [electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+      sledgehammer: [damage_sharing, armor_enhancement, mechanical_rage, armor_piercing_bullets]
+      hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement]
+      arclight: [armor_enhancement, range_enhancement, elite_marksman, charged_shot]
+      phoenix: [electromagnetic_shot, quantum_reassembly, launcher_overload, charged_shot]
+      war_factory: [high_explosive_ammo, missile_interceptor, range_enhancement, phoenix_production, steel_ball_production, sledgehammer_production]
+      wraith: [armor_enhancement, range_enhancement, floating_artillery_array, degeneration_beam]
+      scorpion: [doubleshot, field_maintenance, range_enhancement, acid_attack]
+      fire_badger: [scorching_fire, scorching_charge, ignite, counter_fire]
+      sabertooth: [doubleshot, missile_interceptor, range_enhancement, field_maintenance]
+      typhoon: [field_reassembly, field_entrenchment, maintenance_array, wreckage_detonation]
+      sandworm: [anti_aerial, replicate, strike, mechanical_division]
+      tarantula: [field_maintenance, range_enhancement, armor_piercing_bullets, spider_mine]
+      phantom_ray: [burst_mode, armor_enhancement, ground_targeting, stealth_cloak]
+      farseer: [aerial_specialization, missile_interceptor, photon_emission, scanning_radar]
+      raiden: [energy_shield, electromagnetic_shot, range_enhancement, fork]
+      hound: [armor_enhancement, range_enhancement, mechanical_rage, incendiary_bomb]
+      abyss: [wreckage_recycling, vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles]
+      void_eye: [aerial_mode, range_enhancement, charged_shot, suppression_shots]
+      vortex: [grid_integration, range_enhancement, mobile_power_station, emergency_armor]
+      mountain: [mountain_plating, anti_aircraft_ammunition, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
   red:
     offers:
-    - {team: 9900, specialist: 20029}
-    - {team: 9892, specialist: 20005}
-    - {team: 9879, specialist: 10011}
-    - {team: 9902, specialist: 20033}
+    - {team: void_eye-mustang, specialist: marksman_specialist}
+    - {team: crawler-sabertooth, specialist: giant_specialist}
+    - {team: crawler-sledgehammer, specialist: missile_specialist}
+    - {team: hound-sabertooth, specialist: rhino_specialist}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
     tech_loadout:
-      fortress: [1001, 1105, 3001, 110201]
-      marksman: [3202, 10102, 10202, 10802]
-      vulcan: [1203, 3003, 10203, 10603]
-      melting_point: [304, 1106, 1107, 10204]
-      rhino: [1109, 2805, 3005, 180805]
-      wasp: [206, 1806, 3206, 10206]
-      mustang: [3207, 3307, 4607, 10207]
-      steel_ball: [1308, 2408, 3008, 180808]
-      fang: [3109, 10209, 10509, 10609]
-      crawler: [2610, 3510, 10510, 10710]
-      overlord: [1108, 1211, 3011, 10211]
-      stormcaller: [1812, 10212, 10312, 10912]
-      sledgehammer: [3013, 10213, 10513, 10613]
-      hacker: [1014, 1714, 1814, 10214]
-      arclight: [3015, 4515, 10215, 10915]
-      phoenix: [1816, 10216, 10316, 10916]
-      war_factory: [417, 10217, 10317, 12017, 12117, 12217]
-      wraith: [418, 4418, 10218, 110181]
-      scorpion: [719, 10219, 10419, 180519]
-      fire_badger: [10220, 10620, 180220, 180620]
-      sabertooth: [3321, 10221, 10321, 110211]
-      typhoon: [2922, 5222, 5322, 10222]
-      sandworm: [3023, 3123, 10523, 13023]
-      tarantula: [3024, 10224, 10524, 10624]
-      phantom_ray: [225, 3025, 3225, 3925]
-      farseer: [1826, 10226, 180326, 180526]
-      raiden: [1827, 4027, 10227, 110271]
-      hound: [3028, 4228, 10228, 180828]
-      abyss: [4329, 10229, 11029, 12029, 110291, 180329]
-      void_eye: [230, 10230, 180430, 180530]
-      vortex: [4531, 10231, 123101, 180931]
-      mountain: [72002, 302002, 312002, 1022002, 1032002, 11020021]
+      fortress: [barrier, anti_air_barrage, armor_enhancement, rocket_punch]
+      marksman: [aerial_specialization, assault_mode, range_enhancement, elite_marksman]
+      vulcan: [best_partner, armor_enhancement, range_enhancement, scorching_fire]
+      melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, range_enhancement]
+      rhino: [whirlwind, final_blitz, armor_enhancement, combat_evolvement]
+      wasp: [energy_shield, electromagnetic_shot, aerial_specialization, range_enhancement]
+      mustang: [aerial_specialization, missile_interceptor, culling_rounds, range_enhancement]
+      steel_ball: [mechanical_division, fortified_target_lock, armor_enhancement, kinetic_charge]
+      fang: [grenade_launcher, range_enhancement, mechanical_rage, armor_piercing_bullets]
+      crawler: [subterranean_blitz, loose_formation, mechanical_rage, impact_drill]
+      overlord: [overlord_artillery, mothership, armor_enhancement, range_enhancement]
+      stormcaller: [electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
+      sledgehammer: [armor_enhancement, range_enhancement, mechanical_rage, armor_piercing_bullets]
+      hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement]
+      arclight: [armor_enhancement, shockwave, range_enhancement, charged_shot]
+      phoenix: [electromagnetic_shot, range_enhancement, launcher_overload, charged_shot]
+      war_factory: [high_explosive_ammo, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production]
+      wraith: [high_explosive_ammo, land_cruiser, range_enhancement, floating_artillery_array]
+      scorpion: [doubleshot, range_enhancement, convergent_fire, acid_attack]
+      fire_badger: [range_enhancement, scorching_fire, ignite, counter_fire]
+      sabertooth: [missile_interceptor, range_enhancement, field_maintenance, secondary_armament]
+      typhoon: [field_reassembly, maintenance_array, wreckage_detonation, range_enhancement]
+      sandworm: [armor_enhancement, anti_aerial, mechanical_rage, mechanical_division]
+      tarantula: [armor_enhancement, range_enhancement, mechanical_rage, armor_piercing_bullets]
+      phantom_ray: [energy_shield, armor_enhancement, ground_targeting, stealth_cloak]
+      farseer: [electromagnetic_explosion, range_enhancement, photon_emission, scanning_radar]
+      raiden: [electromagnetic_shot, chain, range_enhancement, fork]
+      hound: [armor_enhancement, fire_extinguisher, range_enhancement, chamber_compression]
+      abyss: [vertical_sweep, range_enhancement, disintegration, dark_companion, swarm_missiles, photon_coating]
+      void_eye: [energy_shield, range_enhancement, suppression_shots, electromagnetic_armor]
+      vortex: [electromagnetic_cloud, range_enhancement, electromagnetic_twin, mobile_power_station]
+      mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile]
 ---
 kind: action
 round: 0
 blue:
-- {type: choose_advance_team, offer: 3, id: 9890, specialist: 20032}
+- {type: choose_advance_team, offer: 3, name: fang-tarantula, specialist: elite_specialist}
 red:
-- {type: choose_advance_team, offer: 1, id: 9892, specialist: 20005}
+- {type: choose_advance_team, offer: 1, name: crawler-sabertooth, specialist: giant_specialist}
 ---
 kind: state
 round: 1
@@ -106,8 +106,8 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    techs:
-      officers: [20032]
+    officers:
+    - elite_specialist
     formations:
     - {type: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {type: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +126,8 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    techs:
-      officers: [20005]
+    officers:
+    - giant_specialist
     formations:
     - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -141,20 +141,20 @@ sides:
 kind: action
 round: 1
 blue:
-- {type: active_blueprint, id: 2}
-- {type: release_commander_skill, index: 0, id: 900001, target: !construction 1}
+- {type: active_blueprint, name: field_recovery}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
 - {type: move_unit, index: 2, position: {x: 0, y: -115}, rotated: true}
 - {type: move_unit, index: 0, position: {x: -135, y: -190}}
 - {type: move_unit, index: 1, position: {x: 135, y: -190}}
 - {type: move_unit, index: 3, position: {x: -55, y: -155}}
 - {type: move_unit, index: 4, position: {x: 55, y: -155}}
-- {type: unlock_unit, unit: crawler}
-- {type: buy_unit, unit: crawler, position: {x: 140, y: -235}, rotated: true}
-- {type: buy_unit, unit: crawler, position: {x: -140, y: -235}, rotated: true}
+- {type: unlock_unit, name: crawler}
+- {type: buy_unit, name: crawler, position: {x: 140, y: -235}, rotated: true}
+- {type: buy_unit, name: crawler, position: {x: -140, y: -235}, rotated: true}
 red:
-- {type: unlock_unit, unit: hound}
-- {type: buy_unit, unit: hound, position: {x: -110, y: -170}}
-- {type: buy_unit, unit: hound, position: {x: 0, y: -170}}
+- {type: unlock_unit, name: hound}
+- {type: buy_unit, name: hound, position: {x: -110, y: -170}}
+- {type: buy_unit, name: hound, position: {x: 0, y: -170}}
 - {type: move_unit, index: 1, position: {x: -110, y: -215}, rotated: true}
 - {type: move_unit, index: 0, position: {x: 0, y: -215}, rotated: true}
 - {type: move_unit, index: 4, position: {x: -55, y: -165}}
@@ -163,7 +163,7 @@ red:
 ---
 kind: state
 round: 2
-reinforce_offers: [1021120, 1021112, 102118, 102115]
+reinforce_offers: [fire_badger_1x_lv1, stormcaller_1x_lv1, steel_ball_1x_lv1, rhino_1x_lv1]
 sides:
   blue:
     reactor_core: 4700
@@ -172,13 +172,13 @@ sides:
       unlocked_units: [fang, crawler, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2]
+    blueprints: [field_recovery]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
+    - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    techs:
-      officers: [20032]
+    officers:
+    - elite_specialist
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 10/600, value: 100}
@@ -198,8 +198,8 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    techs:
-      officers: [20005]
+    officers:
+    - giant_specialist
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 146/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 106/450, rotated: true, value: 100}
@@ -215,22 +215,22 @@ sides:
 kind: action
 round: 2
 blue:
-- {type: choose_reinforce_item, offer: 1, id: 1021112}
+- {type: choose_reinforce_item, offer: 1, name: stormcaller_1x_lv1}
 - {type: move_unit, index: 7, position: {x: 5, y: -160}}
-- {type: unlock_unit, unit: marksman}
-- {type: buy_unit, unit: tarantula, position: {x: 135, y: -145}}
+- {type: unlock_unit, name: marksman}
+- {type: buy_unit, name: tarantula, position: {x: 135, y: -145}}
 red:
-- {type: choose_reinforce_item, offer: 1, id: 1021112}
-- {type: buy_unit, unit: crawler, position: {x: -260, y: -285}, rotated: true}
-- {type: buy_unit, unit: crawler, position: {x: 260, y: -285}, rotated: true}
-- {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: hound, position: {x: 110, y: -170}}
+- {type: choose_reinforce_item, offer: 1, name: stormcaller_1x_lv1}
+- {type: buy_unit, name: crawler, position: {x: -260, y: -285}, rotated: true}
+- {type: buy_unit, name: crawler, position: {x: 260, y: -285}, rotated: true}
+- {type: active_energy_tower_skill, name: mass_recruitment}
+- {type: buy_unit, name: hound, position: {x: 110, y: -170}}
 - {type: move_unit, index: 7, position: {x: 5, y: -120}}
-- {type: unlock_unit, unit: fang}
+- {type: unlock_unit, name: fang}
 ---
 kind: state
 round: 3
-reinforce_offers: [300001, 30301, 20003, 1309001]
+reinforce_offers: [missile_strike, extended_range_vulcan, efficient_tech_research, absorption_module]
 sides:
   blue:
     reactor_core: 4700
@@ -239,13 +239,13 @@ sides:
       unlocked_units: [marksman, fang, crawler, stormcaller, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2]
+    blueprints: [field_recovery]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
+    - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    techs:
-      officers: [20032]
+    officers:
+    - elite_specialist
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, exp: 118/600, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 78/600, value: 100}
@@ -267,8 +267,8 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 0}
-    techs:
-      officers: [20005]
+    officers:
+    - giant_specialist
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 258/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 162/450, rotated: true, value: 100}
@@ -288,26 +288,26 @@ sides:
 kind: action
 round: 3
 blue:
-- {type: choose_reinforce_item, offer: 2, id: 20003}
-- {type: release_commander_skill, index: 0, id: 900001, target: !construction 0}
-- {type: unlock_unit, unit: hound}
-- {type: buy_unit, unit: tarantula, position: {x: -145, y: -145}}
-- {type: buy_unit, unit: crawler, position: {x: -70, y: -55}, rotated: true}
-- {type: active_blueprint, id: 3}
-- {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -68, y: -74}, {x: 131, y: -74}, {x: 310, y: -43}]}
+- {type: choose_reinforce_item, offer: 2, name: efficient_tech_research}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 0}
+- {type: unlock_unit, name: hound}
+- {type: buy_unit, name: tarantula, position: {x: -145, y: -145}}
+- {type: buy_unit, name: crawler, position: {x: -70, y: -55}, rotated: true}
+- {type: active_blueprint, name: mobile_beacon}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -68, y: -74}, {x: 131, y: -74}, {x: 310, y: -43}]}
 red:
-- {type: choose_reinforce_item, offer: 2, id: 20003}
-- {type: active_blueprint, id: 2}
-- {type: release_commander_skill, index: 0, id: 900001, target: !construction 1}
-- {type: buy_unit, unit: crawler, position: {x: 195, y: -130}}
-- {type: unlock_unit, unit: phoenix}
-- {type: buy_unit, unit: phoenix, position: {x: -110, y: -260}}
-- {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: crawler, position: {x: -195, y: -130}}
+- {type: choose_reinforce_item, offer: 2, name: efficient_tech_research}
+- {type: active_blueprint, name: field_recovery}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 1}
+- {type: buy_unit, name: crawler, position: {x: 195, y: -130}}
+- {type: unlock_unit, name: phoenix}
+- {type: buy_unit, name: phoenix, position: {x: -110, y: -260}}
+- {type: active_energy_tower_skill, name: mass_recruitment}
+- {type: buy_unit, name: crawler, position: {x: -195, y: -130}}
 ---
 kind: state
 round: 4
-reinforce_offers: [200001, 1309001, 30301, 30203]
+reinforce_offers: [electromagnetic_impact, absorption_module, extended_range_vulcan, subsidized_marksman]
 sides:
   blue:
     reactor_core: 4700
@@ -316,14 +316,15 @@ sides:
       unlocked_units: [marksman, fang, crawler, stormcaller, tarantula, hound]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 3]
+    blueprints: [field_recovery, mobile_beacon]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 1500001, cooldown: 0}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    techs:
-      officers: [20003, 20032]
+    officers:
+    - efficient_tech_research
+    - elite_specialist
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, exp: 191/600, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 495/600, value: 100}
@@ -343,13 +344,14 @@ sides:
       unlocked_units: [fang, crawler, stormcaller, phoenix, sabertooth, hound]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2]
+    blueprints: [field_recovery]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
+    - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    techs:
-      officers: [20003, 20005]
+    officers:
+    - efficient_tech_research
+    - giant_specialist
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 345/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 217/450, rotated: true, value: 100}
@@ -371,26 +373,26 @@ sides:
 kind: action
 round: 4
 blue:
-- {type: choose_reinforce_item, offer: 1, id: 1309001}
-- {type: use_equipment, equipment: 1309001, index: 8}
-- {type: upgrade_technology, unit: tarantula, tech: 10224}
-- {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -74, y: -77}, {x: 125, y: -72}, {x: 216, y: 105}]}
-- {type: unlock_unit, unit: mustang}
-- {type: buy_unit, unit: crawler, position: {x: 290, y: -245}, rotated: true}
-- {type: buy_unit, unit: crawler, position: {x: -290, y: -245}, rotated: true}
-- {type: active_blueprint, id: 4}
+- {type: choose_reinforce_item, offer: 1, name: absorption_module}
+- {type: use_equipment, name: absorption_module, index: 8}
+- {type: upgrade_technology, unit: tarantula, tech: range_enhancement}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -74, y: -77}, {x: 125, y: -72}, {x: 216, y: 105}]}
+- {type: unlock_unit, name: mustang}
+- {type: buy_unit, name: crawler, position: {x: 290, y: -245}, rotated: true}
+- {type: buy_unit, name: crawler, position: {x: -290, y: -245}, rotated: true}
+- {type: active_blueprint, name: attack_enhancement}
 red:
-- {type: choose_reinforce_item, offer: 2, id: 30301}
-- {type: release_commander_skill, index: 0, id: 900001, target: !unit 7}
-- {type: unlock_unit, unit: vulcan}
-- {type: buy_unit, unit: vulcan, position: {x: -170, y: -160}}
-- {type: buy_unit, unit: vulcan, position: {x: 170, y: -160}}
+- {type: choose_reinforce_item, offer: 2, name: extended_range_vulcan}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 7}
+- {type: unlock_unit, name: vulcan}
+- {type: buy_unit, name: vulcan, position: {x: -170, y: -160}}
+- {type: buy_unit, name: vulcan, position: {x: 170, y: -160}}
 - {type: upgrade_unit, index: 5}
 - {type: upgrade_unit, index: 12}
 ---
 kind: state
 round: 5
-reinforce_offers: [31402, 1000001, 300005, 100002]
+reinforce_offers: [fortified_hacker, redeployment, lightning_storm, incendiary_bomb]
 sides:
   blue:
     reactor_core: 4500
@@ -399,15 +401,17 @@ sides:
       unlocked_units: [marksman, mustang, fang, crawler, stormcaller, tarantula, hound]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 3, 4]
+    blueprints: [field_recovery, mobile_beacon, attack_enhancement]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 1500001, cooldown: 0}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
+    officers:
+    - efficient_tech_research
+    - elite_specialist
     techs:
-      officers: [20003, 20032]
-      units: [10224]
+      tarantula: [range_enhancement]
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, exp: 205/600, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 564/600, value: 100}
@@ -429,13 +433,15 @@ sides:
       unlocked_units: [vulcan, fang, crawler, stormcaller, phoenix, sabertooth, hound]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2]
+    blueprints: [field_recovery]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
+    - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    techs:
-      officers: [20003, 20005, 30301]
+    officers:
+    - efficient_tech_research
+    - giant_specialist
+    - extended_range_vulcan
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 391/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 343/450, rotated: true, value: 100}
@@ -458,33 +464,33 @@ sides:
 kind: action
 round: 5
 blue:
-- {type: choose_reinforce_item, offer: 3, id: 100002}
-- {type: release_commander_skill, index: 2, id: 100002, target: !area [{x: -52, y: 40}, {x: 87, y: 41}]}
-- {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -69, y: -81}, {x: 124, y: -130}, {x: 211, y: -170}]}
+- {type: choose_reinforce_item, offer: 3, name: incendiary_bomb}
+- {type: release_commander_skill, index: 2, name: incendiary_bomb, target: !area [{x: -52, y: 40}, {x: 87, y: 41}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -69, y: -81}, {x: 124, y: -130}, {x: 211, y: -170}]}
 - {type: upgrade_unit, index: 3}
-- {type: unlock_unit, unit: void_eye}
-- {type: buy_unit, unit: mustang, position: {x: 215, y: -300}}
-- {type: buy_unit, unit: mustang, position: {x: -215, y: -300}}
-- {type: release_commander_skill, index: 0, id: 900001, target: !unit 7}
-- {type: upgrade_technology, unit: mustang, tech: 10207}
-- {type: release_contraption, contraption: 10001, position: {x: 114, y: -125}}
-- {type: active_energy_tower_skill, skill: 5}
+- {type: unlock_unit, name: void_eye}
+- {type: buy_unit, name: mustang, position: {x: 215, y: -300}}
+- {type: buy_unit, name: mustang, position: {x: -215, y: -300}}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 7}
+- {type: upgrade_technology, unit: mustang, tech: range_enhancement}
+- {type: release_contraption, name: shield, position: {x: 114, y: -125}}
+- {type: active_energy_tower_skill, name: enhanced_range}
 red:
-- {type: choose_reinforce_item, offer: 2, id: 300005}
-- {type: release_commander_skill, index: 1, id: 300005, target: !area [{x: 59, y: 153}]}
+- {type: choose_reinforce_item, offer: 2, name: lightning_storm}
+- {type: release_commander_skill, index: 1, name: lightning_storm, target: !area [{x: 59, y: 153}]}
 - {type: upgrade_unit, index: 4}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 12}
-- {type: buy_unit, unit: phoenix, position: {x: 110, y: -260}}
-- {type: release_commander_skill, index: 0, id: 900001, target: !construction 0}
+- {type: buy_unit, name: phoenix, position: {x: 110, y: -260}}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !construction 0}
 - {type: upgrade_unit, index: 6}
 - {type: upgrade_unit, index: 10}
-- {type: unlock_unit, unit: void_eye}
-- {type: buy_unit, unit: crawler, position: {x: -5, y: -120}}
+- {type: unlock_unit, name: void_eye}
+- {type: buy_unit, name: crawler, position: {x: -5, y: -120}}
 ---
 kind: state
 round: 6
-reinforce_offers: [1061319, 1063230, 1062220, 1061322]
+reinforce_offers: [scorpion_1x_lv3, void_eye_3x_lv2, fire_badger_2x_lv2, typhoon_1x_lv3]
 sides:
   blue:
     reactor_core: 4500
@@ -493,16 +499,19 @@ sides:
       unlocked_units: [marksman, mustang, fang, crawler, stormcaller, tarantula, hound, void_eye]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 3, 4]
+    blueprints: [field_recovery, mobile_beacon, attack_enhancement]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 1500001, cooldown: 0}
-    - {index: 2, id: 100002, cooldown: 3}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: mobile_beacon, cooldown: 0}
+    - {index: 2, name: incendiary_bomb, cooldown: 3}
     next_index: {unit: 15, contraption: 1}
+    officers:
+    - efficient_tech_research
+    - elite_specialist
     techs:
-      officers: [20003, 20032]
-      units: [10207, 10224]
+      mustang: [range_enhancement]
+      tarantula: [range_enhancement]
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, exp: 205/600, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 600/600, value: 100}
@@ -525,14 +534,16 @@ sides:
       unlocked_units: [vulcan, fang, crawler, stormcaller, phoenix, sabertooth, hound, void_eye]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2]
+    blueprints: [field_recovery]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 300005, cooldown: 4}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: lightning_storm, cooldown: 4}
     next_index: {unit: 18, contraption: 0}
-    techs:
-      officers: [20003, 20005, 30301]
+    officers:
+    - efficient_tech_research
+    - giant_specialist
+    - extended_range_vulcan
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 444/450, rotated: true, value: 100}
@@ -555,35 +566,35 @@ sides:
 kind: action
 round: 6
 blue:
-- {type: choose_reinforce_item, offer: 1, id: 1063230}
+- {type: choose_reinforce_item, offer: 1, name: void_eye_3x_lv2}
 - {type: move_unit, index: 17, position: {x: 100, y: -170}}
 - {type: move_unit, index: 15, position: {x: 0, y: -170}}
 - {type: move_unit, index: 16, position: {x: -100, y: -170}}
 - {type: upgrade_unit, index: 9}
 - {type: upgrade_unit, index: 4}
 - {type: upgrade_unit, index: 8}
-- {type: upgrade_technology, unit: void_eye, tech: 180430}
-- {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -66, y: -78}, {x: 77, y: -217}, {x: -1, y: -32}]}
-- {type: unlock_unit, unit: arclight}
-- {type: upgrade_technology, unit: void_eye, tech: 10230}
-- {type: buy_unit, unit: void_eye, position: {x: 180, y: -170}}
-- {type: buy_unit, unit: void_eye, position: {x: -180, y: -170}}
-- {type: active_energy_tower_skill, skill: 5}
+- {type: upgrade_technology, unit: void_eye, tech: suppression_shots}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -66, y: -78}, {x: 77, y: -217}, {x: -1, y: -32}]}
+- {type: unlock_unit, name: arclight}
+- {type: upgrade_technology, unit: void_eye, tech: range_enhancement}
+- {type: buy_unit, name: void_eye, position: {x: 180, y: -170}}
+- {type: buy_unit, name: void_eye, position: {x: -180, y: -170}}
+- {type: active_energy_tower_skill, name: enhanced_range}
 red:
-- {type: choose_reinforce_item, offer: 3, id: 1061322}
-- {type: release_commander_skill, index: 0, id: 900001, target: !unit 18}
-- {type: buy_unit, unit: vulcan, position: {x: 40, y: -130}}
-- {type: buy_unit, unit: vulcan, position: {x: -50, y: -130}}
-- {type: upgrade_technology, unit: vulcan, tech: 10203}
+- {type: choose_reinforce_item, offer: 3, name: typhoon_1x_lv3}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 18}
+- {type: buy_unit, name: vulcan, position: {x: 40, y: -130}}
+- {type: buy_unit, name: vulcan, position: {x: -50, y: -130}}
+- {type: upgrade_technology, unit: vulcan, tech: range_enhancement}
 - {type: upgrade_unit, index: 14}
 - {type: upgrade_unit, index: 16}
-- {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: fang, position: {x: -5, y: -50}}
-- {type: active_blueprint, id: 5}
+- {type: active_energy_tower_skill, name: mass_recruitment}
+- {type: buy_unit, name: fang, position: {x: -5, y: -50}}
+- {type: active_blueprint, name: defense_enhancement}
 ---
 kind: state
 round: 7
-reinforce_offers: [300001, 20022, 30102, 1200002]
+reinforce_offers: [missile_strike, efficient_giant_manufacturing, assault_fortress, rhino_assault]
 sides:
   blue:
     reactor_core: 4500
@@ -592,16 +603,20 @@ sides:
       unlocked_units: [marksman, mustang, fang, crawler, stormcaller, arclight, tarantula, hound, void_eye]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 3, 4]
+    blueprints: [field_recovery, mobile_beacon, attack_enhancement]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 1500001, cooldown: 0}
-    - {index: 2, id: 100002, cooldown: 2}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: mobile_beacon, cooldown: 0}
+    - {index: 2, name: incendiary_bomb, cooldown: 2}
     next_index: {unit: 20, contraption: 1}
+    officers:
+    - efficient_tech_research
+    - elite_specialist
     techs:
-      officers: [20003, 20032]
-      units: [10207, 10224, 10230, 180430]
+      mustang: [range_enhancement]
+      tarantula: [range_enhancement]
+      void_eye: [range_enhancement, suppression_shots]
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, exp: 307/600, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 600/600, value: 100}
@@ -629,15 +644,18 @@ sides:
       unlocked_units: [vulcan, fang, crawler, stormcaller, phoenix, sabertooth, typhoon, hound, void_eye]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 5]
+    blueprints: [field_recovery, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 300005, cooldown: 3}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: lightning_storm, cooldown: 3}
     next_index: {unit: 22, contraption: 0}
+    officers:
+    - efficient_tech_research
+    - giant_specialist
+    - extended_range_vulcan
     techs:
-      officers: [20003, 20005, 30301]
-      units: [10203]
+      vulcan: [range_enhancement]
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 450/450, rotated: true, value: 100}
@@ -663,34 +681,34 @@ sides:
 kind: action
 round: 7
 blue:
-- {type: choose_reinforce_item, offer: 0, id: 300001}
-- {type: release_commander_skill, index: 3, id: 300001, target: !area [{x: 5, y: 60}]}
-- {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -71, y: -77}, {x: 47, y: -238}, {x: 10, y: -220}]}
-- {type: active_energy_tower_skill, skill: 5}
-- {type: unlock_unit, unit: vortex}
-- {type: buy_unit, unit: tarantula, position: {x: 265, y: -155}}
-- {type: buy_unit, unit: tarantula, position: {x: -265, y: -155}}
-- {type: active_blueprint, id: 5}
+- {type: choose_reinforce_item, offer: 0, name: missile_strike}
+- {type: release_commander_skill, index: 3, name: missile_strike, target: !area [{x: 5, y: 60}]}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -71, y: -77}, {x: 47, y: -238}, {x: 10, y: -220}]}
+- {type: active_energy_tower_skill, name: enhanced_range}
+- {type: unlock_unit, name: vortex}
+- {type: buy_unit, name: tarantula, position: {x: 265, y: -155}}
+- {type: buy_unit, name: tarantula, position: {x: -265, y: -155}}
+- {type: active_blueprint, name: defense_enhancement}
 - {type: upgrade_unit, index: 13}
-- {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: mustang, position: {x: 5, y: -300}}
-- {type: release_contraption, contraption: 10001, position: {x: 206, y: -238}}
+- {type: active_energy_tower_skill, name: mass_recruitment}
+- {type: buy_unit, name: mustang, position: {x: 5, y: -300}}
+- {type: release_contraption, name: shield, position: {x: 206, y: -238}}
 red:
-- {type: choose_reinforce_item, offer: 1, id: 20022}
-- {type: unlock_unit, unit: sandworm}
-- {type: buy_unit, unit: sandworm, position: {x: 280, y: -160}}
-- {type: buy_unit, unit: sandworm, position: {x: -280, y: -160}}
+- {type: choose_reinforce_item, offer: 1, name: efficient_giant_manufacturing}
+- {type: unlock_unit, name: sandworm}
+- {type: buy_unit, name: sandworm, position: {x: 280, y: -160}}
+- {type: buy_unit, name: sandworm, position: {x: -280, y: -160}}
 - {type: upgrade_unit, index: 15}
-- {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: sandworm, position: {x: -140, y: -200}}
-- {type: active_energy_tower_skill, skill: 1}
-- {type: active_energy_tower_skill, skill: 5}
-- {type: active_energy_tower_skill, skill: 6}
-- {type: release_contraption, contraption: 20001, position: {x: -1, y: -11}}
+- {type: active_energy_tower_skill, name: mass_recruitment}
+- {type: buy_unit, name: sandworm, position: {x: -140, y: -200}}
+- {type: active_energy_tower_skill, name: rapid_resupply}
+- {type: active_energy_tower_skill, name: enhanced_range}
+- {type: active_energy_tower_skill, name: high_mobility}
+- {type: release_contraption, name: missile, position: {x: -1, y: -11}}
 ---
 kind: state
 round: 8
-reinforce_offers: [200001, 31402, 10007, 1100001]
+reinforce_offers: [electromagnetic_impact, fortified_hacker, advanced_shield_device, intensive_training]
 sides:
   blue:
     reactor_core: 4500
@@ -699,17 +717,21 @@ sides:
       unlocked_units: [marksman, mustang, fang, crawler, stormcaller, arclight, tarantula, hound, void_eye, vortex]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 3, 4, 5]
+    blueprints: [field_recovery, mobile_beacon, attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 1500001, cooldown: 0}
-    - {index: 2, id: 100002, cooldown: 1}
-    - {index: 3, id: 300001, cooldown: 2}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: mobile_beacon, cooldown: 0}
+    - {index: 2, name: incendiary_bomb, cooldown: 1}
+    - {index: 3, name: missile_strike, cooldown: 2}
     next_index: {unit: 23, contraption: 2}
+    officers:
+    - efficient_tech_research
+    - elite_specialist
     techs:
-      officers: [20003, 20032]
-      units: [10207, 10224, 10230, 180430]
+      mustang: [range_enhancement]
+      tarantula: [range_enhancement]
+      void_eye: [range_enhancement, suppression_shots]
     formations:
     - {type: fang, index: 0, position: {x: -135, y: -190}, exp: 329/600, value: 100}
     - {type: fang, index: 1, position: {x: 135, y: -190}, exp: 600/600, value: 100}
@@ -742,15 +764,19 @@ sides:
       unlocked_units: [vulcan, fang, crawler, stormcaller, phoenix, sabertooth, typhoon, sandworm, hound, void_eye]
       buys_remaining: 2
       unlocks_remaining: 1
-    blueprints: [2, 5]
+    blueprints: [field_recovery, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 300005, cooldown: 2}
+    - {index: 0, name: field_recovery, cooldown: 0}
+    - {index: 1, name: lightning_storm, cooldown: 2}
     next_index: {unit: 25, contraption: 1}
+    officers:
+    - efficient_tech_research
+    - giant_specialist
+    - efficient_giant_manufacturing
+    - extended_range_vulcan
     techs:
-      officers: [20003, 20005, 20022, 30301]
-      units: [10203]
+      vulcan: [range_enhancement]
     formations:
     - {type: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {type: crawler, index: 1, position: {x: -110, y: -215}, exp: 450/450, rotated: true, value: 100}
@@ -779,37 +805,37 @@ sides:
 kind: action
 round: 8
 blue:
-- {type: choose_reinforce_item, offer: 0, id: 200001}
-- {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -71, y: -80}, {x: 8, y: -263}, {x: 0, y: -148}]}
+- {type: choose_reinforce_item, offer: 0, name: electromagnetic_impact}
+- {type: release_commander_skill, index: 1, name: mobile_beacon, target: !area [{x: -71, y: -80}, {x: 8, y: -263}, {x: 0, y: -148}]}
 - {type: upgrade_unit, index: 15}
 - {type: upgrade_unit, index: 16}
 - {type: upgrade_unit, index: 17}
 - {type: upgrade_unit, index: 18}
 - {type: upgrade_unit, index: 19}
-- {type: upgrade_technology, unit: void_eye, tech: 10930}
-- {type: active_energy_tower_skill, skill: 5}
-- {type: active_energy_tower_skill, skill: 1}
-- {type: release_commander_skill, index: 4, id: 200001, target: !area [{x: 0, y: 111}]}
-- {type: upgrade_technology, unit: tarantula, tech: 10624}
-- {type: release_contraption, contraption: 10001, position: {x: 200, y: -150}}
-- {type: release_contraption, contraption: 10001, position: {x: 0, y: -151}}
-- {type: release_contraption, contraption: 10001, position: {x: -204, y: -150}}
-- {type: unlock_unit, unit: sledgehammer}
-- {type: buy_unit, unit: crawler, position: {x: 350, y: 285}}
-- {type: buy_unit, unit: crawler, position: {x: -350, y: 285}}
-- {type: release_contraption, contraption: 20001, position: {x: 298, y: -190}}
+- {type: upgrade_technology, unit: void_eye, tech: charged_shot}
+- {type: active_energy_tower_skill, name: enhanced_range}
+- {type: active_energy_tower_skill, name: rapid_resupply}
+- {type: release_commander_skill, index: 4, name: electromagnetic_impact, target: !area [{x: 0, y: 111}]}
+- {type: upgrade_technology, unit: tarantula, tech: armor_piercing_bullets}
+- {type: release_contraption, name: shield, position: {x: 200, y: -150}}
+- {type: release_contraption, name: shield, position: {x: 0, y: -151}}
+- {type: release_contraption, name: shield, position: {x: -204, y: -150}}
+- {type: unlock_unit, name: sledgehammer}
+- {type: buy_unit, name: crawler, position: {x: 350, y: 285}}
+- {type: buy_unit, name: crawler, position: {x: -350, y: 285}}
+- {type: release_contraption, name: missile, position: {x: 298, y: -190}}
 red:
-- {type: choose_reinforce_item, offer: 0, id: 200001}
-- {type: release_commander_skill, index: 2, id: 200001, target: !area [{x: 115, y: 149}]}
+- {type: choose_reinforce_item, offer: 0, name: electromagnetic_impact}
+- {type: release_commander_skill, index: 2, name: electromagnetic_impact, target: !area [{x: 115, y: 149}]}
 - {type: upgrade_unit, index: 19}
 - {type: upgrade_unit, index: 20}
-- {type: release_commander_skill, index: 0, id: 900001, target: !unit 6}
-- {type: upgrade_technology, unit: sandworm, tech: 3023}
-- {type: buy_unit, unit: sandworm, position: {x: -130, y: -140}}
-- {type: buy_unit, unit: sandworm, position: {x: 130, y: -140}}
-- {type: unlock_unit, unit: marksman}
-- {type: active_energy_tower_skill, skill: 1}
-- {type: active_energy_tower_skill, skill: 5}
-- {type: active_energy_tower_skill, skill: 3}
-- {type: buy_unit, unit: crawler, position: {x: -5, y: -300}}
-- {type: active_energy_tower_skill, skill: 6}
+- {type: release_commander_skill, index: 0, name: field_recovery, target: !unit 6}
+- {type: upgrade_technology, unit: sandworm, tech: armor_enhancement}
+- {type: buy_unit, name: sandworm, position: {x: -130, y: -140}}
+- {type: buy_unit, name: sandworm, position: {x: 130, y: -140}}
+- {type: unlock_unit, name: marksman}
+- {type: active_energy_tower_skill, name: rapid_resupply}
+- {type: active_energy_tower_skill, name: enhanced_range}
+- {type: active_energy_tower_skill, name: mass_recruitment}
+- {type: buy_unit, name: crawler, position: {x: -5, y: -300}}
+- {type: active_energy_tower_skill, name: high_mobility}
