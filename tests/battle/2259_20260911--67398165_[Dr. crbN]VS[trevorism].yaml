@@ -323,7 +323,7 @@ red:
 - {type: move_unit, index: 11, position: {x: -140, y: -205}, rotated: true}
 - {type: move_unit, index: 10, position: {x: 350, y: 290}}
 - {type: move_unit, index: 9, position: {x: 200, y: -250}}
-- {type: use_equipment, equipment: 13030001, unit: 10}
+- {type: use_equipment, equipment: 13030001, index: 10}
 ---
 kind: state
 round: 4
@@ -627,7 +627,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 3, id: 1306001}
 - {type: upgrade_unit, index: 10}
-- {type: use_equipment, equipment: 1306001, unit: 13}
+- {type: use_equipment, equipment: 1306001, index: 13}
 - {type: active_energy_tower_skill, skill: 4}
 - {type: buy_unit, unit: sandworm}
 - {type: move_unit, index: 18, position: {x: 320, y: 170}}

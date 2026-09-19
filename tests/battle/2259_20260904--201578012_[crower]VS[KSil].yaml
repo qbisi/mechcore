@@ -532,7 +532,7 @@ blue:
 - {type: move_unit, index: 15, position: {x: 30, y: -220}}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030006}
-- {type: use_equipment, equipment: 13030006, unit: 11}
+- {type: use_equipment, equipment: 13030006, index: 11}
 - {type: upgrade_technology, unit: phantom_ray, tech: 3025}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 3}
 - {type: buy_unit, unit: crawler}
@@ -766,7 +766,7 @@ blue:
 - {type: upgrade_unit, index: 15}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: active_energy_tower_skill, skill: 5}
-- {type: use_equipment, equipment: 1308001, unit: 15}
+- {type: use_equipment, equipment: 1308001, index: 15}
 - {type: active_blueprint, id: 501}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 200002}
@@ -1062,7 +1062,7 @@ red:
 - {type: active_energy_tower_skill, skill: 5}
 - {type: upgrade_unit, index: 9}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 11}
-- {type: use_equipment, equipment: 13030006, unit: 22}
+- {type: use_equipment, equipment: 13030006, index: 22}
 - {type: release_commander_skill, index: 4, id: 1200002, target: !area [{x: -339, y: 288}]}
 - {type: active_blueprint, id: 501}
 - {type: active_energy_tower_skill, skill: 3}

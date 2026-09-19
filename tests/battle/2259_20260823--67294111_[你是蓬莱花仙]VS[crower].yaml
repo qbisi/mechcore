@@ -246,7 +246,7 @@ blue:
 - {type: move_unit, index: 7, position: {x: 250, y: -60}}
 - {type: buy_unit, unit: fang}
 - {type: move_unit, index: 8, position: {x: 280, y: -45}, rotated: true}
-- {type: use_equipment, equipment: 1305003, unit: 3}
+- {type: use_equipment, equipment: 1305003, index: 3}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 300001}
 - {type: buy_unit, unit: crawler}
@@ -330,7 +330,7 @@ blue:
 - {type: move_unit, index: 9, position: {x: -130, y: -140}}
 - {type: move_unit, index: 10, position: {x: -90, y: -115}, rotated: true}
 - {type: active_blueprint, id: 4}
-- {type: use_equipment, equipment: 1305003, unit: 9}
+- {type: use_equipment, equipment: 1305003, index: 9}
 red:
 - {type: choose_reinforce_item, offer: 2, id: 20003}
 - {type: move_unit, index: 9, position: {x: -115, y: -110}}
@@ -513,10 +513,10 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 13030004}
-- {type: use_equipment, equipment: 13030004, unit: 5}
+- {type: use_equipment, equipment: 13030004, index: 5}
 - {type: upgrade_unit, index: 5}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 5}
-- {type: use_equipment, equipment: 13030004, unit: 7}
+- {type: use_equipment, equipment: 13030004, index: 7}
 - {type: upgrade_unit, index: 7}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 15, position: {x: -145, y: -20}}
@@ -533,7 +533,7 @@ blue:
 - {type: unlock_unit, unit: sandworm}
 red:
 - {type: choose_reinforce_item, offer: 2, id: 13040001}
-- {type: use_equipment, equipment: 13040001, unit: 8}
+- {type: use_equipment, equipment: 13040001, index: 8}
 - {type: upgrade_unit, index: 8}
 - {type: move_unit, index: 8, position: {x: -330, y: 285}}
 - {type: move_unit, index: 8, position: {x: -350, y: 285}}
@@ -644,7 +644,7 @@ blue:
 - {type: release_commander_skill, index: 0, id: 900001, target: !construction 1}
 - {type: upgrade_unit, index: 9}
 - {type: upgrade_unit, index: 12}
-- {type: use_equipment, equipment: 1306002, unit: 12}
+- {type: use_equipment, equipment: 1306002, index: 12}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 200002}
 - {type: release_commander_skill, index: 2, id: 200002, target: !area [{x: -166, y: 103}]}

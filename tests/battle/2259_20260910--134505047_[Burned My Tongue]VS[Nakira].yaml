@@ -395,7 +395,7 @@ blue:
 - {type: choose_reinforce_item, offer: 0, id: 13020001}
 - {type: move_unit, index: 13, position: {x: 285, y: -295}}
 - {type: upgrade_unit, index: 0}
-- {type: use_equipment, equipment: 13020001, unit: 13}
+- {type: use_equipment, equipment: 13020001, index: 13}
 - {type: buy_unit, unit: fang}
 - {type: buy_unit, unit: fang}
 - {type: move_unit, index: 14, position: {x: -140, y: -205}, rotated: true}
@@ -408,7 +408,7 @@ red:
 - {type: move_unit, index: 12, position: {x: 180, y: -140}}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 13, position: {x: 120, y: -225}, rotated: true}
-- {type: use_equipment, equipment: 13020001, unit: 12}
+- {type: use_equipment, equipment: 13020001, index: 12}
 ---
 kind: state
 round: 5
@@ -689,7 +689,7 @@ blue:
 - {type: choose_reinforce_item, offer: 0, id: 13030003}
 - {type: upgrade_unit, index: 0}
 - {type: upgrade_unit, index: 14}
-- {type: use_equipment, equipment: 13030003, unit: 3}
+- {type: use_equipment, equipment: 13030003, index: 3}
 - {type: upgrade_unit, index: 3}
 - {type: buy_unit, unit: fang}
 - {type: buy_unit, unit: fang}

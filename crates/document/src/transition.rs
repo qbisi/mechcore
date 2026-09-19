@@ -270,14 +270,14 @@ pub fn step_placing(
             next.supply -= price;
         }
         // Fitting is free; the card was paid for when it was taken.
-        Action::UseEquipment { equipment, unit } => {
+        Action::UseEquipment { equipment, index } => {
             let position = next
                 .equipment
                 .iter()
                 .position(|item| item.id == *equipment)
                 .ok_or(Unsettled::Missing("equipment"))?;
             next.equipment.remove(position);
-            formation_mut(&mut next, *unit)?.formation.equipment = Some(*equipment);
+            formation_mut(&mut next, *index)?.formation.equipment = Some(*equipment);
             // A Deployment Module frees the formation that wears it to move.
             free_to_move(&mut next);
         }
@@ -930,7 +930,7 @@ mod tests {
             },
             Action::UseEquipment {
                 equipment: 13_030_001,
-                unit: 4,
+                index: 4,
             },
         ];
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
@@ -1196,7 +1196,7 @@ mod tests {
         let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
         let fitted = [Action::UseEquipment {
             equipment: 13_030_009,
-            unit: 0,
+            index: 0,
         }];
         assert_eq!(fold(&economy, &opened, &fitted).unwrap().equipment.len(), 2);
     }
@@ -1260,7 +1260,7 @@ mod tests {
             },
             Action::UseEquipment {
                 equipment: 13_030_004,
-                unit: 7,
+                index: 7,
             },
         ];
         let next = fold(&economy, &state, &refitted).unwrap();
@@ -1279,7 +1279,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let fitted = Action::UseEquipment {
             equipment: 13_030_004,
-            unit: 0,
+            index: 0,
         };
         let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         assert_eq!(
@@ -1654,7 +1654,7 @@ mod tests {
             &worn,
             &Action::UseEquipment {
                 equipment: crate::mobility::DEPLOYMENT_MODULE,
-                unit: 0,
+                index: 0,
             },
         )
         .unwrap();

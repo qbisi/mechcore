@@ -428,7 +428,7 @@ kind: action
 round: 4
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 13030002}
-- {type: use_equipment, equipment: 13030002, unit: 10}
+- {type: use_equipment, equipment: 13030002, index: 10}
 - {type: buy_unit, unit: overlord}
 - {type: move_unit, index: 12, position: {x: -105, y: -185}}
 - {type: move_unit, index: 12, position: {x: -95, y: -185}}
@@ -536,7 +536,7 @@ blue:
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 12}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 14, position: {x: -190, y: -200}}
-- {type: use_equipment, equipment: 13030005, unit: 14}
+- {type: use_equipment, equipment: 13030005, index: 14}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 15, position: {x: 110, y: -160}}
 - {type: upgrade_technology, unit: vulcan, tech: 10203}
@@ -561,7 +561,7 @@ red:
 - {type: move_unit, index: 16, position: {x: 205, y: -230}}
 - {type: upgrade_unit, index: 4}
 - {type: upgrade_unit, index: 2}
-- {type: use_equipment, equipment: 13030002, unit: 4}
+- {type: use_equipment, equipment: 13030002, index: 4}
 - {type: release_commander_skill, index: 0, id: 300001, target: !area [{x: 256, y: 249}]}
 - {type: upgrade_unit, index: 7}
 - {type: move_unit, index: 17, position: {x: 75, y: -210}}
@@ -651,7 +651,7 @@ round: 6
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 1200001}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 10}
-- {type: use_equipment, equipment: 13030002, unit: 16}
+- {type: use_equipment, equipment: 13030002, index: 16}
 - {type: upgrade_unit, index: 16}
 - {type: upgrade_unit, index: 14}
 - {type: unlock_unit, unit: scorpion}
@@ -677,9 +677,9 @@ red:
 - {type: buy_unit, unit: sandworm}
 - {type: move_unit, index: 18, position: {x: -190, y: -170}}
 - {type: move_unit, index: 18, position: {x: -200, y: -210}}
-- {type: use_equipment, equipment: 13030005, unit: 18}
+- {type: use_equipment, equipment: 13030005, index: 18}
 - {type: move_unit, index: 19, position: {x: 210, y: -290}}
-- {type: use_equipment, equipment: 13030002, unit: 19}
+- {type: use_equipment, equipment: 13030002, index: 19}
 - {type: move_unit, index: 19, position: {x: 230, y: -180}}
 - {type: move_unit, index: 19, position: {x: 170, y: -170}}
 - {type: upgrade_technology, unit: sandworm, tech: 923}

@@ -762,7 +762,7 @@ blue:
 - {type: release_contraption, contraption: 10001, position: {x: 226, y: -148}}
 - {type: release_contraption, contraption: 10001, position: {x: 44, y: -125}}
 - {type: upgrade_unit, index: 3}
-- {type: use_equipment, equipment: 13030001, unit: 22}
+- {type: use_equipment, equipment: 13030001, index: 22}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: active_energy_tower_skill, skill: 5}
 - {type: release_contraption, contraption: 20001, position: {x: -297, y: -277}}

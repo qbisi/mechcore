@@ -675,7 +675,7 @@ blue:
 - {type: move_unit, index: 24, position: {x: 185, y: -165}}
 red:
 - {type: choose_reinforce_item, offer: 0, id: 1309001}
-- {type: use_equipment, equipment: 1309001, unit: 16}
+- {type: use_equipment, equipment: 1309001, index: 16}
 - {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -133, y: -24}, {x: -136, y: 160}, {x: 63, y: 153}]}
 - {type: release_commander_skill, index: 0, id: 1200002, target: !area [{x: -216, y: 29}]}
 - {type: upgrade_technology, unit: mustang, tech: 10207}
@@ -952,7 +952,7 @@ red:
 - {type: upgrade_unit, index: 22}
 - {type: upgrade_unit, index: 23}
 - {type: upgrade_unit, index: 24}
-- {type: use_equipment, equipment: 13030003, unit: 23}
+- {type: use_equipment, equipment: 13030003, index: 23}
 - {type: upgrade_unit, index: 16}
 - {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: -135, y: -9}, {x: -139, y: 163}, {x: 60, y: 167}]}
 - {type: upgrade_unit, index: 5}

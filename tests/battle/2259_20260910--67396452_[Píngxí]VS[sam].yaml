@@ -618,7 +618,7 @@ kind: action
 round: 6
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 13030001}
-- {type: use_equipment, equipment: 13030001, unit: 4}
+- {type: use_equipment, equipment: 13030001, index: 4}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_technology, unit: phoenix, tech: 1816}
 - {type: active_energy_tower_skill, skill: 5}

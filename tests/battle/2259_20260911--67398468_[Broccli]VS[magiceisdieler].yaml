@@ -163,8 +163,8 @@ blue:
 - {type: move_unit, index: 6, position: {x: -190, y: -120}}
 - {type: move_unit, index: 5, position: {x: -60, y: -120}}
 - {type: move_unit, index: 1, position: {x: -100, y: -235}, rotated: true}
-- {type: use_equipment, equipment: 13030009, unit: 6}
-- {type: use_equipment, equipment: 13030009, unit: 5}
+- {type: use_equipment, equipment: 13030009, index: 6}
+- {type: use_equipment, equipment: 13030009, index: 5}
 red:
 - {type: move_unit, index: 4, position: {x: 105, y: -165}}
 - {type: move_unit, index: 3, position: {x: -105, y: -165}}
@@ -244,7 +244,7 @@ blue:
 - {type: buy_unit, unit: fang}
 - {type: move_unit, index: 9, position: {x: -60, y: -55}, rotated: true}
 - {type: move_unit, index: 10, position: {x: -215, y: -40}}
-- {type: use_equipment, equipment: 13030009, unit: 7}
+- {type: use_equipment, equipment: 13030009, index: 7}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 102117}
 - {type: move_unit, index: 7, position: {x: 105, y: -300}}
@@ -319,7 +319,7 @@ blue:
 - {type: choose_reinforce_item, offer: 2, id: 13030001}
 - {type: buy_unit, unit: phoenix}
 - {type: move_unit, index: 11, position: {x: -220, y: -230}}
-- {type: use_equipment, equipment: 13030001, unit: 11}
+- {type: use_equipment, equipment: 13030001, index: 11}
 - {type: buy_unit, unit: crawler}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: sledgehammer}
@@ -329,7 +329,7 @@ blue:
 - {type: upgrade_unit, index: 6}
 red:
 - {type: choose_reinforce_item, offer: 2, id: 13030001}
-- {type: use_equipment, equipment: 13030001, unit: 7}
+- {type: use_equipment, equipment: 13030001, index: 7}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: fang}
 - {type: buy_unit, unit: fang}
@@ -744,7 +744,7 @@ red:
 - {type: choose_reinforce_item, offer: 3, id: 1306002}
 - {type: upgrade_technology, unit: sandworm, tech: 923}
 - {type: upgrade_unit, index: 15}
-- {type: use_equipment, equipment: 1306002, unit: 15}
+- {type: use_equipment, equipment: 1306002, index: 15}
 - {type: buy_unit, unit: fang}
 - {type: move_unit, index: 20, position: {x: 270, y: -135}, rotated: true}
 - {type: buy_unit, unit: crawler}

@@ -359,7 +359,7 @@ blue:
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 3}
 - {type: buy_unit, unit: melting_point}
 - {type: upgrade_technology, unit: melting_point, tech: 1107}
-- {type: use_equipment, equipment: 1309001, unit: 11}
+- {type: use_equipment, equipment: 1309001, index: 11}
 - {type: move_unit, index: 11, position: {x: -240, y: -240}}
 - {type: move_unit, index: 11, position: {x: -240, y: -230}}
 - {type: move_unit, index: 11, position: {x: -250, y: -220}}
@@ -378,7 +378,7 @@ red:
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 12, position: {x: 275, y: -20}}
-- {type: use_equipment, equipment: 13040001, unit: 0}
+- {type: use_equipment, equipment: 13040001, index: 0}
 - {type: move_unit, index: 0, position: {x: -350, y: 290}}
 - {type: unlock_unit, unit: sledgehammer}
 ---
@@ -455,7 +455,7 @@ blue:
 - {type: buy_unit, unit: melting_point}
 - {type: move_unit, index: 12, position: {x: -110, y: -160}}
 - {type: upgrade_unit, index: 11}
-- {type: use_equipment, equipment: 1306002, unit: 12}
+- {type: use_equipment, equipment: 1306002, index: 12}
 - {type: move_unit, index: 12, position: {x: 240, y: -180}}
 - {type: move_unit, index: 12, position: {x: -130, y: -120}}
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 7}
@@ -468,7 +468,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: -1}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 0}
-- {type: use_equipment, equipment: 13040001, unit: 8}
+- {type: use_equipment, equipment: 13040001, index: 8}
 - {type: move_unit, index: 8, position: {x: -245, y: -20}}
 - {type: move_unit, index: 8, position: {x: -245, y: -300}}
 - {type: active_blueprint, id: 3}
@@ -560,7 +560,7 @@ blue:
 - {type: buy_unit, unit: melting_point}
 - {type: move_unit, index: 14, position: {x: 170, y: -160}}
 - {type: move_unit, index: 14, position: {x: 30, y: -160}}
-- {type: use_equipment, equipment: 1306003, unit: 14}
+- {type: use_equipment, equipment: 1306003, index: 14}
 - {type: move_unit, index: 14, position: {x: 20, y: -160}}
 - {type: active_blueprint, id: 3}
 - {type: release_commander_skill, index: 2, id: 900001, target: !unit 4}
@@ -578,7 +578,7 @@ red:
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 17, position: {x: 135, y: -190}}
 - {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: 261, y: -54}, {x: 260, y: -156}, {x: 260, y: -156}]}
-- {type: use_equipment, equipment: 1306003, unit: 16}
+- {type: use_equipment, equipment: 1306003, index: 16}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 18, position: {x: -290, y: -285}, rotated: true}
@@ -671,7 +671,7 @@ blue:
 - {type: move_unit, index: 15, position: {x: 40, y: -140}}
 - {type: buy_unit, unit: melting_point}
 - {type: move_unit, index: 16, position: {x: 110, y: -160}}
-- {type: use_equipment, equipment: 13030001, unit: 16}
+- {type: use_equipment, equipment: 13030001, index: 16}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: arclight}
 - {type: move_unit, index: 17, position: {x: -250, y: -150}}
@@ -681,14 +681,14 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 1, id: 13030001}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 8}
-- {type: use_equipment, equipment: 13040001, unit: 7}
+- {type: use_equipment, equipment: 13040001, index: 7}
 - {type: move_unit, index: 7, position: {x: -135, y: -25}}
 - {type: unlock_unit, unit: melting_point}
 - {type: buy_unit, unit: melting_point}
 - {type: buy_unit, unit: melting_point}
 - {type: upgrade_technology, unit: melting_point, tech: 10204}
 - {type: active_energy_tower_skill, skill: 5}
-- {type: use_equipment, equipment: 13030001, unit: 20}
+- {type: use_equipment, equipment: 13030001, index: 20}
 - {type: move_unit, index: 20, position: {x: 80, y: -140}}
 - {type: move_unit, index: 19, position: {x: -190, y: -140}}
 - {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: 272, y: -53}, {x: 273, y: -235}, {x: 273, y: -235}]}
@@ -937,7 +937,7 @@ red:
 - {type: move_unit, index: 26, position: {x: -260, y: -180}}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 27, position: {x: 0, y: -140}}
-- {type: use_equipment, equipment: 1307001, unit: 26}
+- {type: use_equipment, equipment: 1307001, index: 26}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 28, position: {x: 240, y: -200}}

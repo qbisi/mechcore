@@ -432,7 +432,7 @@ blue:
 - {type: unlock_unit, unit: vulcan}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 12, position: {x: -130, y: -140}}
-- {type: use_equipment, equipment: 1309001, unit: 12}
+- {type: use_equipment, equipment: 1309001, index: 12}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 13, position: {x: 130, y: -140}}
 red:

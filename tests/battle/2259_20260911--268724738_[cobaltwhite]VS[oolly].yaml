@@ -644,7 +644,7 @@ blue:
 - {type: release_commander_skill, index: 2, id: 1100001, target: !unit 13}
 - {type: upgrade_unit, index: 13}
 - {type: active_blueprint, id: 4}
-- {type: use_equipment, equipment: 13030003, unit: 7}
+- {type: use_equipment, equipment: 13030003, index: 7}
 - {type: release_commander_skill, index: 0, id: 300001, target: !area [{x: 268, y: 214}]}
 - {type: unlock_unit, unit: tarantula}
 red:

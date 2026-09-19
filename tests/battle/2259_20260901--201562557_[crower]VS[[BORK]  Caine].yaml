@@ -792,7 +792,7 @@ kind: action
 round: 7
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 13030004}
-- {type: use_equipment, equipment: 13030004, unit: 3}
+- {type: use_equipment, equipment: 13030004, index: 3}
 - {type: upgrade_unit, index: 3}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 3}
 - {type: upgrade_unit, index: 3}
@@ -813,7 +813,7 @@ blue:
 - {type: active_blueprint, id: 5}
 red:
 - {type: choose_reinforce_item, offer: 0, id: 13030001}
-- {type: use_equipment, equipment: 13030001, unit: 21}
+- {type: use_equipment, equipment: 13030001, index: 21}
 - {type: active_energy_tower_skill, skill: 4}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: sabertooth}
@@ -947,7 +947,7 @@ blue:
 - {type: upgrade_unit, index: 18}
 - {type: upgrade_unit, index: 22}
 - {type: release_commander_skill, index: 4, id: 900001, target: !unit 3}
-- {type: use_equipment, equipment: 13030004, unit: 13}
+- {type: use_equipment, equipment: 13030004, index: 13}
 - {type: upgrade_unit, index: 13}
 - {type: upgrade_unit, index: 19}
 - {type: upgrade_unit, index: 20}
@@ -956,7 +956,7 @@ blue:
 - {type: active_energy_tower_skill, skill: 5}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 26, position: {x: -325, y: 20}, rotated: true}
-- {type: use_equipment, equipment: 13030003, unit: 14}
+- {type: use_equipment, equipment: 13030003, index: 14}
 - {type: buy_unit, unit: fire_badger}
 - {type: move_unit, index: 27, position: {x: 135, y: -80}}
 - {type: release_contraption, contraption: 20001, position: {x: 299, y: -42}}
@@ -970,7 +970,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 1, id: 1309001}
 - {type: upgrade_unit, index: 19}
-- {type: use_equipment, equipment: 1309001, unit: 4}
+- {type: use_equipment, equipment: 1309001, index: 4}
 - {type: upgrade_unit, index: 1}
 - {type: upgrade_unit, index: 16}
 - {type: upgrade_unit, index: 17}
@@ -990,7 +990,7 @@ red:
 - {type: move_unit, index: 28, position: {x: -25, y: -55}}
 - {type: move_unit, index: 28, position: {x: -45, y: -55}}
 - {type: release_contraption, contraption: 20001, position: {x: -41, y: -15}}
-- {type: use_equipment, equipment: 13030001, unit: 28}
+- {type: use_equipment, equipment: 13030001, index: 28}
 - {type: buy_unit, unit: fang}
 ---
 kind: state

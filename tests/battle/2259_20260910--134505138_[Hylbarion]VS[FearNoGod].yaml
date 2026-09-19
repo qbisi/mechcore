@@ -410,7 +410,7 @@ blue:
 - {type: active_blueprint, id: 4}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030004}
-- {type: use_equipment, equipment: 13030004, unit: 8}
+- {type: use_equipment, equipment: 13030004, index: 8}
 - {type: upgrade_unit, index: 8}
 - {type: upgrade_unit, index: 5}
 - {type: upgrade_technology, unit: mustang, tech: 10207}
@@ -1009,7 +1009,7 @@ blue:
 - {type: release_contraption, contraption: 20001, position: {x: 240, y: -162}}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13020001}
-- {type: use_equipment, equipment: 13020001, unit: 13}
+- {type: use_equipment, equipment: 13020001, index: 13}
 - {type: buy_unit, unit: mustang}
 - {type: buy_unit, unit: mustang}
 - {type: move_unit, index: 26, position: {x: -245, y: -230}}

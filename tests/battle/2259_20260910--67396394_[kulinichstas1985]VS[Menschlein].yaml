@@ -300,7 +300,7 @@ kind: action
 round: 3
 blue:
 - {type: choose_reinforce_item, offer: 2, id: 13030001}
-- {type: use_equipment, equipment: 13030001, unit: 3}
+- {type: use_equipment, equipment: 13030001, index: 3}
 - {type: buy_unit, unit: mustang}
 - {type: move_unit, index: 10, position: {x: -85, y: -170}}
 - {type: unlock_unit, unit: crawler}
@@ -309,7 +309,7 @@ blue:
 - {type: upgrade_technology, unit: mustang, tech: 10207}
 red:
 - {type: choose_reinforce_item, offer: 2, id: 13030001}
-- {type: use_equipment, equipment: 13030001, unit: 3}
+- {type: use_equipment, equipment: 13030001, index: 3}
 - {type: release_commander_skill, index: 0, id: 300001, target: !area [{x: -191, y: 269}]}
 - {type: upgrade_unit, index: 2}
 - {type: upgrade_unit, index: 0}
@@ -391,7 +391,7 @@ blue:
 - {type: active_blueprint, id: 2}
 - {type: release_commander_skill, index: 1, id: 900001, target: !unit 3}
 - {type: move_unit, index: 12, position: {x: -245, y: -175}}
-- {type: use_equipment, equipment: 13030001, unit: 12}
+- {type: use_equipment, equipment: 13030001, index: 12}
 - {type: upgrade_technology, unit: scorpion, tech: 10219}
 - {type: move_unit, index: 12, position: {x: -255, y: -175}}
 - {type: move_unit, index: 12, position: {x: -175, y: -175}}
@@ -755,8 +755,8 @@ red:
 - {type: buy_unit, unit: sandworm}
 - {type: buy_unit, unit: sandworm}
 - {type: upgrade_technology, unit: sandworm, tech: 3823}
-- {type: use_equipment, equipment: 1309001, unit: 21}
-- {type: use_equipment, equipment: 13020001, unit: 20}
+- {type: use_equipment, equipment: 1309001, index: 21}
+- {type: use_equipment, equipment: 13020001, index: 20}
 - {type: move_unit, index: 21, position: {x: 280, y: -130}}
 - {type: move_unit, index: 20, position: {x: 10, y: -150}}
 - {type: release_commander_skill, index: 3, id: 1500001, target: !area [{x: 5, y: -136}, {x: -31, y: 60}, {x: -97, y: 159}]}

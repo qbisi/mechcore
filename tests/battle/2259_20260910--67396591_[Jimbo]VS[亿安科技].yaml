@@ -291,7 +291,7 @@ kind: action
 round: 3
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 1305003}
-- {type: use_equipment, equipment: 1305003, unit: 5}
+- {type: use_equipment, equipment: 1305003, index: 5}
 - {type: buy_unit, unit: sabertooth}
 - {type: move_unit, index: 7, position: {x: 65, y: -175}}
 - {type: unlock_unit, unit: tarantula}
@@ -375,7 +375,7 @@ round: 4
 blue:
 - {type: choose_reinforce_item, offer: 0, id: 13020001}
 - {type: upgrade_unit, index: 5}
-- {type: use_equipment, equipment: 13020001, unit: 7}
+- {type: use_equipment, equipment: 13020001, index: 7}
 - {type: unlock_unit, unit: hound}
 - {type: buy_unit, unit: hound}
 - {type: buy_unit, unit: hound}
@@ -674,7 +674,7 @@ blue:
 - {type: choose_reinforce_item, offer: 2, id: 13030003}
 - {type: upgrade_unit, index: 14}
 - {type: upgrade_technology, unit: sabertooth, tech: 10321}
-- {type: use_equipment, equipment: 13030003, unit: 14}
+- {type: use_equipment, equipment: 13030003, index: 14}
 - {type: buy_unit, unit: sabertooth}
 - {type: move_unit, index: 18, position: {x: -285, y: -175}}
 - {type: upgrade_unit, index: 12}
@@ -818,7 +818,7 @@ red:
 - {type: move_unit, index: 20, position: {x: -330, y: 265}}
 - {type: buy_unit, unit: overlord}
 - {type: move_unit, index: 21, position: {x: 165, y: -75}}
-- {type: use_equipment, equipment: 13020001, unit: 21}
+- {type: use_equipment, equipment: 13020001, index: 21}
 - {type: move_unit, index: 21, position: {x: 95, y: -75}}
 - {type: upgrade_unit, index: 16}
 - {type: unlock_unit, unit: marksman}
@@ -950,7 +950,7 @@ red:
 - {type: upgrade_unit, index: 1}
 - {type: active_energy_tower_skill, skill: 3}
 - {type: buy_unit, unit: mustang}
-- {type: use_equipment, equipment: 13030003, unit: 25}
+- {type: use_equipment, equipment: 13030003, index: 25}
 - {type: move_unit, index: 25, position: {x: -350, y: 265}}
 - {type: upgrade_technology, unit: mustang, tech: 10607}
 - {type: upgrade_unit, index: 9}
@@ -1081,6 +1081,6 @@ red:
 - {type: buy_unit, unit: overlord}
 - {type: move_unit, index: 27, position: {x: 165, y: -75}}
 - {type: move_unit, index: 26, position: {x: 235, y: -75}}
-- {type: use_equipment, equipment: 1306002, unit: 26}
+- {type: use_equipment, equipment: 1306002, index: 26}
 - {type: upgrade_technology, unit: overlord, tech: 10311}
 - {type: unlock_unit, unit: fire_badger}

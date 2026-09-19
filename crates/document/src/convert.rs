@@ -840,7 +840,7 @@ fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorde
             },
             "PAD_UseEquipment" => Action::UseEquipment {
                 equipment: field("EquipmentID", action.equipment_id)?,
-                unit: field("UnitIndex", action.unit_index)?,
+                index: field("UnitIndex", action.unit_index)?,
             },
             "PAD_ReleaseCommanderSkill" => {
                 converted.push(Recorded::Released {

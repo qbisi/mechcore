@@ -522,7 +522,7 @@ blue:
 - {type: buy_unit, unit: marksman}
 - {type: move_unit, index: 18, position: {x: 70, y: -180}}
 - {type: active_blueprint, id: 4}
-- {type: use_equipment, equipment: 1309001, unit: 3}
+- {type: use_equipment, equipment: 1309001, index: 3}
 - {type: release_commander_skill, index: 0, id: 900001, target: !construction 0}
 - {type: active_energy_tower_skill, skill: 6}
 red:

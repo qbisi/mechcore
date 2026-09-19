@@ -760,7 +760,7 @@ blue:
 - {type: choose_reinforce_item, offer: 0, id: 1307001}
 - {type: buy_unit, unit: melting_point}
 - {type: move_unit, index: 23, position: {x: 180, y: -110}}
-- {type: use_equipment, equipment: 1307001, unit: 23}
+- {type: use_equipment, equipment: 1307001, index: 23}
 - {type: move_unit, index: 23, position: {x: 110, y: -90}}
 - {type: upgrade_unit, index: 13}
 - {type: upgrade_unit, index: 15}
@@ -788,7 +788,7 @@ red:
 - {type: upgrade_unit, index: 18}
 - {type: upgrade_unit, index: 13}
 - {type: upgrade_unit, index: 21}
-- {type: use_equipment, equipment: 1307001, unit: 21}
+- {type: use_equipment, equipment: 1307001, index: 21}
 - {type: release_commander_skill, index: 1, id: 1500001, target: !area [{x: 77, y: -55}, {x: 171, y: -56}, {x: -28, y: -55}]}
 - {type: upgrade_unit, index: 10}
 - {type: active_energy_tower_skill, skill: 5}

@@ -307,7 +307,7 @@ pub enum Action {
     },
     UseEquipment {
         equipment: i32,
-        unit: i32,
+        index: i32,
     },
     MoveUnit {
         index: i32,
@@ -403,7 +403,7 @@ enum ActionReader {
     },
     UseEquipment {
         equipment: i32,
-        unit: i32,
+        index: i32,
     },
     MoveUnit {
         index: i32,
@@ -927,7 +927,7 @@ mod tests {
             Action::StrengthenTower { tower: 1 },
             Action::UseEquipment {
                 equipment: 3,
-                unit: 0,
+                index: 0,
             },
             Action::MoveUnit {
                 index: 0,

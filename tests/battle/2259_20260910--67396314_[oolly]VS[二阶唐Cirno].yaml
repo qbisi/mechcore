@@ -320,7 +320,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030003}
 - {type: buy_unit, unit: fire_badger}
-- {type: use_equipment, equipment: 13030003, unit: 4}
+- {type: use_equipment, equipment: 13030003, index: 4}
 - {type: move_unit, index: 12, position: {x: 275, y: -60}}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 13, position: {x: 310, y: 35}}
@@ -515,7 +515,7 @@ blue:
 - {type: buy_unit, unit: crawler}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 13040001}
-- {type: use_equipment, equipment: 13040001, unit: 7}
+- {type: use_equipment, equipment: 13040001, index: 7}
 - {type: move_unit, index: 7, position: {x: 210, y: -110}}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 17, position: {x: 290, y: -95}, rotated: true}
@@ -620,7 +620,7 @@ blue:
 - {type: choose_reinforce_item, offer: 1, id: 1061111}
 - {type: move_unit, index: 19, position: {x: 275, y: -105}}
 - {type: release_commander_skill, index: 2, id: 1500001, target: !area [{x: -186, y: -72}, {x: -98, y: -196}, {x: 101, y: -201}]}
-- {type: use_equipment, equipment: 13040001, unit: 14}
+- {type: use_equipment, equipment: 13040001, index: 14}
 - {type: move_unit, index: 14, position: {x: 350, y: 285}}
 - {type: move_unit, index: 14, position: {x: 330, y: 285}}
 - {type: upgrade_unit, index: 7}
@@ -892,7 +892,7 @@ blue:
 - {type: buy_unit, unit: overlord}
 - {type: move_unit, index: 26, position: {x: 175, y: -125}}
 - {type: release_commander_skill, index: 5, id: 900001, target: !unit 14}
-- {type: use_equipment, equipment: 13040001, unit: 23}
+- {type: use_equipment, equipment: 13040001, index: 23}
 - {type: move_unit, index: 23, position: {x: 350, y: 285}}
 - {type: upgrade_unit, index: 23}
 - {type: buy_unit, unit: overlord}

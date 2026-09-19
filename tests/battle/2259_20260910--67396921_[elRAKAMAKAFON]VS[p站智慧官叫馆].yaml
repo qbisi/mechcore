@@ -501,7 +501,7 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 1309001}
-- {type: use_equipment, equipment: 1309001, unit: 7}
+- {type: use_equipment, equipment: 1309001, index: 7}
 - {type: upgrade_unit, index: 5}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: buy_unit, unit: crawler}
@@ -516,7 +516,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 2, id: 13030003}
 - {type: upgrade_unit, index: 9}
-- {type: use_equipment, equipment: 13030003, unit: 9}
+- {type: use_equipment, equipment: 13030003, index: 9}
 - {type: upgrade_technology, unit: raiden, tech: 1827}
 - {type: release_commander_skill, index: 0, id: 900001, target: !unit 11}
 - {type: release_commander_skill, index: 1, id: 800001, target: !area [{x: 241, y: -15}]}

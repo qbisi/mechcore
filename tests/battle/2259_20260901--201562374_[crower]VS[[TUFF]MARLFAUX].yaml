@@ -326,7 +326,7 @@ blue:
 - {type: upgrade_unit, index: 2}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 13030002}
-- {type: use_equipment, equipment: 13030002, unit: 7}
+- {type: use_equipment, equipment: 13030002, index: 7}
 - {type: buy_unit, unit: fang}
 - {type: move_unit, index: 9, position: {x: -160, y: -175}, rotated: true}
 - {type: active_energy_tower_skill, skill: 3}

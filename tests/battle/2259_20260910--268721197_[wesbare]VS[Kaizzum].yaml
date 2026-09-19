@@ -385,7 +385,7 @@ red:
 - {type: upgrade_unit, index: 7}
 - {type: upgrade_technology, unit: scorpion, tech: 10219}
 - {type: upgrade_technology, unit: fire_badger, tech: 10220}
-- {type: use_equipment, equipment: 13030003, unit: 10}
+- {type: use_equipment, equipment: 13030003, index: 10}
 ---
 kind: state
 round: 5
@@ -675,7 +675,7 @@ blue:
 - {type: release_contraption, contraption: 20001, position: {x: 0, y: -12}}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030007}
-- {type: use_equipment, equipment: 13030007, unit: 17}
+- {type: use_equipment, equipment: 13030007, index: 17}
 - {type: upgrade_unit, index: 19}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 10}

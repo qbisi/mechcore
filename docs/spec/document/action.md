@@ -247,10 +247,11 @@ oppositely, so nothing may read a tower's identity out of its position.
 ### `use_equipment`
 
 ```yaml
-- {type: use_equipment, equipment: 1305003, unit: 3}
+- {type: use_equipment, equipment: 1305003, index: 3}
 ```
 
-Fits `equipment` to the formation at index `unit`. The item leaves `equipment`,
+Fits `equipment` to the formation at `index`, as `upgrade_unit` and
+`move_unit` name one. The item leaves `equipment`,
 the side's list of what it owns and no formation wears, and becomes that
 formation's.
 

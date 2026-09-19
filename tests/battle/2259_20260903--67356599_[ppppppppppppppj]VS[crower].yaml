@@ -909,7 +909,7 @@ round: 8
 blue:
 - {type: choose_reinforce_item, offer: 2, id: 13030002}
 - {type: release_commander_skill, index: 1, id: 900001, target: !unit 20}
-- {type: use_equipment, equipment: 13030002, unit: 21}
+- {type: use_equipment, equipment: 13030002, index: 21}
 - {type: release_contraption, contraption: 20001, position: {x: 298, y: -281}}
 - {type: active_energy_tower_skill, skill: 1}
 - {type: active_energy_tower_skill, skill: 5}
@@ -929,7 +929,7 @@ blue:
 - {type: release_contraption, contraption: 20001, position: {x: -201, y: -15}}
 red:
 - {type: choose_reinforce_item, offer: 2, id: 13030002}
-- {type: use_equipment, equipment: 13030002, unit: 23}
+- {type: use_equipment, equipment: 13030002, index: 23}
 - {type: upgrade_unit, index: 9}
 - {type: buy_unit, unit: crawler}
 - {type: move_unit, index: 26, position: {x: -75, y: -20}}

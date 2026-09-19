@@ -408,7 +408,7 @@ kind: action
 round: 4
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 13030003}
-- {type: use_equipment, equipment: 13030003, unit: 7}
+- {type: use_equipment, equipment: 13030003, index: 7}
 - {type: upgrade_technology, unit: vulcan, tech: 10603}
 - {type: release_commander_skill, index: 1, id: 900001, target: !construction 1}
 - {type: buy_unit, unit: vulcan}
@@ -421,7 +421,7 @@ blue:
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030002}
 - {type: upgrade_unit, index: 1}
-- {type: use_equipment, equipment: 13030002, unit: 1}
+- {type: use_equipment, equipment: 13030002, index: 1}
 - {type: upgrade_unit, index: 11}
 - {type: active_blueprint, id: 5}
 - {type: buy_unit, unit: sledgehammer}
@@ -748,7 +748,7 @@ kind: action
 round: 7
 blue:
 - {type: choose_reinforce_item, offer: 0, id: 1306003}
-- {type: use_equipment, equipment: 1306003, unit: 10}
+- {type: use_equipment, equipment: 1306003, index: 10}
 - {type: unlock_unit, unit: hacker}
 - {type: buy_unit, unit: hacker}
 - {type: buy_unit, unit: hacker}
@@ -772,7 +772,7 @@ red:
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_unit, index: 19}
 - {type: upgrade_unit, index: 2}
-- {type: use_equipment, equipment: 13030001, unit: 10}
+- {type: use_equipment, equipment: 13030001, index: 10}
 - {type: release_commander_skill, index: 0, id: 1100001, target: !unit 10}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_technology, unit: phoenix, tech: 10816}

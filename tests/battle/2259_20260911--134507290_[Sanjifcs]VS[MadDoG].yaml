@@ -519,7 +519,7 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: 2, id: 13030004}
-- {type: use_equipment, equipment: 13030004, unit: 13}
+- {type: use_equipment, equipment: 13030004, index: 13}
 - {type: upgrade_unit, index: 3}
 - {type: upgrade_unit, index: 4}
 - {type: buy_unit, unit: melting_point}

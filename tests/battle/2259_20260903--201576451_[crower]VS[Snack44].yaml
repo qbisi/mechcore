@@ -330,7 +330,7 @@ blue:
 - {type: buy_unit, unit: crawler}
 red:
 - {type: choose_reinforce_item, offer: 1, id: 13030005}
-- {type: use_equipment, equipment: 13030005, unit: 4}
+- {type: use_equipment, equipment: 13030005, index: 4}
 - {type: unlock_unit, unit: farseer}
 - {type: buy_unit, unit: farseer}
 - {type: move_unit, index: 10, position: {x: 195, y: -95}}
@@ -419,7 +419,7 @@ blue:
 - {type: move_unit, index: 13, position: {x: -10, y: -130}}
 - {type: upgrade_unit, index: 1}
 - {type: upgrade_unit, index: 0}
-- {type: use_equipment, equipment: 13030005, unit: 13}
+- {type: use_equipment, equipment: 13030005, index: 13}
 - {type: move_unit, index: 13, position: {x: -10, y: -110}}
 - {type: release_contraption, contraption: 20001, position: {x: -169, y: -307}}
 red:
@@ -516,7 +516,7 @@ kind: action
 round: 5
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 13030007}
-- {type: use_equipment, equipment: 13030007, unit: 12}
+- {type: use_equipment, equipment: 13030007, index: 12}
 - {type: upgrade_unit, index: 2}
 - {type: buy_unit, unit: vulcan}
 - {type: move_unit, index: 14, position: {x: 140, y: -140}}
@@ -641,7 +641,7 @@ blue:
 - {type: active_blueprint, id: 5}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 13030001}
-- {type: use_equipment, equipment: 13030001, unit: 13}
+- {type: use_equipment, equipment: 13030001, index: 13}
 - {type: upgrade_unit, index: 13}
 - {type: upgrade_unit, index: 10}
 - {type: upgrade_technology, unit: fire_badger, tech: 10220}
@@ -894,7 +894,7 @@ red:
 - {type: move_unit, index: 24, position: {x: 340, y: 80}}
 - {type: move_unit, index: 25, position: {x: 340, y: 240}}
 - {type: release_commander_skill, index: 1, id: 1200003, target: !area [{x: 268, y: 52}]}
-- {type: use_equipment, equipment: 13030001, unit: 15}
+- {type: use_equipment, equipment: 13030001, index: 15}
 ---
 kind: state
 round: 9
@@ -992,7 +992,7 @@ kind: action
 round: 9
 blue:
 - {type: choose_reinforce_item, offer: 1, id: 13030002}
-- {type: use_equipment, equipment: 13030002, unit: 17}
+- {type: use_equipment, equipment: 13030002, index: 17}
 - {type: upgrade_unit, index: 17}
 - {type: upgrade_unit, index: 14}
 - {type: upgrade_technology, unit: melting_point, tech: 10204}
@@ -1009,7 +1009,7 @@ blue:
 - {type: release_commander_skill, index: 2, id: 1000001, target: !unit 9}
 red:
 - {type: choose_reinforce_item, offer: 3, id: 1306002}
-- {type: use_equipment, equipment: 1306002, unit: 17}
+- {type: use_equipment, equipment: 1306002, index: 17}
 - {type: upgrade_unit, index: 15}
 - {type: upgrade_unit, index: 16}
 - {type: upgrade_unit, index: 17}

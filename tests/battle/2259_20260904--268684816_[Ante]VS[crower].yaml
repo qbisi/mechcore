@@ -429,7 +429,7 @@ red:
 - {type: unlock_unit, unit: raiden}
 - {type: buy_unit, unit: raiden}
 - {type: release_contraption, contraption: 20001, position: {x: 275, y: -10}}
-- {type: use_equipment, equipment: 13030010, unit: 13}
+- {type: use_equipment, equipment: 13030010, index: 13}
 - {type: move_unit, index: 13, position: {x: 230, y: -90}}
 - {type: move_unit, index: 13, position: {x: 230, y: -100}}
 - {type: buy_unit, unit: crawler}
