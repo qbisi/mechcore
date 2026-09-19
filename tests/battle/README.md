@@ -12,7 +12,7 @@ mechcore convert "tests/grbr/<name>.grbr" "tests/battle/<name>.yaml" --force
 The scalable corpus entry point is:
 
 ```bash
-python3 scripts/export-replay-corpus.py --offline-only --force-battles
+python3 scripts/export-replay-corpus.py
 ```
 
 [SHA256SUMS](SHA256SUMS) records the exact identity of all 41 generated

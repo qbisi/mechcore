@@ -59,7 +59,7 @@ jobs:
       - name: The battle corpus is what this converter writes
         run: |
           cargo build --release -p mechcore
-          python3 scripts/export-replay-corpus.py --offline-only --force-battles
+          python3 scripts/export-replay-corpus.py
           if [ -n "$(git status --porcelain -- tests/battle)" ]; then
             echo "tests/battle is stale; regenerate it in the same commit:" >&2
             git status --porcelain -- tests/battle >&2

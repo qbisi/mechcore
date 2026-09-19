@@ -52,11 +52,6 @@ pub enum Unsettled {
 /// its slot is marked used rather than released.
 pub(crate) const TRAINING_SKILLS: [i32; 1] = [1_100_001];
 
-/// Whether a commander skill is a deployment skill, whose slot a round marks
-/// used rather than released: Intensive Training and Redeploy.
-pub(crate) fn is_deployment_skill(id: i32) -> bool {
-    TRAINING_SKILLS.contains(&id) || crate::mobility::REDEPLOY_SKILLS.contains(&id)
-}
 /// Energy tower skill `3` 批量征召, which adds a purchase to this round.
 const MASS_RECRUIT_SKILL: i32 = 3;
 /// Reinforcement card `10004` 额外部署位, which adds one too. It is an officer

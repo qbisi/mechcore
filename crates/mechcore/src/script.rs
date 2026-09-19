@@ -30,7 +30,6 @@ const NATIVE: &[&str] = &[
     "apply_layout",
     "record_battle",
     "record_replay_round",
-    "record_replay_battle",
     "record_watch_replay",
     "toggle_fight",
     "speed_up",
@@ -721,36 +720,6 @@ async fn perform(
                     force,
                     instrumentation(fields.get("instrumentation"), scope)?,
                 )
-                .await
-        }
-        "record_replay_battle" => {
-            let fields = arguments
-                .as_object()
-                .ok_or("record_replay_battle takes a mapping")?;
-            for key in fields.keys() {
-                if !matches!(key.as_str(), "grbr" | "output") {
-                    return Err(format!(
-                        "record_replay_battle accepts only grbr and output, got {key}"
-                    ));
-                }
-            }
-            let grbr = scope.path(
-                fields
-                    .get("grbr")
-                    .ok_or("record_replay_battle needs grbr")?,
-                "deployment grbr",
-            )?;
-            let output = scope.path(
-                fields
-                    .get("output")
-                    .ok_or("record_replay_battle needs output")?,
-                "deployment output",
-            )?;
-            session
-                .record_replay_battle(mechcore_protocol::RecordReplayBattleArguments {
-                    grbr,
-                    output,
-                })
                 .await
         }
         "record_watch_replay" => {

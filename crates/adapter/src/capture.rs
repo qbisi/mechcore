@@ -3891,7 +3891,6 @@ unsafe extern "C" fn player_finish_deploy_hook(player: *mut Object, method: *con
     if original.is_null() {
         return;
     }
-    crate::deployment::finish_boundary(player);
     let _ = catch_unwind(AssertUnwindSafe(|| {
         let runtime = RUNTIME.load(Ordering::Acquire);
         if runtime.is_null() {
@@ -4769,26 +4768,8 @@ fn read_native_layout(
 ) -> Result<String, String> {
     let round = i32::try_from(context.combat_round)
         .map_err(|_| format!("round {} exceeds layout range", context.combat_round))?;
-    let layout = read_native_layout_inner(runtime, round, context.match_seed, metadata, true)?;
+    let layout = read_native_layout_inner(runtime, round, context.match_seed, metadata)?;
     canonical_embedded_yaml(layout).map_err(|error| format!("cannot encode native layout: {error}"))
-}
-
-/// A deployment observation may be empty and includes object-targeted releases
-/// in the separate native panel snapshot, so it must not pass through the
-/// fight-layout compiler or resolve those releases as layout skills.
-pub(crate) fn deployment_board(runtime: &Runtime) -> Result<serde_json::Value, String> {
-    let state = capture_state()
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
-    if let Some(error) = &state.availability {
-        return Err(format!("deployment board readback unavailable: {error}"));
-    }
-    let current = runtime.current_match();
-    let round = invoke_value::<i32>(runtime.api, current, "get_RoundCount")?;
-    let random = invoke_object(runtime.api, current, "GetRandom")?;
-    let seed = invoke_value::<i32>(runtime.api, random, "GetSeed")?;
-    let layout = read_native_layout_inner(runtime, round, seed, &state.metadata, false)?;
-    serde_json::to_value(layout).map_err(|error| error.to_string())
 }
 
 fn read_native_layout_inner(
@@ -4796,7 +4777,6 @@ fn read_native_layout_inner(
     round: i32,
     seed: i32,
     metadata: &Metadata,
-    include_releases: bool,
 ) -> Result<Layout, String> {
     let current = runtime.current_match();
     if current.is_null() {
@@ -4839,7 +4819,6 @@ fn read_native_layout_inner(
                 range_item_system,
                 team,
                 metadata,
-                include_releases,
             )
             .map_err(|error| format!("team {team}: {error}"))?,
         );
@@ -4874,7 +4853,6 @@ fn read_native_side(
     range_item_system: *mut Object,
     team: usize,
     metadata: &Metadata,
-    include_releases: bool,
 ) -> Result<Side, String> {
     let unit_manager = invoke_object(api, controller, "GetUnitManager")?;
     let elements = invoke_object(api, unit_manager, "GetUnits")?;
@@ -4955,11 +4933,7 @@ fn read_native_side(
         contraptions,
         airdrop_shields,
         terrains: read_native_terrains(api, controller, range_item_system, team, metadata)?,
-        battle_skills: if include_releases {
-            read_native_battle_skills(api, controller, team)?
-        } else {
-            Vec::new()
-        },
+        battle_skills: read_native_battle_skills(api, controller, team)?,
     })
 }
 

@@ -9,8 +9,8 @@
 下一回合初始化得到下一开局。部署末 state 的投影是本回合战斗开始时的 layout；
 它与下一开局是不同的端点，不能混用。
 
-入口是 `mechcore verify <battle.yaml>`，输入只有 battle 文件，不读 GRBR、
-observation，也不要求实机。下一 state 只是比较目标：从它取值填回预测，
+入口是 `mechcore verify <battle.yaml>`，输入只有 battle 文件，不读 GRBR，
+也不要求实机。下一 state 只是比较目标：从它取值填回预测，
 这个字段就不算覆盖。
 
 本文件只写两样东西：什么存在、什么不存在，以及接下来做什么。
@@ -76,12 +76,7 @@ observation，也不要求实机。下一 state 只是比较目标：从它取�
   来自 `config/unit_experience.yaml`，强化训练把 `current` 填到 `maximum`。
   移动合法性由编队的 `movable` 判断：本回合到场的编队可移动，部署模块、高速引擎
   和再部署解除固定，移动固定编队的决策被拒绝。
-- observation 读取器 `observe` 与 oracle `oracle`，由 `mechcore verify` 驱动。
-  把原生录像采集的每个局面映射成文档 state，把每条原生动作映射成文档 action，
-  再两种方式核对：逐决策比对全部字段，和把折叠后的整回合序列从回合初推到部署末。
-  `verify` 按文件自报的 schema 分派，批量靠管道，不自己展开目录。
-  这是已有的实机研究工具，不代表 observation 已成为长期回归语料或正式验收
-  的必要输入。battle 验证不能依赖 JSONL、其源录像路径或实机可用性。
+- `verify` 按文件自报的 kind 分派 layout 与 battle，批量靠管道，不自己展开目录。
 - 转移覆盖指标。battle 的 state 与 action 按完整文档类型读取；
   `transition::predict` 把 `step*` 与 `open_round` 串成相邻开局的预测，
   `coverage` 按叶归入一致、不一致、未实现、依赖战斗四类，接进
@@ -100,16 +95,10 @@ observation，也不要求实机。下一 state 只是比较目标：从它取�
 - 投影 `project(state) → layout`。
 - 认输是结束对局的 `concede` 动作，其后没有下一回合 state。
 - 适配器能装载一份 layout 并把同一份采集回来，录像与试验场的往返对得上。
-- battle 级部署状态采集 `record_replay_battle`：输入原样录像和新 JSONL 路径，
-  记录开局选择、所有回合的初始化、双方动作和结束部署边界。
-  回合通过原生录像跳转串联，跨回合的 `round_jump` 和跳转中的 `replay_reset`
-  与部署动作明确分开，不把快照差异冒充动作效果或已观测的战斗过程。
-  逐回合核对源录像动作覆盖和状态连续性，末尾写明源录像耗尽；结束部署后的
-  认输另列为未实机观测的源事件，不推断末回合战斗结果。校验和清理完成后才
-  发布整场文件，单回合只作为内部步骤，没有旧公开入口或兼容别名。
-- 批量 oracle 语料器 `scripts/export-replay-corpus.py`。`tests/grbr` 的 build 2259
-  标准 1v1 原样录像逐份独立转换和采集。JSONL 完整输出不覆盖，源/输出身份、拒绝
-  和失败逐步原子写入本机 `work/replay-corpus/manifest.json`，中断后可续跑。
+- `scripts/export-replay-corpus.py` 把 `tests/grbr` 的每份录像离线转换成
+  `tests/battle` 的 battle，并重写两边的 `SHA256SUMS`；有录像被拒绝即失败。
+- 原生部署观测 JSONL（`record_replay_battle`、`observe`、`oracle`）已经移除：
+  battle 覆盖指标取代了它的验证作用，指标只需要 battle 文件。
 
 ## 还不存在
 
@@ -140,8 +129,6 @@ convert 现在借用了一些模拟规则来合成 battle 内容，例如增援�
 - Python／mcscript 批量比较 `project(step*(state(r), actions(r)))` 与原生部署末
   layout，作为部署与投影的独立粗验证。原生一端必须来自回放或实际执行。它不
   覆盖战斗与初始化，不阻塞指标。
-- observation 与 oracle 保留为研究工具，用来定位差异、提炼局部用例，不是指标
-  的输入。
 - 反汇编研究跟着具体字段的差异走。回放一致不能证明非法动作的拒绝正确；
   `MAP_BuyUnit`、`MAP_UpgradeUnit`、`MAP_ChooseReinforceItem` 的 `Perform`
   各支条件仍待核出。`PAD_Redo`、`PAD_ReleaseConstruction` 和塔强化第 4 级

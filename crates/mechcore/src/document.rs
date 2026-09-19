@@ -19,18 +19,15 @@ use serde_json::Value;
 /// Checks each named file against the contract its own kind defines.
 ///
 /// A file says which kind it is, so nothing is inferred from an extension. A
-/// layout is checked by the shared static compiler. A deployment recording is
-/// checked by replaying every decision it holds through the transition, which
-/// is a stronger statement than parsing it: the recording already parsed when
-/// the Adapter published it, and what is open is whether this build reproduces
-/// what the game did.
+/// layout is checked by the shared static compiler. A battle is checked against
+/// its seed and by predicting each round's next opening from the one before.
 ///
 /// Paths come from the arguments, or from standard input one per line when
 /// there are none, so a batch is a pipe rather than a flag:
 ///
 /// ```text
 /// mechcore verify layout.yaml
-/// find work/replay-corpus/observations -name '*.jsonl' | mechcore verify
+/// ls tests/battle/*.yaml | mechcore verify
 /// ```
 ///
 /// One report per input goes to standard output, one JSON object per line, a
@@ -96,11 +93,6 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
     }
     let bytes =
         fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    if let Ok(text) = std::str::from_utf8(&bytes)
-        && mechcore_document::observe::is_observation(text)?
-    {
-        return verify_observation(path, text);
-    }
     if let Some(stated) = mechcore_document::opening::stated(&bytes)? {
         return verify_battle(path, &stated);
     }
@@ -171,67 +163,6 @@ fn verify_battle(
             "reinforcement_offers_checked": found.map(|(_, checked)| checked.offers_checked),
             "reinforcements": found.map(|(_, checked)| &checked.rounds),
             "coverage": coverage,
-        }),
-    })
-}
-
-/// Replays a recording's decisions through the deployment transition.
-///
-/// Two checks, and the second is not implied by the first. Each decision is
-/// applied to the position it was taken from and every field of the result
-/// compared; then each round's collapsed sequence is applied to the position
-/// the round opened with and compared against the one it closed with. A
-/// decision this build's tables cannot settle is counted apart under the reason
-/// it gave, and neither counted as reproduced nor as failed.
-fn verify_observation(path: &Path, text: &str) -> Result<VerifyReport, String> {
-    let economy = mechcore_document::economy::Economy::embedded()?;
-    let records = mechcore_document::observe::read(text)?;
-    let steps = mechcore_document::oracle::step_check(&economy, &records)?;
-    let deployments = mechcore_document::oracle::round_check(&economy, &records)?;
-    let unsettled: serde_json::Map<String, Value> = steps
-        .unsettled
-        .iter()
-        .map(|(reason, count)| (reason.clone(), Value::from(*count)))
-        .collect();
-    Ok(VerifyReport {
-        schema: VERIFY_SCHEMA,
-        valid: steps.failed == 0 && deployments.failed == 0,
-        kind: "observation",
-        path: path.display().to_string(),
-        error: None,
-        detail: serde_json::json!({
-            "decisions": steps.checked(),
-            "decisions_closed": steps.closed,
-            "decisions_unsettled": unsettled,
-            "retractions": steps.retractions,
-            "deployments": deployments.checked(),
-            "deployments_closed": deployments.closed,
-            "deployments_unsettled": deployments.unsettled,
-            "failures": steps
-                .failures
-                .iter()
-                .map(|failure| {
-                    serde_json::json!({
-                        "sequence": failure.sequence,
-                        "round": failure.round,
-                        "side": failure.side,
-                        "action": failure.native_type,
-                        "field": failure.field,
-                        "produced": failure.expected,
-                        "reached": failure.actual,
-                    })
-                })
-                .chain(deployments.failures.iter().map(|failure| {
-                    serde_json::json!({
-                        "round": failure.round,
-                        "side": failure.side,
-                        "action": "deployment",
-                        "field": failure.field,
-                        "produced": failure.expected,
-                        "reached": failure.actual,
-                    })
-                }))
-                .collect::<Vec<_>>(),
         }),
     })
 }

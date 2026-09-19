@@ -1,7 +1,6 @@
 use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::mem;
 use std::ptr;
-use std::sync::OnceLock;
 
 #[repr(C)]
 pub struct Domain {
@@ -51,19 +50,6 @@ type ClassGetName = unsafe extern "C" fn(*mut Class) -> *const c_char;
 type ClassGetNamespace = unsafe extern "C" fn(*mut Class) -> *const c_char;
 type ClassGetType = unsafe extern "C" fn(*mut Class) -> *const Type;
 type ClassGetFieldFromName = unsafe extern "C" fn(*mut Class, *const c_char) -> *mut FieldInfo;
-type ClassGetFields = unsafe extern "C" fn(*mut Class, *mut *mut c_void) -> *mut FieldInfo;
-type FieldGetName = unsafe extern "C" fn(*mut FieldInfo) -> *const c_char;
-type FieldGetFlags = unsafe extern "C" fn(*mut FieldInfo) -> c_int;
-type FieldGetValueObject = unsafe extern "C" fn(*mut FieldInfo, *mut Object) -> *mut Object;
-
-// Keep observation-only exports out of the copyable hot-path Api value.
-struct FieldApi {
-    class_get_fields: ClassGetFields,
-    field_get_name: FieldGetName,
-    field_get_flags: FieldGetFlags,
-    field_get_value_object: FieldGetValueObject,
-}
-static FIELD_API: OnceLock<FieldApi> = OnceLock::new();
 type FieldGetValue = unsafe extern "C" fn(*mut Object, *mut FieldInfo, *mut c_void);
 type FieldStaticGetValue = unsafe extern "C" fn(*mut FieldInfo, *mut c_void);
 type ClassGetMethodFromName =
@@ -209,13 +195,6 @@ impl Api {
             Ok(unsafe { mem::transmute_copy::<*mut c_void, T>(&pointer) })
         }
 
-        let fields = FieldApi {
-            class_get_fields: unsafe { symbol("class_get_fields")? },
-            field_get_name: unsafe { symbol("field_get_name")? },
-            field_get_flags: unsafe { symbol("field_get_flags")? },
-            field_get_value_object: unsafe { symbol("field_get_value_object")? },
-        };
-        FIELD_API.get_or_init(|| fields);
         Ok(Self {
             domain_get: unsafe { symbol("domain_get")? },
             domain_get_assemblies: unsafe { symbol("domain_get_assemblies")? },
@@ -498,59 +477,6 @@ impl Api {
             current = unsafe { (self.class_get_parent)(current) };
         }
         Err(Error::MissingField(name.into()))
-    }
-
-    /// Instance fields declared on one class. Values are boxed by IL2CPP, so
-    /// callers never guess the byte width of a field from its name.
-    pub fn instance_fields(
-        self,
-        class: *mut Class,
-    ) -> Result<Vec<(String, *mut FieldInfo)>, Error> {
-        let api = FIELD_API
-            .get()
-            .expect("Api::load initialized field exports");
-        let mut iterator = ptr::null_mut();
-        let mut fields = Vec::new();
-        loop {
-            // SAFETY: class belongs to this runtime; iterator is opaque IL2CPP state.
-            let field = unsafe { (api.class_get_fields)(class, &raw mut iterator) };
-            if field.is_null() {
-                return Ok(fields);
-            }
-            // FIELD_ATTRIBUTE_STATIC is 0x10 in the IL2CPP/.NET metadata ABI.
-            if unsafe { (api.field_get_flags)(field) } & 0x10 != 0 {
-                continue;
-            }
-            let name = unsafe { (api.field_get_name)(field) };
-            if name.is_null() {
-                return Err(Error::NullResult("field name".into()));
-            }
-            let name = unsafe { CStr::from_ptr(name) }
-                .to_string_lossy()
-                .into_owned();
-            fields.push((name, field));
-            if fields.len() > 256 {
-                return Err(Error::InvalidValue(format!(
-                    "too many native fields on {}",
-                    self.class_name(class)
-                )));
-            }
-        }
-    }
-
-    pub fn boxed_field(
-        self,
-        object: *mut Object,
-        field: *mut FieldInfo,
-    ) -> Result<*mut Object, Error> {
-        if self.object_class(object).is_none() || field.is_null() {
-            return Err(Error::NullResult("boxed field".into()));
-        }
-        // SAFETY: the field belongs to object; the runtime boxes value types.
-        let api = FIELD_API
-            .get()
-            .expect("Api::load initialized field exports");
-        Ok(unsafe { (api.field_get_value_object)(field, object) })
     }
 
     pub fn class_is_or_inherits(self, mut class: *mut Class, expected: *mut Class) -> bool {
