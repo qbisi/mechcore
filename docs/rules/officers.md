@@ -4,13 +4,14 @@
 
 [TOC]
 
-This is the build `1.11.1.2.2227` index for IDs accepted by
-`layout.yaml` under `techs.officers`. Names and effect text are the game's
+This is the build `1.11.1.2.2227` index for the Officers a layout or a state
+lists under `officers`, which names each by the snake-case form of its English
+name in [`config/names.yaml`](../../config/names.yaml). Names and effect text are the game's
 official English and Simplified Chinese localizations; placeholders have been
 expanded with the serialized `OfficerData.descriptionParams` values.
 
 An Officer may grant a commander skill, equipment, or an extra formation, but
-those resulting objects are not additional `techs.officers` entries. Native
+those resulting objects are not additional `officers` entries. Native
 `CommanderSkillData` used by `battle_skills` is a separate ID space.
 
 An Officer ID is also the ID of the card that grants it, so taking card `20023`
@@ -31,8 +32,8 @@ Officer. A round opens with two purchases plus one per copy held. In the build
 `Test-only` entries exist in the runtime catalog and are listed for completeness.
 They are not ordinary opening or reinforcement choices. Derived/internal entries
 may be owned by another layout field; in particular Research Center attack and
-defense levels own IDs `20300`, `20301`, `20310`, and `20311`, so they must not be
-declared again in `techs.officers`.
+defense levels own IDs `20300`, `20301`, `20310`, and `20311`, which a document
+states through `blueprints` and never again in `officers`.
 The nine test-only rows have no English entry in the build-2227 localization
 asset; their editorial English translations are marked with `†`.
 

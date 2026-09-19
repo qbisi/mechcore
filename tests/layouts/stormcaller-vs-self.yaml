@@ -4,18 +4,18 @@ round: 1
 sides:
   blue:
     formations:
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: 5, y: -80}
-      - type: stormcaller
+      - name: stormcaller
         index: 1
         position: {x: 5, y: -120}
 
   red:
     formations:
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: 5, y: -80}
-      - type: stormcaller
+      - name: stormcaller
         index: 1
         position: {x: 5, y: -120}

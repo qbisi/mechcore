@@ -12,12 +12,12 @@ seed: -17
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
-    constructions: [{type: defensive_wall, index: 0, position: {x: 140, y: -105}}]
-    contraptions: [{type: interceptor, index: 0, position: {x: 35, y: -85}}]
-    terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+    constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]
+    contraptions: [{name: interceptor, index: 0, position: {x: 35, y: -85}}]
+    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -49,7 +49,7 @@ fn verify_rejects_the_zero_seed_sentinel() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -85,10 +85,10 @@ round: 1
 sides:
   blue:
     formations:
-      - {type: marksman, index: 0, position: {x: 0, y: -50}}
-      - {type: shield, index: 1, position: {x: 0, y: -100}}
+      - {name: marksman, index: 0, position: {x: 0, y: -50}}
+      - {name: shield, index: 1, position: {x: 0, y: -100}}
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -124,9 +124,9 @@ fn verify_reads_a_batch_of_paths_from_standard_input() {
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]
+    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]
+    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -189,10 +189,10 @@ kind: layout
 round: 1
 sides:
   blue:
-    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
-    terrains: [{type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
+    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
   red:
-    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
+    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
 ",
     )
     .unwrap();
@@ -210,10 +210,10 @@ sides:
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
     assert!(canonical.contains(
-        "terrains:\n    - {type: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
+        "terrains:\n    - {name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
     ));
     assert!(
-        canonical.contains("    - {type: marksman, index: 0, position: {x: 0, y: -50}}\n"),
+        canonical.contains("    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n"),
         "a formation stays on one line: {canonical}"
     );
     assert!(!canonical.contains("grid_rows:"));
@@ -235,12 +235,12 @@ fn diff_compares_normalized_fields() {
     let right = directory.path().join("right.yaml");
     fs::write(
         &left,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     fs::write(
         &right,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -258,7 +258,7 @@ fn diff_compares_normalized_fields() {
 
     fs::write(
         &right,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{type: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    formations: [{type: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nsides:\n  blue:\n    formations: [{name: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    formations: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))

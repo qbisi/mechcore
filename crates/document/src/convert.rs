@@ -1735,7 +1735,7 @@ mod tests {
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
-            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
+            "    formations:\n    - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
         assert!(yaml.contains("\n- {type: buy_unit, name: "));
         assert!(!yaml.contains("\n- type: "));

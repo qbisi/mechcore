@@ -1089,7 +1089,7 @@ mod tests {
 
     #[test]
     fn a_state_refuses_a_field_it_does_not_define() {
-        let formation = "{type: crawler, index: 0, position: {x: 0, y: -160}, value: 100}";
+        let formation = "{name: crawler, index: 0, position: {x: 0, y: -160}, value: 100}";
         let read =
             |formation: &str| serde_yaml::from_str::<super::StateFormation>(formation).map(|_| ());
         read(formation).unwrap();

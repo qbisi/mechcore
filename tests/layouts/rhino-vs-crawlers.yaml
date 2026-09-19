@@ -4,12 +4,12 @@ round: 1
 sides:
   blue:
     formations:
-      - type: rhino
+      - name: rhino
         index: 0
         position: {x: 5, y: -105}
 
   red:
     formations:
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: 5, y: -100}

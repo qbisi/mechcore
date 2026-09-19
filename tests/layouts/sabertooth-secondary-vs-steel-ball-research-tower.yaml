@@ -4,30 +4,30 @@ round: 1
 sides:
   blue:
     techs:
-      units: [110211]
+      sabertooth: [secondary_armament]
 
-    energy_tower_skills: [5]
+    energy_tower_skills: [enhanced_range]
 
     constructions:
-      - type: rapid_fire_turret
+      - name: rapid_fire_turret
         index: 0
         position: {x: 140, y: -140}
 
     formations:
-      - type: sabertooth
+      - name: sabertooth
         index: 0
         position: {x: -205, y: -295}
-        equipment: 1305003
+        equipment: photon_coating
 
   red:
     techs:
-      units: [1802]
+      marksman: [electromagnetic_shot]
 
     formations:
-      - type: marksman
+      - name: marksman
         index: 0
         position: {x: 200, y: -100}
 
-      - type: steel_ball
+      - name: steel_ball
         index: 1
         position: {x: -205, y: -100}

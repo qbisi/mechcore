@@ -4,15 +4,15 @@ round: 1
 sides:
   blue:
     formations:
-      - type: rhino
+      - name: rhino
         index: 0
         position: {x: -285, y: -105}
 
   red:
     formations:
-      - type: arclight
+      - name: arclight
         index: 0
         position: {x: 290, y: -100}
-      - type: arclight
+      - name: arclight
         index: 1
         position: {x: 190, y: -100}

@@ -6,8 +6,8 @@ use jpeg_encoder::{ColorType, Encoder};
 use mechcore_document::{
     BattleSkillDefinition, ContraptionPlacement, DocumentKind, Experience,
     FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, Position, Side, Sides, StaticPlacement,
-    TOWER_COUNT, Techs, Terrain as LayoutTerrain, TerrainType as LayoutTerrainType,
-    battle_skill_type_from_id, canonical_embedded_yaml, construction_type_from_id,
+    TOWER_COUNT, Terrain as LayoutTerrain, TerrainType as LayoutTerrainType,
+    battle_skill_type_from_id, canonical_embedded_yaml, chain_blueprint, construction_type_from_id,
     contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
@@ -4921,11 +4921,19 @@ fn read_native_side(
     let constructions = read_native_constructions(api, controller, team)?;
     let (contraptions, airdrop_shields) =
         read_native_contraptions(api, controller, team, shield_system, metadata)?;
+    let officers = read_native_officers(api, controller)?;
     Ok(Side {
-        techs: Techs {
-            officers: read_native_officers(api, controller)?,
-            units: read_native_unit_technologies(api, controller)?,
-        },
+        officers: officers
+            .iter()
+            .copied()
+            .filter(|officer| chain_blueprint(*officer).is_none())
+            .collect(),
+        techs: read_native_unit_technologies(api, controller)?,
+        // A chain blueprint's officer is read back as its blueprint.
+        blueprints: officers
+            .iter()
+            .filter_map(|officer| chain_blueprint(*officer))
+            .collect(),
         energy_tower_skills: read_native_energy_tower_skills(api, controller)?,
         tower_strengthen_levels: read_native_tower_strengthen_levels(api, controller)?,
         formations,
@@ -5254,8 +5262,9 @@ fn read_native_unit_technologies(api: Api, controller: *mut Object) -> Result<Ve
 
 /// Reads the Research Center enhancement chains as the Officers they grant.
 ///
-/// The native blueprint IDs never reach a layout, which says an attack or
-/// defense enhancement by naming the Officer the chain hands out.
+/// The native blueprint list is not read. A layout names an attack or defense
+/// enhancement by its blueprint, and the capture recovers that blueprint from
+/// the Officer the chain hands out, which is what a fight sees.
 /// `OfficerManager` normally lists that Officer already, so this repeats what
 /// the officer read found; it is here so that a capture still names the
 /// enhancement if the two ever disagree, and so that a chain caught
@@ -9031,9 +9040,9 @@ mod tests {
     /// The chain-to-Officer tables are a copy of what `config/economy.yaml`
     /// states, kept here so a capture needs no config load on Unity's thread.
     ///
-    /// A layout says an attack or defense enhancement by naming the Officer the
-    /// chain hands out, so a drift between the two would export an enhancement
-    /// the game never granted. This is the check that they still agree.
+    /// A capture recovers an attack or defense enhancement's blueprint from the
+    /// Officer the chain hands out, so a drift between the two would export an
+    /// enhancement the game never granted. This is the check that they still agree.
     #[test]
     fn enhancement_chains_grant_the_officers_the_shipped_economy_names() {
         let economy =
@@ -11521,7 +11530,7 @@ mod tests {
             combat_round: 1,
             match_seed: 0,
         };
-        let layout = "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - {type: marksman, index: 0, position: {x: 0, y: -50}}\n  red:\n    formations:\n    - {type: arclight, index: 0, position: {x: 0, y: -50}}\n";
+        let layout = "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  red:\n    formations:\n    - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
         let mut writer =
             mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
         writer.append_tick(state, &events).unwrap();

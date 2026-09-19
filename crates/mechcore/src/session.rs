@@ -1021,8 +1021,8 @@ mod tests {
                     "kind": "layout",
                     "round": 1,
                     "sides": {
-                        "blue": {"formations": [{"type": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
-                        "red": {"formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
+                        "blue": {"formations": [{"name": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
+                        "red": {"formations": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                     }
                 }),
                 None,
@@ -1042,13 +1042,13 @@ mod tests {
                     "round": 1,
                     "sides": {
                         "blue": {
-                            "formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                            "formations": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
                             "terrains": [{
-                                "type": "oil",
+                                "name": "oil",
                                 "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
                             }]
                         },
-                        "red": {"formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
+                        "red": {"formations": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                     }
                 }),
                 None,

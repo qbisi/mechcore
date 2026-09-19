@@ -156,10 +156,12 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
 }
 
 fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, String> {
-    validate_techs(side_name, &side.techs)?;
+    validate_techs(side_name, &side)?;
     validate_side_modifiers(side_name, &side)?;
     let Side {
+        officers,
         techs,
+        blueprints,
         energy_tower_skills,
         tower_strengthen_levels,
         formations,
@@ -175,8 +177,20 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     let airdrop_shields = compile_airdrop_shields(side_name, airdrop_shields)?;
     let terrains = compile_terrains(side_name, terrains)?;
     let battle_skills = compile_battle_skills(side_name, battle_skills)?;
+    // A chain blueprint is applied as the officer it hands out, which is what
+    // a fight reads.
+    let mut officers = officers;
+    officers.extend(
+        blueprints
+            .iter()
+            .filter_map(|blueprint| crate::catalog::chain_officer(*blueprint)),
+    );
+    officers.sort_unstable();
     Ok(SidePlan {
-        techs,
+        techs: Techs {
+            officers,
+            units: techs,
+        },
         energy_tower_skills,
         tower_strengthen_levels,
         formations,
@@ -1045,19 +1059,44 @@ fn validate_unit_placement(
     Ok(())
 }
 
-fn validate_techs(side_name: &str, techs: &Techs) -> Result<(), String> {
+fn validate_techs(side_name: &str, side: &Side) -> Result<(), String> {
     // An Officer may repeat. Some Officer cards can be taken again, and taking
     // one twice stacks it rather than doing nothing: two copies of Advanced
     // Offensive Tactics are +60% damage, which a fight plainly sees. A unit
     // technology has no second copy to hold.
-    for (index, &id) in techs.officers.iter().enumerate() {
+    for (index, &id) in side.officers.iter().enumerate() {
         if id <= 0 {
             return Err(format!(
-                "side {side_name} techs.officers[{index}] must be a positive integer"
+                "side {side_name} officers[{index}] must be a positive integer"
+            ));
+        }
+        // A chain's officer is stated by its blueprint, once.
+        if crate::catalog::chain_blueprint(id).is_some() {
+            return Err(format!(
+                "side {side_name} officers[{index}] is a chain blueprint's officer; \
+                 name its blueprint in blueprints instead"
             ));
         }
     }
-    validate_unique_positive_ids(side_name, "techs.units", &techs.units)
+    validate_unique_positive_ids(side_name, "techs", &side.techs)?;
+    validate_unique_positive_ids(side_name, "blueprints", &side.blueprints)?;
+    for &blueprint in &side.blueprints {
+        if crate::catalog::chain_officer(blueprint).is_none() {
+            return Err(format!(
+                "side {side_name} blueprints holds {blueprint}, which is not an \
+                 enhancement chain; a layout lists only the chains a fight sees"
+            ));
+        }
+    }
+    // A chain's second level replaces its first.
+    for (first, second) in [(4, 401), (5, 501)] {
+        if side.blueprints.contains(&first) && side.blueprints.contains(&second) {
+            return Err(format!(
+                "side {side_name} blueprints holds both levels of one chain"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn validate_unique_positive_ids(side_name: &str, field: &str, ids: &[i32]) -> Result<(), String> {

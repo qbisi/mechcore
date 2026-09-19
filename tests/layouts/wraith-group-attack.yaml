@@ -4,28 +4,28 @@ round: 1
 sides:
   blue:
     formations:
-      - type: wraith
+      - name: wraith
         index: 0
         position: {x: -5, y: -95}
-      - type: crawler
+      - name: crawler
         index: 1
         rotated: true
         position: {x: 0, y: -135}
-      - type: steel_ball
+      - name: steel_ball
         index: 2
         rotated: true
         position: {x: 20, y: -135}
 
   red:
     formations:
-      - type: wraith
+      - name: wraith
         index: 0
         position: {x: -5, y: -95}
-      - type: crawler
+      - name: crawler
         index: 1
         rotated: true
         position: {x: 0, y: -135}
-      - type: steel_ball
+      - name: steel_ball
         index: 2
         rotated: true
         position: {x: 20, y: -135}

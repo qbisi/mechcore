@@ -9,8 +9,8 @@ sides:
     - {team: fang-tarantula, specialist: supply_specialist}
     - {team: crawler-steel_ball, specialist: giant_specialist}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
     tech_loadout:
       fortress: [barrier, anti_air_barrage, range_enhancement, launcher_overload]
       marksman: [doubleshot, electromagnetic_shot, aerial_specialization, range_enhancement]
@@ -51,8 +51,8 @@ sides:
     - {team: fang-steel_ball, specialist: training_specialist}
     - {team: hound-mustang, specialist: cost_control_specialist}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
     tech_loadout:
       fortress: [anti_air_barrage, launcher_overload, solid_shot, elite_marksman]
       marksman: [doubleshot, electromagnetic_shot, aerial_specialization, range_enhancement]
@@ -109,14 +109,14 @@ sides:
     officers:
     - giant_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
-    - {type: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
-    - {type: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
-    - {type: steel_ball, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
-    - {type: steel_ball, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
+    - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
+    - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
+    - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
+    - {name: steel_ball, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {name: steel_ball, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 4400
     supply: 200
@@ -129,14 +129,14 @@ sides:
     officers:
     - missile_specialist
     formations:
-    - {type: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
-    - {type: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
-    - {type: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
-    - {type: sledgehammer, index: 3, position: {x: -5, y: -180}, value: 200, movable: true}
-    - {type: sledgehammer, index: 4, position: {x: -35, y: -160}, value: 200, movable: true}
+    - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
+    - {name: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {name: sledgehammer, index: 3, position: {x: -5, y: -180}, value: 200, movable: true}
+    - {name: sledgehammer, index: 4, position: {x: -35, y: -160}, value: 200, movable: true}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 ---
 kind: action
 round: 1
@@ -175,16 +175,16 @@ sides:
     officers:
     - giant_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 126/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -140, y: -205}, exp: 68/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 627/1000, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 640/1000, value: 200}
-    - {type: crawler, index: 5, position: {x: 290, y: -285}, exp: 56/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 125, y: -190}, exp: 120/450, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 126/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 68/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {name: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 627/1000, value: 200}
+    - {name: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 640/1000, value: 200}
+    - {name: crawler, index: 5, position: {x: 290, y: -285}, exp: 56/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 125, y: -190}, exp: 120/450, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 4120
     supply: 400
@@ -200,16 +200,16 @@ sides:
     officers:
     - missile_specialist
     formations:
-    - {type: marksman, index: 0, position: {x: -100, y: -170}, exp: 133/650, value: 100}
-    - {type: marksman, index: 1, position: {x: 100, y: -170}, exp: 120/650, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -120}, exp: 125/650, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 208/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 511/1300, value: 200}
-    - {type: crawler, index: 5, position: {x: -80, y: -255}, exp: 150/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -155}, exp: 70/450, rotated: true, value: 100}
+    - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 133/650, value: 100}
+    - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 120/650, value: 100}
+    - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 125/650, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 208/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 511/1300, value: 200}
+    - {name: crawler, index: 5, position: {x: -80, y: -255}, exp: 150/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 0, y: -155}, exp: 70/450, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 ---
 kind: action
 round: 2
@@ -244,19 +244,19 @@ sides:
     officers:
     - giant_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 223/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -140, y: -205}, exp: 119/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 728/1000, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 687/1000, value: 200}
-    - {type: crawler, index: 5, position: {x: 290, y: -285}, exp: 87/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 125, y: -190}, exp: 212/450, value: 100}
-    - {type: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 329/1100, value: 200}
-    - {type: fang, index: 8, position: {x: 150, y: -285}, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: 230, y: -175}, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 223/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 119/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {name: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 728/1000, value: 200}
+    - {name: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 687/1000, value: 200}
+    - {name: crawler, index: 5, position: {x: 290, y: -285}, exp: 87/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 125, y: -190}, exp: 212/450, value: 100}
+    - {name: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 329/1100, value: 200}
+    - {name: fang, index: 8, position: {x: 150, y: -285}, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: 230, y: -175}, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 4120
     supply: 600
@@ -272,20 +272,20 @@ sides:
     officers:
     - missile_specialist
     formations:
-    - {type: marksman, index: 0, position: {x: -100, y: -170}, exp: 246/650, value: 100}
-    - {type: marksman, index: 1, position: {x: 100, y: -170}, exp: 178/650, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -120}, exp: 321/650, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 592/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 1157/1300, value: 200}
-    - {type: crawler, index: 5, position: {x: -80, y: -255}, exp: 248/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -155}, exp: 120/450, rotated: true, value: 100}
-    - {type: arclight, index: 7, position: {x: 240, y: -150}, exp: 152/750, value: 100}
-    - {type: arclight, index: 8, position: {x: 140, y: -150}, exp: 332/750, rotated: true, value: 100}
-    - {type: phoenix, index: 9, position: {x: 210, y: -240}, exp: 722/1300, value: 200}
-    - {type: crawler, index: 10, position: {x: 140, y: -205}, exp: 215/450, rotated: true, value: 100}
+    - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 246/650, value: 100}
+    - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 178/650, value: 100}
+    - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 321/650, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 592/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 1157/1300, value: 200}
+    - {name: crawler, index: 5, position: {x: -80, y: -255}, exp: 248/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 0, y: -155}, exp: 120/450, rotated: true, value: 100}
+    - {name: arclight, index: 7, position: {x: 240, y: -150}, exp: 152/750, value: 100}
+    - {name: arclight, index: 8, position: {x: 140, y: -150}, exp: 332/750, rotated: true, value: 100}
+    - {name: phoenix, index: 9, position: {x: 210, y: -240}, exp: 722/1300, value: 200}
+    - {name: crawler, index: 10, position: {x: 140, y: -205}, exp: 215/450, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
 ---
 kind: action
 round: 3
@@ -321,21 +321,21 @@ sides:
     - giant_specialist
     - improved_overlord
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 270/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -140, y: -205}, exp: 202/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 856/1000, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 723/1000, value: 200}
-    - {type: crawler, index: 5, position: {x: 290, y: -285}, exp: 87/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 125, y: -190}, exp: 278/450, value: 100}
-    - {type: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 427/1100, value: 200}
-    - {type: fang, index: 8, position: {x: 150, y: -285}, exp: 15/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: 230, y: -175}, exp: 5/600, rotated: true, value: 100}
-    - {type: overlord, index: 10, position: {x: -255, y: -185}, exp: 1092/1750, value: 600}
-    - {type: fang, index: 11, position: {x: -220, y: -185}, exp: 24/600, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 270/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 202/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {name: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 856/1000, value: 200}
+    - {name: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 723/1000, value: 200}
+    - {name: crawler, index: 5, position: {x: 290, y: -285}, exp: 87/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 125, y: -190}, exp: 278/450, value: 100}
+    - {name: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 427/1100, value: 200}
+    - {name: fang, index: 8, position: {x: 150, y: -285}, exp: 15/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: 230, y: -175}, exp: 5/600, rotated: true, value: 100}
+    - {name: overlord, index: 10, position: {x: -255, y: -185}, exp: 1092/1750, value: 600}
+    - {name: fang, index: 11, position: {x: -220, y: -185}, exp: 24/600, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 4120
     supply: 850
@@ -356,21 +356,21 @@ sides:
     techs:
       arclight: [range_enhancement]
     formations:
-    - {type: marksman, index: 0, position: {x: -100, y: -170}, exp: 527/650, value: 100}
-    - {type: marksman, index: 1, position: {x: 100, y: -170}, exp: 650/650, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -120}, exp: 646/650, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 938/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 1300/1300, value: 200}
-    - {type: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -155}, exp: 167/450, rotated: true, value: 100}
-    - {type: arclight, index: 7, position: {x: 240, y: -150}, exp: 461/750, value: 100}
-    - {type: arclight, index: 8, position: {x: 140, y: -150}, exp: 683/750, rotated: true, value: 100}
-    - {type: phoenix, index: 9, position: {x: 210, y: -240}, exp: 828/1300, value: 200}
-    - {type: crawler, index: 10, position: {x: 140, y: -205}, exp: 304/450, rotated: true, value: 100}
-    - {type: arclight, index: 11, position: {x: -140, y: -150}, exp: 317/750, value: 100}
-    - {type: arclight, index: 12, position: {x: -230, y: -150}, exp: 461/750, value: 100}
+    - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 527/650, value: 100}
+    - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 650/650, value: 100}
+    - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 646/650, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 938/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 1300/1300, value: 200}
+    - {name: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 0, y: -155}, exp: 167/450, rotated: true, value: 100}
+    - {name: arclight, index: 7, position: {x: 240, y: -150}, exp: 461/750, value: 100}
+    - {name: arclight, index: 8, position: {x: 140, y: -150}, exp: 683/750, rotated: true, value: 100}
+    - {name: phoenix, index: 9, position: {x: 210, y: -240}, exp: 828/1300, value: 200}
+    - {name: crawler, index: 10, position: {x: 140, y: -205}, exp: 304/450, rotated: true, value: 100}
+    - {name: arclight, index: 11, position: {x: -140, y: -150}, exp: 317/750, value: 100}
+    - {name: arclight, index: 12, position: {x: -230, y: -150}, exp: 461/750, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
 kind: action
 round: 4
@@ -409,23 +409,23 @@ sides:
     - giant_specialist
     - improved_overlord
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 289/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -140, y: -205}, exp: 211/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 887/1000, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 800/1000, value: 200}
-    - {type: crawler, index: 5, position: {x: 290, y: -285}, exp: 90/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 125, y: -190}, exp: 278/450, value: 100}
-    - {type: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 611/1100, value: 200}
-    - {type: fang, index: 8, position: {x: 150, y: -285}, exp: 61/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: 230, y: -175}, exp: 57/600, rotated: true, value: 100}
-    - {type: overlord, index: 10, position: {x: -255, y: -185}, exp: 1750/1750, equipment: 13030002, value: 600}
-    - {type: fang, index: 11, position: {x: -220, y: -185}, exp: 192/600, rotated: true, value: 100}
-    - {type: overlord, index: 12, position: {x: -105, y: -185}, exp: 578/1750, value: 600}
-    - {type: fang, index: 13, position: {x: -50, y: -165}, exp: 83/600, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 289/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 211/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {name: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 887/1000, value: 200}
+    - {name: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 800/1000, value: 200}
+    - {name: crawler, index: 5, position: {x: 290, y: -285}, exp: 90/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 125, y: -190}, exp: 278/450, value: 100}
+    - {name: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 611/1100, value: 200}
+    - {name: fang, index: 8, position: {x: 150, y: -285}, exp: 61/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: 230, y: -175}, exp: 57/600, rotated: true, value: 100}
+    - {name: overlord, index: 10, position: {x: -255, y: -185}, exp: 1750/1750, equipment: heavy_armor, value: 600}
+    - {name: fang, index: 11, position: {x: -220, y: -185}, exp: 192/600, rotated: true, value: 100}
+    - {name: overlord, index: 12, position: {x: -105, y: -185}, exp: 578/1750, value: 600}
+    - {name: fang, index: 13, position: {x: -50, y: -165}, exp: 83/600, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 4120
     supply: 1350
@@ -449,23 +449,23 @@ sides:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
     formations:
-    - {type: marksman, index: 0, position: {x: -100, y: -170}, exp: 650/650, value: 100}
-    - {type: marksman, index: 1, position: {x: 100, y: -170}, level: 2, exp: 1465/1465, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -120}, exp: 650/650, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 1285/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 1300/1300, value: 200}
-    - {type: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -155}, exp: 194/450, rotated: true, value: 100}
-    - {type: arclight, index: 7, position: {x: 240, y: -150}, exp: 750/750, value: 100}
-    - {type: arclight, index: 8, position: {x: 140, y: -150}, exp: 750/750, rotated: true, value: 100}
-    - {type: crawler, index: 10, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
-    - {type: arclight, index: 11, position: {x: -140, y: -150}, exp: 716/750, value: 100}
-    - {type: arclight, index: 12, position: {x: -230, y: -150}, exp: 750/750, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -285}, exp: 117/450, rotated: true, value: 100}
-    - {type: marksman, index: 14, position: {x: 210, y: -210}, exp: 12/650, value: 100}
-    - {type: crawler, index: 15, position: {x: 270, y: -185}, exp: 21/450, rotated: true, value: 100}
+    - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 650/650, value: 100}
+    - {name: marksman, index: 1, position: {x: 100, y: -170}, level: 2, exp: 1465/1465, value: 100}
+    - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 650/650, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 1285/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -55, y: -110}, exp: 1300/1300, value: 200}
+    - {name: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 0, y: -155}, exp: 194/450, rotated: true, value: 100}
+    - {name: arclight, index: 7, position: {x: 240, y: -150}, exp: 750/750, value: 100}
+    - {name: arclight, index: 8, position: {x: 140, y: -150}, exp: 750/750, rotated: true, value: 100}
+    - {name: crawler, index: 10, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
+    - {name: arclight, index: 11, position: {x: -140, y: -150}, exp: 716/750, value: 100}
+    - {name: arclight, index: 12, position: {x: -230, y: -150}, exp: 750/750, value: 100}
+    - {name: crawler, index: 13, position: {x: 290, y: -285}, exp: 117/450, rotated: true, value: 100}
+    - {name: marksman, index: 14, position: {x: 210, y: -210}, exp: 12/650, value: 100}
+    - {name: crawler, index: 15, position: {x: 270, y: -185}, exp: 21/450, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
 kind: action
 round: 5
@@ -517,25 +517,25 @@ sides:
     techs:
       vulcan: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 345/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -140, y: -205}, exp: 231/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 956/1000, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 850/1000, value: 200}
-    - {type: crawler, index: 5, position: {x: 290, y: -285}, exp: 91/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 125, y: -190}, exp: 321/450, value: 100}
-    - {type: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 1100/1100, value: 200}
-    - {type: fang, index: 8, position: {x: 150, y: -285}, exp: 62/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: 230, y: -175}, exp: 58/600, rotated: true, value: 100}
-    - {type: overlord, index: 10, position: {x: -255, y: -185}, exp: 1750/1750, equipment: 13030002, value: 600}
-    - {type: fang, index: 11, position: {x: -220, y: -185}, exp: 204/600, rotated: true, value: 100}
-    - {type: fang, index: 13, position: {x: -50, y: -165}, exp: 228/600, rotated: true, value: 100}
-    - {type: vulcan, index: 14, position: {x: -190, y: -220}, exp: 2200/2200, equipment: 13030005, value: 400}
-    - {type: vulcan, index: 15, position: {x: 130, y: -140}, exp: 633/2200, value: 400}
-    - {type: sandworm, index: 16, position: {x: -230, y: -270}, exp: 2000/2000, value: 400}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 345/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 231/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {name: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 956/1000, value: 200}
+    - {name: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 850/1000, value: 200}
+    - {name: crawler, index: 5, position: {x: 290, y: -285}, exp: 91/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 125, y: -190}, exp: 321/450, value: 100}
+    - {name: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 1100/1100, value: 200}
+    - {name: fang, index: 8, position: {x: 150, y: -285}, exp: 62/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: 230, y: -175}, exp: 58/600, rotated: true, value: 100}
+    - {name: overlord, index: 10, position: {x: -255, y: -185}, exp: 1750/1750, equipment: heavy_armor, value: 600}
+    - {name: fang, index: 11, position: {x: -220, y: -185}, exp: 204/600, rotated: true, value: 100}
+    - {name: fang, index: 13, position: {x: -50, y: -165}, exp: 228/600, rotated: true, value: 100}
+    - {name: vulcan, index: 14, position: {x: -190, y: -220}, exp: 2200/2200, equipment: haste_module, value: 400}
+    - {name: vulcan, index: 15, position: {x: 130, y: -140}, exp: 633/2200, value: 400}
+    - {name: sandworm, index: 16, position: {x: -230, y: -270}, exp: 2000/2000, value: 400}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 3220
     supply: 1200
@@ -560,25 +560,25 @@ sides:
       mustang: [missile_interceptor]
       arclight: [range_enhancement]
     formations:
-    - {type: marksman, index: 0, position: {x: -100, y: -170}, level: 2, exp: 851/1465, value: 100}
-    - {type: marksman, index: 1, position: {x: 100, y: -170}, level: 3, exp: 1206/2315, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -120}, level: 2, exp: 192/1465, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 1300/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -55, y: -110}, level: 2, exp: 330/2929, equipment: 13030002, value: 200}
-    - {type: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -155}, exp: 315/450, rotated: true, value: 100}
-    - {type: arclight, index: 7, position: {x: 240, y: -150}, level: 2, exp: 416/1690, value: 100}
-    - {type: arclight, index: 8, position: {x: 140, y: -150}, exp: 750/750, rotated: true, value: 100}
-    - {type: crawler, index: 10, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
-    - {type: arclight, index: 11, position: {x: -140, y: -150}, exp: 750/750, value: 100}
-    - {type: arclight, index: 12, position: {x: -230, y: -150}, exp: 750/750, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -285}, exp: 181/450, rotated: true, value: 100}
-    - {type: marksman, index: 14, position: {x: 210, y: -210}, exp: 26/650, value: 100}
-    - {type: crawler, index: 15, position: {x: 270, y: -185}, exp: 35/450, rotated: true, value: 100}
-    - {type: mustang, index: 16, position: {x: 205, y: -230}, exp: 15/1200, value: 200}
-    - {type: mustang, index: 17, position: {x: 75, y: -210}, exp: 160/1200, value: 200}
+    - {name: marksman, index: 0, position: {x: -100, y: -170}, level: 2, exp: 851/1465, value: 100}
+    - {name: marksman, index: 1, position: {x: 100, y: -170}, level: 3, exp: 1206/2315, value: 100}
+    - {name: marksman, index: 2, position: {x: 0, y: -120}, level: 2, exp: 192/1465, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: 65, y: -120}, exp: 1300/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -55, y: -110}, level: 2, exp: 330/2929, equipment: heavy_armor, value: 200}
+    - {name: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 0, y: -155}, exp: 315/450, rotated: true, value: 100}
+    - {name: arclight, index: 7, position: {x: 240, y: -150}, level: 2, exp: 416/1690, value: 100}
+    - {name: arclight, index: 8, position: {x: 140, y: -150}, exp: 750/750, rotated: true, value: 100}
+    - {name: crawler, index: 10, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
+    - {name: arclight, index: 11, position: {x: -140, y: -150}, exp: 750/750, value: 100}
+    - {name: arclight, index: 12, position: {x: -230, y: -150}, exp: 750/750, value: 100}
+    - {name: crawler, index: 13, position: {x: 290, y: -285}, exp: 181/450, rotated: true, value: 100}
+    - {name: marksman, index: 14, position: {x: 210, y: -210}, exp: 26/650, value: 100}
+    - {name: crawler, index: 15, position: {x: 270, y: -185}, exp: 35/450, rotated: true, value: 100}
+    - {name: mustang, index: 16, position: {x: 205, y: -230}, exp: 15/1200, value: 200}
+    - {name: mustang, index: 17, position: {x: 75, y: -210}, exp: 160/1200, value: 200}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
 kind: action
 round: 6
@@ -632,27 +632,27 @@ sides:
     techs:
       vulcan: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 381/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -140, y: -205}, exp: 262/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
-    - {type: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 1000/1000, value: 200}
-    - {type: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 1000/1000, value: 200}
-    - {type: crawler, index: 5, position: {x: 290, y: -285}, exp: 91/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 125, y: -190}, exp: 321/450, value: 100}
-    - {type: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 1100/1100, value: 200}
-    - {type: fang, index: 8, position: {x: 150, y: -285}, exp: 62/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: 230, y: -175}, exp: 258/600, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: -220, y: -185}, exp: 306/600, rotated: true, value: 100}
-    - {type: fang, index: 13, position: {x: -50, y: -165}, exp: 433/600, rotated: true, value: 100}
-    - {type: vulcan, index: 14, position: {x: -190, y: -220}, level: 2, exp: 1889/5453, equipment: 13030005, value: 400}
-    - {type: vulcan, index: 15, position: {x: 130, y: -140}, exp: 1133/2200, value: 400}
-    - {type: sandworm, index: 16, position: {x: -230, y: -270}, level: 2, exp: 1353/4506, equipment: 13030002, value: 400}
-    - {type: scorpion, index: 17, position: {x: 85, y: -165}, exp: 200/1500, value: 300}
-    - {type: vulcan, index: 18, position: {x: -20, y: -180}, exp: 1692/2200, value: 400}
-    - {type: sandworm, index: 19, position: {x: 200, y: -260}, exp: 1020/2000, value: 400}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 381/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 262/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
+    - {name: steel_ball, index: 3, position: {x: -95, y: -300}, exp: 1000/1000, value: 200}
+    - {name: steel_ball, index: 4, position: {x: -215, y: -300}, exp: 1000/1000, value: 200}
+    - {name: crawler, index: 5, position: {x: 290, y: -285}, exp: 91/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 125, y: -190}, exp: 321/450, value: 100}
+    - {name: stormcaller, index: 7, position: {x: 35, y: -180}, exp: 1100/1100, value: 200}
+    - {name: fang, index: 8, position: {x: 150, y: -285}, exp: 62/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: 230, y: -175}, exp: 258/600, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: -220, y: -185}, exp: 306/600, rotated: true, value: 100}
+    - {name: fang, index: 13, position: {x: -50, y: -165}, exp: 433/600, rotated: true, value: 100}
+    - {name: vulcan, index: 14, position: {x: -190, y: -220}, level: 2, exp: 1889/5453, equipment: haste_module, value: 400}
+    - {name: vulcan, index: 15, position: {x: 130, y: -140}, exp: 1133/2200, value: 400}
+    - {name: sandworm, index: 16, position: {x: -230, y: -270}, level: 2, exp: 1353/4506, equipment: heavy_armor, value: 400}
+    - {name: scorpion, index: 17, position: {x: 85, y: -165}, exp: 200/1500, value: 300}
+    - {name: vulcan, index: 18, position: {x: -20, y: -180}, exp: 1692/2200, value: 400}
+    - {name: sandworm, index: 19, position: {x: 200, y: -260}, exp: 1020/2000, value: 400}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
   red:
     reactor_core: 834
     supply: 1500
@@ -676,26 +676,26 @@ sides:
       arclight: [range_enhancement]
       sandworm: [burrow_maintenance]
     formations:
-    - {type: marksman, index: 0, position: {x: -100, y: -170}, level: 2, exp: 890/1465, value: 100}
-    - {type: marksman, index: 1, position: {x: 100, y: -170}, level: 3, exp: 1473/2315, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -120}, level: 2, exp: 300/1465, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: 65, y: -120}, level: 2, exp: 344/2929, value: 200}
-    - {type: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 6, position: {x: 0, y: -155}, exp: 335/450, rotated: true, value: 100}
-    - {type: arclight, index: 7, position: {x: 240, y: -150}, level: 2, exp: 625/1690, value: 100}
-    - {type: arclight, index: 8, position: {x: 140, y: -150}, exp: 750/750, rotated: true, value: 100}
-    - {type: crawler, index: 10, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
-    - {type: arclight, index: 11, position: {x: -140, y: -150}, exp: 750/750, value: 100}
-    - {type: arclight, index: 12, position: {x: -230, y: -150}, exp: 750/750, value: 100}
-    - {type: crawler, index: 13, position: {x: 290, y: -285}, exp: 198/450, rotated: true, value: 100}
-    - {type: marksman, index: 14, position: {x: 210, y: -210}, exp: 121/650, value: 100}
-    - {type: crawler, index: 15, position: {x: 270, y: -185}, exp: 45/450, rotated: true, value: 100}
-    - {type: mustang, index: 16, position: {x: 205, y: -230}, exp: 81/1200, value: 200}
-    - {type: mustang, index: 17, position: {x: 75, y: -210}, exp: 481/1200, value: 200}
-    - {type: sandworm, index: 18, position: {x: -110, y: -200}, exp: 56/2000, equipment: 13030005, value: 400}
-    - {type: sandworm, index: 19, position: {x: 170, y: -190}, exp: 79/2000, equipment: 13030002, value: 400}
+    - {name: marksman, index: 0, position: {x: -100, y: -170}, level: 2, exp: 890/1465, value: 100}
+    - {name: marksman, index: 1, position: {x: 100, y: -170}, level: 3, exp: 1473/2315, value: 100}
+    - {name: marksman, index: 2, position: {x: 0, y: -120}, level: 2, exp: 300/1465, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: 65, y: -120}, level: 2, exp: 344/2929, value: 200}
+    - {name: crawler, index: 5, position: {x: -80, y: -255}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 6, position: {x: 0, y: -155}, exp: 335/450, rotated: true, value: 100}
+    - {name: arclight, index: 7, position: {x: 240, y: -150}, level: 2, exp: 625/1690, value: 100}
+    - {name: arclight, index: 8, position: {x: 140, y: -150}, exp: 750/750, rotated: true, value: 100}
+    - {name: crawler, index: 10, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
+    - {name: arclight, index: 11, position: {x: -140, y: -150}, exp: 750/750, value: 100}
+    - {name: arclight, index: 12, position: {x: -230, y: -150}, exp: 750/750, value: 100}
+    - {name: crawler, index: 13, position: {x: 290, y: -285}, exp: 198/450, rotated: true, value: 100}
+    - {name: marksman, index: 14, position: {x: 210, y: -210}, exp: 121/650, value: 100}
+    - {name: crawler, index: 15, position: {x: 270, y: -185}, exp: 45/450, rotated: true, value: 100}
+    - {name: mustang, index: 16, position: {x: 205, y: -230}, exp: 81/1200, value: 200}
+    - {name: mustang, index: 17, position: {x: 75, y: -210}, exp: 481/1200, value: 200}
+    - {name: sandworm, index: 18, position: {x: -110, y: -200}, exp: 56/2000, equipment: haste_module, value: 400}
+    - {name: sandworm, index: 19, position: {x: 170, y: -190}, exp: 79/2000, equipment: heavy_armor, value: 400}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
 kind: action
 round: 7

@@ -4,12 +4,12 @@
 
 [TOC]
 
-本文索引列出 build `1.11.1.2.2227` 中可由 `layout.yaml` 的
-`techs.officers` 使用的 ID。名称和效果文本来自游戏官方 English 与简体中文
+本文索引列出 build `1.11.1.2.2227` 中布局或状态在 `officers` 下列出的 Officer；
+文档按 [`config/names.yaml`](../../config/names.yaml) 中英文名的蛇形写法命名。名称和效果文本来自游戏官方 English 与简体中文
 本地化；文中的占位符已经使用序列化的 `OfficerData.descriptionParams` 展开。
 
 Officer 可能派生指挥官技能、装备或额外编队，但这些结果对象不是额外的
-`techs.officers` 条目。`battle_skills` 使用的原生 `CommanderSkillData` 属于
+`officers` 条目。`battle_skills` 使用的原生 `CommanderSkillData` 属于
 另一个 ID 空间。
 
 额外部署位 `10004` 让一回合允许的购买次数加一：拿到的那一回合生效，此后每回合
@@ -18,7 +18,7 @@ Officer 可能派生指挥官技能、装备或额外编队，但这些结果对
 
 `仅测试` 条目确实存在于运行时目录中，此处为完整性而列出，但它们不是普通
 开局或增援候选。派生/内部条目可能由其它布局字段拥有；尤其研发中心的攻防等级
-拥有 `20300`、`20301`、`20310`、`20311`，不得在 `techs.officers` 中重复声明。
+拥有 `20300`、`20301`、`20310`、`20311`，文档通过 `blueprints` 表达，不在 `officers` 中重复声明。
 9 条仅测试数据在 build 2227 本地化资源中没有 English 文本；表内带 `†` 的
 英文名是本文编辑性翻译。
 

@@ -4,26 +4,26 @@ round: 1
 sides:
   blue:
     formations:
-      - type: stormcaller
+      - name: stormcaller
         index: 0
         position: {x: 5, y: -40}
     contraptions:
-      - type: shield
+      - name: shield
         index: 0
         position: {x: 1, y: -81}
-      - type: missile
+      - name: missile
         index: 1
         position: {x: 1, y: -11}
 
   red:
     formations:
-      - type: stormcaller
+      - name: stormcaller
         index: 0
         position: {x: 5, y: -40}
     contraptions:
-      - type: shield
+      - name: shield
         index: 0
         position: {x: 1, y: -81}
-      - type: missile
+      - name: missile
         index: 1
         position: {x: 1, y: -11}

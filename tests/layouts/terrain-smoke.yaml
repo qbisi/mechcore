@@ -4,18 +4,18 @@ round: 1
 sides:
   blue:
     formations:
-      - type: arclight
+      - name: arclight
         index: 0
         position: {x: 0, y: -280}
 
     battle_skills:
-      - type: smoke_bomb
+      - name: smoke_bomb
         positions:
           - {x: -60, y: 40}
           - {x: 60, y: 40}
 
   red:
     formations:
-      - type: sledgehammer
+      - name: sledgehammer
         index: 0
         position: {x: 5, y: -100}

@@ -4,12 +4,12 @@ round: 1
 sides:
   blue:
     formations:
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: 5, y: -100}
 
   red:
     formations:
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: 5, y: -100}

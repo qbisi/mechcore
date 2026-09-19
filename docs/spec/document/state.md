@@ -47,15 +47,14 @@ What the projection drops is everything the fight cannot observe: supply, the
 shop, the reinforcement offer, the allocators, and the parts of the skill panel
 that were not released this round.
 
-Six side fields project unchanged: `formations`, `constructions`,
-`contraptions`, `airdrop_shields`, `terrains` and `tower_strengthen_levels`.
-Four more reach a layout transformed rather than copied straight:
+Eight side fields project unchanged: `officers`, `techs`, `formations`,
+`constructions`, `contraptions`, `airdrop_shields`, `terrains` and
+`tower_strengthen_levels`. Two more reach a layout filtered rather than copied
+straight:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
-| `officers` | `techs.officers` | copied, duplicates included |
-| `techs` | `techs.units` | the per-unit groups, flattened in ascending ID |
-| `blueprints` | `techs.officers` | `4` → `20310`; `401` → `20311`; `5` → `20300`; `501` → `20301` |
+| `blueprints` | `blueprints` | the enhancement chains alone: `4`, `401`, `5`, `501` |
 | `energy_tower_skills` | `energy_tower_skills` | copied, keeping `5` and `6` |
 
 A valid blueprint list cannot hold both levels of one chain, so each chain
@@ -184,8 +183,8 @@ writes all six, empty where it holds nothing.
 
 ```yaml
       formations:
-      - {type: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
-      - {type: hound, index: 9, position: {x: 0, y: -160}, value: 100, movable: true}
+      - {name: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
+      - {name: hound, index: 9, position: {x: 0, y: -160}, value: 100, movable: true}
 ```
 
 `value` is what the side paid for the formation, at the prices its officers made
@@ -395,11 +394,9 @@ Activating a chain blueprint also grants its product officer: `4` grants
 replaces rather than appends, so a side holding the second level lists it alone.
 
 The blueprint list and those officers are two spellings of one fact.
-`blueprints` owns it in a state, and `officers` must not name `20300`,
-`20301`, `20310` or `20311`. A layout spells it the other way: it has no
-blueprint list, so the projection puts the chain's product Officer into
-`techs.officers`, which is the only place a layout says a persistent Officer
-effect.
+`blueprints` owns it, and `officers` must not name `20300`, `20301`, `20310` or
+`20311`. A layout spells it the same way, keeping the chains alone: a blueprint
+that grants a skill reaches a fight only as that skill's release.
 
 #### The energy tower keeps all five
 

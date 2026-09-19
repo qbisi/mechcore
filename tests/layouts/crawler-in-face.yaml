@@ -5,13 +5,13 @@ sides:
   blue:
     formations:
       # The front edge is y=-10, legal only in the standard 300 m-deep region.
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: -5, y: -20}
-        equipment: 13030007
+        equipment: amplifying_core
 
   red:
     formations:
-      - type: crawler
+      - name: crawler
         index: 0
         position: {x: 5, y: -20}

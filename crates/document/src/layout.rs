@@ -81,9 +81,38 @@ pub struct Sides {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Side {
-    #[serde(default, skip_serializing_if = "Techs::is_default")]
-    pub techs: Techs,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// The officers the side holds, by name, a multiset in ascending ID. A
+    /// chain blueprint's officer is not one: `blueprints` states it.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::officer::many"
+    )]
+    #[schemars(with = "Vec<String>")]
+    pub officers: Vec<i32>,
+    /// Unit technologies, written grouped by the unit type they belong to.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::technologies"
+    )]
+    #[schemars(with = "BTreeMap<String, Vec<String>>")]
+    pub techs: Vec<i32>,
+    /// The Research Center's enhancement chains the side holds, by name: the
+    /// blueprints a fight sees. [`crate::catalog::CHAIN_BLUEPRINTS`] lists them.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::blueprint::many"
+    )]
+    #[schemars(with = "Vec<String>")]
+    pub blueprints: Vec<i32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::energy_tower_skill::many"
+    )]
+    #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
@@ -100,25 +129,19 @@ pub struct Side {
     pub battle_skills: Vec<BattleSkillDefinition>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+/// What a compiled side holds of officers and technologies, as the adapter and
+/// the simulator apply them: every officer, a chain blueprint's among them, and
+/// every unit technology.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Techs {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub officers: Vec<i32>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub units: Vec<i32>,
-}
-
-impl Techs {
-    fn is_default(&self) -> bool {
-        self == &Self::default()
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Formation {
-    #[serde(rename = "type")]
+    #[serde(rename = "name")]
     pub type_name: String,
     pub index: i32,
     pub position: Position,
@@ -128,7 +151,12 @@ pub struct Formation {
     pub exp: Option<Experience>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::names::equipment::option"
+    )]
+    #[schemars(with = "Option<String>")]
     pub equipment: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
@@ -222,7 +250,7 @@ impl Experience {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct StaticPlacement {
-    #[serde(rename = "type")]
+    #[serde(rename = "name")]
     pub type_name: String,
     pub index: i32,
     pub position: Position,
@@ -231,7 +259,7 @@ pub struct StaticPlacement {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ContraptionPlacement {
-    #[serde(rename = "type")]
+    #[serde(rename = "name")]
     pub type_name: String,
     pub index: i32,
     pub position: Position,
@@ -240,7 +268,7 @@ pub struct ContraptionPlacement {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct BattleSkillDefinition {
-    #[serde(rename = "type")]
+    #[serde(rename = "name")]
     pub type_name: String,
     pub positions: Vec<Position>,
 }
@@ -274,7 +302,7 @@ pub enum TerrainType {
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Terrain {
-    #[serde(rename = "type")]
+    #[serde(rename = "name")]
     pub terrain_type: TerrainType,
     pub control_points: Vec<Position>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -364,8 +392,9 @@ impl Layout {
     #[must_use]
     pub fn normalized(mut self) -> Self {
         for side in [&mut self.sides.blue, &mut self.sides.red] {
-            side.techs.officers.sort_unstable();
-            side.techs.units.sort_unstable();
+            side.officers.sort_unstable();
+            side.techs.sort_unstable();
+            side.blueprints.sort_unstable();
             side.energy_tower_skills.sort_unstable();
             if side.tower_strengthen_levels.iter().all(|level| *level == 0) {
                 side.tower_strengthen_levels.clear();

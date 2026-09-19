@@ -4018,10 +4018,10 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {"formations": [{
-                    "type": "marksman", "index": 0, "position": {"x": 20, "y": -50}
+                    "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
                 }]},
                 "red": {"formations": [{
-                    "type": "marksman", "index": 0, "position": {"x": 20, "y": -50}
+                    "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
                 }]}
             }
         }))
@@ -4044,16 +4044,16 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"type": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                    "formations": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
-                        "type": "missile_strike",
+                        "name": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"type": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
+                    "formations": [{"name": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
                     "battle_skills": [{
-                        "type": "mobile_beacon",
+                        "name": "mobile_beacon",
                         "positions": [
                             {"x": -55, "y": -60},
                             {"x": -105, "y": -90},

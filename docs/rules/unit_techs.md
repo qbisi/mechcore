@@ -9,8 +9,10 @@ ordinary build `1.11.1.2.2227` cards. Names and effects are the game's official
 English and Simplified Chinese localizations with serialized description
 parameters expanded.
 
-Use the listed ID in `techs.units`. `apply_layout` adds and activates each
-declared technology in array order, then verifies active state. `Base supply`
+A layout or a state names these under their unit in `techs`, by the name
+[`config/names.yaml`](../../config/names.yaml) gives each; the table lists the
+IDs those names stand for. `apply_layout` adds and activates each declared
+technology in ascending ID order, then verifies active state. `Base supply`
 documents the normal-game base price; Training Ground test actions do not make
 that price part of the layout schema.
 

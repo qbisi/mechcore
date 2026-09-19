@@ -9,8 +9,8 @@ sides:
     - {team: fang-sabertooth, specialist: missile_specialist}
     - {team: vortex-mustang, specialist: rhino_specialist}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
     tech_loadout:
       fortress: [barrier, anti_air_barrage, launcher_overload, solid_shot]
       marksman: [electromagnetic_shot, aerial_specialization, range_enhancement, elite_marksman]
@@ -51,8 +51,8 @@ sides:
     - {team: vortex-tarantula, specialist: fire_badger_specialist}
     - {team: marksman-fire_badger, specialist: giant_specialist}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
     tech_loadout:
       fortress: [barrier, anti_air_barrage, armor_enhancement, range_enhancement]
       marksman: [electromagnetic_shot, aerial_specialization, range_enhancement, elite_marksman]
@@ -113,14 +113,14 @@ sides:
     officers:
     - amplify_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
-    - {type: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
-    - {type: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
-    - {type: sledgehammer, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
-    - {type: sledgehammer, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
+    - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
+    - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
+    - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
+    - {name: sledgehammer, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {name: sledgehammer, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
   red:
     reactor_core: 4600
     supply: 300
@@ -133,14 +133,14 @@ sides:
     officers:
     - elite_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
-    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
-    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
-    - {type: sabertooth, index: 3, position: {x: 35, y: -155}, value: 200, movable: true}
-    - {type: sabertooth, index: 4, position: {x: 5, y: -115}, value: 200, movable: true}
+    - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
+    - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
+    - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
+    - {name: sabertooth, index: 3, position: {x: 35, y: -155}, value: 200, movable: true}
+    - {name: sabertooth, index: 4, position: {x: 5, y: -115}, value: 200, movable: true}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 1
@@ -188,15 +188,15 @@ sides:
     officers:
     - amplify_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 37/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 60/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 11/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, exp: 297/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 362/1300, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, exp: 137/750, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, exp: 503/750, equipment: 13030009, value: 100}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 37/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 60/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 11/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, exp: 297/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 362/1300, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, exp: 137/750, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, exp: 503/750, equipment: small_amplifying_core, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   red:
     reactor_core: 4600
     supply: 400
@@ -209,16 +209,16 @@ sides:
     officers:
     - elite_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 42/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 53/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 91/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, exp: 384/1300, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 589/1300, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 281/1690, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 334/1690, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 42/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 53/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 91/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, exp: 384/1300, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 589/1300, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 281/1690, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 334/1690, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 2
@@ -258,19 +258,19 @@ sides:
     officers:
     - amplify_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 52/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 104/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 79/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, exp: 653/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 682/1300, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, exp: 750/750, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, exp: 750/750, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, exp: 670/1300, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 288/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 144/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 29/600, value: 100}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 52/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 104/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 79/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, exp: 653/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 682/1300, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, exp: 750/750, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, exp: 750/750, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, exp: 670/1300, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 288/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 144/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 29/600, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   red:
     reactor_core: 4600
     supply: 600
@@ -283,19 +283,19 @@ sides:
     officers:
     - elite_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 105/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 102/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 184/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, exp: 916/1300, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 1112/1300, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 488/1690, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 499/1690, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, exp: 1021/1200, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 105/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 522/1690, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 105/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 102/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 184/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, exp: 916/1300, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 1112/1300, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 488/1690, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 499/1690, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, exp: 1021/1200, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 105/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 522/1690, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 3
@@ -336,20 +336,20 @@ sides:
     officers:
     - amplify_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 126/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 206/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 143/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, exp: 1300/1300, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 985/1300, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, exp: 750/750, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, level: 2, exp: 761/1690, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, exp: 1137/1300, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 408/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 380/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 120/600, value: 100}
-    - {type: phoenix, index: 11, position: {x: -220, y: -230}, exp: 952/1300, equipment: 13030001, value: 200}
-    - {type: crawler, index: 12, position: {x: -310, y: 245}, exp: 10/450, value: 100}
-    - {type: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 174/1300, value: 200}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 126/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 206/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 143/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, exp: 1300/1300, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 985/1300, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, exp: 750/750, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, level: 2, exp: 761/1690, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, exp: 1137/1300, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 408/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 380/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 120/600, value: 100}
+    - {name: phoenix, index: 11, position: {x: -220, y: -230}, exp: 952/1300, equipment: laser_sights, value: 200}
+    - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 10/450, value: 100}
+    - {name: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 174/1300, value: 200}
   red:
     reactor_core: 4600
     supply: 850
@@ -362,22 +362,22 @@ sides:
     officers:
     - elite_specialist
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 145/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 183/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 307/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, exp: 1300/1300, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 1257/1300, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 826/1690, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 730/1690, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, exp: 1200/1200, equipment: 13030001, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 504/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 999/1690, value: 100}
-    - {type: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 55/1352, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 231/1352, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 182/1352, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 145/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 183/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 307/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, exp: 1300/1300, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 1257/1300, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 826/1690, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 730/1690, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, exp: 1200/1200, equipment: laser_sights, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 504/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 999/1690, value: 100}
+    - {name: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 55/1352, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 231/1352, rotated: true, value: 100}
+    - {name: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 182/1352, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 4
@@ -421,22 +421,22 @@ sides:
     techs:
       arclight: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 145/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 421/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 149/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 590/2929, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 1300/1300, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, level: 2, exp: 601/1690, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, level: 2, exp: 1593/1690, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, exp: 1300/1300, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 438/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 155/600, value: 100}
-    - {type: phoenix, index: 11, position: {x: -220, y: -230}, exp: 1300/1300, equipment: 13030001, value: 200}
-    - {type: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
-    - {type: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 402/1300, value: 200}
-    - {type: arclight, index: 14, position: {x: 10, y: -120}, exp: 750/750, value: 100}
-    - {type: sledgehammer, index: 15, position: {x: -5, y: -90}, exp: 263/1300, value: 200}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 145/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 421/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 149/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 590/2929, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 1300/1300, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, level: 2, exp: 601/1690, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, level: 2, exp: 1593/1690, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, exp: 1300/1300, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 438/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 155/600, value: 100}
+    - {name: phoenix, index: 11, position: {x: -220, y: -230}, exp: 1300/1300, equipment: laser_sights, value: 200}
+    - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
+    - {name: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 402/1300, value: 200}
+    - {name: arclight, index: 14, position: {x: 10, y: -120}, exp: 750/750, value: 100}
+    - {name: sledgehammer, index: 15, position: {x: -5, y: -90}, exp: 263/1300, value: 200}
   red:
     reactor_core: 4600
     supply: 1000
@@ -453,24 +453,24 @@ sides:
     techs:
       hound: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 163/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 342/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 362/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 1279/2929, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 1300/1300, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 1690/1690, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1076/1690, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, level: 2, exp: 1364/2704, equipment: 13030001, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 815/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 1465/1690, value: 100}
-    - {type: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 113/1352, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 411/1352, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 202/1352, rotated: true, value: 100}
-    - {type: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 401/1690, value: 100}
-    - {type: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 757/1014, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 163/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 342/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 362/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 1279/2929, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, exp: 1300/1300, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 2, exp: 1690/1690, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1076/1690, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, level: 2, exp: 1364/2704, equipment: laser_sights, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 815/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 1465/1690, value: 100}
+    - {name: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 113/1352, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 411/1352, rotated: true, value: 100}
+    - {name: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 202/1352, rotated: true, value: 100}
+    - {name: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 401/1690, value: 100}
+    - {name: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 757/1014, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 5
@@ -519,26 +519,26 @@ sides:
       arclight: [range_enhancement]
       wraith: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 184/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 167/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 1044/2929, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 1300/1300, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, level: 2, exp: 1690/1690, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, level: 2, exp: 1690/1690, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 1323/2929, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 462/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 188/600, value: 100}
-    - {type: phoenix, index: 11, position: {x: -220, y: -230}, level: 2, exp: 1198/2929, equipment: 13030001, value: 200}
-    - {type: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
-    - {type: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 426/1300, value: 200}
-    - {type: arclight, index: 14, position: {x: 10, y: -120}, level: 2, exp: 1690/1690, value: 100}
-    - {type: sledgehammer, index: 15, position: {x: -5, y: -90}, exp: 949/1300, value: 200}
-    - {type: wraith, index: 16, position: {x: -155, y: -95}, exp: 2250/2250, value: 300}
-    - {type: wraith, index: 17, position: {x: -275, y: -65}, exp: 1122/2250, value: 300}
-    - {type: crawler, index: 18, position: {x: -275, y: -20}, value: 100}
-    - {type: crawler, index: 19, position: {x: 140, y: -255}, exp: 156/450, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 184/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 167/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 1044/2929, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 1300/1300, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, level: 2, exp: 1690/1690, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, level: 2, exp: 1690/1690, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 1323/2929, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 462/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 188/600, value: 100}
+    - {name: phoenix, index: 11, position: {x: -220, y: -230}, level: 2, exp: 1198/2929, equipment: laser_sights, value: 200}
+    - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
+    - {name: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 426/1300, value: 200}
+    - {name: arclight, index: 14, position: {x: 10, y: -120}, level: 2, exp: 1690/1690, value: 100}
+    - {name: sledgehammer, index: 15, position: {x: -5, y: -90}, exp: 949/1300, value: 200}
+    - {name: wraith, index: 16, position: {x: -155, y: -95}, exp: 2250/2250, value: 300}
+    - {name: wraith, index: 17, position: {x: -275, y: -65}, exp: 1122/2250, value: 300}
+    - {name: crawler, index: 18, position: {x: -275, y: -20}, value: 100}
+    - {name: crawler, index: 19, position: {x: 140, y: -255}, exp: 156/450, rotated: true, value: 100}
   red:
     reactor_core: 4064
     supply: 1200
@@ -557,27 +557,27 @@ sides:
       sandworm: [replicate]
       hound: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 187/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 374/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 1679/2929, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 90/2929, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 338/2671, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1398/1690, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, level: 2, exp: 2704/2704, equipment: 13030001, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1035/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 1690/1690, value: 100}
-    - {type: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 219/1352, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 479/1352, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 232/1352, rotated: true, value: 100}
-    - {type: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 781/1690, value: 100}
-    - {type: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 901/1014, rotated: true, value: 100}
-    - {type: sandworm, index: 15, position: {x: 280, y: -240}, exp: 1307/2000, value: 400}
-    - {type: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 151/1690, value: 100}
-    - {type: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 85/1352, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 187/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 374/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 1679/2929, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 90/2929, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 338/2671, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1398/1690, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, level: 2, exp: 2704/2704, equipment: laser_sights, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1035/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 1690/1690, value: 100}
+    - {name: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 219/1352, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 479/1352, rotated: true, value: 100}
+    - {name: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 232/1352, rotated: true, value: 100}
+    - {name: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 781/1690, value: 100}
+    - {name: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 901/1014, rotated: true, value: 100}
+    - {name: sandworm, index: 15, position: {x: 280, y: -240}, exp: 1307/2000, value: 400}
+    - {name: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 151/1690, value: 100}
+    - {name: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 85/1352, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 6
@@ -632,29 +632,29 @@ sides:
       arclight: [range_enhancement]
       wraith: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 403/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 266/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 1628/2929, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 1300/1300, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, level: 3, exp: 772/2671, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, level: 3, exp: 213/2671, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 1568/2929, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 376/600, value: 100}
-    - {type: phoenix, index: 11, position: {x: -220, y: -230}, level: 2, exp: 1909/2929, equipment: 13030001, value: 200}
-    - {type: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
-    - {type: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 426/1300, value: 200}
-    - {type: arclight, index: 14, position: {x: 10, y: -120}, level: 3, exp: 1700/2671, value: 100}
-    - {type: sledgehammer, index: 15, position: {x: -5, y: -90}, exp: 1300/1300, value: 200}
-    - {type: wraith, index: 16, position: {x: -155, y: -95}, level: 2, exp: 552/5070, value: 300}
-    - {type: wraith, index: 17, position: {x: -275, y: -65}, exp: 1418/2250, value: 300}
-    - {type: crawler, index: 18, position: {x: -275, y: -20}, value: 100}
-    - {type: crawler, index: 19, position: {x: 140, y: -255}, exp: 156/450, rotated: true, value: 100}
-    - {type: crawler, index: 20, position: {x: -310, y: 75}, value: 100}
-    - {type: crawler, index: 21, position: {x: -290, y: -225}, exp: 80/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 22, position: {x: -350, y: 35}, exp: 48/1300, value: 200}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 403/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 266/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 1628/2929, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, exp: 1300/1300, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, level: 3, exp: 772/2671, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, level: 3, exp: 213/2671, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 1568/2929, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 376/600, value: 100}
+    - {name: phoenix, index: 11, position: {x: -220, y: -230}, level: 2, exp: 1909/2929, equipment: laser_sights, value: 200}
+    - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
+    - {name: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 426/1300, value: 200}
+    - {name: arclight, index: 14, position: {x: 10, y: -120}, level: 3, exp: 1700/2671, value: 100}
+    - {name: sledgehammer, index: 15, position: {x: -5, y: -90}, exp: 1300/1300, value: 200}
+    - {name: wraith, index: 16, position: {x: -155, y: -95}, level: 2, exp: 552/5070, value: 300}
+    - {name: wraith, index: 17, position: {x: -275, y: -65}, exp: 1418/2250, value: 300}
+    - {name: crawler, index: 18, position: {x: -275, y: -20}, value: 100}
+    - {name: crawler, index: 19, position: {x: 140, y: -255}, exp: 156/450, rotated: true, value: 100}
+    - {name: crawler, index: 20, position: {x: -310, y: 75}, value: 100}
+    - {name: crawler, index: 21, position: {x: -290, y: -225}, exp: 80/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 22, position: {x: -350, y: 35}, exp: 48/1300, value: 200}
   red:
     reactor_core: 4064
     supply: 1100
@@ -675,29 +675,29 @@ sides:
       sandworm: [replicate]
       hound: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 218/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 450/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 2282/2929, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 141/2929, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 814/2671, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1680/1690, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, level: 3, exp: 2552/4274, equipment: 13030001, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1399/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 1690/1690, value: 100}
-    - {type: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 403/1352, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 685/1352, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 236/1352, rotated: true, value: 100}
-    - {type: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 1514/1690, value: 100}
-    - {type: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 905/1014, rotated: true, value: 100}
-    - {type: sandworm, index: 15, position: {x: 280, y: -240}, exp: 2000/2000, value: 400}
-    - {type: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 256/1690, value: 100}
-    - {type: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 211/1352, rotated: true, value: 100}
-    - {type: farseer, index: 18, position: {x: 245, y: -215}, level: 2, exp: 1284/4056, value: 300}
-    - {type: mustang, index: 19, position: {x: -105, y: -300}, level: 2, exp: 2241/2704, value: 200}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 218/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 450/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 2282/2929, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 141/2929, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 814/2671, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1680/1690, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, level: 3, exp: 2552/4274, equipment: laser_sights, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1399/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 2, exp: 1690/1690, value: 100}
+    - {name: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 403/1352, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 685/1352, rotated: true, value: 100}
+    - {name: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 236/1352, rotated: true, value: 100}
+    - {name: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 1514/1690, value: 100}
+    - {name: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 905/1014, rotated: true, value: 100}
+    - {name: sandworm, index: 15, position: {x: 280, y: -240}, exp: 2000/2000, value: 400}
+    - {name: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 256/1690, value: 100}
+    - {name: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 211/1352, rotated: true, value: 100}
+    - {name: farseer, index: 18, position: {x: 245, y: -215}, level: 2, exp: 1284/4056, value: 300}
+    - {name: mustang, index: 19, position: {x: -105, y: -300}, level: 2, exp: 2241/2704, value: 200}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 7
@@ -746,31 +746,31 @@ sides:
       arclight: [range_enhancement]
       wraith: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 278/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 2040/2929, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, level: 2, exp: 40/2929, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, level: 3, exp: 1942/2671, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, level: 3, exp: 1877/2671, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 1946/2929, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 376/600, value: 100}
-    - {type: phoenix, index: 11, position: {x: -220, y: -230}, level: 2, exp: 2929/2929, equipment: 13030001, value: 200}
-    - {type: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
-    - {type: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 426/1300, value: 200}
-    - {type: arclight, index: 14, position: {x: 10, y: -120}, level: 3, exp: 2671/2671, value: 100}
-    - {type: sledgehammer, index: 15, position: {x: -5, y: -90}, level: 2, exp: 811/2929, value: 200}
-    - {type: wraith, index: 16, position: {x: -155, y: -95}, level: 2, exp: 2877/5070, value: 300}
-    - {type: wraith, index: 17, position: {x: -275, y: -65}, exp: 1856/2250, value: 300}
-    - {type: crawler, index: 18, position: {x: -275, y: -20}, exp: 18/450, value: 100}
-    - {type: crawler, index: 19, position: {x: 140, y: -255}, exp: 216/450, rotated: true, value: 100}
-    - {type: crawler, index: 20, position: {x: -310, y: 75}, exp: 144/450, value: 100}
-    - {type: crawler, index: 21, position: {x: -290, y: -225}, exp: 92/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 22, position: {x: -350, y: 35}, exp: 546/1300, value: 200}
-    - {type: wraith, index: 23, position: {x: -45, y: -95}, level: 2, exp: 3225/5070, value: 300}
-    - {type: sledgehammer, index: 24, position: {x: -275, y: -100}, level: 2, exp: 82/2929, value: 200}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 278/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 2040/2929, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, level: 2, exp: 40/2929, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, level: 3, exp: 1942/2671, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, level: 3, exp: 1877/2671, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 1946/2929, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 376/600, value: 100}
+    - {name: phoenix, index: 11, position: {x: -220, y: -230}, level: 2, exp: 2929/2929, equipment: laser_sights, value: 200}
+    - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
+    - {name: sledgehammer, index: 13, position: {x: -350, y: 285}, exp: 426/1300, value: 200}
+    - {name: arclight, index: 14, position: {x: 10, y: -120}, level: 3, exp: 2671/2671, value: 100}
+    - {name: sledgehammer, index: 15, position: {x: -5, y: -90}, level: 2, exp: 811/2929, value: 200}
+    - {name: wraith, index: 16, position: {x: -155, y: -95}, level: 2, exp: 2877/5070, value: 300}
+    - {name: wraith, index: 17, position: {x: -275, y: -65}, exp: 1856/2250, value: 300}
+    - {name: crawler, index: 18, position: {x: -275, y: -20}, exp: 18/450, value: 100}
+    - {name: crawler, index: 19, position: {x: 140, y: -255}, exp: 216/450, rotated: true, value: 100}
+    - {name: crawler, index: 20, position: {x: -310, y: 75}, exp: 144/450, value: 100}
+    - {name: crawler, index: 21, position: {x: -290, y: -225}, exp: 92/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 22, position: {x: -350, y: 35}, exp: 546/1300, value: 200}
+    - {name: wraith, index: 23, position: {x: -45, y: -95}, level: 2, exp: 3225/5070, value: 300}
+    - {name: sledgehammer, index: 24, position: {x: -275, y: -100}, level: 2, exp: 82/2929, value: 200}
   red:
     reactor_core: 4064
     supply: 1600
@@ -791,31 +791,31 @@ sides:
       sandworm: [burrow_maintenance, replicate]
       hound: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 239/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, exp: 450/450, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 2802/2929, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 178/2929, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 1194/2671, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1690/1690, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, level: 3, exp: 4274/4274, equipment: 13030001, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1532/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 3, exp: 516/2671, value: 100}
-    - {type: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 407/1352, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 727/1352, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 253/1352, rotated: true, value: 100}
-    - {type: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 1690/1690, value: 100}
-    - {type: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
-    - {type: sandworm, index: 15, position: {x: 280, y: -240}, level: 2, exp: 4074/4506, equipment: 1306002, value: 400}
-    - {type: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 411/1690, value: 100}
-    - {type: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 251/1352, rotated: true, value: 100}
-    - {type: farseer, index: 18, position: {x: 245, y: -215}, level: 2, exp: 4056/4056, value: 300}
-    - {type: mustang, index: 19, position: {x: -105, y: -300}, level: 2, exp: 2704/2704, value: 200}
-    - {type: fang, index: 20, position: {x: 270, y: -135}, level: 2, exp: 172/1352, rotated: true, value: 100}
-    - {type: crawler, index: 21, position: {x: -155, y: -300}, level: 2, exp: 141/1014, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 239/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 450/450, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 2802/2929, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 178/2929, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 1194/2671, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 2, exp: 1690/1690, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, level: 3, exp: 4274/4274, equipment: laser_sights, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1532/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 3, exp: 516/2671, value: 100}
+    - {name: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 407/1352, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 727/1352, rotated: true, value: 100}
+    - {name: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 253/1352, rotated: true, value: 100}
+    - {name: hound, index: 13, position: {x: 280, y: -190}, level: 2, exp: 1690/1690, value: 100}
+    - {name: crawler, index: 14, position: {x: -260, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
+    - {name: sandworm, index: 15, position: {x: 280, y: -240}, level: 2, exp: 4074/4506, equipment: mustang_production_line, value: 400}
+    - {name: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 411/1690, value: 100}
+    - {name: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 251/1352, rotated: true, value: 100}
+    - {name: farseer, index: 18, position: {x: 245, y: -215}, level: 2, exp: 4056/4056, value: 300}
+    - {name: mustang, index: 19, position: {x: -105, y: -300}, level: 2, exp: 2704/2704, value: 200}
+    - {name: fang, index: 20, position: {x: 270, y: -135}, level: 2, exp: 172/1352, rotated: true, value: 100}
+    - {name: crawler, index: 21, position: {x: -155, y: -300}, level: 2, exp: 141/1014, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 8
@@ -890,33 +890,33 @@ sides:
       wraith: [range_enhancement]
       phantom_ray: [armor_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: -230, y: -135}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
-    - {type: crawler, index: 2, position: {x: -100, y: -135}, exp: 372/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 2929/2929, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -230, y: -85}, level: 2, exp: 360/2929, rotated: true, value: 200}
-    - {type: arclight, index: 5, position: {x: -60, y: -120}, level: 3, exp: 2671/2671, equipment: 13030009, value: 100}
-    - {type: arclight, index: 6, position: {x: -190, y: -120}, level: 3, exp: 2671/2671, equipment: 13030009, value: 100}
-    - {type: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 2929/2929, equipment: 13030009, value: 200}
-    - {type: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 9, position: {x: -60, y: -55}, exp: 600/600, rotated: true, value: 100}
-    - {type: fang, index: 10, position: {x: -215, y: -40}, exp: 600/600, value: 100}
-    - {type: phoenix, index: 11, position: {x: -220, y: -230}, level: 3, exp: 4562/4630, equipment: 13030001, value: 200}
-    - {type: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
-    - {type: arclight, index: 14, position: {x: 10, y: -120}, level: 4, exp: 2050/3368, value: 100}
-    - {type: sledgehammer, index: 15, position: {x: -5, y: -90}, level: 2, exp: 2171/2929, value: 200}
-    - {type: wraith, index: 16, position: {x: -155, y: -95}, level: 2, exp: 5070/5070, value: 300}
-    - {type: wraith, index: 17, position: {x: -275, y: -65}, exp: 2250/2250, value: 300}
-    - {type: crawler, index: 18, position: {x: -275, y: -20}, exp: 81/450, value: 100}
-    - {type: crawler, index: 19, position: {x: 140, y: -255}, exp: 406/450, rotated: true, value: 100}
-    - {type: crawler, index: 20, position: {x: -310, y: 75}, exp: 324/450, value: 100}
-    - {type: crawler, index: 21, position: {x: -290, y: -225}, exp: 162/450, rotated: true, value: 100}
-    - {type: sledgehammer, index: 22, position: {x: -350, y: 35}, exp: 939/1300, value: 200}
-    - {type: wraith, index: 23, position: {x: -45, y: -95}, level: 2, exp: 5070/5070, value: 300}
-    - {type: sledgehammer, index: 24, position: {x: -275, y: -100}, level: 2, exp: 224/2929, value: 200}
-    - {type: phantom_ray, index: 25, position: {x: 275, y: -50}, level: 2, exp: 2253/2253, value: 200}
-    - {type: phantom_ray, index: 26, position: {x: 275, y: -70}, level: 2, exp: 1678/2253, value: 200}
-    - {type: crawler, index: 27, position: {x: 275, y: -20}, level: 2, exp: 63/1014, value: 100}
+    - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
+    - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 372/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 3, position: {x: -105, y: -100}, level: 2, exp: 2929/2929, value: 200}
+    - {name: sledgehammer, index: 4, position: {x: -230, y: -85}, level: 2, exp: 360/2929, rotated: true, value: 200}
+    - {name: arclight, index: 5, position: {x: -60, y: -120}, level: 3, exp: 2671/2671, equipment: small_amplifying_core, value: 100}
+    - {name: arclight, index: 6, position: {x: -190, y: -120}, level: 3, exp: 2671/2671, equipment: small_amplifying_core, value: 100}
+    - {name: phoenix, index: 7, position: {x: -110, y: -270}, level: 2, exp: 2929/2929, equipment: small_amplifying_core, value: 200}
+    - {name: fang, index: 8, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 9, position: {x: -60, y: -55}, exp: 600/600, rotated: true, value: 100}
+    - {name: fang, index: 10, position: {x: -215, y: -40}, exp: 600/600, value: 100}
+    - {name: phoenix, index: 11, position: {x: -220, y: -230}, level: 3, exp: 4562/4630, equipment: laser_sights, value: 200}
+    - {name: crawler, index: 12, position: {x: -310, y: 245}, exp: 46/450, value: 100}
+    - {name: arclight, index: 14, position: {x: 10, y: -120}, level: 4, exp: 2050/3368, value: 100}
+    - {name: sledgehammer, index: 15, position: {x: -5, y: -90}, level: 2, exp: 2171/2929, value: 200}
+    - {name: wraith, index: 16, position: {x: -155, y: -95}, level: 2, exp: 5070/5070, value: 300}
+    - {name: wraith, index: 17, position: {x: -275, y: -65}, exp: 2250/2250, value: 300}
+    - {name: crawler, index: 18, position: {x: -275, y: -20}, exp: 81/450, value: 100}
+    - {name: crawler, index: 19, position: {x: 140, y: -255}, exp: 406/450, rotated: true, value: 100}
+    - {name: crawler, index: 20, position: {x: -310, y: 75}, exp: 324/450, value: 100}
+    - {name: crawler, index: 21, position: {x: -290, y: -225}, exp: 162/450, rotated: true, value: 100}
+    - {name: sledgehammer, index: 22, position: {x: -350, y: 35}, exp: 939/1300, value: 200}
+    - {name: wraith, index: 23, position: {x: -45, y: -95}, level: 2, exp: 5070/5070, value: 300}
+    - {name: sledgehammer, index: 24, position: {x: -275, y: -100}, level: 2, exp: 224/2929, value: 200}
+    - {name: phantom_ray, index: 25, position: {x: 275, y: -50}, level: 2, exp: 2253/2253, value: 200}
+    - {name: phantom_ray, index: 26, position: {x: 275, y: -70}, level: 2, exp: 1678/2253, value: 200}
+    - {name: crawler, index: 27, position: {x: 275, y: -20}, level: 2, exp: 63/1014, value: 100}
   red:
     reactor_core: 3562
     supply: 1800
@@ -939,33 +939,33 @@ sides:
       sandworm: [burrow_maintenance, replicate]
       hound: [range_enhancement]
     formations:
-    - {type: crawler, index: 0, position: {x: 0, y: -285}, exp: 255/450, rotated: true, value: 100}
-    - {type: crawler, index: 1, position: {x: 155, y: -300}, level: 2, exp: 19/1014, value: 100}
-    - {type: crawler, index: 2, position: {x: 140, y: -225}, level: 2, exp: 46/1014, rotated: true, value: 100}
-    - {type: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 2929/2929, value: 200}
-    - {type: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 252/2929, value: 200}
-    - {type: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 1499/2671, value: 100}
-    - {type: hound, index: 6, position: {x: 70, y: -190}, level: 3, exp: 245/2671, value: 100}
-    - {type: mustang, index: 7, position: {x: 105, y: -300}, level: 4, exp: 5388/5388, equipment: 13030001, value: 200}
-    - {type: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1690/1690, value: 100}
-    - {type: hound, index: 9, position: {x: 210, y: -190}, level: 3, exp: 1106/2671, value: 100}
-    - {type: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 513/1352, rotated: true, value: 100}
-    - {type: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 795/1352, rotated: true, value: 100}
-    - {type: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 256/1352, rotated: true, value: 100}
-    - {type: hound, index: 13, position: {x: 280, y: -190}, level: 3, exp: 752/2671, value: 100}
-    - {type: crawler, index: 14, position: {x: -260, y: -285}, level: 3, exp: 159/1603, rotated: true, value: 100}
-    - {type: sandworm, index: 15, position: {x: 280, y: -240}, level: 2, exp: 4506/4506, equipment: 1306002, value: 400}
-    - {type: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 457/1690, value: 100}
-    - {type: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 323/1352, rotated: true, value: 100}
-    - {type: farseer, index: 18, position: {x: 245, y: -215}, level: 3, exp: 901/6411, value: 300}
-    - {type: mustang, index: 19, position: {x: -105, y: -300}, level: 3, exp: 393/4274, value: 200}
-    - {type: fang, index: 20, position: {x: 270, y: -135}, level: 2, exp: 311/1352, rotated: true, value: 100}
-    - {type: crawler, index: 21, position: {x: -155, y: -300}, level: 2, exp: 198/1014, value: 100}
-    - {type: crawler, index: 22, position: {x: -350, y: 285}, level: 2, exp: 1014/1014, value: 100}
-    - {type: crawler, index: 23, position: {x: 80, y: -225}, level: 2, exp: 15/1014, rotated: true, value: 100}
+    - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 255/450, rotated: true, value: 100}
+    - {name: crawler, index: 1, position: {x: 155, y: -300}, level: 2, exp: 19/1014, value: 100}
+    - {name: crawler, index: 2, position: {x: 140, y: -225}, level: 2, exp: 46/1014, rotated: true, value: 100}
+    - {name: sabertooth, index: 3, position: {x: 175, y: -165}, level: 2, exp: 2929/2929, value: 200}
+    - {name: sabertooth, index: 4, position: {x: 105, y: -165}, level: 2, exp: 252/2929, value: 200}
+    - {name: hound, index: 5, position: {x: 140, y: -190}, level: 3, exp: 1499/2671, value: 100}
+    - {name: hound, index: 6, position: {x: 70, y: -190}, level: 3, exp: 245/2671, value: 100}
+    - {name: mustang, index: 7, position: {x: 105, y: -300}, level: 4, exp: 5388/5388, equipment: laser_sights, value: 200}
+    - {name: hound, index: 8, position: {x: -140, y: -190}, level: 2, exp: 1690/1690, value: 100}
+    - {name: hound, index: 9, position: {x: 210, y: -190}, level: 3, exp: 1106/2671, value: 100}
+    - {name: fang, index: 10, position: {x: 180, y: -205}, level: 2, exp: 513/1352, rotated: true, value: 100}
+    - {name: fang, index: 11, position: {x: 100, y: -205}, level: 2, exp: 795/1352, rotated: true, value: 100}
+    - {name: fang, index: 12, position: {x: -140, y: -225}, level: 2, exp: 256/1352, rotated: true, value: 100}
+    - {name: hound, index: 13, position: {x: 280, y: -190}, level: 3, exp: 752/2671, value: 100}
+    - {name: crawler, index: 14, position: {x: -260, y: -285}, level: 3, exp: 159/1603, rotated: true, value: 100}
+    - {name: sandworm, index: 15, position: {x: 280, y: -240}, level: 2, exp: 4506/4506, equipment: mustang_production_line, value: 400}
+    - {name: hound, index: 16, position: {x: 0, y: -190}, level: 2, exp: 457/1690, value: 100}
+    - {name: fang, index: 17, position: {x: 0, y: -225}, level: 2, exp: 323/1352, rotated: true, value: 100}
+    - {name: farseer, index: 18, position: {x: 245, y: -215}, level: 3, exp: 901/6411, value: 300}
+    - {name: mustang, index: 19, position: {x: -105, y: -300}, level: 3, exp: 393/4274, value: 200}
+    - {name: fang, index: 20, position: {x: 270, y: -135}, level: 2, exp: 311/1352, rotated: true, value: 100}
+    - {name: crawler, index: 21, position: {x: -155, y: -300}, level: 2, exp: 198/1014, value: 100}
+    - {name: crawler, index: 22, position: {x: -350, y: 285}, level: 2, exp: 1014/1014, value: 100}
+    - {name: crawler, index: 23, position: {x: 80, y: -225}, level: 2, exp: 15/1014, rotated: true, value: 100}
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 ---
 kind: action
 round: 9

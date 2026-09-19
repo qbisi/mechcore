@@ -4,76 +4,80 @@ round: 1
 sides:
   blue:
     techs:
-      officers: [20300, 20311]
-      units: [10202, 10213]
+      marksman: [range_enhancement]
+      sledgehammer: [range_enhancement]
+    blueprints: [defense_enhancement, attack_enhancement_ii]
 
     tower_strengthen_levels: [2, 0]
 
     formations:
-      - type: sledgehammer
+      - name: sledgehammer
         index: 0
         position: {x: -55, y: -60}
-      - type: sledgehammer
+      - name: sledgehammer
         index: 1
         position: {x: 55, y: -60}
-      - type: crawler
+      - name: crawler
         index: 2
         position: {x: -55, y: -100}
-      - type: crawler
+      - name: crawler
         index: 3
         position: {x: 55, y: -100}
-      - type: marksman
+      - name: marksman
         index: 4
         position: {x: -90, y: -140}
-      - type: marksman
+      - name: marksman
         index: 5
         position: {x: 0, y: -140}
-      - type: marksman
+      - name: marksman
         index: 6
         position: {x: 90, y: -140}
 
     battle_skills:
-      - type: missile_strike
+      - name: missile_strike
         positions:
           - {x: 55, y: 60}
 
   red:
+    officers:
+    - improved_wasp
     techs:
-      officers: [30602]
-      units: [10206, 10209, 10215]
+      wasp: [range_enhancement]
+      fang: [range_enhancement]
+      arclight: [range_enhancement]
 
-    energy_tower_skills: [5, 6]
+    energy_tower_skills: [enhanced_range, high_mobility]
     tower_strengthen_levels: [0, 1]
 
     formations:
-      - type: fang
+      - name: fang
         index: 0
         position: {x: -55, y: -60}
-      - type: fang
+      - name: fang
         index: 1
         position: {x: 55, y: -60}
-      - type: wasp
+      - name: wasp
         index: 2
         position: {x: -60, y: -95}
         level: 2
         rotated: true
-      - type: wasp
+      - name: wasp
         index: 3
         position: {x: 60, y: -95}
         level: 2
         rotated: true
-      - type: arclight
+      - name: arclight
         index: 4
         position: {x: -90, y: -140}
-      - type: arclight
+      - name: arclight
         index: 5
         position: {x: 0, y: -140}
-      - type: arclight
+      - name: arclight
         index: 6
         position: {x: 90, y: -140}
 
     battle_skills:
-      - type: mobile_beacon
+      - name: mobile_beacon
         positions:
           - {x: -55, y: -60}
           - {x: -105, y: -90}

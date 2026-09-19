@@ -4,12 +4,12 @@ round: 1
 sides:
   blue:
     formations:
-      - type: sledgehammer
+      - name: sledgehammer
         index: 0
         position: {x: 285, y: -60}
 
   red:
     formations:
-      - type: marksman
+      - name: marksman
         index: 0
         position: {x: 0, y: -50}

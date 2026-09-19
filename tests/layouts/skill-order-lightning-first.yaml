@@ -4,32 +4,32 @@ round: 1
 sides:
   blue:
     formations:
-    - {type: crawler, index: 0, position: {x: -55, y: -250}}
-    - {type: crawler, index: 1, position: {x: 5, y: -250}}
-    - {type: crawler, index: 2, position: {x: 65, y: -250}}
-    - {type: crawler, index: 3, position: {x: -55, y: -230}}
-    - {type: crawler, index: 4, position: {x: 5, y: -230}}
-    - {type: crawler, index: 5, position: {x: 65, y: -230}}
-    - {type: crawler, index: 6, position: {x: -55, y: -210}}
-    - {type: crawler, index: 7, position: {x: 5, y: -210}}
-    - {type: crawler, index: 8, position: {x: 65, y: -210}}
-    - {type: crawler, index: 9, position: {x: -55, y: -190}}
-    - {type: crawler, index: 10, position: {x: 5, y: -190}}
-    - {type: crawler, index: 11, position: {x: 65, y: -190}}
+    - {name: crawler, index: 0, position: {x: -55, y: -250}}
+    - {name: crawler, index: 1, position: {x: 5, y: -250}}
+    - {name: crawler, index: 2, position: {x: 65, y: -250}}
+    - {name: crawler, index: 3, position: {x: -55, y: -230}}
+    - {name: crawler, index: 4, position: {x: 5, y: -230}}
+    - {name: crawler, index: 5, position: {x: 65, y: -230}}
+    - {name: crawler, index: 6, position: {x: -55, y: -210}}
+    - {name: crawler, index: 7, position: {x: 5, y: -210}}
+    - {name: crawler, index: 8, position: {x: 65, y: -210}}
+    - {name: crawler, index: 9, position: {x: -55, y: -190}}
+    - {name: crawler, index: 10, position: {x: 5, y: -190}}
+    - {name: crawler, index: 11, position: {x: 65, y: -190}}
     battle_skills:
-    - {type: lightning_storm, positions: [{x: 20, y: 150}]}
-    - {type: orbital_bombardment, positions: [{x: -20, y: 140}]}
+    - {name: lightning_storm, positions: [{x: 20, y: 150}]}
+    - {name: orbital_bombardment, positions: [{x: -20, y: 140}]}
   red:
     formations:
-    - {type: crawler, index: 0, position: {x: -55, y: -170}}
-    - {type: crawler, index: 1, position: {x: 5, y: -170}}
-    - {type: crawler, index: 2, position: {x: 65, y: -170}}
-    - {type: crawler, index: 3, position: {x: -55, y: -150}}
-    - {type: crawler, index: 4, position: {x: 5, y: -150}}
-    - {type: crawler, index: 5, position: {x: 65, y: -150}}
-    - {type: crawler, index: 6, position: {x: -55, y: -130}}
-    - {type: crawler, index: 7, position: {x: 5, y: -130}}
-    - {type: crawler, index: 8, position: {x: 65, y: -130}}
-    - {type: crawler, index: 9, position: {x: -55, y: -110}}
-    - {type: crawler, index: 10, position: {x: 5, y: -110}}
-    - {type: crawler, index: 11, position: {x: 65, y: -110}}
+    - {name: crawler, index: 0, position: {x: -55, y: -170}}
+    - {name: crawler, index: 1, position: {x: 5, y: -170}}
+    - {name: crawler, index: 2, position: {x: 65, y: -170}}
+    - {name: crawler, index: 3, position: {x: -55, y: -150}}
+    - {name: crawler, index: 4, position: {x: 5, y: -150}}
+    - {name: crawler, index: 5, position: {x: 65, y: -150}}
+    - {name: crawler, index: 6, position: {x: -55, y: -130}}
+    - {name: crawler, index: 7, position: {x: 5, y: -130}}
+    - {name: crawler, index: 8, position: {x: 65, y: -130}}
+    - {name: crawler, index: 9, position: {x: -55, y: -110}}
+    - {name: crawler, index: 10, position: {x: 5, y: -110}}
+    - {name: crawler, index: 11, position: {x: 65, y: -110}}

@@ -52,14 +52,16 @@ configuration parameters substituted.
 | 1200004 | `mobilize_battleship` | Mobilize Battleship | 1 | yes | Summons 1 Overlord to attack the enemy |
 | 1200005 | `vulcans_descent` | Vulcan's Descent | 1 | yes | Airdrops 1 Vulcan to attack the enemy |
 | 1500001 | `mobile_beacon` | Mobile Beacon | 3 | no | Designates the movement path of selected units |
-| 1500002 | `mobile_beacon` | Mobile Beacon | 3 | yes | Designates the movement path of selected units |
+| 1500002 | `mobile_beacon_card` | Mobile Beacon | 3 | yes | Designates the movement path of selected units |
 
 Mobile Beacon has two independent standard-1v1 sources: `1500001` is granted
 by Research Center Blueprint 3, while `1500002` is granted by the ordinary
 reinforcement card. Activating the Blueprint does not exclude the reinforcement
 card, and the native skill manager does not deduplicate them by ID or name, so
-both objects may coexist. The compiler retains both mappings and uses `1500002`
-as the canonical ID when a layout declares only `type: mobile_beacon`.
+both objects may coexist. A document names them apart, as
+[`config/names.yaml`](../../config/names.yaml) does: the Blueprint's is
+`mobile_beacon` and the card's `mobile_beacon_card`, and the compiler maps each
+name to its own ID. The two share one path and one cooldown.
 
 ## Effect geometry and target regions
 
@@ -88,7 +90,7 @@ universally visible effect radius. Their meaning depends on the skill geometry.
 | `wasp_swarm` | support circle | 25 | 25 | summon |
 | `mobilize_battleship` | support circle | 25 | 25 | summon |
 | `vulcans_descent` | support circle | 25 | 25 | summon |
-| `mobile_beacon` | path | 200 | 40 | contained |
+| `mobile_beacon`, `mobile_beacon_card` | path | 200 | 40 | contained |
 
 The layout map rules have the following precise meanings:
 

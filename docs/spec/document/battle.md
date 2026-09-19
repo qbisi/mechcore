@@ -176,8 +176,8 @@ part of it that differs between matches.
 ```yaml
   blue:
     constructions:
-    - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
-    - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+    - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+    - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
 ```
 
 The map rolls a construction layout and deals it to both sides before the first
@@ -581,7 +581,7 @@ down the page than across it. An empty list is still written `[]`.
       unlocks_remaining: 1
     next_index: {unit: 7, contraption: 0}
     formations:
-    - {type: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
+    - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
 ```
 
 Actions, formations and ID lists are what a battle holds by the thousand, and one
