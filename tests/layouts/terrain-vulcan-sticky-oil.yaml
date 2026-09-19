@@ -6,13 +6,13 @@ sides:
     techs:
       vulcan: [sticky_oil_bomb]
 
-    formations:
+    units:
       - name: vulcan
         index: 0
         position: {x: 0, y: -80}
 
   red:
-    formations:
+    units:
       - name: crawler
         index: 0
         position: {x: -45, y: -60}

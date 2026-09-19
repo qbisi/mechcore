@@ -110,7 +110,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -130,7 +130,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -183,7 +183,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 376/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 16/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 6/450, rotated: true, value: 100}
@@ -207,7 +207,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 38/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 366/750, value: 100}
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 52/750, value: 100}
@@ -257,7 +257,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 88/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 28/450, rotated: true, value: 100}
@@ -283,7 +283,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 264/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 474/750, value: 100}
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 231/750, value: 100}
@@ -333,7 +333,7 @@ sides:
     next_index: {unit: 14, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 112/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 49/450, rotated: true, value: 100}
@@ -362,7 +362,7 @@ sides:
     officers:
     - quick_teleport
     - speed_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 594/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 711/750, value: 100}
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 569/750, value: 100}
@@ -415,7 +415,7 @@ sides:
     officers:
     - training_specialist
     - supply_enhancement
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 335/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 97/450, rotated: true, value: 100}
@@ -445,7 +445,7 @@ sides:
     officers:
     - quick_teleport
     - speed_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 643/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 608/750, value: 100}
@@ -514,7 +514,7 @@ sides:
     techs:
       wasp: [energy_shield]
       abyss: [swarm_missiles]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 354/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 110/450, rotated: true, value: 100}
@@ -549,7 +549,7 @@ sides:
     - speed_specialist
     techs:
       void_eye: [aerial_mode]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 717/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 639/750, value: 100}
@@ -630,7 +630,7 @@ sides:
     techs:
       wasp: [energy_shield, range_enhancement]
       abyss: [swarm_missiles]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 372/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 161/450, rotated: true, value: 100}
@@ -668,7 +668,7 @@ sides:
     techs:
       mustang: [aerial_specialization]
       void_eye: [aerial_mode]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 731/750, value: 100}
     - {name: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1360/1500, value: 200}
@@ -760,7 +760,7 @@ sides:
       rhino: [armor_enhancement]
       wasp: [energy_shield, range_enhancement]
       abyss: [swarm_missiles]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -220, y: -35}, exp: 450/450, rotated: true, value: 100}
@@ -800,7 +800,7 @@ sides:
     techs:
       mustang: [aerial_specialization, missile_interceptor]
       void_eye: [aerial_mode]
-    formations:
+    units:
     - {name: vortex, index: 2, position: {x: 120, y: -90}, exp: 744/750, value: 100}
     - {name: tarantula, index: 3, position: {x: 85, y: -75}, exp: 1417/1500, value: 200}
     - {name: tarantula, index: 4, position: {x: 195, y: -75}, exp: 1500/1500, value: 200}

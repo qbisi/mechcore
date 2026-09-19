@@ -413,16 +413,13 @@ impl Dealer {
             context.officers.extend(side.officers.iter());
             let delivered = delivered_before(economy, side, turn.round)?;
             for formation in side
-                .formations
+                .units
                 .iter()
-                .filter(|entry| entry.formation.index < delivered)
+                .filter(|entry| entry.unit.index < delivered)
             {
-                let native = resolve_unit_type(&formation.formation.type_name)
+                let native = resolve_unit_type(&formation.unit.type_name)
                     .ok_or_else(|| {
-                        format!(
-                            "unknown reinforcement unit {}",
-                            formation.formation.type_name
-                        )
+                        format!("unknown reinforcement unit {}", formation.unit.type_name)
                     })?
                     .native;
                 let NativeFormation::Unit(unit) = native else {

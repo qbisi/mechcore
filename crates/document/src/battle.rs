@@ -6,7 +6,7 @@
 //! and `docs/spec/document/action.md` define the two segment shapes. Filling
 //! one from a replay is [`crate::convert`].
 
-use crate::layout::{ContraptionPlacement, Formation, Position, StaticPlacement, Terrain};
+use crate::layout::{ContraptionPlacement, Position, StaticPlacement, Terrain, UnitPlacement};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::borrow::Cow;
@@ -168,7 +168,7 @@ pub struct SideState {
         with = "crate::names::technologies"
     )]
     pub techs: Vec<i32>,
-    pub formations: Vec<StateFormation>,
+    pub units: Vec<StateUnit>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -196,9 +196,9 @@ pub struct ShopState {
 /// looking formations bought a round apart can be worth different amounts.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct StateFormation {
+pub struct StateUnit {
     #[serde(flatten)]
-    pub formation: Formation,
+    pub unit: UnitPlacement,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<i32>,
     /// Whether the side may move the formation this round.
@@ -1091,7 +1091,7 @@ mod tests {
     fn a_state_refuses_a_field_it_does_not_define() {
         let formation = "{name: crawler, index: 0, position: {x: 0, y: -160}, value: 100}";
         let read =
-            |formation: &str| serde_yaml::from_str::<super::StateFormation>(formation).map(|_| ());
+            |formation: &str| serde_yaml::from_str::<super::StateUnit>(formation).map(|_| ());
         read(formation).unwrap();
         for broken in [
             formation.replace("value: 100", "value: 100, typo: 1"),
@@ -1228,16 +1228,16 @@ mod tests {
     /// tagged release target included.
     #[test]
     fn a_segment_is_spelled_by_shape() {
-        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    formations:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    formations:\n    - type: release_commander_skill\n      target: !area\n      - x: 197\n        y: -40\n    - type: concede\n";
+        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    units:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    units:\n    - type: release_commander_skill\n      target: !area\n      - x: 197\n        y: -40\n    - type: concede\n";
         let value: serde_yaml::Value = serde_yaml::from_str(block).unwrap();
         let spelled = crate::spelling::document(&value).unwrap();
         assert_eq!(
             spelled,
             "kind: state\nround: 3\nreinforce_offers: [1033115, 1031122]\nsides:\n  blue:\n\
              \x20   shop:\n      unlocked_units: [2, 10]\n      buys_remaining: 2\n\
-             \x20   next_index: {unit: 7, contraption: 0}\n    formations:\n\
+             \x20   next_index: {unit: 7, contraption: 0}\n    units:\n\
              \x20   - {type: vortex, index: 0, position: {x: -120, y: -100}}\n\
-             \x20   constructions: []\n  red:\n    formations:\n\
+             \x20   constructions: []\n  red:\n    units:\n\
              \x20   - {type: release_commander_skill, target: !area [{x: 197, y: -40}]}\n\
              \x20   - {type: concede}\n"
         );

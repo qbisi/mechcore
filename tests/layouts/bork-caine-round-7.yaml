@@ -13,7 +13,7 @@ sides:
       vortex: [grid_integration, mobile_power_station, emergency_armor]
     blueprints: [defense_enhancement, attack_enhancement_ii]
     energy_tower_skills: [enhanced_range]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 314/750}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, level: 2, exp: 482/1690}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, level: 2, exp: 447/1690}
@@ -54,7 +54,7 @@ sides:
       phantom_ray: [stealth_cloak]
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [1, 1]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, level: 2, exp: 1231/1690}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, level: 2, exp: 1670/1690}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, level: 2, exp: 308/1690}

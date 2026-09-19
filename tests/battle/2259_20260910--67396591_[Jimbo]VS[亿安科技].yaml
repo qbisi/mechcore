@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -175,7 +175,7 @@ sides:
     next_index: {unit: 6, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 119/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 195/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 157/650, value: 100}
@@ -199,7 +199,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -105}, exp: 34/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 227/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 401/450, rotated: true, value: 100}
@@ -242,7 +242,7 @@ sides:
     - speed_specialist
     techs:
       sabertooth: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 237/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 351/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 272/650, value: 100}
@@ -269,7 +269,7 @@ sides:
     - elite_specialist
     techs:
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -105}, exp: 158/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -319,7 +319,7 @@ sides:
     techs:
       sabertooth: [range_enhancement]
       tarantula: [spider_mine]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 483/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 372/650, value: 100}
@@ -351,7 +351,7 @@ sides:
     techs:
       mustang: [aerial_specialization]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 357/1014, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 143/1014, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, exp: 1200/1200, rotated: true, value: 200}
@@ -405,7 +405,7 @@ sides:
       sabertooth: [range_enhancement]
       tarantula: [spider_mine]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 390/650, value: 100}
@@ -441,7 +441,7 @@ sides:
       mustang: [aerial_specialization]
       arclight: [range_enhancement]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 363/1014, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 579/1014, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, level: 2, exp: 1277/2704, rotated: true, value: 200}
@@ -500,7 +500,7 @@ sides:
       sabertooth: [range_enhancement]
       tarantula: [spider_mine]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 423/650, value: 100}
@@ -541,7 +541,7 @@ sides:
       crawler: [replicate]
       arclight: [range_enhancement]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 585/1014, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 947/1014, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, level: 2, exp: 2704/2704, rotated: true, value: 200}
@@ -605,7 +605,7 @@ sides:
       sabertooth: [range_enhancement]
       tarantula: [spider_mine]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 650/650, value: 100}
@@ -653,7 +653,7 @@ sides:
       crawler: [impact_drill, replicate]
       arclight: [range_enhancement]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 585/1014, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 10/4274, rotated: true, value: 200}
@@ -723,7 +723,7 @@ sides:
       sabertooth: [range_enhancement, field_maintenance]
       tarantula: [spider_mine]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, exp: 650/650, value: 100}
@@ -773,7 +773,7 @@ sides:
       crawler: [impact_drill, replicate]
       arclight: [range_enhancement]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 890/1014, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 609/1603, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 2946/4274, rotated: true, value: 200}
@@ -846,7 +846,7 @@ sides:
       sabertooth: [range_enhancement, field_maintenance]
       tarantula: [spider_mine]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, level: 2, exp: 363/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, level: 2, exp: 445/1465, value: 100}
@@ -902,7 +902,7 @@ sides:
       crawler: [impact_drill, replicate]
       arclight: [range_enhancement]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 2, exp: 1014/1014, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 1523/1603, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, level: 3, exp: 4274/4274, rotated: true, value: 200}
@@ -988,7 +988,7 @@ sides:
       typhoon: [range_enhancement]
       tarantula: [spider_mine]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, level: 2, exp: 995/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -220}, level: 2, exp: 487/1465, value: 100}
@@ -1046,7 +1046,7 @@ sides:
       arclight: [range_enhancement]
       wraith: [degeneration_beam]
       void_eye: [energy_shield]
-    formations:
+    units:
     - {name: crawler, index: 1, position: {x: 290, y: -285}, level: 3, exp: 526/1603, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, level: 3, exp: 1603/1603, rotated: true, value: 100}
     - {name: mustang, index: 4, position: {x: 270, y: -235}, level: 4, exp: 2800/5388, rotated: true, value: 200}

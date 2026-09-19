@@ -8,7 +8,7 @@
 文档按 [`config/names.yaml`](../../config/names.yaml) 中英文名的蛇形写法命名。名称和效果文本来自游戏官方 English 与简体中文
 本地化；文中的占位符已经使用序列化的 `OfficerData.descriptionParams` 展开。
 
-Officer 可能派生指挥官技能、装备或额外编队，但这些结果对象不是额外的
+Officer 可能派生指挥官技能、装备或额外单位，但这些结果对象不是额外的
 `officers` 条目。`battle_skills` 使用的原生 `CommanderSkillData` 属于
 另一个 ID 空间。
 

@@ -74,7 +74,7 @@ fewer than four cards even when more eligible unit types remain.
 `UnitSecondRand` fills the remaining slots using an investment score for each
 unit type across both players:
 
-- Each fielded formation adds `CardData.baseMoney`, without level scaling.
+- Each fielded unit adds `CardData.baseMoney`, without level scaling.
 - Each unlocked shop unit adds `CardData.unlockPrice`.
 - For types present in that combined map, each player's active technologies
   add `UnitTechnologyManager.CalculateUpgradeCost`.

@@ -3,7 +3,7 @@ round: 1
 
 sides:
   blue:
-    formations:
+    units:
       - name: arclight
         index: 0
         position: {x: 0, y: -280}
@@ -15,7 +15,7 @@ sides:
           - {x: 60, y: 40}
 
   red:
-    formations:
+    units:
       - name: sledgehammer
         index: 0
         position: {x: 5, y: -100}

@@ -27,7 +27,7 @@ use std::collections::BTreeMap;
 /// has no fight-phase income, which is why `supply` is not here.
 pub const FIGHT: &[&str] = &[
     "reactor_core",
-    "formations.exp",
+    "units.exp",
     "contraptions",
     "terrains",
     "airdrop_shields",
@@ -43,8 +43,8 @@ pub const UNIMPLEMENTED: &[&str] = &[];
 /// A deal checked against the recorded position is a deal of the predicted
 /// one only where these leaves agree on both sides.
 const DEALT_FROM: &[&str] = &[
-    "formations.index",
-    "formations.type",
+    "units.index",
+    "units.name",
     "next_index.unit",
     "shop.unlocked_units",
     "techs",
@@ -512,27 +512,9 @@ mod tests {
     /// The tracked corpus, by field group, as `[equal, unequal, unimplemented,
     /// fight]`. A change in any count is a change in what the transition
     /// predicts, and has to be made here to pass.
-    #[test]
-    fn tracked_battles_cover_what_the_table_says() {
-        let economy = Economy::embedded().unwrap();
-        let mut fields: BTreeMap<String, Counts> = BTreeMap::new();
-        let mut unequal = Vec::new();
-        let mut untargeted = 0;
-        for (name, stated) in tracked() {
-            let coverage = measured(&economy, &stated);
-            for (group, counts) in coverage.fields {
-                fields.entry(group).or_default().merge(counts);
-            }
-            unequal.extend(
-                coverage
-                    .unequal
-                    .iter()
-                    .map(|difference| format!("{name} {difference:?}")),
-            );
-            untargeted += usize::from(coverage.untargeted_round.is_some());
-        }
-        assert!(unequal.is_empty(), "{unequal:#?}");
-        let expected: BTreeMap<String, Counts> = [
+    /// What the tracked battles hold, field group by field group.
+    fn pinned() -> BTreeMap<String, Counts> {
+        [
             ("airdrop_shields", [0, 0, 0, 9]),
             ("battle_skills.cooldown", [1062, 0, 0, 0]),
             ("battle_skills.index", [1062, 0, 0, 0]),
@@ -547,16 +529,6 @@ mod tests {
             ("contraptions.position.x", [0, 0, 0, 346]),
             ("contraptions.position.y", [0, 0, 0, 346]),
             ("equipment", [24, 0, 0, 0]),
-            ("formations.equipment", [319, 0, 0, 0]),
-            ("formations.exp", [0, 0, 0, 8902]),
-            ("formations.index", [9494, 0, 0, 0]),
-            ("formations.level", [2600, 0, 0, 0]),
-            ("formations.movable", [455, 0, 0, 0]),
-            ("formations.name", [9494, 0, 0, 0]),
-            ("formations.position.x", [9494, 0, 0, 0]),
-            ("formations.position.y", [9494, 0, 0, 0]),
-            ("formations.rotated", [3058, 0, 0, 0]),
-            ("formations.value", [9494, 0, 0, 0]),
             ("next_index.contraption", [668, 0, 0, 0]),
             ("next_index.unit", [668, 0, 0, 0]),
             ("officers", [668, 0, 0, 0]),
@@ -598,6 +570,16 @@ mod tests {
             ("techs.wraith", [17, 0, 0, 0]),
             ("terrains", [0, 0, 0, 10]),
             ("tower_strengthen_levels", [668, 0, 0, 0]),
+            ("units.equipment", [319, 0, 0, 0]),
+            ("units.exp", [0, 0, 0, 8902]),
+            ("units.index", [9494, 0, 0, 0]),
+            ("units.level", [2600, 0, 0, 0]),
+            ("units.movable", [455, 0, 0, 0]),
+            ("units.name", [9494, 0, 0, 0]),
+            ("units.position.x", [9494, 0, 0, 0]),
+            ("units.position.y", [9494, 0, 0, 0]),
+            ("units.rotated", [3058, 0, 0, 0]),
+            ("units.value", [9494, 0, 0, 0]),
         ]
         .into_iter()
         .map(|(group, [equal, unequal, unimplemented, fight])| {
@@ -611,8 +593,43 @@ mod tests {
                 },
             )
         })
-        .collect();
-        assert_eq!(fields, expected);
+        .collect()
+    }
+
+    /// Every field the lists name is one the battles hold, so renaming a field
+    /// cannot leave an entry that no leaf matches.
+    #[test]
+    fn every_listed_field_is_one_the_battles_hold() {
+        let pinned = pinned();
+        for field in DEALT_FROM.iter().chain(FIGHT).chain(UNIMPLEMENTED) {
+            assert!(
+                pinned.keys().any(|group| within(group, field)),
+                "{field} names no field of the tracked battles"
+            );
+        }
+    }
+
+    #[test]
+    fn tracked_battles_cover_what_the_table_says() {
+        let economy = Economy::embedded().unwrap();
+        let mut fields: BTreeMap<String, Counts> = BTreeMap::new();
+        let mut unequal = Vec::new();
+        let mut untargeted = 0;
+        for (name, stated) in tracked() {
+            let coverage = measured(&economy, &stated);
+            for (group, counts) in coverage.fields {
+                fields.entry(group).or_default().merge(counts);
+            }
+            unequal.extend(
+                coverage
+                    .unequal
+                    .iter()
+                    .map(|difference| format!("{name} {difference:?}")),
+            );
+            untargeted += usize::from(coverage.untargeted_round.is_some());
+        }
+        assert!(unequal.is_empty(), "{unequal:#?}");
+        assert_eq!(fields, pinned());
         assert_eq!(untargeted, 41);
     }
 
@@ -629,33 +646,20 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let mut stated = first_battle();
         stated.turns[2].state.sides.red.tower_strengthen_levels[0] += 1;
-        stated.turns[2].state.sides.blue.formations[0]
-            .formation
-            .position
-            .x += 10;
+        stated.turns[2].state.sides.blue.units[0].unit.position.x += 10;
         let coverage = measured(&economy, &stated);
         let at: Vec<_> = coverage
             .unequal
             .iter()
             .map(|difference| (difference.round, difference.side, difference.path.as_str()))
             .collect();
-        let index = stated.turns[2].state.sides.blue.formations[0]
-            .formation
-            .index;
+        let index = stated.turns[2].state.sides.blue.units[0].unit.index;
         assert_eq!(
             at,
             [
-                (
-                    2,
-                    "blue",
-                    format!("formations[{index}].position.x").as_str()
-                ),
+                (2, "blue", format!("units[{index}].position.x").as_str()),
                 (2, "red", "tower_strengthen_levels"),
-                (
-                    3,
-                    "blue",
-                    format!("formations[{index}].position.x").as_str()
-                ),
+                (3, "blue", format!("units[{index}].position.x").as_str()),
                 (3, "red", "tower_strengthen_levels"),
             ]
         );

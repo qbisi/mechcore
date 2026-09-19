@@ -5,8 +5,8 @@ use crate::{
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_document::{
     BattleSkillDefinition, ContraptionPlacement, DocumentKind, Experience,
-    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Formation, Layout, Position, Side, Sides, StaticPlacement,
-    TOWER_COUNT, Terrain as LayoutTerrain, TerrainType as LayoutTerrainType,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Position, Side, Sides, StaticPlacement, TOWER_COUNT,
+    Terrain as LayoutTerrain, TerrainType as LayoutTerrainType, UnitPlacement,
     battle_skill_type_from_id, canonical_embedded_yaml, chain_blueprint, construction_type_from_id,
     contraption_type_from_id, unit_type_from_id,
 };
@@ -4895,7 +4895,7 @@ fn read_native_side(
             .map_err(|error| error.to_string())?;
         indexed_units.push((
             native_index,
-            Formation {
+            UnitPlacement {
                 type_name: type_name.to_owned(),
                 index: native_index,
                 position: Position { x, y },
@@ -4936,7 +4936,7 @@ fn read_native_side(
             .collect(),
         energy_tower_skills: read_native_energy_tower_skills(api, controller)?,
         tower_strengthen_levels: read_native_tower_strengthen_levels(api, controller)?,
-        formations,
+        units: formations,
         constructions,
         contraptions,
         airdrop_shields,
@@ -11530,7 +11530,7 @@ mod tests {
             combat_round: 1,
             match_seed: 0,
         };
-        let layout = "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    formations:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  red:\n    formations:\n    - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
+        let layout = "kind: layout\nseed: 0\nround: 1\nsides:\n  blue:\n    units:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  red:\n    units:\n    - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
         let mut writer =
             mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
         writer.append_tick(state, &events).unwrap();

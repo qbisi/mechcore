@@ -10,7 +10,7 @@ sides:
 
     tower_strengthen_levels: [2, 0]
 
-    formations:
+    units:
       - name: sledgehammer
         index: 0
         position: {x: -55, y: -60}
@@ -49,7 +49,7 @@ sides:
     energy_tower_skills: [enhanced_range, high_mobility]
     tower_strengthen_levels: [0, 1]
 
-    formations:
+    units:
       - name: fang
         index: 0
         position: {x: -55, y: -60}

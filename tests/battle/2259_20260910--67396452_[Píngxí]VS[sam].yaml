@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - sabertooth_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -181,7 +181,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, exp: 124/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, exp: 329/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, exp: 466/650, value: 100}
@@ -205,7 +205,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - sabertooth_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, exp: 466/650, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 408/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, exp: 470/650, value: 100}
@@ -254,7 +254,7 @@ sides:
     officers:
     - aerial_specialist
     - mass_produced_wasp
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, exp: 378/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, exp: 429/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, exp: 650/650, value: 100}
@@ -279,7 +279,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - sabertooth_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, exp: 587/650, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 408/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, exp: 568/650, value: 100}
@@ -337,7 +337,7 @@ sides:
     - mass_produced_wasp
     techs:
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, exp: 450/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, exp: 650/650, value: 100}
@@ -367,7 +367,7 @@ sides:
     next_index: {unit: 15, contraption: 0}
     officers:
     - sabertooth_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 559/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, exp: 650/650, value: 100}
@@ -432,7 +432,7 @@ sides:
     techs:
       tarantula: [range_enhancement]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, level: 2, exp: 169/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, level: 2, exp: 310/1465, value: 100}
@@ -466,7 +466,7 @@ sides:
     - sabertooth_specialist
     techs:
       fang: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, level: 2, exp: 119/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, level: 2, exp: 852/1465, value: 100}
@@ -539,7 +539,7 @@ sides:
     techs:
       tarantula: [range_enhancement]
       void_eye: [aerial_mode, suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, level: 2, exp: 611/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, level: 2, exp: 56/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, level: 2, exp: 501/1465, value: 100}
@@ -578,7 +578,7 @@ sides:
       fang: [range_enhancement]
       sabertooth: [field_maintenance]
       tarantula: [spider_mine]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, level: 2, exp: 756/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, level: 2, exp: 713/1465, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, level: 2, exp: 1465/1465, value: 100}
@@ -648,7 +648,7 @@ sides:
       phoenix: [electromagnetic_shot]
       tarantula: [range_enhancement, armor_piercing_bullets]
       void_eye: [aerial_mode, suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, level: 2, exp: 753/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, level: 2, exp: 68/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, level: 2, exp: 627/1465, value: 100}
@@ -691,7 +691,7 @@ sides:
       fang: [range_enhancement]
       sabertooth: [field_maintenance]
       tarantula: [range_enhancement, spider_mine]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, level: 2, exp: 1328/1465, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, level: 3, exp: 2097/2315, value: 100}
@@ -771,7 +771,7 @@ sides:
       phoenix: [electromagnetic_shot]
       tarantula: [range_enhancement, armor_piercing_bullets]
       void_eye: [aerial_mode, charged_shot, suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, level: 2, exp: 945/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, level: 2, exp: 302/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 100, y: -160}, level: 2, exp: 800/1465, value: 100}
@@ -820,7 +820,7 @@ sides:
       fang: [range_enhancement]
       sabertooth: [field_maintenance]
       tarantula: [range_enhancement, spider_mine]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, level: 3, exp: 1793/2315, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -110}, level: 3, exp: 2315/2315, value: 100}

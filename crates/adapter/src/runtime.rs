@@ -1884,7 +1884,7 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
         Err(response) => return response,
     };
     let target_round = plan.round;
-    let formation_count = plan.formation_count();
+    let unit_count = plan.unit_count();
     let construction_count = plan.construction_count();
     let contraption_count = plan.contraption_count();
 
@@ -1933,7 +1933,7 @@ fn execute_layout_series(runtime: &mut Runtime, request: &Request) -> Response<V
         serde_json::json!({
             "applied": true,
             "round": target_round,
-            "formation_count": formation_count,
+            "unit_count": unit_count,
             "construction_count": construction_count,
             "contraption_count": contraption_count,
             "skipped_rounds": skipped_rounds,

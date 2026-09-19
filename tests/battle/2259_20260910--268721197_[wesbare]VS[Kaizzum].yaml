@@ -106,7 +106,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -125,7 +125,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -170,7 +170,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 188/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 22/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 64/450, value: 100}
@@ -191,7 +191,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 144/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 315/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 111/750, value: 100}
@@ -236,7 +236,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 369/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 72/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 124/450, value: 100}
@@ -258,7 +258,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 219/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 355/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 141/750, value: 100}
@@ -308,7 +308,7 @@ sides:
     officers:
     - giant_specialist
     - efficient_giant_manufacturing
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 406/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 143/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 124/450, value: 100}
@@ -334,7 +334,7 @@ sides:
     - elite_specialist
     techs:
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 565/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 412/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 422/750, value: 100}
@@ -389,7 +389,7 @@ sides:
     - efficient_giant_manufacturing
     techs:
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 160/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 128/450, value: 100}
@@ -419,7 +419,7 @@ sides:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
       fire_badger: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 597/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 445/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 454/750, value: 100}
@@ -480,7 +480,7 @@ sides:
     techs:
       fortress: [range_enhancement]
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 243/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 182/450, value: 100}
@@ -514,7 +514,7 @@ sides:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
       fire_badger: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 602/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 454/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 468/750, value: 100}
@@ -580,7 +580,7 @@ sides:
     techs:
       fortress: [range_enhancement]
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 253/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 212/450, value: 100}
@@ -620,7 +620,7 @@ sides:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
       fire_badger: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 614/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 454/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 750/750, value: 100}
@@ -695,7 +695,7 @@ sides:
       fortress: [range_enhancement]
       marksman: [range_enhancement]
       vulcan: [range_enhancement, scorching_fire]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 284/450, value: 100}
     - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 233/450, value: 100}
@@ -737,7 +737,7 @@ sides:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
       fire_badger: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 614/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 454/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -190}, exp: 750/750, value: 100}

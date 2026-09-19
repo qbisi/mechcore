@@ -106,7 +106,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -125,7 +125,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -170,7 +170,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 150/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 120/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 87/750, value: 100}
@@ -194,7 +194,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, exp: 264/650, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, exp: 422/650, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, exp: 226/650, value: 100}
@@ -242,7 +242,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 167/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 240/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 171/750, value: 100}
@@ -270,7 +270,7 @@ sides:
     next_index: {unit: 9, contraption: 1}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, exp: 650/650, value: 100}
@@ -322,7 +322,7 @@ sides:
     - cost_control_specialist
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 365/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 317/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 283/750, value: 100}
@@ -353,7 +353,7 @@ sides:
     next_index: {unit: 11, contraption: 1}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, level: 2, exp: 388/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, level: 2, exp: 473/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, level: 2, exp: 526/1465, value: 100}
@@ -412,7 +412,7 @@ sides:
     techs:
       mustang: [range_enhancement]
       scorpion: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 376/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 349/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 291/750, value: 100}
@@ -447,7 +447,7 @@ sides:
     - missile_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, level: 2, exp: 491/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, level: 2, exp: 568/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, level: 2, exp: 1214/1465, value: 100}
@@ -508,7 +508,7 @@ sides:
     techs:
       mustang: [range_enhancement]
       scorpion: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 442/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 361/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 343/750, value: 100}
@@ -547,7 +547,7 @@ sides:
     - missile_specialist
     techs:
       tarantula: [range_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, level: 2, exp: 680/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, level: 2, exp: 1389/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, level: 2, exp: 1465/1465, value: 100}
@@ -629,7 +629,7 @@ sides:
     techs:
       mustang: [range_enhancement]
       scorpion: [doubleshot, range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 688/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 523/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 509/750, value: 100}
@@ -675,7 +675,7 @@ sides:
     - missile_specialist
     techs:
       tarantula: [range_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, level: 2, exp: 836/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, level: 2, exp: 1389/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, level: 2, exp: 1465/1465, value: 100}
@@ -758,7 +758,7 @@ sides:
       mustang: [range_enhancement, armor_piercing_bullets]
       scorpion: [doubleshot, range_enhancement]
       fire_badger: [scorching_charge]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 200, y: -180}, exp: 750/750, value: 100}
     - {name: hound, index: 1, position: {x: -210, y: -180}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -180}, exp: 750/750, value: 100}
@@ -808,7 +808,7 @@ sides:
     techs:
       sandworm: [strike]
       tarantula: [range_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 90, y: -100}, level: 2, exp: 948/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 240, y: -100}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 170, y: -100}, level: 2, exp: 1465/1465, value: 100}

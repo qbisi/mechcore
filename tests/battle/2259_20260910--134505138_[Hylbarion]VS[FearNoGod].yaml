@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, exp: 42/650, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, exp: 342/650, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, exp: 142/650, value: 100}
@@ -198,7 +198,7 @@ sides:
     next_index: {unit: 6, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 203/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 108/600, rotated: true, value: 100}
@@ -242,7 +242,7 @@ sides:
     next_index: {unit: 9, contraption: 1}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, exp: 522/650, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, exp: 650/650, value: 100}
@@ -269,7 +269,7 @@ sides:
     officers:
     - elite_specialist
     - elite_rhino
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 375/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 138/600, rotated: true, value: 100}
@@ -325,7 +325,7 @@ sides:
     - missile_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, level: 2, exp: 585/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, level: 2, exp: 1058/1465, value: 100}
@@ -358,7 +358,7 @@ sides:
     officers:
     - elite_specialist
     - elite_rhino
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 375/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 140/600, rotated: true, value: 100}
@@ -420,7 +420,7 @@ sides:
     - missile_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, level: 2, exp: 947/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, level: 2, exp: 1465/1465, value: 100}
@@ -459,7 +459,7 @@ sides:
     - elite_rhino
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 375/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 140/600, rotated: true, value: 100}
@@ -519,7 +519,7 @@ sides:
     - advanced_targeting_system
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, level: 3, exp: 243/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, level: 3, exp: 936/2315, value: 100}
@@ -560,7 +560,7 @@ sides:
     techs:
       mustang: [range_enhancement]
       steel_ball: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 375/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 156/600, rotated: true, value: 100}
@@ -629,7 +629,7 @@ sides:
     - advanced_targeting_system
     techs:
       tarantula: [range_enhancement, spider_mine]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, level: 3, exp: 936/2315, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, level: 3, exp: 1637/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, level: 3, exp: 2315/2315, value: 100}
@@ -672,7 +672,7 @@ sides:
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       steel_ball: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 414/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, exp: 122/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 187/600, rotated: true, value: 100}
@@ -753,7 +753,7 @@ sides:
       marksman: [elite_marksman]
       tarantula: [range_enhancement, spider_mine]
       vortex: [mobile_power_station, emergency_armor]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, level: 3, exp: 1730/2315, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, level: 3, exp: 2315/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, level: 4, exp: 2864/2919, value: 100}
@@ -799,7 +799,7 @@ sides:
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       steel_ball: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 453/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, exp: 169/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 240/600, rotated: true, value: 100}
@@ -888,7 +888,7 @@ sides:
       wraith: [degeneration_beam]
       tarantula: [range_enhancement, spider_mine]
       vortex: [mobile_power_station, emergency_armor]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, level: 3, exp: 2315/2315, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, level: 4, exp: 1258/2919, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -210}, level: 4, exp: 2919/2919, value: 100}
@@ -941,7 +941,7 @@ sides:
       mustang: [range_enhancement, armor_piercing_bullets]
       steel_ball: [armor_enhancement]
       hound: [fire_extinguisher]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 510/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, exp: 243/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -65}, exp: 382/600, rotated: true, value: 100}

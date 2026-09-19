@@ -13,7 +13,7 @@ sides:
     energy_tower_skills: [enhanced_range, high_mobility]
     tower_strengthen_levels: [2, 1]
 
-    formations:
+    units:
       - name: arclight
         index: 0
         position: {x: 100, y: -80}
@@ -57,7 +57,7 @@ sides:
           - {x: 60, y: 40}
 
   red:
-    formations:
+    units:
       - name: steel_ball
         index: 0
         position: {x: -205, y: -100}

@@ -3,13 +3,13 @@ round: 1
 
 sides:
   blue:
-    formations:
+    units:
       - name: rhino
         index: 0
         position: {x: -285, y: -105}
 
   red:
-    formations:
+    units:
       - name: arclight
         index: 0
         position: {x: 290, y: -100}

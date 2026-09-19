@@ -6,7 +6,7 @@ sides:
   blue:
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}}
     - {name: vortex, index: 1, position: {x: -160, y: -100}}
     - {name: vortex, index: 2, position: {x: -250, y: -120}}
@@ -20,7 +20,7 @@ sides:
   red:
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, rotated: true}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, rotated: true}

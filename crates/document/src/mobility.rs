@@ -6,7 +6,7 @@
 //! A state carries the answer as `movable`, because the round a formation
 //! arrived in is history no other field records.
 
-use crate::layout::Formation;
+use crate::layout::UnitPlacement;
 
 /// Equipment `13040001` 部署模块, Deployment Module: the formation wearing it
 /// moves freely in every round.
@@ -23,7 +23,7 @@ pub const JUMP_DRIVES: [(i32, &str); 3] = [(1606, "wasp"), (1611, "overlord"), (
 /// Whether a formation moves freely in every round, whatever round it arrived
 /// in, given the side's researched technologies.
 #[must_use]
-pub fn free(formation: &Formation, techs: &[i32]) -> bool {
+pub fn free(formation: &UnitPlacement, techs: &[i32]) -> bool {
     formation.equipment == Some(DEPLOYMENT_MODULE)
         || JUMP_DRIVES
             .iter()

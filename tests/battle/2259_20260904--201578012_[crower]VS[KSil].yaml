@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 9/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 50/750, value: 100}
@@ -201,7 +201,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 99/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 180/600, rotated: true, value: 100}
@@ -252,7 +252,7 @@ sides:
     - supply_specialist
     techs:
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 87/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 12/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 243/750, value: 100}
@@ -279,7 +279,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 209/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 278/600, rotated: true, value: 100}
@@ -337,7 +337,7 @@ sides:
     - supply_specialist
     techs:
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 163/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 172/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 357/750, value: 100}
@@ -370,7 +370,7 @@ sides:
     - fortified_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 183/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 253/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 402/600, rotated: true, value: 100}
@@ -431,7 +431,7 @@ sides:
     techs:
       phantom_ray: [ground_targeting]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 220/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 282/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 489/750, value: 100}
@@ -467,7 +467,7 @@ sides:
     - fortified_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 183/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 258/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 513/600, rotated: true, value: 100}
@@ -533,7 +533,7 @@ sides:
     techs:
       phantom_ray: [ground_targeting]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 264/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 635/750, value: 100}
@@ -572,7 +572,7 @@ sides:
     techs:
       arclight: [range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 289/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 600/600, rotated: true, value: 100}
@@ -651,7 +651,7 @@ sides:
       phantom_ray: [ground_targeting]
       raiden: [range_enhancement, fork]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 272/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 635/750, value: 100}
@@ -694,7 +694,7 @@ sides:
       marksman: [aerial_specialization]
       arclight: [shockwave, range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 301/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 600/600, rotated: true, value: 100}
@@ -779,7 +779,7 @@ sides:
       phantom_ray: [ground_targeting]
       raiden: [range_enhancement, fork]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 304/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 670/750, value: 100}
@@ -825,7 +825,7 @@ sides:
       rhino: [combat_evolvement]
       arclight: [shockwave, range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 332/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 600/600, rotated: true, value: 100}
@@ -917,7 +917,7 @@ sides:
       phantom_ray: [ground_targeting]
       raiden: [range_enhancement, fork]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 430/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 676/750, value: 100}
@@ -966,7 +966,7 @@ sides:
       arclight: [shockwave, range_enhancement]
       phantom_ray: [armor_enhancement]
       farseer: [aerial_specialization]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 362/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -185}, exp: 600/600, rotated: true, value: 100}

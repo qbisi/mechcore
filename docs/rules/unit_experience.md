@@ -4,11 +4,11 @@ This index is pinned to game build 2259. It states how much experience fills
 each level of every unit a standard 1v1 match sells, the formula those amounts
 follow, what a full bar means, and what Intensive Training does with it.
 
-A formation's `exp` is its experience within its current level. Paying to
-upgrade a formation starts the new level at zero, whatever the old level held;
+A unit's `exp` is its experience within its current level. Paying to
+upgrade a unit starts the new level at zero, whatever the old level held;
 [`action.md`](../spec/document/action.md#upgrade_unit) states that rule. A
 document writes `exp` as `current/maximum`, such as `124/450`, whose `maximum`
-is the full bar of the formation's level from 1 through 9.
+is the full bar of the unit's level from 1 through 9.
 
 The machine-readable table is
 [`config/unit_experience.yaml`](../../config/unit_experience.yaml).
@@ -18,22 +18,22 @@ below.
 
 ## Where a bar is full
 
-A formation's bar is full at `GetUpgradeExp(level + 1)`, and level 9 fills at
+A unit's bar is full at `GetUpgradeExp(level + 1)`, and level 9 fills at
 the same amount as level 8. Both halves are read from the build's code rather
 than measured:
 
 - `MechExpData.PreProcess` builds the list `GetUpgradeExp` reads as
   `[0, upgradeLv2, …, upgradeLv9]`, indexed by `CardLevel`, whose `Level1` is
   0. The entry at a level is the experience it takes to arrive there.
-- Every caller that sets or checks a formation's bar asks for the level above
+- Every caller that sets or checks a unit's bar asks for the level above
   its own: `UnitSystem.ChangeLevel` passes the new level plus one to
   `UnitUtility.GetUpgradeExp`, and `CardElement` does the same through
   `CardData.GetUpgradeExp`.
 - `MechExpData.GetData` clamps the index to the list's last entry, and nothing
-  between it and those callers checks the level. So a level 9 formation, asking
+  between it and those callers checks the level. So a level 9 unit, asking
   for a tenth level that does not exist, reads `upgradeLv9`.
 
-The column for level n below is therefore the full bar of a formation at level
+The column for level n below is therefore the full bar of a unit at level
 n, and level 9 repeats level 8's column.
 
 ## What a full bar means
@@ -42,10 +42,10 @@ A full bar is a state the game keeps, not only a number it compares:
 `MechTeam` carries `hasEnterMaxExp` beside its experience, and `IsExpMax`
 answers from it. Three kinds of reader consult it:
 
-- `ExpSystem.IsValidOwner`, which decides which formations share the
-  experience a fight hands out, so a full formation takes no further share;
+- `ExpSystem.IsValidOwner`, which decides which units share the
+  experience a fight hands out, so a full unit takes no further share;
 - `CS_AddExp.CheckAvaliable`, where Intensive Training decides whether a
-  formation is a target it can take, which is why it refuses a full one;
+  unit is a target it can take, which is why it refuses a full one;
 - the upgrade icon and the AI's upgrade action, consistent with a full bar
   being one of the conditions a level-up rests on. The other conditions, and
   when a full bar becomes a level, are the fight's and round's, and not
@@ -77,23 +77,23 @@ table was built, and it does not describe Vulcan's first column.
 
 ## Intensive Training fills the bar
 
-Commander skill `1100001`, 强化训练 (Intensive Training), sets the formation it
+Commander skill `1100001`, 强化训练 (Intensive Training), sets the unit it
 targets to a full bar: `current` becomes the `maximum` of its level, whatever it
 held before. It changes the level of nothing, costs nothing to
 release, and does its work during deployment, so it is not a release the fight
 sees; [`action.md`](../spec/document/action.md#release_commander_skill) states
 the transition.
 
-It cannot target a formation at level 9, or one whose bar is already full.
+It cannot target a unit at level 9, or one whose bar is already full.
 Both refusals were observed in Training Ground on this build, and the second is
-the `IsExpMax` check its availability test makes. A level 9 formation can still
+the `IsExpMax` check its availability test makes. A level 9 unit can still
 hold a full bar; it cannot be trained into one.
 
 Every release of it in the local observation set reaches exactly the table's
-value, across formations at levels 1 through 4. Levels 5 through 8 are
+value, across units at levels 1 through 4. Levels 5 through 8 are
 unobserved.
 
-A full bar is also what a fight can leave behind. A formation that no training
+A full bar is also what a fight can leave behind. A unit that no training
 touched can open a round holding exactly its level's bar, so a full bar is a
 state a position holds rather than a trace of the skill. When a full bar turns into a
 level, and what a fight does with experience past it, belong to the fight and

@@ -15,7 +15,7 @@ sides:
       vortex: [mobile_power_station]
     blueprints: [attack_enhancement, defense_enhancement]
     energy_tower_skills: [enhanced_range]
-    formations:
+    units:
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 615/1690}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, level: 3}
     - {name: fire_badger, index: 3, position: {x: -210, y: -125}, level: 2, rotated: true}
@@ -52,7 +52,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     energy_tower_skills: [enhanced_range]
     tower_strengthen_levels: [0, 2]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 450/450}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 173/450, rotated: true}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 450/450, rotated: true}

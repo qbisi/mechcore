@@ -112,7 +112,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -132,7 +132,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -187,7 +187,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 37/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 60/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 11/450, rotated: true, value: 100}
@@ -208,7 +208,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 42/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 53/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 91/450, rotated: true, value: 100}
@@ -257,7 +257,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 52/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 104/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 79/450, rotated: true, value: 100}
@@ -282,7 +282,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 105/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 102/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 184/450, rotated: true, value: 100}
@@ -335,7 +335,7 @@ sides:
     next_index: {unit: 14, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 126/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 206/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 143/450, rotated: true, value: 100}
@@ -361,7 +361,7 @@ sides:
     next_index: {unit: 13, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 145/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 183/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 307/450, rotated: true, value: 100}
@@ -420,7 +420,7 @@ sides:
     - amplify_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 145/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 421/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 149/450, rotated: true, value: 100}
@@ -452,7 +452,7 @@ sides:
     - elite_specialist
     techs:
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 163/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 342/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 362/450, rotated: true, value: 100}
@@ -518,7 +518,7 @@ sides:
     techs:
       arclight: [range_enhancement]
       wraith: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 184/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 167/450, rotated: true, value: 100}
@@ -556,7 +556,7 @@ sides:
     techs:
       sandworm: [replicate]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 187/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 374/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
@@ -631,7 +631,7 @@ sides:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
       wraith: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 403/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 266/450, rotated: true, value: 100}
@@ -674,7 +674,7 @@ sides:
       mustang: [range_enhancement]
       sandworm: [replicate]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 218/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 450/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
@@ -745,7 +745,7 @@ sides:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
       wraith: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 278/450, rotated: true, value: 100}
@@ -790,7 +790,7 @@ sides:
       mustang: [range_enhancement]
       sandworm: [burrow_maintenance, replicate]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 239/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 450/450, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, exp: 450/450, rotated: true, value: 100}
@@ -889,7 +889,7 @@ sides:
       arclight: [range_enhancement, charged_shot]
       wraith: [range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -135}, exp: 372/450, rotated: true, value: 100}
@@ -938,7 +938,7 @@ sides:
       crawler: [replicate]
       sandworm: [burrow_maintenance, replicate]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 255/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, level: 2, exp: 19/1014, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -225}, level: 2, exp: 46/1014, rotated: true, value: 100}

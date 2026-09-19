@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -181,7 +181,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 51/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 82/750, value: 100}
     - {name: hound, index: 2, position: {x: 110, y: -190}, exp: 318/750, value: 100}
@@ -205,7 +205,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 494/750, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, exp: 116/750, value: 100}
     - {name: hound, index: 2, position: {x: 220, y: -60}, exp: 163/750, value: 100}
@@ -249,7 +249,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 102/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 132/750, value: 100}
     - {name: hound, index: 2, position: {x: 110, y: -190}, exp: 318/750, value: 100}
@@ -275,7 +275,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 723/750, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, exp: 426/750, value: 100}
     - {name: hound, index: 2, position: {x: 220, y: -60}, exp: 308/750, value: 100}
@@ -329,7 +329,7 @@ sides:
     - giant_specialist
     techs:
       wraith: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 164/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 203/750, value: 100}
     - {name: hound, index: 2, position: {x: 110, y: -190}, exp: 398/750, value: 100}
@@ -358,7 +358,7 @@ sides:
     officers:
     - additional_deployment_slot
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 750/750, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 220, y: -60}, exp: 719/750, value: 100}
@@ -421,7 +421,7 @@ sides:
     techs:
       wraith: [range_enhancement]
       sabertooth: [field_maintenance]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 449/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 315/750, value: 100}
     - {name: hound, index: 2, position: {x: 110, y: -190}, exp: 697/750, value: 100}
@@ -457,7 +457,7 @@ sides:
     - fortified_specialist
     techs:
       raiden: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, level: 2, exp: 342/1690, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, level: 2, exp: 328/1690, value: 100}
     - {name: hound, index: 2, position: {x: 220, y: -60}, exp: 750/750, value: 100}
@@ -524,7 +524,7 @@ sides:
     techs:
       wraith: [range_enhancement]
       sabertooth: [field_maintenance]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 535/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 336/750, value: 100}
     - {name: hound, index: 2, position: {x: 110, y: -190}, exp: 750/750, value: 100}
@@ -563,7 +563,7 @@ sides:
     - fortified_specialist
     techs:
       raiden: [electromagnetic_shot, range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, level: 2, exp: 690/1690, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, level: 2, exp: 719/1690, value: 100}
     - {name: hound, index: 2, position: {x: 220, y: -60}, level: 2, exp: 330/1690, value: 100}

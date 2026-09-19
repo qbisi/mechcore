@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -174,7 +174,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 126/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 68/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -199,7 +199,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 133/650, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 120/650, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 125/650, value: 100}
@@ -243,7 +243,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 223/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 119/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -271,7 +271,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - missile_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 246/650, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 178/650, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 321/650, value: 100}
@@ -320,7 +320,7 @@ sides:
     officers:
     - giant_specialist
     - improved_overlord
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 270/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 202/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -355,7 +355,7 @@ sides:
     - missile_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 527/650, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 646/650, value: 100}
@@ -408,7 +408,7 @@ sides:
     officers:
     - giant_specialist
     - improved_overlord
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 289/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 211/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -448,7 +448,7 @@ sides:
     techs:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -120}, exp: 650/650, value: 100}
@@ -516,7 +516,7 @@ sides:
     - improved_overlord
     techs:
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 345/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 231/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -559,7 +559,7 @@ sides:
       marksman: [doubleshot, aerial_specialization]
       mustang: [missile_interceptor]
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, level: 2, exp: 851/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, level: 3, exp: 1206/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -120}, level: 2, exp: 192/1465, value: 100}
@@ -631,7 +631,7 @@ sides:
     - improved_overlord
     techs:
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 381/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 262/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -675,7 +675,7 @@ sides:
       mustang: [missile_interceptor]
       arclight: [range_enhancement]
       sandworm: [burrow_maintenance]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, level: 2, exp: 890/1465, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, level: 3, exp: 1473/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 0, y: -120}, level: 2, exp: 300/1465, value: 100}

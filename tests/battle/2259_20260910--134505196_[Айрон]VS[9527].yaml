@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -179,7 +179,7 @@ sides:
     next_index: {unit: 8, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 81/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 50/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, exp: 313/650, value: 100}
@@ -201,7 +201,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, exp: 334/750, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, exp: 256/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 5/750, value: 100}
@@ -250,7 +250,7 @@ sides:
     next_index: {unit: 13, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 126/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 50/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, exp: 448/650, value: 100}
@@ -275,7 +275,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, exp: 544/750, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, exp: 507/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 265/750, value: 100}
@@ -329,7 +329,7 @@ sides:
     next_index: {unit: 15, contraption: 2}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 139/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 82/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, exp: 650/650, value: 100}
@@ -358,7 +358,7 @@ sides:
     next_index: {unit: 12, contraption: 2}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 750/750, value: 100}
@@ -424,7 +424,7 @@ sides:
     - marksman_specialist
     techs:
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 218/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 99/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, level: 2, exp: 222/1465, value: 100}
@@ -457,7 +457,7 @@ sides:
     next_index: {unit: 14, contraption: 2}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, level: 2, exp: 537/1690, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, level: 2, exp: 668/1690, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, level: 2, exp: 628/1690, value: 100}
@@ -527,7 +527,7 @@ sides:
     techs:
       crawler: [mechanical_rage]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 526/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, level: 2, exp: 1365/1465, value: 100}
@@ -566,7 +566,7 @@ sides:
     - fortified_specialist
     techs:
       fang: [grenade_launcher]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, level: 2, exp: 781/1690, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, level: 2, exp: 1165/1690, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, level: 2, exp: 979/1690, value: 100}
@@ -645,7 +645,7 @@ sides:
       crawler: [mechanical_rage]
       sledgehammer: [range_enhancement]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, level: 2, exp: 179/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 607/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, level: 2, exp: 1465/1465, value: 100}
@@ -691,7 +691,7 @@ sides:
     techs:
       fang: [grenade_launcher]
       raiden: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, level: 2, exp: 1009/1690, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, level: 2, exp: 1584/1690, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, level: 2, exp: 1338/1690, value: 100}
@@ -780,7 +780,7 @@ sides:
       crawler: [mechanical_rage]
       sledgehammer: [range_enhancement]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, level: 2, exp: 940/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 0, y: -100}, level: 3, exp: 538/2315, value: 100}
@@ -831,7 +831,7 @@ sides:
       fang: [grenade_launcher]
       stormcaller: [incendiary_bomb]
       raiden: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, level: 2, exp: 1291/1690, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, level: 2, exp: 1690/1690, value: 100}
     - {name: hound, index: 2, position: {x: 0, y: -190}, level: 2, exp: 1643/1690, value: 100}

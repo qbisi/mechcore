@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -178,7 +178,7 @@ sides:
     next_index: {unit: 6, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 101/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, exp: 102/750, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, exp: 201/750, value: 100}
@@ -198,7 +198,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, exp: 156/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, exp: 315/750, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, exp: 90/750, rotated: true, value: 100}
@@ -249,7 +249,7 @@ sides:
     - cost_control_specialist
     techs:
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 189/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, exp: 186/750, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, exp: 360/750, value: 100}
@@ -273,7 +273,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, exp: 694/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, exp: 590/750, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, exp: 170/750, rotated: true, value: 100}
@@ -330,7 +330,7 @@ sides:
     - cost_control_specialist
     techs:
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 560/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, exp: 614/750, value: 100}
@@ -358,7 +358,7 @@ sides:
     officers:
     - fortified_specialist
     - improved_phoenix
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, exp: 750/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, exp: 750/750, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, exp: 250/750, rotated: true, value: 100}
@@ -424,7 +424,7 @@ sides:
     techs:
       fang: [range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 721/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, level: 2, exp: 466/1690, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, exp: 750/750, value: 100}
@@ -456,7 +456,7 @@ sides:
     officers:
     - fortified_specialist
     - improved_phoenix
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 2, exp: 369/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 2, exp: 213/1690, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, exp: 298/750, rotated: true, value: 100}
@@ -527,7 +527,7 @@ sides:
     techs:
       fang: [range_enhancement, mechanical_rage]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 728/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, level: 2, exp: 469/1690, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, level: 2, exp: 227/1690, value: 100}
@@ -564,7 +564,7 @@ sides:
     - improved_phoenix
     techs:
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 2, exp: 1601/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 2, exp: 645/1690, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, exp: 617/750, rotated: true, value: 100}
@@ -644,7 +644,7 @@ sides:
     techs:
       fang: [range_enhancement, mechanical_rage, ignite]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 750/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, level: 2, exp: 593/1690, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, level: 2, exp: 311/1690, value: 100}
@@ -685,7 +685,7 @@ sides:
     - improved_phoenix
     techs:
       hound: [armor_enhancement, range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 2, exp: 1690/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 2, exp: 1441/1690, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, exp: 750/750, rotated: true, value: 100}
@@ -780,7 +780,7 @@ sides:
       fang: [range_enhancement, mechanical_rage, ignite]
       arclight: [range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, level: 2, exp: 130/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, level: 2, exp: 775/1690, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, level: 2, exp: 344/1690, value: 100}
@@ -829,7 +829,7 @@ sides:
     techs:
       wraith: [range_enhancement]
       hound: [armor_enhancement, range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 3, exp: 296/2671, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 2, exp: 1641/1690, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, level: 2, exp: 338/1690, rotated: true, value: 100}
@@ -926,7 +926,7 @@ sides:
       fang: [portable_shield, range_enhancement, mechanical_rage, ignite]
       arclight: [range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, level: 2, exp: 236/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, level: 2, exp: 922/1690, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, level: 2, exp: 453/1690, value: 100}
@@ -978,7 +978,7 @@ sides:
       vulcan: [range_enhancement]
       wraith: [range_enhancement]
       hound: [armor_enhancement, range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 3, exp: 2058/2671, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 2, exp: 1690/1690, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, level: 2, exp: 889/1690, rotated: true, value: 100}
@@ -1080,7 +1080,7 @@ sides:
       fang: [portable_shield, range_enhancement, mechanical_rage, ignite]
       arclight: [range_enhancement]
       phantom_ray: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, level: 2, exp: 330/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, level: 2, exp: 1449/1690, value: 100}
     - {name: hound, index: 2, position: {x: 200, y: -170}, level: 2, exp: 524/1690, value: 100}
@@ -1138,7 +1138,7 @@ sides:
       vulcan: [range_enhancement]
       wraith: [range_enhancement]
       hound: [armor_enhancement, range_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 3, exp: 2671/2671, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 3, rotated: true, value: 100}
     - {name: hound, index: 2, position: {x: -240, y: -50}, level: 2, exp: 1690/1690, rotated: true, value: 100}

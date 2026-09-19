@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -127,7 +127,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -174,7 +174,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, exp: 400/750, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, exp: 8/750, value: 100}
@@ -195,7 +195,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, exp: 183/750, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, exp: 359/750, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, exp: 159/750, value: 100}
@@ -243,7 +243,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 205/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, exp: 556/750, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, exp: 84/750, value: 100}
@@ -269,7 +269,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, exp: 704/750, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, exp: 359/750, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, exp: 159/750, value: 100}
@@ -322,7 +322,7 @@ sides:
     - training_specialist
     techs:
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 245/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, exp: 750/750, value: 100}
@@ -353,7 +353,7 @@ sides:
     - typhoon_specialist
     techs:
       arclight: [shockwave]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, exp: 569/750, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, exp: 426/750, value: 100}
@@ -426,7 +426,7 @@ sides:
     - training_specialist
     techs:
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 270/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, level: 2, exp: 108/1690, value: 100}
@@ -467,7 +467,7 @@ sides:
     techs:
       arclight: [shockwave]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, level: 2, exp: 321/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, exp: 576/750, value: 100}
@@ -536,7 +536,7 @@ sides:
     - efficient_light_manufacturing
     techs:
       vortex: [mobile_power_station, emergency_armor]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 278/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, level: 2, exp: 450/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, level: 2, exp: 220/1690, value: 100}
@@ -578,7 +578,7 @@ sides:
     techs:
       arclight: [shockwave]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, level: 2, exp: 772/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, level: 2, exp: 361/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, exp: 750/750, value: 100}
@@ -666,7 +666,7 @@ sides:
     techs:
       mustang: [aerial_specialization]
       vortex: [grid_integration, mobile_power_station, emergency_armor]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 314/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, level: 2, exp: 482/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, level: 2, exp: 447/1690, value: 100}
@@ -711,7 +711,7 @@ sides:
     techs:
       arclight: [shockwave]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, level: 2, exp: 1231/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, level: 2, exp: 1670/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, level: 2, exp: 308/1690, value: 100}
@@ -810,7 +810,7 @@ sides:
       mustang: [aerial_specialization]
       farseer: [scanning_radar]
       vortex: [grid_integration, mobile_power_station, emergency_armor]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 377/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, level: 2, exp: 626/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, level: 2, exp: 1371/1690, value: 100}
@@ -858,7 +858,7 @@ sides:
     techs:
       arclight: [shockwave, range_enhancement]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, level: 2, exp: 1483/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, level: 2, exp: 1690/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, level: 2, exp: 808/1690, value: 100}
@@ -969,7 +969,7 @@ sides:
       mustang: [aerial_specialization]
       farseer: [scanning_radar]
       vortex: [grid_integration, range_enhancement, mobile_power_station, emergency_armor]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 503/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, level: 2, exp: 974/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 170, y: -90}, level: 2, exp: 1690/1690, value: 100}
@@ -1022,7 +1022,7 @@ sides:
       arclight: [shockwave, range_enhancement]
       sabertooth: [field_maintenance]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, level: 2, exp: 1686/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, level: 3, exp: 34/2671, value: 100}
     - {name: arclight, index: 2, position: {x: -270, y: -60}, level: 2, exp: 1305/1690, value: 100}

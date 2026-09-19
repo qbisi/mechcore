@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -179,7 +179,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 16/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -45}, exp: 60/600, rotated: true, value: 100}
@@ -200,7 +200,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, exp: 282/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -70}, exp: 56/650, value: 100}
@@ -250,7 +250,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 22/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 49/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -45}, exp: 69/600, rotated: true, value: 100}
@@ -277,7 +277,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 445/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, exp: 506/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -70}, exp: 575/650, value: 100}
@@ -331,7 +331,7 @@ sides:
     next_index: {unit: 13, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 48/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 287/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -45}, exp: 137/600, rotated: true, value: 100}
@@ -362,7 +362,7 @@ sides:
     officers:
     - supply_specialist
     - subsidized_mustang
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 670/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -70}, exp: 611/650, value: 100}
@@ -425,7 +425,7 @@ sides:
     - mass_produced_sledgehammer
     techs:
       sledgehammer: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 179/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -45}, exp: 137/600, rotated: true, value: 100}
@@ -462,7 +462,7 @@ sides:
     - mass_produced_sledgehammer
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 952/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, level: 2, exp: 474/1465, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -70}, exp: 632/650, value: 100}
@@ -532,7 +532,7 @@ sides:
     - mass_produced_sledgehammer
     techs:
       sledgehammer: [armor_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 220/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -45}, exp: 137/600, rotated: true, value: 100}
@@ -572,7 +572,7 @@ sides:
     - mass_produced_sledgehammer
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 1341/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, level: 2, exp: 770/1465, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -70}, exp: 644/650, value: 100}
@@ -644,7 +644,7 @@ sides:
     techs:
       stormcaller: [launcher_overload]
       sledgehammer: [armor_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 326/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 50, y: -45}, exp: 137/600, rotated: true, value: 100}
@@ -691,7 +691,7 @@ sides:
     - mass_produced_sledgehammer
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, level: 2, exp: 948/1465, value: 100}
     - {name: marksman, index: 2, position: {x: -140, y: -70}, exp: 650/650, value: 100}

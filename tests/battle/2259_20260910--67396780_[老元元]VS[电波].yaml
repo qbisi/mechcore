@@ -106,7 +106,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -129,7 +129,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, exp: 45/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 396/750, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, exp: 26/750, value: 100}
@@ -199,7 +199,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 233/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 563/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, exp: 586/750, value: 100}
@@ -243,7 +243,7 @@ sides:
     - elite_specialist
     techs:
       arclight: [charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, exp: 45/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 505/750, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, exp: 130/750, value: 100}
@@ -268,7 +268,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 233/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 716/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, exp: 750/750, value: 100}
@@ -321,7 +321,7 @@ sides:
     - elite_specialist
     techs:
       arclight: [charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, exp: 645/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, exp: 470/750, value: 100}
@@ -350,7 +350,7 @@ sides:
     next_index: {unit: 12, contraption: 0}
     officers:
     - amplify_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 353/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, level: 2, exp: 273/1690, value: 100}
@@ -407,7 +407,7 @@ sides:
     - elite_specialist
     techs:
       arclight: [charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 305/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, exp: 478/750, value: 100}
@@ -440,7 +440,7 @@ sides:
     officers:
     - amplify_specialist
     - advanced_targeting_system
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 506/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, level: 2, exp: 955/1690, value: 100}
@@ -501,7 +501,7 @@ sides:
     techs:
       marksman: [doubleshot]
       arclight: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, level: 2, exp: 1564/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 819/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, exp: 750/750, value: 100}
@@ -539,7 +539,7 @@ sides:
     - efficient_light_manufacturing
     techs:
       wraith: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 642/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, level: 2, exp: 250/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, level: 2, exp: 1225/1690, value: 100}
@@ -609,7 +609,7 @@ sides:
     techs:
       marksman: [doubleshot, range_enhancement]
       arclight: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, level: 2, exp: 1690/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 997/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, level: 2, exp: 1624/1690, value: 100}
@@ -651,7 +651,7 @@ sides:
     - efficient_light_manufacturing
     techs:
       wraith: [range_enhancement, floating_artillery_array]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 702/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, level: 2, exp: 330/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, level: 2, exp: 1285/1690, value: 100}
@@ -729,7 +729,7 @@ sides:
       marksman: [doubleshot, range_enhancement]
       vulcan: [range_enhancement]
       arclight: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, level: 3, exp: 60/2671, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 1265/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 0, y: -170}, level: 2, exp: 1690/1690, value: 100}
@@ -774,7 +774,7 @@ sides:
     techs:
       wraith: [range_enhancement, floating_artillery_array]
       vortex: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 750/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, level: 2, exp: 1690/1690, value: 100}
     - {name: vortex, index: 2, position: {x: 0, y: -170}, level: 2, exp: 1690/1690, value: 100}

@@ -9,12 +9,12 @@
 
 use crate::battle::{
     Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, Opening,
-    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateFormation, StateSides,
+    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit, StateSides,
     Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::layout::{
-    ContraptionPlacement, Experience, Formation, Position, Region, StaticPlacement,
+    ContraptionPlacement, Experience, UnitPlacement, Position, Region, StaticPlacement,
 };
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
@@ -449,7 +449,7 @@ fn side_state(
         },
         officers,
         techs: units,
-        formations,
+        units: formations,
         constructions,
         contraptions,
         airdrop_shields: retained.airdrop_shields,
@@ -492,16 +492,16 @@ fn shared_income(
 }
 
 /// The unit roster, as the layout formations a projection would keep.
-fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, String> {
+fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
     let mut formations = Vec::with_capacity(data.units.entries.len());
     for unit in &data.units.entries {
         let (type_name, _) = unit_type_from_id(unit.id)
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
-        formations.push(StateFormation {
+        formations.push(StateUnit {
             value: Some(unit.sell_supply),
             // Settled by the opening, which knows the round.
             movable: false,
-            formation: Formation {
+            unit: UnitPlacement {
             type_name: type_name.to_owned(),
             index: unit.index,
             position: seat.position(&unit.position),
@@ -516,7 +516,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             },
         });
     }
-    formations.sort_by_key(|entry| entry.formation.index);
+    formations.sort_by_key(|entry| entry.unit.index);
     Ok(formations)
 }
 
@@ -773,11 +773,11 @@ fn actions(
         let placed = match &action {
             Action::BuyUnit { .. } => Placed::Created(position.next_index.unit),
             Action::MoveUnit { index, .. } => position
-                .formations
+                .units
                 .iter()
-                .find(|entry| entry.formation.index == *index)
+                .find(|entry| entry.unit.index == *index)
                 .map_or(Placed::Elsewhere, |entry| {
-                    Placed::Moved(Region::of(entry.formation.position))
+                    Placed::Moved(Region::of(entry.unit.position))
                 }),
             _ => Placed::Elsewhere,
         };
@@ -1015,7 +1015,7 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
         .turns
         .iter()
         .flat_map(|turn| [&turn.state.sides.blue, &turn.state.sides.red])
-        .flat_map(|side| side.formations.iter().map(|unit| unit.formation.type_name.clone()))
+        .flat_map(|side| side.units.iter().map(|unit| unit.unit.type_name.clone()))
         .collect()
 }
 
@@ -1285,25 +1285,25 @@ mod tests {
         let battle = tuff();
         let blue = &round(&battle, 8).state.sides.blue;
         let vortex = blue
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 2)
+            .find(|entry| entry.unit.index == 2)
             .unwrap();
-        assert_eq!(vortex.formation.type_name, "vortex");
-        assert_eq!(vortex.formation.level, Some(3));
-        assert_eq!(vortex.formation.position, Position { x: -250, y: -120 });
+        assert_eq!(vortex.unit.type_name, "vortex");
+        assert_eq!(vortex.unit.level, Some(3));
+        assert_eq!(vortex.unit.position, Position { x: -250, y: -120 });
         // What recovering it pays back is what the side paid for it.
         assert_eq!(vortex.value, Some(100));
         let red = &round(&battle, 8).state.sides.red;
         let marksman = red
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 20)
+            .find(|entry| entry.unit.index == 20)
             .unwrap();
-        assert_eq!(marksman.formation.type_name, "marksman");
-        assert_eq!(marksman.formation.level, Some(4));
+        assert_eq!(marksman.unit.type_name, "marksman");
+        assert_eq!(marksman.unit.level, Some(4));
         // Red's recorded (-190, 170) is (190, -170) in its own frame.
-        assert_eq!(marksman.formation.position, Position { x: 190, y: -170 });
+        assert_eq!(marksman.unit.position, Position { x: 190, y: -170 });
     }
 
     #[test]
@@ -1407,8 +1407,8 @@ mod tests {
                         for state in [&turn.state.sides.blue, &turn.state.sides.red] {
                             assert!(state.supply >= 0);
                             assert!(state.next_index.unit >= 0);
-                            for formation in &state.formations {
-                                assert!(formation.formation.index < state.next_index.unit);
+                            for formation in &state.units {
+                                assert!(formation.unit.index < state.next_index.unit);
                             }
                         }
                     }
@@ -1614,13 +1614,13 @@ mod tests {
         let battle = battle_from_grbr(&std::fs::read(READING).unwrap()).unwrap();
         let opened = &round(&battle, 2).state.sides.blue;
         let delivered = opened
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 7)
+            .find(|entry| entry.unit.index == 7)
             .expect("the delivered squad");
-        assert_eq!(delivered.formation.type_name, "marksman");
-        assert_eq!(delivered.formation.level, Some(3));
-        assert_eq!(delivered.formation.position, Position { x: 0, y: -160 });
+        assert_eq!(delivered.unit.type_name, "marksman");
+        assert_eq!(delivered.unit.level, Some(3));
+        assert_eq!(delivered.unit.position, Position { x: 0, y: -160 });
         assert!(delivered.movable);
         assert_eq!(opened.next_index.unit, 8);
         // Round 1 opens with the specialist's unit already in the shop.
@@ -1649,12 +1649,12 @@ mod tests {
             .state
             .sides
             .red
-            .formations
+            .units
             .iter()
-            .find(|entry| entry.formation.index == 12)
+            .find(|entry| entry.unit.index == 12)
             .expect("the delivered squad");
-        assert_eq!(delivered.formation.type_name, "typhoon");
-        assert_eq!(delivered.formation.position, Position { x: 0, y: -160 });
+        assert_eq!(delivered.unit.type_name, "typhoon");
+        assert_eq!(delivered.unit.position, Position { x: 0, y: -160 });
     }
 
     /// Conceding is a decision, and the last one its side takes.
@@ -1735,7 +1735,7 @@ mod tests {
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
-            "    formations:\n    - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
+            "    units:\n    - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
         assert!(yaml.contains("\n- {type: buy_unit, name: "));
         assert!(!yaml.contains("\n- type: "));

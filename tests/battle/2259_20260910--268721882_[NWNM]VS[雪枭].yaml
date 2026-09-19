@@ -110,7 +110,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -130,7 +130,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -184,7 +184,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 357/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, exp: 429/750, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, exp: 164/750, value: 100}
@@ -205,7 +205,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, exp: 82/600, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, exp: 127/600, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, exp: 42/600, value: 100}
@@ -253,7 +253,7 @@ sides:
     officers:
     - training_specialist
     - elite_fang
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 519/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, exp: 750/750, value: 100}
@@ -277,7 +277,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, exp: 482/600, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, exp: 404/600, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, exp: 155/600, value: 100}
@@ -336,7 +336,7 @@ sides:
     officers:
     - training_specialist
     - elite_fang
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 967/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 2, exp: 374/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, level: 2, exp: 637/1690, value: 100}
@@ -365,7 +365,7 @@ sides:
     next_index: {unit: 13, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, exp: 600/600, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, exp: 600/600, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, exp: 302/600, value: 100}
@@ -430,7 +430,7 @@ sides:
     officers:
     - training_specialist
     - elite_fang
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 1668/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 2, exp: 1641/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, level: 2, exp: 1177/1690, value: 100}
@@ -464,7 +464,7 @@ sides:
     officers:
     - advanced_offensive_tactics
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, level: 2, exp: 301/1352, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, level: 2, exp: 455/1352, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, exp: 381/600, value: 100}
@@ -531,7 +531,7 @@ sides:
     techs:
       fang: [grenade_launcher]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 1690/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 2, exp: 1690/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, level: 2, exp: 1690/1690, value: 100}
@@ -571,7 +571,7 @@ sides:
     - speed_specialist
     techs:
       sandworm: [anti_aerial]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, level: 2, exp: 413/1352, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, level: 2, exp: 1018/1352, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, exp: 442/600, value: 100}
@@ -655,7 +655,7 @@ sides:
       fang: [grenade_launcher, ignite]
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 3, exp: 548/2671, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 3, exp: 846/2671, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, level: 3, exp: 957/2671, value: 100}
@@ -700,7 +700,7 @@ sides:
     - speed_specialist
     techs:
       sandworm: [anti_aerial]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, level: 2, exp: 515/1352, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, level: 2, exp: 1246/1352, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, exp: 600/600, value: 100}
@@ -779,7 +779,7 @@ sides:
       fang: [grenade_launcher, ignite]
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 3, exp: 882/2671, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 3, exp: 1492/2671, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, level: 3, exp: 1676/2671, value: 100}
@@ -831,7 +831,7 @@ sides:
     techs:
       sledgehammer: [field_maintenance]
       sandworm: [anti_aerial]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, level: 2, exp: 802/1352, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, level: 2, exp: 1352/1352, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, level: 2, exp: 325/1352, value: 100}
@@ -922,7 +922,7 @@ sides:
       fang: [grenade_launcher, ignite]
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 3, exp: 1822/2671, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 3, exp: 2498/2671, value: 100}
     - {name: vortex, index: 2, position: {x: -80, y: -80}, level: 3, exp: 2587/2671, value: 100}
@@ -978,7 +978,7 @@ sides:
       vulcan: [range_enhancement]
       sledgehammer: [field_maintenance]
       sandworm: [anti_aerial]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, level: 2, exp: 966/1352, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, level: 3, exp: 76/2137, value: 100}
     - {name: fang, index: 2, position: {x: -175, y: -110}, level: 2, exp: 547/1352, value: 100}

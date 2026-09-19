@@ -25,7 +25,7 @@ validates, and publishes an MCFR at the requested path.
 Unit combat values are resolved from the typed, one-file-per-unit
 [unit configuration contract](../simulation/unit-rules.md), not stored in the
 layout. The simulator's closure is narrower than native layout application, and
-it rejects a formation or mechanism outside that closure before recording
+it rejects a unit or mechanism outside that closure before recording
 begins rather than recording an approximation.
 
 ## Document shape
@@ -63,7 +63,7 @@ sides:
     energy_tower_skills: [enhanced_range, high_mobility]
     tower_strengthen_levels: [1, 2]
 
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: laser_sights}
     - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 
@@ -85,7 +85,7 @@ sides:
     blueprints: []
     energy_tower_skills: []
     tower_strengthen_levels: []
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -100}}
 
     contraptions: []
@@ -105,7 +105,7 @@ in its defined order:
 
 | Collection | Order |
 | --- | --- |
-| `formations`, `constructions`, `contraptions` | ascending `index` |
+| `units`, `constructions`, `contraptions` | ascending `index` |
 | `officers`, `blueprints`, `energy_tower_skills` | ascending ID; `officers` may repeat one |
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
@@ -132,7 +132,7 @@ A canonical document begins with `kind: layout`, since a reader has to know what
 it is holding before any of it means anything.
 
 Every coordinate pair in the schema is one `{x, y}` value rather than two
-sibling fields. `formations`, `constructions` and `contraptions` carry it as
+sibling fields. `units`, `constructions` and `contraptions` carry it as
 `position`; `airdrop_shields`, `terrains.control_points` and
 `battle_skills.positions` are lists of the same value.
 
@@ -146,7 +146,7 @@ exception:
 - every other value is written in block style;
 - `officers` is written one per line, and `[]` when empty.
 
-So every formation, placement, shield, terrain and released skill is one line,
+So every unit, placement, shield, terrain and released skill is one line,
 every name list and coordinate pair sits on its key's line, and a side and its
 `techs` stay blocks. One line per item keeps a layout on a screen and makes a
 diff name the item that changed. The spelling is part of the canonical form,
@@ -162,7 +162,7 @@ Runtime catalog availability and native readback remain Adapter-owned.
 
 `mechcore verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. It prints one JSON object per input, and a
-layout's carries `kind: layout` beside the normalized seed, round, formation
+layout's carries `kind: layout` beside the normalized seed, round, unit
 count, construction count, contraption count, and airdrop shield count.
 
 The command is not the layout's alone. It checks each file against the contract
@@ -179,7 +179,7 @@ input was valid.
 
 `mechcore diff left.yaml right.yaml` normalizes both documents and reports
 the fields that differ. Each difference carries a JSON pointer, except that
-`formations`, `constructions` and `contraptions` are aligned by their entries'
+`units`, `constructions` and `contraptions` are aligned by their entries'
 `index` rather than by position, and their path segment reads `index=<value>`.
 Aligning those by position would report an object inserted or removed in the
 middle as a change to every later entry plus one addition or removal at the end;
@@ -279,7 +279,7 @@ does not require that its deployment be reachable by play, and the sandbox
 deliberately keeps that freedom. A consumer that needs reachability rather than
 reproducibility must check it against the preceding state, outside this schema.
 
-All formations are deployed in declaration order after the activation round
+All units are deployed in declaration order after the activation round
 begins.
 
 ## Coordinate system
@@ -319,14 +319,14 @@ The same transform applies independently to every coordinate in
 also expressed in the owning side's local frame: rows advance along local `+y`
 and low-order bits advance along local `+x`. The native terrain executor
 therefore rotates both row order and bit order for the red side. A
-180-degree transform does not change a formation's `rotated` boolean.
+180-degree transform does not change a unit's `rotated` boolean.
 Authoritative native readback remains in world coordinates; the adapter verifies
 that world state against the compiled position and returns the layout-local
 position publicly.
 
 ## Side definition
 
-`formations` is required for each side and must contain at least one valid
+`units` is required for each side and must contain at least one valid
 unit. Every other side field is optional and has its empty or baseline value
 when omitted:
 
@@ -341,11 +341,11 @@ when omitted:
 - `airdrop_shields` defaults to `[]`.
 - `terrains` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
-- A unit formation's `index` is required and has no default.
-- A unit formation's `level` defaults to `1`.
-- A unit formation's `rotated` defaults to `false`.
-- A unit formation's `equipment` defaults to no equipment.
-- A unit formation's `travelling` defaults to `false`.
+- A unit's `index` is required and has no default.
+- A unit's `level` defaults to `1`.
+- A unit's `rotated` defaults to `false`.
+- A unit's `equipment` defaults to no equipment.
+- A unit's `travelling` defaults to `false`.
 
 Unknown fields must be rejected, and so is a document whose `kind` is absent or
 names another kind, and a name the build does not carry.
@@ -397,8 +397,8 @@ entry and reads the count back, rather than reading a presence.
 
 Canonical layouts order Officers by ascending ID; that order is then the
 deterministic application order. Commander skills, equipment, and extra
-formations granted by an Officer are not themselves Officer modifiers. Their
-resulting state belongs to `battle_skills`, equipment, or formation
+units granted by an Officer are not themselves Officer modifiers. Their
+resulting state belongs to `battle_skills`, equipment, or unit
 definitions.
 
 The Officers the Research Center's two enhancement chains hand out, `20310`,
@@ -526,9 +526,9 @@ readback that verifies an apply and the capture that exports a side read both
 lists, so one of these Officers is neither reported missing right after it was
 installed nor dropped from a capture of the side that holds it.
 
-### `formations`
+### `units`
 
-`formations` contains the side's unit formations. Each entry uses the unit's
+`units` contains the side's units. Each entry uses the unit's
 semantic `name` instead of exposing its native numeric ID:
 
 ```yaml
@@ -541,8 +541,8 @@ semantic `name` instead of exposing its native numeric ID:
   frame defined above, not native world or screen pixels. Both are exact signed
   integers, and the pair is one field because it is one value.
 - `index` is the required stable, non-negative native unit index. Indices must
-  be strictly increasing in formation declaration order and may contain gaps.
-- `exp` is the unit formation's experience within its current level, written
+  be strictly increasing in unit declaration order and may contain gaps.
+- `exp` is the unit's experience within its current level, written
   `current/maximum` as in `124/450`. `current` is a non-negative integer and
   `maximum` is the level's full bar, which the
   [unit experience index](../../rules/unit_experience.md) gives per unit and
@@ -560,10 +560,10 @@ it is describing, and inserting or removing an entry would silently rename
 every unit after it. Since indices must also increase in declaration order,
 requiring them makes array order redundant: the index determines it.
 
-The Adapter creates formations in declaration/index order, assigning each
+The Adapter creates units in declaration/index order, assigning each
 requested index directly through `MAD_AddUnit.UIDX`. Missing indices remain
-absent; no placeholder formation is created or removed. It writes experience through the
-formation's native `MechTeam.SetExpInt` from `exp`'s `current`, and
+absent; no placeholder unit is created or removed. It writes experience through the
+unit's native `MechTeam.SetExpInt` from `exp`'s `current`, and
 verifies both index lookup and `GetExpInt` readback before combat. Replay capture always exports native
 `index`; it exports non-zero `exp` after canonical default elision.
 
@@ -678,10 +678,10 @@ following values form the closed public `name` vocabulary for each field:
 ```
 
 The adapter resolves `name` to a native `CardData.ID`; that catalog ID is not
-public layout state. `index` is the required stable native formation index.
+public layout state. `index` is the required stable native unit index.
 `level` is the optional displayed level,
 defaults to `1`, and must be in `1..=9`. `exp` is optional, defaults to `0`,
-and records the formation's current-level experience. `rotated` is an optional
+and records the unit's current-level experience. `rotated` is an optional
 boolean, defaults to `false`, and declares the native unit-orientation flag. It
 is region-relative rather than absolute, so the owning region's own orientation
 still contributes to the world footprint; see the footprint rules above for the
@@ -712,7 +712,7 @@ constructions:
     position: {x: 140, y: -105}
 ```
 
-`constructions` is parallel to `formations` under one side and defaults to
+`constructions` is parallel to `units` under one side and defaults to
 `[]`. Each entry requires `name`, `index`, and `position`.
 
 `index` is the construction's deployment identity, allocated in release order by
@@ -760,7 +760,7 @@ contraptions:
 ```
 
 `shield`, `interceptor`, and `missile` each resolve directly to their native
-contraption kind. `contraptions` is parallel to `formations` and
+contraption kind. `contraptions` is parallel to `units` and
 `constructions` under one side and defaults to `[]`. A contraption entry
 requires `name`, `index`, and `position`, and none of these types requires an extra
 position.
@@ -956,7 +956,7 @@ Each entry has exactly two fields:
   `position_1`, `position_2`, or `position_3` are not part of the schema.
 
 Each `x` and `y` is an `i32`; decimal values, including `10.0`, are rejected.
-Battle-skill positions do not inherit formation grid-alignment or footprint
+Battle-skill positions do not inherit unit grid-alignment or footprint
 rules. One-position skills use a target position. Two-position skills use the
 ordered pair `[start_position, end_position]`; the second coordinate is the
 concrete skill endpoint, not a direction vector. `mobile_beacon` uses three
@@ -973,9 +973,9 @@ and consumed by `CalculateAttackPositions`, so scattering skills take their
 values in release order. Two properties bound the effect: the stream belongs to
 one team, so blue's order and red's order are independent, and
 `BattleSystem.OnEnterDeployment` resets it every deployment, so nothing carries
-across rounds and a single-round layout still reproduces the battle. Formation
+across rounds and a single-round layout still reproduces the battle. Unit
 placement is the deliberate contrast: `MechPositionManager` builds a fresh
-`GRRandom` per call, so declaration order does not affect where a formation
+`GRRandom` per call, so declaration order does not affect where a unit
 lands.
 
 The order that matters is the order the skills are released, not the order the
@@ -1051,7 +1051,7 @@ Applying a layout is fail-closed:
 4. Mutations are executed in document order within each array.
 5. Every mutation is followed by authoritative native readback.
 6. A rejected action, missing catalog entry, ambiguous tower, transport error,
-   or readback mismatch stops the application. Formation failures identify the
+   or readback mismatch stops the application. Unit failures identify the
    declared `name` and `position`; battle-skill failures identify the declared
    `name` and ordered `positions`. Mutations are never retried automatically.
 7. Success means that the game is in the requested activation-round deployment

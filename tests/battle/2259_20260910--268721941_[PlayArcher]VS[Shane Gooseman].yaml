@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -130,7 +130,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -178,7 +178,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 26/450, value: 100}
     - {name: crawler, index: 2, position: {x: 5, y: -300}, exp: 95/450, value: 100}
@@ -202,7 +202,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 327/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, exp: 539/750, value: 100}
     - {name: hound, index: 2, position: {x: -50, y: -150}, exp: 267/750, value: 100}
@@ -252,7 +252,7 @@ sides:
     next_index: {unit: 8, contraption: 1}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 151/450, value: 100}
     - {name: crawler, index: 2, position: {x: 5, y: -300}, exp: 304/450, value: 100}
@@ -279,7 +279,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 437/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, exp: 539/750, value: 100}
     - {name: hound, index: 2, position: {x: -50, y: -150}, exp: 364/750, value: 100}
@@ -335,7 +335,7 @@ sides:
     next_index: {unit: 13, contraption: 1}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 202/450, value: 100}
     - {name: crawler, index: 2, position: {x: 5, y: -300}, exp: 312/450, value: 100}
@@ -368,7 +368,7 @@ sides:
     - training_specialist
     techs:
       hound: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 513/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: -50, y: -150}, exp: 652/750, value: 100}
@@ -431,7 +431,7 @@ sides:
     - cost_control_specialist
     techs:
       vulcan: [scorching_fire]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 256/450, value: 100}
     - {name: crawler, index: 2, position: {x: 5, y: -300}, exp: 318/450, value: 100}
@@ -466,7 +466,7 @@ sides:
     - training_specialist
     techs:
       hound: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 651/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 83/1690, equipment: heavy_armor, value: 100}
     - {name: hound, index: 2, position: {x: -50, y: -150}, exp: 654/750, value: 100}
@@ -542,7 +542,7 @@ sides:
     - cost_control_specialist
     techs:
       vulcan: [range_enhancement, scorching_fire]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 389/450, value: 100}
     - {name: crawler, index: 2, position: {x: 5, y: -300}, exp: 337/450, value: 100}
@@ -579,7 +579,7 @@ sides:
     techs:
       rhino: [combat_evolvement]
       hound: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 750/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 104/1690, equipment: heavy_armor, value: 100}
     - {name: hound, index: 2, position: {x: -50, y: -150}, exp: 687/750, value: 100}
@@ -651,7 +651,7 @@ sides:
     techs:
       marksman: [range_enhancement]
       vulcan: [range_enhancement, scorching_fire]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 401/450, value: 100}
     - {name: crawler, index: 2, position: {x: 5, y: -300}, exp: 337/450, value: 100}
@@ -694,7 +694,7 @@ sides:
       sledgehammer: [armor_enhancement]
       phoenix: [range_enhancement]
       hound: [armor_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, level: 2, exp: 387/1690, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, level: 2, exp: 186/1690, equipment: heavy_armor, value: 100}
     - {name: hound, index: 2, position: {x: -50, y: -150}, exp: 750/750, value: 100}

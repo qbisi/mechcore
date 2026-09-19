@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -127,7 +127,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 519/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 236/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, exp: 252/750, value: 100}
@@ -197,7 +197,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 64/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 140/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 152/600, rotated: true, value: 100}
@@ -252,7 +252,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1048/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 317/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, exp: 507/750, value: 100}
@@ -281,7 +281,7 @@ sides:
     - speed_specialist
     techs:
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 92/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 236/600, rotated: true, value: 100}
@@ -338,7 +338,7 @@ sides:
     next_index: {unit: 13, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1466/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 454/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, level: 2, exp: 60/1690, value: 100}
@@ -370,7 +370,7 @@ sides:
     techs:
       rhino: [whirlwind]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 115/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 376/600, rotated: true, value: 100}
@@ -434,7 +434,7 @@ sides:
     - training_specialist
     techs:
       fire_badger: [scorching_charge]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1690/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 547/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, level: 2, exp: 385/1690, value: 100}
@@ -469,7 +469,7 @@ sides:
     techs:
       rhino: [whirlwind]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 115/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 600/600, rotated: true, value: 100}
@@ -539,7 +539,7 @@ sides:
       scorpion: [doubleshot]
       fire_badger: [scorching_charge]
       typhoon: [wreckage_detonation]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1690/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 618/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, level: 2, exp: 1207/1690, value: 100}
@@ -576,7 +576,7 @@ sides:
     techs:
       rhino: [whirlwind]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 125/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 600/600, rotated: true, value: 100}
@@ -653,7 +653,7 @@ sides:
       scorpion: [doubleshot]
       fire_badger: [scorching_charge]
       typhoon: [wreckage_detonation]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1690/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 649/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, level: 2, exp: 1239/1690, value: 100}
@@ -693,7 +693,7 @@ sides:
     techs:
       rhino: [whirlwind, final_blitz]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 144/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 600/600, rotated: true, value: 100}
@@ -774,7 +774,7 @@ sides:
       scorpion: [doubleshot, acid_attack]
       fire_badger: [scorching_charge]
       typhoon: [wreckage_detonation]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1690/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, level: 2, exp: 1690/1690, value: 100}
@@ -817,7 +817,7 @@ sides:
     techs:
       rhino: [whirlwind, final_blitz, armor_enhancement]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 172/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 600/600, rotated: true, value: 100}
@@ -909,7 +909,7 @@ sides:
       scorpion: [doubleshot, acid_attack]
       fire_badger: [scorching_charge]
       typhoon: [wreckage_detonation]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1690/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: -280, y: -90}, level: 2, exp: 1690/1690, value: 100}
@@ -955,7 +955,7 @@ sides:
     techs:
       rhino: [whirlwind, final_blitz, armor_enhancement, photon_coating]
       crawler: [mechanical_rage]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 184/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 160, y: -175}, exp: 600/600, rotated: true, value: 100}

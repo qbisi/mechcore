@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -175,7 +175,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, exp: 233/650, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, exp: 285/650, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, exp: 172/650, value: 100}
@@ -200,7 +200,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 407/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 123/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, rotated: true, value: 100}
@@ -246,7 +246,7 @@ sides:
     - giant_specialist
     techs:
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, exp: 290/650, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, exp: 540/650, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, exp: 220/650, value: 100}
@@ -276,7 +276,7 @@ sides:
     - speed_specialist
     techs:
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 466/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 198/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 20/600, rotated: true, value: 100}
@@ -326,7 +326,7 @@ sides:
     - giant_specialist
     techs:
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, exp: 473/650, value: 100}
@@ -359,7 +359,7 @@ sides:
     techs:
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 502/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 381/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 65/600, rotated: true, value: 100}
@@ -425,7 +425,7 @@ sides:
     - efficient_giant_manufacturing
     techs:
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, level: 2, exp: 292/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, level: 2, exp: 368/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, exp: 650/650, value: 100}
@@ -460,7 +460,7 @@ sides:
     techs:
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 455/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 65/600, rotated: true, value: 100}
@@ -523,7 +523,7 @@ sides:
     techs:
       marksman: [doubleshot]
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, level: 2, exp: 685/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, level: 2, exp: 1294/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, level: 2, exp: 250/1465, value: 100}
@@ -563,7 +563,7 @@ sides:
       fortress: [armor_enhancement]
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 515/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 65/600, rotated: true, value: 100}
@@ -631,7 +631,7 @@ sides:
       marksman: [doubleshot]
       vulcan: [scorching_fire]
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, level: 2, exp: 1241/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, level: 2, exp: 325/1465, value: 100}
@@ -674,7 +674,7 @@ sides:
       fire_badger: [range_enhancement]
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 545/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 65/600, rotated: true, value: 100}
@@ -746,7 +746,7 @@ sides:
       marksman: [doubleshot]
       vulcan: [best_partner, scorching_fire]
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, level: 2, exp: 1465/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, level: 3, exp: 930/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, level: 2, exp: 1465/1465, value: 100}
@@ -793,7 +793,7 @@ sides:
       fire_badger: [range_enhancement]
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 570/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 65/600, rotated: true, value: 100}
@@ -875,7 +875,7 @@ sides:
       vulcan: [best_partner, scorching_fire]
       melting_point: [energy_diffraction]
       phantom_ray: [sticky_oil_bomb]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, level: 3, exp: 1233/2315, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, level: 3, exp: 2315/2315, value: 100}
     - {name: marksman, index: 2, position: {x: 120, y: -170}, level: 3, exp: 60/2315, value: 100}
@@ -925,7 +925,7 @@ sides:
       fire_badger: [range_enhancement]
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 585/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 20, y: -65}, exp: 65/600, rotated: true, value: 100}

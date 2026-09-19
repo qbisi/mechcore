@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - fortified_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 15/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 116/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 45/450, rotated: true, value: 100}
@@ -201,7 +201,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 15/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 114/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 120/750, value: 100}
@@ -252,7 +252,7 @@ sides:
     officers:
     - fortified_specialist
     - fortified_overlord
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 15/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 116/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 76/450, rotated: true, value: 100}
@@ -280,7 +280,7 @@ sides:
     - supply_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 111/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 237/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 219/750, value: 100}
@@ -334,7 +334,7 @@ sides:
     officers:
     - fortified_specialist
     - fortified_overlord
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 25/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 124/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 86/450, rotated: true, value: 100}
@@ -364,7 +364,7 @@ sides:
     - supply_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 172/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 372/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 250/750, value: 100}
@@ -419,7 +419,7 @@ sides:
     officers:
     - fortified_specialist
     - fortified_overlord
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 55/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 216/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 173/450, rotated: true, value: 100}
@@ -452,7 +452,7 @@ sides:
     techs:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 239/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 407/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 250/750, value: 100}
@@ -522,7 +522,7 @@ sides:
     - fortified_overlord
     techs:
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 73/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 234/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 191/450, rotated: true, value: 100}
@@ -558,7 +558,7 @@ sides:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
       tarantula: [spider_mine]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 239/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 407/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 250/750, value: 100}
@@ -627,7 +627,7 @@ sides:
     - fortified_overlord
     techs:
       vulcan: [best_partner, range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 75/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 361/450, rotated: true, value: 100}
@@ -667,7 +667,7 @@ sides:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
       tarantula: [spider_mine]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 239/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 407/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 250/750, value: 100}
@@ -739,7 +739,7 @@ sides:
     - fortified_overlord
     techs:
       vulcan: [best_partner, range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 77/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -783,7 +783,7 @@ sides:
       rhino: [armor_enhancement]
       arclight: [range_enhancement]
       tarantula: [spider_mine]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 239/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 407/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 250/750, value: 100}
@@ -871,7 +871,7 @@ sides:
       marksman: [electromagnetic_shot]
       vulcan: [best_partner, range_enhancement, scorching_fire]
       steel_ball: [kinetic_charge]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 77/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -919,7 +919,7 @@ sides:
       wasp: [range_enhancement]
       arclight: [range_enhancement]
       tarantula: [spider_mine]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 239/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 407/750, value: 100}
     - {name: hound, index: 2, position: {x: 160, y: -90}, exp: 250/750, value: 100}

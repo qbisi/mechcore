@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - rhino_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -130,7 +130,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -180,7 +180,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - rhino_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, exp: 283/750, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, exp: 399/750, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -120}, exp: 290/750, value: 100}
@@ -206,7 +206,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 109/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 153/1014, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 75/450, rotated: true, value: 100}
@@ -249,7 +249,7 @@ sides:
     - rhino_specialist
     techs:
       arclight: [charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, exp: 736/750, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -120}, exp: 750/750, value: 100}
@@ -279,7 +279,7 @@ sides:
     officers:
     - advanced_missile_device
     - training_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 136/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 160/1014, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 134/450, rotated: true, value: 100}
@@ -330,7 +330,7 @@ sides:
     - rhino_specialist
     techs:
       arclight: [charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, level: 2, exp: 592/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -120}, level: 2, exp: 772/1690, value: 100}
@@ -367,7 +367,7 @@ sides:
     techs:
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 348/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 358/1014, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 272/450, rotated: true, value: 100}
@@ -416,7 +416,7 @@ sides:
     - rhino_specialist
     techs:
       arclight: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, level: 2, exp: 689/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, level: 2, exp: 702/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -120}, level: 2, exp: 1690/1690, value: 100}
@@ -455,7 +455,7 @@ sides:
     techs:
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 867/1014, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 407/450, rotated: true, value: 100}
@@ -505,7 +505,7 @@ sides:
     - rhino_specialist
     techs:
       arclight: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, level: 2, exp: 1632/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, level: 2, exp: 724/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -120}, level: 3, exp: 953/2671, value: 100}
@@ -547,7 +547,7 @@ sides:
     techs:
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 1014/1014, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}
@@ -608,7 +608,7 @@ sides:
     techs:
       arclight: [range_enhancement, charged_shot]
       sabertooth: [range_enhancement]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, level: 2, exp: 1690/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, level: 2, exp: 1538/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -120}, level: 3, exp: 1292/2671, value: 100}
@@ -655,7 +655,7 @@ sides:
       mustang: [range_enhancement]
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 1014/1014, value: 100}
     - {name: crawler, index: 2, position: {x: -290, y: -285}, exp: 450/450, rotated: true, value: 100}

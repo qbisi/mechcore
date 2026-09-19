@@ -139,8 +139,8 @@ pub fn landing(state: &SideState, type_name: &str, red: bool) -> Option<Position
 /// local centres and world-frame sizes.
 fn obstacles(state: &SideState) -> Vec<(Position, (i64, i64))> {
     let mut placed = Vec::new();
-    for entry in &state.formations {
-        let formation = &entry.formation;
+    for entry in &state.units {
+        let formation = &entry.unit;
         if Region::of(formation.position).is_flank() {
             continue;
         }

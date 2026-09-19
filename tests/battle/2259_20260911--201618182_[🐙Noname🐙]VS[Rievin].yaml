@@ -106,7 +106,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -125,7 +125,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -170,7 +170,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 257/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 162/600, rotated: true, value: 100}
@@ -191,7 +191,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, exp: 92/600, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, exp: 152/600, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, exp: 24/600, rotated: true, value: 100}
@@ -239,7 +239,7 @@ sides:
     next_index: {unit: 12, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 305/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 174/600, rotated: true, value: 100}
@@ -267,7 +267,7 @@ sides:
     - cost_control_specialist
     techs:
       fang: [grenade_launcher]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, exp: 284/600, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, exp: 194/600, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, exp: 445/600, rotated: true, value: 100}
@@ -318,7 +318,7 @@ sides:
     next_index: {unit: 15, contraption: 1}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 392/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 212/600, rotated: true, value: 100}
@@ -350,7 +350,7 @@ sides:
     - cost_control_specialist
     techs:
       fang: [grenade_launcher]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, exp: 284/600, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, exp: 503/600, equipment: laser_sights, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, exp: 600/600, rotated: true, value: 100}
@@ -415,7 +415,7 @@ sides:
     - typhoon_specialist
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 400/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 212/600, rotated: true, value: 100}
@@ -449,7 +449,7 @@ sides:
     - cost_control_specialist
     techs:
       fang: [grenade_launcher, range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, exp: 600/600, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, exp: 600/600, equipment: laser_sights, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, level: 2, exp: 400/1352, rotated: true, value: 100}
@@ -532,7 +532,7 @@ sides:
     - typhoon_specialist
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 406/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 212/600, rotated: true, value: 100}
@@ -570,7 +570,7 @@ sides:
     techs:
       fang: [grenade_launcher, range_enhancement]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, level: 2, exp: 691/1352, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, level: 2, exp: 1352/1352, equipment: laser_sights, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, level: 2, exp: 493/1352, rotated: true, value: 100}
@@ -653,7 +653,7 @@ sides:
     techs:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 406/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 250/600, rotated: true, value: 100}
@@ -691,7 +691,7 @@ sides:
     techs:
       fang: [grenade_launcher, range_enhancement]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, level: 2, exp: 1204/1352, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, level: 3, exp: 916/2137, equipment: laser_sights, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, level: 2, exp: 832/1352, rotated: true, value: 100}
@@ -784,7 +784,7 @@ sides:
       wasp: [energy_shield]
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 441/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 293/600, rotated: true, value: 100}
@@ -828,7 +828,7 @@ sides:
       fang: [grenade_launcher, range_enhancement]
       hacker: [range_enhancement]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, level: 2, exp: 1352/1352, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, level: 3, exp: 1831/2137, equipment: laser_sights, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, level: 2, exp: 929/1352, rotated: true, value: 100}
@@ -928,7 +928,7 @@ sides:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_enhancement]
       wraith: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 441/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 525/600, rotated: true, value: 100}
@@ -976,7 +976,7 @@ sides:
       fang: [grenade_launcher, range_enhancement]
       hacker: [range_enhancement]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, level: 3, exp: 521/2137, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, level: 3, exp: 2137/2137, equipment: laser_sights, value: 100}
     - {name: fang, index: 2, position: {x: -180, y: -175}, level: 2, exp: 1157/1352, rotated: true, value: 100}

@@ -57,7 +57,7 @@ offer was declined, `choose_advance_team` omits `specialist` when the opening is
 itself an officer, `release_contraption` omits `extra_position` unless the
 contraption spans two points, and `move_unit` omits `rotated` when it is false.
 
-`index` is a formation's deployment index, or a panel slot in
+`index` is a unit's deployment index, or a panel slot in
 `release_commander_skill`. `tower` is a position in `BuildingManager.buildings`,
 the key `tower_strengthen_levels` uses.
 
@@ -70,7 +70,7 @@ group each action touches.
 | --- | --- |
 | Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
 | Supply | `supply` |
-| Board | `formations`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
+| Board | `units`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
 
 Settled is the group no fight can touch, so a round's decisions determine it
 outright. The board is what the decisions arrange and the fight then consumes.
@@ -82,7 +82,7 @@ taken from. That is a stronger statement than the round transition
 [`battle.md`](battle.md#what-a-round-reproduces) defines, and it is the one this
 document's per-action rules are answerable to.
 
-Where a summoned formation lands is the board's rule rather than the
+Where a summoned unit lands is the board's rule rather than the
 decision's. A card's squads, an opening's force and an officer's delivery each
 land at the main deployment region's centre, aligned to the world's ten-metre
 grid, or at the free grid position nearest it, which is why the same card lands
@@ -92,7 +92,7 @@ are the world's, so a transition not told the side reports the landing
 unsettled rather than inventing one.
 
 An allocator is settled while the objects it names are board. A contraption is
-destroyed by the fight and a formation can be, but neither index is handed out
+destroyed by the fight and a unit can be, but neither index is handed out
 again, so the two counters only ever rise and rise only by a decision.
 
 `reinforce_offers` is granted by the round and written by no action. The rest of
@@ -105,7 +105,7 @@ round otherwise owns.
   it: energy tower skill `3` and reinforcement card `10004` each grant one more.
   The card is an officer the side keeps, so every later round opens with the
   extra purchase too. `unlocks_remaining` only ever counts down.
-- A formation's `exp` is the fight's to grant, except that upgrading a formation
+- A unit's `exp` is the fight's to grant, except that upgrading a unit
   discards it and Intensive Training fills it. A rank starts at zero however much
   the rank below it earned.
 
@@ -168,18 +168,18 @@ here.
 - {type: buy_unit, name: void_eye, position: {x: 0, y: -160}, rotated: true}
 ```
 
-Buys one formation of the unit type `name`. Advances `next_index.unit` by one and puts a
-formation on the board under that index, at `position` and facing the way
+Buys one unit of the unit type `name`. Advances `next_index.unit` by one and puts a
+unit on the board under that index, at `position` and facing the way
 `rotated` says, which defaults to false.
 
 The game lands a purchase where [the board puts it](../../rules/landing.md) and
 the player moves it from there, and a purchase states where those moves end
-rather than where it landed: the round's moves of the formation it creates are
+rather than where it landed: the round's moves of the unit it creates are
 written into it, and not again as moves. A position on a flank therefore means
-the formation was moved there, so the purchase sets its `travelling`, which a
+the unit was moved there, so the purchase sets its `travelling`, which a
 move from the main half would have set.
 
-The formation arrives at the shop's level for that unit, which an officer or an
+The unit arrives at the shop's level for its type, which an officer or an
 Energy Tower skill can raise. Costs the unit's price plus one upgrade for each
 level above the first.
 
@@ -189,8 +189,8 @@ level above the first.
 - {type: upgrade_unit, index: 5}
 ```
 
-Raises the formation at `index` by one level. Costs one upgrade for its unit
-type, less what the formation's equipment discounts, floored at zero.
+Raises the unit at `index` by one level. Costs one upgrade for its unit
+type, less what the unit's equipment discounts, floored at zero.
 
 ### `unlock_unit`
 
@@ -214,7 +214,7 @@ The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per
 unit and not per side.
 
-A Jump Drive, 高速引擎, frees every formation of its unit to move in this round
+A Jump Drive, 高速引擎, frees every unit of its type to move in this round
 and every later one, and sets their `movable`: `1606` for Wasp, `1611` for
 Overlord and `1616` for Phoenix.
 
@@ -265,15 +265,15 @@ oppositely, so nothing may read a tower's identity out of its position.
 - {type: use_equipment, name: photon_coating, index: 3}
 ```
 
-Fits the item `name` to the formation at `index`, as `upgrade_unit` and
+Fits the item `name` to the unit at `index`, as `upgrade_unit` and
 `move_unit` name one. The item leaves `equipment`,
-the side's list of what it owns and no formation wears, and becomes that
-formation's.
+the side's list of what it owns and no unit wears, and becomes that
+unit's.
 
 Fitting is free, because the item was paid for when it was taken. What it can
-change is later: an item may discount every upgrade of its formation, or pay its
+change is later: an item may discount every upgrade of its unit, or pay its
 side an income every round it is worn. Fitting the Deployment Module,
-`13040001`, frees its formation to move in this round and every later one, and
+`13040001`, frees its unit to move in this round and every later one, and
 sets its `movable`.
 
 The inventory follows one identity across a round:
@@ -282,7 +282,7 @@ The inventory follows one identity across a round:
 equipment(R+1) = equipment(R)
                + what this round's cards granted
                + what this round's officers delivered
-               + what recovering a formation handed back
+               + what recovering a unit handed back
                − what this round fitted
 ```
 
@@ -297,7 +297,7 @@ Every fit takes a copy out of the stock. A side that fits an item it does not
 hold describes a position the match cannot reach, which is a stronger statement
 than the stock merely staying where it was.
 
-A formation also leaves the board by being destroyed, which is the fight's and
+A unit also leaves the board by being destroyed, which is the fight's and
 not a decision's. The identity covers what the decisions do to the stock.
 
 ### `move_unit`
@@ -306,11 +306,11 @@ not a decision's. The identity covers what the decisions do to the stock.
 - {type: move_unit, index: 0, position: {x: 85, y: -80}, rotated: true}
 ```
 
-Moves the formation at `index` to `position`. `rotated` defaults to false and
-faces the formation the other way. Free, and writes nothing but the board.
+Moves the unit at `index` to `position`. `rotated` defaults to false and
+faces the unit the other way. Free, and writes nothing but the board.
 
-Only a formation whose `movable` is true may move, and a move of any other is
-refused rather than applied. A formation is free to move in the round it
+Only a unit whose `movable` is true may move, and a move of any other is
+refused rather than applied. A unit is free to move in the round it
 arrives. In a later round, what frees it is a decision of this document: fitting
 a Deployment Module, researching its unit's Jump Drive, or releasing Redeploy at
 it.
@@ -318,21 +318,21 @@ it.
 A move is also the only decision that writes `travelling`, and it writes it by
 region rather than by coordinate. The coordinate system has three regions per
 side: the main deployment half and the two flank rectangles. A move that ends
-in the region it started in leaves `travelling` alone, so a formation shuffled
+in the region it started in leaves `travelling` alone, so a unit shuffled
 about inside one flank stays travelling and one shuffled about the main half
 stays settled. A move that changes region is settled by the region it arrives
 in: either flank sets `travelling`, and the main half clears it. The two flanks
 are separate regions, so crossing from one to the other sets `travelling` on a
-formation that had already settled.
+unit that had already settled.
 
 The fight then empties the set, which is why `travelling` belongs to the
 deployment that produced it rather than to the position the next round starts
-from. A round's opening state carries no travelling formation, and the flank
-regions open at round 2, so the earliest round in which any formation travels
+from. A round's opening state carries no travelling unit, and the flank
+regions open at round 2, so the earliest round in which any unit travels
 is round 2.
 
-A formation this round created travels only if it reaches a flank. A card puts
-its formation in the main half, and a purchase whose position is on a flank is
+A unit this round created travels only if it reaches a flank. A card puts
+its unit in the main half, and a purchase whose position is on a flank is
 one whose moves took it there.
 
 ### `release_commander_skill`
@@ -352,14 +352,14 @@ within a round, since a card or a blueprint adds a skill to it.
 | Form | Means |
 | --- | --- |
 | `!area [{x, y}, ...]` | the points the skill covers, in order |
-| `!unit <index>` | one of the side's own formations |
+| `!unit <index>` | one of the side's own units |
 | `!construction <index>` | one of the side's own constructions |
 
 What a release writes depends on the skill. It may put a construction, a
 retained airdrop shield or a terrain on the board, or take one of the side's own
-formations or constructions away. Taking a formation away returns what it wore
-to `equipment`, where the same round can fit it to another formation. Releasing is free, except a skill that
-recovers an object, which pays back what that object cost: for a formation, its
+units or constructions away. Taking a unit away returns what it wore
+to `equipment`, where the same round can fit it to another unit. Releasing is free, except a skill that
+recovers an object, which pays back what that object cost: for a unit, its
 purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that
 is a property of its type rather than of its history.
@@ -370,17 +370,17 @@ position during deployment, so the decision writes that work and marks the slot
 order, and never reaches a layout.
 
 Intensive Training, `1100001`, is one. It targets one of the side's own
-formations with `!unit` and fills its experience bar, so `exp` becomes
+units with `!unit` and fills its experience bar, so `exp` becomes
 `maximum/maximum`. A full
-formation takes no further share of the experience a fight hands out;
+unit takes no further share of the experience a fight hands out;
 [the unit experience index](../../rules/unit_experience.md) gives the amount a
 full bar stands for per unit and level.
 
-The skill cannot target a formation at level 9 or one whose bar is already
+The skill cannot target a unit at level 9 or one whose bar is already
 full, and a decision that does is refused rather than applied.
 
-Redeploy, `1000001`, is the other. It targets one of the side's own formations
-with `!unit` and sets its `movable`, so the formation may move for the rest of
+Redeploy, `1000001`, is the other. It targets one of the side's own units
+with `!unit` and sets its `movable`, so the unit may move for the rest of
 the round.
 
 ### `release_contraption`
@@ -414,11 +414,11 @@ the sequence, and so does everything the other side decided.
 Four rules govern a transition and no action names any of them. Applying
 actions without them produces a position that looks right and is not.
 
-- **A card or an officer allocates formations.** A card that hands out squads
+- **A card or an officer allocates units.** A card that hands out squads
   takes the next indices as it is taken, and an officer's squad arrives before
   any of the round's own decisions. Everything bought afterwards is filed one
   along, so ignoring this files later purchases under indices that belong to
-  something else, and a recovery then names the wrong formation.
+  something else, and a recovery then names the wrong unit.
 - **An officer delivers on a schedule of its own,** not when it arrives. Its
   squad, its commander skills and its equipment come in its `active_round`, and
   its unit joins the shop in its `unlock_round`. Both are absolute rounds and
@@ -490,16 +490,16 @@ to stay whole for an undo to pop it, and order is all that survives either way.
 It keeps only the resulting position and rotation, since the recorded
 before-state restates what the state segment already holds.
 
-A formation's moves keep what they amount to, not the route. A move settles
+A unit's moves keep what they amount to, not the route. A move settles
 `travelling` by the region it arrives in, and a round's opening holds no
-travelling formation, so a formation that begins its moves in the main half
+travelling unit, so a unit that begins its moves in the main half
 travels exactly when its last move ends on a flank, whichever way it went:
 
-- A formation this round bought keeps none of its moves. The purchase carries
+- A unit this round bought keeps none of its moves. The purchase carries
   where they end.
-- Any other formation that begins its moves in the main half, one a card handed
+- Any other unit that begins its moves in the main half, one a card handed
   out included, keeps its last move alone.
-- A formation that begins them on a flank keeps the last move of each stretch
+- A unit that begins them on a flank keeps the last move of each stretch
   that ends in one region, the main half or one flank. Going to the main half
   and back travels where staying would not, so the route between regions
   matters for it.

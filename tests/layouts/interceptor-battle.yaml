@@ -3,7 +3,7 @@ round: 1
 
 sides:
   blue:
-    formations:
+    units:
       - name: stormcaller
         index: 0
         position: {x: 5, y: -120}
@@ -13,7 +13,7 @@ sides:
         position: {x: 5, y: -85}
 
   red:
-    formations:
+    units:
       - name: stormcaller
         index: 0
         position: {x: 5, y: -120}

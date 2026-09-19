@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -174,7 +174,7 @@ sides:
     next_index: {unit: 8, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 85/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 313/750, value: 100}
     - {name: arclight, index: 2, position: {x: 180, y: -170}, exp: 424/750, value: 100}
@@ -197,7 +197,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 16/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, value: 100}
@@ -246,7 +246,7 @@ sides:
     next_index: {unit: 12, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 345/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: 180, y: -170}, exp: 704/750, value: 100}
@@ -272,7 +272,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - cost_control_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 14/750, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, exp: 38/750, value: 100}
@@ -323,7 +323,7 @@ sides:
     next_index: {unit: 14, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 427/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 277/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 180, y: -170}, exp: 750/750, value: 100}
@@ -353,7 +353,7 @@ sides:
     - cost_control_specialist
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 23/750, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, exp: 56/750, value: 100}
@@ -408,7 +408,7 @@ sides:
     - marksman_specialist
     techs:
       typhoon: [range_enhancement]
-    formations:
+    units:
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 377/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 180, y: -170}, exp: 750/750, value: 100}
     - {name: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1168/1300, value: 200}
@@ -439,7 +439,7 @@ sides:
     - cost_control_specialist
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
@@ -506,7 +506,7 @@ sides:
     techs:
       marksman: [range_enhancement]
       typhoon: [range_enhancement]
-    formations:
+    units:
     - {name: arclight, index: 2, position: {x: 180, y: -170}, exp: 750/750, value: 100}
     - {name: sabertooth, index: 3, position: {x: -75, y: -145}, exp: 1300/1300, value: 200}
     - {name: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 663/2929, value: 200}
@@ -543,7 +543,7 @@ sides:
     - cost_control_specialist
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
@@ -615,7 +615,7 @@ sides:
       marksman: [range_enhancement]
       sabertooth: [field_maintenance]
       typhoon: [range_enhancement]
-    formations:
+    units:
     - {name: sabertooth, index: 3, position: {x: -75, y: -145}, level: 2, exp: 602/2929, equipment: super_heavy_armor, value: 200}
     - {name: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 731/2929, value: 200}
     - {name: crawler, index: 5, position: {x: -70, y: -245}, exp: 312/450, rotated: true, value: 100}
@@ -654,7 +654,7 @@ sides:
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       sandworm: [strike]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}
@@ -724,7 +724,7 @@ sides:
       sabertooth: [field_maintenance]
       typhoon: [range_enhancement]
       sandworm: [replicate]
-    formations:
+    units:
     - {name: sabertooth, index: 3, position: {x: -75, y: -145}, level: 2, exp: 670/2929, equipment: super_heavy_armor, value: 200}
     - {name: sabertooth, index: 4, position: {x: 75, y: -145}, level: 2, exp: 790/2929, value: 200}
     - {name: crawler, index: 5, position: {x: -70, y: -245}, exp: 312/450, rotated: true, value: 100}
@@ -764,7 +764,7 @@ sides:
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       sandworm: [armor_enhancement, strike]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 35/750, value: 100}
     - {name: vortex, index: 2, position: {x: -110, y: -110}, exp: 77/750, value: 100}

@@ -3,7 +3,7 @@ round: 1
 
 sides:
   blue:
-    formations:
+    units:
       - name: crawler
         index: 0
         position: {x: 5, y: -80}
@@ -12,7 +12,7 @@ sides:
         position: {x: 5, y: -120}
 
   red:
-    formations:
+    units:
       - name: crawler
         index: 0
         position: {x: 5, y: -80}

@@ -15,7 +15,7 @@ installation, and `tests/grbr/README.md` explains which replays are usable.
 | Commander skill | The skill joins `battle_skills` | [`config/reinforce_items.yaml`](../../config/reinforce_items.yaml) |
 | Equipment | The item joins the side's `equipment` | the same file |
 | Officer | The officer joins a state's `officers` | the same file, effects in [`config/officers.yaml`](../../config/officers.yaml) |
-| Unit | Formations arrive | [`config/unit_reinforcements.yaml`](../../config/unit_reinforcements.yaml) |
+| Unit | Units arrive | [`config/unit_reinforcements.yaml`](../../config/unit_reinforcements.yaml) |
 | Advance team | The round 0 opening, a force or a specialist officer | [`config/advance_teams.yaml`](../../config/advance_teams.yaml) |
 
 The first three grant the thing their own ID names. There is no second mapping
@@ -41,7 +41,7 @@ them is exactly the unit list of the team it took.
 
 Two kinds share that one choice, and
 [`config/advance_teams.yaml`](../../config/advance_teams.yaml) holds both. A team
-hands out a force of five formations. A specialist grants the officer its own ID
+hands out a force of five units. A specialist grants the officer its own ID
 names instead, and 16 of them can be picked: Marksman Specialist unlocks its
 unit and hands out a rank 3 squad of it, Supply Specialist adds 50 to every
 round, Missile Specialist puts two Missile Strikes on the panel.
@@ -112,7 +112,7 @@ do, and the shapes are these:
   sum granted once;
 - a bounty the fight pays for destroying a giant, which is the one effect no
   document can predict;
-- a commander skill, an equipment, or an opening formation the officer hands
+- a commander skill, an equipment, or an opening unit the officer hands
   out, which is why taking an officer card can put a skill on the panel.
 
 ## Where the tables come from

@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193/750, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, exp: 430/750, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, exp: 294/750, value: 100}
@@ -201,7 +201,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 4/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 10/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 17/450, rotated: true, value: 100}
@@ -246,7 +246,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 750/750, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, exp: 750/750, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, exp: 750/750, value: 100}
@@ -274,7 +274,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 40/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 19/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 34/450, rotated: true, value: 100}
@@ -328,7 +328,7 @@ sides:
     officers:
     - giant_specialist
     - assault_raiden
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, level: 2, exp: 166/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 107/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, level: 2, exp: 50/1690, value: 100}
@@ -359,7 +359,7 @@ sides:
     - supply_specialist
     techs:
       tarantula: [field_maintenance]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 96/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 68/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 47/450, rotated: true, value: 100}
@@ -419,7 +419,7 @@ sides:
     - assault_raiden
     techs:
       melting_point: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, level: 2, exp: 198/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 316/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, level: 2, exp: 515/1690, value: 100}
@@ -452,7 +452,7 @@ sides:
     - supply_specialist
     techs:
       tarantula: [field_maintenance]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 250/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 117/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 318/450, rotated: true, value: 100}
@@ -521,7 +521,7 @@ sides:
     techs:
       melting_point: [range_enhancement]
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, level: 2, exp: 235/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 497/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, level: 2, exp: 638/1690, value: 100}
@@ -558,7 +558,7 @@ sides:
     - efficient_light_manufacturing
     techs:
       tarantula: [field_maintenance]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 173/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 450/450, rotated: true, value: 100}
@@ -639,7 +639,7 @@ sides:
       melting_point: [range_enhancement]
       mustang: [range_enhancement]
       fire_badger: [range_enhancement]
-    formations:
+    units:
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 615/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, level: 2, exp: 1690/1690, value: 100}
     - {name: fire_badger, index: 3, position: {x: -210, y: -125}, exp: 1400/1400, rotated: true, value: 200}
@@ -679,7 +679,7 @@ sides:
     - efficient_light_manufacturing
     techs:
       tarantula: [field_maintenance, spider_mine]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 173/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 450/450, rotated: true, value: 100}
@@ -771,7 +771,7 @@ sides:
       mustang: [range_enhancement]
       fire_badger: [range_enhancement]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 772/1690, value: 100}
     - {name: vortex, index: 2, position: {x: -250, y: -120}, level: 3, exp: 1510/2671, value: 100}
     - {name: fire_badger, index: 3, position: {x: -210, y: -125}, level: 2, exp: 1660/3154, rotated: true, value: 200}
@@ -815,7 +815,7 @@ sides:
     - efficient_light_manufacturing
     techs:
       tarantula: [field_maintenance, spider_mine]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 100, y: -135}, exp: 450/450, rotated: true, value: 100}

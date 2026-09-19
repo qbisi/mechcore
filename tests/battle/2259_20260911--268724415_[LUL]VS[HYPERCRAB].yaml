@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - fire_badger_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - fire_badger_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 115/650, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 36/650, value: 100}
     - {name: marksman, index: 2, position: {x: 180, y: -170}, exp: 60/650, value: 100}
@@ -201,7 +201,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -60, y: -85}, exp: 295/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -220, y: -85}, exp: 180/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -145, y: -190}, exp: 259/450, value: 100}
@@ -242,7 +242,7 @@ sides:
     next_index: {unit: 10, contraption: 1}
     officers:
     - fire_badger_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 436/650, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 259/650, value: 100}
     - {name: marksman, index: 2, position: {x: 180, y: -170}, exp: 209/650, value: 100}
@@ -270,7 +270,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -60, y: -85}, exp: 302/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -220, y: -85}, exp: 180/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -145, y: -190}, exp: 318/450, value: 100}
@@ -322,7 +322,7 @@ sides:
     next_index: {unit: 16, contraption: 1}
     officers:
     - fire_badger_specialist
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 561/650, value: 100}
     - {name: marksman, index: 2, position: {x: 180, y: -170}, exp: 650/650, value: 100}
@@ -358,7 +358,7 @@ sides:
     - speed_specialist
     techs:
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -60, y: -85}, exp: 306/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -220, y: -85}, exp: 200/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -145, y: -190}, exp: 362/450, value: 100}
@@ -413,7 +413,7 @@ sides:
     - fire_badger_specialist
     techs:
       wasp: [range_enhancement]
-    formations:
+    units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, level: 2, exp: 658/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 650/650, value: 100}
     - {name: marksman, index: 2, position: {x: 180, y: -170}, level: 2, exp: 601/1465, value: 100}
@@ -452,7 +452,7 @@ sides:
     - speed_specialist
     techs:
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -60, y: -85}, exp: 339/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -220, y: -85}, exp: 288/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -145, y: -190}, exp: 433/450, value: 100}

@@ -38,16 +38,17 @@ pub mod record;
 pub mod reinforcement;
 
 pub use catalog::{
-    CHAIN_BLUEPRINTS, NativeFormation, battle_skill_type_from_id, chain_blueprint,
-    chain_officer, construction_type_from_id, contraption_type_from_id, unit_type_from_id,
+    CHAIN_BLUEPRINTS, NativeFormation, battle_skill_type_from_id, chain_blueprint, chain_officer,
+    construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
 pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
 pub use layout::{
     BattleSkillDefinition, ContraptionPlacement, Experience, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
-    Formation, Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
+    Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
     RANGE_ENHANCEMENT_SKILL, Region, Side, Sides, StaticPlacement, TOWER_COUNT, Techs, Terrain,
-    TerrainType, canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml, parse_yaml,
+    TerrainType, UnitPlacement, canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml,
+    parse_yaml,
 };
 
 /// Names the kind of document a file carries.
@@ -85,11 +86,11 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{"name": type_name, "positions": positions}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         })
@@ -101,11 +102,11 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
                     "terrains": terrains
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         })
@@ -122,9 +123,9 @@ kind: state
 round: 1
 sides:
   blue:
-    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
-    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
         let error = parse_embedded_yaml(state).unwrap_err();
         assert_eq!(error, "expected a layout document, found kind \"state\"");
@@ -133,9 +134,9 @@ sides:
 round: 1
 sides:
   blue:
-    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
   red:
-    formations: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
         assert_eq!(
             parse_embedded_yaml(untagged).unwrap_err(),
@@ -161,8 +162,8 @@ sides:
         let missing = compile(&json!({
             "kind": "layout",
             "sides": {
-                "blue": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -172,8 +173,8 @@ sides:
             "kind": "layout",
             "round": 0,
             "sides": {
-                "blue": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -186,8 +187,8 @@ sides:
                 "kind": "layout",
                 "round": 40,
                 "sides": {
-                    "blue": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                    "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                    "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             }))
             .unwrap()
@@ -205,7 +206,7 @@ sides:
             "round": 2,
             "sides": {
                 "blue": {
-                    "formations": [
+                    "units": [
                         {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}
                     ],
                     "airdrop_shields": [{"x": -200, "y": -20}],
@@ -216,14 +217,14 @@ sides:
                         {"name": "lightning_storm", "positions": [{"x": 20, "y": -150}]}
                     ]
                 },
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
 
         let yaml = canonical_yaml(layout).unwrap();
         for line in [
-            "    formations:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n",
+            "    units:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n",
             "    airdrop_shields:\n    - {x: -200, y: -20}\n",
             "    - {name: oil, control_points: [{x: 100, y: 0}, {x: 120, y: 0}]}\n",
             "    - {name: lightning_storm, positions: [{x: 20, y: -150}]}\n",
@@ -250,7 +251,7 @@ sides:
                 "blue": {
                     "officers": ["typhoon_specialist", "training_specialist"],
                     "techs": {"marksman": ["range_enhancement"], "fortress": ["solid_shot"]},
-                    "formations": [
+                    "units": [
                         {"index": 4, "name": "marksman", "position": {"x": 40, "y": -50}, "level": 1},
                         {"index": 1, "name": "marksman", "position": {"x": 0, "y": -50},
                          "exp": "0/650", "rotated": false, "travelling": false}
@@ -265,7 +266,7 @@ sides:
                         {"name": "oil", "control_points": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
                     ]
                 },
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
@@ -276,7 +277,7 @@ sides:
         assert_eq!(
             once.sides
                 .blue
-                .formations
+                .units
                 .iter()
                 .map(|formation| formation.index)
                 .collect::<Vec<_>>(),
@@ -304,10 +305,10 @@ sides:
                 .collect::<Vec<_>>(),
             [-100, 100]
         );
-        assert!(once.sides.blue.formations[0].level.is_none());
-        assert!(once.sides.blue.formations[0].exp.is_none());
-        assert!(once.sides.blue.formations[0].rotated.is_none());
-        assert!(once.sides.blue.formations[0].travelling.is_none());
+        assert!(once.sides.blue.units[0].level.is_none());
+        assert!(once.sides.blue.units[0].exp.is_none());
+        assert!(once.sides.blue.units[0].rotated.is_none());
+        assert!(once.sides.blue.units[0].travelling.is_none());
 
         assert_eq!(once.clone().normalized(), once);
     }
@@ -347,8 +348,8 @@ sides:
     #[test]
     fn map_id_is_optional_positive_and_preserved() {
         let mut value = json!({"kind": "layout", "round": 1, "sides": {
-            "blue": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-            "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }});
         assert_eq!(compile(&value).unwrap().map_id, None);
         for id in [1001, 1021] {
@@ -377,8 +378,8 @@ sides:
                 "kind": "layout",
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                    "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                    "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             });
             if let Some(seed) = seed {
@@ -478,17 +479,17 @@ kind: layout
 round: 1
 sides:
   blue:
-    formations:
+    units:
       - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
   red:
-    formations:
+    units:
       - {name: marksman, index: 0, position: {x: 0, y: -50}}
 ",
         )
         .unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"defensive_wall\" belongs in constructions"
+            "side blue unit type \"defensive_wall\" belongs in constructions"
         );
     }
 
@@ -498,14 +499,14 @@ sides:
             "kind": "layout",
             "round": 3,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
                     {"index": 1, "name": "marksman", "position": {"x": -310, "y": 20}},
                     {"index": 2, "name": "arclight", "position": {"x": 310, "y": 20}, "travelling": true}
                 ], "contraptions": [
                     {"index": 0, "name": "interceptor", "position": {"x": 5, "y": -85}}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
@@ -513,13 +514,13 @@ sides:
         assert_eq!(plan.round, 3);
         let types = plan
             .blue
-            .formations
+            .units
             .iter()
             .map(|placement| placement.type_name.as_str())
             .collect::<Vec<_>>();
         assert_eq!(types, ["marksman", "marksman", "arclight"]);
-        assert!(!plan.blue.formations[1].travelling);
-        assert!(plan.blue.formations[2].travelling);
+        assert!(!plan.blue.units[1].travelling);
+        assert!(plan.blue.units[2].travelling);
         assert_eq!(plan.blue.contraptions[0].type_name, "interceptor");
     }
 
@@ -530,10 +531,10 @@ sides:
                 "kind": "layout",
                 "round": round,
                 "sides": {
-                    "blue": {"formations": [
+                    "blue": {"units": [
                         {"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}, "travelling": travelling}
                     ]},
-                    "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             })
         };
@@ -557,14 +558,14 @@ sides:
             "kind": "layout",
             "round": 2,
             "sides": {
-                "blue": {"formations": [{"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}}]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
         assert!(omitted.contains("first flank deployment"));
-        assert!(compile(&layout(2, true)).unwrap().blue.formations[0].travelling);
-        assert!(!compile(&layout(3, false)).unwrap().blue.formations[0].travelling);
+        assert!(compile(&layout(2, true)).unwrap().blue.units[0].travelling);
+        assert!(!compile(&layout(3, false)).unwrap().blue.units[0].travelling);
     }
 
     #[test]
@@ -575,7 +576,7 @@ sides:
         let error = compile(&value).unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"marksman\" at (-310, 20) must set travelling=true: a round 2 ambush unit is always a first flank deployment"
+            "side blue unit type \"marksman\" at (-310, 20) must set travelling=true: a round 2 ambush unit is always a first flank deployment"
         );
     }
 
@@ -585,10 +586,10 @@ sides:
             "kind": "layout",
             "round": 3,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "travelling": true}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -601,10 +602,10 @@ sides:
             "kind": "layout",
             "round": 3,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0, "name": "marksman", "position": {"x": -300, "y": 20}, "travelling": true}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -617,32 +618,29 @@ sides:
             "kind": "layout",
             "round": 3,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0,
                         "name": "crawler", "position": {"x": 325, "y": 60},
                         "rotated": true, "travelling": true
                     }
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
-        assert_eq!(
-            placement_footprint(&plan.blue.formations[0]),
-            Some((50, 20))
-        );
+        assert_eq!(placement_footprint(&plan.blue.units[0]), Some((50, 20)));
 
         let error = compile(&json!({
             "kind": "layout",
             "round": 3,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0,
                         "name": "crawler", "position": {"x": 310, "y": 65},
                         "rotated": true, "travelling": true
                     }
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
@@ -655,11 +653,11 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [{"index": 0,
+                "blue": {"units": [{"index": 0,
                     "name": "marksman",
                     "position": {"x": -20, "y": -50}
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman",
                     "position": {"x": 20, "y": -180}
                 }]}
@@ -667,15 +665,15 @@ sides:
         }))
         .unwrap();
 
-        assert_eq!(plan.blue.formations[0].level, Some(1));
-        assert_eq!(plan.blue.formations[0].index, Some(0));
-        assert_eq!(plan.blue.formations[0].exp, Some(0));
-        assert!(!plan.blue.formations[0].rotated);
-        assert_eq!(plan.blue.formations[0].equipment, None);
-        assert_eq!(plan.blue.formations[0].type_name, "marksman");
-        assert_eq!(plan.blue.formations[0].native, NativeFormation::Unit(2));
-        assert_eq!(plan.red.formations[0].position, Position { x: 20, y: -180 });
-        assert_eq!(plan.formation_count(), 2);
+        assert_eq!(plan.blue.units[0].level, Some(1));
+        assert_eq!(plan.blue.units[0].index, Some(0));
+        assert_eq!(plan.blue.units[0].exp, Some(0));
+        assert!(!plan.blue.units[0].rotated);
+        assert_eq!(plan.blue.units[0].equipment, None);
+        assert_eq!(plan.blue.units[0].type_name, "marksman");
+        assert_eq!(plan.blue.units[0].native, NativeFormation::Unit(2));
+        assert_eq!(plan.red.units[0].position, Position { x: 20, y: -180 });
+        assert_eq!(plan.unit_count(), 2);
     }
 
     #[test]
@@ -684,30 +682,30 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"name": "marksman", "index": 0, "position": {"x": -20, "y": -50},
                      "exp": "7/650"},
                     {"name": "marksman", "index": 2, "position": {"x": 20, "y": -50}}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap();
 
-        assert_eq!(plan.blue.formations[0].index, Some(0));
-        assert_eq!(plan.blue.formations[0].exp, Some(7));
-        assert_eq!(plan.blue.formations[1].index, Some(2));
-        assert_eq!(plan.blue.formations[1].exp, Some(0));
+        assert_eq!(plan.blue.units[0].index, Some(0));
+        assert_eq!(plan.blue.units[0].exp, Some(7));
+        assert_eq!(plan.blue.units[1].index, Some(2));
+        assert_eq!(plan.blue.units[1].exp, Some(0));
 
         let duplicate = compile(&json!({
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"name": "marksman", "index": 1, "position": {"x": -20, "y": -50}},
                     {"name": "marksman", "index": 1, "position": {"x": 20, "y": -50}}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap_err();
@@ -717,11 +715,11 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50},
                      "exp": "-1/650"}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap_err();
@@ -732,11 +730,11 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [
+                "blue": {"units": [
                     {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "level": 2,
                      "exp": "7/650"}
                 ]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
             }
         }))
         .unwrap_err();
@@ -752,19 +750,19 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [{"index": 0,
+                "blue": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50},
                     "equipment": "laser_sights"
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
         .unwrap();
 
-        assert_eq!(plan.blue.formations[0].equipment, Some(13_030_001));
-        assert_eq!(plan.red.formations[0].equipment, None);
+        assert_eq!(plan.blue.units[0].equipment, Some(13_030_001));
+        assert_eq!(plan.red.units[0].equipment, None);
     }
 
     #[test]
@@ -774,11 +772,11 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
                     "constructions": [{"index": 0, "name": "defensive_wall", "position": {"x": 0, "y": -55},
                      "equipment": "laser_sights"}]
                 },
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
@@ -794,17 +792,20 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [{"index": 0,
+                "blue": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": "not_an_item"
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
         .unwrap_err();
 
-        assert!(error.contains("no equipment item of this build is named not_an_item"), "{error}");
+        assert!(
+            error.contains("no equipment item of this build is named not_an_item"),
+            "{error}"
+        );
     }
 
     #[test]
@@ -816,10 +817,10 @@ sides:
                 "blue": {
                     "officers": ["improved_wasp"],
                     "techs": {"marksman": ["range_enhancement"]},
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         }))
@@ -831,10 +832,10 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"techs": {"marksman": ["range_enhancement", "range_enhancement"]}, "formations": [{"index": 0,
+                "blue": {"techs": {"marksman": ["range_enhancement", "range_enhancement"]}, "units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
@@ -849,10 +850,10 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"officers": ["advanced_offensive_tactics", "advanced_offensive_tactics"], "formations": [{"index": 0,
+                "blue": {"officers": ["advanced_offensive_tactics", "advanced_offensive_tactics"], "units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
@@ -864,16 +865,19 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"officers": ["not_an_officer"], "formations": [{"index": 0,
+                "blue": {"officers": ["not_an_officer"], "units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
         .unwrap_err();
-        assert!(error.contains("no officer of this build is named not_an_officer"), "{error}");
+        assert!(
+            error.contains("no officer of this build is named not_an_officer"),
+            "{error}"
+        );
 
         // A chain blueprint is applied as the officer it hands out; a
         // blueprint that grants a skill has no place in a layout.
@@ -882,8 +886,8 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"officers": ["improved_wasp"], "blueprints": ["attack_enhancement_ii"],
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap();
@@ -893,12 +897,15 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {"blueprints": ["sticky_oil_bomb"],
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }
         }))
         .unwrap_err();
-        assert!(error.contains("which is not an enhancement chain"), "{error}");
+        assert!(
+            error.contains("which is not an enhancement chain"),
+            "{error}"
+        );
     }
 
     #[test]
@@ -909,10 +916,10 @@ sides:
             "sides": {
                 "blue": {
                     "tower_strengthen_levels": [0, 5],
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         }))
@@ -928,10 +935,10 @@ sides:
             "sides": {
                 "blue": {
                     "tower_strengthen_levels": [1],
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         }))
@@ -950,10 +957,10 @@ sides:
             "sides": {
                 "blue": {
                     "energy_tower_skills": ["rapid_resupply"],
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             }
         }))
@@ -970,11 +977,11 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [{"index": 0,
+                "blue": {"units": [{"index": 0,
                     "name": "defensive_wall",
                     "position": {"x": 0, "y": -55}
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
@@ -982,7 +989,7 @@ sides:
         .unwrap_err();
         assert_eq!(
             error,
-            "side blue formation type \"defensive_wall\" at (0, -55) belongs in constructions"
+            "side blue unit type \"defensive_wall\" at (0, -55) belongs in constructions"
         );
     }
 
@@ -993,20 +1000,20 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
         .unwrap_err();
-        assert!(missing.contains("missing field `formations`"));
+        assert!(missing.contains("missing field `units`"));
 
         let empty = compile(&json!({
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": []},
-                "red": {"formations": [{"index": 0,
+                "blue": {"units": []},
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
@@ -1022,11 +1029,11 @@ sides:
                 "kind": "layout",
                 "round": 1,
                 "sides": {
-                    "blue": {"formations": [
+                    "blue": {"units": [
                         {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
                         {"index": 1, "name": "arclight", "position": {"x": second_x, "y": -50}}
                     ]},
-                    "red": {"formations": [{"index": 0,
+                    "red": {"units": [{"index": 0,
                         "name": "marksman", "position": {"x": 0, "y": -50}
                     }]}
                 }
@@ -1082,10 +1089,10 @@ sides:
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [{"index": 0,
+                "blue": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 5, "y": -50}
                 }]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
@@ -1209,7 +1216,10 @@ sides:
         }
         // The blueprint's Mobile Beacon and the card's are named apart.
         assert_eq!(battle_skill_type_from_id(1_500_001), Some("mobile_beacon"));
-        assert_eq!(battle_skill_type_from_id(1_500_002), Some("mobile_beacon_card"));
+        assert_eq!(
+            battle_skill_type_from_id(1_500_002),
+            Some("mobile_beacon_card")
+        );
         assert_eq!(battle_skill_type_from_id(0), None);
     }
 
@@ -1221,10 +1231,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
+                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
                         "contraptions": [{"index": 0, "name": "interceptor", "position": {"x": 5, "y": interceptor_y}}]
                     },
-                    "red": {"formations": [{"index": 0,
+                    "red": {"units": [{"index": 0,
                         "name": "marksman", "position": {"x": 0, "y": -50}
                     }]}
                 }
@@ -1253,19 +1263,19 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
                     "contraptions": [
                     {"index": 0, "name": "shield", "position": {"x": 1, "y": -101}},
                     {"index": 1, "name": "missile", "position": {"x": 1, "y": -101}}
                 ]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -100}
                 }]}
             }
         }))
         .unwrap();
 
-        assert_eq!(plan.formation_count(), 2);
+        assert_eq!(plan.unit_count(), 2);
         assert_eq!(plan.contraption_count(), 2);
         assert_eq!(
             plan.blue
@@ -1283,10 +1293,10 @@ sides:
     #[test]
     fn retained_airdrop_shields_are_their_own_collection() {
         let mut value = json!({"kind": "layout", "round": 2, "sides": {
-            "blue": {"formations": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
+            "blue": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
                 "contraptions": [{"index": 0, "name":"shield","position": {"x": 0, "y": -120}}],
                 "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
-            "red": {"formations": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}}});
+            "red": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}}});
         let plan = compile(&value).unwrap();
         assert_eq!(plan.blue.contraptions.len(), 1);
         assert_eq!(plan.airdrop_shield_count(), 2);
@@ -1309,9 +1319,9 @@ sides:
     fn contraptions_reject_the_retired_isairdrop_field() {
         for kind in ["shield", "missile", "interceptor"] {
             let value = json!({"kind": "layout", "round":1,"sides":{
-                "blue":{"formations":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
+                "blue":{"units":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
                     "contraptions":[{"index": 0, "name":kind,"position": {"x": 5, "y": -95},"isairdrop":false}]},
-                "red":{"formations":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}}});
+                "red":{"units":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}}});
             assert!(compile(&value).unwrap_err().contains("unknown field"));
         }
     }
@@ -1324,10 +1334,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
                         "contraptions": [{"index": 0, "name": "shield", "position": {"x": x, "y": y}}]
                     },
-                    "red": {"formations": [{"index": 0,
+                    "red": {"units": [{"index": 0,
                         "name": "marksman", "position": {"x": 0, "y": -150}
                     }]}
                 }
@@ -1351,10 +1361,10 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
                         "contraptions": [{"index": 0, "name": "missile", "position": {"x": x, "y": y}}]
                     },
-                    "red": {"formations": [{"index": 0,
+                    "red": {"units": [{"index": 0,
                         "name": "marksman", "position": {"x": 0, "y": -150}
                     }]}
                 }
@@ -1377,21 +1387,21 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
                     "constructions": [
                     {"index": 0, "name": "rapid_fire_turret", "position": {"x": 140, "y": -60}},
                     {"index": 1, "name": "defensive_wall", "position": {"x": 140, "y": -105}},
                     {"index": 2, "name": "anti_armor_turret", "position": {"x": -140, "y": -60}},
                     {"index": 3, "name": "magnetic_barrier", "position": {"x": -165, "y": -105}}
                 ]},
-                "red": {"formations": [{"index": 0,
+                "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
                 }]}
             }
         }))
         .unwrap();
 
-        assert_eq!(plan.formation_count(), 2);
+        assert_eq!(plan.unit_count(), 2);
         assert_eq!(plan.construction_count(), 4);
         assert_eq!(
             plan.blue
@@ -1424,11 +1434,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
                         "constructions": constructions,
                         "contraptions": contraptions
                     },
-                    "red": {"formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
                 }
             })
         };
@@ -1482,14 +1492,14 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
                         "name": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "fang", "position": {"x": -55, "y": -60}}],
+                    "units": [{"index": 0, "name": "fang", "position": {"x": -55, "y": -60}}],
                     "battle_skills": [{
                         "name": "mobile_beacon",
                         "positions": [
@@ -1671,10 +1681,10 @@ sides:
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 },
                 "red": {
-                    "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
                         "name": "rhino_assault",
                         "positions": [{"x": -300, "y": 170}]
@@ -1710,11 +1720,11 @@ sides:
                 "round": 1,
                 "sides": {
                     "blue": {
-                        "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
                         "battle_skills": battle_skills
                     },
                     "red": {
-                        "formations": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                     }
                 }
             })

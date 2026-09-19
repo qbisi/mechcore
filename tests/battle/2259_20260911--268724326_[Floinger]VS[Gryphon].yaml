@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -174,7 +174,7 @@ sides:
     next_index: {unit: 8, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 74/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 72/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 102/600, rotated: true, value: 100}
@@ -197,7 +197,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 157/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 123/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 421/450, rotated: true, value: 100}
@@ -241,7 +241,7 @@ sides:
     next_index: {unit: 12, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 332/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 306/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 254/600, rotated: true, value: 100}
@@ -268,7 +268,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 216/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 175/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
@@ -321,7 +321,7 @@ sides:
     - marksman_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 416/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 369/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 378/600, rotated: true, value: 100}
@@ -354,7 +354,7 @@ sides:
     - elite_specialist
     techs:
       fang: [grenade_launcher]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 231/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 197/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
@@ -417,7 +417,7 @@ sides:
     - marksman_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 582/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -455,7 +455,7 @@ sides:
     - elite_specialist
     techs:
       fang: [grenade_launcher]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 236/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 203/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
@@ -524,7 +524,7 @@ sides:
     - marksman_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -566,7 +566,7 @@ sides:
     - elite_specialist
     techs:
       fang: [grenade_launcher, range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 236/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 203/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
@@ -632,7 +632,7 @@ sides:
     - marksman_specialist
     techs:
       tarantula: [field_maintenance, range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -678,7 +678,7 @@ sides:
     - elite_specialist
     techs:
       fang: [grenade_launcher, range_enhancement, mechanical_rage]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 264/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 235/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}
@@ -761,7 +761,7 @@ sides:
     techs:
       sabertooth: [field_maintenance]
       tarantula: [field_maintenance, range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 600/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -150, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -811,7 +811,7 @@ sides:
     techs:
       fang: [grenade_launcher, range_enhancement, mechanical_rage]
       hacker: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 325/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 254/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 140, y: -205}, exp: 450/450, rotated: true, value: 100}

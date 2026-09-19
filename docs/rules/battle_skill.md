@@ -136,8 +136,8 @@ before they are treated as observed Training Ground behavior.
 ## Position contract
 
 Every coordinate component is an `i32`. Decimal values, including integral
-spellings such as `10.0`, are invalid. Battle-skill positions are not formation
-placements and do not inherit the formation grid-alignment or footprint rules.
+spellings such as `10.0`, are invalid. Battle-skill positions are not unit
+placements and do not inherit the unit grid-alignment or footprint rules.
 The native skill check remains authoritative for target regions and other
 skill-specific restrictions.
 

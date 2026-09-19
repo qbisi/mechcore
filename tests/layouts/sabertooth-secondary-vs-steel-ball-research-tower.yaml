@@ -13,7 +13,7 @@ sides:
         index: 0
         position: {x: 140, y: -140}
 
-    formations:
+    units:
       - name: sabertooth
         index: 0
         position: {x: -205, y: -295}
@@ -23,7 +23,7 @@ sides:
     techs:
       marksman: [electromagnetic_shot]
 
-    formations:
+    units:
       - name: marksman
         index: 0
         position: {x: 200, y: -100}

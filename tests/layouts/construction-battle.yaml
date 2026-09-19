@@ -3,7 +3,7 @@ round: 1
 
 sides:
   blue:
-    formations:
+    units:
       - name: marksman
         index: 0
         position: {x: 0, y: -150}
@@ -20,7 +20,7 @@ sides:
         position: {x: -140, y: -100}
 
   red:
-    formations:
+    units:
       - name: marksman
         index: 0
         position: {x: 0, y: -150}

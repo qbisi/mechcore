@@ -116,7 +116,7 @@ pub struct Side {
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
-    pub formations: Vec<Formation>,
+    pub units: Vec<UnitPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -140,7 +140,7 @@ pub struct Techs {
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct Formation {
+pub struct UnitPlacement {
     #[serde(rename = "name")]
     pub type_name: String,
     pub index: i32,
@@ -399,7 +399,7 @@ impl Layout {
             if side.tower_strengthen_levels.iter().all(|level| *level == 0) {
                 side.tower_strengthen_levels.clear();
             }
-            side.formations.sort_by_key(|formation| formation.index);
+            side.units.sort_by_key(|formation| formation.index);
             side.constructions
                 .sort_by_key(|construction| construction.index);
             side.contraptions
@@ -416,7 +416,7 @@ impl Layout {
                         .collect::<Vec<_>>(),
                 )
             });
-            for formation in &mut side.formations {
+            for formation in &mut side.units {
                 if formation.level == Some(1) {
                     formation.level = None;
                 }
@@ -503,7 +503,7 @@ pub(crate) fn require_layout_kind(kind: Option<&str>) -> Result<(), String> {
 
 fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
     for (side_name, side) in [("blue", &layout.sides.blue), ("red", &layout.sides.red)] {
-        for formation in &side.formations {
+        for formation in &side.units {
             if resolve_unit_type(&formation.type_name).is_none() {
                 let destination = if resolve_construction_type(&formation.type_name).is_some() {
                     "constructions"
@@ -511,12 +511,12 @@ fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
                     "contraptions"
                 } else {
                     return Err(format!(
-                        "side {side_name} formation type {:?} is unknown",
+                        "side {side_name} unit type {:?} is unknown",
                         formation.type_name
                     ));
                 };
                 return Err(format!(
-                    "side {side_name} formation type {:?} belongs in {destination}",
+                    "side {side_name} unit type {:?} belongs in {destination}",
                     formation.type_name,
                 ));
             }

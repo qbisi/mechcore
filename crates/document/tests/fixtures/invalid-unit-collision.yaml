@@ -3,7 +3,7 @@ round: 1
 
 sides:
   blue:
-    formations:
+    units:
       - name: sledgehammer
         index: 0
         position: {x: 5, y: -100}
@@ -13,7 +13,7 @@ sides:
         rotated: true
 
   red:
-    formations:
+    units:
       - name: marksman
         index: 0
         position: {x: 0, y: -50}

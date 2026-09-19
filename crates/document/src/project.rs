@@ -55,10 +55,10 @@ pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> 
         blueprints: chain_blueprints(&state.blueprints),
         energy_tower_skills: energy_tower_skills(&state.energy_tower_skills),
         tower_strengthen_levels: tower_strengthen_levels(&state.tower_strengthen_levels),
-        formations: state
-            .formations
+        units: state
+            .units
             .iter()
-            .map(|formation| formation.formation.clone())
+            .map(|formation| formation.unit.clone())
             .collect(),
         constructions: state.constructions.clone(),
         contraptions: state.contraptions.clone(),

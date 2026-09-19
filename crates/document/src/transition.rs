@@ -12,7 +12,7 @@
 //! [`crate::coverage`] measures it against a battle's recorded positions.
 
 use crate::battle::{
-    Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
+    Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
 };
 use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
@@ -198,18 +198,18 @@ pub fn step_placing(
             // The position is where the formation's moves this round end, and
             // one that ends on a flank arrived there from the main half.
             let created = next.next_index.unit - 1;
-            let formation = &mut formation_mut(&mut next, created)?.formation;
+            let formation = &mut formation_mut(&mut next, created)?.unit;
             formation.rotated = Some(*rotated).filter(|rotated| *rotated);
             formation.travelling = Region::of(*position).is_flank().then_some(true);
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
-            let unit = unit_id_from_type(&formation.formation.type_name)
-                .ok_or(Unsettled::Unpriced("unit"))?;
-            let worn = formation.formation.equipment;
-            formation.formation.level = Some(formation.formation.level.unwrap_or(1) + 1);
+            let unit =
+                unit_id_from_type(&formation.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
+            let worn = formation.unit.equipment;
+            formation.unit.level = Some(formation.unit.level.unwrap_or(1) + 1);
             // A formation starts the next rank with nothing carried over.
-            formation.formation.exp = None;
+            formation.unit.exp = None;
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
             let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
@@ -285,7 +285,7 @@ pub fn step_placing(
                 .position(|item| item.id == *equipment)
                 .ok_or(Unsettled::Missing("equipment"))?;
             next.equipment.remove(position);
-            formation_mut(&mut next, *index)?.formation.equipment = Some(*equipment);
+            formation_mut(&mut next, *index)?.unit.equipment = Some(*equipment);
             // A Deployment Module frees the formation that wears it to move.
             free_to_move(&mut next);
         }
@@ -296,14 +296,14 @@ pub fn step_placing(
         } => {
             let formation = formation_mut(&mut next, *index)?;
             if !formation.movable {
-                return Err(Unsettled::Refused("moving a formation fixed in place"));
+                return Err(Unsettled::Refused("moving a unit fixed in place"));
             }
-            let left = Region::of(formation.formation.position);
+            let left = Region::of(formation.unit.position);
             let arrived = Region::of(*position);
-            formation.formation.position = *position;
-            formation.formation.rotated = Some(*rotated).filter(|rotated| *rotated);
+            formation.unit.position = *position;
+            formation.unit.rotated = Some(*rotated).filter(|rotated| *rotated);
             if left != arrived {
-                formation.formation.travelling = arrived.is_flank().then_some(true);
+                formation.unit.travelling = arrived.is_flank().then_some(true);
             }
         }
         Action::ReleaseCommanderSkill { index, id, target } => {
@@ -376,18 +376,18 @@ fn release(
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("training target"));
         };
-        let formation = &mut formation_mut(next, *index)?.formation;
+        let formation = &mut formation_mut(next, *index)?.unit;
         let level = formation.level.unwrap_or(1);
         // Training takes neither a formation at the last level nor one whose
         // bar is already full.
         if level >= crate::experience::MAX_LEVEL {
-            return Err(Unsettled::Refused("training a formation at the last level"));
+            return Err(Unsettled::Refused("training a unit at the last level"));
         }
         // A unit the experience table does not name has no bar to fill.
         let maximum = crate::experience::full(&formation.type_name, level)
             .ok_or(Unsettled::Unpriced("experience"))?;
         if formation.exp.is_some_and(Experience::is_full) {
-            return Err(Unsettled::Refused("training a full formation"));
+            return Err(Unsettled::Refused("training a unit at full strength"));
         }
         formation.exp = Some(Experience {
             current: maximum,
@@ -442,16 +442,16 @@ fn spend(next: &mut SideState, slot: i32) -> Result<(), Unsettled> {
 /// goes back into the stock, in time to be fitted again in the same round.
 fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Result<(), Unsettled> {
     let position = next
-        .formations
+        .units
         .iter()
-        .position(|entry| entry.formation.index == index)
-        .ok_or(Unsettled::Missing("formation"))?;
-    let entry = next.formations.remove(position);
-    let unit = unit_id_from_type(&entry.formation.type_name).ok_or(Unsettled::Unpriced("unit"))?;
+        .position(|entry| entry.unit.index == index)
+        .ok_or(Unsettled::Missing("unit"))?;
+    let entry = next.units.remove(position);
+    let unit = unit_id_from_type(&entry.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
     let purse = Purse::new(economy, &next.officers);
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
-    next.supply += entry.value.unwrap_or(0) + (entry.formation.level.unwrap_or(1) - 1) * upgrade;
-    if let Some(worn) = entry.formation.equipment {
+    next.supply += entry.value.unwrap_or(0) + (entry.unit.level.unwrap_or(1) - 1) * upgrade;
+    if let Some(worn) = entry.unit.equipment {
         next.equipment.push(EquipmentItem {
             id: worn,
             durability: None,
@@ -489,8 +489,8 @@ fn hand_out(
 /// round. A formation already free stays free.
 fn free_to_move(next: &mut SideState) {
     let techs = next.techs.clone();
-    for entry in &mut next.formations {
-        entry.movable |= crate::mobility::free(&entry.formation, &techs);
+    for entry in &mut next.units {
+        entry.movable |= crate::mobility::free(&entry.unit, &techs);
     }
 }
 
@@ -508,8 +508,8 @@ fn place(
     };
     let index = next.next_index.unit;
     next.next_index.unit += 1;
-    next.formations.push(StateFormation {
-        formation: crate::layout::Formation {
+    next.units.push(StateUnit {
+        unit: crate::layout::UnitPlacement {
             type_name: type_name.to_owned(),
             index,
             position,
@@ -523,7 +523,7 @@ fn place(
         // A formation moves in the round it arrives.
         movable: true,
     });
-    next.formations.sort_by_key(|entry| entry.formation.index);
+    next.units.sort_by_key(|entry| entry.unit.index);
     Ok(())
 }
 
@@ -556,11 +556,11 @@ fn unlock(next: &mut SideState, unit: i32) {
     }
 }
 
-fn formation_mut(next: &mut SideState, index: i32) -> Result<&mut StateFormation, Unsettled> {
-    next.formations
+fn formation_mut(next: &mut SideState, index: i32) -> Result<&mut StateUnit, Unsettled> {
+    next.units
         .iter_mut()
-        .find(|entry| entry.formation.index == index)
-        .ok_or(Unsettled::Missing("formation"))
+        .find(|entry| entry.unit.index == index)
+        .ok_or(Unsettled::Missing("unit"))
 }
 
 fn clone_target(target: &SkillTarget) -> SkillTarget {
@@ -694,9 +694,9 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
             .owed;
     }
     let worn: i32 = next
-        .formations
+        .units
         .iter()
-        .filter_map(|entry| entry.formation.equipment)
+        .filter_map(|entry| entry.unit.equipment)
         .map(|equipment| economy.equipment_round_supply(equipment))
         .sum();
     let income =
@@ -704,8 +704,8 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
     next.supply += income + worn - owed;
     next.energy_tower_skills.clear();
     let techs = next.techs.clone();
-    for entry in &mut next.formations {
-        entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &techs);
+    for entry in &mut next.units {
+        entry.movable = round <= 1 || crate::mobility::free(&entry.unit, &techs);
     }
     Ok(())
 }
@@ -776,8 +776,8 @@ pub fn predict(
     }
     // Whatever else the fight does, it empties the travelling set: a
     // formation's crossing is over once the fight has run.
-    for entry in &mut position.formations {
-        entry.formation.travelling = None;
+    for entry in &mut position.units {
+        entry.unit.travelling = None;
     }
     // Round zero has no fight. The team it chose arrives as round 1 opens,
     // and a position that picked a team of formations keeps no trace of which
@@ -796,11 +796,11 @@ pub fn predict(
 mod tests {
     use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step, step_placing};
     use crate::battle::{
-        Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
+        Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
     };
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
-    use crate::layout::{Experience, Formation, Position};
+    use crate::layout::{Experience, Position, UnitPlacement};
 
     /// Steps `actions` in order from `state`, landing whatever a decision hands
     /// out at the main region's centre.
@@ -819,20 +819,20 @@ mod tests {
     /// The indices of the formations `state` holds travelling.
     fn travelling(state: &SideState) -> Vec<i32> {
         state
-            .formations
+            .units
             .iter()
-            .filter(|entry| entry.formation.travelling == Some(true))
-            .map(|entry| entry.formation.index)
+            .filter(|entry| entry.unit.travelling == Some(true))
+            .map(|entry| entry.unit.index)
             .collect()
     }
 
     /// A side holding the given formations and nothing else.
     fn side_holding(placed: &[(i32, Position)]) -> SideState {
         SideState {
-            formations: placed
+            units: placed
                 .iter()
-                .map(|(index, position)| StateFormation {
-                    formation: Formation {
+                .map(|(index, position)| StateUnit {
+                    unit: UnitPlacement {
                         type_name: "marksman".into(),
                         index: *index,
                         position: *position,
@@ -940,7 +940,7 @@ mod tests {
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
         let next = fold(&economy, &state, &taken).unwrap();
         assert!(next.equipment.is_empty());
-        assert_eq!(next.formations[0].formation.equipment, Some(13_030_001));
+        assert_eq!(next.units[0].unit.equipment, Some(13_030_001));
     }
 
     fn slot(index: i32, id: i32, cooldown: i32) -> PanelSkill {
@@ -1014,8 +1014,8 @@ mod tests {
     #[test]
     fn an_opening_fixes_the_board_unless_something_frees_it() {
         let economy = Economy::embedded().unwrap();
-        let formation = |index, equipment| StateFormation {
-            formation: crate::layout::Formation {
+        let formation = |index, equipment| StateUnit {
+            unit: crate::layout::UnitPlacement {
                 type_name: "crawler".into(),
                 index,
                 position: Position { x: 0, y: -160 },
@@ -1029,7 +1029,7 @@ mod tests {
             movable: true,
         };
         let state = SideState {
-            formations: vec![
+            units: vec![
                 formation(0, None),
                 formation(1, Some(crate::mobility::DEPLOYMENT_MODULE)),
             ],
@@ -1038,7 +1038,7 @@ mod tests {
         let movable = |round| {
             super::open_round(&economy, &state, round, &mut |_, _| None)
                 .unwrap()
-                .formations
+                .units
                 .iter()
                 .map(|entry| entry.movable)
                 .collect::<Vec<_>>()
@@ -1053,8 +1053,8 @@ mod tests {
     #[test]
     fn an_opening_pays_the_income_less_what_rapid_supply_owes() {
         let economy = Economy::embedded().unwrap();
-        let worn = |index| StateFormation {
-            formation: crate::layout::Formation {
+        let worn = |index| StateUnit {
+            unit: crate::layout::UnitPlacement {
                 type_name: "crawler".into(),
                 index,
                 position: Position { x: 0, y: -160 },
@@ -1072,7 +1072,7 @@ mod tests {
             supply: 10,
             // Supply Specialist adds 50 a round.
             officers: vec![10002],
-            formations: vec![worn(0), worn(1)],
+            units: vec![worn(0), worn(1)],
             // Rapid Supply and one skill that owes nothing.
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
@@ -1101,12 +1101,12 @@ mod tests {
         assert_eq!(opened.next_index.unit, 5);
         assert_eq!(opened.officers, [10002]);
         let team: Vec<_> = opened
-            .formations
+            .units
             .iter()
             .map(|entry| {
                 (
-                    entry.formation.type_name.as_str(),
-                    entry.formation.level,
+                    entry.unit.type_name.as_str(),
+                    entry.unit.level,
                     entry.movable,
                 )
             })
@@ -1129,8 +1129,8 @@ mod tests {
     fn a_prediction_carries_no_crossing_into_the_next_round() {
         let economy = Economy::embedded().unwrap();
         let mut state = SideState::default();
-        state.formations.push(StateFormation {
-            formation: crate::layout::Formation {
+        state.units.push(StateUnit {
+            unit: crate::layout::UnitPlacement {
                 type_name: "crawler".into(),
                 index: 0,
                 position: Position { x: 0, y: -160 },
@@ -1144,7 +1144,7 @@ mod tests {
             movable: false,
         });
         let predicted = super::predict(&economy, 3, &state, &[], false).unwrap();
-        assert_eq!(predicted.formations[0].formation.travelling, None);
+        assert_eq!(predicted.units[0].unit.travelling, None);
     }
 
     /// An officer delivers its equipment in its own round, not when it arrives.
@@ -1210,8 +1210,8 @@ mod tests {
                 used: false,
                 release: None,
             }],
-            formations: vec![crate::battle::StateFormation {
-                formation: crate::layout::Formation {
+            units: vec![crate::battle::StateUnit {
+                unit: crate::layout::UnitPlacement {
                     type_name: "marksman".into(),
                     index: 5,
                     position: crate::layout::Position { x: 0, y: 0 },
@@ -1228,8 +1228,8 @@ mod tests {
         };
         let mut state = state;
         state
-            .formations
-            .extend(side_holding(&[(7, Position { x: 0, y: -160 })]).formations);
+            .units
+            .extend(side_holding(&[(7, Position { x: 0, y: -160 })]).units);
         let recovered = [Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
@@ -1257,8 +1257,8 @@ mod tests {
         ];
         let next = fold(&economy, &state, &refitted).unwrap();
         assert!(next.equipment.is_empty());
-        assert_eq!(next.formations[0].formation.index, 7);
-        assert_eq!(next.formations[0].formation.equipment, Some(13_030_004));
+        assert_eq!(next.units[0].unit.index, 7);
+        assert_eq!(next.units[0].unit.equipment, Some(13_030_004));
     }
 
     /// A fit with nothing to take is refused rather than clamped away.
@@ -1394,10 +1394,10 @@ mod tests {
         let next = step(&economy, &state, &bought).unwrap();
         assert_eq!(next.next_index.unit, 8);
         assert_eq!(next.shop.buys_remaining, 1);
-        assert_eq!(next.formations.len(), 1);
-        let placed = &next.formations[0];
-        assert_eq!(placed.formation.index, 7);
-        assert_eq!(placed.formation.position, Position { x: 0, y: -160 });
+        assert_eq!(next.units.len(), 1);
+        let placed = &next.units[0];
+        assert_eq!(placed.unit.index, 7);
+        assert_eq!(placed.unit.position, Position { x: 0, y: -160 });
         // What it is worth to recover is what this side paid for it.
         assert_eq!(placed.value, Some(state.supply - next.supply));
     }
@@ -1411,13 +1411,13 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         state.supply = 1000;
-        state.formations[0].formation.exp = Some(Experience {
+        state.units[0].unit.exp = Some(Experience {
             current: 650,
             maximum: 650,
         });
         let next = step(&economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
-        assert_eq!(next.formations[0].formation.level, Some(2));
-        assert_eq!(next.formations[0].formation.exp, None);
+        assert_eq!(next.units[0].unit.level, Some(2));
+        assert_eq!(next.units[0].unit.exp, None);
         assert!(next.supply < state.supply);
     }
 
@@ -1455,9 +1455,9 @@ mod tests {
                 .unwrap();
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
         assert_eq!(next.shop.unlocked_units, vec![reinforcement.unit]);
-        assert_eq!(next.formations.len(), 2);
-        assert_eq!(next.formations[0].formation.index, 4);
-        assert_eq!(next.formations[1].formation.index, 5);
+        assert_eq!(next.units.len(), 2);
+        assert_eq!(next.units[0].unit.index, 4);
+        assert_eq!(next.units[1].unit.index, 5);
     }
 
     /// An opening of formations delivers nothing at the moment it is chosen.
@@ -1478,7 +1478,7 @@ mod tests {
         };
         let next = step(&economy, &state, &chosen).unwrap();
         assert_eq!(next.reactor_core, 100);
-        assert!(next.formations.is_empty());
+        assert!(next.units.is_empty());
         assert_eq!(next.next_index.unit, 0);
         assert_eq!(next.officers, vec![20005]);
     }
@@ -1532,15 +1532,15 @@ mod tests {
             used: false,
             release: None,
         }];
-        state.formations[0].value = Some(400);
-        state.formations[0].formation.equipment = Some(13_030_004);
+        state.units[0].value = Some(400);
+        state.units[0].unit.equipment = Some(13_030_004);
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
             target: crate::battle::SkillTarget::Unit(5),
         };
         let next = step(&economy, &state, &released).unwrap();
-        assert!(next.formations.is_empty());
+        assert!(next.units.is_empty());
         assert_eq!(next.supply, 400);
         assert_eq!(
             next.equipment,
@@ -1558,7 +1558,7 @@ mod tests {
     fn training_fills_the_bar_and_spends_the_slot() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
-        state.formations[0].formation.exp = Some(Experience {
+        state.units[0].unit.exp = Some(Experience {
             current: 54,
             maximum: 650,
         });
@@ -1576,7 +1576,7 @@ mod tests {
         };
         let next = step(&economy, &state, &train).unwrap();
         assert_eq!(
-            next.formations[0].formation.exp,
+            next.units[0].unit.exp,
             Some(Experience {
                 current: 650,
                 maximum: 650,
@@ -1587,24 +1587,24 @@ mod tests {
         assert_eq!(next.supply, state.supply);
 
         // Training refuses a full formation.
-        state.formations[0].formation.exp = next.formations[0].formation.exp;
+        state.units[0].unit.exp = next.units[0].unit.exp;
         assert_eq!(
             step(&economy, &state, &train),
             Err(crate::transition::Unsettled::Refused(
-                "training a full formation"
+                "training a unit at full strength"
             ))
         );
 
         // It refuses the last level too, full or not.
-        state.formations[0].formation.level = Some(9);
-        state.formations[0].formation.exp = Some(Experience {
+        state.units[0].unit.level = Some(9);
+        state.units[0].unit.exp = Some(Experience {
             current: 12,
             maximum: 4373,
         });
         assert_eq!(
             step(&economy, &state, &train),
             Err(crate::transition::Unsettled::Refused(
-                "training a formation at the last level"
+                "training a unit at the last level"
             ))
         );
     }
@@ -1617,7 +1617,7 @@ mod tests {
     fn only_a_formation_free_to_move_moves() {
         let economy = Economy::embedded().unwrap();
         let mut fixed = side_holding(&[(0, Position { x: 0, y: -160 })]);
-        fixed.formations[0].movable = false;
+        fixed.units[0].movable = false;
         fixed.supply = 1000;
         let shift = Action::MoveUnit {
             index: 0,
@@ -1627,7 +1627,7 @@ mod tests {
         assert_eq!(
             step(&economy, &fixed, &shift),
             Err(crate::transition::Unsettled::Refused(
-                "moving a formation fixed in place"
+                "moving a unit fixed in place"
             ))
         );
 
@@ -1646,7 +1646,7 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(fitted.formations[0].movable);
+        assert!(fitted.units[0].movable);
         assert!(step(&economy, &fitted, &shift).is_ok());
 
         // Redeploy frees its target and spends its slot without a release.
@@ -1668,7 +1668,7 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(redeployed.formations[0].movable);
+        assert!(redeployed.units[0].movable);
         assert!(redeployed.battle_skills[0].used);
         assert!(redeployed.battle_skills[0].release.is_none());
         assert!(step(&economy, &redeployed, &shift).is_ok());
@@ -1679,8 +1679,8 @@ mod tests {
             (1, Position { x: 40, y: -160 }),
         ]);
         wasps.supply = 1000;
-        wasps.formations[0].formation.type_name = "wasp".into();
-        for entry in &mut wasps.formations {
+        wasps.units[0].unit.type_name = "wasp".into();
+        for entry in &mut wasps.units {
             entry.movable = false;
         }
         let researched = step(
@@ -1692,8 +1692,8 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(researched.formations[0].movable);
-        assert!(!researched.formations[1].movable);
+        assert!(researched.units[0].movable);
+        assert!(!researched.units[1].movable);
     }
 
     /// A move writes the board and nothing else, travelling included.
@@ -1713,8 +1713,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(next.supply, 700);
-        assert_eq!(next.formations[0].formation.travelling, Some(true));
-        assert_eq!(next.formations[0].formation.rotated, Some(true));
+        assert_eq!(next.units[0].unit.travelling, Some(true));
+        assert_eq!(next.units[0].unit.rotated, Some(true));
     }
 
     /// A move into a flank is what puts a formation in the travelling set.
@@ -1798,7 +1798,7 @@ mod tests {
     fn returning_to_the_main_half_settles() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: -330, y: 100 })]);
-        state.formations[0].formation.travelling = Some(true);
+        state.units[0].unit.travelling = Some(true);
         assert_eq!(travelling(&state), vec![0]);
         let returned = [Action::MoveUnit {
             index: 0,
@@ -1862,10 +1862,10 @@ mod tests {
                     // clearing the set between rounds.
                     assert!(
                         state
-                            .formations
+                            .units
                             .iter()
-                            .all(|entry| entry.formation.travelling != Some(true)),
-                        "{} round {} opens with a travelling formation",
+                            .all(|entry| entry.unit.travelling != Some(true)),
+                        "{} round {} opens with a travelling unit",
                         path.file_name().unwrap().to_string_lossy(),
                         turn.round
                     );

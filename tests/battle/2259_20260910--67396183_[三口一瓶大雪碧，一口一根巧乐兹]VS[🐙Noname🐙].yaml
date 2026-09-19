@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - quick_supply_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -179,7 +179,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, exp: 432/750, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, exp: 254/750, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, exp: 80/750, value: 100}
@@ -200,7 +200,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - quick_supply_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 84/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 12/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 35/600, rotated: true, value: 100}
@@ -250,7 +250,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, exp: 631/750, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, exp: 508/750, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, exp: 213/750, value: 100}
@@ -278,7 +278,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - quick_supply_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 241/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 20/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 278/600, rotated: true, value: 100}
@@ -339,7 +339,7 @@ sides:
     - aerial_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, exp: 750/750, value: 100}
@@ -374,7 +374,7 @@ sides:
     - quick_supply_specialist
     techs:
       sledgehammer: [armor_piercing_bullets]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 300/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 60/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 296/600, rotated: true, value: 100}
@@ -441,7 +441,7 @@ sides:
     - aerial_specialist
     techs:
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, level: 2, exp: 574/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, level: 2, exp: 759/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, level: 2, exp: 724/1690, value: 100}
@@ -480,7 +480,7 @@ sides:
     techs:
       mustang: [culling_rounds]
       sledgehammer: [armor_piercing_bullets]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 322/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 94/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 323/600, rotated: true, value: 100}
@@ -557,7 +557,7 @@ sides:
     techs:
       arclight: [shockwave, range_enhancement]
       scorpion: [convergent_fire]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, level: 2, exp: 1690/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, level: 2, exp: 1690/1690, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, level: 2, exp: 847/1690, value: 100}
@@ -600,7 +600,7 @@ sides:
     techs:
       mustang: [culling_rounds]
       sledgehammer: [armor_piercing_bullets]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 348/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 123/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 333/600, rotated: true, value: 100}
@@ -678,7 +678,7 @@ sides:
     techs:
       arclight: [shockwave, range_enhancement]
       scorpion: [convergent_fire]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, level: 3, exp: 593/2671, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, level: 3, exp: 554/2671, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, level: 2, exp: 900/1690, value: 100}
@@ -723,7 +723,7 @@ sides:
     techs:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_piercing_bullets]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 363/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 128/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 339/600, rotated: true, value: 100}
@@ -810,7 +810,7 @@ sides:
     techs:
       arclight: [shockwave, range_enhancement]
       scorpion: [convergent_fire]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, level: 3, exp: 780/2671, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, level: 3, exp: 977/2671, value: 100}
     - {name: arclight, index: 2, position: {x: 140, y: -150}, level: 2, exp: 1057/1690, value: 100}
@@ -860,7 +860,7 @@ sides:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_piercing_bullets]
       hacker: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 382/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 443/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: 140, y: -225}, exp: 354/600, rotated: true, value: 100}

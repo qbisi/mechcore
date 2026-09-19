@@ -106,7 +106,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -125,7 +125,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
     - {name: void_eye, index: 2, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -170,7 +170,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 236/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 80/750, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, exp: 66/750, value: 100}
@@ -191,7 +191,7 @@ sides:
     next_index: {unit: 8, contraption: 0}
     officers:
     - marksman_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, exp: 253/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 500/650, value: 100}
@@ -239,7 +239,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - aerial_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 317/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 373/750, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, exp: 66/750, value: 100}
@@ -266,7 +266,7 @@ sides:
     - marksman_specialist
     techs:
       void_eye: [charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, exp: 595/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 261/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 621/650, value: 100}
@@ -323,7 +323,7 @@ sides:
     - aerial_specialist
     techs:
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 400/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 632/750, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, exp: 238/750, value: 100}
@@ -353,7 +353,7 @@ sides:
     - marksman_specialist
     techs:
       void_eye: [charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 775/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 650/650, value: 100}
@@ -417,7 +417,7 @@ sides:
     - aerial_specialist
     techs:
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, exp: 537/750, value: 100}
@@ -450,7 +450,7 @@ sides:
     techs:
       fire_badger: [scorching_fire]
       void_eye: [charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, level: 2, exp: 88/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 842/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, level: 2, exp: 522/1465, value: 100}
@@ -523,7 +523,7 @@ sides:
     techs:
       arclight: [range_enhancement]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, exp: 750/750, value: 100}
@@ -559,7 +559,7 @@ sides:
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       void_eye: [charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, level: 2, exp: 299/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 882/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, level: 2, exp: 861/1465, value: 100}
@@ -641,7 +641,7 @@ sides:
       arclight: [range_enhancement]
       fire_badger: [scorching_charge]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, level: 2, exp: 228/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, level: 2, exp: 236/1690, value: 100}
@@ -681,7 +681,7 @@ sides:
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       void_eye: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, level: 2, exp: 1077/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 1219/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, level: 2, exp: 1413/1465, value: 100}
@@ -771,7 +771,7 @@ sides:
       arclight: [range_enhancement]
       fire_badger: [scorching_charge]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, level: 2, exp: 942/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, level: 2, exp: 508/1690, value: 100}
@@ -815,7 +815,7 @@ sides:
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       void_eye: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, level: 2, exp: 1465/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 1362/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, level: 2, exp: 1465/1465, value: 100}
@@ -917,7 +917,7 @@ sides:
       arclight: [range_enhancement]
       fire_badger: [scorching_charge]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, level: 2, exp: 1542/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -230, y: -70}, level: 2, exp: 1089/1690, value: 100}
@@ -963,7 +963,7 @@ sides:
       fire_badger: [range_enhancement, scorching_fire]
       farseer: [aerial_specialization]
       void_eye: [range_enhancement, charged_shot]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, level: 3, exp: 235/2315, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, level: 2, exp: 1465/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 230, y: -70}, level: 3, exp: 207/2315, value: 100}

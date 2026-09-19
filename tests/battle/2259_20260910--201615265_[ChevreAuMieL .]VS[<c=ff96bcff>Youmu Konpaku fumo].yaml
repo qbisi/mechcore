@@ -106,7 +106,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - quick_supply_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -125,7 +125,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -170,7 +170,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - quick_supply_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, exp: 37/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, exp: 98/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 400/650, value: 100}
@@ -191,7 +191,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, exp: 351/750, value: 100}
     - {name: arclight, index: 2, position: {x: -30, y: -70}, exp: 282/750, value: 100}
@@ -235,7 +235,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - quick_supply_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 482/650, value: 100}
@@ -260,7 +260,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - speed_specialist
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, exp: 218/750, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, exp: 493/750, value: 100}
     - {name: arclight, index: 2, position: {x: -30, y: -70}, exp: 309/750, value: 100}
@@ -314,7 +314,7 @@ sides:
     techs:
       phoenix: [jump_drive]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, level: 2, exp: 80/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, level: 2, exp: 74/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 650/650, value: 100}
@@ -344,7 +344,7 @@ sides:
     - speed_specialist
     techs:
       arclight: [shockwave]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, exp: 589/750, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, exp: 750/750, value: 100}
     - {name: arclight, index: 2, position: {x: -30, y: -70}, exp: 674/750, value: 100}
@@ -405,7 +405,7 @@ sides:
       phoenix: [jump_drive]
       fire_badger: [scorching_fire]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, level: 2, exp: 246/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, level: 2, exp: 194/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2, exp: 194/1465, value: 100}
@@ -439,7 +439,7 @@ sides:
     techs:
       arclight: [shockwave]
       sabertooth: [secondary_armament]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, exp: 750/750, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, level: 2, exp: 180/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -30, y: -70}, exp: 750/750, value: 100}
@@ -516,7 +516,7 @@ sides:
       phoenix: [jump_drive]
       fire_badger: [scorching_fire]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, level: 2, exp: 330/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, level: 2, exp: 240/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2, exp: 282/1465, value: 100}
@@ -553,7 +553,7 @@ sides:
     techs:
       arclight: [shockwave]
       sabertooth: [field_maintenance, secondary_armament]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, level: 2, exp: 925/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, level: 2, exp: 551/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -30, y: -70}, level: 2, exp: 420/1690, value: 100}
@@ -635,7 +635,7 @@ sides:
       phoenix: [jump_drive]
       fire_badger: [scorching_fire]
       void_eye: [suppression_shots]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, level: 2, exp: 547/1465, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, level: 2, exp: 316/1465, value: 100}
     - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2, exp: 408/1465, value: 100}
@@ -678,7 +678,7 @@ sides:
       arclight: [shockwave]
       sabertooth: [field_maintenance, secondary_armament]
       typhoon: [air_defense_mark]
-    formations:
+    units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, level: 2, exp: 1548/1690, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, level: 2, exp: 791/1690, value: 100}
     - {name: arclight, index: 2, position: {x: -30, y: -70}, level: 2, exp: 647/1690, value: 100}

@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -127,7 +127,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -176,7 +176,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 207/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 198/750, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 2, exp: 612/1690, value: 100}
@@ -197,7 +197,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - supply_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 62/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 46/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 241/600, rotated: true, value: 100}
@@ -250,7 +250,7 @@ sides:
     next_index: {unit: 10, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 326/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 351/750, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 2, exp: 993/1690, value: 100}
@@ -275,7 +275,7 @@ sides:
     - supply_specialist
     techs:
       sledgehammer: [armor_piercing_bullets]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 115/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 91/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 336/600, rotated: true, value: 100}
@@ -331,7 +331,7 @@ sides:
     next_index: {unit: 13, contraption: 0}
     officers:
     - training_specialist
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 326/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 381/750, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 2, exp: 1259/1690, value: 100}
@@ -360,7 +360,7 @@ sides:
     - supply_specialist
     techs:
       sledgehammer: [armor_piercing_bullets]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 193/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 119/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 389/600, rotated: true, value: 100}
@@ -423,7 +423,7 @@ sides:
     - training_specialist
     techs:
       scorpion: [field_maintenance]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 326/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 593/750, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 2, exp: 1442/1690, value: 100}
@@ -458,7 +458,7 @@ sides:
     techs:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 257/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 170/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 408/600, rotated: true, value: 100}
@@ -524,7 +524,7 @@ sides:
     techs:
       scorpion: [field_maintenance, range_enhancement]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 326/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 750/750, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 2, exp: 1677/1690, value: 100}
@@ -560,7 +560,7 @@ sides:
       fortress: [solid_shot]
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 269/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 183/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 408/600, rotated: true, value: 100}
@@ -637,7 +637,7 @@ sides:
       fang: [portable_shield]
       scorpion: [field_maintenance, range_enhancement]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 446/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, level: 2, exp: 337/1690, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 2, exp: 1690/1690, value: 100}
@@ -682,7 +682,7 @@ sides:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 280/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 195/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 408/600, rotated: true, value: 100}
@@ -771,7 +771,7 @@ sides:
       fang: [portable_shield]
       scorpion: [field_maintenance, range_enhancement]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 561/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, level: 2, exp: 709/1690, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 3, exp: 2671/2671, value: 100}
@@ -816,7 +816,7 @@ sides:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 292/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 246/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 418/600, rotated: true, value: 100}
@@ -905,7 +905,7 @@ sides:
       fang: [portable_shield]
       scorpion: [field_maintenance, range_enhancement]
       hound: [range_enhancement]
-    formations:
+    units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 710/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, level: 2, exp: 1098/1690, value: 100}
     - {name: hound, index: 2, position: {x: -140, y: -100}, level: 4, exp: 550/3368, value: 100}
@@ -955,7 +955,7 @@ sides:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
       phantom_ray: [stealth_cloak]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 303/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 264/600, rotated: true, value: 100}
     - {name: fang, index: 2, position: {x: -120, y: -85}, exp: 418/600, rotated: true, value: 100}

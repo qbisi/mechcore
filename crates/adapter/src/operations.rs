@@ -1281,7 +1281,7 @@ fn apply_layout_stage(
             "stage": "prepare",
             "round": expected_round,
             "target_round": plan.round,
-            "formation_count": plan.formation_count(),
+            "unit_count": plan.unit_count(),
             "construction_count": plan.construction_count(),
             "contraption_count": plan.contraption_count(),
             "cleared": {
@@ -1311,7 +1311,7 @@ fn apply_layout_stage(
         },
         "round": expected_round,
         "target_round": plan.round,
-        "formation_count": plan.formation_count(),
+        "unit_count": plan.unit_count(),
         "construction_count": plan.construction_count(),
         "contraption_count": plan.contraption_count(),
         "sides": {
@@ -1376,7 +1376,7 @@ fn restore_player_after_error(
 fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<(), OperationError> {
     let config = config_instance(runtime)?;
     for placement in side
-        .formations
+        .units
         .iter()
         .chain(&side.constructions)
         .chain(&side.contraptions)
@@ -1540,7 +1540,7 @@ fn validate_equipment_catalog(
         }
     }
     Err(OperationError::InvalidArguments(format!(
-        "equipment {equipment_id} for formation type {:?} at local position ({}, {}) is absent from the runtime catalog",
+        "equipment {equipment_id} for unit type {:?} at local position ({}, {}) is absent from the runtime catalog",
         placement.type_name, placement.position.x, placement.position.y
     )))
 }
@@ -1561,7 +1561,7 @@ fn require_layout_deployment(runtime: &Runtime, expected_round: i32) -> Result<(
 }
 
 fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> {
-    for placement in &plan.blue.formations {
+    for placement in &plan.blue.units {
         layout_world_position(placement, false)?;
     }
     for placement in &plan.blue.constructions {
@@ -1570,7 +1570,7 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     for placement in &plan.blue.contraptions {
         layout_world_position(placement, false)?;
     }
-    for placement in &plan.red.formations {
+    for placement in &plan.red.units {
         layout_world_position(placement, true)?;
     }
     for placement in &plan.red.constructions {
@@ -1612,7 +1612,7 @@ fn apply_side_layout_stage(
             "prepare stage cannot apply side layout state".into(),
         ));
     }
-    let formations = apply_formations(runtime, current, &side.formations, rotate_to_world)?;
+    let formations = apply_formations(runtime, current, &side.units, rotate_to_world)?;
     let constructions = apply_formations(runtime, current, &side.constructions, rotate_to_world)?;
     let contraptions = apply_formations(runtime, current, &side.contraptions, rotate_to_world)?;
     let result = match stage {
@@ -1627,7 +1627,7 @@ fn apply_side_layout_stage(
                 runtime,
                 &side.tower_strengthen_levels,
             )?,
-            "formations": formations,
+            "units": formations,
             "constructions": constructions,
             "contraptions": contraptions,
             "airdrop_shields": apply_airdrop_shields(
@@ -2937,7 +2937,7 @@ fn verify_unit_readback(
 
 fn describe_placement(placement: &Placement) -> String {
     let kind = match placement.native {
-        NativeFormation::Unit(_) => "formation",
+        NativeFormation::Unit(_) => "unit",
         NativeFormation::Construction(_) => "construction",
         NativeFormation::Contraption(_) => "contraption",
     };
@@ -4017,23 +4017,23 @@ mod tests {
             "kind": "layout",
             "round": 1,
             "sides": {
-                "blue": {"formations": [{
+                "blue": {"units": [{
                     "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
                 }]},
-                "red": {"formations": [{
+                "red": {"units": [{
                     "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
                 }]}
             }
         }))
         .unwrap();
 
-        let blue = layout_world_position(&plan.blue.formations[0], false).unwrap();
-        let red = layout_world_position(&plan.red.formations[0], true).unwrap();
+        let blue = layout_world_position(&plan.blue.units[0], false).unwrap();
+        let red = layout_world_position(&plan.red.units[0], true).unwrap();
         assert_eq!((blue.x, blue.y), (20, -50));
         assert_eq!((red.x, red.y), (-20, 50));
         assert_eq!(
-            describe_placement(&plan.red.formations[0]),
-            "formation type \"marksman\" at local position (20, -50)"
+            describe_placement(&plan.red.units[0]),
+            "unit type \"marksman\" at local position (20, -50)"
         );
     }
 
@@ -4044,14 +4044,14 @@ mod tests {
             "round": 1,
             "sides": {
                 "blue": {
-                    "formations": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                    "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
                     "battle_skills": [{
                         "name": "missile_strike",
                         "positions": [{"x": 55, "y": 60}]
                     }]
                 },
                 "red": {
-                    "formations": [{"name": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
+                    "units": [{"name": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
                     "battle_skills": [{
                         "name": "mobile_beacon",
                         "positions": [

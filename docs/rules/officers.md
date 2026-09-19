@@ -10,7 +10,7 @@ name in [`config/names.yaml`](../../config/names.yaml). Names and effect text ar
 official English and Simplified Chinese localizations; placeholders have been
 expanded with the serialized `OfficerData.descriptionParams` values.
 
-An Officer may grant a commander skill, equipment, or an extra formation, but
+An Officer may grant a commander skill, equipment, or an extra unit, but
 those resulting objects are not additional `officers` entries. Native
 `CommanderSkillData` used by `battle_skills` is a separate ID space.
 
@@ -19,7 +19,7 @@ adds Officer `20023`. [`config/officers.yaml`](../../config/officers.yaml) state
 for build 2259, the 81 Officers that go on affecting the match after they
 arrive: what they discount and for which units, what they add to a round's
 income, the bounty two of them collect for destroying a giant, and the
-commander skills, equipment and opening formations nine of them hand out. That
+commander skills, equipment and opening units nine of them hand out. That
 last group is why taking an Officer card can put a skill on the panel.
 [`docs/reinforce_items.md`](reinforce_items.md) explains the card system, and
 the effect text below has no machine-readable counterpart yet.

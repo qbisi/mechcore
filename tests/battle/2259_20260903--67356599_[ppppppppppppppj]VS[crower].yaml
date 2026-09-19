@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - rhino_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
     - {name: void_eye, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -174,7 +174,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - rhino_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 321/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 149/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 106/650, value: 100}
@@ -196,7 +196,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 97/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 59/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, exp: 72/450, rotated: true, value: 100}
@@ -245,7 +245,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - rhino_specialist
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 562/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 511/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 380/650, value: 100}
@@ -271,7 +271,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 187/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 160/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, exp: 193/450, rotated: true, value: 100}
@@ -327,7 +327,7 @@ sides:
     - rhino_specialist
     techs:
       mustang: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 647/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 414/650, value: 100}
@@ -358,7 +358,7 @@ sides:
     next_index: {unit: 12, contraption: 1}
     officers:
     - typhoon_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 242/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, exp: 351/450, rotated: true, value: 100}
@@ -423,7 +423,7 @@ sides:
     - rhino_specialist
     techs:
       mustang: [culling_rounds, range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 449/650, value: 100}
@@ -461,7 +461,7 @@ sides:
     - typhoon_specialist
     techs:
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 293/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, exp: 398/450, rotated: true, value: 100}
@@ -532,7 +532,7 @@ sides:
     - rhino_specialist
     techs:
       mustang: [culling_rounds, range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 559/650, value: 100}
@@ -574,7 +574,7 @@ sides:
     - typhoon_specialist
     techs:
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, level: 2, exp: 159/1014, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 353/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, exp: 450/450, rotated: true, value: 100}
@@ -653,7 +653,7 @@ sides:
     techs:
       rhino: [whirlwind]
       mustang: [culling_rounds, range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 650/650, value: 100}
@@ -701,7 +701,7 @@ sides:
       typhoon: [wreckage_detonation]
       phantom_ray: [burst_mode]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, level: 2, exp: 282/1014, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 402/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, level: 2, exp: 141/1014, rotated: true, value: 100}
@@ -784,7 +784,7 @@ sides:
       rhino: [whirlwind]
       mustang: [culling_rounds, range_enhancement]
       scorpion: [range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 650/650, value: 100}
@@ -838,7 +838,7 @@ sides:
       typhoon: [field_reassembly, wreckage_detonation]
       phantom_ray: [burst_mode]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, level: 2, exp: 361/1014, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 424/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, level: 2, exp: 202/1014, rotated: true, value: 100}
@@ -925,7 +925,7 @@ sides:
       mustang: [culling_rounds, range_enhancement]
       crawler: [subterranean_blitz]
       scorpion: [doubleshot, range_enhancement]
-    formations:
+    units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 650/650, value: 100}
     - {name: void_eye, index: 2, position: {x: -100, y: -130}, exp: 650/650, value: 100}
@@ -980,7 +980,7 @@ sides:
       typhoon: [field_reassembly, wreckage_detonation]
       phantom_ray: [burst_mode]
       vortex: [mobile_power_station]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, level: 2, exp: 476/1014, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: -100, y: -205}, level: 2, exp: 269/1014, rotated: true, value: 100}

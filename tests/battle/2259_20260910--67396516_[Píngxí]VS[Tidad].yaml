@@ -108,7 +108,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
     - {name: fang, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
@@ -128,7 +128,7 @@ sides:
     next_index: {unit: 5, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
     - {name: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
@@ -179,7 +179,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 10/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 153/600, rotated: true, value: 100}
@@ -200,7 +200,7 @@ sides:
     next_index: {unit: 7, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 146/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 106/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 70/450, rotated: true, value: 100}
@@ -246,7 +246,7 @@ sides:
     next_index: {unit: 9, contraption: 0}
     officers:
     - elite_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 118/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 78/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 157/600, rotated: true, value: 100}
@@ -269,7 +269,7 @@ sides:
     next_index: {unit: 11, contraption: 0}
     officers:
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 258/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 162/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 186/450, rotated: true, value: 100}
@@ -325,7 +325,7 @@ sides:
     officers:
     - efficient_tech_research
     - elite_specialist
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 191/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 495/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 273/600, rotated: true, value: 100}
@@ -352,7 +352,7 @@ sides:
     officers:
     - efficient_tech_research
     - giant_specialist
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 345/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 217/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 244/450, rotated: true, value: 100}
@@ -412,7 +412,7 @@ sides:
     - elite_specialist
     techs:
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 205/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 564/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 382/600, rotated: true, value: 100}
@@ -442,7 +442,7 @@ sides:
     - efficient_tech_research
     - giant_specialist
     - extended_range_vulcan
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 391/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 343/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 327/450, rotated: true, value: 100}
@@ -512,7 +512,7 @@ sides:
     techs:
       mustang: [range_enhancement]
       tarantula: [range_enhancement]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 205/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 600/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -544,7 +544,7 @@ sides:
     - efficient_tech_research
     - giant_specialist
     - extended_range_vulcan
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 444/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 428/450, rotated: true, value: 100}
@@ -617,7 +617,7 @@ sides:
       mustang: [range_enhancement]
       tarantula: [range_enhancement]
       void_eye: [range_enhancement, suppression_shots]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 307/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 600/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -656,7 +656,7 @@ sides:
     - extended_range_vulcan
     techs:
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 450/450, rotated: true, value: 100}
@@ -732,7 +732,7 @@ sides:
       mustang: [range_enhancement]
       tarantula: [range_enhancement]
       void_eye: [range_enhancement, suppression_shots]
-    formations:
+    units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 329/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 600/600, value: 100}
     - {name: fang, index: 2, position: {x: 0, y: -115}, exp: 600/600, rotated: true, value: 100}
@@ -777,7 +777,7 @@ sides:
     - extended_range_vulcan
     techs:
       vulcan: [range_enhancement]
-    formations:
+    units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 2, position: {x: 110, y: -215}, exp: 450/450, rotated: true, value: 100}
