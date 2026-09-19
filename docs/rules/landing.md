@@ -2,8 +2,9 @@
 
 This index is pinned to game build 2259. It states where the board puts a
 formation that no decision places: a reinforcement card's squads, an opening's
-force, and an officer's delivery. [`action.md`](../spec/document/action.md)
-rests on it.
+force, and an officer's delivery. [`action.md`](../spec/document/action.md) and
+the round-opening deliveries of [`battle.md`](../spec/document/battle.md) rest
+on it.
 
 ## The rule
 

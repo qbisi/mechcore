@@ -97,7 +97,10 @@ struct Granted {
 #[must_use]
 pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action]) -> Settled {
     let mut granted = granted(economy, actions);
-    officer_deliveries(economy, state, &mut granted, round);
+    // A round's own deliveries are already in the position it opens with, so
+    // what reaches the next position is what the next round delivers as it
+    // opens.
+    officer_deliveries(economy, state, &mut granted, round + 1);
 
     let bought = actions
         .iter()
@@ -1110,7 +1113,60 @@ fn granted(economy: &Economy, actions: &[Action]) -> Granted {
     granted
 }
 
-/// What the officers a side holds hand out in this round.
+/// Hands a side what its officers deliver as `round` opens.
+///
+/// A delivery is not a decision: the game makes it before either side takes
+/// one, so it belongs to the position a round opens with. An officer's squad,
+/// its commander skills and its equipment arrive in its `active_round`, and its
+/// unit joins the shop in its `unlock_round`. The squad lands where the board
+/// puts it, which `placement` supplies; it arrived this round, so it may move.
+///
+/// # Errors
+///
+/// Returns [`Unsettled`] when a delivered unit has no price or no landing.
+pub fn open_round(
+    economy: &Economy,
+    state: &SideState,
+    round: i32,
+    placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
+) -> Result<SideState, Unsettled> {
+    let mut next = state.clone();
+    for officer in state.techs.officers.clone() {
+        let Some(row) = economy.officer(officer) else {
+            continue;
+        };
+        if let Some(opening) = row.opening_unit
+            && opening.unlock_round == round
+        {
+            unlock(&mut next, opening.unit);
+        }
+        if row.active_round != round {
+            continue;
+        }
+        for skill in &row.commander_skills {
+            panel_add(&mut next, *skill);
+        }
+        next.equipment
+            .extend(row.equipment.iter().map(|id| EquipmentItem {
+                id: *id,
+                durability: None,
+            }));
+        next.equipment.sort();
+        if let Some(opening) = row.opening_unit {
+            hand_out(
+                economy,
+                &mut next,
+                opening.unit,
+                1,
+                opening.level,
+                placement,
+            )?;
+        }
+    }
+    Ok(next)
+}
+
+/// What the officers a side holds hand out as `round` opens.
 ///
 /// An officer hands out on a schedule of its own rather than when it arrives.
 /// Its squad, its commander skills and its equipment come in the officer's
@@ -1289,16 +1345,25 @@ mod tests {
             },
             ..SideState::default()
         };
-        let delivered = apply(&economy, 1, &state, &[]);
+        // Round 1 opens with the three items, and applying round 0 is what
+        // reaches that position from the one before it.
+        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
         assert_eq!(
-            delivered
+            opened
                 .equipment
                 .iter()
                 .map(|item| item.id)
                 .collect::<Vec<_>>(),
             vec![13_030_009; 3]
         );
-        assert!(apply(&economy, 2, &state, &[]).equipment.is_empty());
+        assert_eq!(apply(&economy, 0, &state, &[]).equipment.len(), 3);
+        assert!(
+            super::open_round(&economy, &state, 2, &mut |_, _| None)
+                .unwrap()
+                .equipment
+                .is_empty()
+        );
+        assert!(apply(&economy, 1, &state, &[]).equipment.is_empty());
     }
 
     /// Fitting one of several copies takes exactly one out.
@@ -1312,11 +1377,12 @@ mod tests {
             },
             ..SideState::default()
         };
+        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
         let fitted = [Action::UseEquipment {
             equipment: 13_030_009,
             unit: 0,
         }];
-        assert_eq!(apply(&economy, 1, &state, &fitted).equipment.len(), 2);
+        assert_eq!(apply(&economy, 1, &opened, &fitted).equipment.len(), 2);
     }
 
     /// Recovering a formation hands back what it wore, in time to re-fit it.
@@ -1445,7 +1511,7 @@ mod tests {
         }
         shortfalls.sort();
         assert_eq!((fits, cards), (118, 97));
-        assert_eq!(held, 22);
+        assert_eq!(held, 24);
         assert_eq!(
             shortfalls,
             [
@@ -1867,7 +1933,7 @@ mod tests {
             {
                 for (round, side, state, actions) in &seams {
                     let (round, state) = (*round, *state);
-                    if delivers(&economy, state, round) {
+                    if delivers(&economy, state, round + 1) {
                         skipped += 1;
                         continue;
                     }
@@ -1914,7 +1980,7 @@ mod tests {
             .into_iter()
             .partition(|name| name.contains(" round 0 "));
         assert!(rest.is_empty(), "{rest:?}");
-        assert_eq!((compared, skipped, openings.len()), (706, 44, 82));
+        assert_eq!((compared, skipped, openings.len()), (730, 20, 82));
     }
 
     /// Whether an officer hands this side anything as the round opens.

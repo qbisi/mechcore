@@ -126,6 +126,10 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
+    equipment:
+    - {id: 13030009}
+    - {id: 13030009}
+    - {id: 13030009}
     next_index: {unit: 5, contraption: 0}
     techs:
       officers: [10013]

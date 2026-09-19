@@ -82,12 +82,19 @@ pub struct Side {
     pub formations: Vec<Formation>,
     pub shop: Shop,
     pub techs: Techs,
+    pub next_index: NextIndex,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Formation {
     #[serde(rename = "type")]
     pub type_name: String,
+    pub index: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NextIndex {
+    pub unit: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -109,6 +116,41 @@ pub struct Action {
     pub type_name: String,
     pub offer: Option<i32>,
     pub id: Option<i32>,
+}
+
+/// The unit index below which a side's formations were on the board before
+/// this round's deliveries.
+///
+/// The round deals its reinforcement offers before its officers deliver, so a
+/// squad delivered as the round opens is not part of what the deal reads. The
+/// delivered squads took the last indices the round opened with, one per
+/// officer whose `active_round` this is and who hands out a squad.
+///
+/// # Errors
+///
+/// Refuses a round in which an officer also unlocks a unit, since the state
+/// does not say whether the unit was already unlocked and the deal reads the
+/// unlocks. No officer of this build unlocks after round 1, which deals none.
+fn delivered_before(economy: &Economy, side: &Side, round: i32) -> Result<i32, String> {
+    let mut squads = 0;
+    for officer in &side.techs.officers {
+        let Some(row) = economy.officer(*officer) else {
+            continue;
+        };
+        let Some(opening) = row.opening_unit else {
+            continue;
+        };
+        if opening.unlock_round == round && round > 1 {
+            return Err(format!(
+                "officer {officer} unlocks a unit as round {round} opens, which the deal does \
+                 not separate from an earlier unlock"
+            ));
+        }
+        if row.active_round == round {
+            squads += 1;
+        }
+    }
+    Ok(side.next_index.unit - squads)
 }
 
 /// One computed draw with exact stream boundaries, excluding seed warm-up.
@@ -435,7 +477,12 @@ impl Dealer {
         let mut context = Context::default();
         for side in [&turn.state.sides.blue, &turn.state.sides.red] {
             context.officers.extend(side.techs.officers.iter());
-            for formation in &side.formations {
+            let delivered = delivered_before(economy, side, turn.round)?;
+            for formation in side
+                .formations
+                .iter()
+                .filter(|formation| formation.index < delivered)
+            {
                 let native = resolve_unit_type(&formation.type_name)
                     .ok_or_else(|| format!("unknown reinforcement unit {}", formation.type_name))?
                     .native;

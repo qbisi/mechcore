@@ -304,7 +304,7 @@ sides:
     tower_strengthen_levels: [0, 0]
     battle_skills:
     - {index: 0, id: 300001, cooldown: 0}
-    next_index: {unit: 9, contraption: 0}
+    next_index: {unit: 10, contraption: 0}
     techs:
       officers: [20038]
     formations:
@@ -317,6 +317,7 @@ sides:
     - {type: void_eye, index: 6, position: {x: 250, y: -80}, exp: 650/650, value: 100}
     - {type: crawler, index: 7, position: {x: -230, y: -225}, exp: 61/450, rotated: true, value: 100}
     - {type: wasp, index: 8, position: {x: 255, y: -190}, exp: 532/900, value: 200}
+    - {type: fire_badger, index: 9, position: {x: -5, y: -160}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}

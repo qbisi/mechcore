@@ -122,7 +122,7 @@ sides:
     reactor_core: 4500
     supply: 200
     shop:
-      unlocked_units: [20, 30]
+      unlocked_units: [2, 20, 30]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -197,7 +197,7 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
-    next_index: {unit: 7, contraption: 0}
+    next_index: {unit: 8, contraption: 0}
     techs:
       officers: [20029]
     formations:
@@ -208,6 +208,7 @@ sides:
     - {type: fire_badger, index: 4, position: {x: 95, y: -60}, exp: 161/1400, value: 200}
     - {type: crawler, index: 5, position: {x: 135, y: -190}, exp: 9/450, value: 100}
     - {type: crawler, index: 6, position: {x: 90, y: -95}, exp: 36/450, rotated: true, value: 100}
+    - {type: marksman, index: 7, position: {x: 0, y: -160}, level: 3, value: 100, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
 ---

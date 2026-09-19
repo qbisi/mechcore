@@ -496,6 +496,13 @@ The unit roster comes from the per-round player data rather than from the
 match-level fight report, because the first two rounds precede the first fight
 and so have no report to read.
 
+The snapshot also precedes what the round's officers deliver as it opens, so
+those deliveries are made on top of it: the squads, skills, equipment and
+unlocks each officer's schedule names for the round. A delivered squad has no
+recorded landing, and lands where [the board puts it](../../rules/landing.md).
+`movable` has no recorded source either, and is rebuilt as
+[`battle.md`](battle.md#what-conversion-rebuilds) states.
+
 `airdrop_shields` and `terrains` are the two fields that are copied from
 somewhere other than an object list. A skill that leaves an object standing
 keeps it in that skill's `rangeItems`, so both are read out of the recorded

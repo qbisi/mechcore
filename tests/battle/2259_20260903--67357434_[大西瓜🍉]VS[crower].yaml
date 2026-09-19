@@ -227,6 +227,9 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
+    battle_skills:
+    - {index: 0, id: 300001, cooldown: 0}
+    - {index: 1, id: 300001, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
     techs:
       officers: [10011]

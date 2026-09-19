@@ -103,7 +103,7 @@ sides:
     reactor_core: 4300
     supply: 200
     shop:
-      unlocked_units: [9, 13]
+      unlocked_units: [9, 13, 22]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -349,7 +349,7 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [1, 0]
-    next_index: {unit: 14, contraption: 1}
+    next_index: {unit: 15, contraption: 1}
     techs:
       officers: [20039]
     formations:
@@ -367,6 +367,7 @@ sides:
     - {type: crawler, index: 11, position: {x: 290, y: -285}, rotated: true, value: 100}
     - {type: mustang, index: 12, position: {x: -55, y: -210}, exp: 1065/1200, equipment: 13030001, value: 200}
     - {type: mustang, index: 13, position: {x: -160, y: -225}, exp: 844/1200, rotated: true, value: 200}
+    - {type: typhoon, index: 14, position: {x: 0, y: -160}, value: 300, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
   red:

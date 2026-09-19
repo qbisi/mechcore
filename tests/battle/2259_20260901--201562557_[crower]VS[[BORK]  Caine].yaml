@@ -107,6 +107,8 @@ sides:
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
+    battle_skills:
+    - {index: 0, id: 1100001, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
     techs:
       officers: [10014]
@@ -122,7 +124,7 @@ sides:
     reactor_core: 3900
     supply: 200
     shop:
-      unlocked_units: [15, 21]
+      unlocked_units: [15, 21, 22]
       buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
@@ -382,7 +384,7 @@ sides:
     battle_skills:
     - {index: 0, id: 1200003, cooldown: 3}
     - {index: 1, id: 1100001, cooldown: 0}
-    next_index: {unit: 12, contraption: 0}
+    next_index: {unit: 13, contraption: 0}
     techs:
       officers: [20039]
       units: [4515]
@@ -399,6 +401,7 @@ sides:
     - {type: fang, index: 9, position: {x: -175, y: -20}, exp: 193/600, value: 100}
     - {type: fang, index: 10, position: {x: -95, y: -20}, exp: 99/600, value: 100}
     - {type: crawler, index: 11, position: {x: -325, y: 20}, exp: 66/450, rotated: true, value: 100}
+    - {type: typhoon, index: 12, position: {x: 0, y: -160}, value: 300, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---
