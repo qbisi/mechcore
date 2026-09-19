@@ -301,3 +301,77 @@ fn diff_compares_normalized_fields() {
         "/sides/blue/formations/index=0/position/x"
     );
 }
+
+#[test]
+fn battle_verification_reads_fields_outside_the_deal() {
+    use serde::Deserialize;
+    use serde_yaml::Value;
+
+    let source = include_str!(
+        "../../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"
+    );
+    let original: Vec<Value> = serde_yaml::Deserializer::from_str(source)
+        .map(|document| Value::deserialize(document).unwrap())
+        .collect();
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("battle.yaml");
+    // Only this YAML is named. Neither a GRBR path nor an observation is input.
+    fs::write(&path, source).unwrap();
+    let run = || {
+        Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .arg("verify")
+            .arg(&path)
+            .output()
+            .unwrap()
+    };
+    let valid = run();
+    assert!(
+        valid.status.success(),
+        "{}",
+        String::from_utf8_lossy(&valid.stdout)
+    );
+
+    for case in [
+        "supply",
+        "cooldown",
+        "equipment",
+        "position",
+        "unknown_state_field",
+        "missing_operand",
+        "unknown_action",
+    ] {
+        let mut documents = original.clone();
+        let blue = &mut documents[2]["sides"]["blue"];
+        match case {
+            "supply" => blue["supply"] = Value::String("broken".into()),
+            "cooldown" => {
+                blue["battle_skills"] =
+                    serde_yaml::from_str("[{index: 0, id: 1000001, cooldown: broken}]").unwrap();
+            }
+            "equipment" => blue["equipment"] = serde_yaml::from_str("[{id: broken}]").unwrap(),
+            "position" => blue["formations"][0]["position"]["x"] = Value::String("broken".into()),
+            "unknown_state_field" => blue["supply_typo"] = Value::Number(1.into()),
+            "missing_operand" => {
+                documents[3]["blue"] = serde_yaml::from_str("[{type: buy_unit, unit: 2}]").unwrap();
+            }
+            "unknown_action" => {
+                documents[3]["blue"] = serde_yaml::from_str("[{type: unknown_action}]").unwrap();
+            }
+            _ => unreachable!(),
+        }
+        let yaml = documents
+            .iter()
+            .map(|document| serde_yaml::to_string(document).unwrap())
+            .collect::<Vec<_>>()
+            .join("---\n");
+        fs::write(&path, yaml).unwrap();
+        let output = run();
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(!output.status.success(), "{case}: {report}");
+        assert_eq!(report["valid"], false, "{case}");
+        assert!(
+            report["error"].as_str().unwrap().contains("round 1"),
+            "{case}: {report}"
+        );
+    }
+}

@@ -239,6 +239,14 @@ checked for having been dealt what it says without the replay it came from.
 mechcore verify <battle.yaml>
 ```
 
+Before checking the deal, verification reads every state field and every
+action operand using the document types. Missing required fields, invalid
+field types, unknown state/action fields and unknown action types are refused,
+including fields the deal does not use. Tagged skill targets retain their
+area, unit or construction meaning. Reading a complete position and decision
+does not establish that the decision is legal there or that it reproduces the
+next round's position.
+
 The opening check computes initialization from `seed` and `map_id`, and compares
 both complete `offers` arrays and both construction lists against it. It
 compares the directly computed result, without searching alternative stream
