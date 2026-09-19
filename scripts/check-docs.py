@@ -27,6 +27,7 @@ DOCUMENT_FORMAT = {
 }
 INTERFACE_CONTRACT = {
     "docs/spec/adapter/adapter.md",
+    "docs/spec/mechcore/cli.md",
     "docs/spec/mechcore/mcscript.md",
     "docs/spec/mechcore/session.md",
 }
