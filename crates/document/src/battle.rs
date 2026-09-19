@@ -273,9 +273,11 @@ pub enum Action {
         #[serde(skip_serializing_if = "Option::is_none")]
         specialist: Option<i32>,
     },
+    /// A purchase names the unit and nothing else: the game puts the new
+    /// formation where [`crate::landing`] says the board has room, and a
+    /// `move_unit` is what places it anywhere else.
     BuyUnit {
         unit: i32,
-        position: Position,
     },
     UpgradeUnit {
         index: i32,
@@ -306,8 +308,13 @@ pub enum Action {
         #[serde(skip_serializing_if = "is_false")]
         rotated: bool,
     },
+    /// `index` is the panel slot released and `id` the skill it holds. The
+    /// slot is what the game names; the skill is stated beside it so a
+    /// release reads without the panel, and a release whose slot holds
+    /// another skill is refused.
     ReleaseCommanderSkill {
-        skill: i32,
+        index: i32,
+        id: i32,
         target: SkillTarget,
     },
     ReleaseContraption {
@@ -364,7 +371,6 @@ enum ActionReader {
     },
     BuyUnit {
         unit: i32,
-        position: Position,
     },
     UpgradeUnit {
         index: i32,
@@ -396,7 +402,8 @@ enum ActionReader {
         rotated: bool,
     },
     ReleaseCommanderSkill {
-        skill: i32,
+        index: i32,
+        id: i32,
         target: SkillTarget,
     },
     ReleaseContraption {
@@ -731,7 +738,9 @@ mod tests {
     #[test]
     fn actions_read_tagged_targets_and_refuse_lost_operands() {
         for target in ["!area [{x: 10, y: -20}]", "!unit 4", "!construction 2"] {
-            let yaml = format!("{{type: release_commander_skill, skill: 3, target: {target}}}");
+            let yaml = format!(
+                "{{type: release_commander_skill, index: 3, id: 300001, target: {target}}}"
+            );
             let action: super::Action = serde_yaml::from_str(&yaml).unwrap();
             let spelled = serde_yaml::to_string(&action).unwrap();
             assert_eq!(
@@ -740,10 +749,11 @@ mod tests {
             );
         }
         for yaml in [
-            "{type: buy_unit, unit: 2}",
+            "{type: buy_unit, unit: 2, position: {x: 0, y: -160}}",
+            "{type: release_commander_skill, index: 0, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
             "{type: upgrade_unit, index: 0, typo: 1}",
-            "{type: release_commander_skill, skill: 0, target: !unknown 1}",
+            "{type: release_commander_skill, index: 0, id: 300001, target: !unknown 1}",
             "{type: unknown_action}",
         ] {
             assert!(
@@ -775,10 +785,7 @@ mod tests {
                 id: 3,
                 specialist: Some(4),
             },
-            Action::BuyUnit {
-                unit: 2,
-                position: at,
-            },
+            Action::BuyUnit { unit: 2 },
             Action::UpgradeUnit { index: 0 },
             Action::UnlockUnit { unit: 9 },
             Action::UpgradeTechnology { unit: 2, tech: 201 },
@@ -795,15 +802,18 @@ mod tests {
                 rotated: true,
             },
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 300_001,
                 target: SkillTarget::Area(vec![at]),
             },
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 300_001,
                 target: SkillTarget::Unit(4),
             },
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 300_001,
                 target: SkillTarget::Construction(2),
             },
             Action::ReleaseContraption {

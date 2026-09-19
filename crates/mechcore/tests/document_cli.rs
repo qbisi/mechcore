@@ -396,7 +396,7 @@ fn battle_verification_reads_fields_outside_the_deal() {
             "position" => blue["formations"][0]["position"]["x"] = Value::String("broken".into()),
             "unknown_state_field" => blue["supply_typo"] = Value::Number(1.into()),
             "missing_operand" => {
-                documents[3]["blue"] = serde_yaml::from_str("[{type: buy_unit, unit: 2}]").unwrap();
+                documents[3]["blue"] = serde_yaml::from_str("[{type: upgrade_unit}]").unwrap();
             }
             "unknown_action" => {
                 documents[3]["blue"] = serde_yaml::from_str("[{type: unknown_action}]").unwrap();

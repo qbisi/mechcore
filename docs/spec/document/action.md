@@ -26,8 +26,8 @@ kind: action
 round: 7
 blue:
 - {type: choose_reinforce_item, offer: 3, id: 1072213}
-- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
-- {type: release_commander_skill, skill: 0, target: !unit 4}
+- {type: buy_unit, unit: 30}
+- {type: release_commander_skill, index: 0, id: 1100001, target: !unit 4}
 red:
 - ...
 ```
@@ -40,7 +40,7 @@ An action is a mapping tagged by `type`, in `snake_case`. The remaining keys are
 fixed per type, and every type but `concede` carries at least one operand.
 
 ```yaml
-- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
+- {type: buy_unit, unit: 30}
 - {type: upgrade_unit, index: 5}
 ```
 
@@ -156,11 +156,14 @@ here.
 ### `buy_unit`
 
 ```yaml
-- {type: buy_unit, unit: 30, position: {x: 0, y: -160}}
+- {type: buy_unit, unit: 30}
 ```
 
-Buys one formation of `unit` and deploys it at `position`. Advances
-`next_index.unit` by one and puts a formation on the board under that index.
+Buys one formation of `unit`. Advances `next_index.unit` by one and puts a
+formation on the board under that index, where [the board puts
+it](../../rules/landing.md): the main region's centre, or the nearest free
+grid position to it. A purchase names no position because the player does not
+choose one; a `move_unit` is what puts the formation anywhere else.
 
 The formation arrives at the shop's level for that unit, which an officer or an
 Energy Tower skill can raise. Costs the unit's price plus one upgrade for each
@@ -318,11 +321,14 @@ arrives travelling.
 ### `release_commander_skill`
 
 ```yaml
-- {type: release_commander_skill, skill: 0, target: !unit 4}
+- {type: release_commander_skill, index: 0, id: 1100001, target: !unit 4}
 ```
 
-Releases the skill in panel slot `skill`. The slot is a panel index and not a
-skill ID, which is what a retraction matches on.
+Releases the skill in panel slot `index`, which holds skill `id`. The slot is
+what the game releases and what a retraction matches on; the skill is stated
+beside it so that a release reads without the panel. A release whose slot does
+not hold `id` at that point in the round is refused, and the panel can change
+within a round, since a card or a blueprint adds a skill to it.
 
 `target` is a tagged union with exactly one of three forms, never two:
 
@@ -456,6 +462,15 @@ so the index comes from the allocator, and applying a round has to hand out
 `next_index.unit` exactly as the game does. That is one of the two things the
 allocator is in a state for.
 
+`BuyUnit` records where the formation arrived, and a purchase keeps only the
+unit: the board decides where it lands. The conversion steps each round and
+refuses a replay whose recorded position is not where the board puts the
+formation, so the position a battle leaves out is one it can reproduce.
+
+`ReleaseCommanderSkill` records only the panel slot. The conversion reads the
+skill that slot holds from the position the round has reached by then, which
+is what `id` states.
+
 `MoveUnit` is recorded as a batch carrying one or more units. A sequence holds
 one move per unit: the collapse has already run by then, so the batch no longer has
 to stay whole for an undo to pop it, and order is all that survives either way.
@@ -504,6 +519,7 @@ Each action is written on one line as a flow mapping, by the spelling rules
 | `PAD_MoveUnit.positionRecord` | Restates the state before the action |
 | `PAD_MoveUnit.rotateRecord`, `superDeployRecord` | Same |
 | `PAD_BuyUnit.UIDX` | Unset; the allocator names the new unit |
+| `PAD_BuyUnit.position` | The board decides it, and the conversion checks it does |
 | `PAD_ReleaseCommanderSkill.Positions` beside an object target | The player's click point, which names no state |
 
 ## Unresolved

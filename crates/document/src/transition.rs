@@ -32,10 +32,10 @@ pub enum Unsettled {
     /// The decision names a formation, panel slot or construction the position
     /// does not hold.
     Missing(&'static str),
-    /// Where the formations a card or an opening hands out arrive is decided by
-    /// the board they arrive on, not by the decision that summoned them, and
-    /// the caller did not say which side's board that is, or the board has no
-    /// room. [`crate::landing`] is the board's rule.
+    /// Where the formations a purchase, a card or an opening hands out arrive
+    /// is decided by the board they arrive on, not by the decision that
+    /// summoned them, and the caller did not say which side's board that is,
+    /// or the board has no room. [`crate::landing`] is the board's rule.
     GrantedPosition,
     /// The game does not allow the decision from this position.
     ///
@@ -87,8 +87,8 @@ pub fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<Sid
 
 /// [`step`], told where the formations a decision hands out arrive.
 ///
-/// A card and an opening summon formations that no decision gives a position
-/// to, and the board places each one clear of what already stands, so the same
+/// A purchase, a card and an opening summon formations that no decision gives
+/// a position to, and the board places each one clear of what already stands, so the same
 /// card lands differently in two matches. [`crate::landing::placement`] is the
 /// board's rule, and it needs to know the side. `placement` is asked, for each
 /// formation handed out and in order, with the position just before it arrives
@@ -182,7 +182,7 @@ pub fn step_placing(
             }
             next.techs.officers.sort_unstable();
         }
-        Action::BuyUnit { unit, position } => {
+        Action::BuyUnit { unit } => {
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
             let level = purse.shop_level(*unit);
             let upgrade = purse.upgrade(*unit).ok_or(Unsettled::Unpriced("upgrade"))?;
@@ -190,7 +190,8 @@ pub fn step_placing(
             // one upgrade per level above the first.
             next.supply -= price + (level - 1) * upgrade;
             next.shop.buys_remaining -= 1;
-            place(&mut next, *unit, level, price, &mut |_, _| Some(*position))?;
+            // The board puts a bought formation where it puts a handed-out one.
+            place(&mut next, *unit, level, price, placement)?;
         }
         Action::UpgradeUnit { index } => {
             let formation = formation_mut(&mut next, *index)?;
@@ -297,8 +298,8 @@ pub fn step_placing(
                 formation.formation.travelling = arrived.is_flank().then_some(true);
             }
         }
-        Action::ReleaseCommanderSkill { skill, target } => {
-            release(economy, &mut next, *skill, target)?;
+        Action::ReleaseCommanderSkill { index, id, target } => {
+            release(economy, &mut next, *index, *id, target)?;
         }
         // Giving up ends the match without moving the position.
         Action::Concede => {}
@@ -334,6 +335,7 @@ fn release(
     economy: &Economy,
     next: &mut SideState,
     slot: i32,
+    named: i32,
     target: &SkillTarget,
 ) -> Result<(), Unsettled> {
     let order = i32::try_from(
@@ -349,6 +351,11 @@ fn release(
         .find(|skill| skill.index == slot)
         .map(|skill| skill.id)
         .ok_or(Unsettled::Missing("panel slot"))?;
+    // The slot is what the game releases; a decision naming another skill
+    // there describes a panel this position does not hold.
+    if id != named {
+        return Err(Unsettled::Missing("panel skill"));
+    }
     if crate::mobility::REDEPLOY_SKILLS.contains(&id) {
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("redeploy target"));
@@ -1232,7 +1239,8 @@ mod tests {
             .formations
             .extend(side_holding(&[(7, Position { x: 0, y: -160 })]).formations);
         let recovered = [Action::ReleaseCommanderSkill {
-            skill: 0,
+            index: 0,
+            id: 900_001,
             target: crate::battle::SkillTarget::Unit(5),
         }];
         assert_eq!(
@@ -1246,7 +1254,8 @@ mod tests {
         );
         let refitted = [
             Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: 900_001,
                 target: crate::battle::SkillTarget::Unit(5),
             },
             Action::UseEquipment {
@@ -1385,11 +1394,16 @@ mod tests {
             },
             ..SideState::default()
         };
-        let bought = Action::BuyUnit {
-            unit: 9,
-            position: Position { x: 0, y: -160 },
-        };
-        let next = step(&economy, &state, &bought).unwrap();
+        let bought = Action::BuyUnit { unit: 9 };
+        // The board decides where it lands, so a bare step cannot.
+        assert_eq!(
+            step(&economy, &state, &bought),
+            Err(Unsettled::GrantedPosition)
+        );
+        let next = step_placing(&economy, &state, &bought, &mut |_, _| {
+            Some(Position { x: 0, y: -160 })
+        })
+        .unwrap();
         assert_eq!(next.next_index.unit, 8);
         assert_eq!(next.shop.buys_remaining, 1);
         assert_eq!(next.formations.len(), 1);
@@ -1494,6 +1508,30 @@ mod tests {
         assert_eq!(next.reactor_core, 600);
     }
 
+    /// A release names its slot and the skill in it, and a slot holding another
+    /// skill is not the panel the decision was taken from.
+    #[test]
+    fn a_release_naming_another_skill_is_refused() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = side_holding(&[(5, Position { x: 0, y: -160 })]);
+        state.battle_skills = vec![crate::battle::PanelSkill {
+            index: 0,
+            id: 900_001,
+            cooldown: 0,
+            used: false,
+            release: None,
+        }];
+        let released = Action::ReleaseCommanderSkill {
+            index: 0,
+            id: 1_100_001,
+            target: crate::battle::SkillTarget::Unit(5),
+        };
+        assert_eq!(
+            step(&economy, &state, &released),
+            Err(Unsettled::Missing("panel skill"))
+        );
+    }
+
     /// Field Recovery pays back what a formation cost and returns what it wore.
     #[test]
     fn recovering_a_formation_pays_and_returns() {
@@ -1509,7 +1547,8 @@ mod tests {
         state.formations[0].value = Some(400);
         state.formations[0].formation.equipment = Some(13_030_004);
         let released = Action::ReleaseCommanderSkill {
-            skill: 0,
+            index: 0,
+            id: 900_001,
             target: crate::battle::SkillTarget::Unit(5),
         };
         let next = step(&economy, &state, &released).unwrap();
@@ -1543,7 +1582,8 @@ mod tests {
             release: None,
         }];
         let train = Action::ReleaseCommanderSkill {
-            skill: 0,
+            index: 0,
+            id: 1_100_001,
             target: crate::battle::SkillTarget::Unit(0),
         };
         let next = step(&economy, &state, &train).unwrap();
@@ -1634,7 +1674,8 @@ mod tests {
             &economy,
             &panel,
             &Action::ReleaseCommanderSkill {
-                skill: 0,
+                index: 0,
+                id: crate::mobility::REDEPLOY_SKILLS[0],
                 target: crate::battle::SkillTarget::Unit(0),
             },
         )
@@ -1789,10 +1830,7 @@ mod tests {
     fn a_formation_created_this_round_starts_settled() {
         let economy = Economy::embedded().unwrap();
         let bought = [
-            Action::BuyUnit {
-                unit: 1,
-                position: Position { x: 0, y: -160 },
-            },
+            Action::BuyUnit { unit: 1 },
             Action::MoveUnit {
                 index: 0,
                 position: Position { x: 100, y: -60 },

@@ -1,7 +1,7 @@
 //! Where the board puts a formation no decision placed.
 //!
-//! A card's squads, an officer's delivery and an opening's force arrive without
-//! a position, and the game chooses one. `docs/rules/landing.md` states the
+//! A purchase, a card's squads, an officer's delivery and an opening's force
+//! arrive without a position, and the game chooses one. `docs/rules/landing.md` states the
 //! rule, which is `TerritoryManager.GetAvailiblePositionForNewActor` and
 //! `MapRegion.GetAvailiblePositionForElement`: the main deployment region's
 //! centre, aligned to the ten-metre grid, or the free grid position nearest it.

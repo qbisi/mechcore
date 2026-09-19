@@ -1,8 +1,8 @@
 # Landing
 
 This index is pinned to game build 2259. It states where the board puts a
-formation that no decision places: a reinforcement card's squads, an opening's
-force, and an officer's delivery. [`action.md`](../spec/document/action.md) and
+formation that no decision places: a purchase, a reinforcement card's squads,
+an opening's force, and an officer's delivery. [`action.md`](../spec/document/action.md) and
 the round-opening deliveries of [`battle.md`](../spec/document/battle.md) rest
 on it.
 
@@ -51,5 +51,10 @@ squads, opening forces and officer deliveries, some landing clear of formations
 that already stood at the centre. The rule places all 341 exactly where the game
 did. With the rule in place of the recorded landings, the native oracle still
 closes every decision and every deployment it checks.
+
+Every purchase in the tracked replays lands where the rule puts it: all 1,632,
+each read against the position the round had reached when it was bought. A
+battle therefore keeps a purchase's unit and not its position, and the
+conversion refuses a replay whose recorded purchase lands anywhere else.
 
 The rule has not been observed on a full region, where no free position exists.

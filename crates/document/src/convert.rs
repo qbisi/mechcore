@@ -149,20 +149,14 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             .arrays
             .first()
             .map(|array| array.values.clone());
-        turns.push(Turn {
+        turns.push(turn(
+            grbr,
+            &economy,
+            [&blue, &red],
+            position,
             round,
-            state: State {
-                reinforce_offers: offers,
-                sides: StateSides {
-                    blue: side_state(grbr, &economy, &blue, position, Seat::Blue)?,
-                    red: side_state(grbr, &economy, &red, position, Seat::Red)?,
-                },
-            },
-            actions: TurnActions {
-                blue: actions(&blue.rounds.entries[position], Seat::Blue)?,
-                red: actions(&red.rounds.entries[position], Seat::Red)?,
-            },
-        });
+            offers,
+        )?);
     }
 
     // The four combinations each side was dealt are recorded nowhere, and are
@@ -180,6 +174,38 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
         },
         turns,
+    })
+}
+
+/// One deployment round: the position each side opens it with, and the
+/// decisions each takes from there.
+fn turn(
+    grbr: &[u8],
+    economy: &Economy,
+    [blue, red]: [&record::PlayerRecord; 2],
+    position: usize,
+    round: i32,
+    offers: Option<Vec<i32>>,
+) -> Result<Turn, String> {
+    let sides = StateSides {
+        blue: side_state(grbr, economy, blue, position, Seat::Blue)?,
+        red: side_state(grbr, economy, red, position, Seat::Red)?,
+    };
+    let taken = |player: &record::PlayerRecord, seat, opened| {
+        actions(economy, &player.rounds.entries[position], seat, opened)
+            .map_err(|error| format!("round {round}: {error}"))
+    };
+    let actions = TurnActions {
+        blue: taken(blue, Seat::Blue, &sides.blue)?,
+        red: taken(red, Seat::Red, &sides.red)?,
+    };
+    Ok(Turn {
+        round,
+        state: State {
+            reinforce_offers: offers,
+            sides,
+        },
+        actions,
     })
 }
 
@@ -682,7 +708,80 @@ fn opening_specialist(economy: &Economy, player: &record::PlayerRecord) -> Resul
     }
 }
 
-fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String> {
+/// A recorded decision, before the round is stepped.
+///
+/// Two decisions carry something a battle does not state, and stepping the
+/// round is what accounts for it. A purchase records where the formation
+/// arrived, which the board decides, so the round has to put it there. A
+/// release records the panel slot, and the skill the slot holds is whatever
+/// the round has put there by then.
+enum Recorded {
+    Taken(Action),
+    Bought { unit: i32, at: Position },
+    Released { index: i32, target: SkillTarget },
+}
+
+/// A side's decisions in one round, from the position the round opened with.
+///
+/// Each decision is stepped as it is read. A purchase is refused unless the
+/// board puts the formation where the replay recorded it, because the battle
+/// keeps only the unit; a release is given the skill its slot holds at that
+/// point in the round.
+fn actions(
+    economy: &Economy,
+    round: &PlayerRoundRecord,
+    seat: Seat,
+    opened: &SideState,
+) -> Result<Vec<Action>, String> {
+    let red = seat == Seat::Red;
+    let mut placement = crate::landing::placement(red);
+    let mut position = opened.clone();
+    let mut taken = Vec::new();
+    for (at, recorded) in recorded_actions(round, seat)?.into_iter().enumerate() {
+        let action = match recorded {
+            Recorded::Taken(action) => action,
+            Recorded::Bought { unit, at: recorded } => {
+                let (type_name, _) = unit_type_from_id(unit)
+                    .ok_or_else(|| format!("unit ID {unit} has no layout type in build {BUILD}"))?;
+                let landed = crate::landing::landing(&position, type_name, red);
+                if landed != Some(recorded) {
+                    return Err(format!(
+                        "{} buys {type_name} at ({}, {}), and the board puts it at {landed:?}",
+                        seat.name(),
+                        recorded.x,
+                        recorded.y
+                    ));
+                }
+                Action::BuyUnit { unit }
+            }
+            Recorded::Released { index, target } => {
+                let id = position
+                    .battle_skills
+                    .iter()
+                    .find(|skill| skill.index == index)
+                    .map(|skill| skill.id)
+                    .ok_or_else(|| {
+                        format!(
+                            "{} releases panel slot {index}, which it does not hold",
+                            seat.name()
+                        )
+                    })?;
+                Action::ReleaseCommanderSkill { index, id, target }
+            }
+        };
+        position = crate::transition::step_placing(economy, &position, &action, &mut placement)
+            .map_err(|reason| {
+                format!(
+                    "{} decision {at} ({action:?}) cannot be stepped: {reason:?}",
+                    seat.name()
+                )
+            })?;
+        taken.push(action);
+    }
+    Ok(taken)
+}
+
+fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorded>, String> {
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {
@@ -694,7 +793,7 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                 .map(|position| seat.position(position))
                 .ok_or_else(|| format!("{} has no position", action.kind))
         };
-        converted.push(match action.kind.as_str() {
+        converted.push(Recorded::Taken(match action.kind.as_str() {
             "PAD_ChooseReinforceItem" => {
                 // Declining is the same decision at the declined offer, and
                 // the game records its `ID` as zero rather than omitting it.
@@ -708,10 +807,13 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                     },
                 }
             }
-            "PAD_BuyUnit" => Action::BuyUnit {
-                unit: field("UID", action.unit_id)?,
-                position: position(&action.buy_position)?,
-            },
+            "PAD_BuyUnit" => {
+                converted.push(Recorded::Bought {
+                    unit: field("UID", action.unit_id)?,
+                    at: position(&action.buy_position)?,
+                });
+                continue;
+            }
             "PAD_UpgradeUnit" => Action::UpgradeUnit {
                 index: field("UIDX", action.unit_index_allocated)?,
             },
@@ -735,10 +837,13 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                 equipment: field("EquipmentID", action.equipment_id)?,
                 unit: field("UnitIndex", action.unit_index)?,
             },
-            "PAD_ReleaseCommanderSkill" => Action::ReleaseCommanderSkill {
-                skill: field("SkillIndex", action.skill_index)?,
-                target: skill_target(action, seat)?,
-            },
+            "PAD_ReleaseCommanderSkill" => {
+                converted.push(Recorded::Released {
+                    index: field("SkillIndex", action.skill_index)?,
+                    target: skill_target(action, seat)?,
+                });
+                continue;
+            }
             "PAD_ReleaseContraption" => Action::ReleaseContraption {
                 contraption: field("ContraptionID", action.contraption_id)?,
                 position: position(&action.release_position)?,
@@ -756,17 +861,17 @@ fn actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Action>, String>
                     .as_ref()
                     .ok_or_else(|| "PAD_MoveUnit has no moveUnitDatas".to_owned())?;
                 for moved in &moves.entries {
-                    converted.push(Action::MoveUnit {
+                    converted.push(Recorded::Taken(Action::MoveUnit {
                         index: moved.unit_index,
                         position: seat.position(&moved.position),
                         rotated: moved.rotated,
-                    });
+                    }));
                 }
                 continue;
             }
             "PAD_GiveUp" => Action::Concede,
             other => return Err(format!("action {other} has no turn representation")),
-        });
+        }));
     }
     Ok(converted)
 }
@@ -1213,9 +1318,10 @@ mod tests {
                             matches!(
                                 action,
                                 Action::ReleaseCommanderSkill {
-                                    skill,
+                                    index,
                                     target: SkillTarget::Area(points),
-                                } if Some(*skill) == slot && points.as_slice() == [*center]
+                                    ..
+                                } if Some(*index) == slot && points.as_slice() == [*center]
                             )
                         });
                         assert!(
