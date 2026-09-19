@@ -3,8 +3,7 @@ round: 2
 
 sides:
   blue:
-    officers:
-    - extended_range_sabertooth
+    officers: [extended_range_sabertooth]
     techs:
       marksman: [electromagnetic_shot]
       sabertooth: [secondary_armament]

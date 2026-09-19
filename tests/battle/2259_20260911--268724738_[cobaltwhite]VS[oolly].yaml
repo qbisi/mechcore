@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -175,8 +173,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -70, y: -135}, exp: 37/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -95}, exp: 18/450, rotated: true, value: 100}
@@ -197,8 +194,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 260, y: -150}, exp: 258/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -150}, exp: 408/650, value: 100}
@@ -246,8 +242,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 2}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -70, y: -135}, exp: 91/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -95}, exp: 450/450, rotated: true, value: 100}
@@ -273,8 +268,7 @@ sides:
     battle_skills:
     - {index: 0, name: mobile_beacon_card, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 260, y: -150}, exp: 258/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -150}, exp: 572/650, value: 100}
@@ -330,8 +324,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: missile_strike, cooldown: 1}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -70, y: -135}, exp: 124/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -95}, exp: 450/450, rotated: true, value: 100}
@@ -361,8 +354,7 @@ sides:
     battle_skills:
     - {index: 0, name: mobile_beacon_card, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       void_eye: [suppression_shots]
     units:
@@ -424,8 +416,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 0}
     - {index: 2, name: intensive_training, cooldown: 1}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       fire_badger: [range_enhancement]
     units:
@@ -461,8 +452,7 @@ sides:
     - {index: 0, name: mobile_beacon_card, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 2}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       sledgehammer: [armor_enhancement]
       void_eye: [suppression_shots]
@@ -535,8 +525,7 @@ sides:
     - {index: 2, name: intensive_training, cooldown: 0}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       mustang: [range_enhancement]
       fire_badger: [range_enhancement]
@@ -578,8 +567,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 1}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       sledgehammer: [armor_enhancement]
       void_eye: [suppression_shots]
@@ -657,8 +645,7 @@ sides:
     - {index: 2, name: intensive_training, cooldown: 1}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 23, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       marksman: [aerial_specialization]
       mustang: [range_enhancement]
@@ -704,8 +691,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: electromagnetic_impact, cooldown: 2}
     next_index: {unit: 22, contraption: 1}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       wasp: [energy_shield]
       sledgehammer: [armor_enhancement]
@@ -790,9 +776,7 @@ sides:
     - {index: 2, name: intensive_training, cooldown: 0}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - missile_specialist
+    officers: [additional_deployment_slot, missile_specialist]
     techs:
       marksman: [doubleshot, aerial_specialization]
       mustang: [range_enhancement]
@@ -845,9 +829,7 @@ sides:
     - {index: 3, name: electromagnetic_impact, cooldown: 1}
     - {index: 4, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - aerial_specialist
+    officers: [additional_deployment_slot, aerial_specialist]
     techs:
       wasp: [energy_shield]
       sledgehammer: [armor_enhancement]
@@ -935,9 +917,7 @@ sides:
     - {index: 3, name: field_recovery, cooldown: 0}
     - {index: 4, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 30, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - missile_specialist
+    officers: [additional_deployment_slot, missile_specialist]
     techs:
       marksman: [doubleshot, aerial_specialization]
       mustang: [range_enhancement]
@@ -994,9 +974,7 @@ sides:
     - {index: 4, name: sticky_oil_bomb, cooldown: 2}
     - {index: 5, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 28, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - aerial_specialist
+    officers: [additional_deployment_slot, aerial_specialist]
     techs:
       wasp: [energy_shield]
       sledgehammer: [armor_enhancement]
@@ -1099,9 +1077,7 @@ sides:
     - {index: 3, name: field_recovery, cooldown: 0}
     - {index: 4, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 35, contraption: 5}
-    officers:
-    - additional_deployment_slot
-    - missile_specialist
+    officers: [additional_deployment_slot, missile_specialist]
     techs:
       marksman: [doubleshot, aerial_specialization]
       mustang: [range_enhancement]
@@ -1163,9 +1139,7 @@ sides:
     - {index: 4, name: sticky_oil_bomb, cooldown: 1}
     - {index: 5, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 34, contraption: 3}
-    officers:
-    - additional_deployment_slot
-    - aerial_specialist
+    officers: [additional_deployment_slot, aerial_specialist]
     techs:
       wasp: [energy_shield]
       sledgehammer: [armor_enhancement]

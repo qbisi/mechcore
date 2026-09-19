@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -177,8 +175,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 10/600, value: 100}
@@ -198,8 +195,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 146/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 106/450, rotated: true, value: 100}
@@ -244,8 +240,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 118/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 78/600, value: 100}
@@ -267,8 +262,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 258/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 162/450, rotated: true, value: 100}
@@ -322,9 +316,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - elite_specialist
+    officers: [efficient_tech_research, elite_specialist]
     units:
     - {name: fang, index: 0, position: {x: -135, y: -190}, exp: 191/600, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 495/600, value: 100}
@@ -349,9 +341,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
+    officers: [efficient_tech_research, giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 345/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 217/450, rotated: true, value: 100}
@@ -407,9 +397,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - elite_specialist
+    officers: [efficient_tech_research, elite_specialist]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -438,10 +426,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
-    - extended_range_vulcan
+    officers: [efficient_tech_research, giant_specialist, extended_range_vulcan]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 391/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 343/450, rotated: true, value: 100}
@@ -506,9 +491,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: incendiary_bomb, cooldown: 3}
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - efficient_tech_research
-    - elite_specialist
+    officers: [efficient_tech_research, elite_specialist]
     techs:
       mustang: [range_enhancement]
       tarantula: [range_enhancement]
@@ -540,10 +523,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: lightning_storm, cooldown: 4}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
-    - extended_range_vulcan
+    officers: [efficient_tech_research, giant_specialist, extended_range_vulcan]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -215}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -215}, exp: 444/450, rotated: true, value: 100}
@@ -610,9 +590,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: incendiary_bomb, cooldown: 2}
     next_index: {unit: 20, contraption: 1}
-    officers:
-    - efficient_tech_research
-    - elite_specialist
+    officers: [efficient_tech_research, elite_specialist]
     techs:
       mustang: [range_enhancement]
       tarantula: [range_enhancement]
@@ -650,10 +628,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: lightning_storm, cooldown: 3}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
-    - extended_range_vulcan
+    officers: [efficient_tech_research, giant_specialist, extended_range_vulcan]
     techs:
       vulcan: [range_enhancement]
     units:
@@ -725,9 +700,7 @@ sides:
     - {index: 2, name: incendiary_bomb, cooldown: 1}
     - {index: 3, name: missile_strike, cooldown: 2}
     next_index: {unit: 23, contraption: 2}
-    officers:
-    - efficient_tech_research
-    - elite_specialist
+    officers: [efficient_tech_research, elite_specialist]
     techs:
       mustang: [range_enhancement]
       tarantula: [range_enhancement]
@@ -770,11 +743,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: lightning_storm, cooldown: 2}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
-    - efficient_giant_manufacturing
-    - extended_range_vulcan
+    officers: [efficient_tech_research, giant_specialist, efficient_giant_manufacturing, extended_range_vulcan]
     techs:
       vulcan: [range_enhancement]
     units:

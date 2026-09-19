@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -128,8 +127,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -178,8 +176,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 210, y: -120}, exp: 283/750, value: 100}
     - {name: arclight, index: 1, position: {x: -210, y: -120}, exp: 399/750, value: 100}
@@ -204,8 +201,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 109/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 153/1014, value: 100}
@@ -245,8 +241,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     techs:
       arclight: [charged_shot]
     units:
@@ -276,9 +271,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - advanced_missile_device
-    - training_specialist
+    officers: [advanced_missile_device, training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 290, y: -285}, exp: 136/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, level: 2, exp: 160/1014, value: 100}
@@ -326,8 +319,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     techs:
       arclight: [charged_shot]
     units:
@@ -361,9 +353,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - advanced_missile_device
-    - training_specialist
+    officers: [advanced_missile_device, training_specialist]
     techs:
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
@@ -412,8 +402,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     techs:
       arclight: [range_enhancement, charged_shot]
     units:
@@ -449,9 +438,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - advanced_missile_device
-    - training_specialist
+    officers: [advanced_missile_device, training_specialist]
     techs:
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
@@ -500,9 +487,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - advanced_offensive_tactics
-    - rhino_specialist
+    officers: [advanced_offensive_tactics, rhino_specialist]
     techs:
       arclight: [range_enhancement, charged_shot]
     units:
@@ -540,10 +525,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - advanced_missile_device
-    - training_specialist
-    - advanced_offensive_tactics
+    officers: [advanced_missile_device, training_specialist, advanced_offensive_tactics]
     techs:
       steel_ball: [kinetic_charge]
       hound: [incendiary_bomb]
@@ -602,9 +584,7 @@ sides:
     blueprints: [defense_enhancement, attack_enhancement_ii]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - advanced_offensive_tactics
-    - rhino_specialist
+    officers: [advanced_offensive_tactics, rhino_specialist]
     techs:
       arclight: [range_enhancement, charged_shot]
       sabertooth: [range_enhancement]
@@ -647,10 +627,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - advanced_missile_device
-    - training_specialist
-    - advanced_offensive_tactics
+    officers: [advanced_missile_device, training_specialist, advanced_offensive_tactics]
     techs:
       mustang: [range_enhancement]
       steel_ball: [kinetic_charge]

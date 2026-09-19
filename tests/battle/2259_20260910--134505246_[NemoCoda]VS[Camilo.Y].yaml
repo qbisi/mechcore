@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -176,8 +174,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 6, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: hound, index: 0, position: {x: 290, y: -130}, exp: 101/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 80, y: -170}, exp: 102/750, value: 100}
@@ -196,8 +193,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, exp: 156/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, exp: 315/750, rotated: true, value: 100}
@@ -245,8 +241,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 8, contraption: 1}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       phantom_ray: [armor_enhancement]
     units:
@@ -271,8 +266,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, exp: 694/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, exp: 590/750, rotated: true, value: 100}
@@ -325,9 +319,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 11, contraption: 2}
-    officers:
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, cost_control_specialist]
     techs:
       phantom_ray: [armor_enhancement]
     units:
@@ -355,9 +347,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, exp: 750/750, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, exp: 750/750, rotated: true, value: 100}
@@ -418,9 +408,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 14, contraption: 4}
-    officers:
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, cost_control_specialist]
     techs:
       fang: [range_enhancement]
       phantom_ray: [armor_enhancement]
@@ -453,9 +441,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     units:
     - {name: hound, index: 0, position: {x: -100, y: -50}, level: 2, exp: 369/1690, rotated: true, value: 100}
     - {name: hound, index: 1, position: {x: 10, y: -50}, level: 2, exp: 213/1690, rotated: true, value: 100}
@@ -520,10 +506,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 16, contraption: 4}
-    officers:
-    - efficient_tech_research
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, efficient_tech_research, cost_control_specialist]
     techs:
       fang: [range_enhancement, mechanical_rage]
       phantom_ray: [armor_enhancement]
@@ -559,9 +542,7 @@ sides:
     battle_skills:
     - {index: 0, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 18, contraption: 3}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     techs:
       hound: [range_enhancement]
     units:
@@ -637,10 +618,7 @@ sides:
     - {index: 2, name: wasp_swarm, cooldown: 1}
     - {index: 3, name: redeployment, cooldown: 0}
     next_index: {unit: 19, contraption: 4}
-    officers:
-    - efficient_tech_research
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, efficient_tech_research, cost_control_specialist]
     techs:
       fang: [range_enhancement, mechanical_rage, ignite]
       phantom_ray: [armor_enhancement]
@@ -680,9 +658,7 @@ sides:
     - {index: 0, name: orbital_bombardment, cooldown: 3}
     - {index: 1, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 20, contraption: 3}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     techs:
       hound: [armor_enhancement, range_enhancement]
     units:
@@ -772,10 +748,7 @@ sides:
     - {index: 2, name: wasp_swarm, cooldown: 0}
     - {index: 3, name: redeployment, cooldown: 0}
     next_index: {unit: 24, contraption: 8}
-    officers:
-    - efficient_tech_research
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, efficient_tech_research, cost_control_specialist]
     techs:
       fang: [range_enhancement, mechanical_rage, ignite]
       arclight: [range_enhancement]
@@ -823,9 +796,7 @@ sides:
     - {index: 1, name: shield_airdrop, cooldown: 1}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 24, contraption: 3}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     techs:
       wraith: [range_enhancement]
       hound: [armor_enhancement, range_enhancement]
@@ -918,10 +889,7 @@ sides:
     - {index: 3, name: redeployment, cooldown: 0}
     - {index: 4, name: underground_threat, cooldown: 3}
     next_index: {unit: 27, contraption: 8}
-    officers:
-    - efficient_tech_research
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, efficient_tech_research, cost_control_specialist]
     techs:
       fang: [portable_shield, range_enhancement, mechanical_rage, ignite]
       arclight: [range_enhancement]
@@ -971,9 +939,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: underground_threat, cooldown: 3}
     next_index: {unit: 27, contraption: 4}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     techs:
       vulcan: [range_enhancement]
       wraith: [range_enhancement]
@@ -1071,10 +1037,7 @@ sides:
     - {index: 3, name: redeployment, cooldown: 0}
     - {index: 4, name: underground_threat, cooldown: 2}
     next_index: {unit: 32, contraption: 10}
-    officers:
-    - efficient_tech_research
-    - efficient_tech_research
-    - cost_control_specialist
+    officers: [efficient_tech_research, efficient_tech_research, cost_control_specialist]
     techs:
       rhino: [whirlwind, armor_enhancement, photon_coating]
       fang: [portable_shield, range_enhancement, mechanical_rage, ignite]
@@ -1131,9 +1094,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: underground_threat, cooldown: 2}
     next_index: {unit: 32, contraption: 8}
-    officers:
-    - fortified_specialist
-    - improved_phoenix
+    officers: [fortified_specialist, improved_phoenix]
     techs:
       vulcan: [range_enhancement]
       wraith: [range_enhancement]

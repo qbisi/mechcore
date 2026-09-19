@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -181,8 +179,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -155, y: -20}, exp: 384/450, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -105}, exp: 192/450, rotated: true, value: 100}
@@ -205,8 +202,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -140, y: -85}, exp: 256/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -270, y: -105}, exp: 171/450, rotated: true, value: 100}
@@ -252,9 +248,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 2}
     - {index: 2, name: missile_strike, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     units:
     - {name: crawler, index: 0, position: {x: -155, y: -20}, exp: 389/450, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -105}, exp: 198/450, rotated: true, value: 100}
@@ -280,8 +274,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -140, y: -85}, exp: 278/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -270, y: -105}, exp: 361/450, rotated: true, value: 100}
@@ -337,9 +330,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 1}
     - {index: 2, name: missile_strike, cooldown: 2}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     units:
     - {name: crawler, index: 0, position: {x: -155, y: -20}, exp: 414/450, value: 100}
     - {name: crawler, index: 1, position: {x: -110, y: -105}, exp: 240/450, rotated: true, value: 100}
@@ -366,8 +357,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 1}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -140, y: -85}, exp: 346/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -270, y: -105}, exp: 413/450, rotated: true, value: 100}
@@ -424,9 +414,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 1}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     techs:
       wasp: [range_enhancement]
       fire_badger: [scorching_charge]
@@ -459,8 +447,7 @@ sides:
     - {index: 1, name: shield_airdrop, cooldown: 0}
     - {index: 2, name: nuke, cooldown: 4}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -140, y: -85}, exp: 380/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -270, y: -105}, exp: 434/450, rotated: true, value: 100}
@@ -523,9 +510,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 2}
     - {index: 2, name: missile_strike, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     techs:
       wasp: [range_enhancement]
       overlord: [mothership]
@@ -561,8 +546,7 @@ sides:
     - {index: 1, name: shield_airdrop, cooldown: 2}
     - {index: 2, name: nuke, cooldown: 3}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       wasp: [aerial_specialization, range_enhancement]
     units:
@@ -633,9 +617,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 2}
     - {index: 3, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     techs:
       wasp: [aerial_specialization, range_enhancement]
       overlord: [mothership]
@@ -673,9 +655,7 @@ sides:
     - {index: 1, name: shield_airdrop, cooldown: 1}
     - {index: 2, name: nuke, cooldown: 2}
     next_index: {unit: 24, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - aerial_specialist
+    officers: [additional_deployment_slot, aerial_specialist]
     techs:
       wasp: [electromagnetic_shot, aerial_specialization, range_enhancement]
       sandworm: [sandstorm]
@@ -752,9 +732,7 @@ sides:
     - {index: 3, name: wasp_swarm, cooldown: 2}
     - {index: 4, name: lightning_storm, cooldown: 4}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     techs:
       wasp: [aerial_specialization, range_enhancement]
       overlord: [mothership]
@@ -794,9 +772,7 @@ sides:
     - {index: 2, name: nuke, cooldown: 1}
     - {index: 3, name: lightning_storm, cooldown: 4}
     next_index: {unit: 28, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - aerial_specialist
+    officers: [additional_deployment_slot, aerial_specialist]
     techs:
       wasp: [electromagnetic_shot, aerial_specialization, range_enhancement]
       sandworm: [sandstorm]
@@ -877,9 +853,7 @@ sides:
     - {index: 4, name: lightning_storm, cooldown: 3}
     - {index: 5, name: mobile_beacon_card, cooldown: 0}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - missile_specialist
-    - improved_wasp
+    officers: [missile_specialist, improved_wasp]
     techs:
       wasp: [aerial_specialization, range_enhancement]
       overlord: [overlord_artillery, mothership]
@@ -921,10 +895,7 @@ sides:
     - {index: 2, name: nuke, cooldown: 0}
     - {index: 3, name: lightning_storm, cooldown: 3}
     next_index: {unit: 31, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - advanced_defensive_tactics
-    - aerial_specialist
+    officers: [additional_deployment_slot, advanced_defensive_tactics, aerial_specialist]
     techs:
       wasp: [electromagnetic_shot, aerial_specialization, range_enhancement]
       sandworm: [sandstorm]

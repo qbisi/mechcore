@@ -108,8 +108,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -128,8 +127,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -181,8 +179,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 376/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 16/450, rotated: true, value: 100}
@@ -205,8 +202,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 38/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 366/750, value: 100}
@@ -255,8 +251,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 88/450, rotated: true, value: 100}
@@ -281,8 +276,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 264/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 474/750, value: 100}
@@ -331,8 +325,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 112/450, rotated: true, value: 100}
@@ -359,9 +352,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 1}
-    officers:
-    - quick_teleport
-    - speed_specialist
+    officers: [quick_teleport, speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 594/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 711/750, value: 100}
@@ -412,9 +403,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - training_specialist
-    - supply_enhancement
+    officers: [training_specialist, supply_enhancement]
     units:
     - {name: crawler, index: 0, position: {x: 220, y: -35}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -290, y: -285}, exp: 335/450, rotated: true, value: 100}
@@ -442,9 +431,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 16, contraption: 3}
-    officers:
-    - quick_teleport
-    - speed_specialist
+    officers: [quick_teleport, speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 50, y: -90}, exp: 643/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -90}, exp: 750/750, value: 100}
@@ -508,9 +495,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - training_specialist
-    - supply_enhancement
+    officers: [training_specialist, supply_enhancement]
     techs:
       wasp: [energy_shield]
       abyss: [swarm_missiles]
@@ -544,9 +529,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 1}
     next_index: {unit: 22, contraption: 5}
-    officers:
-    - quick_teleport
-    - speed_specialist
+    officers: [quick_teleport, speed_specialist]
     techs:
       void_eye: [aerial_mode]
     units:
@@ -624,9 +607,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 2}
-    officers:
-    - training_specialist
-    - supply_enhancement
+    officers: [training_specialist, supply_enhancement]
     techs:
       wasp: [energy_shield, range_enhancement]
       abyss: [swarm_missiles]
@@ -662,9 +643,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 0}
     next_index: {unit: 25, contraption: 7}
-    officers:
-    - quick_teleport
-    - speed_specialist
+    officers: [quick_teleport, speed_specialist]
     techs:
       mustang: [aerial_specialization]
       void_eye: [aerial_mode]
@@ -753,9 +732,7 @@ sides:
     - {index: 2, name: intensive_training, cooldown: 1}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 24, contraption: 3}
-    officers:
-    - training_specialist
-    - supply_enhancement
+    officers: [training_specialist, supply_enhancement]
     techs:
       rhino: [armor_enhancement]
       wasp: [energy_shield, range_enhancement]
@@ -794,9 +771,7 @@ sides:
     - {index: 1, name: shield_airdrop, cooldown: 2}
     - {index: 2, name: intensive_training, cooldown: 1}
     next_index: {unit: 28, contraption: 10}
-    officers:
-    - quick_teleport
-    - speed_specialist
+    officers: [quick_teleport, speed_specialist]
     techs:
       mustang: [aerial_specialization, missile_interceptor]
       void_eye: [aerial_mode]

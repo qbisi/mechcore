@@ -52,10 +52,7 @@ round: 3
 
 sides:
   blue:
-    officers:
-    - supply_specialist
-    - efficient_tech_research
-    - extended_range_marksman
+    officers: [supply_specialist, efficient_tech_research, extended_range_marksman]
     techs:
       marksman: [range_enhancement, quick_reload]
     blueprints: [attack_enhancement]
@@ -137,14 +134,12 @@ sibling fields. `units`, `constructions` and `contraptions` carry it as
 `battle_skills.positions` are lists of the same value.
 
 The canonical writer spells a layout by the three rules a
-[battle](battle.md#normal-form) is spelled by, and the same one field is an
-exception:
+[battle](battle.md#normal-form) is spelled by, and none of them names a field:
 
 - a sequence item is written on one line, in flow style;
 - a mapping or sequence whose members are all scalars is written in flow style
   on its key's line;
-- every other value is written in block style;
-- `officers` is written one per line, and `[]` when empty.
+- every other value is written in block style.
 
 So every unit, placement, shield, terrain and released skill is one line,
 every name list and coordinate pair sits on its key's line, and a side and its
@@ -372,14 +367,11 @@ Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
 ### `officers`
 
 ```yaml
-officers:
-- supply_specialist
-- efficient_tech_research
-- extended_range_marksman
+officers: [supply_specialist, efficient_tech_research, extended_range_marksman]
 ```
 
 `officers` is the multiset of Officers whose persistent effects belong to the
-side, written one per line. It covers ordinary and opening Officers regardless
+side. It covers ordinary and opening Officers regardless
 of how they were acquired.
 
 Unit modifications are also Officers. An Officer with a nonzero `typeID`

@@ -4,10 +4,7 @@ seed: 31103914
 round: 7
 sides:
   blue:
-    officers:
-    - giant_specialist
-    - efficient_light_manufacturing
-    - assault_raiden
+    officers: [giant_specialist, efficient_light_manufacturing, assault_raiden]
     techs:
       melting_point: [range_enhancement]
       mustang: [range_enhancement]
@@ -44,9 +41,7 @@ sides:
     battle_skills:
     - {name: electromagnetic_impact, positions: [{x: -143, y: 72}]}
   red:
-    officers:
-    - supply_specialist
-    - efficient_light_manufacturing
+    officers: [supply_specialist, efficient_light_manufacturing]
     techs:
       tarantula: [field_maintenance, spider_mine]
     blueprints: [attack_enhancement, defense_enhancement]

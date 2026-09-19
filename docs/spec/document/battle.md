@@ -562,17 +562,13 @@ A segment's own collections keep the orders [`state.md`](state.md) and
 `round` second, so a reader scanning the stream finds both on the two lines
 after each separator.
 
-Three rules decide how every value is spelled, and one field is an exception
-to them. A [layout](layout.md#normal-form) is spelled by the same three:
+Three rules decide how every value is spelled, and none of them names a field.
+A [layout](layout.md#normal-form) is spelled by the same three:
 
 - a sequence item is written on one line, in flow style;
 - a mapping or sequence whose members are all scalars is written in flow style
   on its key's line;
 - every other value is written in block style.
-
-The exception is a state's `officers`, written one per line although each is a
-scalar: a side holds any number of them, and a list that only grows reads better
-down the page than across it. An empty list is still written `[]`.
 
 ```yaml
     shop:

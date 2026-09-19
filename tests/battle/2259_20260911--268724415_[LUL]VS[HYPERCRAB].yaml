@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 115/650, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 36/650, value: 100}
@@ -199,8 +196,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -60, y: -85}, exp: 295/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -220, y: -85}, exp: 180/450, rotated: true, value: 100}
@@ -240,8 +236,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 1}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 436/650, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 259/650, value: 100}
@@ -268,8 +263,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -60, y: -85}, exp: 302/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -220, y: -85}, exp: 180/450, rotated: true, value: 100}
@@ -320,8 +314,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 16, contraption: 1}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 561/650, value: 100}
@@ -354,8 +347,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       phantom_ray: [stealth_cloak]
     units:
@@ -409,8 +401,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 19, contraption: 1}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     techs:
       wasp: [range_enhancement]
     units:
@@ -448,8 +439,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       phantom_ray: [stealth_cloak]
     units:

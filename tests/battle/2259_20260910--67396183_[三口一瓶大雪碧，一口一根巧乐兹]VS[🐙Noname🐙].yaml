@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -177,8 +175,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, exp: 432/750, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, exp: 254/750, value: 100}
@@ -198,8 +195,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 84/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 12/600, rotated: true, value: 100}
@@ -248,8 +244,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 2}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -110, y: -100}, exp: 631/750, value: 100}
     - {name: arclight, index: 1, position: {x: -200, y: -100}, exp: 508/750, value: 100}
@@ -276,8 +271,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 3}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: fang, index: 0, position: {x: 0, y: -125}, exp: 241/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 20/600, rotated: true, value: 100}
@@ -335,8 +329,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 1}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -370,8 +363,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 2}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 14, contraption: 1}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
     units:
@@ -436,9 +428,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - advanced_targeting_system
-    - aerial_specialist
+    officers: [advanced_targeting_system, aerial_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -475,8 +465,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 2}
     next_index: {unit: 16, contraption: 2}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       mustang: [culling_rounds]
       sledgehammer: [armor_piercing_bullets]
@@ -551,9 +540,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 2}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - advanced_targeting_system
-    - aerial_specialist
+    officers: [advanced_targeting_system, aerial_specialist]
     techs:
       arclight: [shockwave, range_enhancement]
       scorpion: [convergent_fire]
@@ -595,8 +582,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 1}
     next_index: {unit: 20, contraption: 2}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       mustang: [culling_rounds]
       sledgehammer: [armor_piercing_bullets]
@@ -672,9 +658,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 1}
     - {index: 2, name: underground_threat, cooldown: 3}
     next_index: {unit: 25, contraption: 3}
-    officers:
-    - advanced_targeting_system
-    - aerial_specialist
+    officers: [advanced_targeting_system, aerial_specialist]
     techs:
       arclight: [shockwave, range_enhancement]
       scorpion: [convergent_fire]
@@ -718,8 +702,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 0}
     next_index: {unit: 22, contraption: 3}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_piercing_bullets]
@@ -804,9 +787,7 @@ sides:
     - {index: 3, name: incendiary_bomb, cooldown: 3}
     - {index: 4, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 28, contraption: 7}
-    officers:
-    - advanced_targeting_system
-    - aerial_specialist
+    officers: [advanced_targeting_system, aerial_specialist]
     techs:
       arclight: [shockwave, range_enhancement]
       scorpion: [convergent_fire]
@@ -854,8 +835,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 2}
     - {index: 3, name: smoke_bomb, cooldown: 3}
     next_index: {unit: 25, contraption: 4}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_piercing_bullets]

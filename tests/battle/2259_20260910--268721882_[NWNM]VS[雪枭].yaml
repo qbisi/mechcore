@@ -108,8 +108,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -128,8 +127,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -182,8 +180,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 357/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, exp: 429/750, value: 100}
@@ -203,8 +200,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, exp: 82/600, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, exp: 127/600, value: 100}
@@ -250,9 +246,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - training_specialist
-    - elite_fang
+    officers: [training_specialist, elite_fang]
     units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 519/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, exp: 750/750, value: 100}
@@ -275,8 +269,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, exp: 482/600, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, exp: 404/600, value: 100}
@@ -333,9 +326,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - training_specialist
-    - elite_fang
+    officers: [training_specialist, elite_fang]
     units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 967/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 2, exp: 374/1690, value: 100}
@@ -363,8 +354,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, exp: 600/600, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, exp: 600/600, value: 100}
@@ -427,9 +417,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - training_specialist
-    - elite_fang
+    officers: [training_specialist, elite_fang]
     units:
     - {name: vortex, index: 0, position: {x: -230, y: -80}, level: 2, exp: 1668/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -80}, level: 2, exp: 1641/1690, value: 100}
@@ -461,9 +449,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - advanced_offensive_tactics
-    - speed_specialist
+    officers: [advanced_offensive_tactics, speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -245, y: -110}, level: 2, exp: 301/1352, value: 100}
     - {name: fang, index: 1, position: {x: -95, y: -110}, level: 2, exp: 455/1352, value: 100}
@@ -524,10 +510,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - training_specialist
-    - elite_fang
+    officers: [additional_deployment_slot, training_specialist, elite_fang]
     techs:
       fang: [grenade_launcher]
       crawler: [mechanical_rage]
@@ -565,10 +548,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - advanced_offensive_tactics
-    - speed_specialist
+    officers: [additional_deployment_slot, advanced_offensive_tactics, speed_specialist]
     techs:
       sandworm: [anti_aerial]
     units:
@@ -647,10 +627,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 27, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - training_specialist
-    - elite_fang
+    officers: [additional_deployment_slot, training_specialist, elite_fang]
     techs:
       fang: [grenade_launcher, ignite]
       crawler: [mechanical_rage]
@@ -694,10 +671,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - advanced_offensive_tactics
-    - speed_specialist
+    officers: [additional_deployment_slot, advanced_offensive_tactics, speed_specialist]
     techs:
       sandworm: [anti_aerial]
     units:
@@ -770,10 +744,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: orbital_bombardment, cooldown: 0}
     next_index: {unit: 31, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - training_specialist
-    - elite_fang
+    officers: [additional_deployment_slot, training_specialist, elite_fang]
     techs:
       steel_ball: [kinetic_charge]
       fang: [grenade_launcher, ignite]
@@ -824,10 +795,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - advanced_offensive_tactics
-    - speed_specialist
+    officers: [additional_deployment_slot, advanced_offensive_tactics, speed_specialist]
     techs:
       sledgehammer: [field_maintenance]
       sandworm: [anti_aerial]
@@ -912,10 +880,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 35, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - training_specialist
-    - elite_fang
+    officers: [additional_deployment_slot, training_specialist, elite_fang]
     techs:
       mustang: [range_enhancement]
       steel_ball: [kinetic_charge]
@@ -970,10 +935,7 @@ sides:
     - {index: 1, name: orbital_bombardment, cooldown: 3}
     - {index: 2, name: lightning_storm, cooldown: 4}
     next_index: {unit: 28, contraption: 4}
-    officers:
-    - additional_deployment_slot
-    - advanced_offensive_tactics
-    - speed_specialist
+    officers: [additional_deployment_slot, advanced_offensive_tactics, speed_specialist]
     techs:
       vulcan: [range_enhancement]
       sledgehammer: [field_maintenance]

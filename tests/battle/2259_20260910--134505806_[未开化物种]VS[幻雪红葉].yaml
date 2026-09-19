@@ -106,8 +106,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -125,8 +124,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 1}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 519/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 236/750, value: 100}
@@ -195,8 +192,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -160, y: -175}, exp: 64/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 140/600, rotated: true, value: 100}
@@ -250,8 +246,7 @@ sides:
     - {index: 1, name: rhino_assault, cooldown: 3}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1048/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 317/750, value: 100}
@@ -277,8 +272,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 3}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       crawler: [mechanical_rage]
     units:
@@ -336,8 +330,7 @@ sides:
     - {index: 1, name: rhino_assault, cooldown: 2}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -180, y: -90}, level: 2, exp: 1466/1690, value: 100}
     - {name: hound, index: 1, position: {x: -80, y: -90}, exp: 454/750, value: 100}
@@ -365,8 +358,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       rhino: [whirlwind]
       crawler: [mechanical_rage]
@@ -430,8 +422,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: redeployment, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       fire_badger: [scorching_charge]
     units:
@@ -463,9 +454,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       rhino: [whirlwind]
       crawler: [mechanical_rage]
@@ -533,8 +522,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: redeployment, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       scorpion: [doubleshot]
       fire_badger: [scorching_charge]
@@ -570,9 +558,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       rhino: [whirlwind]
       crawler: [mechanical_rage]
@@ -647,8 +633,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: redeployment, cooldown: 0}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       scorpion: [doubleshot]
       fire_badger: [scorching_charge]
@@ -687,9 +672,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 3}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 25, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       rhino: [whirlwind, final_blitz]
       crawler: [mechanical_rage]
@@ -767,9 +750,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: redeployment, cooldown: 0}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - training_specialist
-    - advanced_offensive_tactics
+    officers: [training_specialist, advanced_offensive_tactics]
     techs:
       scorpion: [doubleshot, acid_attack]
       fire_badger: [scorching_charge]
@@ -811,9 +792,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 28, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       rhino: [whirlwind, final_blitz, armor_enhancement]
       crawler: [mechanical_rage]
@@ -901,9 +880,7 @@ sides:
     - {index: 3, name: redeployment, cooldown: 0}
     - {index: 4, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 29, contraption: 2}
-    officers:
-    - training_specialist
-    - advanced_offensive_tactics
+    officers: [training_specialist, advanced_offensive_tactics]
     techs:
       rhino: [final_blitz, armor_enhancement]
       scorpion: [doubleshot, acid_attack]
@@ -949,9 +926,7 @@ sides:
     - {index: 0, name: rhino_assault, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 33, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       rhino: [whirlwind, final_blitz, armor_enhancement, photon_coating]
       crawler: [mechanical_rage]

@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: hound, index: 0, position: {x: -120, y: -190}, exp: 108/750, value: 100}
     - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 213/750, value: 100}
@@ -194,8 +191,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -180, y: -80}, exp: 520/750, value: 100}
     - {name: vortex, index: 1, position: {x: -100, y: -100}, exp: 131/750, value: 100}
@@ -242,8 +238,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: hound, index: 0, position: {x: -120, y: -190}, exp: 201/750, value: 100}
     - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 287/750, value: 100}
@@ -266,8 +261,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -328,8 +322,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: redeployment, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       phantom_ray: [high_explosive_ammo]
     units:
@@ -360,8 +353,7 @@ sides:
     - {index: 0, name: redeployment, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -424,8 +416,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: redeployment, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       phantom_ray: [high_explosive_ammo]
       hound: [range_enhancement]
@@ -460,8 +451,7 @@ sides:
     - {index: 0, name: redeployment, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 2}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -533,9 +523,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: redeployment, cooldown: 0}
     next_index: {unit: 20, contraption: 1}
-    officers:
-    - super_supply_enhancement
-    - typhoon_specialist
+    officers: [super_supply_enhancement, typhoon_specialist]
     techs:
       phantom_ray: [high_explosive_ammo]
       hound: [range_enhancement]
@@ -572,9 +560,7 @@ sides:
     - {index: 0, name: redeployment, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 2}
-    officers:
-    - supply_specialist
-    - super_supply_enhancement
+    officers: [supply_specialist, super_supply_enhancement]
     techs:
       tarantula: [armor_enhancement]
       vortex: [mobile_power_station]

@@ -104,8 +104,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -123,8 +122,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -168,8 +166,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 257/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
@@ -189,8 +186,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: fang, index: 0, position: {x: 75, y: -60}, exp: 92/600, value: 100}
     - {name: fang, index: 1, position: {x: 275, y: -50}, exp: 152/600, value: 100}
@@ -237,8 +233,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 305/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
@@ -263,8 +258,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -316,8 +310,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [1, 0]
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: fang, index: 0, position: {x: -140, y: -225}, exp: 392/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -105}, exp: 304/600, rotated: true, value: 100}
@@ -346,8 +339,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -411,8 +403,7 @@ sides:
     battle_skills:
     - {index: 0, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 17, contraption: 2}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       mustang: [range_enhancement]
     units:
@@ -445,8 +436,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 18, contraption: 1}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       fang: [grenade_launcher, range_enhancement]
     units:
@@ -528,8 +518,7 @@ sides:
     - {index: 0, name: mobile_beacon, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 2}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       mustang: [range_enhancement]
     units:
@@ -565,8 +554,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 22, contraption: 3}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       fang: [grenade_launcher, range_enhancement]
       vortex: [mobile_power_station]
@@ -648,8 +636,7 @@ sides:
     - {index: 0, name: mobile_beacon, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 23, contraption: 2}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       mustang: [culling_rounds, range_enhancement]
       sledgehammer: [armor_enhancement]
@@ -686,8 +673,7 @@ sides:
     blueprints: [defense_enhancement, attack_enhancement_ii]
     tower_strengthen_levels: [1, 0]
     next_index: {unit: 25, contraption: 6}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       fang: [grenade_launcher, range_enhancement]
       vortex: [mobile_power_station]
@@ -777,9 +763,7 @@ sides:
     - {index: 0, name: mobile_beacon, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 3}
-    officers:
-    - advanced_offensive_tactics
-    - typhoon_specialist
+    officers: [advanced_offensive_tactics, typhoon_specialist]
     techs:
       wasp: [energy_shield]
       mustang: [culling_rounds, range_enhancement]
@@ -821,9 +805,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 28, contraption: 6}
-    officers:
-    - cost_control_specialist
-    - elite_hacker
+    officers: [cost_control_specialist, elite_hacker]
     techs:
       fang: [grenade_launcher, range_enhancement]
       hacker: [range_enhancement]
@@ -920,9 +902,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 29, contraption: 3}
-    officers:
-    - advanced_offensive_tactics
-    - typhoon_specialist
+    officers: [advanced_offensive_tactics, typhoon_specialist]
     techs:
       wasp: [energy_shield]
       mustang: [culling_rounds, range_enhancement]
@@ -968,9 +948,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 32, contraption: 9}
-    officers:
-    - cost_control_specialist
-    - elite_hacker
+    officers: [cost_control_specialist, elite_hacker]
     techs:
       mustang: [range_enhancement]
       fang: [grenade_launcher, range_enhancement]

@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 15/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 116/450, rotated: true, value: 100}
@@ -199,8 +196,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: hound, index: 0, position: {x: 20, y: -90}, exp: 15/750, value: 100}
     - {name: hound, index: 1, position: {x: 90, y: -90}, exp: 114/750, value: 100}
@@ -249,9 +245,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - fortified_specialist
-    - fortified_overlord
+    officers: [fortified_specialist, fortified_overlord]
     units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 15/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 116/450, rotated: true, value: 100}
@@ -276,8 +270,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -331,9 +324,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - fortified_specialist
-    - fortified_overlord
+    officers: [fortified_specialist, fortified_overlord]
     units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 25/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 124/450, rotated: true, value: 100}
@@ -360,8 +351,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -416,9 +406,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - fortified_specialist
-    - fortified_overlord
+    officers: [fortified_specialist, fortified_overlord]
     units:
     - {name: crawler, index: 0, position: {x: -120, y: -225}, exp: 55/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 216/450, rotated: true, value: 100}
@@ -446,9 +434,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - supply_specialist
-    - subsidized_marksman
+    officers: [supply_specialist, subsidized_marksman]
     techs:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
@@ -517,9 +503,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: vulcans_descent, cooldown: 3}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - fortified_specialist
-    - fortified_overlord
+    officers: [fortified_specialist, fortified_overlord]
     techs:
       vulcan: [range_enhancement]
     units:
@@ -551,9 +535,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - supply_specialist
-    - subsidized_marksman
+    officers: [supply_specialist, subsidized_marksman]
     techs:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
@@ -622,9 +604,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: vulcans_descent, cooldown: 2}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - fortified_specialist
-    - fortified_overlord
+    officers: [fortified_specialist, fortified_overlord]
     techs:
       vulcan: [best_partner, range_enhancement]
     units:
@@ -660,9 +640,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 0}
-    officers:
-    - supply_specialist
-    - subsidized_marksman
+    officers: [supply_specialist, subsidized_marksman]
     techs:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
@@ -733,10 +711,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: vulcans_descent, cooldown: 1}
     next_index: {unit: 23, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - fortified_specialist
-    - fortified_overlord
+    officers: [advanced_defensive_tactics, fortified_specialist, fortified_overlord]
     techs:
       vulcan: [best_partner, range_enhancement]
     units:
@@ -774,10 +749,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 29, contraption: 0}
-    officers:
-    - supply_specialist
-    - advanced_defensive_tactics
-    - subsidized_marksman
+    officers: [supply_specialist, advanced_defensive_tactics, subsidized_marksman]
     techs:
       marksman: [aerial_specialization]
       rhino: [armor_enhancement]
@@ -863,10 +835,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: vulcans_descent, cooldown: 0}
     next_index: {unit: 27, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - fortified_specialist
-    - fortified_overlord
+    officers: [advanced_defensive_tactics, fortified_specialist, fortified_overlord]
     techs:
       marksman: [electromagnetic_shot]
       vulcan: [best_partner, range_enhancement, scorching_fire]
@@ -909,10 +878,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 34, contraption: 0}
-    officers:
-    - supply_specialist
-    - advanced_defensive_tactics
-    - subsidized_marksman
+    officers: [supply_specialist, advanced_defensive_tactics, subsidized_marksman]
     techs:
       marksman: [aerial_specialization]
       rhino: [armor_enhancement]

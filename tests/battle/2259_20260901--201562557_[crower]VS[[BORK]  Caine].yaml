@@ -106,8 +106,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -125,8 +124,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, exp: 400/750, value: 100}
@@ -193,8 +190,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, exp: 183/750, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, exp: 359/750, value: 100}
@@ -241,8 +237,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 270, y: -40}, exp: 205/750, value: 100}
     - {name: vortex, index: 1, position: {x: -290, y: -20}, exp: 556/750, value: 100}
@@ -267,8 +262,7 @@ sides:
     battle_skills:
     - {index: 0, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -180, y: -60}, exp: 704/750, value: 100}
     - {name: arclight, index: 1, position: {x: -90, y: -60}, exp: 359/750, value: 100}
@@ -318,8 +312,7 @@ sides:
     - {index: 1, name: wasp_swarm, cooldown: 2}
     - {index: 2, name: acid_blast, cooldown: 3}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -349,8 +342,7 @@ sides:
     - {index: 0, name: wasp_swarm, cooldown: 2}
     - {index: 1, name: intensive_training, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       arclight: [shockwave]
     units:
@@ -422,8 +414,7 @@ sides:
     - {index: 1, name: wasp_swarm, cooldown: 1}
     - {index: 2, name: acid_blast, cooldown: 2}
     next_index: {unit: 17, contraption: 1}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -462,8 +453,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       arclight: [shockwave]
       phantom_ray: [stealth_cloak]
@@ -531,9 +521,7 @@ sides:
     - {index: 2, name: acid_blast, cooldown: 1}
     - {index: 3, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 19, contraption: 1}
-    officers:
-    - training_specialist
-    - efficient_light_manufacturing
+    officers: [training_specialist, efficient_light_manufacturing]
     techs:
       vortex: [mobile_power_station, emergency_armor]
     units:
@@ -572,9 +560,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 0}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 2}
-    officers:
-    - efficient_light_manufacturing
-    - typhoon_specialist
+    officers: [efficient_light_manufacturing, typhoon_specialist]
     techs:
       arclight: [shockwave]
       phantom_ray: [stealth_cloak]
@@ -660,9 +646,7 @@ sides:
     - {index: 3, name: sticky_oil_bomb, cooldown: 2}
     - {index: 4, name: field_recovery, cooldown: 0}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - training_specialist
-    - efficient_light_manufacturing
+    officers: [training_specialist, efficient_light_manufacturing]
     techs:
       mustang: [aerial_specialization]
       vortex: [grid_integration, mobile_power_station, emergency_armor]
@@ -705,9 +689,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 25, contraption: 10}
-    officers:
-    - efficient_light_manufacturing
-    - typhoon_specialist
+    officers: [efficient_light_manufacturing, typhoon_specialist]
     techs:
       arclight: [shockwave]
       phantom_ray: [stealth_cloak]
@@ -803,9 +785,7 @@ sides:
     - {index: 3, name: sticky_oil_bomb, cooldown: 1}
     - {index: 4, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 2}
-    officers:
-    - training_specialist
-    - efficient_light_manufacturing
+    officers: [training_specialist, efficient_light_manufacturing]
     techs:
       mustang: [aerial_specialization]
       farseer: [scanning_radar]
@@ -852,9 +832,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 0}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 28, contraption: 15}
-    officers:
-    - efficient_light_manufacturing
-    - typhoon_specialist
+    officers: [efficient_light_manufacturing, typhoon_specialist]
     techs:
       arclight: [shockwave, range_enhancement]
       phantom_ray: [stealth_cloak]
@@ -962,9 +940,7 @@ sides:
     - {index: 3, name: sticky_oil_bomb, cooldown: 0}
     - {index: 4, name: field_recovery, cooldown: 0}
     next_index: {unit: 29, contraption: 6}
-    officers:
-    - training_specialist
-    - efficient_light_manufacturing
+    officers: [training_specialist, efficient_light_manufacturing]
     techs:
       mustang: [aerial_specialization]
       farseer: [scanning_radar]
@@ -1015,9 +991,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 30, contraption: 19}
-    officers:
-    - efficient_light_manufacturing
-    - typhoon_specialist
+    officers: [efficient_light_manufacturing, typhoon_specialist]
     techs:
       arclight: [shockwave, range_enhancement]
       sabertooth: [field_maintenance]

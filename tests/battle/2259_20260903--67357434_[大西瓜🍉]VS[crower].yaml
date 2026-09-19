@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 126/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 68/450, rotated: true, value: 100}
@@ -197,8 +194,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 133/650, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 120/650, value: 100}
@@ -241,8 +237,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 223/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 119/450, rotated: true, value: 100}
@@ -269,8 +264,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -100, y: -170}, exp: 246/650, value: 100}
     - {name: marksman, index: 1, position: {x: 100, y: -170}, exp: 178/650, value: 100}
@@ -317,9 +311,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - giant_specialist
-    - improved_overlord
+    officers: [giant_specialist, improved_overlord]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 270/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 202/450, rotated: true, value: 100}
@@ -351,8 +343,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 2}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -405,9 +396,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - giant_specialist
-    - improved_overlord
+    officers: [giant_specialist, improved_overlord]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 289/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -205}, exp: 211/450, rotated: true, value: 100}
@@ -443,8 +432,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 1}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       marksman: [aerial_specialization]
       arclight: [range_enhancement]
@@ -511,9 +499,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - giant_specialist
-    - improved_overlord
+    officers: [giant_specialist, improved_overlord]
     techs:
       vulcan: [range_enhancement]
     units:
@@ -553,8 +539,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 0}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       marksman: [doubleshot, aerial_specialization]
       mustang: [missile_interceptor]
@@ -626,9 +611,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: underground_threat, cooldown: 3}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - giant_specialist
-    - improved_overlord
+    officers: [giant_specialist, improved_overlord]
     techs:
       vulcan: [range_enhancement]
     units:
@@ -668,8 +651,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 2}
     - {index: 3, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       marksman: [doubleshot, aerial_specialization]
       mustang: [missile_interceptor]

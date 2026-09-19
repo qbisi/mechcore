@@ -106,8 +106,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -125,8 +124,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 1}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 207/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 198/750, value: 100}
@@ -195,8 +192,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 62/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 120, y: -85}, exp: 46/600, rotated: true, value: 100}
@@ -248,8 +244,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 326/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 351/750, value: 100}
@@ -271,8 +266,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [1, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
     units:
@@ -329,8 +323,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -250, y: -100}, exp: 326/750, value: 100}
     - {name: hound, index: 1, position: {x: -10, y: -100}, exp: 381/750, value: 100}
@@ -356,8 +349,7 @@ sides:
     battle_skills:
     - {index: 0, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
     units:
@@ -419,8 +411,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: shield_airdrop, cooldown: 1}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       scorpion: [field_maintenance]
     units:
@@ -453,8 +444,7 @@ sides:
     - {index: 0, name: shield_airdrop, cooldown: 1}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
@@ -519,8 +509,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: shield_airdrop, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       scorpion: [field_maintenance, range_enhancement]
       hound: [range_enhancement]
@@ -554,8 +543,7 @@ sides:
     - {index: 0, name: shield_airdrop, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       fortress: [solid_shot]
       sledgehammer: [armor_piercing_bullets]
@@ -631,8 +619,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       fang: [portable_shield]
       scorpion: [field_maintenance, range_enhancement]
@@ -675,8 +662,7 @@ sides:
     - {index: 0, name: shield_airdrop, cooldown: 2}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       fortress: [doubleshot, solid_shot]
       sledgehammer: [armor_piercing_bullets]
@@ -764,8 +750,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: shield_airdrop, cooldown: 1}
     next_index: {unit: 26, contraption: 1}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       melting_point: [range_enhancement]
       fang: [portable_shield]
@@ -809,8 +794,7 @@ sides:
     - {index: 0, name: shield_airdrop, cooldown: 1}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 26, contraption: 3}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       fortress: [doubleshot, solid_shot]
       sledgehammer: [armor_piercing_bullets]
@@ -898,8 +882,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: shield_airdrop, cooldown: 0}
     next_index: {unit: 31, contraption: 2}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       melting_point: [electromagnetic_barrage, range_enhancement]
       fang: [portable_shield]
@@ -947,8 +930,7 @@ sides:
     - {index: 0, name: shield_airdrop, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 32, contraption: 4}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       fortress: [doubleshot, solid_shot]
       wasp: [aerial_specialization, range_enhancement]

@@ -4,8 +4,7 @@ seed: 31103914
 round: 1
 sides:
   blue:
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}}
     - {name: vortex, index: 1, position: {x: -160, y: -100}}
@@ -18,8 +17,7 @@ sides:
     - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
     - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
   red:
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, rotated: true}

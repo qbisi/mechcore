@@ -104,8 +104,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -123,8 +122,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -168,8 +166,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 188/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 22/450, value: 100}
@@ -189,8 +186,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 144/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 315/750, value: 100}
@@ -234,8 +230,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 369/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 72/450, value: 100}
@@ -256,8 +251,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -70, y: -190}, exp: 219/750, value: 100}
     - {name: vortex, index: 1, position: {x: 70, y: -190}, exp: 355/750, value: 100}
@@ -305,9 +299,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -300}, exp: 406/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 143/450, value: 100}
@@ -330,8 +322,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       crawler: [mechanical_rage]
     units:
@@ -383,10 +374,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing, efficient_giant_manufacturing]
     techs:
       vulcan: [range_enhancement]
     units:
@@ -413,8 +401,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
@@ -472,11 +459,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - giant_specialist
-    - efficient_giant_manufacturing
-    - efficient_giant_manufacturing
+    officers: [additional_deployment_slot, giant_specialist, efficient_giant_manufacturing, efficient_giant_manufacturing]
     techs:
       fortress: [range_enhancement]
       vulcan: [range_enhancement]
@@ -507,9 +490,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - elite_specialist
+    officers: [additional_deployment_slot, elite_specialist]
     techs:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
@@ -572,11 +553,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 25, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - giant_specialist
-    - efficient_giant_manufacturing
-    - efficient_giant_manufacturing
+    officers: [additional_deployment_slot, giant_specialist, efficient_giant_manufacturing, efficient_giant_manufacturing]
     techs:
       fortress: [range_enhancement]
       vulcan: [range_enhancement]
@@ -613,9 +590,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 20, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - elite_specialist
+    officers: [additional_deployment_slot, elite_specialist]
     techs:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]
@@ -685,12 +660,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 28, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - giant_specialist
-    - efficient_giant_manufacturing
-    - efficient_giant_manufacturing
-    - efficient_giant_manufacturing
+    officers: [additional_deployment_slot, giant_specialist, efficient_giant_manufacturing, efficient_giant_manufacturing, efficient_giant_manufacturing]
     techs:
       fortress: [range_enhancement]
       marksman: [range_enhancement]
@@ -730,9 +700,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - additional_deployment_slot
-    - elite_specialist
+    officers: [additional_deployment_slot, elite_specialist]
     techs:
       crawler: [mechanical_rage]
       scorpion: [range_enhancement]

@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -177,8 +175,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 8, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 81/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 50/650, value: 100}
@@ -199,8 +196,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, exp: 334/750, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, exp: 256/750, value: 100}
@@ -248,8 +244,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 126/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 50/650, value: 100}
@@ -273,8 +268,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, exp: 544/750, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, exp: 507/750, value: 100}
@@ -327,8 +321,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 15, contraption: 2}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 110, y: -100}, exp: 139/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -100}, exp: 82/650, value: 100}
@@ -356,8 +349,7 @@ sides:
     battle_skills:
     - {index: 0, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 12, contraption: 2}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, exp: 750/750, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, exp: 750/750, value: 100}
@@ -419,9 +411,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 3}
     next_index: {unit: 18, contraption: 2}
-    officers:
-    - efficient_light_manufacturing
-    - marksman_specialist
+    officers: [efficient_light_manufacturing, marksman_specialist]
     techs:
       crawler: [mechanical_rage]
     units:
@@ -455,8 +445,7 @@ sides:
     - {index: 0, name: orbital_bombardment, cooldown: 3}
     - {index: 1, name: lightning_storm, cooldown: 4}
     next_index: {unit: 14, contraption: 2}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: -110, y: -190}, level: 2, exp: 537/1690, value: 100}
     - {name: hound, index: 1, position: {x: 110, y: -190}, level: 2, exp: 668/1690, value: 100}
@@ -520,10 +509,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 2}
     next_index: {unit: 21, contraption: 2}
-    officers:
-    - advanced_targeting_system
-    - efficient_light_manufacturing
-    - marksman_specialist
+    officers: [advanced_targeting_system, efficient_light_manufacturing, marksman_specialist]
     techs:
       crawler: [mechanical_rage]
       void_eye: [suppression_shots]
@@ -562,8 +548,7 @@ sides:
     - {index: 0, name: orbital_bombardment, cooldown: 2}
     - {index: 1, name: lightning_storm, cooldown: 3}
     next_index: {unit: 16, contraption: 2}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -636,10 +621,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 1}
     next_index: {unit: 26, contraption: 2}
-    officers:
-    - advanced_targeting_system
-    - efficient_light_manufacturing
-    - marksman_specialist
+    officers: [advanced_targeting_system, efficient_light_manufacturing, marksman_specialist]
     techs:
       mustang: [range_enhancement]
       crawler: [mechanical_rage]
@@ -686,8 +668,7 @@ sides:
     - {index: 1, name: lightning_storm, cooldown: 2}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 19, contraption: 2}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       fang: [grenade_launcher]
       raiden: [range_enhancement]
@@ -770,11 +751,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 0}
     next_index: {unit: 29, contraption: 2}
-    officers:
-    - advanced_power_system
-    - advanced_targeting_system
-    - efficient_light_manufacturing
-    - marksman_specialist
+    officers: [advanced_power_system, advanced_targeting_system, efficient_light_manufacturing, marksman_specialist]
     techs:
       mustang: [missile_interceptor, range_enhancement]
       crawler: [mechanical_rage]
@@ -823,9 +800,7 @@ sides:
     - {index: 1, name: lightning_storm, cooldown: 1}
     - {index: 2, name: sticky_oil_bomb, cooldown: 2}
     next_index: {unit: 21, contraption: 7}
-    officers:
-    - advanced_missile_device
-    - fortified_specialist
+    officers: [advanced_missile_device, fortified_specialist]
     techs:
       mustang: [range_enhancement]
       fang: [grenade_launcher]

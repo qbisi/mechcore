@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -128,8 +127,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -178,8 +176,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 110, y: -80}, exp: 72/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -80}, exp: 650/650, value: 100}
@@ -204,8 +201,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, exp: 45/750, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, level: 2, exp: 317/1690, value: 100}
@@ -253,8 +249,7 @@ sides:
     battle_skills:
     - {index: 0, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 110, y: -80}, exp: 311/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -80}, level: 2, exp: 458/1465, value: 100}
@@ -283,8 +278,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, exp: 105/750, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, level: 2, exp: 394/1690, value: 100}
@@ -328,9 +322,7 @@ sides:
     battle_skills:
     - {index: 0, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - supply_specialist
-    - efficient_giant_manufacturing
+    officers: [supply_specialist, efficient_giant_manufacturing]
     units:
     - {name: void_eye, index: 0, position: {x: 110, y: -80}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -110, y: -80}, level: 2, exp: 654/1465, value: 100}
@@ -362,8 +354,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       mustang: [culling_rounds]
     units:
@@ -418,9 +409,7 @@ sides:
     battle_skills:
     - {index: 0, name: wasp_swarm, cooldown: 1}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - supply_specialist
-    - efficient_giant_manufacturing
+    officers: [supply_specialist, efficient_giant_manufacturing]
     techs:
       melting_point: [range_enhancement]
       fire_badger: [range_enhancement]
@@ -457,8 +446,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: wasp_swarm, cooldown: 1}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       mustang: [culling_rounds]
       arclight: [charged_shot]
@@ -520,9 +508,7 @@ sides:
     battle_skills:
     - {index: 0, name: wasp_swarm, cooldown: 0}
     next_index: {unit: 16, contraption: 1}
-    officers:
-    - supply_specialist
-    - efficient_giant_manufacturing
+    officers: [supply_specialist, efficient_giant_manufacturing]
     techs:
       melting_point: [range_enhancement]
       fire_badger: [range_enhancement]
@@ -562,8 +548,7 @@ sides:
     - {index: 2, name: wasp_swarm, cooldown: 0}
     - {index: 3, name: photon_emission, cooldown: 3}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       mustang: [culling_rounds]
       arclight: [charged_shot]
@@ -631,9 +616,7 @@ sides:
     - {index: 0, name: wasp_swarm, cooldown: 3}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 20, contraption: 3}
-    officers:
-    - supply_specialist
-    - efficient_giant_manufacturing
+    officers: [supply_specialist, efficient_giant_manufacturing]
     techs:
       melting_point: [range_enhancement]
       rhino: [whirlwind]
@@ -680,8 +663,7 @@ sides:
     - {index: 2, name: wasp_swarm, cooldown: 3}
     - {index: 3, name: photon_emission, cooldown: 2}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       mustang: [culling_rounds, range_enhancement]
       arclight: [charged_shot]

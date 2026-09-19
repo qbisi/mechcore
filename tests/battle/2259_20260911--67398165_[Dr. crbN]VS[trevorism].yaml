@@ -104,8 +104,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -123,8 +122,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -170,8 +168,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 8, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 70, y: -105}, exp: 217/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 210, y: -105}, exp: 327/450, rotated: true, value: 100}
@@ -192,8 +189,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 270, y: -285}, exp: 57/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 210, y: -175}, exp: 206/450, rotated: true, value: 100}
@@ -234,8 +230,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 70, y: -105}, exp: 382/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 210, y: -105}, exp: 450/450, rotated: true, value: 100}
@@ -259,9 +254,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 1]
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [giant_specialist, extended_range_phoenix]
     units:
     - {name: crawler, index: 0, position: {x: 270, y: -285}, exp: 58/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 210, y: -175}, exp: 211/450, rotated: true, value: 100}
@@ -309,8 +302,7 @@ sides:
     blueprints: [attack_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -339,9 +331,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 1]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [giant_specialist, extended_range_phoenix]
     units:
     - {name: crawler, index: 0, position: {x: 270, y: -285}, exp: 97/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 210, y: -175}, exp: 235/450, rotated: true, value: 100}
@@ -399,8 +389,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       marksman: [range_enhancement]
       arclight: [range_enhancement]
@@ -436,9 +425,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [giant_specialist, extended_range_phoenix]
     techs:
       sandworm: [replicate]
     units:
@@ -503,9 +490,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 1}
-    officers:
-    - super_supply_enhancement
-    - quick_supply_specialist
+    officers: [super_supply_enhancement, quick_supply_specialist]
     techs:
       marksman: [range_enhancement]
       arclight: [range_enhancement]
@@ -544,10 +529,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - super_supply_enhancement
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [super_supply_enhancement, giant_specialist, extended_range_phoenix]
     techs:
       sandworm: [replicate]
     units:
@@ -614,10 +596,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 25, contraption: 4}
-    officers:
-    - super_supply_enhancement
-    - additional_deployment_slot
-    - quick_supply_specialist
+    officers: [super_supply_enhancement, additional_deployment_slot, quick_supply_specialist]
     techs:
       marksman: [range_enhancement]
       arclight: [range_enhancement]
@@ -662,10 +641,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 1}
-    officers:
-    - super_supply_enhancement
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [super_supply_enhancement, giant_specialist, extended_range_phoenix]
     techs:
       sandworm: [replicate]
     units:
@@ -745,10 +721,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 30, contraption: 7}
-    officers:
-    - super_supply_enhancement
-    - additional_deployment_slot
-    - quick_supply_specialist
+    officers: [super_supply_enhancement, additional_deployment_slot, quick_supply_specialist]
     techs:
       marksman: [range_enhancement]
       rhino: [whirlwind, mechanical_rage]
@@ -799,10 +772,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - super_supply_enhancement
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [super_supply_enhancement, giant_specialist, extended_range_phoenix]
     techs:
       phoenix: [charged_shot]
       sandworm: [replicate, mechanical_division]
@@ -890,10 +860,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: intensive_training, cooldown: 1}
     next_index: {unit: 32, contraption: 10}
-    officers:
-    - super_supply_enhancement
-    - additional_deployment_slot
-    - quick_supply_specialist
+    officers: [super_supply_enhancement, additional_deployment_slot, quick_supply_specialist]
     techs:
       marksman: [electromagnetic_shot, range_enhancement]
       rhino: [whirlwind, mechanical_rage]
@@ -948,10 +915,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 28, contraption: 2}
-    officers:
-    - super_supply_enhancement
-    - giant_specialist
-    - extended_range_phoenix
+    officers: [super_supply_enhancement, giant_specialist, extended_range_phoenix]
     techs:
       phoenix: [charged_shot]
       sandworm: [replicate, mechanical_division]

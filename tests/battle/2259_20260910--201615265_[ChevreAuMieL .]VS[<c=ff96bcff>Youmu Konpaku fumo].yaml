@@ -104,8 +104,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -123,8 +122,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -168,8 +166,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, exp: 37/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, exp: 98/650, value: 100}
@@ -189,8 +186,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, exp: 351/750, value: 100}
@@ -233,8 +229,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 100, y: -70}, exp: 650/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 190, y: -70}, exp: 650/650, value: 100}
@@ -258,8 +253,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -290, y: -70}, exp: 218/750, value: 100}
     - {name: arclight, index: 1, position: {x: -160, y: -70}, exp: 493/750, value: 100}
@@ -309,8 +303,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 13, contraption: 1}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       phoenix: [jump_drive]
       void_eye: [suppression_shots]
@@ -339,9 +332,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 13, contraption: 1}
-    officers:
-    - supply_enhancement
-    - speed_specialist
+    officers: [supply_enhancement, speed_specialist]
     techs:
       arclight: [shockwave]
     units:
@@ -399,8 +390,7 @@ sides:
     blueprints: [defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       phoenix: [jump_drive]
       fire_badger: [scorching_fire]
@@ -433,9 +423,7 @@ sides:
     blueprints: [attack_enhancement]
     tower_strengthen_levels: [1, 0]
     next_index: {unit: 15, contraption: 3}
-    officers:
-    - supply_enhancement
-    - speed_specialist
+    officers: [supply_enhancement, speed_specialist]
     techs:
       arclight: [shockwave]
       sabertooth: [secondary_armament]
@@ -510,8 +498,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 17, contraption: 1}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       phoenix: [jump_drive]
       fire_badger: [scorching_fire]
@@ -547,9 +534,7 @@ sides:
     battle_skills:
     - {index: 0, name: underground_threat, cooldown: 3}
     next_index: {unit: 17, contraption: 3}
-    officers:
-    - supply_enhancement
-    - speed_specialist
+    officers: [supply_enhancement, speed_specialist]
     techs:
       arclight: [shockwave]
       sabertooth: [field_maintenance, secondary_armament]
@@ -628,8 +613,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 22, contraption: 1}
-    officers:
-    - quick_supply_specialist
+    officers: [quick_supply_specialist]
     techs:
       overlord: [overlord_artillery]
       phoenix: [jump_drive]
@@ -670,9 +654,7 @@ sides:
     battle_skills:
     - {index: 0, name: underground_threat, cooldown: 2}
     next_index: {unit: 21, contraption: 3}
-    officers:
-    - supply_enhancement
-    - speed_specialist
+    officers: [supply_enhancement, speed_specialist]
     techs:
       marksman: [range_enhancement]
       arclight: [shockwave]

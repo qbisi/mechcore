@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 9/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, value: 100}
@@ -199,8 +196,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 99/600, rotated: true, value: 100}
@@ -248,8 +244,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -277,8 +272,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: intensive_training, cooldown: 1}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: fang, index: 0, position: {x: 140, y: -205}, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -55}, exp: 209/600, rotated: true, value: 100}
@@ -333,8 +327,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -366,8 +359,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 0}
     - {index: 2, name: underground_threat, cooldown: 3}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -426,8 +418,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       phantom_ray: [ground_targeting]
       vortex: [mobile_power_station]
@@ -463,8 +454,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: underground_threat, cooldown: 2}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -528,8 +518,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: intensive_training, cooldown: 1}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       phantom_ray: [ground_targeting]
       vortex: [mobile_power_station]
@@ -567,8 +556,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 0}
     - {index: 2, name: underground_threat, cooldown: 1}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       arclight: [range_enhancement]
       phantom_ray: [armor_enhancement]
@@ -645,8 +633,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: intensive_training, cooldown: 0}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       phantom_ray: [ground_targeting]
       raiden: [range_enhancement, fork]
@@ -688,8 +675,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: underground_threat, cooldown: 0}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       marksman: [aerial_specialization]
       arclight: [shockwave, range_enhancement]
@@ -772,8 +758,7 @@ sides:
     - {index: 2, name: intensive_training, cooldown: 1}
     - {index: 3, name: electromagnetic_blast, cooldown: 4}
     next_index: {unit: 24, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       wasp: [energy_shield]
       phantom_ray: [ground_targeting]
@@ -818,8 +803,7 @@ sides:
     - {index: 2, name: underground_threat, cooldown: 3}
     - {index: 3, name: electromagnetic_blast, cooldown: 4}
     next_index: {unit: 24, contraption: 4}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       marksman: [aerial_specialization]
       rhino: [combat_evolvement]
@@ -909,8 +893,7 @@ sides:
     - {index: 2, name: intensive_training, cooldown: 0}
     - {index: 3, name: electromagnetic_blast, cooldown: 3}
     next_index: {unit: 27, contraption: 1}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       fortress: [elite_marksman]
       wasp: [energy_shield]
@@ -958,8 +941,7 @@ sides:
     - {index: 2, name: underground_threat, cooldown: 2}
     - {index: 3, name: electromagnetic_blast, cooldown: 3}
     next_index: {unit: 29, contraption: 7}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     techs:
       marksman: [aerial_specialization]
       rhino: [combat_evolvement]

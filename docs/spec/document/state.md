@@ -162,9 +162,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
         unit: 29
         contraption: 15
 
-      officers:
-        - supply_specialist
-        - efficient_light_manufacturing
+      officers: [supply_specialist, efficient_light_manufacturing]
       techs:
         fang: [grenade_launcher]
         tarantula: [field_maintenance, spider_mine]
@@ -312,9 +310,8 @@ round, because the snapshot is taken before the round's own reset.
 
 ### Officers and technologies
 
-`officers` lists the officers the side holds, one per line: a side holds any
-number of them, and an officer card that may be taken again appears once per
-copy. `techs` holds unit technologies alone, grouped under the unit type they
+`officers` lists the officers the side holds. An officer card that may be
+taken again appears once per copy. `techs` holds unit technologies alone, grouped under the unit type they
 belong to, as the replay groups them and as a battle's `tech_loadout` does. A
 unit that has researched nothing has no row.
 

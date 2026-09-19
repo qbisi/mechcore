@@ -110,8 +110,7 @@ sides:
     - {name: small_amplifying_core}
     - {name: small_amplifying_core}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -130,8 +129,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -185,8 +183,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 37/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 60/450, rotated: true, value: 100}
@@ -206,8 +203,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 42/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 53/450, value: 100}
@@ -255,8 +251,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 52/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 104/450, rotated: true, value: 100}
@@ -280,8 +275,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 1]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 105/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 102/450, value: 100}
@@ -333,8 +327,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -230, y: -135}, exp: 126/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -100, y: -235}, exp: 206/450, rotated: true, value: 100}
@@ -359,8 +352,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 1]
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 0, y: -285}, exp: 145/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 155, y: -300}, exp: 183/450, value: 100}
@@ -416,8 +408,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: underground_threat, cooldown: 3}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     techs:
       arclight: [range_enhancement]
     units:
@@ -448,8 +439,7 @@ sides:
     battle_skills:
     - {index: 0, name: underground_threat, cooldown: 3}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       hound: [range_enhancement]
     units:
@@ -513,8 +503,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: underground_threat, cooldown: 2}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     techs:
       arclight: [range_enhancement]
       wraith: [range_enhancement]
@@ -551,8 +540,7 @@ sides:
     battle_skills:
     - {index: 0, name: underground_threat, cooldown: 2}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       sandworm: [replicate]
       hound: [range_enhancement]
@@ -625,8 +613,7 @@ sides:
     - {index: 1, name: underground_threat, cooldown: 1}
     - {index: 2, name: photon_emission, cooldown: 3}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
@@ -668,8 +655,7 @@ sides:
     - {index: 0, name: underground_threat, cooldown: 1}
     - {index: 1, name: vulcans_descent, cooldown: 3}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       mustang: [range_enhancement]
       sandworm: [replicate]
@@ -739,8 +725,7 @@ sides:
     - {index: 2, name: photon_emission, cooldown: 2}
     - {index: 3, name: photon_emission, cooldown: 0}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement]
@@ -784,8 +769,7 @@ sides:
     - {index: 0, name: underground_threat, cooldown: 0}
     - {index: 1, name: vulcans_descent, cooldown: 2}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       mustang: [range_enhancement]
       sandworm: [burrow_maintenance, replicate]
@@ -882,8 +866,7 @@ sides:
     - {index: 4, name: electromagnetic_impact, cooldown: 2}
     - {index: 5, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 28, contraption: 2}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     techs:
       sledgehammer: [armor_piercing_bullets]
       arclight: [range_enhancement, charged_shot]
@@ -931,8 +914,7 @@ sides:
     - {index: 1, name: vulcans_descent, cooldown: 1}
     - {index: 2, name: electromagnetic_impact, cooldown: 2}
     next_index: {unit: 24, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       mustang: [range_enhancement]
       crawler: [replicate]

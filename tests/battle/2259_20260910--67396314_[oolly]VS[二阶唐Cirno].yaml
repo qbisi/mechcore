@@ -104,8 +104,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -123,8 +122,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -168,8 +166,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 236/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 80/750, value: 100}
@@ -189,8 +186,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 8, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 50, y: -70}, exp: 253/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 140, y: -70}, exp: 650/650, value: 100}
@@ -237,8 +233,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: arclight, index: 0, position: {x: -50, y: -80}, exp: 317/750, value: 100}
     - {name: arclight, index: 1, position: {x: -140, y: -70}, exp: 373/750, value: 100}
@@ -262,8 +257,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       void_eye: [charged_shot]
     units:
@@ -319,8 +313,7 @@ sides:
     battle_skills:
     - {index: 0, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       phantom_ray: [stealth_cloak]
     units:
@@ -349,8 +342,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 2]
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       void_eye: [charged_shot]
     units:
@@ -413,8 +405,7 @@ sides:
     - {index: 1, name: orbital_javelin, cooldown: 3}
     - {index: 2, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       phantom_ray: [stealth_cloak]
     units:
@@ -445,8 +436,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 2]
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       fire_badger: [scorching_fire]
       void_eye: [charged_shot]
@@ -518,8 +508,7 @@ sides:
     - {index: 2, name: mobile_beacon, cooldown: 0}
     - {index: 3, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       arclight: [range_enhancement]
       phantom_ray: [stealth_cloak]
@@ -554,8 +543,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 2]
     next_index: {unit: 20, contraption: 1}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       void_eye: [charged_shot]
@@ -635,8 +623,7 @@ sides:
     - {index: 2, name: mobile_beacon, cooldown: 0}
     - {index: 3, name: sticky_oil_bomb, cooldown: 2}
     next_index: {unit: 23, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       arclight: [range_enhancement]
       fire_badger: [scorching_charge]
@@ -676,8 +663,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 2]
     next_index: {unit: 24, contraption: 1}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       void_eye: [range_enhancement, charged_shot]
@@ -764,8 +750,7 @@ sides:
     - {index: 4, name: ion_blast, cooldown: 3}
     - {index: 5, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     techs:
       overlord: [launcher_overload]
       arclight: [range_enhancement]
@@ -809,9 +794,7 @@ sides:
     blueprints: [attack_enhancement]
     tower_strengthen_levels: [0, 2]
     next_index: {unit: 27, contraption: 1}
-    officers:
-    - advanced_offensive_tactics
-    - marksman_specialist
+    officers: [advanced_offensive_tactics, marksman_specialist]
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       void_eye: [range_enhancement, charged_shot]
@@ -909,9 +892,7 @@ sides:
     - {index: 4, name: ion_blast, cooldown: 2}
     - {index: 5, name: field_recovery, cooldown: 0}
     next_index: {unit: 28, contraption: 2}
-    officers:
-    - aerial_specialist
-    - efficient_giant_manufacturing
+    officers: [aerial_specialist, efficient_giant_manufacturing]
     techs:
       overlord: [mothership, launcher_overload]
       arclight: [range_enhancement]
@@ -956,9 +937,7 @@ sides:
     blueprints: [attack_enhancement, defense_enhancement]
     tower_strengthen_levels: [0, 2]
     next_index: {unit: 30, contraption: 2}
-    officers:
-    - advanced_offensive_tactics
-    - marksman_specialist
+    officers: [advanced_offensive_tactics, marksman_specialist]
     techs:
       fire_badger: [range_enhancement, scorching_fire]
       farseer: [aerial_specialization]

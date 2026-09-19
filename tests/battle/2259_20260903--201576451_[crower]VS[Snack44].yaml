@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -173,8 +171,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, exp: 233/650, value: 100}
     - {name: marksman, index: 1, position: {x: -120, y: -170}, exp: 285/650, value: 100}
@@ -198,8 +195,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: 190, y: -35}, exp: 407/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 90, y: -35}, exp: 123/600, rotated: true, value: 100}
@@ -242,8 +238,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 1}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     techs:
       phantom_ray: [sticky_oil_bomb]
     units:
@@ -272,8 +267,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       void_eye: [energy_absorption]
     units:
@@ -322,8 +316,7 @@ sides:
     equipment:
     - {name: haste_module}
     next_index: {unit: 12, contraption: 2}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     techs:
       phantom_ray: [sticky_oil_bomb]
     units:
@@ -354,8 +347,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
@@ -420,9 +412,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 14, contraption: 4}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing]
     techs:
       phantom_ray: [sticky_oil_bomb]
     units:
@@ -455,8 +445,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 15, contraption: 2}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       farseer: [missile_interceptor]
       void_eye: [energy_absorption]
@@ -517,9 +506,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 17, contraption: 4}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing]
     techs:
       marksman: [doubleshot]
       phantom_ray: [sticky_oil_bomb]
@@ -556,9 +543,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 17, contraption: 2}
-    officers:
-    - speed_specialist
-    - mass_produced_fortress
+    officers: [speed_specialist, mass_produced_fortress]
     techs:
       fortress: [armor_enhancement]
       farseer: [missile_interceptor]
@@ -624,9 +609,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: redeployment, cooldown: 0}
     next_index: {unit: 19, contraption: 4}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing]
     techs:
       marksman: [doubleshot]
       vulcan: [scorching_fire]
@@ -666,9 +649,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: wasp_swarm, cooldown: 1}
     next_index: {unit: 19, contraption: 2}
-    officers:
-    - speed_specialist
-    - mass_produced_fortress
+    officers: [speed_specialist, mass_produced_fortress]
     techs:
       fortress: [armor_enhancement]
       fire_badger: [range_enhancement]
@@ -739,9 +720,7 @@ sides:
     - {index: 1, name: mobile_beacon, cooldown: 0}
     - {index: 2, name: redeployment, cooldown: 0}
     next_index: {unit: 23, contraption: 4}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing]
     techs:
       marksman: [doubleshot]
       vulcan: [best_partner, scorching_fire]
@@ -785,9 +764,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: wasp_swarm, cooldown: 0}
     next_index: {unit: 24, contraption: 2}
-    officers:
-    - speed_specialist
-    - mass_produced_fortress
+    officers: [speed_specialist, mass_produced_fortress]
     techs:
       fortress: [armor_enhancement, rocket_punch]
       fire_badger: [range_enhancement]
@@ -867,9 +844,7 @@ sides:
     - {index: 2, name: redeployment, cooldown: 0}
     - {index: 3, name: smoke_bomb, cooldown: 3}
     next_index: {unit: 26, contraption: 5}
-    officers:
-    - giant_specialist
-    - efficient_giant_manufacturing
+    officers: [giant_specialist, efficient_giant_manufacturing]
     techs:
       marksman: [doubleshot]
       vulcan: [best_partner, scorching_fire]
@@ -916,10 +891,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 27, contraption: 2}
-    officers:
-    - advanced_power_system
-    - speed_specialist
-    - mass_produced_fortress
+    officers: [advanced_power_system, speed_specialist, mass_produced_fortress]
     techs:
       fortress: [barrier, armor_enhancement, rocket_punch]
       fire_badger: [range_enhancement]

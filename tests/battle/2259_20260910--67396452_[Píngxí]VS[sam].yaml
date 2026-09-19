@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - sabertooth_specialist
+    officers: [sabertooth_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -179,8 +177,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - aerial_specialist
+    officers: [aerial_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, exp: 124/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, exp: 329/650, value: 100}
@@ -203,8 +200,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - sabertooth_specialist
+    officers: [sabertooth_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, exp: 466/650, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 408/650, value: 100}
@@ -251,9 +247,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - aerial_specialist
-    - mass_produced_wasp
+    officers: [aerial_specialist, mass_produced_wasp]
     units:
     - {name: void_eye, index: 0, position: {x: 180, y: -160}, exp: 378/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 10, y: -160}, exp: 429/650, value: 100}
@@ -277,8 +271,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - sabertooth_specialist
+    officers: [sabertooth_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, exp: 587/650, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 408/650, value: 100}
@@ -332,9 +325,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - aerial_specialist
-    - mass_produced_wasp
+    officers: [aerial_specialist, mass_produced_wasp]
     techs:
       void_eye: [suppression_shots]
     units:
@@ -365,8 +356,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - sabertooth_specialist
+    officers: [sabertooth_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -50, y: -110}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -230, y: -110}, exp: 559/650, value: 100}
@@ -426,9 +416,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - aerial_specialist
-    - mass_produced_wasp
+    officers: [aerial_specialist, mass_produced_wasp]
     techs:
       tarantula: [range_enhancement]
       void_eye: [suppression_shots]
@@ -462,8 +450,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - sabertooth_specialist
+    officers: [sabertooth_specialist]
     techs:
       fang: [range_enhancement]
     units:
@@ -532,10 +519,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 3}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - quick_teleport
-    - aerial_specialist
-    - mass_produced_wasp
+    officers: [quick_teleport, aerial_specialist, mass_produced_wasp]
     techs:
       tarantula: [range_enhancement]
       void_eye: [aerial_mode, suppression_shots]
@@ -570,9 +554,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 3}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - quick_teleport
-    - sabertooth_specialist
+    officers: [quick_teleport, sabertooth_specialist]
     techs:
       marksman: [range_enhancement]
       fang: [range_enhancement]
@@ -640,10 +622,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 2}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - quick_teleport
-    - aerial_specialist
-    - mass_produced_wasp
+    officers: [quick_teleport, aerial_specialist, mass_produced_wasp]
     techs:
       phoenix: [electromagnetic_shot]
       tarantula: [range_enhancement, armor_piercing_bullets]
@@ -682,10 +661,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 2}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - quick_teleport
-    - efficient_giant_manufacturing
-    - sabertooth_specialist
+    officers: [quick_teleport, efficient_giant_manufacturing, sabertooth_specialist]
     techs:
       marksman: [range_enhancement]
       fang: [range_enhancement]
@@ -762,10 +738,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 1}
     next_index: {unit: 25, contraption: 1}
-    officers:
-    - quick_teleport
-    - aerial_specialist
-    - mass_produced_wasp
+    officers: [quick_teleport, aerial_specialist, mass_produced_wasp]
     techs:
       mustang: [range_enhancement]
       phoenix: [electromagnetic_shot]
@@ -810,10 +783,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: orbital_bombardment, cooldown: 1}
     next_index: {unit: 25, contraption: 0}
-    officers:
-    - quick_teleport
-    - efficient_giant_manufacturing
-    - sabertooth_specialist
+    officers: [quick_teleport, efficient_giant_manufacturing, sabertooth_specialist]
     techs:
       fortress: [anti_air_barrage]
       marksman: [range_enhancement]

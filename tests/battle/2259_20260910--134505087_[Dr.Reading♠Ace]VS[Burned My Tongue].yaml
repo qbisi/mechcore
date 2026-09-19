@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 8, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 85/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 313/750, value: 100}
@@ -195,8 +192,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 16/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, value: 100}
@@ -244,8 +240,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 345/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 750/750, value: 100}
@@ -270,8 +265,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -170, y: -110}, exp: 29/750, value: 100}
     - {name: vortex, index: 1, position: {x: 100, y: -110}, exp: 14/750, value: 100}
@@ -321,8 +315,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 120, y: -170}, exp: 427/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, level: 2, exp: 277/1690, value: 100}
@@ -349,8 +342,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       mustang: [range_enhancement]
     units:
@@ -404,8 +396,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       typhoon: [range_enhancement]
     units:
@@ -435,8 +426,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
     units:
@@ -501,8 +491,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 2}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       marksman: [range_enhancement]
       typhoon: [range_enhancement]
@@ -539,8 +528,7 @@ sides:
     blueprints: [attack_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
     units:
@@ -609,8 +597,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 4}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       marksman: [range_enhancement]
       sabertooth: [field_maintenance]
@@ -649,8 +636,7 @@ sides:
     blueprints: [defense_enhancement, attack_enhancement_ii]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       sandworm: [strike]
@@ -717,8 +703,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 25, contraption: 4}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       marksman: [range_enhancement]
       sabertooth: [field_maintenance]
@@ -759,8 +744,7 @@ sides:
     blueprints: [defense_enhancement, attack_enhancement_ii]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       sandworm: [armor_enhancement, strike]

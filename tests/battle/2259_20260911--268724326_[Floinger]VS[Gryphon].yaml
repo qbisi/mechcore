@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 8, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 74/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 72/600, rotated: true, value: 100}
@@ -195,8 +192,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 157/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 123/450, rotated: true, value: 100}
@@ -239,8 +235,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: fang, index: 0, position: {x: 160, y: -115}, exp: 332/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 306/600, rotated: true, value: 100}
@@ -266,8 +261,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 190, y: -105}, exp: 216/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 110, y: -105}, exp: 175/450, rotated: true, value: 100}
@@ -317,8 +311,7 @@ sides:
     battle_skills:
     - {index: 0, name: redeployment, cooldown: 0}
     next_index: {unit: 14, contraption: 1}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -350,8 +343,7 @@ sides:
     battle_skills:
     - {index: 0, name: missile_strike, cooldown: 2}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -413,8 +405,7 @@ sides:
     - {index: 1, name: orbital_bombardment, cooldown: 4}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 16, contraption: 2}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -451,8 +442,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 1}
     - {index: 1, name: orbital_bombardment, cooldown: 4}
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -520,8 +510,7 @@ sides:
     - {index: 2, name: sticky_oil_bomb, cooldown: 2}
     - {index: 3, name: incendiary_bomb, cooldown: 3}
     next_index: {unit: 19, contraption: 3}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -561,9 +550,7 @@ sides:
     - {index: 1, name: orbital_bombardment, cooldown: 3}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 1}
-    officers:
-    - advanced_offensive_tactics
-    - elite_specialist
+    officers: [advanced_offensive_tactics, elite_specialist]
     techs:
       fang: [grenade_launcher, range_enhancement]
     units:
@@ -628,8 +615,7 @@ sides:
     - {index: 2, name: sticky_oil_bomb, cooldown: 1}
     - {index: 3, name: incendiary_bomb, cooldown: 2}
     next_index: {unit: 23, contraption: 4}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       tarantula: [field_maintenance, range_enhancement]
     units:
@@ -673,9 +659,7 @@ sides:
     - {index: 1, name: orbital_bombardment, cooldown: 2}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 19, contraption: 1}
-    officers:
-    - advanced_offensive_tactics
-    - elite_specialist
+    officers: [advanced_offensive_tactics, elite_specialist]
     techs:
       fang: [grenade_launcher, range_enhancement, mechanical_rage]
     units:
@@ -756,8 +740,7 @@ sides:
     - {index: 3, name: incendiary_bomb, cooldown: 1}
     - {index: 4, name: missile_strike, cooldown: 2}
     next_index: {unit: 25, contraption: 4}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     techs:
       sabertooth: [field_maintenance]
       tarantula: [field_maintenance, range_enhancement]
@@ -805,9 +788,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: nuke, cooldown: 4}
     next_index: {unit: 22, contraption: 3}
-    officers:
-    - advanced_offensive_tactics
-    - elite_specialist
+    officers: [advanced_offensive_tactics, elite_specialist]
     techs:
       fang: [grenade_launcher, range_enhancement, mechanical_rage]
       hacker: [range_enhancement]

@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193/750, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, exp: 430/750, value: 100}
@@ -199,8 +196,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 4/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 10/450, rotated: true, value: 100}
@@ -244,8 +240,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 1}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 750/750, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, exp: 750/750, value: 100}
@@ -272,8 +267,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: intensive_training, cooldown: 1}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 40/450, value: 100}
     - {name: crawler, index: 1, position: {x: 190, y: -135}, exp: 19/450, rotated: true, value: 100}
@@ -325,9 +319,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - giant_specialist
-    - assault_raiden
+    officers: [giant_specialist, assault_raiden]
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, level: 2, exp: 166/1690, value: 100}
     - {name: vortex, index: 1, position: {x: -160, y: -100}, level: 2, exp: 107/1690, value: 100}
@@ -355,8 +347,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: intensive_training, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       tarantula: [field_maintenance]
     units:
@@ -414,9 +405,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - giant_specialist
-    - assault_raiden
+    officers: [giant_specialist, assault_raiden]
     techs:
       melting_point: [range_enhancement]
     units:
@@ -448,8 +437,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: intensive_training, cooldown: 1}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     techs:
       tarantula: [field_maintenance]
     units:
@@ -514,10 +502,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - giant_specialist
-    - efficient_light_manufacturing
-    - assault_raiden
+    officers: [giant_specialist, efficient_light_manufacturing, assault_raiden]
     techs:
       melting_point: [range_enhancement]
       mustang: [range_enhancement]
@@ -553,9 +538,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 0}
     - {index: 2, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - supply_specialist
-    - efficient_light_manufacturing
+    officers: [supply_specialist, efficient_light_manufacturing]
     techs:
       tarantula: [field_maintenance]
     units:
@@ -631,10 +614,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - giant_specialist
-    - efficient_light_manufacturing
-    - assault_raiden
+    officers: [giant_specialist, efficient_light_manufacturing, assault_raiden]
     techs:
       melting_point: [range_enhancement]
       mustang: [range_enhancement]
@@ -674,9 +654,7 @@ sides:
     - {index: 1, name: intensive_training, cooldown: 1}
     - {index: 2, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 25, contraption: 0}
-    officers:
-    - supply_specialist
-    - efficient_light_manufacturing
+    officers: [supply_specialist, efficient_light_manufacturing]
     techs:
       tarantula: [field_maintenance, spider_mine]
     units:
@@ -762,10 +740,7 @@ sides:
     - {index: 2, name: sticky_oil_bomb, cooldown: 2}
     - {index: 3, name: electromagnetic_impact, cooldown: 2}
     next_index: {unit: 24, contraption: 1}
-    officers:
-    - giant_specialist
-    - efficient_light_manufacturing
-    - assault_raiden
+    officers: [giant_specialist, efficient_light_manufacturing, assault_raiden]
     techs:
       melting_point: [range_enhancement]
       mustang: [range_enhancement]
@@ -810,9 +785,7 @@ sides:
     - {index: 2, name: mobile_beacon, cooldown: 0}
     - {index: 3, name: intensive_training, cooldown: 1}
     next_index: {unit: 28, contraption: 2}
-    officers:
-    - supply_specialist
-    - efficient_light_manufacturing
+    officers: [supply_specialist, efficient_light_manufacturing]
     techs:
       tarantula: [field_maintenance, spider_mine]
     units:

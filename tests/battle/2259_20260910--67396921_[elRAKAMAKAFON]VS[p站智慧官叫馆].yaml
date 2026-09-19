@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -179,8 +177,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 51/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 82/750, value: 100}
@@ -203,8 +200,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 494/750, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, exp: 116/750, value: 100}
@@ -247,8 +243,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: hound, index: 0, position: {x: -190, y: -190}, exp: 102/750, value: 100}
     - {name: hound, index: 1, position: {x: -110, y: -190}, exp: 132/750, value: 100}
@@ -273,8 +268,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - fortified_specialist
+    officers: [fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 723/750, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, exp: 426/750, value: 100}
@@ -324,9 +318,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - giant_specialist
+    officers: [additional_deployment_slot, giant_specialist]
     techs:
       wraith: [range_enhancement]
     units:
@@ -355,9 +347,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 1}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - fortified_specialist
+    officers: [additional_deployment_slot, fortified_specialist]
     units:
     - {name: hound, index: 0, position: {x: 140, y: -60}, exp: 750/750, value: 100}
     - {name: hound, index: 1, position: {x: 60, y: -60}, exp: 750/750, value: 100}
@@ -415,9 +405,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - giant_specialist
+    officers: [additional_deployment_slot, giant_specialist]
     techs:
       wraith: [range_enhancement]
       sabertooth: [field_maintenance]
@@ -452,9 +440,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - fortified_specialist
+    officers: [additional_deployment_slot, fortified_specialist]
     techs:
       raiden: [range_enhancement]
     units:
@@ -518,9 +504,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - giant_specialist
+    officers: [additional_deployment_slot, giant_specialist]
     techs:
       wraith: [range_enhancement]
       sabertooth: [field_maintenance]
@@ -558,9 +542,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: shield_airdrop, cooldown: 2}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - fortified_specialist
+    officers: [additional_deployment_slot, fortified_specialist]
     techs:
       raiden: [electromagnetic_shot, range_enhancement]
     units:

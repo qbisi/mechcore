@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -175,8 +173,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: fang, index: 0, position: {x: 140, y: -35}, exp: 89/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 85/600, value: 100}
@@ -197,8 +194,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 339/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 132/750, value: 100}
@@ -251,8 +247,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 2}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: fang, index: 0, position: {x: 140, y: -35}, exp: 364/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 135, y: -190}, exp: 256/600, value: 100}
@@ -279,8 +274,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: hound, index: 0, position: {x: 120, y: -190}, exp: 339/750, value: 100}
     - {name: hound, index: 1, position: {x: -120, y: -190}, exp: 403/750, value: 100}
@@ -337,8 +331,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 1}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       melting_point: [energy_diffraction]
     units:
@@ -367,8 +360,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       phantom_ray: [high_explosive_ammo]
     units:
@@ -430,8 +422,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 0}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 1}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       melting_point: [energy_diffraction]
     units:
@@ -462,8 +453,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       phantom_ray: [high_explosive_ammo]
     units:
@@ -530,8 +520,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       melting_point: [energy_diffraction, range_enhancement]
     units:
@@ -562,8 +551,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       vulcan: [range_enhancement]
       phantom_ray: [high_explosive_ammo]
@@ -633,8 +621,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 18, contraption: 1}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       melting_point: [energy_diffraction, range_enhancement]
       arclight: [range_enhancement]
@@ -669,8 +656,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       vulcan: [range_enhancement]
       melting_point: [range_enhancement]
@@ -745,8 +731,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       melting_point: [electromagnetic_barrage, energy_diffraction, range_enhancement]
       arclight: [range_enhancement]
@@ -785,8 +770,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 26, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       vulcan: [range_enhancement]
       melting_point: [electromagnetic_barrage, range_enhancement]

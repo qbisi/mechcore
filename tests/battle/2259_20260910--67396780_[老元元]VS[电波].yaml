@@ -104,8 +104,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: arclight, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -127,8 +126,7 @@ sides:
     - {name: small_amplifying_core}
     - {name: small_amplifying_core}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: arclight, index: 0, position: {x: 180, y: -170}, exp: 45/750, value: 100}
     - {name: arclight, index: 1, position: {x: -180, y: -170}, exp: 396/750, value: 100}
@@ -197,8 +194,7 @@ sides:
     equipment:
     - {name: small_amplifying_core}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 233/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 563/750, value: 100}
@@ -239,8 +235,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 9, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       arclight: [charged_shot]
     units:
@@ -266,8 +261,7 @@ sides:
     battle_skills:
     - {index: 0, name: redeployment, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 233/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 716/750, value: 100}
@@ -317,8 +311,7 @@ sides:
     blueprints: [defense_enhancement]
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 13, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       arclight: [charged_shot]
     units:
@@ -348,8 +341,7 @@ sides:
     battle_skills:
     - {index: 0, name: redeployment, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - amplify_specialist
+    officers: [amplify_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 353/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 750/750, value: 100}
@@ -403,8 +395,7 @@ sides:
     equipment:
     - {name: deployment_module}
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       arclight: [charged_shot]
     units:
@@ -437,9 +428,7 @@ sides:
     battle_skills:
     - {index: 0, name: redeployment, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - amplify_specialist
-    - advanced_targeting_system
+    officers: [amplify_specialist, advanced_targeting_system]
     units:
     - {name: vortex, index: 0, position: {x: 40, y: -170}, exp: 506/750, value: 100}
     - {name: vortex, index: 1, position: {x: -40, y: -170}, exp: 750/750, value: 100}
@@ -496,8 +485,7 @@ sides:
     equipment:
     - {name: deployment_module}
     next_index: {unit: 17, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       marksman: [doubleshot]
       arclight: [range_enhancement, charged_shot]
@@ -533,10 +521,7 @@ sides:
     battle_skills:
     - {index: 0, name: redeployment, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - amplify_specialist
-    - advanced_targeting_system
-    - efficient_light_manufacturing
+    officers: [amplify_specialist, advanced_targeting_system, efficient_light_manufacturing]
     techs:
       wraith: [range_enhancement]
     units:
@@ -604,8 +589,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       marksman: [doubleshot, range_enhancement]
       arclight: [range_enhancement, charged_shot]
@@ -645,10 +629,7 @@ sides:
     - {index: 0, name: redeployment, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - amplify_specialist
-    - advanced_targeting_system
-    - efficient_light_manufacturing
+    officers: [amplify_specialist, advanced_targeting_system, efficient_light_manufacturing]
     techs:
       wraith: [range_enhancement, floating_artillery_array]
     units:
@@ -723,8 +704,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 23, contraption: 1}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       marksman: [doubleshot, range_enhancement]
       vulcan: [range_enhancement]
@@ -766,11 +746,7 @@ sides:
     - {index: 0, name: redeployment, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 24, contraption: 0}
-    officers:
-    - amplify_specialist
-    - advanced_offensive_tactics
-    - advanced_targeting_system
-    - efficient_light_manufacturing
+    officers: [amplify_specialist, advanced_offensive_tactics, advanced_targeting_system, efficient_light_manufacturing]
     techs:
       wraith: [range_enhancement, floating_artillery_array]
       vortex: [range_enhancement]

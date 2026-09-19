@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -174,8 +172,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, exp: 42/650, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, exp: 342/650, value: 100}
@@ -196,8 +193,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 6, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 203/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
@@ -240,8 +236,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 2}
     next_index: {unit: 9, contraption: 1}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 60, y: -210}, exp: 522/650, value: 100}
     - {name: marksman, index: 1, position: {x: -60, y: -210}, exp: 650/650, value: 100}
@@ -266,9 +261,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
-    - elite_rhino
+    officers: [elite_specialist, elite_rhino]
     units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 375/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
@@ -321,8 +314,7 @@ sides:
     - {index: 1, name: missile_strike, cooldown: 0}
     - {index: 2, name: missile_strike, cooldown: 1}
     next_index: {unit: 14, contraption: 1}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -355,9 +347,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - elite_specialist
-    - elite_rhino
+    officers: [elite_specialist, elite_rhino]
     units:
     - {name: fang, index: 0, position: {x: -50, y: -65}, exp: 375/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: 0, y: -65}, rotated: true, value: 100}
@@ -416,8 +406,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 0}
     - {index: 3, name: incendiary_bomb, cooldown: 3}
     next_index: {unit: 16, contraption: 2}
-    officers:
-    - missile_specialist
+    officers: [missile_specialist]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -454,9 +443,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 1}
-    officers:
-    - elite_specialist
-    - elite_rhino
+    officers: [elite_specialist, elite_rhino]
     techs:
       mustang: [range_enhancement]
     units:
@@ -514,9 +501,7 @@ sides:
     - {index: 2, name: missile_strike, cooldown: 2}
     - {index: 3, name: incendiary_bomb, cooldown: 2}
     next_index: {unit: 19, contraption: 2}
-    officers:
-    - missile_specialist
-    - advanced_targeting_system
+    officers: [missile_specialist, advanced_targeting_system]
     techs:
       tarantula: [range_enhancement]
     units:
@@ -554,9 +539,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 2}
-    officers:
-    - elite_specialist
-    - elite_rhino
+    officers: [elite_specialist, elite_rhino]
     techs:
       mustang: [range_enhancement]
       steel_ball: [armor_enhancement]
@@ -624,9 +607,7 @@ sides:
     - {index: 3, name: incendiary_bomb, cooldown: 1}
     - {index: 4, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 2}
-    officers:
-    - missile_specialist
-    - advanced_targeting_system
+    officers: [missile_specialist, advanced_targeting_system]
     techs:
       tarantula: [range_enhancement, spider_mine]
     units:
@@ -666,9 +647,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 19, contraption: 3}
-    officers:
-    - elite_specialist
-    - elite_rhino
+    officers: [elite_specialist, elite_rhino]
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       steel_ball: [armor_enhancement]
@@ -745,10 +724,7 @@ sides:
     - {index: 3, name: incendiary_bomb, cooldown: 0}
     - {index: 4, name: field_recovery, cooldown: 0}
     next_index: {unit: 24, contraption: 3}
-    officers:
-    - missile_specialist
-    - efficient_tech_research
-    - advanced_targeting_system
+    officers: [missile_specialist, efficient_tech_research, advanced_targeting_system]
     techs:
       marksman: [elite_marksman]
       tarantula: [range_enhancement, spider_mine]
@@ -792,10 +768,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 4}
-    officers:
-    - advanced_shield_device
-    - elite_specialist
-    - elite_rhino
+    officers: [advanced_shield_device, elite_specialist, elite_rhino]
     techs:
       mustang: [range_enhancement, armor_piercing_bullets]
       steel_ball: [armor_enhancement]
@@ -879,10 +852,7 @@ sides:
     - {index: 3, name: incendiary_bomb, cooldown: 3}
     - {index: 4, name: field_recovery, cooldown: 0}
     next_index: {unit: 29, contraption: 4}
-    officers:
-    - missile_specialist
-    - efficient_tech_research
-    - advanced_targeting_system
+    officers: [missile_specialist, efficient_tech_research, advanced_targeting_system]
     techs:
       marksman: [elite_marksman]
       wraith: [degeneration_beam]
@@ -932,10 +902,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 6}
-    officers:
-    - advanced_shield_device
-    - elite_specialist
-    - elite_rhino
+    officers: [advanced_shield_device, elite_specialist, elite_rhino]
     techs:
       wasp: [range_enhancement]
       mustang: [range_enhancement, armor_piercing_bullets]

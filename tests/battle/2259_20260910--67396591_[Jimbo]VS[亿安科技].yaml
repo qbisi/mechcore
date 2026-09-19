@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -173,8 +171,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 6, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 60, y: -220}, exp: 119/650, value: 100}
     - {name: void_eye, index: 1, position: {x: -60, y: -220}, exp: 195/650, value: 100}
@@ -197,8 +194,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 290, y: -105}, exp: 34/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: 290, y: -285}, exp: 227/450, rotated: true, value: 100}
@@ -238,8 +234,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 1}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       sabertooth: [range_enhancement]
     units:
@@ -265,8 +260,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       void_eye: [energy_shield]
     units:
@@ -314,8 +308,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 9, contraption: 2}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       sabertooth: [range_enhancement]
       tarantula: [spider_mine]
@@ -346,8 +339,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       mustang: [aerial_specialization]
       void_eye: [energy_shield]
@@ -399,8 +391,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 4}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       sabertooth: [range_enhancement]
       tarantula: [spider_mine]
@@ -435,8 +426,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       mustang: [aerial_specialization]
       arclight: [range_enhancement]
@@ -493,8 +483,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 15, contraption: 8}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       crawler: [replicate]
       sabertooth: [range_enhancement]
@@ -534,8 +523,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - elite_specialist
+    officers: [elite_specialist]
     techs:
       mustang: [aerial_specialization]
       crawler: [replicate]
@@ -598,8 +586,7 @@ sides:
     battle_skills:
     - {index: 0, name: lightning_storm, cooldown: 4}
     next_index: {unit: 18, contraption: 12}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       crawler: [replicate]
       sabertooth: [range_enhancement]
@@ -644,9 +631,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - efficient_light_manufacturing
-    - elite_specialist
+    officers: [efficient_light_manufacturing, elite_specialist]
     techs:
       wasp: [energy_shield]
       mustang: [aerial_specialization]
@@ -716,8 +701,7 @@ sides:
     battle_skills:
     - {index: 0, name: lightning_storm, cooldown: 3}
     next_index: {unit: 21, contraption: 15}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       crawler: [replicate]
       sabertooth: [range_enhancement, field_maintenance]
@@ -763,10 +747,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - super_supply_enhancement
-    - efficient_light_manufacturing
-    - elite_specialist
+    officers: [super_supply_enhancement, efficient_light_manufacturing, elite_specialist]
     techs:
       wasp: [energy_shield]
       mustang: [aerial_specialization]
@@ -839,8 +820,7 @@ sides:
     - {index: 0, name: lightning_storm, cooldown: 2}
     - {index: 1, name: smoke_bomb, cooldown: 3}
     next_index: {unit: 24, contraption: 19}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       crawler: [mechanical_rage, replicate]
       sabertooth: [range_enhancement, field_maintenance]
@@ -890,11 +870,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - super_supply_enhancement
-    - super_supply_enhancement
-    - efficient_light_manufacturing
-    - elite_specialist
+    officers: [super_supply_enhancement, super_supply_enhancement, efficient_light_manufacturing, elite_specialist]
     techs:
       wasp: [energy_shield]
       mustang: [aerial_specialization]
@@ -979,8 +955,7 @@ sides:
     - {index: 0, name: lightning_storm, cooldown: 1}
     - {index: 1, name: smoke_bomb, cooldown: 2}
     next_index: {unit: 29, contraption: 25}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       crawler: [mechanical_rage, replicate]
       stormcaller: [electromagnetic_explosion]
@@ -1033,11 +1008,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 26, contraption: 0}
-    officers:
-    - super_supply_enhancement
-    - super_supply_enhancement
-    - efficient_light_manufacturing
-    - elite_specialist
+    officers: [super_supply_enhancement, super_supply_enhancement, efficient_light_manufacturing, elite_specialist]
     techs:
       wasp: [energy_shield]
       mustang: [aerial_specialization, armor_piercing_bullets]

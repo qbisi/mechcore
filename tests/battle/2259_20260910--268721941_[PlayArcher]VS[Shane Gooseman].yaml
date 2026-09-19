@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -128,8 +127,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 0}
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: hound, index: 1, position: {x: 0, y: -140}, value: 100, movable: true}
@@ -176,8 +174,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 26/450, value: 100}
@@ -200,8 +197,7 @@ sides:
     battle_skills:
     - {index: 0, name: intensive_training, cooldown: 1}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 327/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, exp: 539/750, value: 100}
@@ -250,8 +246,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 8, contraption: 1}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 151/450, value: 100}
@@ -277,8 +272,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 2}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     units:
     - {name: hound, index: 0, position: {x: -230, y: -150}, exp: 437/750, value: 100}
     - {name: hound, index: 1, position: {x: -140, y: -150}, exp: 539/750, value: 100}
@@ -333,8 +327,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 1}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -135, y: -190}, exp: 450/450, value: 100}
     - {name: crawler, index: 1, position: {x: 135, y: -190}, exp: 202/450, value: 100}
@@ -364,8 +357,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: missile_strike, cooldown: 1}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       hound: [armor_enhancement]
     units:
@@ -427,8 +419,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 1}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       vulcan: [scorching_fire]
     units:
@@ -462,8 +453,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 0}
     next_index: {unit: 17, contraption: 1}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       hound: [armor_enhancement]
     units:
@@ -538,8 +528,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 19, contraption: 1}
-    officers:
-    - cost_control_specialist
+    officers: [cost_control_specialist]
     techs:
       vulcan: [range_enhancement, scorching_fire]
     units:
@@ -574,8 +563,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 1}
     - {index: 1, name: missile_strike, cooldown: 2}
     next_index: {unit: 21, contraption: 2}
-    officers:
-    - training_specialist
+    officers: [training_specialist]
     techs:
       rhino: [combat_evolvement]
       hound: [armor_enhancement]
@@ -645,9 +633,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 22, contraption: 1}
-    officers:
-    - cost_control_specialist
-    - extended_range_vulcan
+    officers: [cost_control_specialist, extended_range_vulcan]
     techs:
       marksman: [range_enhancement]
       vulcan: [range_enhancement, scorching_fire]
@@ -686,9 +672,7 @@ sides:
     - {index: 0, name: intensive_training, cooldown: 0}
     - {index: 1, name: missile_strike, cooldown: 1}
     next_index: {unit: 23, contraption: 2}
-    officers:
-    - training_specialist
-    - advanced_defensive_tactics
+    officers: [training_specialist, advanced_defensive_tactics]
     techs:
       rhino: [combat_evolvement]
       sledgehammer: [armor_enhancement]

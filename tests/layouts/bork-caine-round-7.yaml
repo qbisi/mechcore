@@ -4,9 +4,7 @@ seed: 2038621361
 round: 7
 sides:
   blue:
-    officers:
-    - training_specialist
-    - efficient_light_manufacturing
+    officers: [training_specialist, efficient_light_manufacturing]
     techs:
       mustang: [aerial_specialization]
       farseer: [scanning_radar]
@@ -46,9 +44,7 @@ sides:
     battle_skills:
     - {name: acid_blast, positions: [{x: 50, y: 44}, {x: 189, y: 38}]}
   red:
-    officers:
-    - efficient_light_manufacturing
-    - typhoon_specialist
+    officers: [efficient_light_manufacturing, typhoon_specialist]
     techs:
       arclight: [shockwave, range_enhancement]
       phantom_ray: [stealth_cloak]

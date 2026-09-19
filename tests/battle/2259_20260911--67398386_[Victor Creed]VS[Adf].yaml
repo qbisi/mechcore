@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
@@ -177,8 +175,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 16/600, rotated: true, value: 100}
@@ -198,8 +195,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, exp: 650/650, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, exp: 282/650, value: 100}
@@ -248,8 +244,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 22/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 49/600, rotated: true, value: 100}
@@ -275,8 +270,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - supply_specialist
+    officers: [supply_specialist]
     units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 445/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, exp: 506/650, value: 100}
@@ -329,8 +323,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: fang, index: 0, position: {x: 100, y: -135}, exp: 48/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -10, y: -135}, exp: 287/600, rotated: true, value: 100}
@@ -359,9 +352,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 14, contraption: 0}
-    officers:
-    - supply_specialist
-    - subsidized_mustang
+    officers: [supply_specialist, subsidized_mustang]
     units:
     - {name: marksman, index: 0, position: {x: -250, y: -210}, level: 2, exp: 670/1465, value: 100}
     - {name: marksman, index: 1, position: {x: -190, y: -160}, exp: 650/650, value: 100}
@@ -420,9 +411,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - speed_specialist
-    - mass_produced_sledgehammer
+    officers: [speed_specialist, mass_produced_sledgehammer]
     techs:
       sledgehammer: [armor_enhancement]
     units:
@@ -456,10 +445,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - supply_specialist
-    - subsidized_mustang
-    - mass_produced_sledgehammer
+    officers: [supply_specialist, subsidized_mustang, mass_produced_sledgehammer]
     techs:
       mustang: [range_enhancement]
     units:
@@ -527,9 +513,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: smoke_bomb, cooldown: 3}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - speed_specialist
-    - mass_produced_sledgehammer
+    officers: [speed_specialist, mass_produced_sledgehammer]
     techs:
       sledgehammer: [armor_enhancement, mechanical_rage]
     units:
@@ -566,10 +550,7 @@ sides:
     - {index: 1, name: smoke_bomb, cooldown: 3}
     - {index: 2, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 20, contraption: 1}
-    officers:
-    - supply_specialist
-    - subsidized_mustang
-    - mass_produced_sledgehammer
+    officers: [supply_specialist, subsidized_mustang, mass_produced_sledgehammer]
     techs:
       mustang: [range_enhancement]
     units:
@@ -638,9 +619,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: smoke_bomb, cooldown: 2}
     next_index: {unit: 24, contraption: 1}
-    officers:
-    - speed_specialist
-    - mass_produced_sledgehammer
+    officers: [speed_specialist, mass_produced_sledgehammer]
     techs:
       stormcaller: [launcher_overload]
       sledgehammer: [armor_enhancement, mechanical_rage]
@@ -685,10 +664,7 @@ sides:
     - {index: 1, name: smoke_bomb, cooldown: 2}
     - {index: 2, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 24, contraption: 1}
-    officers:
-    - supply_specialist
-    - subsidized_mustang
-    - mass_produced_sledgehammer
+    officers: [supply_specialist, subsidized_mustang, mass_produced_sledgehammer]
     techs:
       mustang: [range_enhancement]
     units:

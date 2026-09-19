@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: void_eye, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 321/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 149/650, value: 100}
@@ -194,8 +191,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 97/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 59/450, rotated: true, value: 100}
@@ -243,8 +239,7 @@ sides:
     - {index: 0, name: electromagnetic_impact, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     units:
     - {name: void_eye, index: 0, position: {x: 0, y: -130}, exp: 562/650, value: 100}
     - {name: void_eye, index: 1, position: {x: 90, y: -130}, exp: 511/650, value: 100}
@@ -269,8 +264,7 @@ sides:
     battle_skills:
     - {index: 0, name: electromagnetic_impact, cooldown: 2}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 187/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 160/450, rotated: true, value: 100}
@@ -323,8 +317,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: incendiary_bomb, cooldown: 3}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     techs:
       mustang: [range_enhancement]
     units:
@@ -356,8 +349,7 @@ sides:
     - {index: 1, name: incendiary_bomb, cooldown: 3}
     - {index: 2, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 1}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 110, y: -205}, exp: 450/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 242/450, rotated: true, value: 100}
@@ -419,8 +411,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: incendiary_bomb, cooldown: 2}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - rhino_specialist
+    officers: [rhino_specialist]
     techs:
       mustang: [culling_rounds, range_enhancement]
     units:
@@ -457,8 +448,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 16, contraption: 1}
-    officers:
-    - typhoon_specialist
+    officers: [typhoon_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -527,9 +517,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: incendiary_bomb, cooldown: 1}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - rhino_specialist
+    officers: [additional_deployment_slot, rhino_specialist]
     techs:
       mustang: [culling_rounds, range_enhancement]
     units:
@@ -569,9 +557,7 @@ sides:
     - {index: 2, name: field_recovery, cooldown: 0}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 20, contraption: 2}
-    officers:
-    - additional_deployment_slot
-    - typhoon_specialist
+    officers: [additional_deployment_slot, typhoon_specialist]
     techs:
       vortex: [mobile_power_station]
     units:
@@ -647,9 +633,7 @@ sides:
     - {index: 2, name: incendiary_bomb, cooldown: 0}
     - {index: 3, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 22, contraption: 0}
-    officers:
-    - additional_deployment_slot
-    - rhino_specialist
+    officers: [additional_deployment_slot, rhino_specialist]
     techs:
       rhino: [whirlwind]
       mustang: [culling_rounds, range_enhancement]
@@ -694,9 +678,7 @@ sides:
     - {index: 3, name: mobile_beacon, cooldown: 0}
     - {index: 4, name: wasp_swarm, cooldown: 3}
     next_index: {unit: 23, contraption: 3}
-    officers:
-    - additional_deployment_slot
-    - typhoon_specialist
+    officers: [additional_deployment_slot, typhoon_specialist]
     techs:
       typhoon: [wreckage_detonation]
       phantom_ray: [burst_mode]
@@ -777,9 +759,7 @@ sides:
     - {index: 2, name: incendiary_bomb, cooldown: 3}
     - {index: 3, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 25, contraption: 4}
-    officers:
-    - additional_deployment_slot
-    - rhino_specialist
+    officers: [additional_deployment_slot, rhino_specialist]
     techs:
       rhino: [whirlwind]
       mustang: [culling_rounds, range_enhancement]
@@ -830,9 +810,7 @@ sides:
     - {index: 3, name: mobile_beacon, cooldown: 0}
     - {index: 4, name: wasp_swarm, cooldown: 2}
     next_index: {unit: 26, contraption: 4}
-    officers:
-    - additional_deployment_slot
-    - typhoon_specialist
+    officers: [additional_deployment_slot, typhoon_specialist]
     techs:
       scorpion: [convergent_fire]
       typhoon: [field_reassembly, wreckage_detonation]
@@ -917,9 +895,7 @@ sides:
     - {index: 2, name: incendiary_bomb, cooldown: 2}
     - {index: 3, name: wasp_swarm, cooldown: 1}
     next_index: {unit: 27, contraption: 9}
-    officers:
-    - additional_deployment_slot
-    - rhino_specialist
+    officers: [additional_deployment_slot, rhino_specialist]
     techs:
       rhino: [whirlwind]
       mustang: [culling_rounds, range_enhancement]
@@ -972,9 +948,7 @@ sides:
     - {index: 3, name: mobile_beacon, cooldown: 0}
     - {index: 4, name: wasp_swarm, cooldown: 1}
     next_index: {unit: 29, contraption: 5}
-    officers:
-    - additional_deployment_slot
-    - typhoon_specialist
+    officers: [additional_deployment_slot, typhoon_specialist]
     techs:
       scorpion: [convergent_fire]
       typhoon: [field_reassembly, wreckage_detonation]

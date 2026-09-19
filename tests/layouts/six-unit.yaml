@@ -39,8 +39,7 @@ sides:
           - {x: 55, y: 60}
 
   red:
-    officers:
-    - improved_wasp
+    officers: [improved_wasp]
     techs:
       wasp: [range_enhancement]
       fang: [range_enhancement]

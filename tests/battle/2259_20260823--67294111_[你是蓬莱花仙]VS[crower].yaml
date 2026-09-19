@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
     - {name: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 129/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -160, y: -175}, exp: 96/600, rotated: true, value: 100}
@@ -194,8 +191,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 205, y: -100}, exp: 167/450, value: 100}
     - {name: crawler, index: 1, position: {x: 140, y: -135}, exp: 205/450, rotated: true, value: 100}
@@ -241,8 +237,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
-    officers:
-    - giant_specialist
+    officers: [giant_specialist]
     units:
     - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 129/600, rotated: true, value: 100}
     - {name: fang, index: 1, position: {x: -160, y: -175}, exp: 192/600, rotated: true, value: 100}
@@ -266,8 +261,7 @@ sides:
     battle_skills:
     - {index: 0, name: missile_strike, cooldown: 2}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - fire_badger_specialist
+    officers: [fire_badger_specialist]
     units:
     - {name: crawler, index: 0, position: {x: 205, y: -100}, exp: 358/450, value: 100}
     - {name: crawler, index: 1, position: {x: 140, y: -135}, exp: 318/450, rotated: true, value: 100}
@@ -320,9 +314,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
+    officers: [efficient_tech_research, giant_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -351,9 +343,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - fire_badger_specialist
+    officers: [efficient_tech_research, fire_badger_specialist]
     techs:
       phantom_ray: [sticky_oil_bomb]
     units:
@@ -410,9 +400,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
+    officers: [efficient_tech_research, giant_specialist]
     techs:
       fang: [grenade_launcher]
     units:
@@ -444,9 +432,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - fire_badger_specialist
+    officers: [efficient_tech_research, fire_badger_specialist]
     techs:
       fire_badger: [range_enhancement]
       phantom_ray: [ground_targeting, sticky_oil_bomb]
@@ -514,9 +500,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
+    officers: [efficient_tech_research, giant_specialist]
     techs:
       fang: [grenade_launcher]
       raiden: [range_enhancement]
@@ -551,9 +535,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 19, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - fire_badger_specialist
+    officers: [efficient_tech_research, fire_badger_specialist]
     techs:
       marksman: [aerial_specialization]
       fire_badger: [range_enhancement]
@@ -626,9 +608,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
+    officers: [efficient_tech_research, giant_specialist]
     techs:
       wasp: [aerial_specialization]
       fang: [grenade_launcher]
@@ -668,9 +648,7 @@ sides:
     - {index: 2, name: electromagnetic_blast, cooldown: 4}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 21, contraption: 1}
-    officers:
-    - efficient_tech_research
-    - fire_badger_specialist
+    officers: [efficient_tech_research, fire_badger_specialist]
     techs:
       marksman: [aerial_specialization]
       fire_badger: [range_enhancement]
@@ -750,9 +728,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 25, contraption: 0}
-    officers:
-    - efficient_tech_research
-    - giant_specialist
+    officers: [efficient_tech_research, giant_specialist]
     techs:
       fortress: [elite_marksman]
       wasp: [aerial_specialization]
@@ -797,9 +773,7 @@ sides:
     - {index: 2, name: electromagnetic_blast, cooldown: 3}
     - {index: 3, name: mobile_beacon, cooldown: 0}
     next_index: {unit: 26, contraption: 1}
-    officers:
-    - efficient_tech_research
-    - fire_badger_specialist
+    officers: [efficient_tech_research, fire_badger_specialist]
     techs:
       marksman: [aerial_specialization]
       wasp: [aerial_specialization, range_enhancement]

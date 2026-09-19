@@ -106,8 +106,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
     - {name: vortex, index: 1, position: {x: -20, y: -160}, value: 100, movable: true}
@@ -126,8 +125,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 5, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
     - {name: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
@@ -172,8 +170,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 7, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 140, y: -20}, exp: 750/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -70}, exp: 148/750, value: 100}
@@ -194,8 +191,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 8, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -260, y: -285}, exp: 18/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 53/450, value: 100}
@@ -249,8 +245,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 10, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     units:
     - {name: vortex, index: 0, position: {x: 140, y: -20}, exp: 750/750, value: 100}
     - {name: vortex, index: 1, position: {x: 160, y: -70}, exp: 202/750, value: 100}
@@ -276,8 +271,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -260, y: -285}, exp: 43/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 110/450, value: 100}
@@ -330,8 +324,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 1}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       tarantula: [armor_enhancement]
     units:
@@ -362,8 +355,7 @@ sides:
     battle_skills:
     - {index: 0, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - marksman_specialist
+    officers: [marksman_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -260, y: -285}, exp: 63/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 138/450, value: 100}
@@ -422,8 +414,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 0}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 15, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       tarantula: [armor_enhancement]
       vortex: [mobile_power_station]
@@ -458,9 +449,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 17, contraption: 0}
-    officers:
-    - advanced_offensive_tactics
-    - marksman_specialist
+    officers: [advanced_offensive_tactics, marksman_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -260, y: -285}, exp: 203/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 450/450, value: 100}
@@ -523,8 +512,7 @@ sides:
     - {index: 0, name: missile_strike, cooldown: 2}
     - {index: 1, name: field_recovery, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
-    officers:
-    - speed_specialist
+    officers: [speed_specialist]
     techs:
       tarantula: [armor_enhancement]
       vortex: [range_enhancement, mobile_power_station]
@@ -562,9 +550,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: sticky_oil_bomb, cooldown: 2}
     next_index: {unit: 21, contraption: 0}
-    officers:
-    - advanced_offensive_tactics
-    - marksman_specialist
+    officers: [advanced_offensive_tactics, marksman_specialist]
     units:
     - {name: crawler, index: 0, position: {x: -260, y: -285}, exp: 234/450, rotated: true, value: 100}
     - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 450/450, value: 100}
@@ -636,9 +622,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: sticky_oil_bomb, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       tarantula: [armor_enhancement]
       farseer: [scanning_radar]
@@ -679,9 +663,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: sticky_oil_bomb, cooldown: 1}
     next_index: {unit: 24, contraption: 2}
-    officers:
-    - advanced_offensive_tactics
-    - marksman_specialist
+    officers: [advanced_offensive_tactics, marksman_specialist]
     techs:
       vulcan: [range_enhancement]
       hacker: [range_enhancement]
@@ -757,9 +739,7 @@ sides:
     - {index: 1, name: field_recovery, cooldown: 0}
     - {index: 2, name: sticky_oil_bomb, cooldown: 3}
     next_index: {unit: 22, contraption: 2}
-    officers:
-    - advanced_defensive_tactics
-    - speed_specialist
+    officers: [advanced_defensive_tactics, speed_specialist]
     techs:
       tarantula: [armor_enhancement]
       farseer: [scanning_radar]
@@ -807,9 +787,7 @@ sides:
     - {index: 0, name: field_recovery, cooldown: 0}
     - {index: 1, name: sticky_oil_bomb, cooldown: 0}
     next_index: {unit: 27, contraption: 2}
-    officers:
-    - advanced_offensive_tactics
-    - marksman_specialist
+    officers: [advanced_offensive_tactics, marksman_specialist]
     techs:
       vulcan: [range_enhancement, ignite]
       hacker: [range_enhancement]
