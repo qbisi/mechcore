@@ -311,7 +311,8 @@ the same nine out of the next state and comparing.
 has, and `techs.officers` by a multiset and not by a set. Both distinctions are
 real: one officer can put two copies of a skill on the panel, and an officer
 card that may be taken again stacks. A slot's index and its cooldown are left
-out, because a cooldown counts down through the fight.
+out: the cooldown is written as the next round opens, from which slots this round
+spent, rather than by the round's decisions.
 
 The rules the function applies beyond the decisions themselves are the ones no
 action states, and [`action.md`](action.md#rules-no-action-states) carries them.
@@ -378,7 +379,8 @@ spans two rounds:
 supply(round + 1) = supply(round) - spent(round) + income(round + 1)
 ```
 
-Income is the map's row plus what the side's officers and worn equipment add,
+Income is the map's row plus what the side's officers add and what the
+equipment worn on the board the next round opens with pays,
 less what a Rapid Supply owes from the round before. Spending prices the round's
 decisions; [`action.md`](action.md) says what each costs, and the tables in
 `config/` carry the amounts.
@@ -433,20 +435,18 @@ after conceding, a round follows a concession, or both sides concede is refused.
 
 ### What conversion rebuilds
 
-Most fields are copied. Six are not, and each is argued in the document that
+Most fields are copied. Seven are not, and each is argued in the document that
 owns it:
 
 | Field | Why it is rebuilt |
 | --- | --- |
-| `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, less the energy tower debt |
-| `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder, so the allowance is read back from the next snapshot plus what this round spent |
+| `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
+| `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder. A round opens with two purchases, one more per Additional Deployment Slot held, and one unlock |
+| `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the formations already name |
 | `movable` | No recorded field states it. Every formation of round 1 arrived with the opening, and a delivery arrived as its round opened; any other formation moves only if a Deployment Module or a Jump Drive frees it |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
-
-The last round has no next snapshot to read the shop allowance from, so it falls
-back to the shipped constants, two and one.
 
 The energy tower debt is the one quantity two readings produce, and the two have
 to agree. A round's decisions say what it owes, and the recorded list says the

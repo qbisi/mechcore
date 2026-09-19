@@ -311,7 +311,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 0}
+    - {index: 0, id: 300001, cooldown: 2}
     - {index: 1, id: 300001, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
     techs:
@@ -403,9 +403,9 @@ sides:
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 2}
+    - {index: 0, id: 300001, cooldown: 1}
     - {index: 1, id: 300001, cooldown: 0}
-    - {index: 2, id: 300001, cooldown: 0}
+    - {index: 2, id: 300001, cooldown: 2}
     - {index: 3, id: 900001, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
     techs:
@@ -505,9 +505,9 @@ sides:
     equipment:
     - {id: 13030002}
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 1}
-    - {index: 1, id: 300001, cooldown: 0}
-    - {index: 2, id: 300001, cooldown: 2}
+    - {index: 0, id: 300001, cooldown: 0}
+    - {index: 1, id: 300001, cooldown: 2}
+    - {index: 2, id: 300001, cooldown: 1}
     - {index: 3, id: 900001, cooldown: 0}
     next_index: {unit: 16, contraption: 0}
     techs:
@@ -621,9 +621,9 @@ sides:
     equipment:
     - {id: 13030005}
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 0}
-    - {index: 1, id: 300001, cooldown: 2}
-    - {index: 2, id: 300001, cooldown: 1}
+    - {index: 0, id: 300001, cooldown: 2}
+    - {index: 1, id: 300001, cooldown: 1}
+    - {index: 2, id: 300001, cooldown: 0}
     - {index: 3, id: 900001, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
     techs:
@@ -710,7 +710,7 @@ sides:
     tower_strengthen_levels: [0, 0]
     battle_skills:
     - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 1200001, cooldown: 0}
+    - {index: 1, id: 1200001, cooldown: 3}
     next_index: {unit: 20, contraption: 0}
     techs:
       officers: [20005, 31104]
@@ -747,9 +747,9 @@ sides:
     blueprints: [2, 4, 5]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 2}
-    - {index: 1, id: 300001, cooldown: 1}
-    - {index: 2, id: 300001, cooldown: 0}
+    - {index: 0, id: 300001, cooldown: 1}
+    - {index: 1, id: 300001, cooldown: 0}
+    - {index: 2, id: 300001, cooldown: 2}
     - {index: 3, id: 900001, cooldown: 0}
     next_index: {unit: 20, contraption: 0}
     techs:

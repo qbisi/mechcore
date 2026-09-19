@@ -15,6 +15,7 @@ const UNIT_REINFORCEMENTS: &str = include_str!("../../../config/unit_reinforceme
 const ADVANCE_TEAMS: &str = include_str!("../../../config/advance_teams.yaml");
 const OFFICERS: &str = include_str!("../../../config/officers.yaml");
 const ECONOMY: &str = include_str!("../../../config/economy.yaml");
+const COMMANDER_SKILLS: &str = include_str!("../../../config/commander_skills.yaml");
 
 /// The prices and payouts of one build.
 #[derive(Debug)]
@@ -35,6 +36,30 @@ pub struct Economy {
     constructions: BTreeMap<String, i32>,
     contraptions: BTreeMap<i32, i32>,
     reinforce_decline: i32,
+    cooldowns: BTreeMap<i32, Cooldown>,
+}
+
+/// A commander skill's two cooldowns, in rounds.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+pub struct Cooldown {
+    /// Where a slot starts when the skill joins the panel.
+    #[serde(rename = "initial_cooldown")]
+    pub initial: i32,
+    /// Where a slot goes when a round spends the skill.
+    #[serde(rename = "cooldown")]
+    pub spent: i32,
+}
+
+#[derive(Deserialize)]
+struct CommanderSkillFile {
+    skills: Vec<CommanderSkillRow>,
+}
+
+#[derive(Deserialize)]
+struct CommanderSkillRow {
+    id: i32,
+    #[serde(flatten)]
+    cooldown: Cooldown,
 }
 
 /// What one unit costs to buy, to unlock and to raise one level.
@@ -345,6 +370,7 @@ impl Economy {
             parse(UNIT_REINFORCEMENTS, "config/unit_reinforcements.yaml")?;
         let officers: OfficerFile = parse(OFFICERS, "config/officers.yaml")?;
         let economy: EconomyFile = parse(ECONOMY, "config/economy.yaml")?;
+        let skills: CommanderSkillFile = parse(COMMANDER_SKILLS, "config/commander_skills.yaml")?;
         Ok(Self {
             units: units
                 .units
@@ -410,7 +436,18 @@ impl Economy {
             reinforce_decline: economy.reinforce_decline,
             technology_repeat_step: economy.technology_repeat_step,
             round_supply: economy.round_supply,
+            cooldowns: skills
+                .skills
+                .into_iter()
+                .map(|row| (row.id, row.cooldown))
+                .collect(),
         })
+    }
+
+    /// A commander skill's cooldowns.
+    #[must_use]
+    pub fn cooldown(&self, skill: i32) -> Option<Cooldown> {
+        self.cooldowns.get(&skill).copied()
     }
 
     #[must_use]

@@ -970,7 +970,7 @@ sides:
     battle_skills:
     - {index: 0, id: 1500001, cooldown: 0}
     - {index: 1, id: 900001, cooldown: 0}
-    - {index: 2, id: 400002, cooldown: 0}
+    - {index: 2, id: 400002, cooldown: 3}
     next_index: {unit: 29, contraption: 3}
     techs:
       officers: [20002, 20039]
@@ -1013,7 +1013,7 @@ sides:
     tower_strengthen_levels: [1, 0]
     battle_skills:
     - {index: 0, id: 900001, cooldown: 0}
-    - {index: 1, id: 400002, cooldown: 0}
+    - {index: 1, id: 400002, cooldown: 3}
     next_index: {unit: 32, contraption: 9}
     techs:
       officers: [20034, 31403]

@@ -400,7 +400,7 @@ sides:
     supply: 1050
     shop:
       unlocked_units: [1, 2, 3, 7, 10, 16, 20]
-      buys_remaining: 3
+      buys_remaining: 2
       unlocks_remaining: 1
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
@@ -430,7 +430,7 @@ sides:
     supply: 1100
     shop:
       unlocked_units: [10, 16, 19, 20, 31]
-      buys_remaining: 3
+      buys_remaining: 2
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 11, contraption: 1}
@@ -701,7 +701,7 @@ sides:
     supply: 1600
     shop:
       unlocked_units: [1, 2, 3, 7, 9, 10, 13, 16, 20]
-      buys_remaining: 2
+      buys_remaining: 3
       unlocks_remaining: 1
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
@@ -742,7 +742,7 @@ sides:
     supply: 1600
     shop:
       unlocked_units: [10, 16, 19, 20, 28, 31]
-      buys_remaining: 2
+      buys_remaining: 3
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     next_index: {unit: 23, contraption: 1}

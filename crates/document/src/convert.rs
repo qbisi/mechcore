@@ -33,8 +33,6 @@ const UNLOCK_COUNT_PER_ROUND: i32 = 1;
 const RAPID_SUPPLY_DEBT: i32 = 300;
 /// Energy tower skill `1`, the only one carrying a next-round supply change.
 const RAPID_SUPPLY_SKILL: i32 = 1;
-/// Energy tower skill `3` 批量征召, which raises this round's buy allowance.
-const MASS_RECRUIT_SKILL: i32 = 3;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
 const CHAIN_OFFICERS: [i32; 4] = [20300, 20301, 20310, 20311];
 /// Round 0 is the opening, which has no state and so is no turn.
@@ -340,12 +338,33 @@ fn side_state(
     let constructions = constructions(data, seat)?;
     let contraptions = contraptions(data, seat)?;
 
+    // The snapshot's cooldowns are the previous round's: the count-down that
+    // opens this round is made after it was taken. A slot the previous round
+    // spent restarts at its skill's cooldown, and every other drops by one.
+    let spent: Vec<i32> = position
+        .checked_sub(1)
+        .map(|previous| {
+            net_actions(&player.rounds.entries[previous].actions.entries)
+                .iter()
+                .filter(|action| action.kind == "PAD_ReleaseCommanderSkill")
+                .filter_map(|action| action.skill_index)
+                .collect()
+        })
+        .unwrap_or_default();
     let mut battle_skills = Vec::with_capacity(data.commander_skills.entries.len());
     for skill in &data.commander_skills.entries {
+        let cooldown = if spent.contains(&skill.index) {
+            economy
+                .cooldown(skill.id)
+                .ok_or_else(|| format!("commander skill {} has no cooldown", skill.id))?
+                .spent
+        } else {
+            (skill.cooling_round - 1).max(0)
+        };
         battle_skills.push(PanelSkill {
             index: skill.index,
             id: skill.id,
-            cooldown: skill.cooling_round,
+            cooldown,
             used: false,
             // A converted state opens a round, and a round opens with nothing
             // released. The round's releases are its actions.
@@ -399,8 +418,18 @@ fn side_state(
         supply: data.supply + round_income(economy, player, position, seat)?,
         shop: ShopState {
             unlocked_units,
-            buys_remaining: allowance(player, position, Allowance::Buy),
-            unlocks_remaining: allowance(player, position, Allowance::Unlock),
+            // A round opens with the shop's own allowance, one more purchase for
+            // every Extra Deployment card the side holds, and one unlock.
+            buys_remaining: BUY_COUNT_PER_ROUND
+                + i32::try_from(
+                    data.officers
+                        .values
+                        .iter()
+                        .filter(|officer| **officer == crate::transition::EXTRA_DEPLOYMENT_CARD)
+                        .count(),
+                )
+                .unwrap_or(0),
+            unlocks_remaining: UNLOCK_COUNT_PER_ROUND,
         },
         blueprints,
         // Every energy tower skill lasts one round, so a round starts with none.
@@ -592,49 +621,16 @@ fn round_income(
             max: setup.max_round_supply,
         },
     );
-    Ok(base - if debt { RAPID_SUPPLY_DEBT } else { 0 })
-}
-
-#[derive(Clone, Copy)]
-enum Allowance {
-    Buy,
-    Unlock,
-}
-
-/// What the round allows, which the recorded counter states one round late.
-///
-/// The recorded counter is what was left of the *previous* round's allowance,
-/// so this round's is the next snapshot's counter plus what this round spent.
-/// The last round has no next snapshot and falls back to the shipped constant.
-fn allowance(player: &record::PlayerRecord, position: usize, allowance: Allowance) -> i32 {
-    let Some(next) = player.rounds.entries.get(position + 1) else {
-        return match allowance {
-            Allowance::Buy => BUY_COUNT_PER_ROUND,
-            Allowance::Unlock => UNLOCK_COUNT_PER_ROUND,
-        };
-    };
-    let taken = net_actions(&player.rounds.entries[position].actions.entries);
-    let count = |kind: &str| {
-        i32::try_from(taken.iter().filter(|action| action.kind == kind).count()).unwrap_or(0)
-    };
-    match allowance {
-        Allowance::Buy => {
-            // Mass Recruitment raises the allowance during the round, so it is
-            // not part of what the round started with.
-            let granted = i32::try_from(
-                taken
-                    .iter()
-                    .filter(|action| {
-                        action.kind == "PAD_ActiveEnergyTowerSkill"
-                            && action.skill_id == Some(MASS_RECRUIT_SKILL)
-                    })
-                    .count(),
-            )
-            .unwrap_or(0);
-            next.data.shop.buy_count + count("PAD_BuyUnit") - granted
-        }
-        Allowance::Unlock => next.data.shop.unlock_count + count("PAD_UnlockUnit"),
-    }
+    // Equipment that pays an income pays it as the round opens, for the board
+    // the round opens with.
+    let worn: i32 = entry
+        .data
+        .units
+        .entries
+        .iter()
+        .map(|unit| economy.equipment_round_supply(unit.equipment_id))
+        .sum();
+    Ok(base + worn - if debt { RAPID_SUPPLY_DEBT } else { 0 })
 }
 
 /// Collapses a recorded action list onto the decisions that took effect.

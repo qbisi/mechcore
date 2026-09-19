@@ -68,6 +68,7 @@ ADVANCE_TEAMS = ROOT / "config/advance_teams.yaml"
 ECONOMY = ROOT / "config/economy.yaml"
 UNIT_PRICES = ROOT / "config/unit_prices.yaml"
 UNIT_EXPERIENCE = ROOT / "config/unit_experience.yaml"
+COMMANDER_SKILLS = ROOT / "config/commander_skills.yaml"
 DOC = ROOT / "docs/rules/unit_techs.md"
 BUILD = "1.11.1.3.2259"
 
@@ -250,6 +251,60 @@ def equipment_prices(blob, cursor):
         return {}
     return {"round_supply": price(round_supply, 0, 500),
             "upgrade_supply": price(upgrade, -1000, 0)}
+
+
+def commander_skill_cooldowns(blob):
+    """Every commander skill's two cooldowns, in rounds.
+
+    `CommanderSkillData` extends the shared base with, in declaration order, a
+    fixed-point `startTime`, then `initialCoolDown`, `money`, `sellMoney`,
+    `effectRangeType` and `effectType`, a fixed-point `effectRange`, and
+    `releaseInterval`. `initialCoolDown` is where a slot starts when the skill
+    joins the panel, and `releaseInterval` is where it goes once the skill is
+    spent.
+    """
+    rows = {}
+    for offset in range(0, len(blob) - 4, 4):
+        row = parse_reinforce_item(blob, offset)
+        if not row or not 100_000 <= row["id"] < 100_000_000 or row["id"] in rows:
+            continue
+        _, cursor = read_string(blob, offset + 4)
+        cursor += 4                                      # isTestData
+        for _ in range(4):
+            _, cursor = read_string(blob, cursor)
+        cursor += 12                                     # level, scope, supply
+        for _ in range(2):
+            _, cursor = read_string(blob, cursor)
+        cursor += 4                                      # reactorCore
+        (count,) = struct.unpack_from("<i", blob, cursor)
+        cursor += 4 + 4 * count                          # limitedScene
+        cursor += 4 * 3                                  # round bounds, repeat flag
+        cursor += 8                                      # startTime
+        initial, _, _, _, _ = struct.unpack_from("<5i", blob, cursor)
+        cursor += 4 * 5 + 8                              # ... effectRange
+        (interval,) = struct.unpack_from("<i", blob, cursor)
+        if not (0 <= initial <= 10 and 0 <= interval <= 10):
+            continue
+        rows[row["id"]] = {"id": row["id"], "name": row["name"],
+                           "initial_cooldown": initial, "cooldown": interval}
+    return rows
+
+
+def write_commander_skills(blob):
+    rows = commander_skill_cooldowns(blob)
+    lines = ["schema: mechcore.commander_skills", f"game_build: {BUILD}", "",
+             "# Every commander skill and its two cooldowns, in rounds.",
+             "# `initial_cooldown` is `initialCoolDown`, where a slot starts when",
+             "# the skill joins the panel. `cooldown` is `releaseInterval`, where it",
+             "# goes when a round spends the skill. docs/rules/commander_skills.md",
+             "# says how a round counts it down.",
+             "", "skills:"]
+    for row in sorted(rows.values(), key=lambda row: row["id"]):
+        lines.append(f"  - {{id: {row['id']}, name: {yaml_scalar(row['name'])}, "
+                     f"initial_cooldown: {row['initial_cooldown']}, "
+                     f"cooldown: {row['cooldown']}}}")
+    COMMANDER_SKILLS.write_text("\n".join(lines) + "\n")
+    print(f"commander skills: {len(rows)}")
 
 
 def reinforce_items(blob):
@@ -754,6 +809,7 @@ def main():
     REINFORCE.write_text("\n".join(lines) + "\n")
     print(f"cards a standard match can offer: {len(offered)}")
 
+    write_commander_skills(raw[COMMANDER_SKILL_PATH_ID])
     write_unit_reinforcements(structure, by_level)
     write_advance_teams(structure)
     write_officers(structure)
@@ -765,7 +821,7 @@ def main():
     sold = {row["id"] for row in structure["cardDatas"]}
     write_unit_experience({unit: name for unit, name in names.items() if unit in sold},
                           levels)
-    for path in (UNIT_TECHS, UNIT_PRICES, UNIT_EXPERIENCE, REINFORCE,
+    for path in (UNIT_TECHS, UNIT_PRICES, UNIT_EXPERIENCE, COMMANDER_SKILLS, REINFORCE,
                  UNIT_REINFORCEMENTS, ADVANCE_TEAMS, OFFICERS, ECONOMY):
         print(f"wrote {path.relative_to(ROOT)}")
 

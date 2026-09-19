@@ -219,8 +219,9 @@ pub(crate) fn is_deployment_skill(id: i32) -> bool {
 }
 /// Energy tower skill `3` 批量征召, which adds a purchase to this round.
 const MASS_RECRUIT_SKILL: i32 = 3;
-/// Reinforcement card `10004` 额外部署位, which adds one too.
-const EXTRA_DEPLOYMENT_CARD: i32 = 10_004;
+/// Reinforcement card `10004` 额外部署位, which adds one too. It is an officer
+/// the side keeps, so every later round opens with the extra purchase as well.
+pub(crate) const EXTRA_DEPLOYMENT_CARD: i32 = 10_004;
 /// How many purchases each of those two adds.
 ///
 /// Measured rather than read. No extracted table carries the count: the energy

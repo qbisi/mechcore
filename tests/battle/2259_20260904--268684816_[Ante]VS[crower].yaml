@@ -484,7 +484,7 @@ sides:
     - {type: fang, index: 16, position: {x: 140, y: -225}, exp: 85/600, rotated: true, value: 100}
   red:
     reactor_core: 2621
-    supply: 1050
+    supply: 1100
     shop:
       unlocked_units: [6, 9, 10, 20, 27, 31]
       buys_remaining: 2
@@ -608,7 +608,7 @@ sides:
     - {type: hound, index: 19, position: {x: -280, y: -190}, exp: 142/750, value: 100}
   red:
     reactor_core: 1238
-    supply: 1400
+    supply: 1450
     shop:
       unlocked_units: [6, 9, 10, 20, 24, 27, 31]
       buys_remaining: 2

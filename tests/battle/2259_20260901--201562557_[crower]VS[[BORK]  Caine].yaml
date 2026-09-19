@@ -265,7 +265,7 @@ sides:
     tower_strengthen_levels: [0, 0]
     battle_skills:
     - {index: 0, id: 1100001, cooldown: 0}
-    - {index: 1, id: 1200003, cooldown: 0}
+    - {index: 1, id: 1200003, cooldown: 3}
     next_index: {unit: 10, contraption: 0}
     techs:
       officers: [10014]
@@ -291,7 +291,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 0}
+    - {index: 0, id: 1200003, cooldown: 3}
     next_index: {unit: 10, contraption: 0}
     techs:
       officers: [20039]
@@ -351,9 +351,9 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 0}
-    - {index: 1, id: 1200003, cooldown: 3}
-    - {index: 2, id: 500002, cooldown: 0}
+    - {index: 0, id: 1100001, cooldown: 1}
+    - {index: 1, id: 1200003, cooldown: 2}
+    - {index: 2, id: 500002, cooldown: 3}
     next_index: {unit: 12, contraption: 0}
     techs:
       officers: [10014]
@@ -382,7 +382,7 @@ sides:
       unlocks_remaining: 1
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 3}
+    - {index: 0, id: 1200003, cooldown: 2}
     - {index: 1, id: 1100001, cooldown: 0}
     next_index: {unit: 13, contraption: 0}
     techs:
@@ -465,9 +465,9 @@ sides:
     blueprints: [4]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 1}
-    - {index: 1, id: 1200003, cooldown: 2}
-    - {index: 2, id: 500002, cooldown: 3}
+    - {index: 0, id: 1100001, cooldown: 0}
+    - {index: 1, id: 1200003, cooldown: 1}
+    - {index: 2, id: 500002, cooldown: 2}
     next_index: {unit: 17, contraption: 1}
     techs:
       officers: [10014]
@@ -504,8 +504,8 @@ sides:
     blueprints: [2, 4, 5]
     tower_strengthen_levels: [1, 0]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 2}
-    - {index: 1, id: 1100001, cooldown: 0}
+    - {index: 0, id: 1200003, cooldown: 1}
+    - {index: 1, id: 1100001, cooldown: 1}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 18, contraption: 0}
     techs:
@@ -576,10 +576,10 @@ sides:
     blueprints: [1, 4]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 0}
-    - {index: 1, id: 1200003, cooldown: 1}
-    - {index: 2, id: 500002, cooldown: 2}
-    - {index: 3, id: 400002, cooldown: 0}
+    - {index: 0, id: 1100001, cooldown: 1}
+    - {index: 1, id: 1200003, cooldown: 0}
+    - {index: 2, id: 500002, cooldown: 1}
+    - {index: 3, id: 400002, cooldown: 3}
     next_index: {unit: 19, contraption: 1}
     techs:
       officers: [10014, 20023]
@@ -616,8 +616,8 @@ sides:
     blueprints: [2, 4, 5]
     tower_strengthen_levels: [1, 0]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 1}
-    - {index: 1, id: 1100001, cooldown: 1}
+    - {index: 0, id: 1200003, cooldown: 0}
+    - {index: 1, id: 1100001, cooldown: 0}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 21, contraption: 2}
     techs:
@@ -709,10 +709,10 @@ sides:
     blueprints: [1, 2, 4]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 1}
-    - {index: 1, id: 1200003, cooldown: 0}
-    - {index: 2, id: 500002, cooldown: 1}
-    - {index: 3, id: 400002, cooldown: 3}
+    - {index: 0, id: 1100001, cooldown: 0}
+    - {index: 1, id: 1200003, cooldown: 3}
+    - {index: 2, id: 500002, cooldown: 0}
+    - {index: 3, id: 400002, cooldown: 2}
     - {index: 4, id: 900001, cooldown: 0}
     next_index: {unit: 23, contraption: 1}
     techs:
@@ -753,8 +753,8 @@ sides:
     blueprints: [2, 4, 5]
     tower_strengthen_levels: [1, 1]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 0}
-    - {index: 1, id: 1100001, cooldown: 0}
+    - {index: 0, id: 1200003, cooldown: 3}
+    - {index: 1, id: 1100001, cooldown: 1}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 25, contraption: 10}
     techs:
@@ -854,10 +854,10 @@ sides:
     blueprints: [1, 2, 5, 401]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 0}
-    - {index: 1, id: 1200003, cooldown: 3}
-    - {index: 2, id: 500002, cooldown: 0}
-    - {index: 3, id: 400002, cooldown: 2}
+    - {index: 0, id: 1100001, cooldown: 1}
+    - {index: 1, id: 1200003, cooldown: 2}
+    - {index: 2, id: 500002, cooldown: 3}
+    - {index: 3, id: 400002, cooldown: 1}
     - {index: 4, id: 900001, cooldown: 0}
     next_index: {unit: 26, contraption: 2}
     techs:
@@ -901,8 +901,8 @@ sides:
     blueprints: [2, 4, 5]
     tower_strengthen_levels: [1, 1]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 3}
-    - {index: 1, id: 1100001, cooldown: 1}
+    - {index: 0, id: 1200003, cooldown: 2}
+    - {index: 1, id: 1100001, cooldown: 0}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 28, contraption: 15}
     techs:
@@ -1011,10 +1011,10 @@ sides:
     blueprints: [1, 2, 5, 401]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 1}
-    - {index: 1, id: 1200003, cooldown: 2}
-    - {index: 2, id: 500002, cooldown: 3}
-    - {index: 3, id: 400002, cooldown: 1}
+    - {index: 0, id: 1100001, cooldown: 0}
+    - {index: 1, id: 1200003, cooldown: 1}
+    - {index: 2, id: 500002, cooldown: 2}
+    - {index: 3, id: 400002, cooldown: 0}
     - {index: 4, id: 900001, cooldown: 0}
     next_index: {unit: 29, contraption: 6}
     techs:
@@ -1062,8 +1062,8 @@ sides:
     blueprints: [2, 4, 5]
     tower_strengthen_levels: [1, 1]
     battle_skills:
-    - {index: 0, id: 1200003, cooldown: 2}
-    - {index: 1, id: 1100001, cooldown: 0}
+    - {index: 0, id: 1200003, cooldown: 1}
+    - {index: 1, id: 1100001, cooldown: 1}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 30, contraption: 19}
     techs:

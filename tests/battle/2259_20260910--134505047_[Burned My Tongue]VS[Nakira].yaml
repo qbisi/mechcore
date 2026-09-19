@@ -210,7 +210,7 @@ sides:
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 0}
+    - {index: 0, id: 1100001, cooldown: 1}
     - {index: 1, id: 900001, cooldown: 0}
     next_index: {unit: 7, contraption: 0}
     techs:
@@ -286,7 +286,7 @@ sides:
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 1100001, cooldown: 1}
+    - {index: 0, id: 1100001, cooldown: 0}
     - {index: 1, id: 900001, cooldown: 0}
     next_index: {unit: 9, contraption: 0}
     techs:

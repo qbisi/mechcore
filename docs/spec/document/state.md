@@ -297,9 +297,10 @@ The two counters that remain are stored as what is left, not as what was used,
 because that is the number a legality check reads. The purchase allowance gates
 a purchase directly: a buy is refused when the counter has fallen to zero.
 
-Neither can be copied from a replay, for the same reason `supply` cannot: the
-recorded counters describe the previous round, because the snapshot is taken
-before the round's own reset.
+A round opens with two purchases, one more for every Additional Deployment Slot
+(`10004`) the side holds, and one unlock. Neither can be copied from a replay,
+for the same reason `supply` cannot: the recorded counters describe the previous
+round, because the snapshot is taken before the round's own reset.
 
 ### Technologies stay flat
 
@@ -420,7 +421,11 @@ previous one. The panel is sorted by `index`, which duplicate skill IDs make the
 only well-order available, since one panel can hold the same ID twice.
 
 `cooldown` covers a skill that cannot be released this round. A layout cannot
-express one, because a layout only names releases.
+express one, because a layout only names releases. It is counted as a round
+opens: a slot the round before spent, by a release or a deployment skill,
+restarts at its skill's cooldown, and every other slot drops by one to zero. A
+slot joins the panel at its skill's initial cooldown. [The commander skill
+index](../../rules/commander_skills.md) gives both per skill.
 
 `release` is present on a skill released this round, and `order` states where in
 the release sequence it falls. Moving release order into an explicit field is
@@ -487,10 +492,11 @@ also have to admit.
 ## Rebuilding a state offline
 
 Most of a round's state can be read out of a replay without running the game.
-Four fields cannot be copied. Three are stale, because the snapshot precedes the
-round's own reset: `supply` and the two shop counters state what stood before
-the round's income and allowances arrived. The fourth, `energy_tower_skills`, is
-not stale but a different quantity, and it is rebuilt from the round's actions.
+Five fields cannot be copied. Four are stale, because the snapshot precedes the
+round's own reset: `supply`, the two shop counters and each slot's `cooldown`
+state what stood before the round's income, allowances and count-down arrived.
+The fifth, `energy_tower_skills`, is not stale but a different quantity, and it
+is rebuilt from the round's actions.
 
 The unit roster comes from the per-round player data rather than from the
 match-level fight report, because the first two rounds precede the first fight
@@ -553,7 +559,3 @@ only deciding later offers. A use that rolls rather than supplies an offer would
 break the second half of that, and the format would need a field for the four
 words rather than a derivation.
 
-**What raises the purchase allowance.** `buys_remaining` is not constant, and
-the modifier that raises it is fed by officer and energy tower skill data. Which
-decision buys the extra purchase is not established, so a state records the
-allowance as dealt and no action claims to set it.

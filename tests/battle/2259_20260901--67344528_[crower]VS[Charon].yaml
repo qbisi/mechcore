@@ -308,7 +308,7 @@ sides:
     tower_strengthen_levels: [0, 0]
     battle_skills:
     - {index: 0, id: 300001, cooldown: 0}
-    - {index: 1, id: 300001, cooldown: 0}
+    - {index: 1, id: 300001, cooldown: 2}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 11, contraption: 0}
     techs:
@@ -400,8 +400,8 @@ sides:
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 0}
-    - {index: 1, id: 300001, cooldown: 2}
+    - {index: 0, id: 300001, cooldown: 2}
+    - {index: 1, id: 300001, cooldown: 1}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 12, contraption: 0}
     techs:
@@ -500,8 +500,8 @@ sides:
     blueprints: [2]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 2}
-    - {index: 1, id: 300001, cooldown: 1}
+    - {index: 0, id: 300001, cooldown: 1}
+    - {index: 1, id: 300001, cooldown: 0}
     - {index: 2, id: 900001, cooldown: 0}
     next_index: {unit: 14, contraption: 1}
     techs:
@@ -606,8 +606,8 @@ sides:
     blueprints: [2, 3]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 1}
-    - {index: 1, id: 300001, cooldown: 0}
+    - {index: 0, id: 300001, cooldown: 0}
+    - {index: 1, id: 300001, cooldown: 2}
     - {index: 2, id: 900001, cooldown: 0}
     - {index: 3, id: 1500001, cooldown: 0}
     next_index: {unit: 15, contraption: 1}
@@ -717,8 +717,8 @@ sides:
     blueprints: [2, 3]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 0}
-    - {index: 1, id: 300001, cooldown: 2}
+    - {index: 0, id: 300001, cooldown: 2}
+    - {index: 1, id: 300001, cooldown: 1}
     - {index: 2, id: 900001, cooldown: 0}
     - {index: 3, id: 1500001, cooldown: 0}
     next_index: {unit: 18, contraption: 1}
@@ -839,8 +839,8 @@ sides:
     blueprints: [2, 3, 4]
     tower_strengthen_levels: [0, 0]
     battle_skills:
-    - {index: 0, id: 300001, cooldown: 2}
-    - {index: 1, id: 300001, cooldown: 1}
+    - {index: 0, id: 300001, cooldown: 1}
+    - {index: 1, id: 300001, cooldown: 0}
     - {index: 2, id: 900001, cooldown: 0}
     - {index: 3, id: 1500001, cooldown: 0}
     next_index: {unit: 23, contraption: 1}

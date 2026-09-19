@@ -23,6 +23,11 @@ last group is why taking an Officer card can put a skill on the panel.
 [`docs/reinforce_items.md`](reinforce_items.md) explains the card system, and
 the effect text below has no machine-readable counterpart yet.
 
+Additional Deployment Slot, `10004`, raises the purchases a round allows by one,
+in the round it is taken and in every round after, since the side keeps the
+Officer. A round opens with two purchases plus one per copy held. In the build
+2259 local observation set, all 668 round openings hold exactly that many.
+
 `Test-only` entries exist in the runtime catalog and are listed for completeness.
 They are not ordinary opening or reinforcement choices. Derived/internal entries
 may be owned by another layout field; in particular Research Center attack and
