@@ -37,17 +37,7 @@ pub const FIGHT: &[&str] = &[
 /// hold yet. Their leaves count as unimplemented whatever the prediction says,
 /// because a value no rule produced can only agree by accident. A group leaves
 /// this list with the rule that predicts it.
-pub const UNIMPLEMENTED: &[&str] = &[
-    "supply",
-    "shop.buys_remaining",
-    "shop.unlocks_remaining",
-    "energy_tower_skills",
-    "battle_skills.cooldown",
-    "battle_skills.used",
-    "battle_skills.release",
-    "formations.movable",
-    "formations.travelling",
-];
+pub const UNIMPLEMENTED: &[&str] = &["supply"];
 
 /// The fields the reinforcement deal reads from the position it is dealt in.
 /// A deal checked against the recorded position is a deal of the predicted
@@ -509,12 +499,9 @@ mod tests {
         assert!(unequal.is_empty(), "{unequal:#?}");
         let expected: BTreeMap<String, Counts> = [
             ("airdrop_shields", [0, 0, 0, 9]),
-            ("battle_skills.cooldown", [0, 0, 1062, 0]),
+            ("battle_skills.cooldown", [1054, 0, 8, 0]),
             ("battle_skills.id", [1054, 0, 8, 0]),
             ("battle_skills.index", [1054, 0, 8, 0]),
-            ("battle_skills.release.order", [0, 0, 477, 0]),
-            ("battle_skills.release.target", [0, 0, 477, 0]),
-            ("battle_skills.used", [0, 0, 72, 0]),
             ("blueprints", [433, 0, 0, 0]),
             ("constructions.index", [652, 0, 142, 0]),
             ("constructions.position.x", [652, 0, 142, 0]),
@@ -524,26 +511,24 @@ mod tests {
             ("contraptions.position.x", [0, 0, 0, 346]),
             ("contraptions.position.y", [0, 0, 0, 346]),
             ("contraptions.type", [0, 0, 0, 346]),
-            ("energy_tower_skills", [0, 0, 294, 0]),
             ("equipment", [22, 0, 2, 0]),
             ("formations.equipment", [319, 0, 0, 0]),
             ("formations.exp", [0, 0, 0, 8902]),
             ("formations.index", [9084, 0, 410, 0]),
             ("formations.level", [2600, 0, 0, 0]),
-            ("formations.movable", [0, 0, 2558, 0]),
+            ("formations.movable", [45, 0, 410, 0]),
             ("formations.position.x", [9084, 0, 410, 0]),
             ("formations.position.y", [9084, 0, 410, 0]),
             ("formations.rotated", [3058, 0, 0, 0]),
-            ("formations.travelling", [0, 0, 130, 0]),
             ("formations.type", [9084, 0, 410, 0]),
             ("formations.value", [9084, 0, 410, 0]),
             ("next_index.contraption", [586, 0, 82, 0]),
             ("next_index.unit", [586, 0, 82, 0]),
             ("reactor_core", [0, 0, 0, 668]),
             ("reinforce_offers", [293, 0, 0, 0]),
-            ("shop.buys_remaining", [0, 0, 668, 0]),
+            ("shop.buys_remaining", [586, 0, 82, 0]),
             ("shop.unlocked_units", [586, 0, 82, 0]),
-            ("shop.unlocks_remaining", [0, 0, 668, 0]),
+            ("shop.unlocks_remaining", [586, 0, 82, 0]),
             ("supply", [0, 0, 668, 0]),
             ("techs.officers", [586, 0, 82, 0]),
             ("techs.units", [389, 0, 0, 0]),

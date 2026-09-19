@@ -513,6 +513,14 @@ owns it:
 | `movable` | No recorded field states it. Every formation of round 1 arrived with the opening, and a delivery arrived as its round opened; any other formation moves only if a Deployment Module or a Jump Drive frees it |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
+Only `supply` and `equipment` are rebuilt by conversion's own rules. The
+allowances, the cooldowns, the energy tower skills, `movable` and the
+deliveries are what a round's opening does, and conversion makes that opening
+rather than restating it: it reads the snapshot as it stands before the round
+opens, marks the slots the previous round's actions spent, and opens the round
+on it with the same rule a transition's prediction ends with. A converted
+opening and a predicted one therefore cannot follow two sets of rules.
+
 The energy tower debt is the one quantity two readings produce, and the two have
 to agree. A round's decisions say what it owes, and the recorded list says the
 same thing a round later, because the activation flag survives into the round

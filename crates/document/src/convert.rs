@@ -25,10 +25,6 @@ use std::collections::BTreeMap;
 
 /// The build these catalogues and conventions are pinned to.
 const BUILD: &str = "2259";
-/// `Shop.BUY_COUNT_PER_ROUND`, before any officer or energy tower modifier.
-const BUY_COUNT_PER_ROUND: i32 = 2;
-/// `Shop.UNLOCK_COUNT_PER_ROUND`.
-const UNLOCK_COUNT_PER_ROUND: i32 = 1;
 /// Energy tower skill `1` 快速补给 pays 200 now against this at the next round.
 const RAPID_SUPPLY_DEBT: i32 = 300;
 /// Energy tower skill `1`, the only one carrying a next-round supply change.
@@ -334,13 +330,13 @@ fn side_state(
     let data = &entry.data;
     let round = entry.round;
 
-    let mut formations = formations(data, seat)?;
+    let formations = formations(data, seat)?;
     let constructions = constructions(data, seat)?;
     let contraptions = contraptions(data, seat)?;
 
-    // The snapshot's cooldowns are the previous round's: the count-down that
-    // opens this round is made after it was taken. A slot the previous round
-    // spent restarts at its skill's cooldown, and every other drops by one.
+    // The snapshot is taken before the round opens, so its cooldowns are the
+    // previous round's, and the slots the previous round spent are marked
+    // here for the opening to restart. The actions say which were spent.
     let spent: Vec<i32> = position
         .checked_sub(1)
         .map(|previous| {
@@ -351,26 +347,18 @@ fn side_state(
                 .collect()
         })
         .unwrap_or_default();
-    let mut battle_skills = Vec::with_capacity(data.commander_skills.entries.len());
-    for skill in &data.commander_skills.entries {
-        let cooldown = if spent.contains(&skill.index) {
-            economy
-                .cooldown(skill.id)
-                .ok_or_else(|| format!("commander skill {} has no cooldown", skill.id))?
-                .spent
-        } else {
-            (skill.cooling_round - 1).max(0)
-        };
-        battle_skills.push(PanelSkill {
+    let mut battle_skills: Vec<PanelSkill> = data
+        .commander_skills
+        .entries
+        .iter()
+        .map(|skill| PanelSkill {
             index: skill.index,
             id: skill.id,
-            cooldown,
-            used: false,
-            // A converted state opens a round, and a round opens with nothing
-            // released. The round's releases are its actions.
+            cooldown: skill.cooling_round,
+            used: spent.contains(&skill.index),
             release: None,
-        });
-    }
+        })
+        .collect();
     battle_skills.sort_by_key(|skill| skill.index);
 
     let retained = retained_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
@@ -402,37 +390,20 @@ fn side_state(
         .collect();
     units.sort_unstable();
 
-    // Every formation of round 1 arrived as it opened, with the opening. A
-    // later round's snapshot is taken before that round's deliveries, which are
-    // made below and arrive free to move, so what the snapshot holds was on the
-    // board last round and moves only if something frees it.
-    for entry in &mut formations {
-        entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &units);
-    }
-
     let mut unlocked_units = data.shop.unlocked_units.values.clone();
     unlocked_units.sort_unstable();
 
     let snapshot = SideState {
         reactor_core: data.reactor_core,
         supply: data.supply + round_income(economy, player, position, seat)?,
+        // The allowances are the opening's to set.
         shop: ShopState {
             unlocked_units,
-            // A round opens with the shop's own allowance, one more purchase for
-            // every Extra Deployment card the side holds, and one unlock.
-            buys_remaining: BUY_COUNT_PER_ROUND
-                + i32::try_from(
-                    data.officers
-                        .values
-                        .iter()
-                        .filter(|officer| **officer == crate::transition::EXTRA_DEPLOYMENT_CARD)
-                        .count(),
-                )
-                .unwrap_or(0),
-            unlocks_remaining: UNLOCK_COUNT_PER_ROUND,
+            buys_remaining: 0,
+            unlocks_remaining: 0,
         },
         blueprints,
-        // Every energy tower skill lasts one round, so a round starts with none.
+        // The opening lapses whatever the previous round activated.
         energy_tower_skills: Vec::new(),
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
         equipment: unfitted_equipment(data),
@@ -449,10 +420,10 @@ fn side_state(
         terrains: retained.terrains,
     };
 
-    // The snapshot is taken before the round's deliveries, which the game
-    // makes as the round opens and before either side decides anything. They
-    // belong to the position the round opens with, so they are made here, and
-    // each lands where the board puts it.
+    // The snapshot is taken before the round opens: before its resets, and
+    // before its deliveries, which the game makes before either side decides
+    // anything. Both belong to the position the round opens with, so the
+    // opening is made here, and each delivery lands where the board puts it.
     let mut placement = crate::landing::placement(seat == Seat::Red);
     crate::transition::open_round(economy, &snapshot, round, &mut placement)
         .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
@@ -466,7 +437,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
         formations.push(StateFormation {
             value: Some(unit.sell_supply),
-            // Settled by `side_state`, which knows the round.
+            // Settled by the opening, which knows the round.
             movable: false,
             formation: Formation {
             type_name: type_name.to_owned(),

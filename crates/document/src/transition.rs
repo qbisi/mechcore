@@ -1114,17 +1114,27 @@ fn granted(economy: &Economy, actions: &[Action]) -> Granted {
     granted
 }
 
-/// Hands a side what its officers deliver as `round` opens.
+/// `Shop.BUY_COUNT_PER_ROUND`, before any officer or energy tower modifier.
+pub(crate) const BUY_COUNT_PER_ROUND: i32 = 2;
+/// `Shop.UNLOCK_COUNT_PER_ROUND`.
+pub(crate) const UNLOCK_COUNT_PER_ROUND: i32 = 1;
+
+/// Opens `round` on the position the previous round left.
 ///
-/// A delivery is not a decision: the game makes it before either side takes
-/// one, so it belongs to the position a round opens with. An officer's squad,
+/// Two things happen, in this order, before either side takes a decision, so
+/// both belong to the position a round opens with. First the round resets what
+/// lasts one round: the skill panel counts down, the shop's allowances refill,
+/// the energy tower skills lapse, and the board's formations are fixed again
+/// unless something frees them. Then the officers deliver: an officer's squad,
 /// its commander skills and its equipment arrive in its `active_round`, and its
 /// unit joins the shop in its `unlock_round`. The squad lands where the board
-/// puts it, which `placement` supplies; it arrived this round, so it may move.
+/// puts it, which `placement` supplies; it arrived this round, so it may move,
+/// and a delivered skill starts after the count-down rather than inside it.
 ///
 /// # Errors
 ///
-/// Returns [`Unsettled`] when a delivered unit has no price or no landing.
+/// Returns [`Unsettled`] when a spent skill has no cooldown, or a delivered
+/// unit has no price or no landing.
 pub fn open_round(
     economy: &Economy,
     state: &SideState,
@@ -1132,6 +1142,7 @@ pub fn open_round(
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
+    reset(economy, &mut next, round)?;
     for officer in state.techs.officers.clone() {
         let Some(row) = economy.officer(officer) else {
             continue;
@@ -1167,6 +1178,45 @@ pub fn open_round(
     Ok(next)
 }
 
+/// Resets what lasts one round, as `round` opens.
+///
+/// A panel slot spent in the previous round, by a release or as a deployment
+/// skill, restarts at its skill's cooldown; every other counts down by one to
+/// no lower than zero. The shop allows two purchases, one more for every
+/// Extra Deployment card the side holds, and one unlock. Every energy tower
+/// skill lasts one round. A formation on the board was there last round, so
+/// it is fixed unless [`crate::mobility::free`] frees it, except in round 1,
+/// whose whole board arrived with the opening. `docs/rules/commander_skills.md`
+/// and `docs/rules/mobility.md` state the rules.
+fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unsettled> {
+    for slot in &mut next.battle_skills {
+        slot.cooldown = if slot.used || slot.release.is_some() {
+            economy
+                .cooldown(slot.id)
+                .ok_or(Unsettled::Unpriced("cooldown"))?
+                .spent
+        } else {
+            (slot.cooldown - 1).max(0)
+        };
+        slot.used = false;
+        slot.release = None;
+    }
+    let extra = next
+        .techs
+        .officers
+        .iter()
+        .filter(|officer| **officer == EXTRA_DEPLOYMENT_CARD)
+        .count();
+    next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
+    next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
+    next.energy_tower_skills.clear();
+    let techs = next.techs.units.clone();
+    for entry in &mut next.formations {
+        entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &techs);
+    }
+    Ok(())
+}
+
 /// Predicts the position a side opens `round + 1` with, from the position it
 /// opened `round` with and the decisions it took there.
 ///
@@ -1192,6 +1242,11 @@ pub fn predict(
     let mut position = state.clone();
     for action in actions {
         position = step_placing(economy, &position, action, &mut placement)?;
+    }
+    // Whatever else the fight does, it empties the travelling set: a
+    // formation's crossing is over once the fight has run.
+    for entry in &mut position.formations {
+        entry.formation.travelling = None;
     }
     open_round(economy, &position, round + 1, &mut placement)
 }
@@ -1239,8 +1294,10 @@ fn officer_deliveries(economy: &Economy, state: &SideState, granted: &mut Grante
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{apply, check, opening_position, step, travelling};
-    use crate::battle::{Action, EquipmentItem, SideState, StateFormation};
+    use super::{EXTRA_DEPLOYMENT_CARD, apply, check, opening_position, step, travelling};
+    use crate::battle::{
+        Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
+    };
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
     use crate::layout::{Experience, Formation, Position};
@@ -1359,6 +1416,137 @@ mod tests {
                 .equipment
                 .is_empty()
         );
+    }
+
+    fn slot(index: i32, id: i32, cooldown: i32) -> PanelSkill {
+        PanelSkill {
+            index,
+            id,
+            cooldown,
+            used: false,
+            release: None,
+        }
+    }
+
+    /// A slot the round spent restarts at its skill's cooldown, however it was
+    /// spent; every other counts down, and none goes below zero.
+    #[test]
+    fn an_opening_restarts_spent_slots_and_counts_the_rest_down() {
+        let economy = Economy::embedded().unwrap();
+        let released = PanelSkill {
+            release: Some(Release {
+                order: 0,
+                target: SkillTarget::Area(Vec::new()),
+            }),
+            ..slot(0, 300_001, 0)
+        };
+        let trained = PanelSkill {
+            used: true,
+            ..slot(1, 1_100_001, 0)
+        };
+        let state = SideState {
+            battle_skills: vec![released, trained, slot(2, 300_004, 3), slot(3, 200_001, 0)],
+            ..SideState::default()
+        };
+        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
+        let restart = |id| economy.cooldown(id).unwrap().spent;
+        assert_eq!(
+            opened.battle_skills,
+            vec![
+                slot(0, 300_001, restart(300_001)),
+                slot(1, 1_100_001, restart(1_100_001)),
+                slot(2, 300_004, 2),
+                slot(3, 200_001, 0),
+            ]
+        );
+    }
+
+    /// The shop refills to two purchases and one unlock, plus one purchase for
+    /// every Extra Deployment card held, and energy tower skills lapse.
+    #[test]
+    fn an_opening_refills_the_shop_and_lapses_tower_skills() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            shop: crate::battle::ShopState {
+                unlocked_units: Vec::new(),
+                buys_remaining: 0,
+                unlocks_remaining: 0,
+            },
+            energy_tower_skills: vec![1],
+            techs: crate::layout::Techs {
+                officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
+                units: Vec::new(),
+            },
+            ..SideState::default()
+        };
+        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
+        assert_eq!(
+            (opened.shop.buys_remaining, opened.shop.unlocks_remaining),
+            (4, 1)
+        );
+        assert!(opened.energy_tower_skills.is_empty());
+    }
+
+    /// What was on the board last round is fixed, unless something frees it;
+    /// round 1's whole board arrived with the opening.
+    #[test]
+    fn an_opening_fixes_the_board_unless_something_frees_it() {
+        let economy = Economy::embedded().unwrap();
+        let formation = |index, equipment| StateFormation {
+            formation: crate::layout::Formation {
+                type_name: "crawler".into(),
+                index,
+                position: Position { x: 0, y: -160 },
+                level: None,
+                exp: None,
+                rotated: None,
+                equipment,
+                travelling: None,
+            },
+            value: Some(100),
+            movable: true,
+        };
+        let state = SideState {
+            formations: vec![
+                formation(0, None),
+                formation(1, Some(crate::mobility::DEPLOYMENT_MODULE)),
+            ],
+            ..SideState::default()
+        };
+        let movable = |round| {
+            super::open_round(&economy, &state, round, &mut |_, _| None)
+                .unwrap()
+                .formations
+                .iter()
+                .map(|entry| entry.movable)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(movable(1), [true, true]);
+        assert_eq!(movable(2), [false, true]);
+    }
+
+    /// The fight empties the travelling set whatever else it does, so a
+    /// prediction carries no crossing into the next round.
+    #[test]
+    fn a_prediction_carries_no_crossing_into_the_next_round() {
+        let economy = Economy::embedded().unwrap();
+        let mut state = SideState::default();
+        state.formations.push(StateFormation {
+            formation: crate::layout::Formation {
+                type_name: "crawler".into(),
+                index: 0,
+                position: Position { x: 0, y: -160 },
+                level: None,
+                exp: None,
+                rotated: None,
+                equipment: None,
+                travelling: Some(true),
+            },
+            value: Some(100),
+            movable: false,
+        });
+        let predicted = super::predict(&economy, 3, &state, &[], false).unwrap();
+        assert_eq!(predicted.formations[0].formation.travelling, None);
     }
 
     /// An officer delivers its equipment in its own round, not when it arrives.
