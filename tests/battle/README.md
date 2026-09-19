@@ -35,9 +35,6 @@ the releasing skill's own `rangeItems` rather than from any object list:
 rounds, which is what distinguishes a retained object from a restatement of one
 round's release.
 
-The supply ledger closes all 668 of 668 seams, which is each side's opening onto
-its first round and then every round onto the next.
-
 Three converted documents end with a `concede` decision, and those three are
 among the 9,980 actions: `[Dre420]VS[[TUFF] Wumple Doodle]`,
 `[NemoCoda]VS[Camilo.Y]` and `[Dr. crbN]VS[trevorism]`. The other 38 matches

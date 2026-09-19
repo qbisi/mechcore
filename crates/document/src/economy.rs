@@ -175,7 +175,9 @@ pub struct Officer {
     pub first_round_supply: i32,
     #[serde(default)]
     pub granted_supply: i32,
-    /// A bounty the fight pays, which is why a side holding one is not checked.
+    /// A bounty the fight pays. No opening deals and no card grants an
+    /// officer with one in standard 1v1, which is why supply is predicted
+    /// without a fight.
     #[serde(default)]
     pub kill_bounty: i32,
     /// Commander skills the officer puts on the panel when it arrives.

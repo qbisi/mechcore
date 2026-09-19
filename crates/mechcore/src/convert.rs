@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-/// How many ledger failures or unequal leaves to name before counting the rest.
+/// How many unequal leaves to name before counting the rest.
 const FAILURES_SHOWN: usize = 5;
 
 /// Converts one locally recorded replay into a battle document.
@@ -30,7 +30,6 @@ pub(crate) fn run(mut arguments: impl Iterator<Item = String>) -> Result<(), Str
         fs::read(&source).map_err(|error| format!("cannot read {}: {error}", source.display()))?;
     let battle = mechcore_document::convert::battle_from_grbr(&grbr)?;
     let economy = mechcore_document::economy::Economy::embedded()?;
-    let ledger = mechcore_document::ledger::check(&battle, &economy);
     let yaml = mechcore_document::battle::canonical_yaml(&battle)?;
     // The document is measured as it was written, the way `verify` reads it.
     let stated = mechcore_document::opening::stated(yaml.as_bytes())?
@@ -59,23 +58,6 @@ pub(crate) fn run(mut arguments: impl Iterator<Item = String>) -> Result<(), Str
         battle.turns.len(),
         actions
     );
-    println!(
-        "  supply ledger: {} of {} seams close, \
-         {} paid by the fight, {} unpriced",
-        ledger.closed,
-        ledger.checked(),
-        ledger.fight_pays,
-        ledger.unpriced
-    );
-    for failure in ledger.failures.iter().take(FAILURES_SHOWN) {
-        println!(
-            "    round {} {} holds {} where the ledger expects {}",
-            failure.round, failure.side, failure.actual, failure.expected
-        );
-    }
-    if ledger.failures.len() > FAILURES_SHOWN {
-        println!("    and {} more", ledger.failures.len() - FAILURES_SHOWN);
-    }
     let total = coverage.total;
     println!(
         "  transitions: {} leaves equal, {} unequal, {} unimplemented, {} the fight's",

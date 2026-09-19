@@ -422,32 +422,31 @@ Officer it grants follows.
 The reactor core rises only across the opening, by the amount the team and the
 specialist carry between them. After the opening it only falls.
 
-### The supply ledger
+### Supply
 
-A battle is the level at which supply can be checked, because the identity
-spans two rounds:
+Supply is one of the fields a round's transition predicts, and it satisfies
+one identity across two rounds:
 
 ```text
 supply(round + 1) = supply(round) - spent(round) + income(round + 1)
 ```
 
-Income is the map's row plus what the side's officers add and what the
-equipment worn on the board the next round opens with pays,
-less what a Rapid Supply owes from the round before. Spending prices the round's
-decisions; [`action.md`](action.md) says what each costs, and the tables in
-`config/` carry the amounts.
+Spending is what the round's decisions cost, charged as each is taken;
+[`action.md`](action.md) says what each costs, and the tables in `config/`
+carry the amounts. Income is the schedule every versus map shares, plus what
+the officers held as the next round opens add and what the equipment worn on
+its board pays, less what an energy tower skill activated this round still
+owes.
 
-Two rounds cannot be decided by the identity alone. A side holding an officer
-that pays a bounty for destroying a giant is paid by the fight in an amount no
-segment records, so such a round is counted apart rather than failed.
+Nothing else reaches the supply between two rounds. Standard 1v1 pays nothing
+during a fight: the only officers in this build that pay a bounty for
+destroying a giant are neither dealt by an opening nor granted by a card. So
+`supply` is not in the `fight` class, and a battle whose supply does not add up
+fails to verify at that leaf.
 
-The opening is the first term of that identity rather than an exception to it. A
-side starts holding nothing, pays for the opening it takes, and round 1's income
-arrives after, so the ledger runs from the header onto round 1 exactly as it
-runs from one round onto the next.
-
-The check is reported, never enforced: a battle is well-formed whether or not
-its ledger closes.
+The opening is the first term of that identity rather than an exception to it.
+A side starts holding nothing, pays for the opening it takes, and round 1's
+income arrives after.
 
 ## Converting a replay
 
