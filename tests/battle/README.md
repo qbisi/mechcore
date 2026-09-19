@@ -81,5 +81,6 @@ cargo build --release -p mechcore
 python3 scripts/verify-battles.py
 ```
 
-The counts by field group are also pinned by `crates/document/src/coverage.rs`,
-so a change in what the transition predicts fails the tests.
+CI runs it after regenerating this directory. The counts by field group are
+also pinned by `crates/document/src/coverage.rs`, so a change in what the
+transition predicts fails the tests.

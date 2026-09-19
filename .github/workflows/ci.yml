@@ -66,3 +66,9 @@ jobs:
             git --no-pager diff -- tests/battle >&2
             exit 1
           fi
+
+      # Every tracked battle has to predict each next opening in every leaf the
+      # fight does not decide. The release binary is the one the step above
+      # built; `docs/spec/document/battle.md` defines the coverage.
+      - name: Every tracked battle's transitions are predicted
+        run: python3 scripts/verify-battles.py

@@ -8,8 +8,7 @@ is equal, unequal, unimplemented or decided by the fight. This script adds the
 reports up by field group and lists every unequal leaf.
 
 The exit status is 0 only when every battle verifies, which needs no unequal
-and no unimplemented leaf anywhere. Until the opening rules land it fails, so
-CI does not run it yet.
+and no unimplemented leaf anywhere. CI runs it on every push and pull request.
 
 Run from anywhere inside the checkout, after a release build:
 
