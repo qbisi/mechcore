@@ -113,7 +113,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v4","level":1}
+{"kind":"claim","protocol":"mechcore.adapter.v5","level":1}
 ```
 
 The level is `0..=4`. It orders clients and nothing else: a claim strictly
@@ -129,14 +129,13 @@ An admitted claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v4",
+  "protocol": "mechcore.adapter.v5",
   "capabilities": [
     "status",
     "start_test",
     "apply_layout",
     "record_battle",
     "record_replay_round",
-    "record_replay_battle",
     "record_watch_replay",
     "toggle_fight",
     "speed_up",
@@ -149,7 +148,7 @@ An admitted claim receives:
 A claim that does not win is answered instead:
 
 ```json
-{"kind":"busy","protocol":"mechcore.adapter.v4","holder_level":1,"evicting":true}
+{"kind":"busy","protocol":"mechcore.adapter.v5","holder_level":1,"evicting":true}
 ```
 
 `holder_level` is what the claim lost to, or is taking the game from.
@@ -162,7 +161,7 @@ connection immediately.
 The client being served is told before its connection closes:
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v4","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v5","by_level":3}
 ```
 
 That notice is the difference between a taken game and a crashed one. A client
@@ -502,122 +501,6 @@ match quit path, and returns success only after stable `main_menu` status. It
 never quits the game process. Invalid input, unavailable rounds, capture
 failure, and timeout paths also attempt replay cleanup before returning an
 error.
-
-### record_replay_battle
-
-Input is `{grbr, output}`: an existing absolute local `.grbr` path and a new
-absolute `.jsonl` path. The input must be a locally recorded build-2259 standard
-1v1 replay without game rules. Both players and the match snapshots must cover
-the same consecutive rounds, starting at zero. Round zero contains one
-`PAD_ChooseAdvanceTeam` per side. Each positive round must contain exactly one
-final `PAD_FinishDeploy` per side. A final-round `PAD_GiveUp` after that finish
-is retained as source-only ending metadata; early concessions or other actions
-after a side's finish are refused.
-
-The caller starts at `main_menu`. The adapter records opening choices, then
-uses native `ReplayMatchGotoCommand.Execute` snapshot jumps for each positive
-round. It removes deployment playback delays with `SetReplayTime(false, 0)`.
-It returns to `main_menu` before publishing. It neither waits for nor records
-combat. A jump is a discontinuity, not evidence of simulated combat or the
-effect of the preceding deployment actions.
-
-Output is UTF-8 JSONL, schema `mechcore.battle-observation.v1`: one compact JSON
-object per LF-terminated line, including the final line. Every record has a
-consecutive zero-based `sequence`, including header, boundaries and summary.
-Read order is:
-
-1. `header`: schema, source (absolute `grbr`, build, BLAKE3), `game_version`,
-   `state_encoding: "native_snapshot_and_live_board"`, positive-round count
-   `rounds`, `opening_round: 0`, and `combat_observed: false`.
-2. For round zero, `round_start`, ordered events, `round_end`.
-3. For each positive round, `round_jump`, `round_start`, ordered events,
-   `round_end`.
-4. `battle_end`, followed by `summary` and EOF.
-
-`round_start` names `round`, `phase` (opening or deployment), and entry `state`.
-Every event carries `round`, `ordinal` (reset to zero each round), `kind`,
-`before`, and `after`. Event kinds are:
-
-- `opening_start`: a checkpoint immediately before the first opening choice;
-  equal endpoints. It does not bracket match creation.
-- `initialization`: the first event of every positive round, bracketing
-  `ReplayMatch.OnEnterDeploy`. Its entry precedes the native round increment;
-  its exit includes native initialization and controller work. The bracket
-  does not identify every internal delivery.
-- `replay_reset`: a snapshot-reset interval before another initialization,
-  carrying `action_effect: false`. Native jumps may initialize, reset and
-  initialize again before any player action. Preserve these intervals and
-  repeated initialization brackets; do not discard them or attribute them to
-  deployment decisions. A reset after recorded actions refuses publication.
-- `action`: brackets an outer `PlayerController.TryPerformAction`. Adds
-  `action_ordinal` (reset each round, including finishes), `team` (0/1),
-  `native_type`, native `action`, and `accepted`. Nested work belongs to the
-  outer action; undo, redo and cancellation retain their original positions.
-- `finish_deploy`: the same fields for `PAD_FinishDeploy`, a lifecycle event.
-  The first side's finish has an `after`; the final finish has `after: null`.
-  Reading state after that call would cross into combat.
-- `between_actions`: an observed difference between adjacent checkpoints,
-  without an attributed action or cause. Equal endpoints are omitted. This
-  does not continuously monitor changes that occur and reverse between reads.
-
-`round_end` includes `round`, event count `events`, native action count
-`actions`, `terminal`, and `boundary`. Opening ends `after_opening_choices`;
-positive rounds end `before_final_finish_deploy`. The latter terminal equals
-the final finish event's `before`, not a state with both deploy-over flags
-true. Within each round, adjacent events have equal `after` and `before`.
-
-`round_jump` carries `from_round`, `to_round`, `native_type`,
-`before` (the preceding round's terminal), and `after` (the next
-initialization's entry). It always has `action_effect: false` and
-`combat_observed: false`. `combat_skipped` is false for opening-to-round-one
-and true thereafter. Its two endpoints can share a native round number:
-initialization, not snapshot loading, increments it. Never fold this record
-into an `apply(state, actions)` sample.
-
-Jump/bootstrap observations need not be byte-identical across repeated runs;
-they can contain transient results of the interrupted fight before the replay
-snapshot is restored. Deployment samples use each action's own `before` and
-`after`, not the first initialization or a cross-round endpoint.
-
-`battle_end` names the last round, `reason: "source_exhausted"`, the last
-deployment `terminal`, `post_combat_state: null`, `combat_observed: false`,
-and `source_concessions`. Each concession carries team, round, native type,
-zero-based per-side `source_action_ordinal`, and `observed: false`.
-Source exhaustion is not an observed victory or a final post-combat State.
-No winner, damage or final combat result is inferred.
-
-`summary` has `complete: true`, positive-round count `rounds`, total line
-count `records` (including itself), observed native `actions`, `source_actions`,
-`unobserved_source_actions` (source-only concessions), and `terminal`.
-Completeness means every source deployment and opening is covered, with any
-unobserved ending actions explicitly accounted for. Readers require the summary,
-matching counts, all round boundaries and consecutive sequence/event ordinals;
-EOF alone does not establish completion.
-
-An observation holds both sides' native `PlayerSnapshotData`, reinforcement
-offers, chosen items, remaining choices, completion flags, active Energy Tower
-skills, and live `board`. The board omits skill releases, which belong to the
-native skill snapshot. Snapshot counters and inventory retain native meaning;
-no inferred income or delivery is added. These are observations, not state
-documents. Runtime field metadata includes inherited fields and property
-backing fields; lists retain order and enums their native `value__`.
-Unsupported types, missing fields and non-finite numbers refuse publication.
-
-Success requires each round's accepted action types and per-side order to
-match the source, continuous within-round state chains, complete boundaries,
-and an unchanged source file. Source parameter equivalence is not certified
-by this type/order check. The result reports `recorded`, `output`, `rounds`,
-`actions`, `records`, `unobserved_source_actions`, output `blake3` (including
-LFs) and `source_blake3`. Runtime version must be `1.11.1.3.2259`.
-
-The observer buffers one round; validated rounds stream to a temporary file.
-Buffer overflow, read failure, rejected action, missing round/action, failed
-jump, timeout or eviction refuses publication. The operation has a one-hour
-resource budget, independent of game rules. After cleanup, the file is flushed,
-synced and atomically published without replacing an existing destination,
-even with script `--force`. No partial stream is published. This is a completed
-artifact, not a live subscription, arbitrary-action legality test or Training
-Ground snapshot-restoration interface.
 
 ### record_watch_replay
 

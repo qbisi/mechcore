@@ -63,8 +63,8 @@ an already-occupied endpoint explicitly rather than leaving the caller to infer
 occupancy from a timeout:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v4","capabilities":["status", "..."]}
-{"kind":"busy","protocol":"mechcore.adapter.v4","holder_level":1,"evicting":false}
+{"kind":"hello","protocol":"mechcore.adapter.v5","capabilities":["status", "..."]}
+{"kind":"busy","protocol":"mechcore.adapter.v5","holder_level":1,"evicting":false}
 ```
 
 A `busy` answer is peer-verified like any other connection and is followed by

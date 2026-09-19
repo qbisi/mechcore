@@ -467,44 +467,17 @@ survives.
 
 ## What a decision reproduces
 
-[`battle.md`](battle.md#what-a-round-reproduces) compares a round's whole
-prediction against the next round's opening, which is what two round snapshots
-can decide between them. A recording that states a position before every
-decision and after it decides more, because it asks a smaller question: not
-what the next round holds, but what this position looks like one decision
-later.
+Applying a decision to the position it was taken from gives the whole next
+position, board included: not what the next round holds, but what this
+position looks like one decision later. That is the transition this document
+defines.
 
-That is the transition this document defines, and it is checked two ways
-against the same recording.
-
-**One decision at a time.** Each recorded decision is applied to the position it
-was taken from, and every field of the result is compared, the board included.
-A failure names the one decision that caused it rather than the round it was in.
-
-**A whole deployment.** A round's standing sequence, after the net-decision
-collapse above, is applied to the position the round opened with and compared
-against the position it closed with. This is the check the first one cannot
-make: applying one decision at a time reads the position after a retraction out
-of the recording, while a collapsed sequence has to reach the same place without
-the retraction ever having happened.
-
-```bash
-mechcore verify <recording.jsonl>
-find work/replay-corpus/observations -name '*.jsonl' | mechcore verify
-```
-
-runs both checks. `verify` reads whichever contract a file names for itself: a
-recording written by `record_replay_battle`, whose format
-[`adapter.md`](../adapter/adapter.md) defines, declares its schema on its header
-record, and a layout declares `kind: layout` at its root. Nothing is inferred
-from an extension.
-
-A batch is a pipe rather than a flag. Paths come from the arguments, or from
-standard input one per line when there are none, so expanding a directory stays
-the shell's job and there is only ever one expander. One report per input goes
-to standard output as a single JSON object per line, a refusal included, and
-one unreadable input does not stop the rest. The exit code says whether every
-input was valid.
+A battle states no position between two decisions, so a decision is checked
+through the round it belongs to. [`battle.md`](battle.md#what-a-round-reproduces)
+steps a round's decisions in order and compares what the next round opens with
+against the recorded state, and a layout captured live at the end of a
+deployment is compared against the projection of that round's decisions,
+stepped from the position it opened with.
 
 Stepping the opening answers what the position is immediately after it, which is
 not what round 1 holds: [`battle.md`](battle.md#what-a-round-reproduces) says

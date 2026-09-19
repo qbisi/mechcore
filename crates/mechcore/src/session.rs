@@ -9,8 +9,8 @@ use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::{
     CaptureInstrumentationProfile, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS,
-    Operation, RecordBattleArguments, RecordBattleInstrumentation, RecordReplayBattleArguments,
-    RecordReplayRoundArguments, RecordWatchReplayArguments, StartTestArguments,
+    Operation, RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
+    RecordWatchReplayArguments, StartTestArguments,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -128,7 +128,6 @@ impl Session {
         let request_timeout = match operation {
             Operation::RecordBattle => Duration::from_secs(180),
             Operation::RecordReplayRound => Duration::from_secs(330),
-            Operation::RecordReplayBattle => Duration::from_secs(3_720),
             Operation::RecordWatchReplay => {
                 let scene = arguments
                     .get("wait_for_scene_seconds")
@@ -545,30 +544,6 @@ impl Session {
         if !is_status(&status, "main_menu") {
             return Err(format!(
                 "record_replay_round completed outside main_menu: {status}"
-            ));
-        }
-        Ok(json!({"operation": result, "status": status}))
-    }
-
-    pub(crate) async fn record_replay_battle(
-        &self,
-        args: RecordReplayBattleArguments,
-    ) -> Result<Value, String> {
-        let _operation = self.operation.lock().await;
-        self.require_status("main_menu").await?;
-        *self.last_applied_layout.lock().await = None;
-        let result = self
-            .adapter_request(Operation::RecordReplayBattle, arguments(&args)?)
-            .await?;
-        if result.get("recorded").and_then(Value::as_bool) != Some(true) {
-            return Err(format!(
-                "adapter did not confirm replay battle capture: {result}"
-            ));
-        }
-        let status = self.refresh_status().await?;
-        if !is_status(&status, "main_menu") {
-            return Err(format!(
-                "replay battle capture completed outside main_menu: {status}"
             ));
         }
         Ok(json!({"operation": result, "status": status}))

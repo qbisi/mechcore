@@ -178,33 +178,6 @@ fn verify_refuses_a_directory_by_saying_what_to_name() {
     );
 }
 
-/// A record stream is routed by the schema its header names, not by its
-/// extension, and one naming another schema says so.
-#[test]
-fn verify_routes_a_recording_by_the_schema_it_names() {
-    let directory = tempfile::tempdir().unwrap();
-    let elsewhere = directory.path().join("elsewhere.yaml");
-    fs::write(
-        &elsewhere,
-        "{\"kind\":\"header\",\"schema\":\"mechcore.battle-observation.v0\",\"sequence\":0}\n",
-    )
-    .unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("verify")
-        .arg(&elsewhere)
-        .output()
-        .unwrap();
-    assert!(!output.status.success());
-    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert!(
-        report["error"]
-            .as_str()
-            .unwrap()
-            .contains("mechcore.battle-observation.v0"),
-        "{report}"
-    );
-}
-
 #[test]
 fn format_emits_canonical_defaults_and_supports_in_place_write() {
     let directory = tempfile::tempdir().unwrap();

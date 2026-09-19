@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v4";
+pub const PROTOCOL: &str = "mechcore.adapter.v5";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -40,7 +40,6 @@ pub enum Operation {
     ApplyLayout,
     RecordBattle,
     RecordReplayRound,
-    RecordReplayBattle,
     RecordWatchReplay,
     ToggleFight,
     SpeedUp,
@@ -49,13 +48,12 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 10] = [
         Self::Status,
         Self::StartTest,
         Self::ApplyLayout,
         Self::RecordBattle,
         Self::RecordReplayRound,
-        Self::RecordReplayBattle,
         Self::RecordWatchReplay,
         Self::ToggleFight,
         Self::SpeedUp,
@@ -71,7 +69,6 @@ impl Operation {
             Self::ApplyLayout => "apply_layout",
             Self::RecordBattle => "record_battle",
             Self::RecordReplayRound => "record_replay_round",
-            Self::RecordReplayBattle => "record_replay_battle",
             Self::RecordWatchReplay => "record_watch_replay",
             Self::ToggleFight => "toggle_fight",
             Self::SpeedUp => "speed_up",
@@ -310,15 +307,6 @@ pub struct RecordReplayRoundArguments {
     pub instrumentation: Option<RecordBattleInstrumentation>,
 }
 
-/// Observe all replay deployments, separating native snapshot jumps.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RecordReplayBattleArguments {
-    pub grbr: PathBuf,
-    /// Absolute destination for a new JSONL observation stream.
-    pub output: PathBuf,
-}
-
 /// Arguments for [`Operation::RecordWatchReplay`].
 ///
 /// The selection policy is deliberately fixed: a server-provided matchmaking
@@ -398,7 +386,6 @@ mod tests {
                 "apply_layout",
                 "record_battle",
                 "record_replay_round",
-                "record_replay_battle",
                 "record_watch_replay",
                 "toggle_fight",
                 "speed_up",
@@ -440,14 +427,13 @@ mod tests {
             serde_json::to_value(Hello::current()).unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v4",
+                "protocol": "mechcore.adapter.v5",
                 "capabilities": [
                     "status",
                     "start_test",
                     "apply_layout",
                     "record_battle",
                     "record_replay_round",
-                    "record_replay_battle",
                     "record_watch_replay",
                     "toggle_fight",
                     "speed_up",
@@ -464,7 +450,7 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v4",
+                "protocol": "mechcore.adapter.v5",
                 "level": 1,
             })
         );
@@ -472,7 +458,7 @@ mod tests {
             serde_json::to_value(Busy::current(3, true)).unwrap(),
             serde_json::json!({
                 "kind": "busy",
-                "protocol": "mechcore.adapter.v4",
+                "protocol": "mechcore.adapter.v5",
                 "holder_level": 3,
                 "evicting": true,
             })
@@ -481,7 +467,7 @@ mod tests {
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v4",
+                "protocol": "mechcore.adapter.v5",
                 "by_level": 4,
             })
         );

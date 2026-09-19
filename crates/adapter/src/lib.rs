@@ -4,7 +4,6 @@
 //! MCP clients and executes validated operations on Unity's main thread.
 
 mod capture;
-mod deployment;
 mod il2cpp;
 mod operations;
 mod runtime;

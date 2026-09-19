@@ -140,9 +140,6 @@ pub(crate) enum InternalOperation {
         rvo_scope: Option<crate::capture::RvoCaptureScope>,
     },
     StopCapture,
-    StartDeploymentCapture(i32),
-    TakeDeploymentCapture,
-    StopDeploymentCapture,
     ReplayFastDeployment,
     ExpireDeployment(i32),
     ResetDeployment(i32),
@@ -182,29 +179,6 @@ pub(crate) fn execute_internal(
         InternalOperation::StopCapture => crate::capture::stop()
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
-        InternalOperation::StartDeploymentCapture(round) => {
-            // One main-thread dispatch: no native update can enter the target
-            // round between arming the observer and issuing its snapshot jump.
-            crate::deployment::start(runtime, round)
-                .and_then(|()| {
-                    if round == 0 {
-                        Ok(())
-                    } else {
-                        replay_jump(runtime, round)
-                            .map(|_| ())
-                            .map_err(|e| e.to_string())
-                    }
-                })
-                .map(|()| json!({"started": true}))
-                .map_err(OperationError::InvalidState)
-        }
-        InternalOperation::TakeDeploymentCapture => {
-            crate::deployment::take().map_err(OperationError::InvalidState)
-        }
-        InternalOperation::StopDeploymentCapture => {
-            crate::deployment::stop();
-            Ok(json!({"stopped": true}))
-        }
         InternalOperation::ReplayFastDeployment => replay_fast_deployment(runtime),
         InternalOperation::ExpireDeployment(round) => expire_deployment(runtime, round),
         InternalOperation::ResetDeployment(round) => reset_deployment(runtime, round),
@@ -293,9 +267,6 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         )),
         Operation::RecordReplayRound => Err(OperationError::InvalidState(
             "record_replay_round requires the runtime capture coordinator".into(),
-        )),
-        Operation::RecordReplayBattle => Err(OperationError::InvalidState(
-            "record_replay_battle requires the runtime battle coordinator".into(),
         )),
         Operation::RecordWatchReplay => Err(OperationError::InvalidState(
             "record_watch_replay requires the runtime watch coordinator".into(),
@@ -1000,27 +971,6 @@ fn speed_up(runtime: &Runtime) -> Result<Value, OperationError> {
         .api
         .invoke_void(controller, "RequestSpeedUp", &mut [])?;
     Ok(json!({"requested": true}))
-}
-
-fn replay_jump(runtime: &Runtime, mut round: i32) -> Result<Value, OperationError> {
-    let current = require_match(runtime)?;
-    if classify_replay(runtime.api, current) != Some(true) || round < 1 {
-        return Err(OperationError::InvalidState(
-            "round jump requires a replay and positive target".into(),
-        ));
-    }
-    let api = runtime.api;
-    let command =
-        api.new_object(api.class("GRClient.dll", "GameRiver.Client", "ReplayMatchGotoCommand")?)?;
-    let method =
-        api.method_with_parameter_types(command, "Execute", &["System.String", "System.Int32"])?;
-    let kind = api.string("")?;
-    api.invoke_raw(
-        method,
-        command.cast(),
-        &mut [object_argument(kind), argument(&mut round)],
-    )?;
-    Ok(json!({"requested": true, "round": round}))
 }
 
 fn replay_fast_deployment(runtime: &Runtime) -> Result<Value, OperationError> {

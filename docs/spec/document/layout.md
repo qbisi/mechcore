@@ -158,11 +158,16 @@ layout's carries `kind: layout` beside the normalized seed, round, formation
 count, construction count, contraption count, and airdrop shield count.
 
 The command is not the layout's alone. It checks each file against the contract
-that file names for itself, so a deployment recording is checked by replaying
-its decisions through the transition instead;
-[`action.md`](action.md#what-a-decision-reproduces) states that check and how a
-batch is given. A layout is routed here by the `kind` at its
-root, never by its extension.
+that file names for itself, so a battle is checked against its seed and its
+transitions instead, as [`battle.md`](battle.md) states. A layout is routed here
+by the `kind` at its root, never by its extension.
+
+A batch is a pipe rather than a flag. Paths come from the arguments, or from
+standard input one per line when there are none, so expanding a directory stays
+the shell's job and there is only ever one expander. One report per input goes
+to standard output as a single JSON object per line, a refusal included, and
+one unreadable input does not stop the rest. The exit code says whether every
+input was valid.
 
 `mechcore diff left.yaml right.yaml` normalizes both documents and reports
 the fields that differ. Each difference carries a JSON pointer, except that

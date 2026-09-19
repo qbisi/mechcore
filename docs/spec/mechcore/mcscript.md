@@ -91,7 +91,6 @@ exist only here and are described below.
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
 | `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
-| `record_replay_battle` | yes | `grbr`, new `.jsonl` `output`; all replay deployments with explicit round jumps; never overwrites |
 | `record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
 | `toggle_fight` | yes | |
 | `speed_up` | yes | standalone operation, distinct from the recording field |
@@ -109,13 +108,6 @@ stake, and a run with no terminal to ask on refuses as before.
 The deletion happens in the client either way. The Adapter still refuses to
 write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
-
-`record_replay_battle` always requires a new output path, even with
-`--force`. [record-replay-battle.mcscript](../../../scripts/record-replay-battle.mcscript)
-is a whole-battle capture example: change its `grbr` and `output` variables.
-It includes the opening and every deployment, with separate snapshot-jump
-boundaries. It produces native observations, not a validated transition
-or a recording of combat.
 
 `record_battle` and `record_replay_round` accept a research-only HDF5 sidecar request:
 
