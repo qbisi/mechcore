@@ -113,11 +113,11 @@ sides:
     techs:
       officers: [20005]
     formations:
-    - {type: fang, index: 0, position: {x: 5, y: -160}, value: 100}
-    - {type: fang, index: 1, position: {x: 5, y: -180}, value: 100}
-    - {type: fang, index: 2, position: {x: 5, y: -140}, value: 100}
-    - {type: tarantula, index: 3, position: {x: -35, y: -165}, value: 200}
-    - {type: tarantula, index: 4, position: {x: -5, y: -205}, value: 200}
+    - {type: fang, index: 0, position: {x: 5, y: -160}, value: 100, movable: true}
+    - {type: fang, index: 1, position: {x: 5, y: -180}, value: 100, movable: true}
+    - {type: fang, index: 2, position: {x: 5, y: -140}, value: 100, movable: true}
+    - {type: tarantula, index: 3, position: {x: -35, y: -165}, value: 200, movable: true}
+    - {type: tarantula, index: 4, position: {x: -5, y: -205}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -133,11 +133,11 @@ sides:
     techs:
       officers: [20038]
     formations:
-    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100}
-    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100}
-    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100}
-    - {type: fire_badger, index: 3, position: {x: -5, y: -120}, value: 200}
-    - {type: fire_badger, index: 4, position: {x: -5, y: -200}, value: 200}
+    - {type: crawler, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
+    - {type: crawler, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
+    - {type: crawler, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
+    - {type: fire_badger, index: 3, position: {x: -5, y: -120}, value: 200, movable: true}
+    - {type: fire_badger, index: 4, position: {x: -5, y: -200}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
     - {type: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -615,7 +615,7 @@ sides:
     - {type: void_eye, index: 5, position: {x: 90, y: -70}, exp: 650/650, value: 100}
     - {type: void_eye, index: 6, position: {x: 250, y: -80}, exp: 650/650, value: 100}
     - {type: crawler, index: 7, position: {x: -230, y: -225}, exp: 160/450, rotated: true, value: 100}
-    - {type: wasp, index: 8, position: {x: -325, y: 290}, level: 2, exp: 2028/2028, rotated: true, equipment: 13040001, value: 200}
+    - {type: wasp, index: 8, position: {x: -325, y: 290}, level: 2, exp: 2028/2028, rotated: true, equipment: 13040001, value: 200, movable: true}
     - {type: fire_badger, index: 9, position: {x: -105, y: -110}, exp: 564/1400, value: 200}
     - {type: phantom_ray, index: 10, position: {x: -105, y: -130}, exp: 928/1000, value: 200}
     - {type: phantom_ray, index: 11, position: {x: -110, y: -225}, exp: 1000/1000, rotated: true, value: 200}
@@ -734,7 +734,7 @@ sides:
     - {type: void_eye, index: 5, position: {x: 90, y: -70}, exp: 650/650, value: 100}
     - {type: void_eye, index: 6, position: {x: 250, y: -80}, exp: 650/650, value: 100}
     - {type: crawler, index: 7, position: {x: -230, y: -225}, exp: 358/450, rotated: true, value: 100}
-    - {type: wasp, index: 8, position: {x: 275, y: -60}, level: 3, exp: 123/3206, equipment: 13040001, value: 200}
+    - {type: wasp, index: 8, position: {x: 275, y: -60}, level: 3, exp: 123/3206, equipment: 13040001, value: 200, movable: true}
     - {type: fire_badger, index: 9, position: {x: -105, y: -110}, exp: 733/1400, value: 200}
     - {type: phantom_ray, index: 10, position: {x: -105, y: -130}, exp: 1000/1000, value: 200}
     - {type: phantom_ray, index: 11, position: {x: -110, y: -225}, level: 2, exp: 269/2253, rotated: true, value: 200}
@@ -864,7 +864,7 @@ sides:
     - {type: void_eye, index: 5, position: {x: 90, y: -70}, exp: 650/650, value: 100}
     - {type: void_eye, index: 6, position: {x: 250, y: -80}, exp: 650/650, value: 100}
     - {type: crawler, index: 7, position: {x: -230, y: -225}, exp: 414/450, rotated: true, value: 100}
-    - {type: wasp, index: 8, position: {x: 25, y: -240}, level: 3, exp: 416/3206, equipment: 13040001, value: 200}
+    - {type: wasp, index: 8, position: {x: 25, y: -240}, level: 3, exp: 416/3206, equipment: 13040001, value: 200, movable: true}
     - {type: fire_badger, index: 9, position: {x: -105, y: -110}, exp: 824/1400, value: 200}
     - {type: phantom_ray, index: 10, position: {x: -105, y: -130}, exp: 1000/1000, value: 200}
     - {type: phantom_ray, index: 11, position: {x: -110, y: -225}, level: 2, exp: 964/2253, rotated: true, value: 200}

@@ -111,11 +111,11 @@ sides:
     techs:
       officers: [10014]
     formations:
-    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: hound, index: 1, position: {x: 0, y: -180}, value: 100}
-    - {type: hound, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: steel_ball, index: 3, position: {x: 5, y: -200}, value: 200}
-    - {type: steel_ball, index: 4, position: {x: 5, y: -120}, value: 200}
+    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: steel_ball, index: 3, position: {x: 5, y: -200}, value: 200, movable: true}
+    - {type: steel_ball, index: 4, position: {x: 5, y: -120}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
   red:
@@ -130,11 +130,11 @@ sides:
     techs:
       officers: [10002]
     formations:
-    - {type: fang, index: 0, position: {x: -5, y: -160}, value: 100}
-    - {type: fang, index: 1, position: {x: -5, y: -140}, value: 100}
-    - {type: fang, index: 2, position: {x: -5, y: -180}, value: 100}
-    - {type: sledgehammer, index: 3, position: {x: -5, y: -120}, value: 200}
-    - {type: sledgehammer, index: 4, position: {x: -5, y: -200}, value: 200}
+    - {type: fang, index: 0, position: {x: -5, y: -160}, value: 100, movable: true}
+    - {type: fang, index: 1, position: {x: -5, y: -140}, value: 100, movable: true}
+    - {type: fang, index: 2, position: {x: -5, y: -180}, value: 100, movable: true}
+    - {type: sledgehammer, index: 3, position: {x: -5, y: -120}, value: 200, movable: true}
+    - {type: sledgehammer, index: 4, position: {x: -5, y: -200}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: -140, y: -55}}
 ---

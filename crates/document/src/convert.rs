@@ -336,7 +336,7 @@ fn side_state(
     let data = &entry.data;
     let round = entry.round;
 
-    let formations = formations(data, seat)?;
+    let mut formations = formations(data, seat)?;
     let constructions = constructions(data, seat)?;
     let contraptions = contraptions(data, seat)?;
 
@@ -383,6 +383,13 @@ fn side_state(
         .collect();
     units.sort_unstable();
 
+    // Every formation of round 1 arrived as it opened, with the opening. A
+    // later round's snapshot is taken before that round's arrivals, so what it
+    // holds was on the board last round and moves only if something frees it.
+    for entry in &mut formations {
+        entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &units);
+    }
+
     let mut unlocked_units = data.shop.unlocked_units.values.clone();
     unlocked_units.sort_unstable();
 
@@ -421,6 +428,8 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
         formations.push(StateFormation {
             value: Some(unit.sell_supply),
+            // Settled by `side_state`, which knows the round.
+            movable: false,
             formation: Formation {
             type_name: type_name.to_owned(),
             index: unit.index,
@@ -1435,7 +1444,7 @@ mod tests {
         assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
-            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100}\n"
+            "    formations:\n    - {type: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
         assert!(yaml.contains("\n- {type: buy_unit, unit: "));
         assert!(!yaml.contains("\n- type: "));

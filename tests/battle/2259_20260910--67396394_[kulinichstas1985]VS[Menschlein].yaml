@@ -111,11 +111,11 @@ sides:
     techs:
       officers: [20034]
     formations:
-    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: hound, index: 1, position: {x: 0, y: -180}, value: 100}
-    - {type: hound, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: sabertooth, index: 3, position: {x: -35, y: -165}, value: 200}
-    - {type: sabertooth, index: 4, position: {x: -5, y: -205}, value: 200}
+    - {type: hound, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: hound, index: 1, position: {x: 0, y: -180}, value: 100, movable: true}
+    - {type: hound, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: sabertooth, index: 3, position: {x: -35, y: -165}, value: 200, movable: true}
+    - {type: sabertooth, index: 4, position: {x: -5, y: -205}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
   red:
@@ -130,11 +130,11 @@ sides:
     techs:
       officers: [10011]
     formations:
-    - {type: marksman, index: 0, position: {x: 0, y: -160}, value: 100}
-    - {type: marksman, index: 1, position: {x: 20, y: -160}, value: 100}
-    - {type: marksman, index: 2, position: {x: 0, y: -140}, value: 100}
-    - {type: tarantula, index: 3, position: {x: 25, y: -135}, value: 200}
-    - {type: tarantula, index: 4, position: {x: 5, y: -185}, value: 200}
+    - {type: marksman, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}
+    - {type: marksman, index: 1, position: {x: 20, y: -160}, value: 100, movable: true}
+    - {type: marksman, index: 2, position: {x: 0, y: -140}, value: 100, movable: true}
+    - {type: tarantula, index: 3, position: {x: 25, y: -135}, value: 200, movable: true}
+    - {type: tarantula, index: 4, position: {x: 5, y: -185}, value: 200, movable: true}
     constructions:
     - {type: defensive_wall, index: 0, position: {x: 140, y: -55}}
 ---

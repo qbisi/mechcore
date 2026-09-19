@@ -431,7 +431,7 @@ after conceding, a round follows a concession, or both sides concede is refused.
 
 ### What conversion rebuilds
 
-Most fields are copied. Four are not, and each is argued in the document that
+Most fields are copied. Five are not, and each is argued in the document that
 owns it:
 
 | Field | Why it is rebuilt |
@@ -440,6 +440,7 @@ owns it:
 | `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder, so the allowance is read back from the next snapshot plus what this round spent |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the formations already name |
+| `movable` | No recorded field states it. Every formation of round 1 arrived with the opening; a later round's snapshot precedes that round's arrivals, so its formations move only if a Deployment Module or a Jump Drive frees them |
 
 The last round has no next snapshot to read the shop allowance from, so it falls
 back to the shipped constants, two and one.

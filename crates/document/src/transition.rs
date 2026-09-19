@@ -210,6 +210,12 @@ pub enum Unsettled {
 /// A deployment skill: it does its work on the position before the fight, so
 /// its slot is marked used rather than released.
 pub(crate) const TRAINING_SKILLS: [i32; 1] = [1_100_001];
+
+/// Whether a commander skill is a deployment skill, whose slot a round marks
+/// used rather than released: Intensive Training and Redeploy.
+pub(crate) fn is_deployment_skill(id: i32) -> bool {
+    TRAINING_SKILLS.contains(&id) || crate::mobility::REDEPLOY_SKILLS.contains(&id)
+}
 /// Energy tower skill `3` 批量征召, which adds a purchase to this round.
 const MASS_RECRUIT_SKILL: i32 = 3;
 /// Reinforcement card `10004` 额外部署位, which adds one too.
@@ -388,6 +394,8 @@ pub fn step_placing(
                 .ok_or(Unsettled::Unpriced("technology"))?;
             next.techs.units.push(*tech);
             next.techs.units.sort_unstable();
+            // A Jump Drive frees every formation of its unit to move.
+            free_to_move(&mut next);
         }
         Action::ActiveBlueprint { id } => {
             next.supply -= economy
@@ -433,6 +441,8 @@ pub fn step_placing(
                 .ok_or(Unsettled::Missing("equipment"))?;
             next.equipment.remove(position);
             formation_mut(&mut next, *unit)?.formation.equipment = Some(*equipment);
+            // A Deployment Module frees the formation that wears it to move.
+            free_to_move(&mut next);
         }
         Action::MoveUnit {
             index,
@@ -440,6 +450,9 @@ pub fn step_placing(
             rotated,
         } => {
             let formation = formation_mut(&mut next, *index)?;
+            if !formation.movable {
+                return Err(Unsettled::Refused("moving a formation fixed in place"));
+            }
             let left = Region::of(formation.formation.position);
             let arrived = Region::of(*position);
             formation.formation.position = *position;
@@ -500,6 +513,14 @@ fn release(
         .find(|skill| skill.index == slot)
         .map(|skill| skill.id)
         .ok_or(Unsettled::Missing("panel slot"))?;
+    if crate::mobility::REDEPLOY_SKILLS.contains(&id) {
+        let SkillTarget::Unit(index) = target else {
+            return Err(Unsettled::Missing("redeploy target"));
+        };
+        formation_mut(next, *index)?.movable = true;
+        spend(next, slot)?;
+        return Ok(());
+    }
     if TRAINING_SKILLS.contains(&id) {
         let SkillTarget::Unit(index) = target else {
             return Err(Unsettled::Missing("training target"));
@@ -521,12 +542,7 @@ fn release(
             current: maximum,
             maximum,
         });
-        let slot = next
-            .battle_skills
-            .iter_mut()
-            .find(|skill| skill.index == slot)
-            .ok_or(Unsettled::Missing("panel slot"))?;
-        slot.used = true;
+        spend(next, slot)?;
         return Ok(());
     }
     if crate::ledger::RECOVERY_SKILLS.contains(&id) {
@@ -555,6 +571,16 @@ fn release(
         order,
         target: clone_target(target),
     });
+    Ok(())
+}
+
+/// Marks a deployment skill's slot spent.
+fn spend(next: &mut SideState, slot: i32) -> Result<(), Unsettled> {
+    next.battle_skills
+        .iter_mut()
+        .find(|skill| skill.index == slot)
+        .ok_or(Unsettled::Missing("panel slot"))?
+        .used = true;
     Ok(())
 }
 
@@ -608,6 +634,15 @@ fn hand_out(
     Ok(())
 }
 
+/// Frees every formation that [`crate::mobility::free`] says moves in every
+/// round. A formation already free stays free.
+fn free_to_move(next: &mut SideState) {
+    let techs = next.techs.units.clone();
+    for entry in &mut next.formations {
+        entry.movable |= crate::mobility::free(&entry.formation, &techs);
+    }
+}
+
 /// Puts one formation on the board under the next index.
 fn place(
     next: &mut SideState,
@@ -634,6 +669,8 @@ fn place(
             travelling: None,
         },
         value: Some(value),
+        // A formation moves in the round it arrives.
+        movable: true,
     });
     next.formations.sort_by_key(|entry| entry.formation.index);
     Ok(())
@@ -1140,6 +1177,8 @@ mod tests {
                         travelling: None,
                     },
                     value: None,
+                    // Placed this round, so free to move.
+                    movable: true,
                 })
                 .collect(),
             ..SideState::default()
@@ -1310,6 +1349,7 @@ mod tests {
                     travelling: None,
                 },
                 value: Some(100),
+                movable: false,
             }],
             ..SideState::default()
         };
@@ -1661,6 +1701,92 @@ mod tests {
                 "training a formation at the last level"
             ))
         );
+    }
+
+    /// A formation on the board since an earlier round stays where it is,
+    /// until something frees it: a Deployment Module, its unit's Jump Drive,
+    /// or a Redeploy release. Each frees it for good or for the round, and a
+    /// move after any of them is allowed.
+    #[test]
+    fn only_a_formation_free_to_move_moves() {
+        let economy = Economy::embedded().unwrap();
+        let mut fixed = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        fixed.formations[0].movable = false;
+        fixed.supply = 1000;
+        let shift = Action::MoveUnit {
+            index: 0,
+            position: Position { x: 20, y: -160 },
+            rotated: false,
+        };
+        assert_eq!(
+            step(&economy, &fixed, &shift),
+            Err(crate::transition::Unsettled::Refused(
+                "moving a formation fixed in place"
+            ))
+        );
+
+        // A Deployment Module frees the formation that wears it.
+        let mut worn = fixed.clone();
+        worn.equipment = vec![EquipmentItem {
+            id: crate::mobility::DEPLOYMENT_MODULE,
+            durability: None,
+        }];
+        let fitted = step(
+            &economy,
+            &worn,
+            &Action::UseEquipment {
+                equipment: crate::mobility::DEPLOYMENT_MODULE,
+                unit: 0,
+            },
+        )
+        .unwrap();
+        assert!(fitted.formations[0].movable);
+        assert!(step(&economy, &fitted, &shift).is_ok());
+
+        // Redeploy frees its target and spends its slot without a release.
+        let mut panel = fixed.clone();
+        panel.battle_skills = vec![crate::battle::PanelSkill {
+            index: 0,
+            id: crate::mobility::REDEPLOY_SKILLS[0],
+            cooldown: 0,
+            used: false,
+            release: None,
+        }];
+        let redeployed = step(
+            &economy,
+            &panel,
+            &Action::ReleaseCommanderSkill {
+                skill: 0,
+                target: crate::battle::SkillTarget::Unit(0),
+            },
+        )
+        .unwrap();
+        assert!(redeployed.formations[0].movable);
+        assert!(redeployed.battle_skills[0].used);
+        assert!(redeployed.battle_skills[0].release.is_none());
+        assert!(step(&economy, &redeployed, &shift).is_ok());
+
+        // A Jump Drive frees every formation of its unit, and no other.
+        let mut wasps = side_holding(&[
+            (0, Position { x: 0, y: -160 }),
+            (1, Position { x: 40, y: -160 }),
+        ]);
+        wasps.supply = 1000;
+        wasps.formations[0].formation.type_name = "wasp".into();
+        for entry in &mut wasps.formations {
+            entry.movable = false;
+        }
+        let researched = step(
+            &economy,
+            &wasps,
+            &Action::UpgradeTechnology {
+                unit: 6,
+                tech: 1606,
+            },
+        )
+        .unwrap();
+        assert!(researched.formations[0].movable);
+        assert!(!researched.formations[1].movable);
     }
 
     /// A move writes the board and nothing else, travelling included.

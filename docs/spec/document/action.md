@@ -195,6 +195,10 @@ The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per
 unit and not per side.
 
+A Jump Drive, 高速引擎, frees every formation of its unit to move in this round
+and every later one, and sets their `movable`: `1606` for Wasp, `1611` for
+Overlord and `1616` for Phoenix.
+
 ### `active_blueprint`
 
 ```yaml
@@ -248,7 +252,9 @@ formation's.
 
 Fitting is free, because the item was paid for when it was taken. What it can
 change is later: an item may discount every upgrade of its formation, or pay its
-side an income every round it is worn.
+side an income every round it is worn. Fitting the Deployment Module,
+`13040001`, frees its formation to move in this round and every later one, and
+sets its `movable`.
 
 The inventory follows one identity across a round:
 
@@ -282,6 +288,12 @@ not a decision's. The identity covers what the decisions do to the stock.
 
 Moves the formation at `index` to `position`. `rotated` defaults to false and
 faces the formation the other way. Free, and writes nothing but the board.
+
+Only a formation whose `movable` is true may move, and a move of any other is
+refused rather than applied. A formation is free to move in the round it
+arrives. In a later round, what frees it is a decision of this document: fitting
+a Deployment Module, researching its unit's Jump Drive, or releasing Redeploy at
+it.
 
 A move is also the only decision that writes `travelling`, and it writes it by
 region rather than by coordinate. The coordinate system has three regions per
@@ -343,6 +355,10 @@ full bar stands for per unit and level.
 
 The skill cannot target a formation at level 9 or one whose bar is already
 full, and a decision that does is refused rather than applied.
+
+Redeploy, `1000001`, is the other. It targets one of the side's own formations
+with `!unit` and sets its `movable`, so the formation may move for the rest of
+the round.
 
 ### `release_contraption`
 

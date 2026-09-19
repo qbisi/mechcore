@@ -43,6 +43,8 @@
   产出完整的下一个局面，棋盘也在内。不由任何表决定的输入单独报出，不猜：
   卡牌召唤的编队落在哪里。经验写成 `current/maximum`（如 `124/450`），满条上限
   来自 `config/unit_experience.yaml`，强化训练把 `current` 填到 `maximum`。
+  移动合法性由编队的 `movable` 判断：本回合到场的编队可移动，部署模块、高速引擎
+  和再部署解除固定，移动固定编队的决策被拒绝。
 - observation 读取器 `observe` 与 oracle `oracle`，由 `mechcore verify` 驱动。
   把原生录像采集的每个局面映射成文档 state，把每条原生动作映射成文档 action，
   再两种方式核对：逐决策比对全部字段，和把折叠后的整回合序列从回合初推到部署末。

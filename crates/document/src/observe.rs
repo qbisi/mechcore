@@ -26,7 +26,7 @@ use crate::layout::{
     TerrainType,
 };
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// What an observation's header calls the format it is in.
 ///
@@ -42,7 +42,7 @@ const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 const OIL_TERRAIN_POINT_COUNT: usize = 7;
 
 /// Which half of the map a side plays on, and so how its positions are read.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Seat {
     Blue,
     Red,
@@ -237,6 +237,22 @@ pub struct ObservedSide {
     pub active_energy_tower_skills: Vec<i32>,
     pub deploy_over: bool,
     pub snapshot: Snapshot,
+    /// What decides which formations may move. No native field the recording
+    /// carries states it, so [`read`] derives it from the records around this
+    /// position.
+    #[serde(skip)]
+    pub mobility: Mobility,
+}
+
+/// Which of a side's formations the recording shows may move, beyond what a
+/// position's own fields say.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Mobility {
+    /// The unit allocator the round before closed with. A formation at or
+    /// above it arrived this round, and may move.
+    pub arrived_from: i32,
+    /// Formations a Redeploy release still standing this round has freed.
+    pub redeployed: BTreeSet<i32>,
 }
 
 /// A side's native `PlayerData`, in the spelling the adapter writes.
@@ -374,6 +390,15 @@ impl Observed {
         })
     }
 
+    /// One side of the position.
+    #[must_use]
+    pub fn side(&self, seat: Seat) -> &ObservedSide {
+        match seat {
+            Seat::Blue => &self.sides.blue,
+            Seat::Red => &self.sides.red,
+        }
+    }
+
     /// Maps one side of this position.
     ///
     /// # Errors
@@ -385,7 +410,7 @@ impl Observed {
             Seat::Red => (&self.sides.red, &self.board.sides.red),
         };
         let snapshot = &side.snapshot;
-        let formations = formations(snapshot, board, seat)?;
+        let mut formations = formations(snapshot, board, seat)?;
         let constructions = constructions(snapshot, seat)?;
         // A contraption released this round stands on the board and is not in
         // `PlayerData.contraptions` until the next snapshot is taken, so the
@@ -408,6 +433,12 @@ impl Observed {
             .flat_map(|row| row.technologies.iter().map(|tech| tech.value))
             .collect();
         units.sort_unstable();
+        for entry in &mut formations {
+            let index = entry.formation.index;
+            entry.movable = index >= side.mobility.arrived_from
+                || side.mobility.redeployed.contains(&index)
+                || crate::mobility::free(&entry.formation, &units);
+        }
         let mut blueprints = snapshot.blueprints.clone();
         blueprints.sort_unstable();
         let mut unlocked_units = snapshot.shop.unlocked_units.clone();
@@ -480,6 +511,8 @@ fn formations(
                 equipment: Some(unit.equipment).filter(|id| *id != 0),
                 travelling: travelling.get(&unit.index).copied().filter(|set| *set),
             },
+            // Settled by `side_state`, which knows the side's mobility.
+            movable: false,
         });
     }
     formations.sort_by_key(|entry| entry.formation.index);
@@ -518,7 +551,7 @@ fn panel(snapshot: &Snapshot) -> Vec<PanelSkill> {
         .commander_skills
         .iter()
         .map(|skill| {
-            let deployment = crate::transition::TRAINING_SKILLS.contains(&skill.id);
+            let deployment = crate::transition::is_deployment_skill(skill.id);
             PanelSkill {
                 index: skill.index,
                 id: skill.id,
@@ -827,7 +860,90 @@ fn skill_target(action: &NativeAction, seat: Seat) -> Result<SkillTarget, String
 ///
 /// Returns an error naming the line that does not parse.
 pub fn read(text: &str) -> Result<Vec<Record>, String> {
-    read_records(text)
+    let mut records = read_records(text)?;
+    annotate_mobility(&mut records);
+    Ok(records)
+}
+
+/// Gives every position the recording states the mobility its side had there.
+///
+/// A formation's mobility is history: whether it arrived this round, and
+/// whether a Redeploy release still standing freed it. The round a formation
+/// arrived in is read off the allocator the round before closed with, and the
+/// releases off the round's own records after the net-decision collapse, so an
+/// undone Redeploy frees nothing.
+fn annotate_mobility(records: &mut [Record]) {
+    let mut closed: BTreeMap<(i32, Seat), i32> = BTreeMap::new();
+    for record in records.iter() {
+        if let (Some(round), Some(terminal)) = (record.round, &record.terminal)
+            && record.kind == "round_end"
+        {
+            closed.insert((round, Seat::Blue), terminal.sides.blue.snapshot.unit_index);
+            closed.insert((round, Seat::Red), terminal.sides.red.snapshot.unit_index);
+        }
+    }
+    let mut annotations = Vec::with_capacity(records.len());
+    let mut taken: BTreeMap<(i32, Seat), Vec<&Record>> = BTreeMap::new();
+    for record in records.iter() {
+        let Some(round) = record.round else {
+            annotations.push(None);
+            continue;
+        };
+        let mut before = [Mobility::default(), Mobility::default()];
+        let mut after = [Mobility::default(), Mobility::default()];
+        for (at, seat) in [Seat::Blue, Seat::Red].into_iter().enumerate() {
+            let arrived_from = closed.get(&(round - 1, seat)).copied().unwrap_or(0);
+            let history = taken.entry((round, seat)).or_default();
+            before[at] = Mobility {
+                arrived_from,
+                redeployed: redeployed(history, seat),
+            };
+            let acts = record.team == Some(i32::from(seat == Seat::Red))
+                && matches!(record.kind.as_str(), "action" | "finish_deploy");
+            if acts {
+                history.push(record);
+            }
+            after[at] = Mobility {
+                arrived_from,
+                redeployed: redeployed(history, seat),
+            };
+        }
+        annotations.push(Some((before, after)));
+    }
+    for (record, annotation) in records.iter_mut().zip(annotations) {
+        let Some(([blue_before, red_before], [blue_after, red_after])) = annotation else {
+            continue;
+        };
+        if let Some(observed) = &mut record.before {
+            observed.sides.blue.mobility = blue_before;
+            observed.sides.red.mobility = red_before;
+        }
+        for observed in [&mut record.after, &mut record.state, &mut record.terminal]
+            .into_iter()
+            .flatten()
+        {
+            observed.sides.blue.mobility = blue_after.clone();
+            observed.sides.red.mobility = red_after.clone();
+        }
+    }
+}
+
+/// The formations the standing Redeploy releases among a side's records free.
+fn redeployed(history: &[&Record], seat: Seat) -> BTreeSet<i32> {
+    net_records(history)
+        .into_iter()
+        .filter(|record| record.native_type.as_deref() == Some("PAD_ReleaseCommanderSkill"))
+        .filter_map(|record| {
+            let action = record.action.as_ref()?;
+            let slot = action.skill_index?;
+            let unit = action.unit_index.filter(|unit| *unit >= 0)?;
+            let panel = &record.before.as_ref()?.side(seat).snapshot.commander_skills;
+            let id = panel.iter().find(|skill| skill.index == slot)?.id;
+            crate::mobility::REDEPLOY_SKILLS
+                .contains(&id)
+                .then_some(unit)
+        })
+        .collect()
 }
 
 /// Whether a file calls itself an observation.

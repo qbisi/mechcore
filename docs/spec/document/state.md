@@ -174,6 +174,28 @@ The last six keys are the layout fields that project unchanged, elided here
 because [the layout document](layout.md) already defines them. A side always
 writes all six, empty where it holds nothing.
 
+### A formation carries two fields a layout does not
+
+```yaml
+      formations:
+      - {type: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450, value: 100}
+      - {type: hound, index: 9, position: {x: 0, y: -160}, value: 100, movable: true}
+```
+
+`value` is what the side paid for the formation, at the prices its officers made
+at the time, and it is what recovering the formation pays back. Two formations of
+one type and level can differ in it.
+
+`movable` says whether the side may move the formation this round, and is
+absent when it may not. A formation moves in the round it arrives, whether it
+was bought, handed out by a card, or delivered as the round opened, and stays
+where it is in every later round unless something frees it: a Deployment Module
+it wears, its unit's Jump Drive, or a Redeploy release this round.
+[The mobility index](../../rules/mobility.md) gives the rule and its evidence.
+It is a field rather than a derivation because the round a formation arrived in
+is history no other field keeps. A layout does not carry it: the fight moves
+every formation.
+
 ### The allocators
 
 `next_index` holds the two live allocators. They are state, not a derived
