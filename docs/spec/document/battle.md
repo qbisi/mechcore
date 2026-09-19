@@ -374,7 +374,8 @@ only one of the two positions has is still a leaf: a formation the prediction
 lacks counts against it. The recorded next state is compared against and never
 read by the prediction.
 
-The `fight` class is the fixed set of fields below. Standard 1v1 has no income
+The `fight` class is the fixed set of fields below, in every transition that
+ends in a fight, which is every one after round zero's. Standard 1v1 has no income
 during the fight, so `supply` is not among them and is predicted like any other
 field.
 
@@ -391,9 +392,16 @@ where the unchanged value happens to agree; which fields those are changes as
 rules are added, and the report names them. `reinforce_offers` is dealt from
 the stream the header seeds, and is `equal` only where the deal agrees and
 every field it is dealt from agrees on both sides too, since the deal is
-checked against the recorded position. The opening transition, from round zero
-onto round 1, is counted and is `unimplemented`: nothing builds yet the
-position an opening is chosen from.
+checked against the recorded position.
+
+The opening transition, from round zero onto round 1, starts from a position
+the header deals rather than a state segment: the map's reactor core for that
+seat, the side's `constructions`, and two towers at level zero. A standard 1v1
+map unlocks no unit and hands out no commander skill before the opening. The
+side's opening decision is stepped on it, and as round 1 opens the chosen team
+arrives: its unit types join the shop, and its formations land at level 1
+where the board puts them, in the team's order. Nothing is fought in between,
+so no leaf of this transition is in the `fight` class.
 
 When a side's decisions cannot be stepped, nothing of that side's transition is
 predicted. A decision naming what the position does not hold, or one the game

@@ -16,7 +16,7 @@ use crate::battle::{
 };
 use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
-use crate::layout::{ContraptionPlacement, Experience, Position, Region};
+use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -1217,6 +1217,44 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
     Ok(())
 }
 
+/// The position a side takes its opening decision from.
+///
+/// A standard 1v1 map unlocks no unit and hands out no commander skill before
+/// the opening, so the position holds only what the header deals it: the map's
+/// reactor core, which [`crate::opening::reactor_core`] reads, the dealt
+/// constructions, and two towers at level zero.
+#[must_use]
+pub fn before_opening(reactor_core: i32, constructions: Vec<StaticPlacement>) -> SideState {
+    SideState {
+        reactor_core,
+        constructions,
+        ..opening_position()
+    }
+}
+
+/// Hands out a team of formations, as round 1 opens: each unit type the team
+/// is made of joins the shop, and each of its formations lands at level 1 where
+/// the board puts it, in the team's order. A specialist opening hands out
+/// nothing here; its officer delivers on its own schedule.
+fn deliver_team(
+    economy: &Economy,
+    next: &mut SideState,
+    team: i32,
+    placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
+) -> Result<(), Unsettled> {
+    let team = economy
+        .advance_team(team)
+        .ok_or(Unsettled::Unpriced("opening"))?;
+    if team.kind != OpeningKind::Units {
+        return Ok(());
+    }
+    for unit in &team.units {
+        unlock(next, *unit);
+        hand_out(economy, next, *unit, 1, 1, placement)?;
+    }
+    Ok(())
+}
+
 /// Predicts the position a side opens `round + 1` with, from the position it
 /// opened `round` with and the decisions it took there.
 ///
@@ -1247,6 +1285,16 @@ pub fn predict(
     // formation's crossing is over once the fight has run.
     for entry in &mut position.formations {
         entry.formation.travelling = None;
+    }
+    // Round zero has no fight. The team it chose arrives as round 1 opens,
+    // and a position that picked a team of formations keeps no trace of which
+    // one, so it is delivered from the decision here.
+    if round == 0 {
+        for action in actions {
+            if let Action::ChooseAdvanceTeam { id, .. } = action {
+                deliver_team(economy, &mut position, *id, &mut placement)?;
+            }
+        }
     }
     open_round(economy, &position, round + 1, &mut placement)
 }
@@ -1523,6 +1571,46 @@ mod tests {
         };
         assert_eq!(movable(1), [true, true]);
         assert_eq!(movable(2), [false, true]);
+    }
+
+    /// Round zero opens round 1 on the chosen team: its unit types join the
+    /// shop, its formations land at level 1 in the team's order, and both
+    /// halves of the opening move the map's reactor core.
+    #[test]
+    fn round_zero_opens_round_one_on_the_chosen_team() {
+        let economy = Economy::embedded().unwrap();
+        let before = super::before_opening(4500, Vec::new());
+        let choice = Action::ChooseAdvanceTeam {
+            offer: 2,
+            id: 9891,
+            specialist: Some(10002),
+        };
+        let opened = super::predict(&economy, 0, &before, &[choice], true).unwrap();
+        assert_eq!(opened.reactor_core, 4500 - 300 - 600);
+        assert_eq!(opened.shop.unlocked_units, [10, 24]);
+        assert_eq!(opened.next_index.unit, 5);
+        assert_eq!(opened.techs.officers, [10002]);
+        let team: Vec<_> = opened
+            .formations
+            .iter()
+            .map(|entry| {
+                (
+                    entry.formation.type_name.as_str(),
+                    entry.formation.level,
+                    entry.movable,
+                )
+            })
+            .collect();
+        assert_eq!(
+            team,
+            [
+                ("crawler", None, true),
+                ("crawler", None, true),
+                ("crawler", None, true),
+                ("tarantula", None, true),
+                ("tarantula", None, true),
+            ]
+        );
     }
 
     /// The fight empties the travelling set whatever else it does, so a

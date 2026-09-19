@@ -76,6 +76,13 @@ After the battle document rotates red by half a turn, both centers are
 `(0, -160)`. Thus each side's document position is `(±local_x, local_y - 160)`.
 These are integer map coordinates, without rounding or fitted offsets.
 
+A seat starts with the reactor core `MatchSetting.GetReactorCore` reads from
+the map's `reactorCores`: by seat index, except that a list of fewer than two
+entries gives every seat its first. Every supported map states 4500, map 1011
+once per seat and the others once, before the opening's team and specialist
+move it. The same rows list no default shop unit and no commander skill, so a
+side holds neither before its opening.
+
 `scripts/extract_opening.py` reads the configuration export and
 `sharedassets0.assets`: MapData objects 243656, 243657 and 243659 link the map
 names to MapLayout object 243676. The extractor validates the supported flags,

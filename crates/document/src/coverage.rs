@@ -12,11 +12,11 @@
 //! inventory with repeats are one leaf each. A leaf only one side has is still
 //! a leaf, so a formation missing from the prediction counts against it.
 
-use crate::battle::{SideState, Turn};
+use crate::battle::{Action, SideState, Turn};
 use crate::economy::Economy;
 use crate::opening::Stated;
 use crate::reinforcement::Verified;
-use crate::transition::Unsettled;
+use crate::transition::{Unsettled, before_opening};
 use serde::Serialize;
 use serde_yaml::Value;
 use std::collections::BTreeMap;
@@ -153,13 +153,16 @@ impl Coverage {
 pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>) -> Coverage {
     let mut coverage = Coverage::default();
     if let Some(first) = stated.turns.first() {
-        coverage.opening(first);
+        coverage.opening(economy, stated, first);
     }
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        let blue = coverage.side(economy, turn, next, "blue");
-        let red = coverage.side(economy, turn, next, "red");
-        coverage.deal(turn, next, deal.ok(), blue && red);
+        let mut dealt_from = true;
+        for (side, red) in [("blue", false), ("red", true)] {
+            let (state, actions, recorded) = sides(turn, next, red);
+            dealt_from &= coverage.side(economy, turn.round, state, actions, recorded, side);
+        }
+        coverage.deal(turn, next, deal.ok(), dealt_from);
     }
     if stated.ends_on_actions {
         coverage.untargeted_round = stated.turns.last().map(|turn| turn.round);
@@ -168,39 +171,69 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
 }
 
 impl Coverage {
-    /// The position a side takes its opening from carries the header's
-    /// constructions, starting supply and reactor core, and no rule builds it
-    /// yet, so the opening's transition is counted and not predicted.
-    fn opening(&mut self, first: &Turn) {
-        for (side, recorded) in [
-            ("blue", &first.state.sides.blue),
-            ("red", &first.state.sides.red),
+    /// Round zero's transition, from the position each side chooses its
+    /// opening in onto the one round 1 opens with. The header deals that
+    /// position, so it is built rather than read; nothing is fought in between.
+    fn opening(&mut self, economy: &Economy, stated: &Stated, first: &Turn) {
+        for (side, seat, header, actions, recorded) in [
+            (
+                "blue",
+                0,
+                &stated.sides.blue,
+                &stated.opening.blue,
+                &first.state.sides.blue,
+            ),
+            (
+                "red",
+                1,
+                &stated.sides.red,
+                &stated.opening.red,
+                &first.state.sides.red,
+            ),
         ] {
-            let leaves: Vec<_> = side_leaves(recorded)
-                .into_keys()
-                .map(|path| {
-                    let class = fixed(&path).unwrap_or(Class::Unimplemented);
-                    (path, class)
-                })
-                .collect();
-            let counts = self.record(&leaves);
-            self.transitions.push(Transition {
-                round: 0,
-                side,
-                counts,
-                unpredicted: Some("the position an opening is chosen from is not built".into()),
-            });
+            match crate::opening::reactor_core(stated.map_id, seat) {
+                Ok(core) => {
+                    let before = before_opening(core, header.constructions.clone());
+                    self.side(economy, 0, &before, actions, recorded, side);
+                }
+                Err(reason) => {
+                    let leaves: Vec<_> = side_leaves(recorded)
+                        .into_keys()
+                        .map(|path| {
+                            let class = fixed(&path, false).unwrap_or(Class::Unimplemented);
+                            (path, class)
+                        })
+                        .collect();
+                    let counts = self.record(&leaves);
+                    self.transitions.push(Transition {
+                        round: 0,
+                        side,
+                        counts,
+                        unpredicted: Some(reason),
+                    });
+                }
+            }
         }
     }
 
-    /// One side's transition from `turn` onto `next`. Answers whether every
+    /// One side's transition: `actions` taken from `state` in `round`, onto
+    /// the recorded position the next round opens with. Answers whether every
     /// field the deal is dealt from came out equal.
-    fn side(&mut self, economy: &Economy, turn: &Turn, next: &Turn, side: &'static str) -> bool {
+    fn side(
+        &mut self,
+        economy: &Economy,
+        round: i32,
+        state: &SideState,
+        actions: &[Action],
+        recorded: &SideState,
+        side: &'static str,
+    ) -> bool {
         let red = side == "red";
-        let (state, actions, recorded) = sides(turn, next, red);
-        let predicted = crate::transition::predict(economy, turn.round, state, actions, red);
+        // Round zero ends in round 1's opening without a fight.
+        let fought = round > 0;
+        let predicted = crate::transition::predict(economy, round, state, actions, red);
         let (leaves, unpredicted) = match &predicted {
-            Ok(predicted) => (compare(predicted, recorded), None),
+            Ok(predicted) => (compare(predicted, recorded, fought), None),
             Err(reason) => {
                 // Tables without a row, or a board without a rule for where a
                 // grant lands, are what the prediction lacks. A decision
@@ -210,7 +243,7 @@ impl Coverage {
                     Unsettled::Unpriced(_) | Unsettled::GrantedPosition => Class::Unimplemented,
                     Unsettled::Missing(_) | Unsettled::Refused(_) => {
                         self.unequal.push(Difference {
-                            round: turn.round,
+                            round,
                             side,
                             path: "actions".into(),
                             predicted: Some(format!("{reason:?}")),
@@ -222,7 +255,7 @@ impl Coverage {
                 let leaves = side_leaves(recorded)
                     .into_iter()
                     .map(|(path, value)| {
-                        let class = fixed(&path).unwrap_or(class);
+                        let class = fixed(&path, fought).unwrap_or(class);
                         (path, class, None, Some(value))
                     })
                     .collect();
@@ -236,7 +269,7 @@ impl Coverage {
         for (path, class, predicted, recorded) in leaves {
             if class == Class::Unequal && unpredicted.is_none() {
                 self.unequal.push(Difference {
-                    round: turn.round,
+                    round,
                     side,
                     path: path.clone(),
                     predicted,
@@ -247,7 +280,7 @@ impl Coverage {
         }
         let counts = self.record(&classes);
         self.transitions.push(Transition {
-            round: turn.round,
+            round,
             side,
             counts,
             unpredicted,
@@ -296,7 +329,7 @@ fn sides<'a>(
     turn: &'a Turn,
     next: &'a Turn,
     red: bool,
-) -> (&'a SideState, &'a [crate::battle::Action], &'a SideState) {
+) -> (&'a SideState, &'a [Action], &'a SideState) {
     if red {
         (
             &turn.state.sides.red,
@@ -314,8 +347,9 @@ fn sides<'a>(
 
 type Leaf = (String, Class, Option<String>, Option<String>);
 
-/// Classifies every leaf either position has.
-fn compare(predicted: &SideState, recorded: &SideState) -> Vec<Leaf> {
+/// Classifies every leaf either position has. `fought` says whether a fight
+/// ran between the decisions and the recorded position.
+fn compare(predicted: &SideState, recorded: &SideState, fought: bool) -> Vec<Leaf> {
     let mut predicted = side_leaves(predicted);
     let mut pairs: Vec<(String, Option<String>, Option<String>)> = side_leaves(recorded)
         .into_iter()
@@ -332,7 +366,7 @@ fn compare(predicted: &SideState, recorded: &SideState) -> Vec<Leaf> {
     let mut leaves: Vec<Leaf> = pairs
         .into_iter()
         .map(|(path, made, held)| {
-            let class = fixed(&path).unwrap_or(if made == held {
+            let class = fixed(&path, fought).unwrap_or(if made == held {
                 Class::Equal
             } else {
                 Class::Unequal
@@ -344,10 +378,11 @@ fn compare(predicted: &SideState, recorded: &SideState) -> Vec<Leaf> {
     leaves
 }
 
-/// The class a leaf has whatever its value: the fight's, or not yet predicted.
-fn fixed(path: &str) -> Option<Class> {
+/// The class a leaf has whatever its value: the fight's, when one was
+/// `fought`, or not yet predicted.
+fn fixed(path: &str, fought: bool) -> Option<Class> {
     let group = group(path);
-    if FIGHT.iter().any(|field| within(&group, field)) {
+    if fought && FIGHT.iter().any(|field| within(&group, field)) {
         Some(Class::Fight)
     } else if UNIMPLEMENTED.iter().any(|field| within(&group, field)) {
         Some(Class::Unimplemented)
@@ -499,41 +534,41 @@ mod tests {
         assert!(unequal.is_empty(), "{unequal:#?}");
         let expected: BTreeMap<String, Counts> = [
             ("airdrop_shields", [0, 0, 0, 9]),
-            ("battle_skills.cooldown", [1054, 0, 8, 0]),
-            ("battle_skills.id", [1054, 0, 8, 0]),
-            ("battle_skills.index", [1054, 0, 8, 0]),
+            ("battle_skills.cooldown", [1062, 0, 0, 0]),
+            ("battle_skills.id", [1062, 0, 0, 0]),
+            ("battle_skills.index", [1062, 0, 0, 0]),
             ("blueprints", [433, 0, 0, 0]),
-            ("constructions.index", [652, 0, 142, 0]),
-            ("constructions.position.x", [652, 0, 142, 0]),
-            ("constructions.position.y", [652, 0, 142, 0]),
-            ("constructions.type", [652, 0, 142, 0]),
+            ("constructions.index", [794, 0, 0, 0]),
+            ("constructions.position.x", [794, 0, 0, 0]),
+            ("constructions.position.y", [794, 0, 0, 0]),
+            ("constructions.type", [794, 0, 0, 0]),
             ("contraptions.index", [0, 0, 0, 346]),
             ("contraptions.position.x", [0, 0, 0, 346]),
             ("contraptions.position.y", [0, 0, 0, 346]),
             ("contraptions.type", [0, 0, 0, 346]),
-            ("equipment", [22, 0, 2, 0]),
+            ("equipment", [24, 0, 0, 0]),
             ("formations.equipment", [319, 0, 0, 0]),
             ("formations.exp", [0, 0, 0, 8902]),
-            ("formations.index", [9084, 0, 410, 0]),
+            ("formations.index", [9494, 0, 0, 0]),
             ("formations.level", [2600, 0, 0, 0]),
-            ("formations.movable", [45, 0, 410, 0]),
-            ("formations.position.x", [9084, 0, 410, 0]),
-            ("formations.position.y", [9084, 0, 410, 0]),
+            ("formations.movable", [455, 0, 0, 0]),
+            ("formations.position.x", [9494, 0, 0, 0]),
+            ("formations.position.y", [9494, 0, 0, 0]),
             ("formations.rotated", [3058, 0, 0, 0]),
-            ("formations.type", [9084, 0, 410, 0]),
-            ("formations.value", [9084, 0, 410, 0]),
-            ("next_index.contraption", [586, 0, 82, 0]),
-            ("next_index.unit", [586, 0, 82, 0]),
-            ("reactor_core", [0, 0, 0, 668]),
+            ("formations.type", [9494, 0, 0, 0]),
+            ("formations.value", [9494, 0, 0, 0]),
+            ("next_index.contraption", [668, 0, 0, 0]),
+            ("next_index.unit", [668, 0, 0, 0]),
+            ("reactor_core", [82, 0, 0, 586]),
             ("reinforce_offers", [293, 0, 0, 0]),
-            ("shop.buys_remaining", [586, 0, 82, 0]),
-            ("shop.unlocked_units", [586, 0, 82, 0]),
-            ("shop.unlocks_remaining", [586, 0, 82, 0]),
+            ("shop.buys_remaining", [668, 0, 0, 0]),
+            ("shop.unlocked_units", [668, 0, 0, 0]),
+            ("shop.unlocks_remaining", [668, 0, 0, 0]),
             ("supply", [0, 0, 668, 0]),
-            ("techs.officers", [586, 0, 82, 0]),
+            ("techs.officers", [668, 0, 0, 0]),
             ("techs.units", [389, 0, 0, 0]),
             ("terrains", [0, 0, 0, 10]),
-            ("tower_strengthen_levels", [586, 0, 82, 0]),
+            ("tower_strengthen_levels", [668, 0, 0, 0]),
         ]
         .into_iter()
         .map(|(group, [equal, unequal, unimplemented, fight])| {

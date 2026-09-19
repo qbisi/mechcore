@@ -318,6 +318,7 @@ struct Setup {
 struct MapSetup {
     groups: Vec<i32>,
     centers: [Position; 2],
+    reactor_cores: Vec<i32>,
 }
 
 #[derive(Deserialize)]
@@ -397,6 +398,29 @@ pub struct Prediction {
     pub reversed: [bool; 2],
     pub construction_draws: u32,
     pub constructions: Constructions,
+}
+
+/// The reactor core a seat starts a match on `map_id` with, before its
+/// opening moves it.
+///
+/// This is `MatchSetting.GetReactorCore`, which reads the map's
+/// `reactorCores` by seat and gives every seat the first entry when the list
+/// holds fewer than two. `seat` is 0 for blue and 1 for red.
+///
+/// # Errors
+/// Refuses a map without a supported opening, or a seat the list cannot name.
+pub fn reactor_core(map_id: i32, seat: usize) -> Result<i32, String> {
+    let setup = Setup::embedded()?;
+    let cores = &setup
+        .maps
+        .get(&map_id)
+        .ok_or_else(|| format!("map {map_id} has no supported opening initialization"))?
+        .reactor_cores;
+    let at = if cores.len() < 2 { 0 } else { seat };
+    cores
+        .get(at)
+        .copied()
+        .ok_or_else(|| format!("map {map_id} states no reactor core for seat {seat}"))
 }
 
 /// Predicts standard 1v1 offers and initial defensive constructions from a seed.
@@ -483,6 +507,8 @@ pub struct Stated {
     pub seed: i32,
     pub sides: StatedSides,
     pub turns: Vec<Turn>,
+    /// Round zero's decisions, each side's opening, as written.
+    pub opening: TurnActions,
     /// Whether the last round's decisions are written with no position after
     /// them, which a converted battle does because no replay records the last
     /// fight's result.
@@ -602,6 +628,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         seed: header.seed,
         sides,
         turns,
+        opening,
         ends_on_actions,
     }))
 }
