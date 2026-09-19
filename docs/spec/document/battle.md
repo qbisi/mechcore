@@ -239,6 +239,14 @@ checked for having been dealt what it says without the replay it came from.
 mechcore verify <battle.yaml>
 ```
 
+Before checking the deal, verification reads every state field and every
+action operand using the document types. Missing required fields, invalid
+field types, unknown state/action fields and unknown action types are refused,
+including fields the deal does not use. Tagged skill targets retain their
+area, unit or construction meaning. Reading a complete position and decision
+does not establish that the decision is legal there or that it reproduces the
+next round's position.
+
 The opening check computes initialization from `seed` and `map_id`, and compares
 both complete `offers` arrays and both construction lists against it. It
 compares the directly computed result, without searching alternative stream
@@ -344,6 +352,71 @@ delivers; stepping the same decision answers what the position is immediately
 afterwards, and the squads have not arrived. They reach the board when round 1
 opens, which is not a decision and so is not a step.
 
+### Transition coverage
+
+`mechcore verify <battle.yaml>` measures each transition against the whole next
+position, not only the nine fields above. A transition starts from a round's
+state and that round's decisions, steps the decisions in order, and opens the
+next round on the result. Every leaf of the recorded next state is then put in
+one of four classes:
+
+| Class | Meaning |
+| --- | --- |
+| `equal` | Predicted, and the recorded value agrees |
+| `unequal` | Predicted, and the recorded value differs, or the side's decisions contradict the position they were taken from |
+| `unimplemented` | No rule predicts the leaf yet, or the build's tables cannot settle one of the side's decisions |
+| `fight` | The fight decides the leaf |
+
+A leaf is a scalar reached through mappings, a field of a formation, panel
+slot, construction or contraption aligned by its `index`, or a whole list
+otherwise, so an ID set and an inventory with repeats are one leaf each. A leaf
+only one of the two positions has is still a leaf: a formation the prediction
+lacks counts against it. The recorded next state is compared against and never
+read by the prediction.
+
+The `fight` class is the fixed set of fields below, in every transition that
+ends in a fight, which is every one after round zero's. Standard 1v1 has no income
+during the fight, so `supply` is not among them and is predicted like any other
+field.
+
+| Field | What the fight does to it |
+| --- | --- |
+| `reactor_core` | Damage |
+| `formations.exp` | Experience from the fight |
+| `contraptions` | Which survive |
+| `terrains` | Which remain |
+| `airdrop_shields` | Which remain |
+
+A leaf outside those fields is `unimplemented` when no rule produces it, even
+where the unchanged value happens to agree; which fields those are changes as
+rules are added, and the report names them. `reinforce_offers` is dealt from
+the stream the header seeds, and is `equal` only where the deal agrees and
+every field it is dealt from agrees on both sides too, since the deal is
+checked against the recorded position.
+
+The opening transition, from round zero onto round 1, starts from a position
+the header deals rather than a state segment: the map's reactor core for that
+seat, the side's `constructions`, and two towers at level zero. A standard 1v1
+map unlocks no unit and hands out no commander skill before the opening. The
+side's opening decision is stepped on it, and as round 1 opens the chosen team
+arrives: its unit types join the shop, and its formations land at level 1
+where the board puts them, in the team's order. Nothing is fought in between,
+so no leaf of this transition is in the `fight` class.
+
+When a side's decisions cannot be stepped, nothing of that side's transition is
+predicted. A decision naming what the position does not hold, or one the game
+refuses there, is reported once at the path `actions`, and the side's leaves
+outside the fight count as `unequal`. A decision the tables cannot price, or a
+grant the board has no landing rule for, makes them `unimplemented`.
+
+The report's `coverage` holds the four counts in `total`, by field group in
+`fields`, whose key is a leaf's path with its `[index]` parts removed, and by
+round and side in `transitions`, where `side: match` holds `reinforce_offers`.
+`unequal` lists each disagreeing leaf with its round, side, path, predicted and
+recorded values, and `untargeted_round` names a last round whose decisions have
+no state after them, which is not a transition. A battle verifies only when no
+leaf is `unequal` or `unimplemented`.
+
 ### Cross-round invariants
 
 A segment checks itself. A battle checks the seams between states, and these
@@ -447,6 +520,16 @@ owns it:
 | `equipment` | The recorded inventory includes fitted items, which the formations already name |
 | `movable` | No recorded field states it. Every formation of round 1 arrived with the opening, and a delivery arrived as its round opened; any other formation moves only if a Deployment Module or a Jump Drive frees it |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
+
+Only `equipment` is rebuilt by conversion's own rule. The income, the
+allowances, the cooldowns, the energy tower skills, `movable` and the
+deliveries are what a round's opening does, and conversion makes that opening
+rather than restating it: it reads the snapshot as it stands before the round
+opens, marks the slots the previous round's actions spent and the Rapid Supply
+it still owes for, and opens the round on it with the same rule a transition's
+prediction ends with. A converted opening and a predicted one therefore cannot
+follow two sets of rules. The opening pays the income schedule every versus map
+shares, so a record whose map pays a different one is refused.
 
 The energy tower debt is the one quantity two readings produce, and the two have
 to agree. A round's decisions say what it owes, and the recorded list says the

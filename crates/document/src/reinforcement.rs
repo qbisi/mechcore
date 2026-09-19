@@ -1,8 +1,8 @@
 //! Stateful build-2259 reinforcement prediction; see `docs/rules/reinforcements.md`.
 
+use crate::battle::{Action, SideState, Turn};
 use crate::catalog::{NativeFormation, resolve_unit_type};
 use crate::economy::Economy;
-use crate::layout::Techs;
 use crate::opening::{Prediction, Stated, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -57,67 +57,6 @@ struct UnitCost {
     tech_cap: i32,
 }
 
-/// The portion of a battle turn that influences reinforcement generation.
-#[derive(Debug, Deserialize)]
-pub struct Turn {
-    pub round: i32,
-    pub state: State,
-    pub actions: Actions,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct State {
-    pub reinforce_offers: Option<Vec<i32>>,
-    pub sides: Sides,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Sides {
-    pub blue: Side,
-    pub red: Side,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Side {
-    pub formations: Vec<Formation>,
-    pub shop: Shop,
-    pub techs: Techs,
-    pub next_index: NextIndex,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Formation {
-    #[serde(rename = "type")]
-    pub type_name: String,
-    pub index: i32,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct NextIndex {
-    pub unit: i32,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Shop {
-    pub unlocked_units: Vec<i32>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-pub struct Actions {
-    pub blue: Vec<Action>,
-    pub red: Vec<Action>,
-}
-
-// A struct skips unrelated action payloads directly. An internally tagged
-// enum buffers them and rejects valid YAML tags such as !position.
-#[derive(Debug, Deserialize)]
-pub struct Action {
-    #[serde(rename = "type")]
-    pub type_name: String,
-    pub offer: Option<i32>,
-    pub id: Option<i32>,
-}
-
 /// The unit index below which a side's formations were on the board before
 /// this round's deliveries.
 ///
@@ -131,7 +70,7 @@ pub struct Action {
 /// Refuses a round in which an officer also unlocks a unit, since the state
 /// does not say whether the unit was already unlocked and the deal reads the
 /// unlocks. No officer of this build unlocks after round 1, which deals none.
-fn delivered_before(economy: &Economy, side: &Side, round: i32) -> Result<i32, String> {
+fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i32, String> {
     let mut squads = 0;
     for officer in &side.techs.officers {
         let Some(row) = economy.officer(*officer) else {
@@ -424,16 +363,11 @@ impl Dealer {
         for (name, actions) in [("blue", &turn.actions.blue), ("red", &turn.actions.red)] {
             let choices: Vec<_> = actions
                 .iter()
-                .filter(|action| action.type_name == "choose_reinforce_item")
-                .map(|action| {
-                    action.offer.map(|offer| (offer, action.id)).ok_or_else(|| {
-                        format!(
-                            "round {} {name} reinforcement choice has no offer index",
-                            turn.round
-                        )
-                    })
+                .filter_map(|action| match action {
+                    Action::ChooseReinforceItem { offer, id } => Some((*offer, *id)),
+                    _ => None,
                 })
-                .collect::<Result<_, _>>()?;
+                .collect();
             if choices.len() > 1 || (turn.round == 1 && !choices.is_empty()) {
                 return Err(format!(
                     "round {} {name} has an invalid reinforcement choice count",
@@ -481,10 +415,15 @@ impl Dealer {
             for formation in side
                 .formations
                 .iter()
-                .filter(|formation| formation.index < delivered)
+                .filter(|entry| entry.formation.index < delivered)
             {
-                let native = resolve_unit_type(&formation.type_name)
-                    .ok_or_else(|| format!("unknown reinforcement unit {}", formation.type_name))?
+                let native = resolve_unit_type(&formation.formation.type_name)
+                    .ok_or_else(|| {
+                        format!(
+                            "unknown reinforcement unit {}",
+                            formation.formation.type_name
+                        )
+                    })?
                     .native;
                 let NativeFormation::Unit(unit) = native else {
                     return Err("formation is not a unit".into());
@@ -723,11 +662,7 @@ mod tests {
                 .contains("round 2 reinforcement offers disagree")
         );
         stated.turns[1].state.reinforce_offers = original;
-        stated.turns[1].actions.blue = vec![Action {
-            type_name: "choose_reinforce_item".into(),
-            offer: Some(4),
-            id: None,
-        }];
+        stated.turns[1].actions.blue = vec![Action::ChooseReinforceItem { offer: 4, id: None }];
         assert!(
             verify(&economy, &stated, &opening)
                 .unwrap_err()
@@ -778,7 +713,7 @@ mod tests {
         stated.turns[1]
             .actions
             .blue
-            .retain(|action| action.type_name != "choose_reinforce_item");
+            .retain(|action| !matches!(action, Action::ChooseReinforceItem { .. }));
         assert!(
             verify(&economy, &stated, &opening)
                 .unwrap_err()

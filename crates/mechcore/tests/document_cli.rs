@@ -301,3 +301,142 @@ fn diff_compares_normalized_fields() {
         "/sides/blue/formations/index=0/position/x"
     );
 }
+
+/// A tracked battle as its segments, and a way to verify a rewrite of them.
+/// Only the YAML is named: neither a GRBR path nor an observation is input.
+struct BattleFixture {
+    original: Vec<serde_yaml::Value>,
+    _directory: tempfile::TempDir,
+    path: std::path::PathBuf,
+}
+
+impl BattleFixture {
+    fn new() -> Self {
+        use serde::Deserialize;
+        let source = include_str!(
+            "../../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"
+        );
+        let original = serde_yaml::Deserializer::from_str(source)
+            .map(|document| serde_yaml::Value::deserialize(document).unwrap())
+            .collect();
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("battle.yaml");
+        Self {
+            original,
+            _directory: directory,
+            path,
+        }
+    }
+
+    fn verify(&self, documents: &[serde_yaml::Value]) -> std::process::Output {
+        let yaml = documents
+            .iter()
+            .map(|document| serde_yaml::to_string(document).unwrap())
+            .collect::<Vec<_>>()
+            .join("---\n");
+        fs::write(&self.path, yaml).unwrap();
+        Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .arg("verify")
+            .arg(&self.path)
+            .output()
+            .unwrap()
+    }
+}
+
+#[test]
+fn battle_verification_reports_transition_coverage() {
+    use serde_yaml::Value;
+
+    let fixture = BattleFixture::new();
+    let original = &fixture.original;
+    let run = |documents: &[Value]| fixture.verify(documents);
+    // The recorded battle is predicted in every leaf outside the fight.
+    let recorded = run(original);
+    let report: serde_json::Value = serde_json::from_slice(&recorded.stdout).unwrap();
+    assert!(recorded.status.success(), "{report}");
+    assert_eq!(report["valid"], true);
+    let coverage = &report["coverage"];
+    assert_eq!(coverage["total"]["unequal"], 0);
+    assert_eq!(coverage["total"]["unimplemented"], 0);
+    assert!(coverage["total"]["equal"].as_u64().unwrap() > 0);
+    assert_eq!(coverage["fields"]["supply"]["equal"], 16);
+    assert!(report["reinforcement_offers_checked"].as_u64().unwrap() > 0);
+
+    // A well-formed wrong value in a predicted field is found where it is, and
+    // fails the battle.
+    let mut documents = original.clone();
+    let red = &mut documents[4]["sides"]["red"];
+    let level = red["tower_strengthen_levels"][0].as_i64().unwrap();
+    red["tower_strengthen_levels"][0] = Value::Number((level + 1).into());
+    let supply = red["supply"].as_i64().unwrap();
+    red["supply"] = Value::Number((supply + 50).into());
+    let broken = run(&documents);
+    assert!(!broken.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&broken.stdout).unwrap();
+    let paths: Vec<_> = report["coverage"]["unequal"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|difference| {
+            (
+                difference["round"].as_i64().unwrap(),
+                difference["side"].as_str().unwrap().to_owned(),
+                difference["path"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            (1, "red".to_owned(), "supply".to_owned()),
+            (1, "red".to_owned(), "tower_strengthen_levels".to_owned()),
+            (2, "red".to_owned(), "supply".to_owned()),
+            (2, "red".to_owned(), "tower_strengthen_levels".to_owned()),
+        ]
+    );
+}
+
+#[test]
+fn battle_verification_reads_fields_outside_the_deal() {
+    use serde_yaml::Value;
+
+    let fixture = BattleFixture::new();
+    let original = &fixture.original;
+    for case in [
+        "supply",
+        "cooldown",
+        "equipment",
+        "position",
+        "unknown_state_field",
+        "missing_operand",
+        "unknown_action",
+    ] {
+        let mut documents = original.clone();
+        let blue = &mut documents[2]["sides"]["blue"];
+        match case {
+            "supply" => blue["supply"] = Value::String("broken".into()),
+            "cooldown" => {
+                blue["battle_skills"] =
+                    serde_yaml::from_str("[{index: 0, id: 1000001, cooldown: broken}]").unwrap();
+            }
+            "equipment" => blue["equipment"] = serde_yaml::from_str("[{id: broken}]").unwrap(),
+            "position" => blue["formations"][0]["position"]["x"] = Value::String("broken".into()),
+            "unknown_state_field" => blue["supply_typo"] = Value::Number(1.into()),
+            "missing_operand" => {
+                documents[3]["blue"] = serde_yaml::from_str("[{type: buy_unit, unit: 2}]").unwrap();
+            }
+            "unknown_action" => {
+                documents[3]["blue"] = serde_yaml::from_str("[{type: unknown_action}]").unwrap();
+            }
+            _ => unreachable!(),
+        }
+        let output = fixture.verify(&documents);
+        let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(!output.status.success(), "{case}: {report}");
+        assert_eq!(report["valid"], false, "{case}");
+        assert!(
+            report["error"].as_str().unwrap().contains("round 1"),
+            "{case}: {report}"
+        );
+    }
+}

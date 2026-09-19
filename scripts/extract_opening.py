@@ -55,7 +55,12 @@ def extract(structure, data):
         if row['id'] in MAPS:
             assert layouts[row['mapData']] == layout_name
             assert row['advanceSameUnitMaximum'] == 3
-            maps[row['id']] = {'groups': row['constructionGroupID'], 'centers': centers}
+            maps[row['id']] = {
+                'groups': row['constructionGroupID'],
+                'centers': centers,
+                # One reactor core per seat, or one every seat shares.
+                'reactor_cores': row['reactorCores'],
+            }
     wanted = {group for row in maps.values() for group in row['groups']}
     constructions = {}
     for row in structure['constructionGroupDatas']:

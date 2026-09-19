@@ -107,7 +107,8 @@ pub struct Turn {
 }
 
 /// A match position, which a battle writes as a state segment.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct State {
     /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -115,40 +116,43 @@ pub struct State {
     pub sides: StateSides,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct StateSides {
     pub blue: SideState,
     pub red: SideState,
 }
 
-#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct SideState {
     pub reactor_core: i32,
     pub supply: i32,
     pub shop: ShopState,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub blueprints: Vec<i32>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub equipment: Vec<EquipmentItem>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<PanelSkill>,
     pub next_index: NextIndex,
     pub techs: Techs,
     pub formations: Vec<StateFormation>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<ContraptionPlacement>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub airdrop_shields: Vec<Position>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub terrains: Vec<Terrain>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
@@ -160,7 +164,8 @@ pub struct ShopState {
 /// `value` is not a function of the unit's type and level. It is what the side
 /// actually paid, at the prices its officers made at the time, so two identical
 /// looking formations bought a round apart can be worth different amounts.
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct StateFormation {
     #[serde(flatten)]
     pub formation: Formation,
@@ -171,12 +176,13 @@ pub struct StateFormation {
     /// A formation moves in the round it arrives and is fixed after that,
     /// unless [`crate::mobility`] frees it. The round it arrived in is not
     /// otherwise part of a position, so the answer is a field.
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub movable: bool,
 }
 
 /// An owned item no formation carries; a fitted one is named by its formation.
-#[derive(Clone, Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(deny_unknown_fields)]
 pub struct EquipmentItem {
     pub id: i32,
     /// Absent means `-1`, which is every item a standard 1v1 hands out.
@@ -185,7 +191,8 @@ pub struct EquipmentItem {
 }
 
 /// One commander skill panel slot.
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct PanelSkill {
     pub index: i32,
     pub id: i32,
@@ -196,7 +203,7 @@ pub struct PanelSkill {
     /// position, so the slot records that it was spent and nothing else: no
     /// target, no place in the release order, and no entry in a layout. A
     /// round's opening position carries none.
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub used: bool,
     /// Present on a skill this round released. A state is defined after each
     /// action, so a round's opening position carries none and a deployment's
@@ -210,13 +217,15 @@ pub struct PanelSkill {
 /// `order` is explicit because the panel is sorted by `index`, so array
 /// position cannot carry it. A layout is the other way round: it lists only
 /// releases, and there the array position is the order.
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct Release {
     pub order: i32,
     pub target: SkillTarget,
 }
 
-#[derive(Clone, Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct NextIndex {
     pub unit: i32,
     pub contraption: i32,
@@ -224,7 +233,8 @@ pub struct NextIndex {
 
 /// Each side's decisions in one round, which a battle writes as an action
 /// segment.
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct TurnActions {
     pub blue: Vec<Action>,
     pub red: Vec<Action>,
@@ -314,12 +324,123 @@ pub enum Action {
 }
 
 /// A release covers an area or points at one object, never both.
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTarget {
     Area(Vec<Position>),
     Unit(i32),
     Construction(i32),
+}
+
+impl<'de> Deserialize<'de> for Action {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // Serde reads an internally tagged enum through a buffer that cannot
+        // hold a YAML tag, so `target: !area [...]` fails there. The value is
+        // read first, and each tag is spelled as the one-key mapping that
+        // buffer does hold, which is how the derived reader takes an enum.
+        let value = untag(Value::deserialize(deserializer)?);
+        ActionReader::deserialize(value).map_err(serde::de::Error::custom)
+    }
+}
+
+/// [`Action`]'s reader, which serde derives against the real type: a field
+/// missing here or typed differently from there does not compile.
+#[derive(Deserialize)]
+#[serde(
+    remote = "Action",
+    tag = "type",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+enum ActionReader {
+    ChooseReinforceItem {
+        offer: i32,
+        id: Option<i32>,
+    },
+    ChooseAdvanceTeam {
+        offer: i32,
+        id: i32,
+        specialist: Option<i32>,
+    },
+    BuyUnit {
+        unit: i32,
+        position: Position,
+    },
+    UpgradeUnit {
+        index: i32,
+    },
+    UnlockUnit {
+        unit: i32,
+    },
+    UpgradeTechnology {
+        unit: i32,
+        tech: i32,
+    },
+    ActiveBlueprint {
+        id: i32,
+    },
+    ActiveEnergyTowerSkill {
+        skill: i32,
+    },
+    StrengthenTower {
+        tower: i32,
+    },
+    UseEquipment {
+        equipment: i32,
+        unit: i32,
+    },
+    MoveUnit {
+        index: i32,
+        position: Position,
+        #[serde(default)]
+        rotated: bool,
+    },
+    ReleaseCommanderSkill {
+        skill: i32,
+        target: SkillTarget,
+    },
+    ReleaseContraption {
+        contraption: i32,
+        position: Position,
+        extra_position: Option<Position>,
+    },
+    Concede,
+}
+
+/// Spells every YAML tag in `value` as a one-key mapping from the tag's name.
+fn untag(value: Value) -> Value {
+    match value {
+        Value::Tagged(tagged) => {
+            let tagged = *tagged;
+            let name = tagged.tag.to_string();
+            let mut mapping = serde_yaml::Mapping::new();
+            mapping.insert(
+                Value::String(name.trim_start_matches('!').to_owned()),
+                untag(tagged.value),
+            );
+            Value::Mapping(mapping)
+        }
+        Value::Sequence(items) => Value::Sequence(items.into_iter().map(untag).collect()),
+        Value::Mapping(fields) => Value::Mapping(
+            fields
+                .into_iter()
+                .map(|(key, field)| (key, untag(field)))
+                .collect(),
+        ),
+        other => other,
+    }
+}
+
+/// Segment framing has already been checked by `segments`; payload readers
+/// reject unknown fields after removing those two framing keys.
+pub(crate) fn payload<T: serde::de::DeserializeOwned>(
+    mut value: Value,
+) -> Result<T, serde_yaml::Error> {
+    if let Value::Mapping(fields) = &mut value {
+        fields.remove(Value::String("kind".into()));
+        fields.remove(Value::String("round".into()));
+    }
+    serde_yaml::from_value(value)
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)] // Required by serde's predicate shape.
@@ -607,6 +728,133 @@ fn conceded(actions: &Value, round: i32) -> Result<bool, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn actions_read_tagged_targets_and_refuse_lost_operands() {
+        for target in ["!area [{x: 10, y: -20}]", "!unit 4", "!construction 2"] {
+            let yaml = format!("{{type: release_commander_skill, skill: 3, target: {target}}}");
+            let action: super::Action = serde_yaml::from_str(&yaml).unwrap();
+            let spelled = serde_yaml::to_string(&action).unwrap();
+            assert_eq!(
+                serde_yaml::from_str::<super::Action>(&spelled).unwrap(),
+                action
+            );
+        }
+        for yaml in [
+            "{type: buy_unit, unit: 2}",
+            "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
+            "{type: upgrade_unit, index: 0, typo: 1}",
+            "{type: release_commander_skill, skill: 0, target: !unknown 1}",
+            "{type: unknown_action}",
+        ] {
+            assert!(
+                serde_yaml::from_str::<super::Action>(yaml).is_err(),
+                "{yaml}"
+            );
+        }
+    }
+
+    /// Every decision reads back what it writes. The match has no wildcard,
+    /// so a decision added to [`super::Action`] stops this compiling until it
+    /// is sampled here, and [`super::ActionReader`] is the other place it goes.
+    #[test]
+    fn every_action_reads_back_what_it_writes() {
+        use super::{Action, SkillTarget};
+        use crate::layout::Position;
+        let at = Position { x: 10, y: -20 };
+        let samples = [
+            Action::ChooseReinforceItem {
+                offer: -1,
+                id: None,
+            },
+            Action::ChooseReinforceItem {
+                offer: 2,
+                id: Some(7),
+            },
+            Action::ChooseAdvanceTeam {
+                offer: 1,
+                id: 3,
+                specialist: Some(4),
+            },
+            Action::BuyUnit {
+                unit: 2,
+                position: at,
+            },
+            Action::UpgradeUnit { index: 0 },
+            Action::UnlockUnit { unit: 9 },
+            Action::UpgradeTechnology { unit: 2, tech: 201 },
+            Action::ActiveBlueprint { id: 5 },
+            Action::ActiveEnergyTowerSkill { skill: 1 },
+            Action::StrengthenTower { tower: 1 },
+            Action::UseEquipment {
+                equipment: 3,
+                unit: 0,
+            },
+            Action::MoveUnit {
+                index: 0,
+                position: at,
+                rotated: true,
+            },
+            Action::ReleaseCommanderSkill {
+                skill: 0,
+                target: SkillTarget::Area(vec![at]),
+            },
+            Action::ReleaseCommanderSkill {
+                skill: 0,
+                target: SkillTarget::Unit(4),
+            },
+            Action::ReleaseCommanderSkill {
+                skill: 0,
+                target: SkillTarget::Construction(2),
+            },
+            Action::ReleaseContraption {
+                contraption: 1,
+                position: at,
+                extra_position: Some(at),
+            },
+            Action::Concede,
+        ];
+        for action in samples {
+            match action {
+                Action::ChooseReinforceItem { .. }
+                | Action::ChooseAdvanceTeam { .. }
+                | Action::BuyUnit { .. }
+                | Action::UpgradeUnit { .. }
+                | Action::UnlockUnit { .. }
+                | Action::UpgradeTechnology { .. }
+                | Action::ActiveBlueprint { .. }
+                | Action::ActiveEnergyTowerSkill { .. }
+                | Action::StrengthenTower { .. }
+                | Action::UseEquipment { .. }
+                | Action::MoveUnit { .. }
+                | Action::ReleaseCommanderSkill { .. }
+                | Action::ReleaseContraption { .. }
+                | Action::Concede => {}
+            }
+            let value = serde_yaml::to_value(&action).unwrap();
+            let spelled = crate::spelling::document(&value).unwrap();
+            assert_eq!(
+                serde_yaml::from_str::<Action>(&spelled).unwrap(),
+                action,
+                "{spelled}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_state_refuses_a_field_it_does_not_define() {
+        let formation = "{type: crawler, index: 0, position: {x: 0, y: -160}, value: 100}";
+        let read =
+            |formation: &str| serde_yaml::from_str::<super::StateFormation>(formation).map(|_| ());
+        read(formation).unwrap();
+        for broken in [
+            formation.replace("value: 100", "value: 100, typo: 1"),
+            formation.replace("value: 100", "value: 100, movable: yes"),
+            formation.replace(", index: 0", ""),
+        ] {
+            assert!(read(&broken).is_err(), "{broken}");
+        }
+    }
+
     use super::segments;
 
     const HEADER: &str = "kind: battle\nmap_id: 1021\nseed: 1\n";

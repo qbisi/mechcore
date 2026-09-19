@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 pub mod battle;
 pub mod catalog;
 pub mod compile;
+pub mod coverage;
 #[cfg(feature = "convert")]
 pub mod convert;
 pub mod economy;

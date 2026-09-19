@@ -18,19 +18,12 @@ use crate::layout::{
 };
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
-use crate::ledger;
 use crate::opening;
 use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
 
 /// The build these catalogues and conventions are pinned to.
 const BUILD: &str = "2259";
-/// `Shop.BUY_COUNT_PER_ROUND`, before any officer or energy tower modifier.
-const BUY_COUNT_PER_ROUND: i32 = 2;
-/// `Shop.UNLOCK_COUNT_PER_ROUND`.
-const UNLOCK_COUNT_PER_ROUND: i32 = 1;
-/// Energy tower skill `1` 快速补给 pays 200 now against this at the next round.
-const RAPID_SUPPLY_DEBT: i32 = 300;
 /// Energy tower skill `1`, the only one carrying a next-round supply change.
 const RAPID_SUPPLY_SKILL: i32 = 1;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
@@ -333,14 +326,15 @@ fn side_state(
     let entry = &player.rounds.entries[position];
     let data = &entry.data;
     let round = entry.round;
+    shared_income(economy, player, seat)?;
 
-    let mut formations = formations(data, seat)?;
+    let formations = formations(data, seat)?;
     let constructions = constructions(data, seat)?;
     let contraptions = contraptions(data, seat)?;
 
-    // The snapshot's cooldowns are the previous round's: the count-down that
-    // opens this round is made after it was taken. A slot the previous round
-    // spent restarts at its skill's cooldown, and every other drops by one.
+    // The snapshot is taken before the round opens, so its cooldowns are the
+    // previous round's, and the slots the previous round spent are marked
+    // here for the opening to restart. The actions say which were spent.
     let spent: Vec<i32> = position
         .checked_sub(1)
         .map(|previous| {
@@ -351,26 +345,18 @@ fn side_state(
                 .collect()
         })
         .unwrap_or_default();
-    let mut battle_skills = Vec::with_capacity(data.commander_skills.entries.len());
-    for skill in &data.commander_skills.entries {
-        let cooldown = if spent.contains(&skill.index) {
-            economy
-                .cooldown(skill.id)
-                .ok_or_else(|| format!("commander skill {} has no cooldown", skill.id))?
-                .spent
-        } else {
-            (skill.cooling_round - 1).max(0)
-        };
-        battle_skills.push(PanelSkill {
+    let mut battle_skills: Vec<PanelSkill> = data
+        .commander_skills
+        .entries
+        .iter()
+        .map(|skill| PanelSkill {
             index: skill.index,
             id: skill.id,
-            cooldown,
-            used: false,
-            // A converted state opens a round, and a round opens with nothing
-            // released. The round's releases are its actions.
+            cooldown: skill.cooling_round,
+            used: spent.contains(&skill.index),
             release: None,
-        });
-    }
+        })
+        .collect();
     battle_skills.sort_by_key(|skill| skill.index);
 
     let retained = retained_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
@@ -402,38 +388,27 @@ fn side_state(
         .collect();
     units.sort_unstable();
 
-    // Every formation of round 1 arrived as it opened, with the opening. A
-    // later round's snapshot is taken before that round's deliveries, which are
-    // made below and arrive free to move, so what the snapshot holds was on the
-    // board last round and moves only if something frees it.
-    for entry in &mut formations {
-        entry.movable = round <= 1 || crate::mobility::free(&entry.formation, &units);
-    }
-
     let mut unlocked_units = data.shop.unlocked_units.values.clone();
     unlocked_units.sort_unstable();
 
     let snapshot = SideState {
         reactor_core: data.reactor_core,
-        supply: data.supply + round_income(economy, player, position, seat)?,
+        // The snapshot precedes the round's income, which the opening pays.
+        supply: data.supply,
+        // The allowances are the opening's to set.
         shop: ShopState {
             unlocked_units,
-            // A round opens with the shop's own allowance, one more purchase for
-            // every Extra Deployment card the side holds, and one unlock.
-            buys_remaining: BUY_COUNT_PER_ROUND
-                + i32::try_from(
-                    data.officers
-                        .values
-                        .iter()
-                        .filter(|officer| **officer == crate::transition::EXTRA_DEPLOYMENT_CARD)
-                        .count(),
-                )
-                .unwrap_or(0),
-            unlocks_remaining: UNLOCK_COUNT_PER_ROUND,
+            buys_remaining: 0,
+            unlocks_remaining: 0,
         },
         blueprints,
-        // Every energy tower skill lasts one round, so a round starts with none.
-        energy_tower_skills: Vec::new(),
+        // What the previous round activated and still owes for, which the
+        // opening charges against the income and then lapses.
+        energy_tower_skills: if energy_tower_debt(player, position, seat)? {
+            vec![RAPID_SUPPLY_SKILL]
+        } else {
+            Vec::new()
+        },
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
         equipment: unfitted_equipment(data),
         battle_skills,
@@ -449,13 +424,39 @@ fn side_state(
         terrains: retained.terrains,
     };
 
-    // The snapshot is taken before the round's deliveries, which the game
-    // makes as the round opens and before either side decides anything. They
-    // belong to the position the round opens with, so they are made here, and
-    // each lands where the board puts it.
+    // The snapshot is taken before the round opens: before its resets, and
+    // before its deliveries, which the game makes before either side decides
+    // anything. Both belong to the position the round opens with, so the
+    // opening is made here, and each delivery lands where the board puts it.
     let mut placement = crate::landing::placement(seat == Seat::Red);
     crate::transition::open_round(economy, &snapshot, round, &mut placement)
         .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
+}
+
+/// Refuses a side whose map pays a round income other than the one every
+/// versus map shares. The opening pays the shared schedule, and the record
+/// carries the map's own row, so a match on a map that pays differently would
+/// otherwise be given an income its map never paid.
+fn shared_income(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    seat: Seat,
+) -> Result<(), String> {
+    let shared: RoundSupply = economy.round_supply();
+    let recorded = (
+        player.data.first_round_supply,
+        player.data.round_supply_increase,
+        player.data.max_round_supply,
+    );
+    if recorded == (shared.first, shared.increase, shared.max) {
+        return Ok(());
+    }
+    Err(format!(
+        "{} pays a round income of {recorded:?} (first, increase, max), and \
+         every versus map pays {:?}",
+        seat.name(),
+        (shared.first, shared.increase, shared.max)
+    ))
 }
 
 /// The unit roster, as the layout formations a projection would keep.
@@ -466,7 +467,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateFormation>, Stri
             .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
         formations.push(StateFormation {
             value: Some(unit.sell_supply),
-            // Settled by `side_state`, which knows the round.
+            // Settled by the opening, which knows the round.
             movable: false,
             formation: Formation {
             type_name: type_name.to_owned(),
@@ -589,48 +590,6 @@ fn energy_tower_debt(
         seat.name(),
         entry.round
     ))
-}
-
-/// The income this round adds, which the recorded supply precedes.
-///
-/// The map's own row is recorded per player, so no map catalogue is consulted.
-/// An energy tower skill activated last round is paid for here.
-fn round_income(
-    economy: &Economy,
-    player: &record::PlayerRecord,
-    position: usize,
-    seat: Seat,
-) -> Result<i32, String> {
-    let debt = energy_tower_debt(player, position, seat)?;
-    let entry = &player.rounds.entries[position];
-    let round = entry.round;
-    if round < 1 {
-        return Ok(0);
-    }
-    let setup = &player.data;
-    let officers = &entry.data.officers.values;
-    let base = ledger::round_income(
-        economy,
-        round,
-        officers,
-        // The record carries the map's own row per player, so the income comes
-        // from the replay rather than from the shared rule.
-        RoundSupply {
-            first: setup.first_round_supply,
-            increase: setup.round_supply_increase,
-            max: setup.max_round_supply,
-        },
-    );
-    // Equipment that pays an income pays it as the round opens, for the board
-    // the round opens with.
-    let worn: i32 = entry
-        .data
-        .units
-        .entries
-        .iter()
-        .map(|unit| economy.equipment_round_supply(unit.equipment_id))
-        .sum();
-    Ok(base + worn - if debt { RAPID_SUPPLY_DEBT } else { 0 })
 }
 
 /// Collapses a recorded action list onto the decisions that took effect.

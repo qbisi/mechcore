@@ -10,7 +10,7 @@
 //! build 2259. Initialization advances the reinforcement stream explicitly;
 //! map constructions use a separate stream seeded with the same match seed.
 
-use crate::battle::OpeningOffer;
+use crate::battle::{Action, OpeningOffer, Turn, TurnActions};
 use crate::economy::{Economy, OpeningKind};
 use crate::layout::{Position, StaticPlacement};
 use serde::{Deserialize, Serialize};
@@ -318,6 +318,7 @@ struct Setup {
 struct MapSetup {
     groups: Vec<i32>,
     centers: [Position; 2],
+    reactor_cores: Vec<i32>,
 }
 
 #[derive(Deserialize)]
@@ -399,6 +400,29 @@ pub struct Prediction {
     pub constructions: Constructions,
 }
 
+/// The reactor core a seat starts a match on `map_id` with, before its
+/// opening moves it.
+///
+/// This is `MatchSetting.GetReactorCore`, which reads the map's
+/// `reactorCores` by seat and gives every seat the first entry when the list
+/// holds fewer than two. `seat` is 0 for blue and 1 for red.
+///
+/// # Errors
+/// Refuses a map without a supported opening, or a seat the list cannot name.
+pub fn reactor_core(map_id: i32, seat: usize) -> Result<i32, String> {
+    let setup = Setup::embedded()?;
+    let cores = &setup
+        .maps
+        .get(&map_id)
+        .ok_or_else(|| format!("map {map_id} has no supported opening initialization"))?
+        .reactor_cores;
+    let at = if cores.len() < 2 { 0 } else { seat };
+    cores
+        .get(at)
+        .copied()
+        .ok_or_else(|| format!("map {map_id} states no reactor core for seat {seat}"))
+}
+
 /// Predicts standard 1v1 offers and initial defensive constructions from a seed.
 /// Player choices are inputs to play, so this predicts their options only.
 ///
@@ -475,14 +499,20 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
 
 /// What a battle document says about its two openings and its rounds.
 ///
-/// Only the fields a seed check reads are declared, so the rest of each segment
-/// is skipped rather than parsed.
+/// States and decisions use the complete document types. A seed check may
+/// read only part of them, but malformed payloads must never pass unnoticed.
 #[derive(Debug)]
 pub struct Stated {
     pub map_id: i32,
     pub seed: i32,
     pub sides: StatedSides,
-    pub turns: Vec<crate::reinforcement::Turn>,
+    pub turns: Vec<Turn>,
+    /// Round zero's decisions, each side's opening, as written.
+    pub opening: TurnActions,
+    /// Whether the last round's decisions are written with no position after
+    /// them, which a converted battle does because no replay records the last
+    /// fight's result.
+    pub ends_on_actions: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -523,43 +553,28 @@ struct StatedHeader {
     sides: StatedSides,
 }
 
-#[derive(Deserialize)]
-struct StatedOpeningSegment {
-    blue: Vec<StatedChoice>,
-    red: Vec<StatedChoice>,
-}
-
-#[derive(Deserialize)]
-struct StatedChoice {
-    #[serde(rename = "type")]
-    type_name: String,
-    offer: Option<i32>,
-    id: Option<i32>,
-    specialist: Option<i32>,
-}
-
-impl StatedChoice {
-    fn opening(choices: &[Self], side: &str) -> Result<StatedOpening, String> {
+impl StatedOpening {
+    fn opening(choices: &[Action], side: &str) -> Result<StatedOpening, String> {
         let [choice] = choices else {
             return Err(format!(
                 "{side} takes {} decisions in round 0, and the opening is one",
                 choices.len()
             ));
         };
-        if choice.type_name != "choose_advance_team" {
-            return Err(format!(
-                "{side} opens with {}, and an opening is choose_advance_team",
-                choice.type_name
-            ));
-        }
-        Ok(StatedOpening {
-            choose: choice
-                .offer
-                .ok_or_else(|| format!("{side} opening names no offer"))?,
-            taken: match (choice.id, choice.specialist) {
-                (Some(team), Some(specialist)) => Some(OpeningOffer { team, specialist }),
-                _ => None,
-            },
+        let Action::ChooseAdvanceTeam {
+            offer,
+            id,
+            specialist,
+        } = choice
+        else {
+            return Err(format!("{side} opening is not choose_advance_team"));
+        };
+        Ok(Self {
+            choose: *offer,
+            taken: specialist.map(|specialist| OpeningOffer {
+                team: *id,
+                specialist,
+            }),
         })
     }
 }
@@ -570,7 +585,7 @@ impl StatedChoice {
 /// # Errors
 ///
 /// Returns an error when the document names itself a battle and then breaks
-/// the stream's grammar, or does not carry the fields a seed check reads.
+/// the stream's grammar, or has a malformed state field or action operand.
 pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     let Some(stream) = crate::battle::segments(bytes)? else {
         return Ok(None);
@@ -580,24 +595,28 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     let opening = stream
         .opening
         .ok_or("battle states no round 0 opening decisions")?;
-    let opening: StatedOpeningSegment = serde_yaml::from_value(opening)
+    let opening: TurnActions = crate::battle::payload(opening)
         .map_err(|error| format!("round 0 action segment is not readable: {error}"))?;
     let mut sides = header.sides;
-    sides.blue.opening = StatedChoice::opening(&opening.blue, "blue")?;
-    sides.red.opening = StatedChoice::opening(&opening.red, "red")?;
+    sides.blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
+    sides.red.opening = StatedOpening::opening(&opening.red, "red")?;
+    let ends_on_actions = stream
+        .rounds
+        .last()
+        .is_some_and(|round| round.actions.is_some());
     let turns = stream
         .rounds
         .into_iter()
         .map(|round| {
-            let state = serde_yaml::from_value(round.state)
+            let state = crate::battle::payload(round.state)
                 .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
             let actions = match round.actions {
-                Some(actions) => serde_yaml::from_value(actions).map_err(|error| {
+                Some(actions) => crate::battle::payload(actions).map_err(|error| {
                     format!("round {} actions are not readable: {error}", round.round)
                 })?,
-                None => crate::reinforcement::Actions::default(),
+                None => TurnActions::default(),
             };
-            Ok(crate::reinforcement::Turn {
+            Ok(Turn {
                 round: round.round,
                 state,
                 actions,
@@ -609,6 +628,8 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         seed: header.seed,
         sides,
         turns,
+        opening,
+        ends_on_actions,
     }))
 }
 
@@ -692,6 +713,15 @@ mod tests {
             }
         }
         out
+    }
+
+    #[test]
+    fn reading_keeps_every_state_field_and_every_action_operand() {
+        for battle in battles() {
+            let yaml = crate::battle::canonical_yaml(&battle).unwrap();
+            let read = stated(yaml.as_bytes()).unwrap().unwrap();
+            assert_eq!(read.turns, battle.turns, "seed {}", battle.seed);
+        }
     }
 
     /// The generator is Lua's, and a near miss would not land on a recorded
