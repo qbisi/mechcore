@@ -63,6 +63,24 @@ It also advances that stream through all 293 reinforcement rounds and checks
 regression test compares every incoming stream state and each available next
 snapshot against the native replay. Missing offers, reordered ordinary or unit
 cards, invalid choices and discontinuous rounds must fail.
-Deployment seams are checked by the conversion's ledger and transition reports;
-these deal checks do not verify combat or authenticate the player's choice
+These deal checks do not verify combat or authenticate the player's choice
 without the source replay.
+
+`verify` then measures each transition: from a round's state and decisions it
+predicts the next round's opening, and puts every leaf of the recorded opening
+in one of four classes, equal, unequal, unimplemented or decided by the fight,
+as [`battle.md`](../../docs/spec/document/battle.md#transition-coverage)
+defines. A battle verifies only when no leaf is unequal or unimplemented. No
+tracked leaf is unequal today, but the opening rules the transition does not
+hold yet leave every document unimplemented somewhere, so every document fails.
+The summary over this directory, by field group and by document with every
+unequal leaf listed, is:
+
+```bash
+cargo build --release -p mechcore
+python3 scripts/verify-battles.py
+```
+
+CI does not run it until it passes. The counts by field group are pinned by
+`crates/document/src/coverage.rs` instead, so a change in what the transition
+predicts already fails the tests.

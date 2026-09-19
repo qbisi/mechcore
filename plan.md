@@ -87,6 +87,8 @@ observation，也不要求实机。下一 state 只是比较目标：从它取�
   尚无规则的字段组列在 `coverage::UNIMPLEMENTED`，不论取值一律计作未实现；
   追踪集按字段组的四类计数由断言钉住。发牌只有在它读取的字段两侧都预测一致时
   才计作一致。第 0 回合到 `state(1)` 的转移整段计作未实现。
+  `scripts/verify-battles.py` 对 `tests/battle` 跑 `verify` 并按字段组与文件汇总；
+  指标达标之前它必然失败，暂不进 CI，达标后接入。
 - 投影 `project(state) → layout`。
 - 认输是结束对局的 `concede` 动作，其后没有下一回合 state。
 - 适配器能装载一份 layout 并把同一份采集回来，录像与试验场的往返对得上。
