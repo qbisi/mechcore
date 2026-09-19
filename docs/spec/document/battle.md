@@ -295,62 +295,41 @@ cross-round.
 
 ### What a round reproduces
 
-Applying a round's decisions to its state has to reproduce the state the next
-round opens with, in everything the fight does not decide. That position holds
-what the next round's officers deliver as it opens, so applying a round delivers
-those too. That application is a
-function rather than a comparison: it takes a position, a round and the round's
-decisions, and returns the nine fields below. Checking a round is then reading
-the same nine out of the next state and comparing.
+A round's decisions, applied to the state it opens with, have to reproduce the
+state the next round opens with in everything the fight does not decide. The
+application is a function of that state, the round and its decisions, and it
+is three steps:
 
-| Field |
-| --- |
-| `next_index.unit` |
-| `next_index.contraption` |
-| `shop.unlocked_units` |
-| `techs.units` |
-| `techs.officers` |
-| `blueprints` |
-| `tower_strengthen_levels` |
-| `battle_skills` |
-| `equipment` |
+1. The decisions are stepped in order, which gives the position the deployment
+   ends with. [`action.md`](action.md) defines each step, and its projection is
+   the layout the fight starts from.
+2. The fight runs. What it decides is not applied; the one thing it does to
+   every position is empty the travelling set, and that is applied.
+3. The next round opens on the result: it resets what lasts one round, pays
+   the income less what an energy tower skill still owes, and makes the
+   deliveries its officers' schedules name, landing each squad where [the
+   board puts it](../../rules/landing.md).
 
-`battle_skills` is compared by the IDs on the panel and not by how many slots it
-has, and `techs.officers` by a multiset and not by a set. Both distinctions are
-real: one officer can put two copies of a skill on the panel, and an officer
-card that may be taken again stacks. A slot's index and its cooldown are left
-out: the cooldown is written as the next round opens, from which slots this round
-spent, rather than by the round's decisions.
+The result is a whole position, board included, not a selection of fields.
+Checking a round is comparing it against the next state leaf by leaf, which
+the next section defines. The rules the function applies beyond the decisions
+themselves are the ones no action states, and
+[`action.md`](action.md#rules-no-action-states) carries them.
 
-The rules the function applies beyond the decisions themselves are the ones no
-action states, and [`action.md`](action.md#rules-no-action-states) carries them.
+Both allocators are predicted even though the fight destroys what they hand
+out. An index is never reissued, so an allocator records how many objects a
+side has ever had rather than how many it still holds, and no fight can move
+it.
 
-Both allocators are here even though the fight destroys what they hand out. An
-index is never reissued, so an allocator records how many objects a side has
-ever had rather than how many it still holds, and no fight can move it.
+A fit that finds nothing in the stock is refused rather than applied. An empty
+stock is reached both by a round that balanced and by a round that fitted an
+item the side never held, and the two must not compare equal.
 
-`equipment` is compared together with what the round's fits could not find. An
-empty stock is reached both by a round that balanced and by a round that fitted
-an item the side never held, and the two must not compare equal.
-
-A roster, a reactor core and a formation's experience are not checked, because
-the fight decides them. The rest of the next position is the board, which
-[`action.md`](action.md) names and which applying a round does not produce.
-
-`travelling` is the board field a round's moves settle outright, and it is not
-among the nine for a reason that is not incompleteness: the fight empties the
-travelling set, so the field never reaches the next position to be compared
-against. It is the mirror image of a reactor core, a field a round produces and
-no seam can check.
-
-The opening is a seam like the others, from the header onto round 1: applying
-round zero's decisions to a side that holds nothing has to produce what round 1
-holds. The two frames the opening can be read in disagree in one place, and the
-disagreement is a property of the question rather than an error. Applying the
-opening answers what the first round holds, so it counts the squads the opening
-delivers; stepping the same decision answers what the position is immediately
-afterwards, and the squads have not arrived. They reach the board when round 1
-opens, which is not a decision and so is not a step.
+The opening is a transition like the others, from the header onto round 1, with
+no fight between them. The chosen team is not a step's to deliver: stepping the
+opening answers what the position is immediately afterwards, and the team has
+not arrived. It reaches the board when round 1 opens, which is not a decision,
+so the opening's third step delivers it.
 
 ### Transition coverage
 

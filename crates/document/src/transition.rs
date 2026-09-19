@@ -1,183 +1,23 @@
-//! Applies a round's decisions to the position they were taken from.
+//! Moves a side's position from one decision, and one round, to the next.
 //!
-//! `docs/spec/document/battle.md` calls this what a round reproduces: a battle
-//! states each round twice over, once as the position it opens with and once as
-//! the decisions taken from it, and applying the second to the first has to
-//! reproduce the position the next round opens with. [`apply`] is that
-//! application and [`check`] is that test.
+//! [`step`] applies one decision to the position it was taken from and returns
+//! the whole next position, board included. [`open_round`] is what a round's
+//! opening does before any decision: it resets what lasts one round, pays the
+//! income and makes the officers' deliveries. [`predict`] composes them: a
+//! round's decisions stepped in order, the travelling set the fight empties,
+//! and the next round opened on the result, which is the position the next
+//! round opens with in everything the fight does not decide.
 //!
-//! Only what the fight cannot touch is produced here. A roster, a reactor core
-//! and a formation's experience are the fight's to decide; the two allocators,
-//! a shop, a blueprint list, a technology list, a tower level, a skill panel,
-//! an officer list and an equipment inventory are not.
+//! `docs/spec/document/battle.md` states what a transition reproduces, and
+//! [`crate::coverage`] measures it against a battle's recorded positions.
 
 use crate::battle::{
-    Action, Battle, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
+    Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
 };
 use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
-use std::collections::BTreeMap;
-use std::collections::BTreeSet;
-
-/// The part of a side's next position that its own decisions settle.
-///
-/// Every field here is one a fight cannot touch, so a round's decisions
-/// determine it outright. Comparing this against the same reading of a recorded
-/// state is what [`check`] does, and building it is what a turn executor needs
-/// before the fight fills in the rest.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Settled {
-    /// The unit allocator, which counts what was handed out as well as bought.
-    pub next_unit_index: i32,
-    /// The contraption allocator, which rises once per release and never falls.
-    /// A contraption is consumed by the fight, but the index it took is not
-    /// handed out again, so the allocator is the decisions' alone.
-    pub next_contraption_index: i32,
-    pub unlocked_units: Vec<i32>,
-    pub technologies: Vec<i32>,
-    pub blueprints: Vec<i32>,
-    pub tower_strengthen_levels: Vec<i32>,
-    /// The skill panel by ID, ascending. A slot's index and its cooldown are
-    /// not settled here: a cooldown counts down through the fight.
-    pub battle_skills: Vec<i32>,
-    pub officers: Vec<i32>,
-    /// What the side owns and no formation wears, in the state's normal form.
-    /// A multiset: a side can own two copies of one item.
-    pub equipment: Vec<EquipmentItem>,
-    /// Items this round fitted that the side did not hold, ascending.
-    ///
-    /// Every fit has to take a copy out of the stock, so a non-empty list says
-    /// the decisions describe a position that cannot be reached. It is carried
-    /// rather than clamped away because a stock that is empty either way would
-    /// otherwise let an unreachable round compare equal to a recorded one.
-    pub equipment_shortfall: Vec<i32>,
-}
-
-/// What checking one battle found, counted per field rather than per round.
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Report {
-    pub closed: usize,
-    pub failed: usize,
-    pub failures: Vec<Failure>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Failure {
-    pub round: i32,
-    pub side: &'static str,
-    /// The state field the decisions failed to reproduce.
-    pub field: &'static str,
-    pub expected: String,
-    pub actual: String,
-}
-
-/// What a round's decisions add to a side, beyond what they cost.
-#[derive(Default)]
-struct Granted {
-    formations: usize,
-    unlocked: BTreeSet<i32>,
-    /// A list rather than a set: an officer card that may be taken again stacks
-    /// rather than replacing itself, and a side can hold three copies of one.
-    officers: Vec<i32>,
-    skills: Vec<i32>,
-    /// What the round's officers deliver. A list rather than a set: one
-    /// officer hands out three copies of one item. A card's equipment is not
-    /// here, because a card arrives at a point in the sequence and an officer
-    /// arrives before it.
-    equipment: Vec<i32>,
-}
-
-/// Applies one round's decisions to the position they were taken from.
-///
-/// The result is everything about the next position that does not wait on the
-/// fight. What a card or an officer hands out is part of the decisions even
-/// though no action names it, which is why the economy tables are an argument.
-#[must_use]
-pub fn apply(economy: &Economy, round: i32, state: &SideState, actions: &[Action]) -> Settled {
-    let mut granted = granted(economy, actions);
-    // A round's own deliveries are already in the position it opens with, so
-    // what reaches the next position is what the next round delivers as it
-    // opens.
-    officer_deliveries(economy, state, &mut granted, round + 1);
-
-    let bought = actions
-        .iter()
-        .filter(|action| matches!(action, Action::BuyUnit { .. }))
-        .count();
-    let allocated = i32::try_from(bought + granted.formations).unwrap_or(i32::MAX);
-
-    let mut unlocked: BTreeSet<i32> = state.shop.unlocked_units.iter().copied().collect();
-    unlocked.extend(actions.iter().filter_map(|action| match action {
-        Action::UnlockUnit { unit } => Some(*unit),
-        _ => None,
-    }));
-    unlocked.extend(&granted.unlocked);
-
-    let mut technologies: BTreeSet<i32> = state.techs.units.iter().copied().collect();
-    technologies.extend(actions.iter().filter_map(|action| match action {
-        Action::UpgradeTechnology { tech, .. } => Some(*tech),
-        _ => None,
-    }));
-
-    let mut blueprints: BTreeSet<i32> = state.blueprints.iter().copied().collect();
-    for action in actions {
-        if let Action::ActiveBlueprint { id } = action {
-            // A chain's second level replaces its first rather than joining it.
-            blueprints.retain(|held| economy.blueprint_successor(*held) != Some(*id));
-            blueprints.insert(*id);
-        }
-    }
-
-    let mut levels = state.tower_strengthen_levels.clone();
-    for action in actions {
-        if let Action::StrengthenTower { tower } = action
-            && let Some(level) = usize::try_from(*tower)
-                .ok()
-                .and_then(|index| levels.get_mut(index))
-        {
-            *level += 1;
-        }
-    }
-
-    let mut panel: Vec<i32> = state.battle_skills.iter().map(|slot| slot.id).collect();
-    panel.extend(&granted.skills);
-    panel.extend(actions.iter().filter_map(|action| match action {
-        Action::ActiveBlueprint { id } => economy.blueprint_skill(*id),
-        _ => None,
-    }));
-    panel.sort_unstable();
-
-    // A chain blueprint's officer is owned by `blueprints`, and a state lists
-    // neither level of one, so activating one adds nothing here.
-    let mut officers = state.techs.officers.clone();
-    officers.extend(&granted.officers);
-    officers.sort_unstable();
-
-    let (equipment, equipment_shortfall) = inventory(economy, state, &granted, actions);
-
-    let released = actions
-        .iter()
-        .filter(|action| matches!(action, Action::ReleaseContraption { .. }))
-        .count();
-
-    Settled {
-        next_unit_index: state.next_index.unit.saturating_add(allocated),
-        next_contraption_index: state
-            .next_index
-            .contraption
-            .saturating_add(i32::try_from(released).unwrap_or(i32::MAX)),
-        unlocked_units: unlocked.into_iter().collect(),
-        technologies: technologies.into_iter().collect(),
-        blueprints: blueprints.into_iter().collect(),
-        tower_strengthen_levels: levels,
-        battle_skills: panel,
-        officers,
-        equipment,
-        equipment_shortfall,
-    }
-}
 
 /// What one decision's application could not settle.
 ///
@@ -233,11 +73,9 @@ const EXTRA_BUYS: i32 = 1;
 
 /// Applies one decision to the position it was taken from.
 ///
-/// This is the deployment's own transition, and it differs from [`apply`] in
-/// what it covers and when it is true. [`apply`] answers what the *next round*
-/// holds and so produces only what a fight cannot touch; this answers what the
-/// position looks like after one decision, while the round is still running, so
-/// it produces the board as well.
+/// This is the deployment's own transition: it answers what the position looks
+/// like after one decision, while the round is still running, board included.
+/// What the next round opens with is [`predict`]'s.
 ///
 /// The result is a position, not an edit: a decision that cannot be settled
 /// leaves the caller the position it started from rather than half of the one
@@ -723,395 +561,17 @@ fn clone_target(target: &SkillTarget) -> SkillTarget {
     }
 }
 
-/// Which of a side's formations are travelling when its deployment ends.
-///
-/// Travelling is native membership of a set the game keeps per match rather
-/// than a field on a formation, and two rules settle it.
-///
-/// **A move settles membership only when it changes region.** The game reads
-/// the region holding the formation's current position and the region holding
-/// the move's target, and leaves the set alone when the two are the same. So
-/// shuffling a formation about inside one flank keeps it travelling, and
-/// shuffling one about inside the main half keeps it settled. When the two
-/// differ, the region arrived in decides: a flank puts the formation in the
-/// set, and the main half takes it out. Crossing directly from one flank to
-/// the other is a change of region like any other, and the corpus has one such
-/// move that puts a settled formation back in the set.
-///
-/// **The fight empties the set.** It is not carried into the next round, which
-/// is why this is the deployment's own state rather than something [`apply`]
-/// produces: every field there is one a fight cannot touch, and this is one it
-/// clears outright. A round's opening state therefore lists no travelling
-/// formation, and the set this returns is built by the round's own moves.
-///
-/// An index no formation in the state holds is one this round created, by a
-/// purchase or by what a card or an officer handed out. Those all arrive in the
-/// main half, so the formation starts settled and only a later move can change
-/// that.
-///
-/// The rules are `TerritoryManager.RefreshSuperDeploymentStatus` and
-/// `SuperDeploymentSystem.OnFightEnd` in build 2259; `docs/spec/document/action.md`
-/// states them beside the action that applies them.
-#[must_use]
-pub fn travelling(state: &SideState, actions: &[Action]) -> Vec<i32> {
-    let mut region: BTreeMap<i32, Region> = state
-        .formations
-        .iter()
-        .map(|entry| (entry.formation.index, Region::of(entry.formation.position)))
-        .collect();
-    let mut set: BTreeSet<i32> = state
-        .formations
-        .iter()
-        .filter(|entry| entry.formation.travelling == Some(true))
-        .map(|entry| entry.formation.index)
-        .collect();
-    for action in actions {
-        let Action::MoveUnit {
-            index, position, ..
-        } = action
-        else {
-            continue;
-        };
-        let arrived = Region::of(*position);
-        let left = region.insert(*index, arrived).unwrap_or(Region::Main);
-        if left == arrived {
-            continue;
-        }
-        if arrived.is_flank() {
-            set.insert(*index);
-        } else {
-            set.remove(index);
-        }
-    }
-    set.into_iter().collect()
-}
-
-/// What a side owns and no formation wears, after the round's decisions.
-///
-/// Four things move the stock and every one of them is a decision. A card and
-/// an officer put an item in; recovering a formation puts back what it wore;
-/// fitting takes one out. A card taken this round can be fitted in the same
-/// round, and so can an item a recovery just returned, so the three inflows are
-/// applied in the order the actions fall rather than all before the fits.
-fn inventory(
-    economy: &Economy,
-    state: &SideState,
-    granted: &Granted,
-    actions: &[Action],
-) -> (Vec<EquipmentItem>, Vec<i32>) {
-    let mut shortfall = Vec::new();
-    let mut stock = state.equipment.clone();
-    // An officer delivers before any of the round's own decisions.
-    stock.extend(granted.equipment.iter().map(|id| EquipmentItem {
-        id: *id,
-        durability: None,
-    }));
-    // What each formation wears, which a recovery hands back and a fit sets.
-    let mut worn: BTreeMap<i32, i32> = state
-        .formations
-        .iter()
-        .filter_map(|entry| Some((entry.formation.index, entry.formation.equipment?)))
-        .collect();
-    let panel: BTreeMap<i32, i32> = state
-        .battle_skills
-        .iter()
-        .map(|slot| (slot.index, slot.id))
-        .collect();
-    for action in actions {
-        match action {
-            Action::ChooseReinforceItem { id: Some(id), .. }
-                if economy.card_kind(*id) == Some(CardKind::Equipment) =>
-            {
-                stock.push(EquipmentItem {
-                    id: *id,
-                    durability: None,
-                });
-            }
-            Action::ReleaseCommanderSkill {
-                skill,
-                target: SkillTarget::Unit(index),
-            } if panel
-                .get(skill)
-                .is_some_and(|id| crate::ledger::RECOVERY_SKILLS.contains(id)) =>
-            {
-                if let Some(id) = worn.remove(index) {
-                    stock.push(EquipmentItem {
-                        id,
-                        durability: None,
-                    });
-                }
-            }
-            Action::UseEquipment { equipment, unit } => {
-                // Which copy leaves is arbitrary while every copy of an ID is
-                // interchangeable, which is what an absent `durability` means.
-                if let Some(position) = stock.iter().position(|item| item.id == *equipment) {
-                    stock.remove(position);
-                } else {
-                    shortfall.push(*equipment);
-                }
-                worn.insert(*unit, *equipment);
-            }
-            _ => {}
-        }
-    }
-    stock.sort();
-    shortfall.sort_unstable();
-    (stock, shortfall)
-}
-
-/// Reads out of a recorded state the same fields [`apply`] produces.
-#[must_use]
-pub fn settled(state: &SideState) -> Settled {
-    let mut panel: Vec<i32> = state.battle_skills.iter().map(|slot| slot.id).collect();
-    panel.sort_unstable();
-    Settled {
-        next_unit_index: state.next_index.unit,
-        next_contraption_index: state.next_index.contraption,
-        unlocked_units: sorted(&state.shop.unlocked_units),
-        technologies: sorted(&state.techs.units),
-        blueprints: sorted(&state.blueprints),
-        tower_strengthen_levels: state.tower_strengthen_levels.clone(),
-        battle_skills: panel,
-        officers: sorted(&state.techs.officers),
-        equipment: state.equipment.clone(),
-        // A recorded position is one the match reached, so nothing is missing.
-        equipment_shortfall: Vec::new(),
-    }
-}
-
 /// The position an opening is taken from.
 ///
 /// A battle states the opening under `sides` rather than as a round, so the
 /// position it moves is not a document field. It is the same for every side of
 /// every match: nothing bought, nothing researched, and two towers at level
-/// zero, which is the one field of it [`apply`] reads.
+/// zero. [`before_opening`] adds what the header deals to it.
 pub(crate) fn opening_position() -> SideState {
     SideState {
         tower_strengthen_levels: vec![0, 0],
         ..SideState::default()
     }
-}
-
-/// Checks every round transition of a battle, and the opening that precedes
-/// them.
-#[must_use]
-pub fn check(battle: &Battle, economy: &Economy) -> Report {
-    let mut report = Report::default();
-    // The opening is the seam between the header and the first round, and it
-    // is checked the same way a round seam is: applying it has to produce what
-    // the first round holds. Its failures are reported at round 0, which is
-    // the round it is decided in and which has no state of its own.
-    if let Some(first) = battle.turns.first() {
-        for (side, opening, following) in [
-            ("blue", &battle.sides.blue.opening, &first.state.sides.blue),
-            ("red", &battle.sides.red.opening, &first.state.sides.red),
-        ] {
-            seam(
-                &mut report,
-                economy,
-                Seam {
-                    round: first.round - 1,
-                    side,
-                    state: &opening_position(),
-                    actions: &[opening.action()],
-                    following,
-                },
-            );
-        }
-    }
-    for pair in battle.turns.windows(2) {
-        let [turn, next] = pair else { continue };
-        for (side, state, following, actions) in [
-            (
-                "blue",
-                &turn.state.sides.blue,
-                &next.state.sides.blue,
-                &turn.actions.blue,
-            ),
-            (
-                "red",
-                &turn.state.sides.red,
-                &next.state.sides.red,
-                &turn.actions.red,
-            ),
-        ] {
-            seam(
-                &mut report,
-                economy,
-                Seam {
-                    round: turn.round,
-                    side,
-                    state,
-                    actions,
-                    following,
-                },
-            );
-        }
-    }
-    report
-}
-
-/// One transition to check: a position, what was decided from it, and the
-/// position the next round holds.
-#[derive(Clone, Copy)]
-struct Seam<'a> {
-    round: i32,
-    side: &'static str,
-    state: &'a SideState,
-    actions: &'a [Action],
-    following: &'a SideState,
-}
-
-/// Compares the nine settled fields across one transition.
-fn seam(report: &mut Report, economy: &Economy, transition: Seam<'_>) {
-    let produced = apply(
-        economy,
-        transition.round,
-        transition.state,
-        transition.actions,
-    );
-    let held = settled(transition.following);
-    for (field, expected, actual) in [
-        (
-            "next_index.unit",
-            produced.next_unit_index.to_string(),
-            held.next_unit_index.to_string(),
-        ),
-        (
-            "next_index.contraption",
-            produced.next_contraption_index.to_string(),
-            held.next_contraption_index.to_string(),
-        ),
-        (
-            "shop.unlocked_units",
-            list(&produced.unlocked_units),
-            list(&held.unlocked_units),
-        ),
-        (
-            "techs.units",
-            list(&produced.technologies),
-            list(&held.technologies),
-        ),
-        (
-            "blueprints",
-            list(&produced.blueprints),
-            list(&held.blueprints),
-        ),
-        (
-            "tower_strengthen_levels",
-            list(&produced.tower_strengthen_levels),
-            list(&held.tower_strengthen_levels),
-        ),
-        (
-            "battle_skills",
-            list(&produced.battle_skills),
-            list(&held.battle_skills),
-        ),
-        (
-            "techs.officers",
-            list(&produced.officers),
-            list(&held.officers),
-        ),
-        (
-            "equipment",
-            stock(&produced.equipment, &produced.equipment_shortfall),
-            stock(&held.equipment, &held.equipment_shortfall),
-        ),
-    ] {
-        if expected == actual {
-            report.closed += 1;
-        } else {
-            report.failed += 1;
-            report.failures.push(Failure {
-                round: transition.round,
-                side: transition.side,
-                field,
-                expected,
-                actual,
-            });
-        }
-    }
-}
-
-fn sorted(values: &[i32]) -> Vec<i32> {
-    let mut values = values.to_vec();
-    values.sort_unstable();
-    values
-}
-
-/// An inventory as a comparable line, naming what a fit could not find so that
-/// an unreachable round cannot compare equal to a recorded one.
-fn stock(held: &[EquipmentItem], shortfall: &[i32]) -> String {
-    let held = items(held);
-    if shortfall.is_empty() {
-        held
-    } else {
-        format!("{held} missing {}", list(shortfall))
-    }
-}
-
-/// An inventory as a comparable line, with the `-1` an absent durability means
-/// left off so two spellings of one item cannot read as two items.
-fn items(values: &[EquipmentItem]) -> String {
-    values
-        .iter()
-        .map(|item| match item.durability {
-            Some(durability) => format!("{}:{durability}", item.id),
-            None => item.id.to_string(),
-        })
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-fn list(values: &[i32]) -> String {
-    values
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-/// Reads what the round's cards and openings hand out.
-fn granted(economy: &Economy, actions: &[Action]) -> Granted {
-    let mut granted = Granted::default();
-    for action in actions {
-        let card = match action {
-            // A declined offer names no item, so it falls to the arm below
-            // and hands out nothing.
-            Action::ChooseReinforceItem { id: Some(id), .. } => *id,
-            // The opening is one choice with two halves, and each half is
-            // either a force or an officer. Only the officer itself arrives
-            // now; what it hands out waits for its own round, which
-            // [`officer_deliveries`] applies.
-            Action::ChooseAdvanceTeam { id, specialist, .. } => {
-                match economy.advance_team(*id) {
-                    Some(team) if team.kind == OpeningKind::Units => {
-                        // Picking a team unlocks the two unit types it is
-                        // made of.
-                        granted.formations += team.units.len();
-                        granted.unlocked.extend(&team.units);
-                    }
-                    Some(_) => granted.officers.push(*id),
-                    None => {}
-                }
-                if let Some(specialist) = specialist.filter(|specialist| specialist != id) {
-                    granted.officers.push(specialist);
-                }
-                continue;
-            }
-            _ => continue,
-        };
-        if let Some(reinforcement) = economy.unit_reinforcement(card) {
-            granted.formations += usize::try_from(reinforcement.squads).unwrap_or(0);
-            granted.unlocked.insert(reinforcement.unit);
-        }
-        match economy.card_kind(card) {
-            Some(CardKind::CommanderSkill) => granted.skills.push(card),
-            Some(CardKind::Officer) => granted.officers.push(card),
-            _ => {}
-        }
-    }
-    granted
 }
 
 /// `Shop.BUY_COUNT_PER_ROUND`, before any officer or energy tower modifier.
@@ -1323,56 +783,39 @@ pub fn predict(
     open_round(economy, &position, round + 1, &mut placement)
 }
 
-/// What the officers a side holds hand out as `round` opens.
-///
-/// An officer hands out on a schedule of its own rather than when it arrives.
-/// Its squad, its commander skills and its equipment come in the officer's
-/// `active_round`, and its unit joins the shop in the separate `unlock_round`. Both are absolute
-/// rounds: Longbow Specialist unlocks Marksman in round 1 and hands out its
-/// rank 3 squad in round 2, while Rhino Specialist unlocks in round 1 and waits
-/// until round 4. Every specialist in this build unlocks in round 1, so an
-/// opening never hands out its squad in the round it is chosen.
-///
-/// A side holds the officers its state lists plus the ones this round's cards
-/// and opening hand it, which is what makes round 0 reach the specialist the
-/// opening just chose.
-fn officer_deliveries(economy: &Economy, state: &SideState, granted: &mut Granted, round: i32) {
-    let held: Vec<i32> = state
-        .techs
-        .officers
-        .iter()
-        .chain(granted.officers.iter())
-        .copied()
-        .collect();
-    for officer in held {
-        let Some(officer) = economy.officer(officer) else {
-            continue;
-        };
-        if let Some(opening) = officer.opening_unit
-            && opening.unlock_round == round
-        {
-            granted.unlocked.insert(opening.unit);
-        }
-        if officer.active_round != round {
-            continue;
-        }
-        granted.skills.extend(&officer.commander_skills);
-        granted.equipment.extend(&officer.equipment);
-        if officer.opening_unit.is_some() {
-            granted.formations += 1;
-        }
-    }
-}
-
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{EXTRA_DEPLOYMENT_CARD, apply, check, opening_position, step, travelling};
+    use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step, step_placing};
     use crate::battle::{
         Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateFormation,
     };
     use crate::convert::battle_from_grbr;
     use crate::economy::{CardKind, Economy};
     use crate::layout::{Experience, Formation, Position};
+
+    /// Steps `actions` in order from `state`, landing whatever a decision hands
+    /// out at the main region's centre.
+    fn fold(
+        economy: &Economy,
+        state: &SideState,
+        actions: &[Action],
+    ) -> Result<SideState, Unsettled> {
+        actions.iter().try_fold(state.clone(), |position, action| {
+            step_placing(economy, &position, action, &mut |_, _| {
+                Some(Position { x: 0, y: -160 })
+            })
+        })
+    }
+
+    /// The indices of the formations `state` holds travelling.
+    fn travelling(state: &SideState) -> Vec<i32> {
+        state
+            .formations
+            .iter()
+            .filter(|entry| entry.formation.travelling == Some(true))
+            .map(|entry| entry.formation.index)
+            .collect()
+    }
 
     /// A side holding the given formations and nothing else.
     fn side_holding(placed: &[(i32, Position)]) -> SideState {
@@ -1424,8 +867,8 @@ mod tests {
                 id: Some(20022),
             },
         ];
-        let settled = apply(&economy, 5, &state, &taken);
-        assert_eq!(settled.officers, vec![20022, 20022, 20022]);
+        let next = fold(&economy, &state, &taken).unwrap();
+        assert_eq!(next.techs.officers, vec![20022, 20022, 20022]);
     }
 
     /// Declining is the same decision, and it hands out nothing.
@@ -1441,9 +884,14 @@ mod tests {
             offer: crate::battle::DECLINED_OFFER,
             id: None,
         }];
+        let next = fold(&economy, &state, &declined).unwrap();
+        // A decline pays supply back, which is all it hands out.
         assert_eq!(
-            apply(&economy, 5, &state, &declined),
-            apply(&economy, 5, &state, &[])
+            SideState {
+                supply: state.supply,
+                ..next
+            },
+            state
         );
     }
 
@@ -1455,9 +903,9 @@ mod tests {
             offer: 0,
             id: Some(13_030_001),
         }];
-        let settled = apply(&economy, 5, &SideState::default(), &taken);
+        let next = fold(&economy, &SideState::default(), &taken).unwrap();
         assert_eq!(
-            settled.equipment,
+            next.equipment,
             vec![crate::battle::EquipmentItem {
                 id: 13_030_001,
                 durability: None,
@@ -1483,11 +931,10 @@ mod tests {
                 unit: 4,
             },
         ];
-        assert!(
-            apply(&economy, 5, &SideState::default(), &taken)
-                .equipment
-                .is_empty()
-        );
+        let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
+        let next = fold(&economy, &state, &taken).unwrap();
+        assert!(next.equipment.is_empty());
+        assert_eq!(next.formations[0].formation.equipment, Some(13_030_001));
     }
 
     fn slot(index: i32, id: i32, cooldown: i32) -> PanelSkill {
@@ -1725,14 +1172,12 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![13_030_009; 3]
         );
-        assert_eq!(apply(&economy, 0, &state, &[]).equipment.len(), 3);
         assert!(
             super::open_round(&economy, &state, 2, &mut |_, _| None)
                 .unwrap()
                 .equipment
                 .is_empty()
         );
-        assert!(apply(&economy, 1, &state, &[]).equipment.is_empty());
     }
 
     /// Fitting one of several copies takes exactly one out.
@@ -1744,14 +1189,14 @@ mod tests {
                 officers: vec![10013],
                 units: Vec::new(),
             },
-            ..SideState::default()
+            ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
         let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
         let fitted = [Action::UseEquipment {
             equipment: 13_030_009,
             unit: 0,
         }];
-        assert_eq!(apply(&economy, 1, &opened, &fitted).equipment.len(), 2);
+        assert_eq!(fold(&economy, &opened, &fitted).unwrap().equipment.len(), 2);
     }
 
     /// Recovering a formation hands back what it wore, in time to re-fit it.
@@ -1787,12 +1232,17 @@ mod tests {
             }],
             ..SideState::default()
         };
+        let mut state = state;
+        state
+            .formations
+            .extend(side_holding(&[(7, Position { x: 0, y: -160 })]).formations);
         let recovered = [Action::ReleaseCommanderSkill {
             skill: 0,
             target: crate::battle::SkillTarget::Unit(5),
         }];
         assert_eq!(
-            apply(&economy, 5, &state, &recovered)
+            fold(&economy, &state, &recovered)
+                .unwrap()
                 .equipment
                 .iter()
                 .map(|item| item.id)
@@ -1809,37 +1259,41 @@ mod tests {
                 unit: 7,
             },
         ];
-        let settled = apply(&economy, 5, &state, &refitted);
-        assert!(settled.equipment.is_empty());
-        assert!(settled.equipment_shortfall.is_empty());
+        let next = fold(&economy, &state, &refitted).unwrap();
+        assert!(next.equipment.is_empty());
+        assert_eq!(next.formations[0].formation.index, 7);
+        assert_eq!(next.formations[0].formation.equipment, Some(13_030_004));
     }
 
-    /// A fit with nothing to take is reported rather than clamped away.
+    /// A fit with nothing to take is refused rather than clamped away.
     ///
-    /// Both stocks are empty, so without the shortfall this unreachable round
-    /// would compare equal to a recorded one.
+    /// An empty stock is where a balanced round and an impossible one both end,
+    /// so a fit that found nothing has to stop the round rather than leave a
+    /// position that compares equal to a recorded one.
     #[test]
-    fn a_fit_the_side_cannot_afford_is_named() {
+    fn a_fit_with_nothing_in_stock_is_refused() {
         let economy = Economy::embedded().unwrap();
-        let fitted = [Action::UseEquipment {
+        let fitted = Action::UseEquipment {
             equipment: 13_030_004,
             unit: 0,
-        }];
-        let settled = apply(&economy, 5, &SideState::default(), &fitted);
-        assert!(settled.equipment.is_empty());
-        assert_eq!(settled.equipment_shortfall, vec![13_030_004]);
+        };
+        let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+        assert_eq!(
+            step(&economy, &state, &fitted),
+            Err(Unsettled::Missing("equipment"))
+        );
     }
 
-    /// What the tracked replays do and do not say about the inventory.
+    /// What the tracked replays say about the inventory.
     ///
-    /// The tracked set pins fits, equipment cards, stock carried across a round
-    /// boundary and any item whose source the transition cannot yet reproduce.
+    /// The tracked set pins fits, equipment cards and stock carried across a
+    /// round boundary, and every fit it takes finds its item in the stock.
     #[test]
-    fn tracked_equipment_coverage_and_failures_are_pinned() {
+    fn tracked_equipment_is_exercised_and_every_fit_finds_its_item() {
         let economy = Economy::embedded().unwrap();
         let (mut fits, mut cards) = (0, 0);
         let mut held = 0;
-        let mut shortfalls = Vec::new();
+        let mut refused = Vec::new();
         for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
@@ -1856,10 +1310,9 @@ mod tests {
                     if !state.equipment.is_empty() {
                         held += 1;
                     }
-                    let missing = apply(&economy, turn.round, state, actions).equipment_shortfall;
-                    if !missing.is_empty() {
-                        shortfalls.push(format!(
-                            "{} round {} {side}: {missing:?}",
+                    if let Err(reason) = fold(&economy, state, actions) {
+                        refused.push(format!(
+                            "{} round {} {side}: {reason:?}",
                             path.file_name().unwrap().to_string_lossy(),
                             turn.round
                         ));
@@ -1878,16 +1331,9 @@ mod tests {
                 }
             }
         }
-        shortfalls.sort();
         assert_eq!((fits, cards), (118, 97));
         assert_eq!(held, 24);
-        assert_eq!(
-            shortfalls,
-            [
-                "2259_20260910--67396394_[kulinichstas1985]VS[Menschlein].grbr round 4 blue: [13030001]",
-                "2259_20260911--201618182_[🐙Noname🐙]VS[Rievin].grbr round 5 blue: [13030003]",
-            ]
-        );
+        assert!(refused.is_empty(), "{refused:#?}");
     }
 
     /// A release is the only decision that moves the contraption allocator.
@@ -1918,10 +1364,12 @@ mod tests {
             },
         ];
         assert_eq!(
-            apply(&economy, 5, &state, &released).next_contraption_index,
+            fold(&economy, &state, &released)
+                .unwrap()
+                .next_index
+                .contraption,
             5
         );
-        assert_eq!(apply(&economy, 5, &state, &[]).next_contraption_index, 3);
     }
 
     /// A purchase prices the unit, takes a slot and files it under the next
@@ -2245,139 +1693,24 @@ mod tests {
         assert_eq!(next.formations[0].formation.rotated, Some(true));
     }
 
-    /// Every decision the tracked replays take reaches the same nine fields
-    /// the round transition settles.
-    ///
-    /// [`apply`] answers what the next round holds and this answers what the
-    /// deployment ends with, so the two agree wherever nothing arrives between
-    /// the two moments. A delivery arrives with a round rather than with a
-    /// decision, and only [`apply`] is asked about it, which is why a round
-    /// whose officers deliver is counted apart.
-    ///
-    /// Round 0 is the other case and the only one left, so it is separated
-    /// rather than skipped: the opening's squads reach the board when round 1
-    /// opens, so [`apply`] counts them at round 0 and stepping the choice does
-    /// not. Every other round has to agree exactly, because a decision priced
-    /// two ways is a decision priced wrongly one of them.
-    #[test]
-    fn stepping_a_turn_settles_what_applying_it_settles() {
-        let economy = Economy::embedded().unwrap();
-        let (mut compared, mut skipped) = (0, 0);
-        let mut divergent = Vec::new();
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            // The opening is the one seam a battle states under `sides`, and
-            // it is the one the two frames disagree about, so it is stepped
-            // here rather than left out with the round it used to be.
-            let opening = opening_position();
-            let mut seams = vec![
-                (
-                    0,
-                    "blue",
-                    &opening,
-                    vec![battle.sides.blue.opening.action()],
-                ),
-                (0, "red", &opening, vec![battle.sides.red.opening.action()]),
-            ];
-            for turn in &battle.turns {
-                seams.push((
-                    turn.round,
-                    "blue",
-                    &turn.state.sides.blue,
-                    turn.actions.blue.clone(),
-                ));
-                seams.push((
-                    turn.round,
-                    "red",
-                    &turn.state.sides.red,
-                    turn.actions.red.clone(),
-                ));
-            }
-            {
-                for (round, side, state, actions) in &seams {
-                    let (round, state) = (*round, *state);
-                    if delivers(&economy, state, round + 1) {
-                        skipped += 1;
-                        continue;
-                    }
-                    // Where a grant lands is the board's to decide and no
-                    // settled field reads it, so any position will do here.
-                    let mut produced = state.clone();
-                    let mut reachable = true;
-                    for action in actions {
-                        let stepped = crate::transition::step_placing(
-                            &economy,
-                            &produced,
-                            action,
-                            &mut |_, _| Some(crate::layout::Position { x: 0, y: -160 }),
-                        );
-                        let Ok(next) = stepped else {
-                            reachable = false;
-                            break;
-                        };
-                        produced = next;
-                    }
-                    if !reachable {
-                        skipped += 1;
-                        continue;
-                    }
-                    compared += 1;
-                    let stepped = crate::transition::settled(&produced);
-                    let mut applied = apply(&economy, round, state, actions);
-                    // A shortfall is a statement about the decisions rather
-                    // than a field of the position, and stepping has no place
-                    // to put one.
-                    applied.equipment_shortfall.clear();
-                    if stepped != applied {
-                        divergent.push(format!(
-                            "{} round {} {side}",
-                            path.file_name().unwrap().to_string_lossy(),
-                            round
-                        ));
-                    }
-                }
-            }
-        }
-        divergent.sort();
-        let (openings, rest): (Vec<String>, Vec<String>) = divergent
-            .into_iter()
-            .partition(|name| name.contains(" round 0 "));
-        assert!(rest.is_empty(), "{rest:?}");
-        assert_eq!((compared, skipped, openings.len()), (730, 20, 82));
-    }
-
-    /// Whether an officer hands this side anything as the round opens.
-    fn delivers(economy: &Economy, state: &SideState, round: i32) -> bool {
-        state.techs.officers.iter().any(|officer| {
-            economy.officer(*officer).is_some_and(|row| {
-                row.active_round == round
-                    || row
-                        .opening_unit
-                        .is_some_and(|opening| opening.unlock_round == round)
-            })
-        })
-    }
-
     /// A move into a flank is what puts a formation in the travelling set.
     ///
     /// The formation starts in the main half, so the move changes region and
     /// the region it arrives in decides.
     #[test]
     fn arriving_on_a_flank_starts_travelling() {
+        let economy = Economy::embedded().unwrap();
         let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         let moved = [Action::MoveUnit {
             index: 0,
             position: Position { x: 310, y: 20 },
             rotated: false,
         }];
-        assert_eq!(travelling(&state, &moved), vec![0]);
-        assert!(travelling(&state, &[]).is_empty());
+        assert_eq!(
+            travelling(&fold(&economy, &state, &moved).unwrap()),
+            vec![0]
+        );
+        assert!(travelling(&state).is_empty());
     }
 
     /// Shuffling a formation about inside one region leaves the set alone.
@@ -2387,13 +1720,14 @@ mod tests {
     /// does not leave it.
     #[test]
     fn a_move_inside_one_region_settles_nothing() {
+        let economy = Economy::embedded().unwrap();
         let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         let about_the_main_half = [Action::MoveUnit {
             index: 0,
             position: Position { x: 200, y: -40 },
             rotated: false,
         }];
-        assert!(travelling(&state, &about_the_main_half).is_empty());
+        assert!(travelling(&fold(&economy, &state, &about_the_main_half).unwrap()).is_empty());
 
         let arrived = [
             Action::MoveUnit {
@@ -2407,7 +1741,10 @@ mod tests {
                 rotated: false,
             },
         ];
-        assert_eq!(travelling(&state, &arrived), vec![0]);
+        assert_eq!(
+            travelling(&fold(&economy, &state, &arrived).unwrap()),
+            vec![0]
+        );
     }
 
     /// Crossing from one flank to the other is a change of region.
@@ -2419,27 +1756,32 @@ mod tests {
     /// the tracked set that starts from a settled formation.
     #[test]
     fn crossing_between_flanks_travels_again() {
+        let economy = Economy::embedded().unwrap();
         let state = side_holding(&[(0, Position { x: -330, y: 100 })]);
         let crossed = [Action::MoveUnit {
             index: 0,
             position: Position { x: 330, y: 100 },
             rotated: false,
         }];
-        assert_eq!(travelling(&state, &crossed), vec![0]);
+        assert_eq!(
+            travelling(&fold(&economy, &state, &crossed).unwrap()),
+            vec![0]
+        );
     }
 
     /// Coming back to the main half takes a formation out of the set.
     #[test]
     fn returning_to_the_main_half_settles() {
+        let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(0, Position { x: -330, y: 100 })]);
         state.formations[0].formation.travelling = Some(true);
-        assert_eq!(travelling(&state, &[]), vec![0]);
+        assert_eq!(travelling(&state), vec![0]);
         let returned = [Action::MoveUnit {
             index: 0,
             position: Position { x: 0, y: -160 },
             rotated: false,
         }];
-        assert!(travelling(&state, &returned).is_empty());
+        assert!(travelling(&fold(&economy, &state, &returned).unwrap()).is_empty());
     }
 
     /// A formation this round created starts in the main half.
@@ -2450,6 +1792,7 @@ mod tests {
     /// look like a change of region.
     #[test]
     fn a_formation_created_this_round_starts_settled() {
+        let economy = Economy::embedded().unwrap();
         let bought = [
             Action::BuyUnit {
                 unit: 1,
@@ -2461,7 +1804,7 @@ mod tests {
                 rotated: false,
             },
         ];
-        assert!(travelling(&SideState::default(), &bought).is_empty());
+        assert!(travelling(&fold(&economy, &SideState::default(), &bought).unwrap()).is_empty());
     }
 
     /// What the tracked replays say about the travelling set.
@@ -2473,6 +1816,7 @@ mod tests {
     /// leave several formations travelling at once.
     #[test]
     fn the_tracked_set_pins_travelling_coverage() {
+        let economy = Economy::embedded().unwrap();
         let (mut side_rounds, mut travelled, mut formations) = (0, 0, 0);
         let mut widest = 0;
         let mut first_round = i32::MAX;
@@ -2500,7 +1844,7 @@ mod tests {
                         path.file_name().unwrap().to_string_lossy(),
                         turn.round
                     );
-                    let indices = travelling(state, actions);
+                    let indices = travelling(&fold(&economy, state, actions).unwrap());
                     side_rounds += 1;
                     if !indices.is_empty() {
                         travelled += 1;
@@ -2517,47 +1861,5 @@ mod tests {
         );
         // The flank regions open at round 2, so nothing can travel before it.
         assert_eq!(first_round, 2);
-    }
-
-    /// Every convertible replay the directory tracks, including the exact two
-    /// equipment deliveries the current transition cannot reproduce.
-    #[test]
-    fn the_tracked_set_pins_transition_coverage_and_failures() {
-        let economy = Economy::embedded().unwrap();
-        let (mut closed, mut failed, mut battles, mut releases) = (0, 0, 0, 0);
-        let mut failures = Vec::new();
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            let report = check(&battle, &economy);
-            failures.extend(report.failures.iter().map(|failure| {
-                format!("{}: {failure:?}", path.file_name().unwrap().to_string_lossy())
-            }));
-            closed += report.closed;
-            failed += report.failed;
-            battles += 1;
-            releases += battle
-                .turns
-                .iter()
-                .flat_map(|turn| turn.actions.blue.iter().chain(&turn.actions.red))
-                .filter(|action| matches!(action, Action::ReleaseContraption { .. }))
-                .count();
-        }
-        // The contraption allocator would close for free on a set that never
-        // released one, so the set has to be known to move it.
-        failures.sort();
-        assert_eq!((battles, closed, failed, releases), (41, 6_010, 2, 386));
-        assert_eq!(
-            failures,
-            [
-                "2259_20260910--67396394_[kulinichstas1985]VS[Menschlein].grbr: Failure { round: 4, side: \"blue\", field: \"equipment\", expected: \" missing 13030001\", actual: \"\" }",
-                "2259_20260911--201618182_[🐙Noname🐙]VS[Rievin].grbr: Failure { round: 5, side: \"blue\", field: \"equipment\", expected: \" missing 13030003\", actual: \"\" }",
-            ]
-        );
     }
 }

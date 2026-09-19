@@ -65,9 +65,10 @@ observation，也不要求实机。下一 state 只是比较目标：从它取�
 - 配置表进入版本库，覆盖单位价、科技价、卡价、军官效果、开局、增援、蓝图、
   建筑回收和每回合收入，由 `scripts/extract_*.py` 从 build 2259 生成。
 - 补给账本，接进转换并全闭合。可判定的回合没有留下无法定价的。
-- 转移函数 `transition::apply`，产出下一回合 state 中战斗不决定的九个字段，
-  含两个分配器和装备清单。这是部分跨回合预测，不是部署动作折叠的完整结果；
-  技能面板只比较 ID，尚未验证完整槽位和冷却。
+- 跨回合转移只有一份：`transition::predict`。原先只产出九个字段的 `apply`、
+  以它为准的 `check` 和另算一遍 `travelling` 的函数都已删除。实采的
+  `tests/layouts/tuff-replay-round-7.yaml` 整份等于 `project(step*(state, actions))`，
+  双方棋盘在内。
 - 回合内部署转移 `transition::step`：把一个决策作用到它被做出的那个局面上，
   产出完整的下一个局面，棋盘也在内。卡牌、先遣队和军官交付的编队落位按游戏规则
   计算（`landing`），不再从录像借用。经验写成 `current/maximum`（如 `124/450`），满条上限
@@ -111,9 +112,8 @@ observation，也不要求实机。下一 state 只是比较目标：从它取�
 
 ## 还不存在
 
-**统一的转移。** `apply` 的九字段算法和补给账本与 `predict` 各算各的：转换时的
-九字段检查和账本仍在，账本还从后继 state 读取技能面板、军官和装备。追踪集上的
-一致来自几套规则碰巧同答。
+**统一的补给核对。** 补给账本与 `predict` 各算各的：转换时的账本仍在，还从后继
+state 读取技能面板、军官和装备。
 
 **系统性的部署末 layout 实机验收、执行一个 turn 的能力。**
 适配器能真正做出的动作是移动、装备、强化塔、释放装置、释放技能和能量塔技能，
@@ -129,8 +129,9 @@ layout 批量比较过。
 
 ### 二、合并转移
 
-让 `transition::check` 与转换时的检查改用 `predict`，删除 `apply` 的九字段算法；
-补给账本同样改由 `predict` 核对，不再读后继 state。删除前后指标不能退。
+`apply` 的九字段算法、`transition::check` 和独立的 `travelling()` 已经删除，
+convert 报告改为对写出的 battle 测量覆盖。补给账本同样改由 `predict` 核对，
+不再读后继 state。删除前后指标不能退。
 
 ### 三、把规则从 convert 迁到 simulation
 

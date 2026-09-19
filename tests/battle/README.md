@@ -36,11 +36,7 @@ rounds, which is what distinguishes a retained object from a restatement of one
 round's release.
 
 The supply ledger closes all 668 of 668 seams, which is each side's opening onto
-its first round and then every round onto the next. The nine-field turn
-transition closes 6,010 of 6,012 comparisons. The two open comparisons are
-equipment deliveries in `[kulinichstas1985]VS[Menschlein]` round 4 blue and
-`[🐙Noname🐙]VS[Rievin]` round 5 blue; the exact missing IDs are pinned by the
-transition tests rather than hidden from the corpus.
+its first round and then every round onto the next.
 
 Three converted documents end with a `concede` decision, and those three are
 among the 9,980 actions: `[Dre420]VS[[TUFF] Wumple Doodle]`,

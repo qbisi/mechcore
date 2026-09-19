@@ -467,10 +467,12 @@ survives.
 
 ## What a decision reproduces
 
-The nine fields [`battle.md`](battle.md#what-a-round-reproduces) compares are
-what two round snapshots can decide between them. A recording that states a position before every decision and after it decides
-more, because it asks a smaller question: not what the next round holds, but
-what this position looks like one decision later.
+[`battle.md`](battle.md#what-a-round-reproduces) compares a round's whole
+prediction against the next round's opening, which is what two round snapshots
+can decide between them. A recording that states a position before every
+decision and after it decides more, because it asks a smaller question: not
+what the next round holds, but what this position looks like one decision
+later.
 
 That is the transition this document defines, and it is checked two ways
 against the same recording.

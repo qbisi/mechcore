@@ -114,7 +114,7 @@ fail-closed rule keeps protecting a recording in flight.
 `--force`. [record-replay-battle.mcscript](../../../scripts/record-replay-battle.mcscript)
 is a whole-battle capture example: change its `grbr` and `output` variables.
 It includes the opening and every deployment, with separate snapshot-jump
-boundaries. It produces native observations, not a validated `apply` result
+boundaries. It produces native observations, not a validated transition
 or a recording of combat.
 
 `record_battle` and `record_replay_round` accept a research-only HDF5 sidecar request:

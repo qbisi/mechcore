@@ -305,7 +305,7 @@ pub(crate) const AMBUSH_MAX_Y: i64 = 310;
 /// The game does not read a coordinate where it decides a flank deployment. It
 /// asks its territory which region holds a position, and the main deployment
 /// half and the two flank rectangles are three separate regions. That is the
-/// distinction [`crate::transition::travelling`] turns on, and it is why the
+/// distinction [`crate::transition::step`] turns on when it moves a formation, and it is why the
 /// two flanks are told apart here rather than lumped together as "ambush":
 /// crossing from one flank to the other is a change of region like any other.
 ///
