@@ -25,17 +25,78 @@ use crate::cli::{Args, Failure, Outcome, Verdict};
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
-    match arguments
-        .operand("a verb: verify, format or diff")?
-        .as_str()
-    {
+    let verb = arguments.operand("a verb: verify, format, diff, project or schema")?;
+    let outcome = match verb.as_str() {
         "verify" => verify(arguments),
         "format" => format(arguments),
         "diff" => diff(arguments),
+        "project" => project(arguments),
+        "schema" => schema(arguments),
         other => Err(Failure::usage(format!(
-            "doc has no verb {other:?}; it has verify, format and diff"
+            "doc has no verb {other:?}; it has verify, format, diff, project and schema"
         ))),
+    };
+    outcome.map_err(|failure| failure.at(format!("doc.{verb}")))
+}
+
+/// Writes the layout a round's fight starts from.
+///
+/// A round's decisions applied to the position it opened with, and that
+/// position projected: it is how a fight is run again without a recording
+/// being kept of one, which is why a match keeps none.
+fn project(mut arguments: Args) -> Outcome {
+    let round = arguments
+        .parsed::<i32>("--round", "a round number")?
+        .ok_or_else(|| Failure::usage("expected --round <n>: a battle holds several"))?;
+    let output = arguments.value("--output")?.map(PathBuf::from);
+    let path = arguments.path("a battle document")?;
+    arguments.finish()?;
+
+    let bytes = fs::read(&path)
+        .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
+    let stated = mechcore_document::opening::stated(&bytes)
+        .map_err(Failure::refused)?
+        .ok_or_else(|| Failure::refused(format!("{} is not a battle document", path.display())))?;
+    let turn = stated
+        .turns
+        .iter()
+        .find(|turn| turn.round == round)
+        .ok_or_else(|| {
+            Failure::refused(format!(
+                "this battle holds no round {round}; it holds {} of them",
+                stated.turns.len()
+            ))
+        })?;
+    let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
+    // What declining this round's offer pays is the deal's to say, and a
+    // decision that declined one cannot be applied without it.
+    let declined = mechcore_document::opening::verify(&economy, &stated)
+        .and_then(|opening| mechcore_document::reinforcement::verify(&economy, &stated, &opening))
+        .map_err(Failure::refused)?
+        .rounds
+        .iter()
+        .find(|dealt| dealt.round == round)
+        .map(|dealt| dealt.declined);
+    let deployed = |state, actions, red| {
+        mechcore_document::transition::deployed(&economy, state, actions, red, declined).map_err(
+            |unsettled| Failure::refused(format!("round {round} is not settled: {unsettled}")),
+        )
+    };
+    let state = mechcore_document::battle::State {
+        reinforce_offers: None,
+        blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
+        red: deployed(&turn.state.red, &turn.actions.red, true)?,
+    };
+    let layout = mechcore_document::project::project(&state, round, stated.map_id, stated.seed)
+        .map_err(Failure::refused)?;
+    let yaml = mechcore_document::canonical_yaml(layout).map_err(Failure::refused)?;
+    match output {
+        Some(output) => fs::write(&output, yaml).map_err(|error| {
+            Failure::failed(format!("cannot write {}: {error}", output.display()))
+        })?,
+        None => print!("{yaml}"),
     }
+    Ok(Verdict::Yes)
 }
 
 /// Checks each named file against the contract its own kind defines.
@@ -227,6 +288,40 @@ impl VerifyReport {
             detail: Value::Null,
         }
     }
+}
+
+/// Answers the JSON Schema of a document kind.
+///
+/// A document names its own kind, and these are the kinds it can name. The
+/// schema is the shape a reader validates against and a writer generates from;
+/// what the fields mean is the document's own spec, which `man` answers with.
+fn schema(mut arguments: Args) -> Outcome {
+    let kinds = arguments.operands()?;
+    if kinds.is_empty() {
+        return Err(Failure::usage(
+            "expected <kind>...: layout, battle, state or action",
+        ));
+    }
+    for kind in kinds {
+        let schema = match kind.as_str() {
+            "layout" => schemars::schema_for!(mechcore_document::Layout),
+            "battle" => schemars::schema_for!(mechcore_document::battle::schema::Battle),
+            "state" => schemars::schema_for!(mechcore_document::battle::schema::State),
+            "action" => schemars::schema_for!(mechcore_document::battle::schema::Actions),
+            other => {
+                return Err(Failure::usage(format!(
+                    "no document is of kind {other:?}; a document names itself \
+                     layout, battle, state or action"
+                )));
+            }
+        };
+        println!(
+            "{}",
+            serde_json::to_string(&schema)
+                .map_err(|error| Failure::failed(format!("cannot write the schema: {error}")))?
+        );
+    }
+    Ok(Verdict::Yes)
 }
 
 fn format(mut arguments: Args) -> Outcome {

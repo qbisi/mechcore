@@ -22,6 +22,8 @@ fn usage(program: &str) {
     eprintln!("usage: {program} doc verify <document>... | paths on stdin");
     eprintln!("       {program} doc format <document.yaml> [--write]");
     eprintln!("       {program} doc diff <left.yaml> <right.yaml>");
+    eprintln!("       {program} doc project <battle.yaml> --round <n> [--output <layout.yaml>]");
+    eprintln!("       {program} doc schema <layout|battle|state|action>...");
     eprintln!("       {program} replay convert <replay.grbr> <battle.yaml> [--force]");
     eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
     eprintln!("       {program} fight outcome <recording.mcfr>");
@@ -31,7 +33,7 @@ fn usage(program: &str) {
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
-    eprintln!("       {program} game <operation> --attach [--level <0-4>]");
+    eprintln!("       {program} game <operation> [--level <0-4>]");
     eprintln!("       {program} man [<topic>] [--lang <code>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} shell");
