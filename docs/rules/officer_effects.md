@@ -146,6 +146,35 @@ carries both for the same stat, so the order in the formula above is the
 build's class structure rather than a measurement, and a technology will be
 the one to test it.
 
+### A plain integer is a value too, and it sums
+
+`speed_value` is stored as a plain `int` rather than an `FPoint`, which is the
+build saying it lives in the third list, `DataSet.intDatas`. That list's
+arithmetic is whichever `DataInt` subclass built the entry: `DataIntGroup`
+sums and clamps, `DataIntSingleMax` keeps the largest entry, `DataIntSingleMin`
+the smallest. `FightMech`'s constructor builds
+`DataIntGroup(0x80000000, 0x7FFFFFFF, 0)`, so a unit's integers sum and the
+clamp never binds.
+
+`tests/layouts/modifier/speed.mcscript` put that to the game. Advanced Power
+System and Speed Specialist are `+3` of movement each, over every unit, and
+they went on the Rhino that walks 105 metres to reach the Marksman — a walk
+that is the whole clock of the fight:
+
+| Red's officers | Rhino's speed | Fight ends at |
+| --- | ---: | ---: |
+| none | 16 | tick 120 |
+| one | 19 | tick 104 |
+| both | **22** | **tick 92** |
+
+Under `SingleMax` two entries of 3 would answer 3, and the second recording
+would have been the first one again. The recording stores `move_speed_value`
+of **6**. The life left is 14639 in all three, because the Marksman lands two
+shots either way: this measurement is the clock, not the damage.
+
+It also fixes the unit. `+3` is three metres per second, the same number the
+game's own text shows, and not a proportion of anything.
+
 ## Which channel a field lands in
 
 A recording keeps exactly one place for each field, so which channel a
@@ -165,23 +194,24 @@ existed, and the whole fight hashes identically.
 
 `crates/simulation/src/officers.rs` turns a row of the table into corrections
 on the units it reaches, tagged `Modifier` so removing the officer removes
-them. Of the 79 rows, **47** are applied: the ones whose every field is a rate
-or a value on a number the simulator derives — damage, life, attack interval,
-attack range — and whose `mech_type` is 0, 1 or 10.
+them. Of the 79 rows, **61** are applied: the ones whose every field is a rate,
+a value or a plain integer on a number the simulator derives — damage, life,
+attack interval, attack range, movement speed — and whose `mech_type` is 0, 1
+or 10.
 
 The rest refuse the side that holds them, by name:
 
 | Why | Rows | What would close it |
 | --- | ---: | --- |
-| `speed_value` | 16 | reading how `DataSet.intDatas` composes; it is a third aggregation class, `DataInt`, and nobody has read it |
 | a tower, shield, mine, deployment clock, experience or a projectile's life | 11 | the mechanism that owns that object |
 | `*_by_kill_count` | 3 | a mechanism that counts a unit's kills |
-| `splash_range_value` | 1 | a splash radius among the numbers this simulator derives |
+| `splash_range_value` | 3 | a splash radius among the numbers this simulator derives |
 | `mech_type` 4 | 1 | knowing which units count as ranged |
 
-**`speed_value` is what stands between this and the rest of the table.** It is
-a plain integer rather than an `FPoint`, which is the build saying it lives in
-the third list, and that list's aggregation has not been read yet.
+What is left is no longer about how a correction composes. All three of
+`DataSet`'s lists have been read and measured; every remaining refusal is a
+mechanism this simulator does not have, or a targeting category nothing
+enumerates.
 
 A partly applied officer is not offered: a side carrying one this build cannot
 compose is refused, because a fight with two thirds of an officer on it is a

@@ -1,0 +1,25 @@
+kind: layout
+round: 1
+
+# One copy of Advanced Power System on red, `speed_value` of `+3` over every
+# unit. A plain integer rather than an `FPoint`, which is the build saying it
+# lives in `DataSet.intDatas` — a `DataIntGroup`, summed, with a clamp of the
+# whole `Int32` range that never binds.
+#
+# It is on red so only the Rhino moves differently. The Rhino walks 105 m to
+# reach the Marksman, which is the whole clock of this fight: a faster Rhino
+# arrives sooner and the Marksman gets fewer shots, so the Rhino's remaining
+# life goes up rather than down.
+
+blue:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  officers: [advanced_power_system]
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}
