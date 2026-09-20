@@ -5,6 +5,7 @@
 
 mod kernel;
 mod layout;
+mod module;
 mod random;
 mod rules;
 mod rvo;
