@@ -22,7 +22,12 @@ documents and these contracts are what `man` answers with, so a reader needs
 the binary and nothing else. This document says how each is invoked and what
 comes back.
 
-A match played here is a match of standard 1v1 as the documents describe it.
+A match played here is a match of standard 1v1 as the documents describe it,
+played by the rules this binary carries and fought by the simulator it carries.
+The game is driven, never asked to decide: if a running game ever gains the
+operations to take a player's decisions, that is another contract and not a
+second engine behind this one.
+
 The binary carries no matchmaking, no accounts and no network transport: two
 players reach one match by opening the same match document, and a match is a
 file rather than a service.
@@ -129,6 +134,11 @@ coordination and not its record, it is gone when the match is over, and
 commits and not before, and what is written is written: a match has no undo.
 A side's own decisions are its own until then, which is what lets two sides
 deploy at once without seeing each other.
+
+A match is played under one build, which its document states as `game_build`
+and a binary carrying another build refuses to read at all. A match therefore
+cannot be carried on under rules it was not played under, and a document that
+reads is a document this binary can finish.
 
 Two processes reach one match by naming one document, and the turn file carries
 one advisory lock that every operation takes for the read and the write it
@@ -269,6 +279,11 @@ answer is the same answer, and the refusal is the same refusal, but nothing is
 kept. A decision is legal exactly when the rules settle it from the position it
 is taken in, so asking is running it.
 
+Nothing enumerates the decisions a side may take. A decision that names a
+position has as many spellings as the board has places, so a list of them would
+be a shape of its own to define and to keep true; asking about one decision is
+exact, and it is the same code path that would take it.
+
 Refuses a decision the rules do not settle, naming the reason the transition
 gives; refuses a side that has already committed the round, and a decision in a
 phase that does not hold one.
@@ -286,6 +301,11 @@ Answers the phase the match is now in; a side that wants the next round waits
 for it with `show --wait`.
 
 A commit cannot be taken back, and a side commits a round once.
+
+Nothing forfeits a match. A decision the rules refuse is refused and may be
+replaced by another; a side that answers nothing commits nothing, and the clock
+fights the round without it. A match ends the ways a match ends: a reactor core
+at zero, a concession, or the last round.
 
 ### The fight
 
@@ -318,6 +338,10 @@ and `--rounds <n>` to stop early. A player sees only the view
 
 Answers the match's outcome: the last round, the phase it ended in, and each
 side's reactor core.
+
+One run is one match. A series, a rating and a tournament are things a caller
+builds out of matches, each of which is a document of its own, and this
+namespace holds none of them.
 
 ## `game`
 
@@ -446,21 +470,12 @@ than answered in another one.
 The manual is the game's rules and not this binary's usage: what a command does
 is `--help`, and what it contracts to do is this document.
 
+The build's tables have no surface of their own. They are compiled in, and a
+reader that wants a price or a pool reads the index that explains it, which is
+what the manual answers with. A table answered as data would be a second
+spelling of what the binary already computes with, and nothing here asks for
+one.
+
 ## Unresolved
 
-- Whether a match records the build that fought it, so that a match replayed
-  under later rules is told apart from one replayed under the rules it was
-  played under.
-- Whether `arena` holds more than one match: a series, a rating, a tournament.
-- Whether `game` gains the decision operations of a live match, which would make
-  the game a second engine for `match act` rather than a fight backend alone.
-- Whether a player that fails to answer, or answers something illegal, forfeits
-  the match or is asked again, and how many times.
-- Whether the build's tables need a surface of their own, answered as data
-  rather than read out of the manual's prose, and if so whether a name in a
-  table is asked for the way a document writes it.
-- Whether a player needs the decisions it may take enumerated, beyond asking
-  about one with `match act --dry-run`.
-- What becomes of a fight whose resolving process dies partway: how a match
-  tells that from a fight still being resolved, and how long it waits before
-  another process may resolve it.
+None.
