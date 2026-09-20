@@ -300,8 +300,14 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
 
     let fought = run(&["match", "commit", &path, "--side", "red"]).ok();
     assert_eq!(fought["phase"], "fight");
+    // The fight is run from the position the round ends in, so what stops it
+    // is what the simulator says about that position. Every opening hands its
+    // side an officer, so that is what a real match meets first.
     let unresolved = fought["unresolved"].as_str().unwrap();
-    assert!(unresolved.contains("experience"), "{unresolved}");
+    assert!(
+        unresolved.contains("round 1 is not fought: side blue officers are outside"),
+        "{unresolved}"
+    );
 
     // Nothing is approximated: the round stands unfought and both commits
     // stand with it, so the next caller finds the same fight waiting.
