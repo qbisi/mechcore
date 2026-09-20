@@ -105,7 +105,7 @@ TechnologySystem            WreckageRecoverySystem
 是把它的模块填满，永远不是去改驱动它的那个循环。
 
 **一个模块不是全有或全无。** 它认领若干字段，其中一部分是它当下看得懂的，其余的照样
-被拒绝，和空模块的认领一模一样。`Loadout` 认领军官、科技、装备、等级，今天看得懂的是
+被拒绝，和空模块的认领一模一样。`Modifier` 认领军官、科技、装备、等级，今天看得懂的是
 军官——因为军官的效果表已经提取出来，另外三张还没有。而且即使字段本身看得懂，某一份
 具体 layout 仍可能被拒：一名军官的效果这个 build 合成不出来时，持有它的那一方被拒绝，
 并指名是哪名军官、哪个字段，而不是把它应用一半。
@@ -113,7 +113,7 @@ TechnologySystem            WreckageRecoverySystem
 有一个模块不是 build 的。军官、科技、装备、等级是在**开打之前**施加到单位上的——
 build 自己的 `TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由部署
 动作 `MAP_AddUnit` 调用——不是战斗里的系统。所以模拟器在建立战斗时一次性把它们写进去，
-这一步叫 `Loadout`。其余"哪个模块认领哪个字段"是模拟器自己的安排，名字则是 build 的；
+这一步叫 `Modifier`。其余"哪个模块认领哪个字段"是模拟器自己的安排，名字则是 build 的；
 其中两条安排也是 build 的：`RangeItemSystem` owns 地形，`SuperDeploymentSystem` owns
 travelling 的单位——因为 `FightCoreSystem.PreCalculate` 问的正是它 `IsTravelling`。
 
@@ -122,8 +122,8 @@ travelling 的单位——因为 `FightCoreSystem.PreCalculate` 问的正是它 
 
 ```text
 side blue needs modules this build has not implemented: constructions
-(FightConstructionSystem), units above level one (Loadout); side red needs
-modules this build has not implemented: unit technologies (Loadout)
+(FightConstructionSystem), units above level one (Modifier); side red needs
+modules this build has not implemented: unit technologies (Modifier)
 ```
 
 来自"字段本身能过、但其中某一项不行"的拒绝，指的是那一项而不是那个字段——字段是看得懂
@@ -200,6 +200,38 @@ MCFR 记作 `unit_dynamic_modifiers` 和 `skill_dynamic_modifiers` 的那两组�
 | `DamageProperty` | `FightMech.GetBaseDamage`；技能的 `GetDataFloatReduceRate`；自身的 `CalculateBaseDamage` 与 `CalculateDamage` |
 | `MoveSpeedProperty` | `FightMech` 的 `GetDataFloatAddRate` / `GetDataFloatReduceRate` / `GetDataInt`；某个 `DataSet` 的增减率；`BuffManager.GetMoveSpeedChangeValue` |
 | `ProjectileCountProperty` | `DataSet.GetDataInt` |
+
+### 一条修正怎么合成
+
+build 用自己的类型名说了这件事。`DataSet` 带三张列表：
+
+```text
+List<DataInt>                 intDatas        一个普通整数
+List<AdditiveDataFloat>       floatDatas      ChangeDataFloat      —— 一个 value
+List<MultiplicativeDataFloat> floatRateDatas  ChangeDataFloatRate  —— 一条比率
+```
+
+`AdditiveDataFloat.Refresh` 把自己的条目**相加**——ISIL 就是一个带饱和保护的 `add` 循
+环——而且这个类带着 `Min`/`Max`，调用表里有 `FPoint.Clamp`，所以一个 value 是一个可被钳
+制的和。
+
+`MultiplicativeDataFloat.Refresh` 带**两个**累加器。它把其中一个重置为 0，另一个重置为
+元数据里的常量 1，然后遍历条目、用 `FPoint.op_GreaterThan` 按**符号**分流：一路求和，
+一路相乘。`GetDataFloatAddRate` 返回前者，`GetDataFloatReduceRate` 返回后者——这就是为什
+么录像里一条 `reduce` 能代表好几次削弱：build 早就把它们乘在一起了，而 MCFR 存的是
+`1 − 那个乘积`。
+
+`FightMech.CalculateMaxLife` 把装配顺序摆了出来：它载入 `0x100000000`（Q32.32 的 1）、
+把 add 率加上去，把数据源给的整数左移 32 位变成 `FPoint`，然后相乘。于是：
+
+```text
+(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)
+```
+
+在 build 把结果转回 `Int32` 的地方向零截断一次，此前不截断。**削弱不是负的增强**：两条
+`0.11` 留下的是 `0.89 × 0.89`，不是 `1 − 0.22`。`tests/layouts/modifier/` 放着逐条子句
+对着游戏量出来的那些 fixture，[`officer_effects.md`](../../rules/officer_effects.zh.md)
+记录了它们的答案。
 
 这张表带出两件事。攻击间隔有下界钳制而射程没有，这是种类上的差别不是巧合。以及，一个
 property 的输入恰好就是录像记的那些列，所以**一个机制在算术未知之前就能被检验**：

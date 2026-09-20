@@ -46,9 +46,9 @@ vars:
 
 steps:
   - let:
-      none: read_yaml(tests/layouts/officer-composition-none.yaml)
-      once: read_yaml(tests/layouts/officer-composition-once.yaml)
-      twice: read_yaml(tests/layouts/officer-composition-twice.yaml)
+      none: read_yaml(tests/layouts/modifier/officer-composition-none.yaml)
+      once: read_yaml(tests/layouts/modifier/officer-composition-once.yaml)
+      twice: read_yaml(tests/layouts/modifier/officer-composition-twice.yaml)
 
   - game.apply_layout:
       layout: $none

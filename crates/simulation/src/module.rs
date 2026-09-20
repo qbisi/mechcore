@@ -8,7 +8,7 @@
 //! of rejections.
 //!
 //! Adding a mechanism is filling in its module and listing the fields it now
-//! understands. A module is not all or nothing: `Loadout` applies an officer
+//! understands. A module is not all or nothing: `Modifier` applies an officer
 //! and refuses the technology beside it, because one effect table is extracted
 //! and the other is not. The loop that drives them is never edited for a
 //! mechanism.
@@ -88,7 +88,7 @@ pub(crate) struct Module {
     pub(crate) claims: &'static [Field],
     /// Which of its claims this build understands.
     ///
-    /// A module is not all or nothing: `Loadout` applies an officer and not a
+    /// A module is not all or nothing: `Modifier` applies an officer and not a
     /// technology, because the officers' effect table is extracted and the
     /// technologies' is not yet. A field left out of this list is refused
     /// exactly as an unimplemented module's claim is, so a side carrying it is
@@ -106,15 +106,18 @@ pub(crate) struct Module {
 /// `SuperDeploymentSystem` owns a travelling unit because
 /// `FightCoreSystem.PreCalculate` asks it `IsTravelling`.
 ///
-/// `Loadout` is the exception and is deliberately not a module of the build:
+/// `Modifier` is the exception and is deliberately not a module of the build:
 /// officers, technologies, equipment and levels are applied to a unit before
 /// the fight rather than inside it — the build's own
 /// `TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is
 /// called from the deployment's `MAP_AddUnit` — so the simulator applies them
-/// as the fight is built, in one step of its own.
+/// as the fight is built, in one step of its own. It is named for what the
+/// build calls the thing it writes: `Officer.AddData` reaches
+/// `MechDataModifer.AddData` and `SkillDataModifier.AddData`, and every entry
+/// carries the `IDataModifier` that put it there.
 pub(crate) static MODULES: &[Module] = &[
     Module {
-        native: "Loadout",
+        native: "Modifier",
         claims: &[
             Field::Officers,
             Field::UnitTechnologies,
@@ -415,7 +418,7 @@ mod tests {
     #[test]
     fn the_modules_are_the_builds_thirty_five_and_one_of_our_own() {
         assert_eq!(MODULES.len(), 36);
-        assert_eq!(MODULES[0].native, "Loadout");
+        assert_eq!(MODULES[0].native, "Modifier");
         let mut native: Vec<&str> = MODULES[1..].iter().map(|module| module.native).collect();
         let sorted = {
             let mut sorted = native.clone();
@@ -459,7 +462,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             [
                 ("constructions", "FightConstructionSystem"),
-                ("units above level one", "Loadout"),
+                ("units above level one", "Modifier"),
             ],
             "officers are understood; the level beside them is not"
         );

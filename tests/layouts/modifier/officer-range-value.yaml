@@ -1,0 +1,27 @@
+kind: layout
+round: 1
+
+# Extended Range Arclight on blue: `attack_range_value` of `+20` and a
+# `damage_rate` of `-0.2`, which is an impairment rather than an enhancement.
+# Both measured clauses and the unmeasured one meet in one recording, and the
+# unknown is the value: whether it is added to the description in the number's
+# own units, which is what `AdditiveDataFloat` doing nothing but summing would
+# mean.
+#
+# An Arclight reaches 95 m; with the officer it should reach 115 and open fire
+# about 20 m earlier, which moves every tick of the fight after it. The whole
+# recording is the reading here rather than one number: nothing but the range
+# could have shifted the first shot.
+
+blue:
+  officers: [extended_range_arclight]
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

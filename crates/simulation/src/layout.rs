@@ -288,7 +288,7 @@ red:
         let refused = compile_default(&value).unwrap_err().to_string();
         assert!(refused.contains("side blue"), "{refused}");
         assert!(refused.contains("20006"), "{refused}");
-        assert!(refused.contains("attack_range_value"), "{refused}");
+        assert!(refused.contains("ranged units"), "{refused}");
     }
 
     /// An officer that only touches a ledger reaches the fight as nothing,

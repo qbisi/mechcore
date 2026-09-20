@@ -1,0 +1,24 @@
+kind: layout
+round: 1
+
+# One copy of Cost Control Specialist on red, whose `damage_rate` and
+# `life_rate` are both `-0.11`. A negative rate is not a small enhancement:
+# `MultiplicativeDataFloat.Refresh` routes an entry by its sign, so this one
+# lands in the accumulator that starts at one and multiplies.
+#
+# It is on red so that only the Rhino's numbers move. The Rhino's damage falls
+# too, which is why the Marksman lives longer than in the control — the fight
+# is still one difference, applied to one side.
+
+blue:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  officers: [cost_control_specialist]
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}
