@@ -211,6 +211,12 @@ List<AdditiveDataFloat>       floatDatas      ChangeDataFloat      —— 一个
 List<MultiplicativeDataFloat> floatRateDatas  ChangeDataFloatRate  —— 一条比率
 ```
 
+`DataInt` 是抽象类，某个下标用它三个子类里的哪一个，就是那个下标的全部算术：
+`DataIntGroup` 把条目求和、再钳制在构造函数收下的两个边界之间，`DataIntSingleMax` 只保留
+最大的那一条，`DataIntSingleMin` 保留最小的那一条。`FightMech` 的构造函数建的是
+`DataIntGroup(0x80000000, 0x7FFFFFFF, 0)`，所以一个单位的整数就是纯求和——钳制范围是整个
+`Int32`，永远不生效。
+
 `AdditiveDataFloat.Refresh` 把自己的条目**相加**——ISIL 就是一个带饱和保护的 `add` 循
 环——而且这个类带着 `Min`/`Max`，调用表里有 `FPoint.Clamp`，所以一个 value 是一个可被钳
 制的和。

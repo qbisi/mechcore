@@ -299,11 +299,21 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         ));
     }
 
+    // A plain integer lands in `DataSet.intDatas`, whose entries `FightMech`
+    // builds as `DataIntGroup(Int32.MinValue, Int32.MaxValue, 0)`: a sum whose
+    // clamp is the whole range and therefore never binds.
+    if let Some(raw) = row.speed_value.filter(|raw| *raw != 0) {
+        written.push((
+            Channel::Unit,
+            Index::MoveSpeed,
+            Correction::Value(raw.saturating_mul(METERS)),
+        ));
+    }
+
     let unsupported = [
         (row.min_attack_range_value, "min_attack_range_value", VALUE),
         (row.splash_range_value, "splash_range_value", SPLASH),
         (row.projectile_speed_value, "projectile_speed_value", VALUE),
-        (row.speed_value, "speed_value", INTEGER),
         (
             row.damage_rate_by_kill_count,
             "damage_rate_by_kill_count",
@@ -357,10 +367,6 @@ const VALUE: &str = "how a value composes with a description is not measured: \
                      see the unresolved questions in \
                      docs/spec/simulation/architecture.md";
 const SPLASH: &str = "no number this simulator derives is a splash radius";
-const INTEGER: &str = "the build keeps it in `DataSet.intDatas`, a third \
-                       aggregation class beside the additive and the \
-                       multiplicative one, and how a `DataInt` composes has \
-                       not been read";
 const KILLS: &str = "no mechanism here counts a unit's kills";
 const UNREAD: &str = "no mechanism here reads a projectile's life";
 const ELSEWHERE: &str = "it corrects a tower, a shield, a mine, a deployment \
@@ -384,6 +390,21 @@ mod tests {
     /// Aerial Specialist, which lists the units it reaches.
     const AERIAL_SPECIALIST: i32 = 20021;
     const THIRTY_PERCENT: i64 = 1_288_490_188;
+
+    /// A plain integer is a value in the unit's own channel, in the units the
+    /// description is quantized with: `+3` of movement is three metres a
+    /// second.
+    #[test]
+    fn a_plain_integer_is_a_value_in_the_unit_channel() {
+        let table = OfficerEffects::load().unwrap();
+        let speed = table
+            .corrections(&[ADVANCED_POWER_SYSTEM], "marksman")
+            .unwrap();
+        assert_eq!(speed.len(), 1);
+        assert_eq!(speed[0].0, Channel::Unit);
+        assert_eq!(speed[0].1.index, Index::MoveSpeed);
+        assert_eq!(speed[0].1.correction, Correction::Value(3_000));
+    }
 
     #[test]
     fn a_rate_lands_in_the_channel_its_recording_keeps_it_in() {
@@ -451,13 +472,7 @@ mod tests {
         assert!(refused.contains("ranged units"), "{refused}");
 
         // Its `+10` of range is applied now, so what refuses it is which
-        // units it reaches; a speed value is refused for its own reason.
-        let speed = table
-            .corrections(&[ADVANCED_POWER_SYSTEM], "marksman")
-            .unwrap_err()
-            .to_string();
-        assert!(speed.contains("speed_value"), "{speed}");
-        assert!(speed.contains("intDatas"), "{speed}");
+        // units it reaches rather than what it writes.
     }
 
     /// An officer that only touches a ledger is not in this table, and writes

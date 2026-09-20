@@ -87,3 +87,22 @@ steps:
       steps: 137
       teams.1.remaining_life: 16961
       hashes.physics_result_hash: 63871702be6cd5cb0dc6041a1b6d2a0572a06b45f676d5c9112790409d7ec282
+
+  # A plain integer, summed: 16 m/s becomes 19 and then 22, and the walk to
+  # the Marksman is the whole clock. The life left is the same in all three
+  # because the Marksman lands two shots either way — the reading is the tick
+  # the fight ends at.
+  - fight.run:
+      layout: tests/layouts/modifier/officer-speed-once.yaml
+      seed: 4242
+    expect:
+      steps: 104
+      teams.1.remaining_life: 14639
+      hashes.physics_result_hash: f263a6ec4d94dfd0980244aa5225713cc3ecaeb08ba5013d316832ee6e56e4a8
+  - fight.run:
+      layout: tests/layouts/modifier/officer-speed-twice.yaml
+      seed: 4242
+    expect:
+      steps: 92
+      teams.1.remaining_life: 14639
+      hashes.physics_result_hash: 99d1a0a06d0fc056fe506dd588af2ac3e667f70d36ba640bf87853859c7e23f3

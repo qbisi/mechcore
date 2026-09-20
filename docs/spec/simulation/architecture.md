@@ -239,6 +239,14 @@ List<AdditiveDataFloat>       floatDatas      ChangeDataFloat      — a value
 List<MultiplicativeDataFloat> floatRateDatas  ChangeDataFloatRate  — a rate
 ```
 
+`DataInt` is abstract, and which of its three subclasses an index uses is the
+whole of that index's arithmetic: `DataIntGroup` sums its entries and clamps
+them between the two bounds its constructor takes, `DataIntSingleMax` keeps the
+largest single entry, `DataIntSingleMin` the smallest. `FightMech`'s
+constructor builds `DataIntGroup(0x80000000, 0x7FFFFFFF, 0)`, so a unit's
+integers are a plain sum whose clamp is the whole `Int32` range and never
+binds.
+
 `AdditiveDataFloat.Refresh` sums its entries — the ISIL is an `add` in a loop
 with saturation guards — and the class carries `Min` and `Max` with
 `FPoint.Clamp` in its call list, so a value is a sum that can be clamped.

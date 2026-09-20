@@ -67,9 +67,13 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 (base + Σ value) × (1 + Σ enhance) × Π (1 − impair)
 ```
 
-增强相加、削弱相乘、value 按本单位相加，形状先从 `DataSet` 的两个聚合类读出来，再用
-`tests/layouts/modifier/` 下的 fixture 逐条验证。现在挡着剩下 32 行的是 `speed_value`
-（16 行）——它是普通整数，住在第三个聚合类 `DataInt` 里，那张列表还没人读。
+增强相加、削弱相乘、value 按本单位相加、普通整数也相加——形状先从 `DataSet` 的**三张
+列表**读出来（`AdditiveDataFloat`、`MultiplicativeDataFloat`、`DataIntGroup`），再用
+`tests/layouts/modifier/` 下的 fixture 逐条对着游戏验证。
+
+**剩下 18 行已经不是"怎么合成"的问题**：11 行修的是塔/护盾/地雷/部署时钟/经验，3 行按
+击杀数算，3 行是溅射半径，1 行是没人枚举过的"远程"类别——每一条欠的都是一个机制或一份
+枚举，不是一条算术。
 
 脚本第一行报"模拟器现在接受几个回合"，今天是 0，这就是进度条。
 

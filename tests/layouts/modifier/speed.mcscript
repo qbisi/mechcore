@@ -1,0 +1,73 @@
+# What does a list of plain integers do with two entries?
+#
+#   mechcore run tests/layouts/modifier/speed.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/speed.mcscript           record
+#
+# The other three captures here measured the two `FPoint` lists. This one is
+# about the third: `DataSet.intDatas`, where a `speed_value` lands because the
+# build stores it as a plain `int` rather than an `FPoint`.
+#
+# `DataInt` is abstract and has three subclasses, which is the whole reason
+# this question is worth asking: `DataIntGroup` sums its entries and clamps
+# them, `DataIntSingleMax` keeps the largest single entry, `DataIntSingleMin`
+# the smallest. A unit's integers are whichever one `FightMech`'s constructor
+# builds, and it builds `DataIntGroup(0x80000000, 0x7FFFFFFF, 0)` — a sum
+# whose clamp is the whole `Int32` range and therefore never binds.
+#
+# So two officers of `+3` should move a unit by 6. Under `SingleMax` they
+# would move it by 3, and the two recordings below would be the same fight.
+#
+# The Rhino walks 105 metres to reach the Marksman, and that walk is the whole
+# clock: the reading is how long the fight lasts. Its 16 m/s becomes 19 and
+# then 22, and the fight ends at tick 120, 104 and 92. The Marksman lands two
+# shots in every one of them, so the life left is the same 14639 throughout —
+# this fixture measures the clock, not the damage.
+#
+# The stored half answers it without the clock at all: a recording whose
+# `move_speed_value` reads 6 was written by a build that summed, and one that
+# reads 3 by a build that took the larger.
+#
+# Both hashes are the simulator's, computed before the recording existed.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/modifier-speed
+  seed: 4242
+
+steps:
+  - let:
+      once: read_yaml(tests/layouts/modifier/officer-speed-once.yaml)
+      twice: read_yaml(tests/layouts/modifier/officer-speed-twice.yaml)
+
+  - game.apply_layout:
+      layout: $once
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/speed-once.mcfr
+    expect:
+      operation.tick_count: 104
+      operation.hashes.physics_result_hash: f263a6ec4d94dfd0980244aa5225713cc3ecaeb08ba5013d316832ee6e56e4a8
+  - fight.modifiers:
+      recording: ${out}/speed-once.mcfr
+    expect:
+      sides.red.0.unit.move_speed_value: 3
+
+  - game.apply_layout:
+      layout: $twice
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/speed-twice.mcfr
+    expect:
+      operation.tick_count: 92
+      operation.hashes.physics_result_hash: 99d1a0a06d0fc056fe506dd588af2ac3e667f70d36ba640bf87853859c7e23f3
+  - fight.outcome:
+      recording: ${out}/speed-twice.mcfr
+    expect:
+      sides.red.survivors.0.life: 14639
+  - fight.modifiers:
+      recording: ${out}/speed-twice.mcfr
+    expect:
+      sides.red.0.unit.move_speed_value: 6
