@@ -558,12 +558,17 @@ pub(crate) mod technologies {
 
 /// A mapping from unit type to that unit's technologies, both by name:
 /// `{fortress: [anti_air_barrage, ...]}`, units and technologies in ID order.
-pub(crate) mod loadout {
+pub mod loadout {
     use serde::{Deserialize, Deserializer, Serializer};
     use std::borrow::Borrow;
     use std::collections::BTreeMap;
 
-    pub(crate) fn serialize<S, M>(map: &M, serializer: S) -> Result<S::Ok, S::Error>
+    /// Writes a loadout by name.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a unit or a technology has no name in this build.
+    pub fn serialize<S, M>(map: &M, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
         M: Borrow<BTreeMap<i32, Vec<i32>>>,
@@ -587,7 +592,12 @@ pub(crate) mod loadout {
         serializer.collect_map(rows)
     }
 
-    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+    /// Reads a loadout written by name.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a name is not one this build carries.
+    pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<BTreeMap<i32, Vec<i32>>, D::Error> {
         use serde::de::Error;

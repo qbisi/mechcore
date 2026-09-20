@@ -24,6 +24,14 @@ pub struct Battle {
     pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
+    /// How long a side has to commit a round, in seconds, when the document
+    /// is a match this platform is playing.
+    ///
+    /// A converted replay states none: the clock is the platform's own rule,
+    /// which `docs/spec/mechcore/cli.md` states, and a recorded match was not
+    /// played under it. A reader that needs a figure uses
+    /// [`DEFAULT_DEPLOY_TIME`].
+    pub deploy_time: Option<i32>,
     pub blue: BattleSide,
     pub red: BattleSide,
     /// The deployment rounds, from the first one. The opening is round zero
@@ -56,8 +64,14 @@ pub struct BattleSide {
 /// are held together here because every reader of one needs the other.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Opening {
-    /// Zero-based index of the combination taken from `offers`.
-    pub choose: i32,
+    /// Zero-based index of the combination taken from `offers`, absent while
+    /// the side has not taken one.
+    ///
+    /// A played match always names it. A match in progress may not: a side
+    /// deals before either player opens, and one player may open before the
+    /// other. The round-zero action segment writes an empty list for a side
+    /// that has not.
+    pub choose: Option<i32>,
     /// The four combinations this side was dealt, in the order shown.
     ///
     /// The deal is private to the side, which is why it sits under the side in
@@ -79,23 +93,25 @@ pub struct OpeningOffer {
 
 impl Opening {
     /// The opening as the decision that took it, which is what the round-zero
-    /// action segment holds.
+    /// action segment holds, or nothing while the side has not taken one.
     ///
     /// # Panics
     ///
     /// Panics if `choose` is not an index into `offers`. Conversion checks this
-    /// before constructing the opening.
+    /// before constructing the opening, and [`read`] checks it when reading
+    /// one back.
     #[must_use]
-    pub fn action(&self) -> Action {
-        let taken = usize::try_from(self.choose)
+    pub fn action(&self) -> Option<Action> {
+        let choose = self.choose?;
+        let taken = usize::try_from(choose)
             .ok()
             .and_then(|at| self.offers.get(at))
             .expect("opening choice must name a dealt combination");
-        Action::ChooseAdvanceTeam {
-            offer: self.choose,
+        Some(Action::ChooseAdvanceTeam {
+            offer: choose,
             id: taken.team,
             specialist: taken.specialist,
-        }
+        })
     }
 }
 
@@ -263,6 +279,13 @@ pub struct TurnActions {
     pub blue: Vec<Action>,
     pub red: Vec<Action>,
 }
+
+/// How long a side has to commit a round when its document states nothing.
+///
+/// It is the game's own `DeployTime`, which every tracked replay records as
+/// 100 seconds. What the game does when it runs out is not established, and
+/// what this platform does is `docs/spec/mechcore/cli.md`'s own rule.
+pub const DEFAULT_DEPLOY_TIME: i32 = 100;
 
 /// The `offer` of a [`Action::ChooseReinforceItem`] that declined the round.
 ///
@@ -634,6 +657,8 @@ struct Header<'a> {
     game_build: &'a str,
     map_id: i32,
     seed: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    deploy_time: Option<i32>,
     blue: HeaderSide<'a>,
     red: HeaderSide<'a>,
 }
@@ -697,6 +722,65 @@ pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
     Ok(yaml)
 }
 
+/// Reads a battle document whole, or nothing when the file is not a battle.
+///
+/// This is [`canonical_yaml`]'s other direction: what it writes, this reads
+/// back. A battle a match is still playing reads too, which is what lets a
+/// match keep its ledger on disk rather than in memory — a side that has not
+/// taken its opening, and a round whose decisions only one side has written,
+/// are both positions a document may be in between two operations.
+///
+/// # Errors
+///
+/// Returns an error when the stream's grammar is broken, a segment is not
+/// readable, or an opening names an offer its side was not dealt.
+pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
+    let Some(stated) = crate::opening::stated(bytes)? else {
+        return Ok(None);
+    };
+    let side = |name: &str, side: crate::opening::StatedSide| {
+        let choose = match &side.opening {
+            None => None,
+            Some(opening) => {
+                let taken = usize::try_from(opening.choose)
+                    .ok()
+                    .and_then(|at| side.offers.get(at))
+                    .ok_or_else(|| {
+                        format!(
+                            "{name} opening offer {} is not one of the {} dealt",
+                            opening.choose,
+                            side.offers.len()
+                        )
+                    })?;
+                if *taken != opening.taken {
+                    return Err(format!(
+                        "{name} opening offer {} holds {taken:?}, and the decision names {:?}",
+                        opening.choose, opening.taken
+                    ));
+                }
+                Some(opening.choose)
+            }
+        };
+        Ok(BattleSide {
+            opening: Opening {
+                choose,
+                offers: side.offers,
+            },
+            constructions: side.constructions,
+            tech_loadout: side.tech_loadout,
+        })
+    };
+    Ok(Some(Battle {
+        game_build: crate::economy::this_build(),
+        map_id: stated.map_id,
+        seed: stated.seed,
+        deploy_time: stated.deploy_time,
+        blue: side("blue", stated.blue)?,
+        red: side("red", stated.red)?,
+        turns: stated.turns,
+    }))
+}
+
 /// A battle's segments, in stream order.
 fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
     let mut segments = vec![
@@ -704,13 +788,14 @@ fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
             game_build: &battle.game_build,
             map_id: battle.map_id,
             seed: battle.seed,
+            deploy_time: battle.deploy_time,
             blue: HeaderSide::of(&battle.blue),
             red: HeaderSide::of(&battle.red),
         }),
         Segment::Action(ActionSegment {
             round: 0,
-            blue: Cow::Owned(vec![battle.blue.opening.action()]),
-            red: Cow::Owned(vec![battle.red.opening.action()]),
+            blue: Cow::Owned(battle.blue.opening.action().into_iter().collect()),
+            red: Cow::Owned(battle.red.opening.action().into_iter().collect()),
         }),
     ];
     for turn in &battle.turns {

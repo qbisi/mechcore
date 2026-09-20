@@ -542,8 +542,14 @@ pub fn verify(
     stated: &Stated,
     opening: &Prediction,
 ) -> Result<Verified, String> {
+    // A match that has not opened its first round has no draw to check. That
+    // is a battle in progress rather than a battle missing something: the
+    // header and the openings are all a dealt match has.
     if stated.turns.is_empty() {
-        return Err("reinforcement verification requires deployment turns".into());
+        return Ok(Verified {
+            rounds: Vec::new(),
+            offers_checked: 0,
+        });
     }
     let mut dealer = Dealer::new(opening)?;
     let mut rounds = Vec::new();
@@ -738,8 +744,12 @@ mod tests {
                 .unwrap_err()
                 .contains("contiguous")
         );
+        // A battle with no rounds at all is a match that has been dealt and
+        // not opened, which has no draw to disagree with.
         stated.turns.clear();
-        assert!(verify(&economy, &stated, &opening).is_err());
+        let dealt = verify(&economy, &stated, &opening).unwrap();
+        assert!(dealt.rounds.is_empty());
+        assert_eq!(dealt.offers_checked, 0);
     }
 
     #[test]
