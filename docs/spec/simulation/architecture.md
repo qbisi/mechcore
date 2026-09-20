@@ -85,8 +85,14 @@ holds them. The lifecycle is the module's whole contract with the fight:
 | `IsStepFinish` | whether this module has settled this advance |
 | `Stop` | the match tears down |
 
-Build 2259 has these 35, and the simulator carries a module for each one,
-implemented or not:
+A module is a `GameRiver.Fight` type whose name ends in `System` and whose
+constructor takes the match. All 35 do, and the only other types built that way
+are `FightController`, `FightModule` itself and two generic bases, so the set is
+exactly these. Twenty-five of them override at least one lifecycle hook and ten
+override none, which says those ten are driven by the calls made into them
+rather than by the advance.
+
+The simulator carries a module for each one, implemented or not:
 
 ```text
 AdvancedEnergyShieldSystem  AutoRecoverySystem      BuffSystem
@@ -109,6 +115,26 @@ registry rather than a hand-written list: a layout compiles when every field it
 carries is claimed by a module that implements it, and is refused naming the
 field and the module otherwise. Implementing a mechanism is filling in its
 module, never editing the loop that drives it.
+
+One module is not the build's. Officers, technologies, equipment and levels are
+applied to a unit **before** the fight rather than inside it — the build's
+`TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is called
+from the deployment's `MAP_AddUnit` — so the simulator applies them as the fight
+is built, in a step of its own called `Loadout`. Which module claims which field
+is otherwise this simulator's arrangement; the names are the build's, and two of
+the arrangements are the build's too, `RangeItemSystem` owning terrain and
+`SuperDeploymentSystem` owning a travelling unit because
+`FightCoreSystem.PreCalculate` asks it `IsTravelling`.
+
+A refusal names every field both sides carry at once rather than the first,
+because what a caller wants to know is how far a deployment is from being
+fought:
+
+```text
+side blue needs modules this build has not implemented: officers (Loadout),
+constructions (FightConstructionSystem); side red needs modules this build has
+not implemented: officers (Loadout)
+```
 
 ## Objects
 

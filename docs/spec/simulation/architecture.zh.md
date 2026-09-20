@@ -77,7 +77,12 @@
 | `IsStepFinish` | 本次推进这个模块是否已经稳定 |
 | `Stop` | 对局拆除 |
 
-build 2259 有这 35 个，模拟器为每一个都带一个模块，无论实现与否：
+一个模块就是 `GameRiver.Fight` 里名字以 `System` 结尾、且构造函数收下对局的类型。
+这 35 个全都是，而以同样方式构造的其它类型只有 `FightController`、`FightModule`
+自己和两个泛型基类，所以这个集合恰好就是它们。其中 25 个至少重写了一个生命周期
+钩子，10 个一个都没重写——说明那 10 个是被调进去的调用驱动的，不是被推进驱动的。
+
+模拟器为每一个都带一个模块，无论实现与否：
 
 ```text
 AdvancedEnergyShieldSystem  AutoRecoverySystem      BuffSystem
@@ -98,6 +103,22 @@ TechnologySystem            WreckageRecoverySystem
 这正是闭包成为登记表的性质、而不是一串手写拒绝的原因：一份 layout 能编译，当且仅当
 它带的每个字段都被一个**已实现**的模块认领；否则拒绝，并指名字段和模块。实现一个机制
 是把它的模块填满，永远不是去改驱动它的那个循环。
+
+有一个模块不是 build 的。军官、科技、装备、等级是在**开打之前**施加到单位上的——
+build 自己的 `TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由部署
+动作 `MAP_AddUnit` 调用——不是战斗里的系统。所以模拟器在建立战斗时一次性把它们写进去，
+这一步叫 `Loadout`。其余"哪个模块认领哪个字段"是模拟器自己的安排，名字则是 build 的；
+其中两条安排也是 build 的：`RangeItemSystem` owns 地形，`SuperDeploymentSystem` owns
+travelling 的单位——因为 `FightCoreSystem.PreCalculate` 问的正是它 `IsTravelling`。
+
+一次拒绝把两边所有字段一起报出来，而不是只报第一个，因为调用方想知道的是这份部署离
+能打还有多远：
+
+```text
+side blue needs modules this build has not implemented: officers (Loadout),
+constructions (FightConstructionSystem); side red needs modules this build has
+not implemented: officers (Loadout)
+```
 
 ## 对象
 

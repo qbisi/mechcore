@@ -13,33 +13,48 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 把语料 41 份回放的每一回合投影成部署结束的 layout（`doc project`，334 个回合全部
 投影并编译通过），再拿模拟器现在的闭包去量，得到的就是距离：
 
-| 字段 | 挡住多少回合 |
-| --- | ---: |
-| `officers` | 334 (100%) |
-| `constructions` | 322 (96%) |
-| 单位 `level` > 1 | 276 (82%) |
-| `techs` | 256 (76%) |
-| `blueprints` | 220 (65%) |
-| `battle_skills` | 176 (52%) |
-| 单位 `equipment` | 167 (50%) |
-| `contraptions` | 161 (48%) |
-| `tower_strengthen_levels` | 123 (36%) |
-| `energy_tower_skills` | 118 (35%) |
-| `travelling` | 94 (28%) |
-| `terrains` | 5 (1%) |
-| `airdrop_shields` | 4 (1%) |
+| 字段 | 欠哪个模块 | 挡住多少回合 |
+| --- | --- | ---: |
+| `officers` | Loadout | 334 (100%) |
+| `constructions` | FightConstructionSystem | 322 (96%) |
+| 单位 `level` > 1 | Loadout | 276 (82%) |
+| `techs` | Loadout | 256 (76%) |
+| `battle_skills` | CommanderSkillSystem | 176 (52%) |
+| 单位 `equipment` | Loadout | 167 (50%) |
+| `contraptions` | InterceptSystem | 161 (48%) |
+| `tower_strengthen_levels` | BuildingSystem | 123 (36%) |
+| `energy_tower_skills` | BuildingSystem | 118 (35%) |
+| `travelling` | SuperDeploymentSystem | 94 (28%) |
+| `terrains` | RangeItemSystem | 5 (1%) |
+| `airdrop_shields` | AdvancedEnergyShieldSystem | 4 (1%) |
 
-**没有一个回合只差一样东西。** 最少的差 2 样，中位数差 7 样，最多的差 11 样。
-所以"按字段实现、拿真实对局验收"这条路，早期根本走不通——真实回合要等七八个机制
-齐了才第一次可用。早期验收只能靠**合成 layout**：一份只动一个字段的布阵，拿游戏
-录一份原生 MCFR，模拟器必须逐 tick 对上。这正是 `tests/mcfr-regressions.yaml` 现在
-的 81 条在做的事。
+（`blueprints` 不在表里：编译 layout 时每条链都按它交出的军官应用，所以蓝图是以军官
+的身份到达战斗、也以军官的身份被拒。）
 
-上面那张表和这些数都出自
-[`scripts/fight-coverage.py`](scripts/fight-coverage.py)，它还给出一条贪心的实现
-次序和沿途的累积数：军官 1 → 建筑 33 → 升级 65 → 蓝图 105 →
-战斗技能 161 → 能量塔技能 233 → **入场 325** → 地形 330 → 空投护盾 334。脚本第一行
-同时报"模拟器现在接受几个回合"，今天是 0，这就是进度条。
+**没有一个回合只差一样东西。** 按字段算最少差 2 样、中位数 6 样；按**模块**算差 2 到
+6 个，中位数 4 个。所以"按字段实现、拿真实对局验收"这条路，早期根本走不通——真实回合
+要等四五个模块齐了才第一次可用。早期验收只能靠**合成 layout**：一份只动一个字段的
+布阵，拿游戏录一份原生 MCFR，模拟器必须逐 tick 对上。这正是
+`tests/mcfr-regressions.yaml` 现在的 81 条在做的事。
+
+上面那张表和下面这串数都出自
+[`scripts/fight-coverage.py`](scripts/fight-coverage.py)，而且**是问二进制自己要的**：
+拒绝一次把两边所有欠账一起报出来，脚本只做汇总。模块按贪心次序落地时，闭包内回合数
+这样涨：
+
+```text
++ AdvancedEnergyShieldSystem      0/334
++ CommanderSkillSystem            0/334
++ InterceptSystem                 0/334
++ SuperDeploymentSystem           0/334
++ FightConstructionSystem         0/334
++ Loadout                       166/334
++ BuildingSystem                329/334
++ RangeItemSystem               334/334
+```
+
+**`Loadout` 是最大的一根杠杆**：它一个模块认领四个字段（军官、科技、装备、等级），
+自己就压着 166 个回合。脚本第一行报"模拟器现在接受几个回合"，今天是 0，这就是进度条。
 
 ## 一、先定架构，否则并行不起来
 
@@ -91,21 +106,30 @@ architecture.md 的 Unresolved 里。
 合成**出一个数（连乘还是 `base × (1 + add − reduce)`），索引答不了，要靠拿录像的聚合值
 去拟合结果——这是第一步要建立的规则，不是让每个机制各猜一遍。
 
-## 二、机制按"是什么"分组，不按字段
+## 二、模块并行，按登记表分工
 
-十三个字段其实是四类机制，分组之后四条线可以并行：
+登记表已经把十二个字段分给了七个模块，所以分工就是模块，几条线可以同时走：
 
-| 组 | 字段 | 验收面 |
+| 模块 | 认领的字段 | 验收面 |
 | --- | --- | --- |
-| **修饰符** | `officers`、`techs`、`blueprints`、`equipment`、`tower_strengthen_levels`、单位 `level` | 录像的三条修饰符通道，逐 tick 对齐 |
-| **静态物体** | `constructions`、`contraptions` | 录像的 `buildings`（内核已经有塔了） |
-| **区域与释放** | `battle_skills`、`terrains`、`airdrop_shields` | 录像的 `terrains`、`shields`，[terrain.md](docs/rules/terrain.md) 已有机制 |
-| **入场** | `travelling` | 录像的 `units.position`／`motion_state` |
+| **Loadout**（非原生模块） | `officers`、`techs`、`equipment`、单位 `level` | 录像的三条修饰符通道，逐 tick 对齐 |
+| **FightConstructionSystem** | `constructions` | 录像的 `buildings`（内核已经有塔了） |
+| **BuildingSystem** | `energy_tower_skills`、`tower_strengthen_levels` | 录像的 `buildings` |
+| **CommanderSkillSystem** | `battle_skills` | 录像的 `terrains`、`shields` 和释放事件 |
+| **RangeItemSystem** | `terrains` | 录像的 `terrains`，[terrain.md](docs/rules/terrain.md) 已有机制 |
+| **AdvancedEnergyShieldSystem** | `airdrop_shields` | 录像的 `shields` |
+| **InterceptSystem** | `contraptions` | 录像的 `buildings` 与拦截事件 |
+| **SuperDeploymentSystem** | `travelling` | 录像的 `units.position`／`motion_state` |
 
-每组各自还欠一份**配置提取**，这是研究不是工程，可以和引擎并行：
+`Loadout` 之所以不是原生的 35 个之一：军官、科技、装备、等级在游戏里是**开打之前**
+施加到单位上的（`TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由
+部署动作 `MAP_AddUnit` 调用），不是战斗里的系统。模拟器照样在建立战斗时一次性把它们
+写进覆盖层。
+
+每个模块各自还欠一份**配置提取**，这是研究不是工程，可以和引擎并行：
 `config/officers.yaml` 现在只有经济效果（折扣、收入），军官的战斗效果、科技效果、
-装备效果、蓝图效果都还没有表。提取脚本照 `scripts/extract_prices.py` 的路子走，
-每张表落一份 `docs/rules/` 索引说明出处。
+装备效果都还没有表。提取脚本照 `scripts/extract_prices.py` 的路子走，每张表落一份
+`docs/rules/` 索引说明出处。
 
 ## 三、验收分三层，覆盖率钉在 CI
 
