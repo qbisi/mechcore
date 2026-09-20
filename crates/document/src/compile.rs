@@ -571,14 +571,6 @@ fn compile_battle_skills(
                 positions.len()
             ));
         }
-        if skills
-            .iter()
-            .any(|skill: &BattleSkill| skill.commander_skill_id == spec.commander_skill_id)
-        {
-            return Err(format!(
-                "side {side_name} battle skill type {type_name:?} is declared more than once"
-            ));
-        }
         validate_battle_skill_positions(side_name, &type_name, &positions, spec)?;
         skills.push(BattleSkill {
             type_name,

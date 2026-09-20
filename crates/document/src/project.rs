@@ -124,6 +124,12 @@ fn project_releases(
     released.sort_by_key(|(release, _)| release.order);
     released
         .into_iter()
+        .filter(|(_, id)| {
+            // A recovery is deployment's work: it takes one of the side's own
+            // objects away and pays back what it cost before the fight, so the
+            // fight sees nothing of it and a layout states nothing of it.
+            !crate::ledger::RECOVERY_SKILLS.contains(id)
+        })
         .map(|(release, id)| {
             let type_name = battle_skill_type_from_id(id).ok_or_else(|| {
                 format!("side {side_name} released commander skill {id}, which has no layout type")
@@ -211,6 +217,62 @@ mod tests {
             crate::layout::canonical_yaml(projected).unwrap(),
             crate::layout::canonical_yaml(captured).unwrap()
         );
+    }
+
+    /// Every round of the tracked set projects from the position its
+    /// decisions reached, which is the layout `doc project` writes and a
+    /// fight is run over.
+    ///
+    /// The sibling test below projects each round's opening position, which no
+    /// release ever reaches: a state segment that carried one would be refused
+    /// as a position a round opens with. This one runs the round first, so it
+    /// is the only check that puts what a deployment did through the layout
+    /// rules.
+    #[test]
+    fn every_deployed_position_projects_onto_a_layout_that_compiles() {
+        let economy = Economy::embedded().unwrap();
+        let mut projected = 0;
+        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+            let path = entry.expect("directory entry").path();
+            if path.extension().is_none_or(|extension| extension != "grbr") {
+                continue;
+            }
+            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
+                continue;
+            };
+            let pool = crate::opening::predict(&economy, battle.seed, battle.map_id)
+                .unwrap()
+                .initialization
+                .unit_round_pool;
+            for turn in &battle.turns {
+                let declined =
+                    crate::reinforcement::decline_supply(&economy, pool, turn.round).unwrap();
+                let deployed = |state, actions, red| {
+                    crate::transition::deployed(&economy, state, actions, red, Some(declined))
+                        .unwrap_or_else(|unsettled| {
+                            panic!("{} round {}: {unsettled}", path.display(), turn.round)
+                        })
+                };
+                let state = crate::battle::State {
+                    reinforce_offers: turn.state.reinforce_offers.clone(),
+                    blue: deployed(&turn.state.blue, &turn.actions.blue, false),
+                    red: deployed(&turn.state.red, &turn.actions.red, true),
+                };
+                let layout = project(&state, turn.round, battle.map_id, battle.seed)
+                    .unwrap_or_else(|error| {
+                        panic!("{} round {}: {error}", path.display(), turn.round)
+                    });
+                compile_layout(layout).unwrap_or_else(|error| {
+                    panic!(
+                        "{} round {} does not compile: {error}",
+                        path.display(),
+                        turn.round
+                    )
+                });
+                projected += 1;
+            }
+        }
+        assert_eq!(projected, 334);
     }
 
     #[test]
