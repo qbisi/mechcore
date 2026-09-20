@@ -1,0 +1,20 @@
+kind: layout
+round: 1
+
+# Two copies of the same officer, which a side may hold: `layout.md` keeps
+# `officers` a multiset for exactly this. Additive composition makes the
+# Marksman's damage 1.6 times its description and multiplicative makes it
+# 1.69, which one recording tells apart.
+
+blue:
+  officers: [advanced_offensive_tactics, advanced_offensive_tactics]
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

@@ -1,0 +1,20 @@
+kind: layout
+round: 1
+
+# One copy of Advanced Offensive Tactics on blue, which
+# `config/officer_effects.yaml` gives a `damage_rate` of `+0.3` over every
+# unit. Everything else is `officer-composition-none.yaml`, so the Rhino's
+# remaining life is the whole difference.
+
+blue:
+  officers: [advanced_offensive_tactics]
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

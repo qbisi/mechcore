@@ -1,0 +1,99 @@
+# How does a correction compose with the description it corrects?
+#
+# `config/officer_effects.yaml` says Advanced Offensive Tactics carries a
+# `damage_rate` of `+0.3` over every unit, and `docs/rules/officer_effects.md`
+# says what that number is and where it lands. What neither says is the
+# arithmetic: whether a rate multiplies the description, adds to it, and what
+# two of them do together. The decompilation index cannot answer it — it
+# carries call edges and no method bodies — so it is measured here, and
+# `crates/simulation/src/data.rs` refuses a correction until it is.
+#
+#   mechcore run scripts/officer-composition.mcscript --check   validate offline
+#   mechcore run scripts/officer-composition.mcscript           record
+#
+# One Marksman shoots one Rhino. The Rhino outlives the fight in every case, so
+# the measurement is the life it has left: a Marksman that hits n times for d
+# leaves `19297 - n * d`, and nothing else in the layout moves. The three
+# layouts differ only in blue's `officers`.
+#
+# The simulator's own answer for the control, from `fight run` with no officer,
+# is 14639 left of 19297: two hits of 2329, which is the Marksman's description
+# unchanged. So the control also says whether the game and this build agree
+# before any officer is involved.
+#
+# What each answer means, with the Marksman's 2329 and two hits:
+#
+#   one officer      multiplied    2329 * 1.3  = 3027.7   -> about 13242 left
+#   two officers     added         2329 * 1.6  = 3726.4   -> about 11845 left
+#   two officers     multiplied    2329 * 1.69 = 3936.0   -> about 11425 left
+#
+# Added and multiplied are 420 apart on two hits, so one recording separates
+# them. A third reading matters as much as the first two: if `once` does not
+# land near 13242, the rate is not a factor on the base damage at all and the
+# whole shape is wrong rather than the arithmetic.
+#
+# Two control recordings come first because a difference between two runs of
+# one layout would make every later difference meaningless. They carry an
+# expect, so the run stops there rather than producing numbers nobody can read.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/officer-composition
+  seed: 4242
+
+steps:
+  - let:
+      none: read_yaml(tests/layouts/officer-composition-none.yaml)
+      once: read_yaml(tests/layouts/officer-composition-once.yaml)
+      twice: read_yaml(tests/layouts/officer-composition-twice.yaml)
+
+  - game.apply_layout:
+      layout: $none
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/none-1.mcfr
+
+  - game.apply_layout:
+      layout: $none
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/none-2.mcfr
+
+  - fight.compare:
+      left: ${out}/none-1.mcfr
+      right: ${out}/none-2.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  - game.apply_layout:
+      layout: $once
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/once.mcfr
+
+  - game.apply_layout:
+      layout: $twice
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/twice.mcfr
+
+  # The measurement. Each answers the survivors and the life they have left,
+  # and the three numbers are the experiment: `none` fixes the description,
+  # `once` fixes the arithmetic of one rate, `twice` fixes what two do.
+  #
+  # Each answer also carries the modifier channels the recording holds, which
+  # is the other half of the reading: where the correction landed — the unit's
+  # overlay, its skill's, or the buff aggregate — and what the game stored
+  # there. A rate that reads `+0.6` in one channel and a damage that reads
+  # 1.6 times the description are the same fact seen twice; a rate that reads
+  # `+0.3` twice over is a different one.
+  - fight.outcome:
+      recording: ${out}/none-1.mcfr
+  - fight.outcome:
+      recording: ${out}/once.mcfr
+  - fight.outcome:
+      recording: ${out}/twice.mcfr
