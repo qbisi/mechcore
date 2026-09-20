@@ -67,6 +67,18 @@ pub(crate) fn compile_with_seed(
 ) -> Result<(Option<i32>, CompiledLayout)> {
     let layout = mechcore_document::parse_yaml(bytes).map_err(Error::new)?;
     let plan = mechcore_document::compile_layout(layout).map_err(Error::new)?;
+    // Both sides are asked before either is refused, so a caller sees the whole
+    // distance between this deployment and a fight rather than its first step.
+    let missing: Vec<String> = [("blue", &plan.blue), ("red", &plan.red)]
+        .into_iter()
+        .filter_map(|(name, side)| {
+            let missing = crate::module::unsupported(side);
+            (!missing.is_empty()).then(|| crate::module::refusal(name, &missing))
+        })
+        .collect();
+    if !missing.is_empty() {
+        return Err(Error::new(missing.join("; ")));
+    }
     let mut placements = compile_side("blue", 0, &plan.blue, units)?;
     placements.extend(compile_side("red", 1, &plan.red, units)?);
 
@@ -85,50 +97,6 @@ fn compile_side(
     side: &SidePlan,
     units: &UnitConfigs,
 ) -> Result<Vec<Placement>> {
-    // Named apart because a match meets them apart: every opening hands its
-    // side an officer, so this is the first thing a real deployment fails on.
-    if !side.techs.officers.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} officers are outside the current baseline simulator slice"
-        )));
-    }
-    if !side.techs.units.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} unit technologies are outside the current baseline simulator slice"
-        )));
-    }
-    if !side.energy_tower_skills.is_empty()
-        || side.tower_strengthen_levels.iter().any(|level| *level != 0)
-    {
-        return Err(Error::new(format!(
-            "side {name} tower modifiers are outside the current baseline simulator slice"
-        )));
-    }
-    if !side.terrains.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} terrains are outside the current simulator closure; persistent terrain simulation requires GRBR-derived MCFR comparison"
-        )));
-    }
-    if !side.battle_skills.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} battle skills are outside the current baseline simulator slice"
-        )));
-    }
-    if !side.constructions.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} constructions are outside the current baseline simulator slice"
-        )));
-    }
-    if !side.contraptions.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} contraptions are outside the current baseline simulator slice"
-        )));
-    }
-    if !side.airdrop_shields.is_empty() {
-        return Err(Error::new(format!(
-            "side {name} airdrop shields are outside the current baseline simulator slice"
-        )));
-    }
     side.units
         .iter()
         .enumerate()
@@ -143,13 +111,12 @@ fn compile_formation(
     formation: &mechcore_document::Placement,
     units: &UnitConfigs,
 ) -> Result<Placement> {
-    if !matches!(formation.native, NativeFormation::Unit(_))
-        || formation.level != Some(1)
-        || formation.equipment.is_some()
-        || formation.travelling
-    {
+    // Level, equipment and travelling are claimed fields and were refused by
+    // the module registry before this ran; what is left is a placement that is
+    // not a unit at all.
+    if !matches!(formation.native, NativeFormation::Unit(_)) {
         return Err(Error::new(format!(
-            "side {side_name} requires level-one, unequipped, non-travelling units"
+            "side {side_name} holds a placement that is not a unit"
         )));
     }
     let rotated = formation.rotated;
@@ -265,7 +232,8 @@ red:
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
-            "side blue constructions are outside the current baseline simulator slice"
+            "side blue needs modules this build has not implemented: \
+             constructions (FightConstructionSystem)"
         );
     }
 
@@ -277,7 +245,8 @@ red:
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
-            "side blue terrains are outside the current simulator closure; persistent terrain simulation requires GRBR-derived MCFR comparison"
+            "side blue needs modules this build has not implemented: \
+             terrains (RangeItemSystem)"
         );
     }
 
