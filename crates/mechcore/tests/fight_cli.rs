@@ -8,16 +8,14 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
     let output = directory.path().join("battle.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/layouts/marksman-vs-arclight.yaml");
-    let config = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("sim")
+        .arg("fight")
+        .arg("run")
         .arg(layout)
         .arg("--seed")
         .arg("7")
         .arg("--output")
         .arg(&output)
-        .arg("--config")
-        .arg(config)
         .output()
         .unwrap();
     assert!(
@@ -50,14 +48,12 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
         &layout,
     )
     .unwrap();
-    let config = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("sim")
+        .arg("fight")
+        .arg("run")
         .arg(&layout)
         .arg("--seed")
         .arg("7")
-        .arg("--config")
-        .arg(config)
         .output()
         .unwrap();
     assert!(
@@ -86,16 +82,14 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     let divergent_path = directory.path().join("divergent.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/layouts/marksman-vs-arclight.yaml");
-    let config = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../config");
     let generated = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("sim")
+        .arg("fight")
+        .arg("run")
         .arg(&layout)
         .arg("--seed")
         .arg("7")
         .arg("--output")
         .arg(&recording_path)
-        .arg("--config")
-        .arg(&config)
         .output()
         .unwrap();
     assert!(
@@ -128,18 +122,16 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     drop(recording);
 
     let compared = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("sim")
-        .arg("compare")
+        .arg("fight")
+        .arg("verify")
         .arg(&recording_path)
         .arg(&divergent_path)
-        .arg("--config")
-        .arg(&config)
         .output()
         .unwrap();
     assert!(!compared.status.success());
     assert!(compared.stderr.is_empty());
     let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.sim-compare-batch-result.v2");
+    assert_eq!(report["schema"], "mechcore.fight-verify-result.v1");
     assert_eq!(report["equal"], false);
     assert_eq!(
         report["comparisons"][0]["schema"],

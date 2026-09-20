@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate every tracked battle document from its replay.
 
-Each GRBR under ``tests/grbr`` is converted offline with ``mechcore convert``
+Each GRBR under ``tests/grbr`` is converted offline with ``mechcore replay convert``
 into the battle YAML of the same basename under ``tests/battle``, replacing
 what is there. Both directories' ``SHA256SUMS`` are rewritten afterwards. A
 replay the converter refuses is reported and makes the run fail, so a corpus
@@ -69,7 +69,7 @@ def main() -> int:
         print(f"[{index}/{len(sources)}] {source.name}", flush=True)
         battle = battle_dir / f"{source.stem}.yaml"
         converted = subprocess.run(
-            [str(executable), "convert", str(source), str(battle), "--force"],
+            [str(executable), "replay", "convert", str(source), str(battle), "--force"],
             cwd=root,
             text=True,
             capture_output=True,

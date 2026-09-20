@@ -1,10 +1,10 @@
-//! The document commands: verify, format and diff.
+//! The `doc` namespace: what a command does to a document on disk.
 //!
-//! They are named for what they do to a document rather than for one kind.
+//! Its verbs are named for what they do rather than for one kind of document.
 //! `format` and `diff` accept a layout, and a battle stream is refused by the
-//! parser until those two verbs learn it. `verify`
-//! also checks deployment recordings through the transition and battle opening
-//! and reinforcement offers against the seeded random stream.
+//! parser until those two verbs learn it. `verify` also checks deployment
+//! recordings through the transition and battle opening and reinforcement
+//! offers against the seeded random stream.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -16,6 +16,28 @@ use std::{
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::cli::{Args, Failure, Outcome, Verdict};
+
+/// Dispatches one of the namespace's verbs.
+///
+/// # Errors
+///
+/// Returns a usage failure for a verb this namespace does not hold, and
+/// whatever the verb returns otherwise.
+pub(crate) fn run(mut arguments: Args) -> Outcome {
+    match arguments
+        .operand("a verb: verify, format or diff")?
+        .as_str()
+    {
+        "verify" => verify(arguments),
+        "format" => format(arguments),
+        "diff" => diff(arguments),
+        other => Err(Failure::usage(format!(
+            "doc has no verb {other:?}; it has verify, format and diff"
+        ))),
+    }
+}
+
 /// Checks each named file against the contract its own kind defines.
 ///
 /// A file says which kind it is, so nothing is inferred from an extension. A
@@ -26,8 +48,8 @@ use serde_json::Value;
 /// there are none, so a batch is a pipe rather than a flag:
 ///
 /// ```text
-/// mechcore verify layout.yaml
-/// ls tests/battle/*.yaml | mechcore verify
+/// mechcore doc verify layout.yaml
+/// ls tests/battle/*.yaml | mechcore doc verify
 /// ```
 ///
 /// One report per input goes to standard output, one JSON object per line, a
@@ -39,9 +61,11 @@ use serde_json::Value;
 ///
 /// Returns an error when no input is named at all, or when the list of paths
 /// cannot be read.
-pub(crate) fn verify(arguments: impl Iterator<Item = String>) -> Result<bool, String> {
+fn verify(mut arguments: Args) -> Outcome {
+    let paths = inputs(&mut arguments)?;
+    arguments.finish()?;
     let mut valid = true;
-    for path in inputs(arguments)? {
+    for path in paths {
         let report = match verify_one(&path) {
             Ok(report) => report,
             Err(error) => VerifyReport::refused(&path, error),
@@ -50,28 +74,36 @@ pub(crate) fn verify(arguments: impl Iterator<Item = String>) -> Result<bool, St
         println!(
             "{}",
             serde_json::to_string(&report)
-                .map_err(|error| format!("cannot serialize verification report: {error}"))?
+                .map_err(|error| Failure::failed(format!("cannot write the report: {error}")))?
         );
     }
-    Ok(valid)
+    Ok(valid.into())
 }
 
 /// The paths to check: the arguments, or standard input one per line.
 ///
 /// An empty argument list with a terminal on standard input is a mistake rather
 /// than an empty batch, so it is refused instead of succeeding over nothing.
-fn inputs(arguments: impl Iterator<Item = String>) -> Result<Vec<PathBuf>, String> {
-    let named: Vec<PathBuf> = arguments.map(PathBuf::from).collect();
+fn inputs(arguments: &mut Args) -> Result<Vec<PathBuf>, Failure> {
+    let named: Vec<PathBuf> = arguments
+        .operands()?
+        .into_iter()
+        .map(PathBuf::from)
+        .collect();
     if !named.is_empty() {
         return Ok(named);
     }
     if std::io::stdin().is_terminal() {
-        return Err("expected <document>... after `verify`, or paths on standard input".into());
+        return Err(Failure::usage(
+            "expected <document>... after `doc verify`, or paths on standard input",
+        ));
     }
     let mut piped = String::new();
     std::io::stdin()
         .read_to_string(&mut piped)
-        .map_err(|error| format!("cannot read paths from standard input: {error}"))?;
+        .map_err(|error| {
+            Failure::failed(format!("cannot read paths from standard input: {error}"))
+        })?;
     Ok(piped
         .lines()
         .map(str::trim)
@@ -197,34 +229,38 @@ impl VerifyReport {
     }
 }
 
-pub(crate) fn format(mut arguments: impl Iterator<Item = String>) -> Result<(), String> {
-    let path = required_path(&mut arguments, "expected layout.yaml after `format`")?;
-    let write = match arguments.next().as_deref() {
-        None => false,
-        Some("--write") => true,
-        Some(extra) => return Err(format!("unexpected argument {extra:?}")),
-    };
-    reject_extra(&mut arguments)?;
-    let canonical = mechcore_document::canonical_yaml(read_layout(&path)?)?;
+fn format(mut arguments: Args) -> Outcome {
+    let write = arguments.flag("--write")?;
+    let path = arguments.path("a document to format")?;
+    arguments.finish()?;
+    let canonical =
+        mechcore_document::canonical_yaml(read_layout(&path)?).map_err(Failure::refused)?;
     if write {
-        fs::write(&path, canonical)
-            .map_err(|error| format!("cannot write {}: {error}", path.display()))?;
+        fs::write(&path, canonical).map_err(|error| {
+            Failure::failed(format!("cannot write {}: {error}", path.display()))
+        })?;
     } else {
         print!("{canonical}");
     }
-    Ok(())
+    Ok(Verdict::Yes)
 }
 
-pub(crate) fn diff(mut arguments: impl Iterator<Item = String>) -> Result<bool, String> {
-    let left_path = required_path(&mut arguments, "expected left.yaml after `diff`")?;
-    let right_path = required_path(&mut arguments, "expected right.yaml after left.yaml")?;
-    reject_extra(&mut arguments)?;
+fn diff(mut arguments: Args) -> Outcome {
+    let format = arguments.format()?;
+    let left_path = arguments.path("the document on the left")?;
+    let right_path = arguments.path("the document on the right")?;
+    arguments.finish()?;
     let left = read_layout(&left_path)?.normalized();
     let right = read_layout(&right_path)?.normalized();
-    let left_value = serde_json::to_value(left)
-        .map_err(|error| format!("cannot normalize {}: {error}", left_path.display()))?;
-    let right_value = serde_json::to_value(right)
-        .map_err(|error| format!("cannot normalize {}: {error}", right_path.display()))?;
+    let left_value = serde_json::to_value(left).map_err(|error| {
+        Failure::failed(format!("cannot normalize {}: {error}", left_path.display()))
+    })?;
+    let right_value = serde_json::to_value(right).map_err(|error| {
+        Failure::failed(format!(
+            "cannot normalize {}: {error}",
+            right_path.display()
+        ))
+    })?;
     let mut differences = Vec::new();
     collect_differences("", Some(&left_value), Some(&right_value), &mut differences);
     let equal = differences.is_empty();
@@ -235,36 +271,14 @@ pub(crate) fn diff(mut arguments: impl Iterator<Item = String>) -> Result<bool, 
         right: right_path.display().to_string(),
         differences,
     };
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&report)
-            .map_err(|error| format!("cannot serialize layout diff: {error}"))?
-    );
-    Ok(equal)
+    crate::cli::emit(&report, format)?;
+    Ok(equal.into())
 }
 
-fn read_layout(path: &PathBuf) -> Result<mechcore_document::Layout, String> {
-    let bytes =
-        fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    mechcore_document::parse_yaml(&bytes)
-}
-
-fn required_path(
-    arguments: &mut impl Iterator<Item = String>,
-    message: &str,
-) -> Result<PathBuf, String> {
-    arguments
-        .next()
-        .map(PathBuf::from)
-        .ok_or_else(|| message.into())
-}
-
-fn reject_extra(arguments: &mut impl Iterator<Item = String>) -> Result<(), String> {
-    if let Some(extra) = arguments.next() {
-        Err(format!("unexpected argument {extra:?}"))
-    } else {
-        Ok(())
-    }
+fn read_layout(path: &PathBuf) -> Result<mechcore_document::Layout, Failure> {
+    let bytes = fs::read(path)
+        .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
+    mechcore_document::parse_yaml(&bytes).map_err(Failure::refused)
 }
 
 /// Collections whose entries carry a cross-round deployment identity.

@@ -1,8 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fs,
-    path::Path,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -258,45 +254,19 @@ pub(crate) struct BuildingPosition {
 }
 
 impl SimulationConfig {
-    pub(crate) fn load(directory: Option<&Path>) -> Result<Self> {
-        let (top_level, unit_directory, training_ground) = match directory {
-            Some(directory) => {
-                let path = directory.join("config.yaml");
-                let bytes = fs::read(&path).map_err(|error| {
-                    Error::new(format!("failed to read {}: {error}", path.display()))
-                })?;
-                let training_ground_path = directory.join("training_ground.yaml");
-                let training_ground_bytes = fs::read(&training_ground_path).map_err(|error| {
-                    Error::new(format!(
-                        "failed to read {}: {error}",
-                        training_ground_path.display()
-                    ))
-                })?;
-                (
-                    parse_top_level(&bytes, &path.display().to_string())?,
-                    Some(directory.join("units")),
-                    parse_training_ground(
-                        &training_ground_bytes,
-                        &training_ground_path.display().to_string(),
-                    )?,
-                )
-            }
-            None => (
-                parse_top_level(DEFAULT_CONFIG.as_bytes(), "embedded config")?,
-                None,
-                parse_training_ground(
-                    DEFAULT_TRAINING_GROUND.as_bytes(),
-                    "embedded training-ground config",
-                )?,
-            ),
-        };
+    pub(crate) fn load() -> Result<Self> {
+        let top_level = parse_top_level(DEFAULT_CONFIG.as_bytes(), "embedded config")?;
+        let training_ground = parse_training_ground(
+            DEFAULT_TRAINING_GROUND.as_bytes(),
+            "embedded training-ground config",
+        )?;
         if top_level.game_build.trim().is_empty() {
             return Err(Error::new("top-level config game_build must not be empty"));
         }
         training_ground.validate()?;
         Ok(Self {
             game_build: top_level.game_build,
-            units: UnitConfigs::load(unit_directory.as_deref())?,
+            units: UnitConfigs::load()?,
             training_ground,
         })
     }
@@ -341,14 +311,11 @@ impl BuildingConfig {
 }
 
 impl UnitConfigs {
-    pub(crate) fn load(directory: Option<&Path>) -> Result<Self> {
-        let configs = match directory {
-            Some(directory) => load_directory(directory)?,
-            None => DEFAULT_UNITS
-                .iter()
-                .map(|text| parse(text.as_bytes(), "embedded unit config"))
-                .collect::<Result<Vec<_>>>()?,
-        };
+    pub(crate) fn load() -> Result<Self> {
+        let configs = DEFAULT_UNITS
+            .iter()
+            .map(|text| parse(text.as_bytes(), "embedded unit config"))
+            .collect::<Result<Vec<_>>>()?;
         Self::from_configs(configs)
     }
 
@@ -358,7 +325,7 @@ impl UnitConfigs {
 
     fn from_configs(configs: Vec<UnitConfig>) -> Result<Self> {
         if configs.is_empty() {
-            return Err(Error::new("unit config directory contains no YAML files"));
+            return Err(Error::new("no unit configuration is embedded"));
         }
         let mut ids = BTreeSet::new();
         let mut units = BTreeMap::new();
@@ -812,44 +779,6 @@ fn quantize_u64(value: f64, scale: f64) -> u64 {
     (value * scale).round() as u64
 }
 
-fn load_directory(directory: &Path) -> Result<Vec<UnitConfig>> {
-    let entries = fs::read_dir(directory).map_err(|error| {
-        Error::new(format!(
-            "failed to read unit config directory {}: {error}",
-            directory.display()
-        ))
-    })?;
-    let mut paths = entries
-        .map(|entry| {
-            entry
-                .map(|entry| entry.path())
-                .map_err(|error| Error::new(format!("failed to read unit config entry: {error}")))
-        })
-        .collect::<Result<Vec<_>>>()?;
-    paths.retain(|path| {
-        path.extension()
-            .is_some_and(|extension| extension == "yaml")
-    });
-    paths.sort();
-    paths
-        .into_iter()
-        .map(|path| {
-            let bytes = fs::read(&path).map_err(|error| {
-                Error::new(format!("failed to read {}: {error}", path.display()))
-            })?;
-            let config = parse(&bytes, &path.display().to_string())?;
-            if path.file_stem().and_then(|stem| stem.to_str()) != Some(&config.type_name) {
-                return Err(Error::new(format!(
-                    "unit config filename {} must match type_name {:?}",
-                    path.display(),
-                    config.type_name
-                )));
-            }
-            Ok(config)
-        })
-        .collect()
-}
-
 fn parse(bytes: &[u8], source: &str) -> Result<UnitConfig> {
     serde_yaml::from_slice(bytes)
         .map_err(|error| Error::new(format!("invalid unit config {source}: {error}")))
@@ -871,7 +800,7 @@ mod tests {
 
     #[test]
     fn si_values_quantize_to_the_internal_integer_grid() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, "1.11.1.3.2259");
         assert_eq!(config.units.units.len(), 23);
         let arclight = config.units.get("arclight").unwrap();
@@ -923,7 +852,7 @@ mod tests {
 
     #[test]
     fn readable_rvo_priorities_preserve_native_q32_values() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         let expected = [
             ("marksman", 25_769_803),
             ("rhino", 4_294_967_296),
@@ -959,7 +888,7 @@ mod tests {
 
     #[test]
     fn p0_configs_preserve_path_and_topology_discriminants() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         let rhino = config.units.get("rhino").unwrap();
         assert_eq!(rhino.formation.members, 1);
         assert_eq!(rhino.formation_slot_size_meters().unwrap(), 30);
@@ -997,7 +926,7 @@ mod tests {
 
     #[test]
     fn projectile_target_offset_radius_is_zero_or_at_least_one_centimeter() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         let mut stormcaller = config.units.get("stormcaller").unwrap().clone();
         for (radius, valid) in [(0.009, false), (0.01, true), (0.0, true)] {
             let AttackPath::Projectile {
@@ -1014,7 +943,7 @@ mod tests {
 
     #[test]
     fn steel_ball_laser_damage_truncates_and_caps_the_native_multiplier_sequence() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         let attack = &config.units.get("steel_ball").unwrap().attack;
         let damage = (0..7)
             .map(|attack_count| attack.laser_damage(attack_count))
@@ -1026,7 +955,7 @@ mod tests {
 
     #[test]
     fn current_kernel_support_follows_the_explicit_config_set() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         for (type_name, rules) in &config.units.units {
             let is_supported = matches!(
                 type_name.as_str(),
@@ -1056,7 +985,7 @@ mod tests {
 
     #[test]
     fn group_fields_are_all_or_nothing_and_group_only() {
-        let config = SimulationConfig::load(None).unwrap();
+        let config = SimulationConfig::load().unwrap();
         let mut partial_group = config.units.get("wraith").unwrap().clone();
         partial_group.attack.weapons.allow_same_target = None;
         assert!(partial_group.validate().is_err());

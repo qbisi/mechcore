@@ -1,12 +1,12 @@
 # Battle document fixtures
 
-Each YAML file here is `mechcore convert` run over the replay of the same
+Each YAML file here is `mechcore replay convert` run over the replay of the same
 basename in `tests/grbr`, with nothing edited afterwards. They are regenerated,
 never hand-corrected: a claim that needs a different value is a claim about the
 converter, and belongs in `crates/document/src/convert.rs`.
 
 ```bash
-mechcore convert "tests/grbr/<name>.grbr" "tests/battle/<name>.yaml" --force
+mechcore replay convert "tests/grbr/<name>.grbr" "tests/battle/<name>.yaml" --force
 ```
 
 The scalable corpus entry point is:
@@ -43,7 +43,7 @@ ended in a fight whose result no replay records.
 CI regenerates this directory on every push and pull request and fails when the
 result differs, so a converter change that left the corpus behind cannot merge.
 
-`mechcore verify tests/battle/*.yaml` first reads each document as a stream and
+`mechcore doc verify tests/battle/*.yaml` first reads each document as a stream and
 refuses one whose segments are misordered, misnumbered, or continue past a
 concession or a destroyed reactor core. It then checks both sides' complete
 opening offers and initial construction lists against each battle's seed and

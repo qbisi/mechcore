@@ -537,7 +537,7 @@ states the scene admission rules, which a script cannot widen.
 Requalifying this path after a game update means running a batch and accepting
 it only when one result has `operation.recorded` and
 `operation.cleanup.match_exited` true, a final status of `main_menu`, an output
-file `mechcore convert` can open carrying the build and a non-negative seat, and
+file `mechcore replay convert` can open carrying the build and a non-negative seat, and
 no managed exception in either log. That decode is the reviewer's check on a new
 build, not a step the collector performs per match.
 

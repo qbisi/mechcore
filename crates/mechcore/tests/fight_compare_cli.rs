@@ -14,7 +14,7 @@ fn compare_reports_equal_physics_result_hashes() {
     let output = compare(&path, &path);
     assert!(output.status.success());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.mcfr-compare-result.v2");
+    assert_eq!(report["schema"], "mechcore.fight-compare-result.v1");
     assert_eq!(report["equal"], true);
     assert!(report["first_divergence"].is_null());
     assert!(report["divergent_ticks"].is_null());
@@ -113,7 +113,7 @@ fn compare_ignores_context_when_ticks_are_equal() {
 
 fn compare(left: &Path, right: &Path) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("mcfr")
+        .arg("fight")
         .arg("compare")
         .arg(left)
         .arg(right)

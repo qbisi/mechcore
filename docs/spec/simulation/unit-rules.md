@@ -140,16 +140,12 @@ projection of the native Q32 value onto 2,000 internal time units per second;
 it was not the design-level interval. Timing phases stay separate because the
 native state machine quantizes and consumes them separately.
 
-## Loading a configuration root
+## The configuration a simulation reads
 
-The embedded configuration is used by default. An external root is selected
-with:
-
-```text
-mechcore sim layout.yaml --config config
-```
-
-A root contains `config.yaml`, `training_ground.yaml` and `units/*.yaml`.
+The configuration travels with the binary: `config.yaml`,
+`training_ground.yaml` and one file per unit under `units/` are compiled in. A
+simulation reads no configuration from disk, so a binary simulates the build it
+carries and nothing else, wherever it runs.
 
 The schema loads every P0 unit path, and the simulator rejects a unit whose
 formation generation or native attack path it does not implement. A renamed
@@ -162,8 +158,8 @@ a separate answer.
 
 ## Normal form
 
-A unit lives in exactly one file named `<type_name>.yaml`. Within one
-configuration root, `type_name` and `unit_type_id` are each unique.
+A unit lives in exactly one file named `<type_name>.yaml`. Across the files a
+binary carries, `type_name` and `unit_type_id` are each unique.
 
 The format has no ordered collection, so there is nothing to canonicalise
 inside a file: every value is a scalar or a fixed-key mapping, and two

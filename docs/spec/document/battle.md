@@ -241,7 +241,7 @@ Every offer a battle states is drawn from the match's seed, so a battle can be
 checked for having been dealt what it says without the replay it came from.
 
 ```bash
-mechcore verify <battle.yaml>
+mechcore doc verify <battle.yaml>
 ```
 
 Before checking the deal, verification reads every state field and every
@@ -279,15 +279,14 @@ before and after generation. These checks are conditional on the stated round
 inputs; they do not authenticate player decisions or validate transitions across
 combat.
 
-`mechcore opening <seed> <map_id>` predicts the same two offer arrays and
-construction lists without a battle or replay. Its JSON result includes the
-selected officer variants and unit reinforcement round pool, the reinforcement
-state before and after the opening deal, and raw draw counts excluding seed
-warm-up and including range rejection. The map stream reports its chosen
-construction group, reversal flags in blue/red order, and raw draw count.
-Unsupported maps and negative seeds are refused. This operation predicts
-available options; it does not select an option for either player or predict
-subsequent reinforcement deals.
+The prediction runs on the seed alone, so it needs neither the battle nor the
+replay it came from: it selects each officer group's variant and the unit
+reinforcement round pool, advances the stream through the opening deal, and
+reads the map stream's construction group and reversal flags. Those are the
+checker's own workings rather than a player's knowledge, and no command answers
+with them; an unsupported map and a negative seed are refused. The prediction
+says which options a side was offered, not which it took, and not what a later
+round deals.
 
 ## Between two states there is a fight
 
@@ -338,7 +337,7 @@ so the opening's third step delivers it.
 
 ### Transition coverage
 
-`mechcore verify <battle.yaml>` measures each transition against the whole next
+`mechcore doc verify <battle.yaml>` measures each transition against the whole next
 position, not only the nine fields above. A transition starts from a round's
 state and that round's decisions, steps the decisions in order, and opens the
 next round on the result. Every leaf of the recorded next state is then put in
@@ -456,7 +455,7 @@ income arrives after.
 ## Converting a replay
 
 ```bash
-mechcore convert <replay.grbr> <battle.yaml> [--force]
+mechcore replay convert <replay.grbr> <battle.yaml> [--force]
 ```
 
 Conversion is offline. It reads the replay and nothing else, and it simulates
