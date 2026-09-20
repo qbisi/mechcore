@@ -4,3 +4,4 @@ __pycache__
 !/work/research/
 /work/research/*
 !/work/research/README.md
+.DS_Store

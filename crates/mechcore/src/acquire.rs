@@ -128,7 +128,9 @@ pub(crate) fn parse_level(value: &str) -> Result<u8, String> {
         .parse()
         .map_err(|error| format!("level is not a number in 0..={MAX_LEVEL}: {error}"))?;
     if level > MAX_LEVEL {
-        return Err(format!("level {level} is above the highest run level {MAX_LEVEL}"));
+        return Err(format!(
+            "level {level} is above the highest run level {MAX_LEVEL}"
+        ));
     }
     Ok(level)
 }

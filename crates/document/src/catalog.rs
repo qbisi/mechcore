@@ -42,7 +42,10 @@ pub(crate) struct BattleSkillSpec {
     pub(crate) tower_exclusion_radius: Option<i64>,
 }
 
-pub(crate) const fn formation_spec(native: NativeFormation, footprint: Option<(i64, i64)>) -> FormationSpec {
+pub(crate) const fn formation_spec(
+    native: NativeFormation,
+    footprint: Option<(i64, i64)>,
+) -> FormationSpec {
     FormationSpec { native, footprint }
 }
 

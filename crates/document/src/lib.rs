@@ -18,9 +18,9 @@ use serde::{Deserialize, Serialize};
 pub mod battle;
 pub mod catalog;
 pub mod compile;
-pub mod coverage;
 #[cfg(feature = "convert")]
 pub mod convert;
+pub mod coverage;
 pub mod economy;
 pub mod experience;
 mod grbr;
@@ -31,11 +31,11 @@ pub mod mobility;
 pub mod names;
 pub mod opening;
 pub mod project;
-mod spelling;
-pub mod transition;
 #[cfg(feature = "convert")]
 pub mod record;
 pub mod reinforcement;
+mod spelling;
+pub mod transition;
 
 pub use catalog::{
     CHAIN_BLUEPRINTS, NativeFormation, battle_skill_type_from_id, chain_blueprint, chain_officer,
@@ -183,7 +183,10 @@ blue:
 red:
   units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
-        assert_eq!(parse_embedded_yaml(silent).unwrap().game_build, game_build());
+        assert_eq!(
+            parse_embedded_yaml(silent).unwrap().game_build,
+            game_build()
+        );
     }
 
     #[test]
@@ -294,8 +297,7 @@ red:
         assert_eq!(once.blue.officers, [10014, 20039]);
         assert_eq!(once.blue.techs, [10202, 10401]);
         assert_eq!(
-            once
-                .blue
+            once.blue
                 .units
                 .iter()
                 .map(|formation| formation.index)
@@ -303,8 +305,7 @@ red:
             [1, 4]
         );
         assert_eq!(
-            once
-                .blue
+            once.blue
                 .contraptions
                 .iter()
                 .map(|contraption| contraption.index)
@@ -316,8 +317,7 @@ red:
             [Position { x: -200, y: 20 }, Position { x: 200, y: 20 }]
         );
         assert_eq!(
-            once
-                .blue
+            once.blue
                 .terrains
                 .iter()
                 .map(|terrain| terrain.control_points[0].x)
@@ -367,8 +367,8 @@ red:
     #[test]
     fn map_id_is_optional_positive_and_preserved() {
         let mut value = json!({"kind": "layout", "round": 1, "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-        "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-    });
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+        });
         assert_eq!(compile(&value).unwrap().map_id, None);
         for id in [1001, 1021] {
             value["map_id"] = json!(id);

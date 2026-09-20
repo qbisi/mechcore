@@ -1,0 +1,19 @@
+#!/bin/sh
+# Refuse a commit that rustfmt would rewrite.
+#
+# This is the same check `.github/workflows/ci.yml` runs, given an hour
+# earlier and without a runner. Install it once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# A repository setting, because a global `core.hooksPath` — which a Nix or
+# home-manager setup commonly sets — otherwise wins over `.git/hooks`.
+#
+# `cargo fmt --all` fixes everything this reports. To commit anyway, which is
+# occasionally the honest thing while bisecting, pass `--no-verify`.
+
+if ! cargo fmt --all -- --check; then
+    echo >&2
+    echo "rustfmt would rewrite the files above; run: cargo fmt --all" >&2
+    exit 1
+fi

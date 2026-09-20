@@ -47,6 +47,12 @@ jobs:
           shasum -c tests/grbr/SHA256SUMS
           shasum -c tests/battle/SHA256SUMS
 
+      # The cheapest check in the file, and the one whose answer is never worth
+      # arguing about, so it runs before the ones that take minutes.
+      # `.githooks/pre-commit` gives the same answer before the push.
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
       - name: Lints
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 

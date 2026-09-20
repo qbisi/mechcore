@@ -292,7 +292,11 @@ mod tests {
                         panic!("{} round {}: {error}", path.display(), turn.round)
                     });
                 compile_layout(layout).unwrap_or_else(|error| {
-                    panic!("{} round {} does not compile: {error}", path.display(), turn.round)
+                    panic!(
+                        "{} round {} does not compile: {error}",
+                        path.display(),
+                        turn.round
+                    )
                 });
                 projected += 1;
             }

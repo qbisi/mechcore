@@ -131,11 +131,9 @@ impl Client {
         let mut claim = serde_json::to_vec(&Claim::current(level))
             .map_err(|error| ConnectError::Protocol(format!("cannot encode the claim: {error}")))?;
         claim.push(b'\n');
-        client
-            .writer
-            .write_all(&claim)
-            .await
-            .map_err(|error| ConnectError::Unavailable(format!("cannot claim the game: {error}")))?;
+        client.writer.write_all(&claim).await.map_err(|error| {
+            ConnectError::Unavailable(format!("cannot claim the game: {error}"))
+        })?;
         client.writer.flush().await.map_err(|error| {
             ConnectError::Unavailable(format!("cannot flush the claim: {error}"))
         })?;

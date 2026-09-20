@@ -4,7 +4,9 @@ use crate::layout::{
     Terrain,
 };
 use crate::runtime::Runtime;
-use mechcore_document::{FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, MAX_TOWER_STRENGTHEN_LEVEL, TOWER_COUNT};
+use mechcore_document::{
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, MAX_TOWER_STRENGTHEN_LEVEL, TOWER_COUNT,
+};
 use mechcore_protocol::{GameStatus, Operation, Request, Response};
 use serde::Deserialize;
 use serde_json::{Value, json};

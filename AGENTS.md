@@ -31,14 +31,23 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 # CI 与自动合并
 
-`.github/workflows/ci.yml` 在 macOS 上跑四件事：fixture 哈希、`cargo clippy
--D warnings`、`cargo test --workspace --all-features`，以及重新生成
-`tests/battle` 并要求结果没有差异。最后一条意味着改了转换器就必须在同一次提
-交里重新生成语料。`docs.yml` 另跑 `scripts/check-docs.py`。
+`.github/workflows/ci.yml` 在 macOS 上跑五件事：fixture 哈希、
+`cargo fmt --all -- --check`、`cargo clippy -D warnings`、
+`cargo test --workspace --all-features`，以及重新生成 `tests/battle` 并要求
+结果没有差异。最后一条意味着改了转换器就必须在同一次提交里重新生成语料。
+`docs.yml` 另跑 `scripts/check-docs.py`。
 
-`cargo fmt --check` 不在其中：仓库现有代码本来就不符合当前 rustfmt 的输出，
-加上去等于要求先做一次全仓格式化。改动过的文件不应该引入新的格式漂移，用
-`rustfmt --check <file>` 与改动前对比来确认。
+格式这一条曾经不在 CI 里，因为仓库本来就不符合当前 rustfmt 的输出。那次全仓
+格式化已经做过了，所以现在它是 CI 的一条硬检查：**提交前跑 `cargo fmt --all`**，
+不要再手工比对单个文件。`.githooks/pre-commit` 把同一条检查提前到提交那一刻，
+每个 clone 装一次：
+
+```
+git config core.hooksPath .githooks
+```
+
+用仓库级设置，是因为全局 `core.hooksPath`（Nix 或 home-manager 常设）会盖过
+`.git/hooks`。
 
 `.github/workflows/automerge.yml` 在 ci 通过后运行。当一个 PR 的每一条提交都
 带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、

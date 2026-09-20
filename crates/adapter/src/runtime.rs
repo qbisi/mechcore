@@ -5,8 +5,8 @@ use crate::operations;
 use mechcore_protocol::{
     Busy, Claim, EVICTED_CODE, Evicted, Hello, MAX_LEVEL, MAX_STAGED_ROUND,
     MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL,
-    RecordBattleArguments, RecordBattleInstrumentation,
-    RecordReplayRoundArguments, RecordWatchReplayArguments, Refused, Request, Response,
+    RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
+    RecordWatchReplayArguments, Refused, Request, Response,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -499,7 +499,10 @@ fn read_claim(stream: &mut UnixStream) -> io::Result<u8> {
     let refuse = |reason: &str| {
         let mut answer = stream.try_clone()?;
         write_json_line(&mut answer, &Refused::current(reason))?;
-        Err(io::Error::new(io::ErrorKind::InvalidData, reason.to_owned()))
+        Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            reason.to_owned(),
+        ))
     };
     let Ok(claim) = serde_json::from_str::<Claim>(&line) else {
         return refuse("first message must be a claim");
@@ -577,7 +580,11 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
             return evict(&mut stream);
         }
         let remaining = (MAX_MESSAGE_BYTES + 1 - bytes.len()) as u64;
-        match reader.by_ref().take(remaining).read_until(b'\n', &mut bytes) {
+        match reader
+            .by_ref()
+            .take(remaining)
+            .read_until(b'\n', &mut bytes)
+        {
             Ok(0) => return Ok(()),
             Ok(_) => {}
             Err(error) if would_block(&error) => {
@@ -1125,10 +1132,7 @@ fn watch_failure_after_cleanup(
 ///
 /// This is what the adapter owes its next client, and what an operation that
 /// stopped early owes the game.
-fn return_to_main_menu(
-    runtime: &mut Runtime,
-    request_id: u64,
-) -> Result<Value, Response<Value>> {
+fn return_to_main_menu(runtime: &mut Runtime, request_id: u64) -> Result<Value, Response<Value>> {
     if runtime.current_match().is_null() {
         let status = successful_result(execute_internal_on_main(
             runtime,
@@ -2393,7 +2397,9 @@ mod tests {
         // like an adapter that stopped answering.
         let mut stranger = UnixStream::connect(&path).unwrap();
         let mut reader = BufReader::new(stranger.try_clone().unwrap());
-        stranger.write_all(b"{\"id\":1,\"operation\":\"status\"}\n").unwrap();
+        stranger
+            .write_all(b"{\"id\":1,\"operation\":\"status\"}\n")
+            .unwrap();
         let mut line = String::new();
         reader.read_line(&mut line).unwrap();
         assert_eq!(

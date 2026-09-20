@@ -220,7 +220,9 @@ pub fn step_placing(
             // The shop sells what it has unlocked, and a side unlocks a type
             // before it buys one.
             if !state.shop.unlocked_units.contains(unit) {
-                return Err(Unsettled::Refused("buying a unit the shop has not unlocked"));
+                return Err(Unsettled::Refused(
+                    "buying a unit the shop has not unlocked",
+                ));
             }
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
             let level = purse.shop_level(*unit);

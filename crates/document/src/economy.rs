@@ -548,7 +548,9 @@ impl Economy {
     /// What an equipment adds to its side's income every round it is worn.
     #[must_use]
     pub fn equipment_round_supply(&self, equipment: i32) -> i32 {
-        self.cards.get(&equipment).map_or(0, |card| card.round_supply)
+        self.cards
+            .get(&equipment)
+            .map_or(0, |card| card.round_supply)
     }
 
     /// What taking a card costs, whichever kind of card it is.
@@ -686,7 +688,10 @@ mod tests {
         assert_eq!(economy.round_supply().first, 200);
         assert_eq!(economy.round_supply().max, 4000);
         assert_eq!(economy.construction_recovery("defensive_wall"), Some(50));
-        assert_eq!(economy.construction_recovery("anti_armor_turret"), Some(100));
+        assert_eq!(
+            economy.construction_recovery("anti_armor_turret"),
+            Some(100)
+        );
     }
 
     #[test]
