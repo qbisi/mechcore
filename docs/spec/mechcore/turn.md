@@ -51,8 +51,9 @@ decision per side is a `choose_advance_team`.
 ### `opened`
 
 When that round opened, as an RFC 3339 instant in UTC. It is the only clock a
-match reads, and it decides one thing: the round is fought when the header's
-deployment time has passed since it, whether or not both sides have committed.
+match reads, and it decides one thing: a side that has not committed once the
+header's deployment time has passed since it has lost the match, which
+[cli.md](cli.md) states as this platform's own rule rather than the game's.
 
 A round opens when the fight before it is resolved, and `opened` is written in
 the same locked write that opens it.

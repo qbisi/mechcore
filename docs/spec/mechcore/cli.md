@@ -158,17 +158,27 @@ A match is in one of four phases:
 | `opening` | each side's `choose_advance_team` |
 | `deploy` | each side's decisions, and its commit |
 | `fight` | a fight both sides are in and no backend has resolved |
-| `over` | nothing; a side's reactor core has reached zero, a side conceded, or the match reached its last round |
+| `over` | nothing; a side's reactor core has reached zero, a side conceded, a side ran out of deployment time, or the match reached its last round |
 
 Deployment is simultaneous. A side's decisions are taken from the position the
 round opened with and reach no other side, so the two sides may be played in
 any order, and a match is the same match whichever order they take.
 
-A round is fought when both sides have committed, or when the deployment time
-the header states has run out, whichever comes first. Whatever a side has not
-committed by then was not played: a side that never committed plays that round
-with no decisions at all. Any operation that finds a round due resolves it
+A round is fought when both sides have committed. A side that has not committed
+when the header's deployment time runs out has lost the match, which ends there
+and is not fought. Any operation that finds a round due, either way, settles it
 before it answers, so nothing has to be watching for the clock.
+
+**Running out of time loses, and that is this contract's simplification.** The
+tracked replays never show a round running out: every side of every deployment
+round ended it deliberately, so what the game does with a side that stops
+answering is not established, and [the visibility
+index](../../rules/visibility.md) is where a reading of the game would go.
+A platform whose players are programs needs a bound that a stalled one cannot
+outlive, and playing a round on a program's behalf would be deciding for it. So
+the clock ends the match rather than the round, for a program and a person
+alike, and a match that wants a longer one says so in `match new
+--deploy-time`.
 
 ### `match new`
 
@@ -302,10 +312,10 @@ for it with `show --wait`.
 
 A commit cannot be taken back, and a side commits a round once.
 
-Nothing forfeits a match. A decision the rules refuse is refused and may be
-replaced by another; a side that answers nothing commits nothing, and the clock
-fights the round without it. A match ends the ways a match ends: a reactor core
-at zero, a concession, or the last round.
+A decision the rules refuse is refused and may be replaced by another: nothing
+about a refusal ends a round or a match. What ends a match beside its own
+course is the clock, and it ends it against the side that did not commit in
+time.
 
 ### The fight
 
@@ -327,21 +337,45 @@ is run again from the match itself, which `doc project` writes the layout for.
 
 ## `arena`
 
-`arena run` plays one match between two players, each a command the arena
-starts. It speaks the request protocol to each player's standard input and
-reads its decisions from that player's standard output, so a player is any
-program that answers requests, and the human front end is `shell`.
+`arena run` plays matches between players, each a command it starts.
 
-Operands: the match document. Options: `--blue <command>`, `--red <command>`,
-and `--rounds <n>` to stop early. A player sees only the view
-`match show --side` gives it.
+**A player is a client and the arena is its match.** A player writes one JSON
+request per line on its standard output and reads one JSON result per line on
+its standard input, and the requests are `match`'s own operations: `match.show`,
+`match.act` with its decision and its `dry_run`, and `match.commit`. A request
+names neither the document nor a side, because the arena knows both and a
+player cannot ask about a side it was not given. A player that speaks this to
+`shell --json` and a player that speaks it to an arena are the same program.
 
-Answers the match's outcome: the last round, the phase it ended in, and each
-side's reactor core.
+That is also what makes the arena the only place a side's own view is enforced
+rather than agreed. A player run by an arena never opens the match document or
+its turn file, so what it knows is what `match show` gave it;
+[what a side sees of the other](#what-a-side-sees-of-the-other) is the rule, and
+here nothing but the pipe can be read around.
 
-One run is one match. A series, a rating and a tournament are things a caller
-builds out of matches, each of which is a document of its own, and this
-namespace holds none of them.
+Operands: the match document, or the directory a batch writes into. Options:
+`--blue <command>`, `--red <command>`, `--matches <n>` for how many to play,
+`--seed`, `--map` and `--deploy-time` as `match new` takes them, and
+`--request-timeout <seconds>`.
+
+The arena deals each match rather than joining one: it runs `match new`, hands
+one player blue and the other red, and varies the seed across a batch, which is
+what makes a batch a comparison rather than one match played twice.
+
+A player that exits, crashes or stops answering is not answered for. It simply
+stops committing, and the deployment clock ends the match against it, which is
+[the rule a round runs out by](#match). `--request-timeout` bounds one request
+rather than the round: a player that has not answered by then is killed, and
+the clock does the rest. A player's own standard error is kept beside the match
+rather than read as protocol, so a program may log where it likes.
+
+Answers one match's outcome, or one per line and a summary for a batch: the
+last round, the phase it ended in, each side's reactor core, and the document
+it was written to.
+
+One match is one document. A series, a rating and a tournament are things a
+caller builds out of matches, and this namespace plays them rather than
+ranking them.
 
 ## `game`
 
