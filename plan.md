@@ -59,16 +59,21 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 同时统一输出：结果一个 JSON 对象走 stdout，诊断走 stderr，退出码按 cli.md
 的 0／1／2／3／4／5。
 
-这一步还有三件事不属于命名空间迁移：
+这一步还有几件事不属于命名空间迁移，都已经做完：
 
-- **取消 `--config`。** 模拟器的配置已经全部内嵌，`mechcore sim --config <dir>`
-  和 mcscript 里对应的 `config` 字段一起去掉，配置只有内嵌这一份。
-- **`man`。** 把 `docs/rules` 和 `docs/spec` 编译进二进制，`mechcore man [<topic>]`
-  读出来，这样分发出去的二进制能自己解释游戏规则和自己的格式与接口，不依赖仓库。
-- **`doc schema`。** 给出四种文档的 JSON Schema。layout 已经有 `JsonSchema`，
-  battle／state／action 还没有，要先给这些类型补上，所以它排在这一步的后半段。
-- **`shell --json`。** 一行一个请求、一行一个结果，和 `arena` 跟玩家进程说的是
-  同一套协议，所以它跟着对局一起做，不在这一步。
+- **取消 `--config`。** 配置只剩内嵌这一份。
+- **`man`。** `docs/rules` 和 `docs/spec` 编译进二进制，分发出去的二进制能自己
+  解释游戏规则和自己的格式与接口。
+- **`doc schema`。** 四种文档的 JSON Schema。battle／state／action 的类型都补上了
+  `JsonSchema`，按写出来的形态（名字而不是 ID）描述。
+- **`doc project`。** 导出某一回合部署结束的 layout。语料 334 个回合全部投影并编译
+  通过——为此修掉一条自己的错规则：一回合可以释放两次同一种战斗技能（导弹专家发两
+  张导弹打击），layout 本来就按释放顺序记，编译器却拒绝重复。
+- **获取游戏是操作不是选项。** `shell` 不再有 `--launch`／`--attach`／`--level`，
+  prompt 里用 `game launch --level 3`；一次性命令也去掉了必填的 `--attach`。
+
+`shell --json`（一行一个请求、一行一个结果）跟 `arena` 说的是同一套协议，所以它
+跟着编排一起做，在第三步。
 
 ### 二、对局最小可用 —— 已完成，战斗除外
 
