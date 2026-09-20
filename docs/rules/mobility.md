@@ -1,5 +1,7 @@
 # Deployment mobility
 
+[简体中文](mobility.zh.md)
+
 This index is pinned to game build 2259. It states which units a side may
 move during deployment, what frees a unit that may not, and the evidence
 for both.

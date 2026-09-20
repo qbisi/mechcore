@@ -25,8 +25,16 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/combat.md"),
     ),
     (
+        "rules/combat.zh",
+        include_str!("../../../docs/rules/combat.zh.md"),
+    ),
+    (
         "rules/commander_skills",
         include_str!("../../../docs/rules/commander_skills.md"),
+    ),
+    (
+        "rules/commander_skills.zh",
+        include_str!("../../../docs/rules/commander_skills.zh.md"),
     ),
     (
         "rules/equipment",
@@ -40,6 +48,10 @@ static TOPICS: &[(&str, &str)] = &[
         "rules/landing",
         include_str!("../../../docs/rules/landing.md"),
     ),
+    (
+        "rules/landing.zh",
+        include_str!("../../../docs/rules/landing.zh.md"),
+    ),
     ("rules/map", include_str!("../../../docs/rules/map.md")),
     (
         "rules/map.zh",
@@ -48,6 +60,10 @@ static TOPICS: &[(&str, &str)] = &[
     (
         "rules/mobility",
         include_str!("../../../docs/rules/mobility.md"),
+    ),
+    (
+        "rules/mobility.zh",
+        include_str!("../../../docs/rules/mobility.zh.md"),
     ),
     (
         "rules/officers",
@@ -62,24 +78,48 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/opening.md"),
     ),
     (
+        "rules/opening.zh",
+        include_str!("../../../docs/rules/opening.zh.md"),
+    ),
+    (
         "rules/reinforce_items",
         include_str!("../../../docs/rules/reinforce_items.md"),
+    ),
+    (
+        "rules/reinforce_items.zh",
+        include_str!("../../../docs/rules/reinforce_items.zh.md"),
     ),
     (
         "rules/reinforcements",
         include_str!("../../../docs/rules/reinforcements.md"),
     ),
     (
+        "rules/reinforcements.zh",
+        include_str!("../../../docs/rules/reinforcements.zh.md"),
+    ),
+    (
         "rules/terrain",
         include_str!("../../../docs/rules/terrain.md"),
+    ),
+    (
+        "rules/terrain.zh",
+        include_str!("../../../docs/rules/terrain.zh.md"),
     ),
     (
         "rules/visibility",
         include_str!("../../../docs/rules/visibility.md"),
     ),
     (
+        "rules/visibility.zh",
+        include_str!("../../../docs/rules/visibility.zh.md"),
+    ),
+    (
         "rules/unit_experience",
         include_str!("../../../docs/rules/unit_experience.md"),
+    ),
+    (
+        "rules/unit_experience.zh",
+        include_str!("../../../docs/rules/unit_experience.zh.md"),
     ),
     (
         "rules/unit_techs",
