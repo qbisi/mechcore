@@ -16,6 +16,13 @@ sums too — a unit's are `DataIntGroup`, clamped across the whole `Int32` range
 one reset to one, routing each entry by its sign. Each fixture here puts
 exactly one clause of that formula on one unit.
 
+`technology-range.yaml` is the one fixture the fight cannot read: its Arclight
+opens fire at the same moment either way, so its physics hash repeats
+`officer-range-value.yaml`'s exactly. What separates them is the number the
+build computed, which a recording has carried since MCFR 0.4.0 — the fixture is
+measurable at all only because of that, and the offline table pins its content
+hash for the same reason.
+
 **A fixture in this directory changes one thing.** Every one of them is the
 same fight — one Marksman shooting one Rhino, the shooter at `(0, -50)` and
 the Rhino at `(5, -55)` — and differs only in the `officers` line, or in the
@@ -44,6 +51,7 @@ Normal selector takes the Rhino rather than a building.
 | `officer-range-value.yaml` | a value is added in the number's own unit | 16961 left |
 | `officer-speed-once.yaml` | a plain integer, in `DataSet.intDatas` | ends at tick 104 |
 | `officer-speed-twice.yaml` | **two integers sum, rather than the larger winning** | ends at tick 92 |
+| `technology-range.yaml` | a technology and an officer on one number | 155 m of the description's 95 |
 
 `officer-impair-once.yaml` cannot separate the two rules — one impairment is
 `0.89` either way — which is what makes it this experiment's control.
@@ -61,6 +69,7 @@ the end.
 | `impairment.mcscript` | yes | records the two impairment fixtures |
 | `value.mcscript` | yes | records the range control and the value fixture |
 | `speed.mcscript` | yes | records the two movement fixtures |
+| `technology.mcscript` | yes | records the technology fixture |
 | `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts both hash layers |
 
 The three recording scripts are this directory's experiments: each one writes

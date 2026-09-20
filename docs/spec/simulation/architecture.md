@@ -119,10 +119,10 @@ module, never editing the loop that drives it.
 **A module is not all or nothing.** It claims fields and understands some of
 them; the rest are refused exactly as an empty module's claims are. `Modifier`
 claims officers, technologies, equipment and levels, and understands officers
-today, because the officers' effect table is extracted and the other three are
-not. A field it understands can still refuse one particular layout: an officer
-whose effect this build cannot compose refuses the side holding it, by name and
-by field, rather than being half applied.
+and technologies today, because two of the four effect tables are extracted. A
+field it understands can still refuse one particular layout: an officer or a
+technology whose effect this build cannot compose refuses the side holding it,
+by name and by field, rather than being half applied.
 
 One module is not the build's. Officers, technologies, equipment and levels are
 applied to a unit **before** the fight rather than inside it — the build's
@@ -141,7 +141,7 @@ fought:
 ```text
 side blue needs modules this build has not implemented: constructions
 (FightConstructionSystem), units above level one (Modifier); side red needs
-modules this build has not implemented: unit technologies (Modifier)
+modules this build has not implemented: unit equipment (Modifier)
 ```
 
 A refusal from inside a field the registry lets through names the thing rather

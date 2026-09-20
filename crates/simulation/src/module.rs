@@ -9,9 +9,9 @@
 //!
 //! Adding a mechanism is filling in its module and listing the fields it now
 //! understands. A module is not all or nothing: `Modifier` applies an officer
-//! and refuses the technology beside it, because one effect table is extracted
-//! and the other is not. The loop that drives them is never edited for a
-//! mechanism.
+//! and a technology and refuses the equipment beside them, because two of the
+//! four effect tables are extracted. The loop that drives them is never edited
+//! for a mechanism.
 
 use mechcore_document::SidePlan;
 
@@ -88,9 +88,9 @@ pub(crate) struct Module {
     pub(crate) claims: &'static [Field],
     /// Which of its claims this build understands.
     ///
-    /// A module is not all or nothing: `Modifier` applies an officer and not a
-    /// technology, because the officers' effect table is extracted and the
-    /// technologies' is not yet. A field left out of this list is refused
+    /// A module is not all or nothing: `Modifier` applies an officer and a
+    /// technology and not the equipment beside them, because two of the four
+    /// effect tables are extracted. A field left out of this list is refused
     /// exactly as an unimplemented module's claim is, so a side carrying it is
     /// still outside the closure.
     pub(crate) understood: &'static [Field],
@@ -124,7 +124,7 @@ pub(crate) static MODULES: &[Module] = &[
             Field::UnitEquipment,
             Field::UnitLevel,
         ],
-        understood: &[Field::Officers],
+        understood: &[Field::Officers, Field::UnitTechnologies],
         implemented: true,
     },
     Module {

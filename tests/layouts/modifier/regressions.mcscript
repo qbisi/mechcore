@@ -122,3 +122,17 @@ steps:
       teams.1.remaining_life: 14639
       hashes.physics_result_hash: 99d1a0a06d0fc056fe506dd588af2ac3e667f70d36ba640bf87853859c7e23f3
       hashes.content_result_hash: 3af758c28e4b41ab3636e4a85603d93239c6bf831be69fa70988cb9ad32d8cb1
+
+  # Two sources on one number: an officer's `+20` of range and a technology's
+  # `+40`. The fight is the one above to the tick — the Arclight was already in
+  # range — so the physics hash repeats and only the content hash, which covers
+  # the number the build computed, tells the two apart.
+  - fight.run:
+      layout: tests/layouts/modifier/technology-range.yaml
+      seed: 4242
+    expect:
+      steps: 137
+      teams.1.remaining_life: 16961
+      hashes.physics_result_hash: 63871702be6cd5cb0dc6041a1b6d2a0572a06b45f676d5c9112790409d7ec282
+      hashes.content_result_hash: e5c237d76d2f9bf304b93b13970073589db19c7b738ced884acfdbdf459d6297
+

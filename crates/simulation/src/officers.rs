@@ -19,6 +19,7 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
+    effects::{self, Fields, KILLS, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
 };
 
 const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../config/officer_effects.yaml");
@@ -241,79 +242,23 @@ impl Officer {
 
 /// What a row writes, or why this build will not apply it.
 ///
-/// A field that corrects one of the numbers [`crate::data::Stats`] derives
-/// becomes a correction in the channel MCFR records it in: a recording keeps
-/// exactly one place for each field, so which channel a field lives in is the
-/// recording's own shape rather than a choice made here. Every other field is
-/// refused with what it would take to support it.
-///
-/// A rate is routed by its sign, as `MultiplicativeDataFloat.Refresh` routes
-/// it: a positive rate enhances and a negative one impairs, and the two are
-/// not each other's negation once there are two of them.
+/// The fields an officer shares with every other source of corrections are
+/// [`crate::effects`]'s; the ones only an officer carries are refused here,
+/// each with what it would take to support it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    let mut written = Vec::new();
-    let mut rate = |value: Option<i64>, channel, index| match value.filter(|value| *value != 0) {
-        None => {}
-        Some(raw) if raw > 0 => {
-            written.push((
-                channel,
-                index,
-                Correction::Rate {
-                    add: raw,
-                    reduce: 0,
-                },
-            ));
-        }
-        Some(raw) => written.push((
-            channel,
-            index,
-            Correction::Rate {
-                add: 0,
-                reduce: -raw,
-            },
-        )),
-    };
-    rate(row.damage_rate, Channel::Skill, Index::AttackDamage);
-    rate(
-        row.attack_interval_rate,
-        Channel::Skill,
-        Index::AttackInterval,
-    );
-    rate(row.attack_range_rate, Channel::Skill, Index::AttackRange);
-    rate(row.life_rate, Channel::Unit, Index::MaxLife);
-
-    // An FPoint value in metres or seconds reaches the simulator in the
-    // number's own quantized units, which is what `Stats` resolves against.
-    if let Some(raw) = row.attack_range_value.filter(|raw| *raw != 0) {
-        written.push((
-            Channel::Skill,
-            Index::AttackRange,
-            Correction::Value(fixed_to(raw, METERS)),
-        ));
-    }
-    if let Some(raw) = row.attack_interval_value.filter(|raw| *raw != 0) {
-        written.push((
-            Channel::Skill,
-            Index::AttackInterval,
-            Correction::Value(fixed_to(raw, SECONDS)),
-        ));
-    }
-
-    // A plain integer lands in `DataSet.intDatas`, whose entries `FightMech`
-    // builds as `DataIntGroup(Int32.MinValue, Int32.MaxValue, 0)`: a sum whose
-    // clamp is the whole range and therefore never binds.
-    if let Some(raw) = row.speed_value.filter(|raw| *raw != 0) {
-        written.push((
-            Channel::Unit,
-            Index::MoveSpeed,
-            Correction::Value(raw.saturating_mul(METERS)),
-        ));
-    }
-
     let unsupported = [
-        (row.min_attack_range_value, "min_attack_range_value", VALUE),
+        (
+            row.min_attack_range_value,
+            "min_attack_range_value",
+            VALUE_ELSEWHERE,
+        ),
         (row.splash_range_value, "splash_range_value", SPLASH),
-        (row.projectile_speed_value, "projectile_speed_value", VALUE),
+        (
+            row.projectile_speed_value,
+            "projectile_speed_value",
+            PROJECTILE,
+        ),
+        (row.projectile_life_rate, "projectile_life_rate", PROJECTILE),
         (
             row.damage_rate_by_kill_count,
             "damage_rate_by_kill_count",
@@ -324,7 +269,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             "life_rate_by_kill_count",
             KILLS,
         ),
-        (row.projectile_life_rate, "projectile_life_rate", UNREAD),
         (row.tower_life_rate, "tower_life_rate", ELSEWHERE),
         (row.energy_shield_rate, "energy_shield_rate", ELSEWHERE),
         (row.land_mine_rate, "land_mine_rate", ELSEWHERE),
@@ -344,31 +288,17 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             ));
         }
     }
-    Ok(written)
+    Ok(effects::corrections(Fields {
+        life_rate: row.life_rate,
+        damage_rate: row.damage_rate,
+        attack_range_rate: row.attack_range_rate,
+        attack_interval_rate: row.attack_interval_rate,
+        attack_range_value: row.attack_range_value,
+        attack_interval_value: row.attack_interval_value,
+        speed_value: row.speed_value,
+    }))
 }
 
-/// The build's quantum for a distance and for a time, which
-/// `crates/simulation/src/rules.rs` quantizes a description with.
-const METERS: i64 = 1_000;
-const SECONDS: i64 = 2_000;
-const FIXED_ONE: i128 = 1 << 32;
-
-/// An `FPoint` in its own unit, in the quantized units the simulator holds.
-///
-/// Every value in the table is a whole number of metres or a tenth of a
-/// second, so this is exact; it truncates toward zero for anything else, as
-/// the build's own quantization does.
-fn fixed_to(raw: i64, quantum: i64) -> i64 {
-    let scaled = i128::from(raw) * i128::from(quantum) / FIXED_ONE;
-    i64::try_from(scaled).unwrap_or(i64::MAX)
-}
-
-const VALUE: &str = "how a value composes with a description is not measured: \
-                     see the unresolved questions in \
-                     docs/spec/simulation/architecture.md";
-const SPLASH: &str = "no number this simulator derives is a splash radius";
-const KILLS: &str = "no mechanism here counts a unit's kills";
-const UNREAD: &str = "no mechanism here reads a projectile's life";
 const ELSEWHERE: &str = "it corrects a tower, a shield, a mine, a deployment \
                          clock or a side's experience rather than a unit's own \
                          number, and no mechanism here reads one";

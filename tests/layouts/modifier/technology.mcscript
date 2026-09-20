@@ -1,0 +1,59 @@
+# Do two sources writing one number sum?
+#
+#   mechcore run tests/layouts/modifier/technology.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/technology.mcscript           record
+#
+# The composition rule was measured with officers alone, so `Σ value` was
+# always a sum over one source's entries. A technology writes through the same
+# interface — `TechnologyData` and `OfficerData` both answer
+# `ICommonMechDataChangeDataSource` — so this asks whether the sum reaches
+# across them.
+#
+# Blue's Arclight researches Range Enhancement, `+40` of range, and blue holds
+# Extended Range Arclight, an officer carrying `+20` of range and `-0.2` of
+# damage. An Arclight reaches 95 metres by its description, so the summed
+# answer is 155 and its damage is the 292 the officer alone already gave.
+#
+# **The fight cannot tell.** The Arclight opens fire at 115 metres either way,
+# because the Rhino starts 105 metres off, so the physics hash of this
+# recording is the same one `officer-range-value.yaml` produced. What separates
+# 115 from 155 is the number the build computed, which a recording has carried
+# since MCFR 0.4.0 — this fixture is measurable at all only because of that.
+#
+# It is also the first fight a technology reaches.
+#
+# Both expectations below are the simulator's, computed before the recording
+# existed.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/modifier-technology
+  seed: 4242
+
+steps:
+  - let:
+      ranged: read_yaml(tests/layouts/modifier/technology-range.yaml)
+
+  - game.apply_layout:
+      layout: $ranged
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/technology-range.mcfr
+    expect:
+      operation.tick_count: 137
+      # The same fight the officer alone fights, to the tick.
+      operation.hashes.physics_result_hash: 63871702be6cd5cb0dc6041a1b6d2a0572a06b45f676d5c9112790409d7ec282
+  - fight.stats:
+      recording: ${out}/technology-range.mcfr
+    expect:
+      # 95 + 40 + 20, and the officer's impairment on a number the technology
+      # does not touch.
+      sides.blue.0.derived.attack_range: 665719930880
+      sides.blue.0.derived.attack_damage: 292
+      # What the build stored, in the one channel it keeps a range value in:
+      # the two sources' `+40` and `+20` as one `+60`.
+      sides.blue.0.skill.0.modifiers.attack_range_value: 257698037760
+      sides.blue.0.skill.0.modifiers.damage_rate.reduce: 858993459

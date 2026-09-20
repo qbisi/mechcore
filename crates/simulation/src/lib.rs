@@ -4,6 +4,7 @@
 //! versus Arclight battle. Unsupported layout mechanisms fail closed.
 
 mod data;
+mod effects;
 mod kernel;
 mod layout;
 mod module;
@@ -11,6 +12,7 @@ mod officers;
 mod random;
 mod rules;
 mod rvo;
+mod technologies;
 
 use std::{
     fmt, fs,
