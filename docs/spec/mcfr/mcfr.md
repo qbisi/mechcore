@@ -197,13 +197,16 @@ without deciding whose rounding is authoritative. It counts logic ticks: one
 second is twenty.
 
 **It is the one field where the two backends knowingly answer differently.**
-The build's integer runs seven ticks under the description for a Marksman and a
-Sledgehammer, and level with it for a Rhino; what it counts from has not been
-read. The simulator writes its own interval in the same ticks, so a native
-recording and a simulated one of the same fight agree here for some units and
-differ by that offset for others. The difference is a reading rather than a
-defect — it says the description layer is missing something the build applies —
-and the content layer is where such a thing is supposed to surface.
+What the build stores is the description's interval plus a stagger drawn per
+unit from that unit's `interval_offset`: a unit whose offset is zero reads its
+description exactly, three Marksmen in one fight read 55, 65 and 56 where the
+description is 62, and the same unit of the same layout draws the same number
+under any match seed. [`combat.md`](../../rules/combat.md) carries the
+measurement. The simulator schedules its own stagger onto the next attack step
+instead of storing it, so the two agree about when a unit fires and differ
+about what its interval reads — which is a difference in representation rather
+than in behaviour, and the content layer is where such a thing is supposed to
+surface.
 
 `tests/layouts/modifier/interval-order.mcscript` measured the composition
 rule's order through this field without ever locating that zero: three fixtures

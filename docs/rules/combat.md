@@ -16,6 +16,51 @@ obvious an extension of it looks.
 **Not covered.** The order in which several members, or one member's several
 skills, consume that stream.
 
+## The stored interval carries a per-unit stagger
+
+`RefreshAttackInterval` writes a skill's `attackInterval` as
+`attackIntervalProperty.Value` divided by the logical step and truncated, and
+that integer is what MCFR's `derived.attack_interval` carries. **It is not the
+description's interval.** It differs from it by a stagger drawn per unit from
+the unit's `attackDurationRandomValue`, which
+[`config/units/`](../../config/units) calls `interval_offset`:
+
+| Unit | Interval | Offset | Description in ticks | The build stored |
+| --- | ---: | ---: | ---: | ---: |
+| Stormcaller | 6.6 | 0 | 132 | 132 |
+| Rhino | 0.9 | 0 | 18 | 18 |
+| Arclight | 0.9 | 0.3 | 18 | 15 |
+| Fang | 1.5 | 0.4 | 30 | 24 |
+| Phoenix | 3.4 | 0.8 | 68 | 53 |
+| Marksman | 3.1 | 0.6 | 62 | 55, 65, 56 |
+
+Four claims, each measured:
+
+- **A unit whose offset is zero never deviates.** Every such unit read exactly
+  its description.
+- **The deviation is a unit's own.** Three Marksmen in one fight read 55, 65
+  and 56 — the same type, the same layout, three different numbers — so the
+  draw is per unit and not per type, and it is signed rather than a
+  subtraction.
+- **It is the same draw every time.** The first Marksman of a layout read 55
+  under three different match seeds and in four different fixtures, and the
+  three above came out in spawn order. Whatever stream it comes from is not
+  seeded by the match.
+- **It does not move during the fight.** Read at ticks 1, 2, 3, 5, 10, 20 and
+  40, every one of those numbers is the same, so the field is a stored
+  interval rather than a countdown.
+
+**Not covered.** The distribution the draw comes from, which three samples
+cannot pin, and which stream it consumes. What is certain is that it lies
+within the offset and that offset zero means no draw.
+
+This simulator schedules its own stagger — `sample_actor_attack_interval` adds
+a draw from the team stream to the next attack step — and reproduces the
+game's fights tick for tick, so the two agree about *when* a unit fires while
+storing different numbers for *what its interval is*. That is why
+[`mcfr.md`](../spec/mcfr/mcfr.md) calls this the one field the two backends
+knowingly answer differently.
+
 ## Attack scheduling
 
 `RefreshAttackInterval` converts by the logical step and floors at one tick.
