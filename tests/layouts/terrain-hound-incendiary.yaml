@@ -1,24 +1,23 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    techs:
-      hound: [incendiary_bomb]
+blue:
+  techs:
+    hound: [incendiary_bomb]
 
-    units:
-      - name: hound
-        index: 0
-        position: {x: 0, y: -80}
+  units:
+    - name: hound
+      index: 0
+      position: {x: 0, y: -80}
 
-  red:
-    units:
-      - name: crawler
-        index: 0
-        position: {x: -45, y: -60}
-      - name: crawler
-        index: 1
-        position: {x: 5, y: -60}
-      - name: crawler
-        index: 2
-        position: {x: 55, y: -60}
+red:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -45, y: -60}
+    - name: crawler
+      index: 1
+      position: {x: 5, y: -60}
+    - name: crawler
+      index: 2
+      position: {x: 55, y: -60}

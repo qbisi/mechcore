@@ -11,9 +11,8 @@ side takes from it.
 kind: battle
 map_id: 1001
 seed: 2038621361
-sides:
-  blue: {offers: [...], constructions: [...], tech_loadout: {...}}
-  red: {offers: [...], constructions: [...], tech_loadout: {...}}
+blue: {offers: [...], constructions: [...], tech_loadout: {...}}
+red: {offers: [...], constructions: [...], tech_loadout: {...}}
 ---
 kind: action
 round: 0
@@ -24,9 +23,8 @@ red:
 ---
 kind: state
 round: 1
-sides:
-  blue: { ... }
-  red: { ... }
+blue: { ... }
+red: { ... }
 ---
 kind: action
 round: 1
@@ -147,7 +145,7 @@ side is identified by which side it is.
 ### What a side brings to the match
 
 Three per-side facts are properties of the match rather than of a round, and
-they are what the header's `sides` holds. Two of them are dealt before either
+they are what the header holds under each side. Two of them are dealt before either
 player decides anything, and the third bounds every round.
 
 #### The opening offers

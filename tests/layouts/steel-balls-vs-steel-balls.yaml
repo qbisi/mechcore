@@ -1,15 +1,14 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: steel_ball
-        index: 0
-        position: {x: 5, y: -100}
+blue:
+  units:
+    - name: steel_ball
+      index: 0
+      position: {x: 5, y: -100}
 
-  red:
-    units:
-      - name: steel_ball
-        index: 0
-        position: {x: 5, y: -100}
+red:
+  units:
+    - name: steel_ball
+      index: 0
+      position: {x: 5, y: -100}

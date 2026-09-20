@@ -72,12 +72,6 @@ pub struct Layout {
     pub seed: Option<i32>,
     #[schemars(range(min = 1))]
     pub round: i32,
-    pub sides: Sides,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct Sides {
     pub blue: Side,
     pub red: Side,
 }
@@ -395,7 +389,7 @@ impl Layout {
     /// Applying this twice changes nothing the first pass did not already do.
     #[must_use]
     pub fn normalized(mut self) -> Self {
-        for side in [&mut self.sides.blue, &mut self.sides.red] {
+        for side in [&mut self.blue, &mut self.red] {
             side.officers.sort_unstable();
             side.techs.sort_unstable();
             side.blueprints.sort_unstable();
@@ -507,7 +501,7 @@ pub(crate) fn require_layout_kind(kind: Option<&str>) -> Result<(), String> {
 }
 
 fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
-    for (side_name, side) in [("blue", &layout.sides.blue), ("red", &layout.sides.red)] {
+    for (side_name, side) in [("blue", &layout.blue), ("red", &layout.red)] {
         for formation in &side.units {
             if resolve_unit_type(&formation.type_name).is_none() {
                 let destination = if resolve_construction_type(&formation.type_name).is_some() {

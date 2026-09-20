@@ -1,37 +1,36 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: marksman
-        index: 0
-        position: {x: 0, y: -150}
-    constructions:
-      # Replay R002: build-2227 opening group 28 with reverse_x.
-      - name: defensive_wall
-        index: 0
-        position: {x: -140, y: -55}
-      - name: rapid_fire_turret
-        index: 1
-        position: {x: 140, y: -100}
-      - name: anti_armor_turret
-        index: 2
-        position: {x: -140, y: -100}
+blue:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -150}
+  constructions:
+    # Replay R002: build-2227 opening group 28 with reverse_x.
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+    - name: rapid_fire_turret
+      index: 1
+      position: {x: 140, y: -100}
+    - name: anti_armor_turret
+      index: 2
+      position: {x: -140, y: -100}
 
-  red:
-    units:
-      - name: marksman
-        index: 0
-        position: {x: 0, y: -150}
-    constructions:
-      # R002 world coordinates converted into red's side-local frame.
-      - name: defensive_wall
-        index: 0
-        position: {x: 140, y: -55}
-      - name: rapid_fire_turret
-        index: 1
-        position: {x: -140, y: -100}
-      - name: anti_armor_turret
-        index: 2
-        position: {x: 140, y: -100}
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -150}
+  constructions:
+    # R002 world coordinates converted into red's side-local frame.
+    - name: defensive_wall
+      index: 0
+      position: {x: 140, y: -55}
+    - name: rapid_fire_turret
+      index: 1
+      position: {x: -140, y: -100}
+    - name: anti_armor_turret
+      index: 2
+      position: {x: 140, y: -100}

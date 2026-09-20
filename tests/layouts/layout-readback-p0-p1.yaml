@@ -1,67 +1,66 @@
 kind: layout
 round: 2
 
-sides:
-  blue:
-    officers: [extended_range_sabertooth]
-    techs:
-      marksman: [electromagnetic_shot]
-      sabertooth: [secondary_armament]
-    blueprints: [defense_enhancement, attack_enhancement_ii]
+blue:
+  officers: [extended_range_sabertooth]
+  techs:
+    marksman: [electromagnetic_shot]
+    sabertooth: [secondary_armament]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
 
-    energy_tower_skills: [enhanced_range, high_mobility]
-    tower_strengthen_levels: [2, 1]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 1]
 
-    units:
-      - name: arclight
-        index: 0
-        position: {x: 100, y: -80}
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 100, y: -80}
 
-      - name: sabertooth
-        index: 1
-        position: {x: -205, y: -295}
-        equipment: photon_coating
+    - name: sabertooth
+      index: 1
+      position: {x: -205, y: -295}
+      equipment: photon_coating
 
-      - name: crawler
-        index: 2
-        position: {x: 310, y: 285}
-        travelling: true
+    - name: crawler
+      index: 2
+      position: {x: 310, y: 285}
+      travelling: true
 
-      # Declared after Arclight at the same y to distinguish native z/x order
-      # from YAML declaration order in the formation_id audit.
-      - name: mustang
-        index: 3
-        position: {x: -275, y: -80}
+    # Declared after Arclight at the same y to distinguish native z/x order
+    # from YAML declaration order in the formation_id audit.
+    - name: mustang
+      index: 3
+      position: {x: -275, y: -80}
 
-    constructions:
-      - name: rapid_fire_turret
-        index: 0
-        position: {x: 140, y: -140}
+  constructions:
+    - name: rapid_fire_turret
+      index: 0
+      position: {x: 140, y: -140}
 
-    contraptions:
-      - name: shield
-        index: 0
-        position: {x: 180, y: -120}
-      - name: missile
-        index: 1
-        position: {x: 0, y: -20}
-      - name: interceptor
-        index: 2
-        position: {x: -105, y: -105}
+  contraptions:
+    - name: shield
+      index: 0
+      position: {x: 180, y: -120}
+    - name: missile
+      index: 1
+      position: {x: 0, y: -20}
+    - name: interceptor
+      index: 2
+      position: {x: -105, y: -105}
 
-    battle_skills:
-      - name: sticky_oil_bomb
-        positions:
-          - {x: -60, y: 40}
-          - {x: 60, y: 40}
+  battle_skills:
+    - name: sticky_oil_bomb
+      positions:
+        - {x: -60, y: 40}
+        - {x: 60, y: 40}
 
-  red:
-    units:
-      - name: steel_ball
-        index: 0
-        position: {x: -205, y: -100}
+red:
+  units:
+    - name: steel_ball
+      index: 0
+      position: {x: -205, y: -100}
 
-    constructions:
-      - name: anti_armor_turret
-        index: 0
-        position: {x: 140, y: -140}
+  constructions:
+    - name: anti_armor_turret
+      index: 0
+      position: {x: 140, y: -140}

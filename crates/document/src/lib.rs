@@ -47,7 +47,7 @@ pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
 pub use layout::{
     BattleSkillDefinition, ContraptionPlacement, Experience, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
     Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
-    RANGE_ENHANCEMENT_SKILL, Region, Side, Sides, StaticPlacement, TOWER_COUNT, Techs, Terrain,
+    RANGE_ENHANCEMENT_SKILL, Region, Side, StaticPlacement, TOWER_COUNT, Techs, Terrain,
     TerrainType, UnitPlacement, canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml,
     parse_yaml,
 };
@@ -85,14 +85,12 @@ mod tests {
         json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
-                    "battle_skills": [{"name": type_name, "positions": positions}]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                "battle_skills": [{"name": type_name, "positions": positions}]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             }
         })
     }
@@ -101,14 +99,12 @@ mod tests {
         json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
-                    "terrains": terrains
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                "terrains": terrains
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             }
         })
     }
@@ -122,22 +118,20 @@ mod tests {
         let state = br"
 kind: state
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-  red:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+red:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
         let error = parse_embedded_yaml(state).unwrap_err();
         assert_eq!(error, "expected a layout document, found kind \"state\"");
 
         let untagged = br"
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-  red:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+red:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
         assert_eq!(
             parse_embedded_yaml(untagged).unwrap_err(),
@@ -146,7 +140,7 @@ sides:
 
         // The JSON entry point that MCP publishes answers the same way.
         assert_eq!(
-            compile(&json!({"kind": "turn", "round": 1, "sides": {}})).unwrap_err(),
+            compile(&json!({"kind": "turn", "round": 1, })).unwrap_err(),
             "expected a layout document, found kind \"turn\""
         );
 
@@ -167,11 +161,10 @@ sides:
 kind: layout
 game_build: 1.11.1.3.0001
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-  red:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+red:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
         let error = parse_embedded_yaml(foreign).unwrap_err();
         assert_eq!(
@@ -185,11 +178,10 @@ sides:
         let silent = br"
 kind: layout
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-  red:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+red:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
 ";
         assert_eq!(parse_embedded_yaml(silent).unwrap().game_build, game_build());
     }
@@ -198,10 +190,8 @@ sides:
     fn requires_a_positive_round() {
         let missing = compile(&json!({
             "kind": "layout",
-            "sides": {
-                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert!(missing.contains("missing field `round`"));
@@ -209,10 +199,8 @@ sides:
         let invalid = compile(&json!({
             "kind": "layout",
             "round": 0,
-            "sides": {
-                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert_eq!(invalid, "layout round must be at least 1");
@@ -223,10 +211,8 @@ sides:
             compile(&json!({
                 "kind": "layout",
                 "round": 40,
-                "sides": {
-                    "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-                }
+                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             }))
             .unwrap()
             .round,
@@ -241,35 +227,33 @@ sides:
         let layout: Layout = serde_json::from_value(json!({
             "kind": "layout",
             "round": 2,
-            "sides": {
-                "blue": {
-                    "units": [
-                        {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}
-                    ],
-                    "airdrop_shields": [{"x": -200, "y": -20}],
-                    "terrains": [
-                        {"name": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]}
-                    ],
-                    "battle_skills": [
-                        {"name": "lightning_storm", "positions": [{"x": 20, "y": -150}]}
-                    ]
-                },
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {
+                "units": [
+                    {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}
+                ],
+                "airdrop_shields": [{"x": -200, "y": -20}],
+                "terrains": [
+                    {"name": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]}
+                ],
+                "battle_skills": [
+                    {"name": "lightning_storm", "positions": [{"x": 20, "y": -150}]}
+                ]
+            },
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap();
 
         let yaml = canonical_yaml(layout).unwrap();
         for line in [
-            "    units:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n",
-            "    airdrop_shields:\n    - {x: -200, y: -20}\n",
-            "    - {name: oil, control_points: [{x: 100, y: 0}, {x: 120, y: 0}]}\n",
-            "    - {name: lightning_storm, positions: [{x: 20, y: -150}]}\n",
+            "  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n",
+            "  airdrop_shields:\n  - {x: -200, y: -20}\n",
+            "  - {name: oil, control_points: [{x: 100, y: 0}, {x: 120, y: 0}]}\n",
+            "  - {name: lightning_storm, positions: [{x: 20, y: -150}]}\n",
         ] {
             assert!(yaml.contains(line), "{line:?} is not one line: {yaml}");
         }
         assert!(
-            !yaml.contains(" y:\n") && !yaml.contains("\n      y:"),
+            !yaml.contains(" y:\n") && !yaml.contains("\n    y:"),
             "a pair was left open: {yaml}"
         );
         assert_eq!(
@@ -284,35 +268,33 @@ sides:
         let denormalized: Layout = serde_json::from_value(json!({
             "kind": "layout",
             "round": 2,
-            "sides": {
-                "blue": {
-                    "officers": ["typhoon_specialist", "training_specialist"],
-                    "techs": {"marksman": ["range_enhancement"], "fortress": ["solid_shot"]},
-                    "units": [
-                        {"index": 4, "name": "marksman", "position": {"x": 40, "y": -50}, "level": 1},
-                        {"index": 1, "name": "marksman", "position": {"x": 0, "y": -50},
-                         "exp": "0/650", "rotated": false, "travelling": false}
-                    ],
-                    "contraptions": [
-                        {"index": 3, "name": "shield", "position": {"x": 0, "y": -120}},
-                        {"index": 2, "name": "shield", "position": {"x": 100, "y": -120}}
-                    ],
-                    "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}],
-                    "terrains": [
-                        {"name": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]},
-                        {"name": "oil", "control_points": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
-                    ]
-                },
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {
+                "officers": ["typhoon_specialist", "training_specialist"],
+                "techs": {"marksman": ["range_enhancement"], "fortress": ["solid_shot"]},
+                "units": [
+                    {"index": 4, "name": "marksman", "position": {"x": 40, "y": -50}, "level": 1},
+                    {"index": 1, "name": "marksman", "position": {"x": 0, "y": -50},
+                     "exp": "0/650", "rotated": false, "travelling": false}
+                ],
+                "contraptions": [
+                    {"index": 3, "name": "shield", "position": {"x": 0, "y": -120}},
+                    {"index": 2, "name": "shield", "position": {"x": 100, "y": -120}}
+                ],
+                "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}],
+                "terrains": [
+                    {"name": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]},
+                    {"name": "oil", "control_points": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
+                ]
+            },
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap();
 
         let once = denormalized.normalized();
-        assert_eq!(once.sides.blue.officers, [10014, 20039]);
-        assert_eq!(once.sides.blue.techs, [10202, 10401]);
+        assert_eq!(once.blue.officers, [10014, 20039]);
+        assert_eq!(once.blue.techs, [10202, 10401]);
         assert_eq!(
-            once.sides
+            once
                 .blue
                 .units
                 .iter()
@@ -321,7 +303,7 @@ sides:
             [1, 4]
         );
         assert_eq!(
-            once.sides
+            once
                 .blue
                 .contraptions
                 .iter()
@@ -330,11 +312,11 @@ sides:
             [2, 3]
         );
         assert_eq!(
-            once.sides.blue.airdrop_shields,
+            once.blue.airdrop_shields,
             [Position { x: -200, y: 20 }, Position { x: 200, y: 20 }]
         );
         assert_eq!(
-            once.sides
+            once
                 .blue
                 .terrains
                 .iter()
@@ -342,10 +324,10 @@ sides:
                 .collect::<Vec<_>>(),
             [-100, 100]
         );
-        assert!(once.sides.blue.units[0].level.is_none());
-        assert!(once.sides.blue.units[0].exp.is_none());
-        assert!(once.sides.blue.units[0].rotated.is_none());
-        assert!(once.sides.blue.units[0].travelling.is_none());
+        assert!(once.blue.units[0].level.is_none());
+        assert!(once.blue.units[0].exp.is_none());
+        assert!(once.blue.units[0].rotated.is_none());
+        assert!(once.blue.units[0].travelling.is_none());
 
         assert_eq!(once.clone().normalized(), once);
     }
@@ -384,10 +366,9 @@ sides:
 
     #[test]
     fn map_id_is_optional_positive_and_preserved() {
-        let mut value = json!({"kind": "layout", "round": 1, "sides": {
-            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-        }});
+        let mut value = json!({"kind": "layout", "round": 1, "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+        "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
+    });
         assert_eq!(compile(&value).unwrap().map_id, None);
         for id in [1001, 1021] {
             value["map_id"] = json!(id);
@@ -414,10 +395,8 @@ sides:
             let mut value = json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-                }
+                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             });
             if let Some(seed) = seed {
                 value["seed"] = json!(seed);
@@ -514,13 +493,12 @@ sides:
             br"
 kind: layout
 round: 1
-sides:
-  blue:
-    units:
-      - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
-  red:
-    units:
-      - {name: marksman, index: 0, position: {x: 0, y: -50}}
+blue:
+  units:
+    - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
+red:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
 ",
         )
         .unwrap_err();
@@ -535,16 +513,14 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
-                    {"index": 1, "name": "marksman", "position": {"x": -310, "y": 20}},
-                    {"index": 2, "name": "arclight", "position": {"x": 310, "y": 20}, "travelling": true}
-                ], "contraptions": [
-                    {"index": 0, "name": "interceptor", "position": {"x": 5, "y": -85}}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [
+                {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
+                {"index": 1, "name": "marksman", "position": {"x": -310, "y": 20}},
+                {"index": 2, "name": "arclight", "position": {"x": 310, "y": 20}, "travelling": true}
+            ], "contraptions": [
+                {"index": 0, "name": "interceptor", "position": {"x": 5, "y": -85}}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap();
 
@@ -567,12 +543,10 @@ sides:
             json!({
                 "kind": "layout",
                 "round": round,
-                "sides": {
-                    "blue": {"units": [
-                        {"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}, "travelling": travelling}
-                    ]},
-                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-                }
+                "blue": {"units": [
+                    {"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}, "travelling": travelling}
+                ]},
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             })
         };
 
@@ -594,10 +568,8 @@ sides:
         let omitted = compile(&json!({
             "kind": "layout",
             "round": 2,
-            "sides": {
-                "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}}]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [{"index": 0, "name": "marksman", "position": {"x": -310, "y": 20}}]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert!(omitted.contains("first flank deployment"));
@@ -622,12 +594,10 @@ sides:
         let main_error = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "travelling": true}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [
+                {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "travelling": true}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert!(main_error.contains("travelling=true outside the ambush zones"));
@@ -638,12 +608,10 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0, "name": "marksman", "position": {"x": -300, "y": 20}, "travelling": true}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [
+                {"index": 0, "name": "marksman", "position": {"x": -300, "y": 20}, "travelling": true}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert!(error.contains("must fit completely inside one ambush zone"));
@@ -654,15 +622,13 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0,
-                        "name": "crawler", "position": {"x": 325, "y": 60},
-                        "rotated": true, "travelling": true
-                    }
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [
+                {"index": 0,
+                    "name": "crawler", "position": {"x": 325, "y": 60},
+                    "rotated": true, "travelling": true
+                }
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap();
         assert_eq!(placement_footprint(&plan.blue.units[0]), Some((50, 20)));
@@ -670,15 +636,13 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0,
-                        "name": "crawler", "position": {"x": 310, "y": 65},
-                        "rotated": true, "travelling": true
-                    }
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"units": [
+                {"index": 0,
+                    "name": "crawler", "position": {"x": 310, "y": 65},
+                    "rotated": true, "travelling": true
+                }
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert!(error.contains("footprint 50x20 requires center x≡5, y≡0"));
@@ -689,16 +653,14 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [{"index": 0,
-                    "name": "marksman",
-                    "position": {"x": -20, "y": -50}
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman",
-                    "position": {"x": 20, "y": -180}
-                }]}
-            }
+            "blue": {"units": [{"index": 0,
+                "name": "marksman",
+                "position": {"x": -20, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman",
+                "position": {"x": 20, "y": -180}
+            }]}
         }))
         .unwrap();
 
@@ -718,14 +680,12 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [
-                    {"name": "marksman", "index": 0, "position": {"x": -20, "y": -50},
-                     "exp": "7/650"},
-                    {"name": "marksman", "index": 2, "position": {"x": 20, "y": -50}}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
-            }
+            "blue": {"units": [
+                {"name": "marksman", "index": 0, "position": {"x": -20, "y": -50},
+                 "exp": "7/650"},
+                {"name": "marksman", "index": 2, "position": {"x": 20, "y": -50}}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
         }))
         .unwrap();
 
@@ -737,13 +697,11 @@ sides:
         let duplicate = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [
-                    {"name": "marksman", "index": 1, "position": {"x": -20, "y": -50}},
-                    {"name": "marksman", "index": 1, "position": {"x": 20, "y": -50}}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
-            }
+            "blue": {"units": [
+                {"name": "marksman", "index": 1, "position": {"x": -20, "y": -50}},
+                {"name": "marksman", "index": 1, "position": {"x": 20, "y": -50}}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
         }))
         .unwrap_err();
         assert!(duplicate.contains("indices must be strictly increasing"));
@@ -751,13 +709,11 @@ sides:
         let negative_exp = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50},
-                     "exp": "-1/650"}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
-            }
+            "blue": {"units": [
+                {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50},
+                 "exp": "-1/650"}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
         }))
         .unwrap_err();
         assert!(negative_exp.contains("exp must be non-negative"));
@@ -766,13 +722,11 @@ sides:
         let wrong_bar = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [
-                    {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "level": 2,
-                     "exp": "7/650"}
-                ]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
-            }
+            "blue": {"units": [
+                {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}, "level": 2,
+                 "exp": "7/650"}
+            ]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -180}}]}
         }))
         .unwrap_err();
         assert!(
@@ -786,15 +740,13 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50},
-                    "equipment": "laser_sights"
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50},
+                "equipment": "laser_sights"
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap();
 
@@ -807,16 +759,14 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
-                    "constructions": [{"index": 0, "name": "defensive_wall", "position": {"x": 0, "y": -55},
-                     "equipment": "laser_sights"}]
-                },
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
+                "constructions": [{"index": 0, "name": "defensive_wall", "position": {"x": 0, "y": -55},
+                 "equipment": "laser_sights"}]
+            },
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
 
@@ -828,14 +778,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": "not_an_item"
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": "not_an_item"
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
 
@@ -850,15 +798,13 @@ sides:
         let valid = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "officers": ["improved_wasp"],
-                    "techs": {"marksman": ["range_enhancement"]},
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                }
+            "blue": {
+                "officers": ["improved_wasp"],
+                "techs": {"marksman": ["range_enhancement"]},
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             }
         }))
         .unwrap();
@@ -868,14 +814,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"techs": {"marksman": ["range_enhancement", "range_enhancement"]}, "units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"techs": {"marksman": ["range_enhancement", "range_enhancement"]}, "units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
         assert_eq!(error, "side blue techs contains duplicate ID 10202");
@@ -886,14 +830,12 @@ sides:
         let repeated = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"officers": ["advanced_offensive_tactics", "advanced_offensive_tactics"], "units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"officers": ["advanced_offensive_tactics", "advanced_offensive_tactics"], "units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap();
         assert_eq!(repeated.blue.techs.officers, [20002, 20002]);
@@ -901,14 +843,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"officers": ["not_an_officer"], "units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"officers": ["not_an_officer"], "units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
         assert!(
@@ -921,22 +861,18 @@ sides:
         let chained = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"officers": ["improved_wasp"], "blueprints": ["attack_enhancement_ii"],
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"officers": ["improved_wasp"], "blueprints": ["attack_enhancement_ii"],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap();
         assert_eq!(chained.blue.techs.officers, [20311, 30602]);
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"blueprints": ["sticky_oil_bomb"],
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
-                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-            }
+            "blue": {"blueprints": ["sticky_oil_bomb"],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
         }))
         .unwrap_err();
         assert!(
@@ -950,14 +886,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "tower_strengthen_levels": [0, 5],
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                }
+            "blue": {
+                "tower_strengthen_levels": [0, 5],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             }
         }))
         .unwrap_err();
@@ -969,14 +903,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "tower_strengthen_levels": [1],
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                }
+            "blue": {
+                "tower_strengthen_levels": [1],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             }
         }))
         .unwrap_err();
@@ -991,14 +923,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "energy_tower_skills": ["rapid_resupply"],
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                }
+            "blue": {
+                "energy_tower_skills": ["rapid_resupply"],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
             }
         }))
         .unwrap_err();
@@ -1013,15 +943,13 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [{"index": 0,
-                    "name": "defensive_wall",
-                    "position": {"x": 0, "y": -55}
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"units": [{"index": 0,
+                "name": "defensive_wall",
+                "position": {"x": 0, "y": -55}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
         assert_eq!(
@@ -1035,12 +963,10 @@ sides:
         let missing = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
         assert!(missing.contains("missing field `units`"));
@@ -1048,12 +974,10 @@ sides:
         let empty = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": []},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"units": []},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
         assert!(empty.contains("at least one valid unit"));
@@ -1065,15 +989,13 @@ sides:
             json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {"units": [
-                        {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
-                        {"index": 1, "name": "arclight", "position": {"x": second_x, "y": -50}}
-                    ]},
-                    "red": {"units": [{"index": 0,
-                        "name": "marksman", "position": {"x": 0, "y": -50}
-                    }]}
-                }
+                "blue": {"units": [
+                    {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
+                    {"index": 1, "name": "arclight", "position": {"x": second_x, "y": -50}}
+                ]},
+                "red": {"units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -50}
+                }]}
             })
         };
 
@@ -1125,14 +1047,12 @@ sides:
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 5, "y": -50}
-                }]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 5, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap_err();
         assert_eq!(
@@ -1266,15 +1186,13 @@ sides:
             json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {
-                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
-                        "contraptions": [{"index": 0, "name": "interceptor", "position": {"x": 5, "y": interceptor_y}}]
-                    },
-                    "red": {"units": [{"index": 0,
-                        "name": "marksman", "position": {"x": 0, "y": -50}
-                    }]}
-                }
+                "blue": {
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
+                    "contraptions": [{"index": 0, "name": "interceptor", "position": {"x": 5, "y": interceptor_y}}]
+                },
+                "red": {"units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -50}
+                }]}
             })
         };
 
@@ -1298,17 +1216,15 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
-                    "contraptions": [
-                    {"index": 0, "name": "shield", "position": {"x": 1, "y": -101}},
-                    {"index": 1, "name": "missile", "position": {"x": 1, "y": -101}}
-                ]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -100}
-                }]}
-            }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -100}}],
+                "contraptions": [
+                {"index": 0, "name": "shield", "position": {"x": 1, "y": -101}},
+                {"index": 1, "name": "missile", "position": {"x": 1, "y": -101}}
+            ]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -100}
+            }]}
         }))
         .unwrap();
 
@@ -1329,11 +1245,10 @@ sides:
 
     #[test]
     fn retained_airdrop_shields_are_their_own_collection() {
-        let mut value = json!({"kind": "layout", "round": 2, "sides": {
-            "blue": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
-                "contraptions": [{"index": 0, "name":"shield","position": {"x": 0, "y": -120}}],
-                "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
-            "red": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}}});
+        let mut value = json!({"kind": "layout", "round": 2, "blue": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
+            "contraptions": [{"index": 0, "name":"shield","position": {"x": 0, "y": -120}}],
+            "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
+        "red": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}});
         let plan = compile(&value).unwrap();
         assert_eq!(plan.blue.contraptions.len(), 1);
         assert_eq!(plan.airdrop_shield_count(), 2);
@@ -1344,7 +1259,7 @@ sides:
 
         // A retained airdrop stands where it was released, not where a new
         // contraption could be placed, so only the battlefield bounds apply.
-        value["sides"]["blue"]["airdrop_shields"][0]["x"] = json!(401);
+        value["blue"]["airdrop_shields"][0]["x"] = json!(401);
         assert!(
             compile(&value)
                 .unwrap_err()
@@ -1355,10 +1270,10 @@ sides:
     #[test]
     fn contraptions_reject_the_retired_isairdrop_field() {
         for kind in ["shield", "missile", "interceptor"] {
-            let value = json!({"kind": "layout", "round":1,"sides":{
+            let value = json!({"kind": "layout", "round":1,
                 "blue":{"units":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
                     "contraptions":[{"index": 0, "name":kind,"position": {"x": 5, "y": -95},"isairdrop":false}]},
-                "red":{"units":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}}});
+                "red":{"units":[{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}});
             assert!(compile(&value).unwrap_err().contains("unknown field"));
         }
     }
@@ -1369,15 +1284,13 @@ sides:
             json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {
-                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
-                        "contraptions": [{"index": 0, "name": "shield", "position": {"x": x, "y": y}}]
-                    },
-                    "red": {"units": [{"index": 0,
-                        "name": "marksman", "position": {"x": 0, "y": -150}
-                    }]}
-                }
+                "blue": {
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                    "contraptions": [{"index": 0, "name": "shield", "position": {"x": x, "y": y}}]
+                },
+                "red": {"units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -150}
+                }]}
             })
         };
 
@@ -1396,15 +1309,13 @@ sides:
             json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {
-                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
-                        "contraptions": [{"index": 0, "name": "missile", "position": {"x": x, "y": y}}]
-                    },
-                    "red": {"units": [{"index": 0,
-                        "name": "marksman", "position": {"x": 0, "y": -150}
-                    }]}
-                }
+                "blue": {
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                    "contraptions": [{"index": 0, "name": "missile", "position": {"x": x, "y": y}}]
+                },
+                "red": {"units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -150}
+                }]}
             })
         };
 
@@ -1422,19 +1333,17 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
-                    "constructions": [
-                    {"index": 0, "name": "rapid_fire_turret", "position": {"x": 140, "y": -60}},
-                    {"index": 1, "name": "defensive_wall", "position": {"x": 140, "y": -105}},
-                    {"index": 2, "name": "anti_armor_turret", "position": {"x": -140, "y": -60}},
-                    {"index": 3, "name": "magnetic_barrier", "position": {"x": -165, "y": -105}}
-                ]},
-                "red": {"units": [{"index": 0,
-                    "name": "marksman", "position": {"x": 0, "y": -50}
-                }]}
-            }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                "constructions": [
+                {"index": 0, "name": "rapid_fire_turret", "position": {"x": 140, "y": -60}},
+                {"index": 1, "name": "defensive_wall", "position": {"x": 140, "y": -105}},
+                {"index": 2, "name": "anti_armor_turret", "position": {"x": -140, "y": -60}},
+                {"index": 3, "name": "magnetic_barrier", "position": {"x": -165, "y": -105}}
+            ]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
         }))
         .unwrap();
 
@@ -1469,14 +1378,12 @@ sides:
             json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {
-                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
-                        "constructions": constructions,
-                        "contraptions": contraptions
-                    },
-                    "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
-                }
+                "blue": {
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -150}}],
+                    "constructions": constructions,
+                    "contraptions": contraptions
+                },
+                "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
             })
         };
         let wall = |index: i32| json!({"index": index, "name": "defensive_wall", "position": {"x": 140, "y": -105}});
@@ -1502,7 +1409,7 @@ sides:
         let definition: Layout =
             serde_json::from_value(layout(json!([wall(7)]), json!([]))).unwrap();
         let encoded = serde_json::to_value(definition).unwrap();
-        assert_eq!(encoded["sides"]["blue"]["constructions"][0]["index"], 7);
+        assert_eq!(encoded["blue"]["constructions"][0]["index"], 7);
 
         let missing = json!({"name": "defensive_wall", "position": {"x": 140, "y": -105}});
         assert!(
@@ -1527,25 +1434,23 @@ sides:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
-                    "battle_skills": [{
-                        "name": "missile_strike",
-                        "positions": [{"x": 55, "y": 60}]
-                    }]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "fang", "position": {"x": -55, "y": -60}}],
-                    "battle_skills": [{
-                        "name": "mobile_beacon",
-                        "positions": [
-                            {"x": -55, "y": -60},
-                            {"x": -105, "y": -90},
-                            {"x": -105, "y": 20}
-                        ]
-                    }]
-                }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                "battle_skills": [{
+                    "name": "missile_strike",
+                    "positions": [{"x": 55, "y": 60}]
+                }]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "fang", "position": {"x": -55, "y": -60}}],
+                "battle_skills": [{
+                    "name": "mobile_beacon",
+                    "positions": [
+                        {"x": -55, "y": -60},
+                        {"x": -105, "y": -90},
+                        {"x": -105, "y": 20}
+                    ]
+                }]
             }
         }))
         .unwrap();
@@ -1716,17 +1621,15 @@ sides:
         let red_error = compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                },
-                "red": {
-                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
-                    "battle_skills": [{
-                        "name": "rhino_assault",
-                        "positions": [{"x": -300, "y": 170}]
-                    }]
-                }
+            "blue": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            },
+            "red": {
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                "battle_skills": [{
+                    "name": "rhino_assault",
+                    "positions": [{"x": -300, "y": 170}]
+                }]
             }
         }))
         .unwrap_err();
@@ -1755,14 +1658,12 @@ sides:
             json!({
                 "kind": "layout",
                 "round": 1,
-                "sides": {
-                    "blue": {
-                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
-                        "battle_skills": battle_skills
-                    },
-                    "red": {
-                        "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
-                    }
+                "blue": {
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
+                    "battle_skills": battle_skills
+                },
+                "red": {
+                    "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
                 }
             })
         };

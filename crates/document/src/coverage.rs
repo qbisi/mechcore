@@ -195,17 +195,11 @@ impl Coverage {
             (
                 "blue",
                 0,
-                &stated.sides.blue,
+                &stated.blue,
                 &stated.opening.blue,
-                &first.state.sides.blue,
+                &first.state.blue,
             ),
-            (
-                "red",
-                1,
-                &stated.sides.red,
-                &stated.opening.red,
-                &first.state.sides.red,
-            ),
+            ("red", 1, &stated.red, &stated.opening.red, &first.state.red),
         ] {
             match crate::opening::reactor_core(stated.map_id, seat) {
                 Ok(core) => {
@@ -347,17 +341,9 @@ fn sides<'a>(
     red: bool,
 ) -> (&'a SideState, &'a [Action], &'a SideState) {
     if red {
-        (
-            &turn.state.sides.red,
-            &turn.actions.red,
-            &next.state.sides.red,
-        )
+        (&turn.state.red, &turn.actions.red, &next.state.red)
     } else {
-        (
-            &turn.state.sides.blue,
-            &turn.actions.blue,
-            &next.state.sides.blue,
-        )
+        (&turn.state.blue, &turn.actions.blue, &next.state.blue)
     }
 }
 
@@ -661,15 +647,15 @@ mod tests {
     fn a_changed_covered_field_is_unequal_at_its_path() {
         let economy = Economy::embedded().unwrap();
         let mut stated = first_battle();
-        stated.turns[2].state.sides.red.tower_strengthen_levels[0] += 1;
-        stated.turns[2].state.sides.blue.units[0].unit.position.x += 10;
+        stated.turns[2].state.red.tower_strengthen_levels[0] += 1;
+        stated.turns[2].state.blue.units[0].unit.position.x += 10;
         let coverage = measured(&economy, &stated);
         let at: Vec<_> = coverage
             .unequal
             .iter()
             .map(|difference| (difference.round, difference.side, difference.path.as_str()))
             .collect();
-        let index = stated.turns[2].state.sides.blue.units[0].unit.index;
+        let index = stated.turns[2].state.blue.units[0].unit.index;
         assert_eq!(
             at,
             [

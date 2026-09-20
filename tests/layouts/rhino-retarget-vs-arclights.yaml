@@ -1,18 +1,17 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: rhino
-        index: 0
-        position: {x: -285, y: -105}
+blue:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: -285, y: -105}
 
-  red:
-    units:
-      - name: arclight
-        index: 0
-        position: {x: 290, y: -100}
-      - name: arclight
-        index: 1
-        position: {x: 190, y: -100}
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 290, y: -100}
+    - name: arclight
+      index: 1
+      position: {x: 190, y: -100}

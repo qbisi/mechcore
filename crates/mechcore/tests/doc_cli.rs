@@ -10,14 +10,13 @@ fn verify_reports_shared_compiler_summary() {
 kind: layout
 seed: -17
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-    constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]
-    contraptions: [{name: interceptor, index: 0, position: {x: 35, y: -85}}]
-    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
-  red:
-    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+  constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]
+  contraptions: [{name: interceptor, index: 0, position: {x: 35, y: -85}}]
+  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+red:
+  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -50,7 +49,7 @@ fn verify_rejects_the_zero_seed_sentinel() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 0\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 0\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -84,13 +83,12 @@ fn verify_rejects_contraptions_in_formations() {
         r"
 kind: layout
 round: 1
-sides:
-  blue:
-    units:
-      - {name: marksman, index: 0, position: {x: 0, y: -50}}
-      - {name: shield, index: 1, position: {x: 0, y: -100}}
-  red:
-    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: shield, index: 1, position: {x: 0, y: -100}}
+red:
+  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -125,11 +123,10 @@ fn verify_reads_a_batch_of_paths_from_standard_input() {
         &good,
         "kind: layout
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-  red:
-    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+red:
+  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
     )
     .unwrap();
@@ -192,12 +189,11 @@ fn format_emits_canonical_defaults_and_supports_in_place_write() {
         r"
 kind: layout
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
-    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
-  red:
-    units: [{name: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
+  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+red:
+  units: [{name: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
 ",
     )
     .unwrap();
@@ -216,10 +212,10 @@ sides:
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
     assert!(canonical.contains(
-        "terrains:\n    - {name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
+        "terrains:\n  - {name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
     ));
     assert!(
-        canonical.contains("    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n"),
+        canonical.contains("  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n"),
         "a unit stays on one line: {canonical}"
     );
     assert!(!canonical.contains("grid_rows:"));
@@ -242,12 +238,12 @@ fn diff_compares_normalized_fields() {
     let right = directory.path().join("right.yaml");
     fs::write(
         &left,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     fs::write(
         &right,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -266,7 +262,7 @@ fn diff_compares_normalized_fields() {
 
     fs::write(
         &right,
-        "kind: layout\nround: 1\nsides:\n  blue:\n    units: [{name: marksman, index: 0, position: {x: 20, y: -50}}]\n  red:\n    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 20, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))
@@ -280,7 +276,7 @@ fn diff_compares_normalized_fields() {
     let report: serde_json::Value = serde_json::from_slice(&different.stdout).unwrap();
     assert_eq!(
         report["differences"][0]["path"],
-        "/sides/blue/units/index=0/position/x"
+        "/blue/units/index=0/position/x"
     );
 }
 
@@ -348,7 +344,7 @@ fn battle_verification_reports_transition_coverage() {
     // A well-formed wrong value in a predicted field is found where it is, and
     // fails the battle.
     let mut documents = original.clone();
-    let red = &mut documents[4]["sides"]["red"];
+    let red = &mut documents[4]["red"];
     let level = red["tower_strengthen_levels"][0].as_i64().unwrap();
     red["tower_strengthen_levels"][0] = Value::Number((level + 1).into());
     let supply = red["supply"].as_i64().unwrap();
@@ -395,7 +391,7 @@ fn battle_verification_reads_fields_outside_the_deal() {
         "unknown_action",
     ] {
         let mut documents = original.clone();
-        let blue = &mut documents[2]["sides"]["blue"];
+        let blue = &mut documents[2]["blue"];
         match case {
             "supply" => blue["supply"] = Value::String("broken".into()),
             "cooldown" => {

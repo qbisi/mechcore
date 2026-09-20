@@ -154,7 +154,7 @@ one layout under several seeds, use the wrapper form:
     seed: 1787720817
 ```
 
-A layout's top-level keys are closed to `seed`, `round` and `sides`, so the
+A layout's top-level keys are closed to `seed`, `round`, `blue` and `red`, so the
 wrapper is never mistaken for a layout. The override wins over the layout's own
 `seed`. A layout cannot carry `0`, which the schema rejects; omit `seed` on both
 to let the game generate one.

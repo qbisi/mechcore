@@ -14,9 +14,7 @@
 use crate::DocumentKind;
 use crate::battle::{Release, SideState, SkillTarget, State};
 use crate::catalog::battle_skill_type_from_id;
-use crate::layout::{
-    BattleSkillDefinition, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side, Sides,
-};
+use crate::layout::{BattleSkillDefinition, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side};
 
 /// Projects one round's position onto a layout.
 ///
@@ -31,10 +29,8 @@ pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layo
         map_id: Some(map_id),
         seed: Some(seed),
         round,
-        sides: Sides {
-            blue: project_side(&state.sides.blue, "blue")?,
-            red: project_side(&state.sides.red, "red")?,
-        },
+        blue: project_side(&state.blue, "blue")?,
+        red: project_side(&state.red, "red")?,
     })
 }
 
@@ -204,10 +200,8 @@ mod tests {
         };
         let deployed = crate::battle::State {
             reinforce_offers: turn.state.reinforce_offers.clone(),
-            sides: crate::battle::StateSides {
-                blue: stepped(&turn.state.sides.blue, &turn.actions.blue, false),
-                red: stepped(&turn.state.sides.red, &turn.actions.red, true),
-            },
+            blue: stepped(&turn.state.blue, &turn.actions.blue, false),
+            red: stepped(&turn.state.red, &turn.actions.red, true),
         };
         let projected = project(&deployed, turn.round, battle.map_id, battle.seed).unwrap();
 

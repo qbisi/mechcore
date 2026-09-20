@@ -505,7 +505,8 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
 pub struct Stated {
     pub map_id: i32,
     pub seed: i32,
-    pub sides: StatedSides,
+    pub blue: StatedSide,
+    pub red: StatedSide,
     pub turns: Vec<Turn>,
     /// Round zero's decisions, each side's opening, as written.
     pub opening: TurnActions,
@@ -513,12 +514,6 @@ pub struct Stated {
     /// them, which a converted battle does because no replay records the last
     /// fight's result.
     pub ends_on_actions: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct StatedSides {
-    pub blue: StatedSide,
-    pub red: StatedSide,
 }
 
 #[derive(Debug, Deserialize)]
@@ -554,7 +549,8 @@ struct StatedHeader {
     game_build: String,
     map_id: i32,
     seed: i32,
-    sides: StatedSides,
+    blue: StatedSide,
+    red: StatedSide,
 }
 
 impl StatedOpening {
@@ -602,9 +598,10 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .ok_or("battle states no round 0 opening decisions")?;
     let opening: TurnActions = crate::battle::payload(opening)
         .map_err(|error| format!("round 0 action segment is not readable: {error}"))?;
-    let mut sides = header.sides;
-    sides.blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
-    sides.red.opening = StatedOpening::opening(&opening.red, "red")?;
+    let mut blue = header.blue;
+    let mut red = header.red;
+    blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
+    red.opening = StatedOpening::opening(&opening.red, "red")?;
     let ends_on_actions = stream
         .rounds
         .last()
@@ -631,7 +628,8 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     Ok(Some(Stated {
         map_id: header.map_id,
         seed: header.seed,
-        sides,
+        blue,
+        red,
         turns,
         opening,
         ends_on_actions,
@@ -645,7 +643,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
 /// Returns an error for a mismatched deal, layout, invalid choice or unsupported
 /// initialization scope.
 pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> {
-    for (name, side) in [("blue", &stated.sides.blue), ("red", &stated.sides.red)] {
+    for (name, side) in [("blue", &stated.blue), ("red", &stated.red)] {
         if side.offers.len() != CHOOSE_COUNT {
             return Err(format!("{name} opening requires {CHOOSE_COUNT} offers"));
         }
@@ -671,13 +669,13 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
     for (name, side, offers, constructions) in [
         (
             "blue",
-            &stated.sides.blue,
+            &stated.blue,
             &found.deal.blue,
             &found.constructions.blue,
         ),
         (
             "red",
-            &stated.sides.red,
+            &stated.red,
             &found.deal.red,
             &found.constructions.red,
         ),
@@ -773,10 +771,10 @@ mod tests {
             let stated = stated(yaml.as_bytes()).unwrap().expect("a battle document");
             let found = verify(&economy, &stated)
                 .unwrap_or_else(|error| panic!("seed {}: {error}", battle.seed));
-            assert_eq!(found.deal.blue, battle.sides.blue.opening.offers);
-            assert_eq!(found.deal.red, battle.sides.red.opening.offers);
-            assert_eq!(found.constructions.blue, battle.sides.blue.constructions);
-            assert_eq!(found.constructions.red, battle.sides.red.constructions);
+            assert_eq!(found.deal.blue, battle.blue.opening.offers);
+            assert_eq!(found.deal.red, battle.red.opening.offers);
+            assert_eq!(found.constructions.blue, battle.blue.constructions);
+            assert_eq!(found.constructions.red, battle.red.constructions);
             checked += 1;
         }
         assert_eq!(checked, 41);
@@ -787,8 +785,8 @@ mod tests {
     #[test]
     fn the_two_sides_draw_from_one_pool() {
         for battle in battles() {
-            let blue = &battle.sides.blue.opening.offers;
-            let red = &battle.sides.red.opening.offers;
+            let blue = &battle.blue.opening.offers;
+            let red = &battle.red.opening.offers;
             for held in [blue, red] {
                 assert_eq!(held.len(), CHOOSE_COUNT);
             }
@@ -814,7 +812,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
         let yaml = crate::battle::canonical_yaml(&battle).unwrap();
-        let dealt = &battle.sides.blue.opening.offers;
+        let dealt = &battle.blue.opening.offers;
         let team = |id| <crate::names::AdvanceTeam as crate::names::Kind>::name(id).unwrap();
         // Another team of the build, one this side was not dealt.
         let other = economy
@@ -853,7 +851,7 @@ mod tests {
     fn an_opening_requires_its_alternatives() {
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
         let mut segments = segments_of(&crate::battle::canonical_yaml(&battle).unwrap());
-        segments[0]["sides"]["blue"]
+        segments[0]["blue"]
             .as_mapping_mut()
             .unwrap()
             .remove(serde_yaml::Value::from("offers"));
@@ -893,9 +891,9 @@ mod tests {
             for choose in [-1, 4, i32::MAX] {
                 let mut stated = stated(yaml.as_bytes()).unwrap().unwrap();
                 let opening = if side == "blue" {
-                    &mut stated.sides.blue.opening
+                    &mut stated.blue.opening
                 } else {
-                    &mut stated.sides.red.opening
+                    &mut stated.red.opening
                 };
                 opening.choose = choose;
                 let error = verify(&economy, &stated).unwrap_err();
@@ -913,11 +911,8 @@ mod tests {
     fn the_header_deals_and_round_zero_decides() {
         let battle = battle_from_grbr(&std::fs::read(TUFF).unwrap()).unwrap();
         let segments = segments_of(&crate::battle::canonical_yaml(&battle).unwrap());
-        for (side, opening) in [
-            ("blue", &battle.sides.blue.opening),
-            ("red", &battle.sides.red.opening),
-        ] {
-            let held = segments[0]["sides"][side].as_mapping().unwrap();
+        for (side, opening) in [("blue", &battle.blue.opening), ("red", &battle.red.opening)] {
+            let held = segments[0][side].as_mapping().unwrap();
             let keys: Vec<&str> = held.keys().filter_map(serde_yaml::Value::as_str).collect();
             assert_eq!(keys, ["offers", "constructions", "tech_loadout"]);
             let taken = &opening.offers[usize::try_from(opening.choose).unwrap()];
@@ -959,9 +954,9 @@ mod tests {
         for blue in [true, false] {
             let mut document = stated(yaml.as_bytes()).unwrap().unwrap();
             let side = if blue {
-                &mut document.sides.blue
+                &mut document.blue
             } else {
-                &mut document.sides.red
+                &mut document.red
             };
             side.constructions[0].position.x += 1;
             assert!(

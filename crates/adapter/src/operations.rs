@@ -1314,10 +1314,8 @@ fn apply_layout_stage(
         "unit_count": plan.unit_count(),
         "construction_count": plan.construction_count(),
         "contraption_count": plan.contraption_count(),
-        "sides": {
-            "blue": blue,
-            "red": red
-        }
+        "blue": blue,
+        "red": red
     }))
 }
 
@@ -4016,14 +4014,12 @@ mod tests {
         let plan = layout::compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {"units": [{
-                    "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
-                }]},
-                "red": {"units": [{
-                    "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
-                }]}
-            }
+            "blue": {"units": [{
+                "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
+            }]},
+            "red": {"units": [{
+                "name": "marksman", "index": 0, "position": {"x": 20, "y": -50}
+            }]}
         }))
         .unwrap();
 
@@ -4042,25 +4038,23 @@ mod tests {
         let plan = layout::compile(&json!({
             "kind": "layout",
             "round": 1,
-            "sides": {
-                "blue": {
-                    "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
-                    "battle_skills": [{
-                        "name": "missile_strike",
-                        "positions": [{"x": 55, "y": 60}]
-                    }]
-                },
-                "red": {
-                    "units": [{"name": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
-                    "battle_skills": [{
-                        "name": "mobile_beacon",
-                        "positions": [
-                            {"x": -55, "y": -60},
-                            {"x": -105, "y": -90},
-                            {"x": -105, "y": 20}
-                        ]
-                    }]
-                }
+            "blue": {
+                "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                "battle_skills": [{
+                    "name": "missile_strike",
+                    "positions": [{"x": 55, "y": 60}]
+                }]
+            },
+            "red": {
+                "units": [{"name": "fang", "index": 0, "position": {"x": -55, "y": -60}}],
+                "battle_skills": [{
+                    "name": "mobile_beacon",
+                    "positions": [
+                        {"x": -55, "y": -60},
+                        {"x": -105, "y": -90},
+                        {"x": -105, "y": 20}
+                    ]
+                }]
             }
         }))
         .unwrap();

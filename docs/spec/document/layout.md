@@ -30,9 +30,10 @@ begins rather than recording an approximation.
 
 ## Document shape
 
-A layout contains exactly two player sides, `blue` and `red`. Each side lists
-its Officers, its unit technologies grouped by unit, and its enhancement-chain
-blueprints, then what stands on its board.
+A layout contains exactly two player sides, and each is a top-level key,
+`blue` and `red`, as a battle's actions are. A side lists its Officers, its
+unit technologies grouped by unit, and its enhancement-chain blueprints, then
+what stands on its board.
 
 The required top-level `kind` names what the document is. It is a constant, not
 a version: it takes the single value `layout` and never needs maintaining. Its
@@ -57,45 +58,44 @@ kind: layout
 game_build: 1.11.1.3.2259
 round: 3
 
-sides:
-  blue:
-    officers: [supply_specialist, efficient_tech_research, extended_range_marksman]
-    techs:
-      marksman: [range_enhancement, quick_reload]
-    blueprints: [attack_enhancement]
+blue:
+  officers: [supply_specialist, efficient_tech_research, extended_range_marksman]
+  techs:
+    marksman: [range_enhancement, quick_reload]
+  blueprints: [attack_enhancement]
 
-    energy_tower_skills: [enhanced_range, high_mobility]
-    tower_strengthen_levels: [1, 2]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [1, 2]
 
-    units:
-    - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: laser_sights}
-    - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: laser_sights}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 
-    constructions:
-    - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -105}}
 
-    contraptions:
-    - {name: interceptor, index: 0, position: {x: 5, y: -95}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -95}}
 
-    airdrop_shields: []
-    terrains: []
+  airdrop_shields: []
+  terrains: []
 
-    battle_skills:
-    - {name: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
 
-  red:
-    officers: []
-    techs: {}
-    blueprints: []
-    energy_tower_skills: []
-    tower_strengthen_levels: []
-    units:
-    - {name: marksman, index: 0, position: {x: 0, y: -100}}
+red:
+  officers: []
+  techs: {}
+  blueprints: []
+  energy_tower_skills: []
+  tower_strengthen_levels: []
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
 
-    contraptions: []
-    airdrop_shields: []
-    terrains: []
-    battle_skills: []
+  contraptions: []
+  airdrop_shields: []
+  terrains: []
+  battle_skills: []
 ```
 
 YAML field order has no semantic meaning. Examples and generated files should

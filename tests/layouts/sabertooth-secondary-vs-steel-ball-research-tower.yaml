@@ -1,33 +1,32 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    techs:
-      sabertooth: [secondary_armament]
+blue:
+  techs:
+    sabertooth: [secondary_armament]
 
-    energy_tower_skills: [enhanced_range]
+  energy_tower_skills: [enhanced_range]
 
-    constructions:
-      - name: rapid_fire_turret
-        index: 0
-        position: {x: 140, y: -140}
+  constructions:
+    - name: rapid_fire_turret
+      index: 0
+      position: {x: 140, y: -140}
 
-    units:
-      - name: sabertooth
-        index: 0
-        position: {x: -205, y: -295}
-        equipment: photon_coating
+  units:
+    - name: sabertooth
+      index: 0
+      position: {x: -205, y: -295}
+      equipment: photon_coating
 
-  red:
-    techs:
-      marksman: [electromagnetic_shot]
+red:
+  techs:
+    marksman: [electromagnetic_shot]
 
-    units:
-      - name: marksman
-        index: 0
-        position: {x: 200, y: -100}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 200, y: -100}
 
-      - name: steel_ball
-        index: 1
-        position: {x: -205, y: -100}
+    - name: steel_ball
+      index: 1
+      position: {x: -205, y: -100}

@@ -24,16 +24,11 @@ pub struct Battle {
     pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
-    pub sides: BattleSides,
+    pub blue: BattleSide,
+    pub red: BattleSide,
     /// The deployment rounds, from the first one. The opening is round zero
     /// and has no state to open it, so each side's [`Opening`] holds it.
     pub turns: Vec<Turn>,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct BattleSides {
-    pub blue: BattleSide,
-    pub red: BattleSide,
 }
 
 /// What a side holds for the whole match rather than for one round.
@@ -125,12 +120,6 @@ pub struct State {
         with = "crate::names::card::offers"
     )]
     pub reinforce_offers: Option<Vec<i32>>,
-    pub sides: StateSides,
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct StateSides {
     pub blue: SideState,
     pub red: SideState,
 }
@@ -645,11 +634,6 @@ struct Header<'a> {
     game_build: &'a str,
     map_id: i32,
     seed: i32,
-    sides: HeaderSides<'a>,
-}
-
-#[derive(Serialize)]
-struct HeaderSides<'a> {
     blue: HeaderSide<'a>,
     red: HeaderSide<'a>,
 }
@@ -680,7 +664,8 @@ struct StateSegment<'a> {
         serialize_with = "crate::names::card::offers::serialize"
     )]
     reinforce_offers: Option<Cow<'a, [i32]>>,
-    sides: &'a StateSides,
+    blue: &'a SideState,
+    red: &'a SideState,
 }
 
 #[derive(Serialize)]
@@ -719,22 +704,21 @@ fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
             game_build: &battle.game_build,
             map_id: battle.map_id,
             seed: battle.seed,
-            sides: HeaderSides {
-                blue: HeaderSide::of(&battle.sides.blue),
-                red: HeaderSide::of(&battle.sides.red),
-            },
+            blue: HeaderSide::of(&battle.blue),
+            red: HeaderSide::of(&battle.red),
         }),
         Segment::Action(ActionSegment {
             round: 0,
-            blue: Cow::Owned(vec![battle.sides.blue.opening.action()]),
-            red: Cow::Owned(vec![battle.sides.red.opening.action()]),
+            blue: Cow::Owned(vec![battle.blue.opening.action()]),
+            red: Cow::Owned(vec![battle.red.opening.action()]),
         }),
     ];
     for turn in &battle.turns {
         segments.push(Segment::State(StateSegment {
             round: turn.round,
             reinforce_offers: turn.state.reinforce_offers.as_deref().map(Cow::Borrowed),
-            sides: &turn.state.sides,
+            blue: &turn.state.blue,
+            red: &turn.state.red,
         }));
         segments.push(Segment::Action(ActionSegment {
             round: turn.round,
@@ -869,7 +853,7 @@ fn each_side(segment: &Value) -> impl Iterator<Item = (&'static str, &Value)> {
 fn state_sides(segment: &Value) -> impl Iterator<Item = &Value> {
     ["blue", "red"]
         .into_iter()
-        .filter_map(move |side| segment.get("sides")?.get(side))
+        .filter_map(move |side| segment.get(side))
 }
 
 fn released(state: &Value) -> bool {
@@ -1096,7 +1080,7 @@ mod tests {
 
     fn state(round: i32, blue_core: i32) -> String {
         format!(
-            "---\nkind: state\nround: {round}\nsides:\n  blue: {{reactor_core: {blue_core}}}\n  red: {{reactor_core: 4800}}\n"
+            "---\nkind: state\nround: {round}\nblue: {{reactor_core: {blue_core}}}\nred: {{reactor_core: 4800}}\n"
         )
     }
 
@@ -1202,7 +1186,7 @@ mod tests {
     #[test]
     fn a_state_segment_carries_no_release() {
         let released = format!(
-            "{HEADER}{OPENING}---\nkind: state\nround: 1\nsides:\n  blue:\n    battle_skills:\n    - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: {{unit: 4}}}}}}\n"
+            "{HEADER}{OPENING}---\nkind: state\nround: 1\nblue:\n  battle_skills:\n  - {{index: 0, id: 900001, cooldown: 0, release: {{order: 1, target: {{unit: 4}}}}}}\n"
         );
         assert!(
             read(&released)
@@ -1214,18 +1198,18 @@ mod tests {
     /// The spelling follows the three rules and says what the value says.
     #[test]
     fn a_segment_is_spelled_by_shape() {
-        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nsides:\n  blue:\n    shop:\n      unlocked_units:\n      - 2\n      - 10\n      buys_remaining: 2\n    next_index:\n      unit: 7\n      contraption: 0\n    units:\n    - type: vortex\n      index: 0\n      position:\n        x: -120\n        y: -100\n    constructions: []\n  red:\n    units:\n    - type: release_commander_skill\n      target:\n        area:\n        - x: 197\n          y: -40\n    - type: concede\n";
+        let block = "kind: state\nround: 3\nreinforce_offers:\n- 1033115\n- 1031122\nblue:\n  shop:\n    unlocked_units:\n    - 2\n    - 10\n    buys_remaining: 2\n  next_index:\n    unit: 7\n    contraption: 0\n  units:\n  - type: vortex\n    index: 0\n    position:\n      x: -120\n      y: -100\n  constructions: []\nred:\n  units:\n  - type: release_commander_skill\n    target:\n      area:\n      - x: 197\n        y: -40\n  - type: concede\n";
         let value: serde_yaml::Value = serde_yaml::from_str(block).unwrap();
         let spelled = crate::spelling::document(&value).unwrap();
         assert_eq!(
             spelled,
-            "kind: state\nround: 3\nreinforce_offers: [1033115, 1031122]\nsides:\n  blue:\n\
-             \x20   shop:\n      unlocked_units: [2, 10]\n      buys_remaining: 2\n\
-             \x20   next_index: {unit: 7, contraption: 0}\n    units:\n\
-             \x20   - {type: vortex, index: 0, position: {x: -120, y: -100}}\n\
-             \x20   constructions: []\n  red:\n    units:\n\
-             \x20   - {type: release_commander_skill, target: {area: [{x: 197, y: -40}]}}\n\
-             \x20   - {type: concede}\n"
+            "kind: state\nround: 3\nreinforce_offers: [1033115, 1031122]\nblue:\n\
+             \x20 shop:\n    unlocked_units: [2, 10]\n    buys_remaining: 2\n\
+             \x20 next_index: {unit: 7, contraption: 0}\n  units:\n\
+             \x20 - {type: vortex, index: 0, position: {x: -120, y: -100}}\n\
+             \x20 constructions: []\nred:\n  units:\n\
+             \x20 - {type: release_commander_skill, target: {area: [{x: 197, y: -40}]}}\n\
+             \x20 - {type: concede}\n"
         );
         assert_eq!(
             serde_yaml::from_str::<serde_yaml::Value>(&spelled).unwrap(),
@@ -1237,12 +1221,12 @@ mod tests {
     #[test]
     fn a_tech_loadout_row_is_one_line() {
         let value: serde_yaml::Value = serde_yaml::from_str(
-            "sides:\n  blue:\n    tech_loadout:\n      1: [1001, 1105]\n      2001: [32001]\n",
+            "blue:\n  tech_loadout:\n    1: [1001, 1105]\n    2001: [32001]\n",
         )
         .unwrap();
         assert_eq!(
             crate::spelling::document(&value).unwrap(),
-            "sides:\n  blue:\n    tech_loadout:\n      1: [1001, 1105]\n      2001: [32001]\n"
+            "blue:\n  tech_loadout:\n    1: [1001, 1105]\n    2001: [32001]\n"
         );
     }
 

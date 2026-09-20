@@ -1,83 +1,82 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    techs:
-      marksman: [range_enhancement]
-      sledgehammer: [range_enhancement]
-    blueprints: [defense_enhancement, attack_enhancement_ii]
+blue:
+  techs:
+    marksman: [range_enhancement]
+    sledgehammer: [range_enhancement]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
 
-    tower_strengthen_levels: [2, 0]
+  tower_strengthen_levels: [2, 0]
 
-    units:
-      - name: sledgehammer
-        index: 0
-        position: {x: -55, y: -60}
-      - name: sledgehammer
-        index: 1
-        position: {x: 55, y: -60}
-      - name: crawler
-        index: 2
-        position: {x: -55, y: -100}
-      - name: crawler
-        index: 3
-        position: {x: 55, y: -100}
-      - name: marksman
-        index: 4
-        position: {x: -90, y: -140}
-      - name: marksman
-        index: 5
-        position: {x: 0, y: -140}
-      - name: marksman
-        index: 6
-        position: {x: 90, y: -140}
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: -55, y: -60}
+    - name: sledgehammer
+      index: 1
+      position: {x: 55, y: -60}
+    - name: crawler
+      index: 2
+      position: {x: -55, y: -100}
+    - name: crawler
+      index: 3
+      position: {x: 55, y: -100}
+    - name: marksman
+      index: 4
+      position: {x: -90, y: -140}
+    - name: marksman
+      index: 5
+      position: {x: 0, y: -140}
+    - name: marksman
+      index: 6
+      position: {x: 90, y: -140}
 
-    battle_skills:
-      - name: missile_strike
-        positions:
-          - {x: 55, y: 60}
+  battle_skills:
+    - name: missile_strike
+      positions:
+        - {x: 55, y: 60}
 
-  red:
-    officers: [improved_wasp]
-    techs:
-      wasp: [range_enhancement]
-      fang: [range_enhancement]
-      arclight: [range_enhancement]
+red:
+  officers: [improved_wasp]
+  techs:
+    wasp: [range_enhancement]
+    fang: [range_enhancement]
+    arclight: [range_enhancement]
 
-    energy_tower_skills: [enhanced_range, high_mobility]
-    tower_strengthen_levels: [0, 1]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [0, 1]
 
-    units:
-      - name: fang
-        index: 0
-        position: {x: -55, y: -60}
-      - name: fang
-        index: 1
-        position: {x: 55, y: -60}
-      - name: wasp
-        index: 2
-        position: {x: -60, y: -95}
-        level: 2
-        rotated: true
-      - name: wasp
-        index: 3
-        position: {x: 60, y: -95}
-        level: 2
-        rotated: true
-      - name: arclight
-        index: 4
-        position: {x: -90, y: -140}
-      - name: arclight
-        index: 5
-        position: {x: 0, y: -140}
-      - name: arclight
-        index: 6
-        position: {x: 90, y: -140}
+  units:
+    - name: fang
+      index: 0
+      position: {x: -55, y: -60}
+    - name: fang
+      index: 1
+      position: {x: 55, y: -60}
+    - name: wasp
+      index: 2
+      position: {x: -60, y: -95}
+      level: 2
+      rotated: true
+    - name: wasp
+      index: 3
+      position: {x: 60, y: -95}
+      level: 2
+      rotated: true
+    - name: arclight
+      index: 4
+      position: {x: -90, y: -140}
+    - name: arclight
+      index: 5
+      position: {x: 0, y: -140}
+    - name: arclight
+      index: 6
+      position: {x: 90, y: -140}
 
-    battle_skills:
-      - name: mobile_beacon
-        positions:
-          - {x: -55, y: -60}
-          - {x: -105, y: -90}
-          - {x: -105, y: 20}
+  battle_skills:
+    - name: mobile_beacon
+      positions:
+        - {x: -55, y: -60}
+        - {x: -105, y: -90}
+        - {x: -105, y: 20}

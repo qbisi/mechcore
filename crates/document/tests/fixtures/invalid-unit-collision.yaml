@@ -1,19 +1,18 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: sledgehammer
-        index: 0
-        position: {x: 5, y: -100}
-      - name: crawler
-        index: 1
-        position: {x: 20, y: -95}
-        rotated: true
+blue:
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: 5, y: -100}
+    - name: crawler
+      index: 1
+      position: {x: 20, y: -95}
+      rotated: true
 
-  red:
-    units:
-      - name: marksman
-        index: 0
-        position: {x: 0, y: -50}
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}
