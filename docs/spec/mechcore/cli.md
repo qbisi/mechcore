@@ -197,9 +197,52 @@ spectator and a test read.
 
 The view carries the phase, the round, that side's own position with its
 uncommitted decisions applied, the round's reinforcement offers, whether the
-other side has committed, and the other side's board as the round opened. Which
-of the other side's fields a player may see is stated in
-[Unresolved](#unresolved).
+other side has committed, and what the next section leaves of the other side.
+
+### What a side sees of the other
+
+**The other side's past is visible and its round in progress is not.** The
+round it is deploying now is hidden whole, because deployment is simultaneous
+and that is what a round decides. Of the rounds it has committed, a player sees
+the position they reached and the decisions that reached it, less the five
+things below.
+
+Those five stay hidden for good, not until the next round, because none of them
+reaches a board. A side that unlocks Fang in round 1 and buys none has shown
+nothing: the unlock is not in its decisions, the unlocked type is not in its
+shop, and in round 2 its Fangs arrive beside whatever else it deployed, with no
+warning that they could. That is the difference between a decision whose
+consequence stands on the board and one whose consequence is only an option:
+
+| Hidden | Why |
+| --- | --- |
+| the other side's `supply` | what a player can afford is what a player plans, and no board shows it |
+| the other side's `shop` | a unit type unlocked and never bought leaves nothing to see |
+| its `unlock_unit` decisions, in every round | the same fact, said as a decision |
+| the header's `seed` | it deals this match: every opening and every round's offers follow from it |
+| the other side's opening `offers` | the four combinations are dealt to a side privately, as [battle.md](../document/battle.md) says |
+
+Everything else a committed round reached is visible: the units with their
+levels, experience, equipment and facing, the reactor core, the towers, the
+constructions, contraptions, terrains and airdrop shields, the officers, the
+technologies, the blueprints, the Energy Tower skills, the commander skill
+panel, the equipment a side holds unfitted, and the allocator in `next_index`,
+which the units and the reinforcements a side took already account for. The
+round's `reinforce_offers` are the same array for both sides and stay whole.
+
+`tech_loadout` is shown for the unit types that have stood on that side's
+board, and for no others. A loadout is chosen before the match and it bounds
+what a side may research; the rows a player has seen fielded are the rows that
+player has been shown the consequences of.
+
+`--omniscient` answers both sides in full, which is what a spectator and a test
+read. It is not a view any player is given.
+
+What a human is shown by the game is a different question, and
+[the visibility index](../../rules/visibility.md) holds what is known about it:
+the client carries both sides in full, so hiding is the interface's work; what
+the interface draws is not established, and this contract decides rather than
+reproduces it.
 
 `--wait` blocks until the match is waiting for that side again: a new round has
 opened, or the match is over. It is how a side that has committed learns what
@@ -405,10 +448,6 @@ is `--help`, and what it contracts to do is this document.
 
 ## Unresolved
 
-- Which of the other side's fields a player may see. The board as the round
-  opened is visible, and supply is not; officers, technologies, the skill panel
-  and the shop are not decided, and the answer is the game's rather than this
-  contract's.
 - Whether a match records the build that fought it, so that a match replayed
   under later rules is told apart from one replayed under the rules it was
   played under.
