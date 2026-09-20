@@ -315,7 +315,7 @@ impl BattleFixture {
         fs::write(&self.path, yaml).unwrap();
         Command::new(env!("CARGO_BIN_EXE_mechcore"))
             .arg("doc")
-        .arg("verify")
+            .arg("verify")
             .arg(&self.path)
             .output()
             .unwrap()
@@ -503,10 +503,18 @@ fn every_key_a_tracked_battle_writes_is_in_its_kind_schema() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|variant| variant["properties"]["type"]["const"].as_str().unwrap().to_owned())
+        .map(|variant| {
+            variant["properties"]["type"]["const"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        })
         .collect();
     let mut seen = 0;
-    for segment in segments.iter().filter(|segment| segment["kind"] == "action") {
+    for segment in segments
+        .iter()
+        .filter(|segment| segment["kind"] == "action")
+    {
         for side in ["blue", "red"] {
             for action in segment[side].as_sequence().into_iter().flatten() {
                 let named = action["type"].as_str().unwrap();

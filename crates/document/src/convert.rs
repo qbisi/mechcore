@@ -8,17 +8,16 @@
 //! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, DECLINED_OFFER, EquipmentItem, NextIndex, Opening,
-    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit,
-    Turn, TurnActions,
+    Action, Battle, BattleSide, DECLINED_OFFER, EquipmentItem, NextIndex, Opening, OpeningOffer,
+    PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
-use crate::layout::{
-    ContraptionPlacement, Experience, UnitPlacement, Position, Region, StaticPlacement,
-};
-use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
+use crate::layout::{
+    ContraptionPlacement, Experience, Position, Region, StaticPlacement, UnitPlacement,
+};
 use crate::opening;
+use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
 
@@ -88,7 +87,12 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         ));
     }
     for (seat, player) in [("blue", &blue), ("red", &red)] {
-        let rounds: Vec<i32> = player.rounds.entries.iter().map(|entry| entry.round).collect();
+        let rounds: Vec<i32> = player
+            .rounds
+            .entries
+            .iter()
+            .map(|entry| entry.round)
+            .collect();
         if rounds != match_rounds {
             return Err(format!(
                 "{seat} records rounds {rounds:?} while the match records {match_rounds:?}"
@@ -533,17 +537,17 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
             // Settled by the opening, which knows the round.
             movable: false,
             unit: UnitPlacement {
-            type_name: type_name.to_owned(),
-            index: unit.index,
-            position: seat.position(&unit.position),
-            // The record counts paid upgrades from zero; a layout displays the
-            // level from one.
-            level: Some(unit.level + 1).filter(|level| *level != 1),
-            exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
-            rotated: Some(unit.rotated).filter(|rotated| *rotated),
-            equipment: Some(unit.equipment_id).filter(|id| *id != 0),
-            // No recorded field states it; see docs/spec/document/battle.md.
-            travelling: None,
+                type_name: type_name.to_owned(),
+                index: unit.index,
+                position: seat.position(&unit.position),
+                // The record counts paid upgrades from zero; a layout displays the
+                // level from one.
+                level: Some(unit.level + 1).filter(|level| *level != 1),
+                exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
+                rotated: Some(unit.rotated).filter(|rotated| *rotated),
+                equipment: Some(unit.equipment_id).filter(|id| *id != 0),
+                // No recorded field states it; see docs/spec/document/battle.md.
+                travelling: None,
             },
         });
     }
@@ -1253,14 +1257,8 @@ mod tests {
         let battle = tuff();
         let first = round(&battle, 1);
         assert!(!battle.blue.constructions.is_empty());
-        assert_eq!(
-            battle.blue.constructions,
-            first.state.blue.constructions
-        );
-        assert_eq!(
-            battle.red.constructions,
-            first.state.red.constructions
-        );
+        assert_eq!(battle.blue.constructions, first.state.blue.constructions);
+        assert_eq!(battle.red.constructions, first.state.red.constructions);
         // The map deals the layout to both sides, and each reads it in its own
         // frame, so the two lists name the same buildings and not the same
         // positions.
@@ -1365,10 +1363,11 @@ mod tests {
         let battle = tuff();
         let blue = &round(&battle, 7).actions.blue;
         // Round 7 records three undos, and every retraction is gone.
-        assert!(!blue.iter().any(|action| matches!(
-            action,
-            Action::ChooseReinforceItem { id: Some(0), .. }
-        )));
+        assert!(
+            !blue
+                .iter()
+                .any(|action| matches!(action, Action::ChooseReinforceItem { id: Some(0), .. }))
+        );
         // The three purchases are moved in one recorded batch, and each
         // purchase takes where its formation's moves end: the Crawler ends on
         // the left flank, which is what makes it travel.

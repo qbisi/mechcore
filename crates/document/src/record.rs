@@ -424,7 +424,12 @@ mod tests {
         for player in &record.players.entries {
             assert_eq!(player.data.unit_datas.entries.len(), 34);
             assert_eq!(player.data.first_round_supply, 200);
-            let rounds: Vec<i32> = player.rounds.entries.iter().map(|entry| entry.round).collect();
+            let rounds: Vec<i32> = player
+                .rounds
+                .entries
+                .iter()
+                .map(|entry| entry.round)
+                .collect();
             assert_eq!(rounds, (0..9).collect::<Vec<_>>());
         }
     }
@@ -435,7 +440,12 @@ mod tests {
         let player = &record.players.entries[0];
         let fortress = &player.data.unit_datas.entries[0];
         assert_eq!(fortress.id, 1);
-        let mut techs: Vec<i32> = fortress.techs.entries.iter().map(|tech| tech.data).collect();
+        let mut techs: Vec<i32> = fortress
+            .techs
+            .entries
+            .iter()
+            .map(|tech| tech.data)
+            .collect();
         techs.sort_unstable();
         assert_eq!(techs, [1105, 10301, 10401, 10801]);
 
@@ -476,6 +486,11 @@ mod tests {
         assert_eq!(round.round, 7);
         assert_eq!(round.reinforce_items.arrays.len(), 1);
         assert_eq!(round.reinforce_items.arrays[0].values.len(), 4);
-        assert!(record.match_rounds.entries[0].reinforce_items.arrays.is_empty());
+        assert!(
+            record.match_rounds.entries[0]
+                .reinforce_items
+                .arrays
+                .is_empty()
+        );
     }
 }

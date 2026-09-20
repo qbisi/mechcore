@@ -5,8 +5,9 @@
 //! They are pinned to one build through [`crate::catalog`].
 
 use crate::catalog::{
-    BattleSkillMapRule, BattleSkillShape, BattleSkillSpec, NativeFormation, resolve_battle_skill_type,
-    resolve_construction_type, resolve_contraption_type, resolve_unit_type,
+    BattleSkillMapRule, BattleSkillShape, BattleSkillSpec, NativeFormation,
+    resolve_battle_skill_type, resolve_construction_type, resolve_contraption_type,
+    resolve_unit_type,
 };
 use crate::layout::{
     AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,

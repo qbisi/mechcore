@@ -52,8 +52,8 @@ impl McfrWriter {
             return Err(Error::invalid("game_build must not be empty"));
         }
         context.validate()?;
-        let layout =
-            mechcore_document::parse_embedded_yaml(layout_yaml.as_bytes()).map_err(Error::invalid)?;
+        let layout = mechcore_document::parse_embedded_yaml(layout_yaml.as_bytes())
+            .map_err(Error::invalid)?;
         match layout.seed {
             None => {
                 return Err(Error::invalid(

@@ -30,7 +30,12 @@ pub fn round_income(economy: &Economy, round: i32, officers: &[i32], map: RoundS
         .iter()
         .filter_map(|officer| economy.officer(*officer))
         .map(|row| {
-            row.round_supply + if round == 1 { row.first_round_supply } else { 0 }
+            row.round_supply
+                + if round == 1 {
+                    row.first_round_supply
+                } else {
+                    0
+                }
         })
         .sum();
     base + extra
