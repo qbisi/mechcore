@@ -40,31 +40,31 @@ steps:
       orbital_first: read_yaml(tests/layouts/skill-order-orbital-first.yaml)
       lightning_first: read_yaml(tests/layouts/skill-order-lightning-first.yaml)
 
-  - apply_layout:
+  - game.apply_layout:
       layout: $orbital_first
       seed: $seed
-  - record_battle:
+  - game.record_battle:
       output: ${out}/ab-1.mcfr
 
-  - apply_layout:
+  - game.apply_layout:
       layout: $orbital_first
       seed: $seed
-  - record_battle:
+  - game.record_battle:
       output: ${out}/ab-2.mcfr
 
-  - apply_layout:
+  - game.apply_layout:
       layout: $lightning_first
       seed: $seed
-  - record_battle:
+  - game.record_battle:
       output: ${out}/ba.mcfr
 
-  - compare:
+  - fight.compare:
       left: ${out}/ab-1.mcfr
       right: ${out}/ab-2.mcfr
     expect:
       equal: true
       content_equal: true
 
-  - compare:
+  - fight.compare:
       left: ${out}/ab-1.mcfr
       right: ${out}/ba.mcfr

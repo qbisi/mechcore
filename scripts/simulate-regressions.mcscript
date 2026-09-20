@@ -23,7 +23,7 @@ steps:
   - foreach: {case: $cases}
     where: {smoke: true}
     steps:
-      - sim:
+      - fight.run:
           layout: ${case.layout}
           seed: ${case.seed}
         expect:

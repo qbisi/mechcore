@@ -6,6 +6,6 @@ steps:
       captures: range(10000)
   - foreach: {capture: $captures}
     steps:
-      - record_watch_replay:
+      - game.record_watch_replay:
           wait_for_scene_seconds: 900
           match_timeout_seconds: 7200

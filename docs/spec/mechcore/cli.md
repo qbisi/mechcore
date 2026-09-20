@@ -264,10 +264,13 @@ under the names that protocol gives them: `status`, `start_test`,
 argument object that protocol defines and answers what it answers.
 
 Three more belong to the session rather than the game:
-[session.md](session.md) defines `launch`, `attach` and `detach`, their `--level`
-and what each refuses. Acquisition is declared, never inferred, and a command
-in this namespace that needs a game it has not acquired refuses with
-`unavailable` rather than starting one.
+[session.md](session.md) defines `launch`, `attach` and `detach`, their
+`--level` and what each refuses. Acquisition is declared, never inferred, so a
+command in this namespace declares `--attach`, and one that reaches no game
+refuses with `unavailable` rather than starting one. `--launch` is a session's
+and not a command's: a launched game is owned, and a command that launched one
+would shut it down as it exits, so launching belongs to the shell and to a run
+document.
 
 This namespace is the one place the running game is driven, and `match --fight
 game` reaches the game through it rather than around it.
