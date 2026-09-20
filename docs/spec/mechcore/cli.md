@@ -75,6 +75,12 @@ A shell line is a command with the program name dropped. A request is one JSON
 object on a line, answered by one JSON object on a line. A run step is a
 one-key mapping from the operation's name to its argument object.
 
+A caller that holds a session fills in the fields that session already knows,
+so the object reaching an operation is the same whoever wrote it. A
+[`shell`](#shell) with a match open supplies its document and its side, and an
+[`arena`](#arena) supplies them to a player that could not name them; the field
+is absent from what they write and present in what the operation reads.
+
 ## Results
 
 A result is one JSON object on standard output, carrying the `schema` of its
@@ -149,7 +155,11 @@ nothing behind but a lock the next one takes.
 A side is given, not claimed. `match new` hands the first caller blue and the
 second red, records both in the turn file, and refuses a third, so two players
 agree on a path and on nothing else. Every later operation names the side it
-was given, which says who is calling rather than asking for a side.
+was given, which says who is calling rather than asking for a side: a process
+that lives for one operation carries nothing between operations, and the turn
+file holds no process identity for it to be recognised by. A caller that lives
+longer names it once instead — a [`shell`](#shell) binds a side when it opens a
+match, and a player under an [`arena`](#arena) never names one at all.
 
 A match is in one of four phases:
 
@@ -454,15 +464,27 @@ kind this contract does not name is refused.
 `shell` opens a prompt whose every line is a command with the program name
 dropped, so a line in the shell and a command in a script are the same text.
 Options: `--launch`, `--attach` and `--level <0-4>` as
-[session.md](session.md) defines them, `--json`, and a match document to open.
+[session.md](session.md) defines them, `--json`, and a match document to open
+with the `--side` to play it as.
 
-With a match open, that match's verbs are written without their namespace and
-without the document: `act blue {type: buy_unit, name: marksman}`, `show blue`,
-`finish blue`. Every other line keeps its namespace.
+A shell that opens a match holds both the document and the side. `mechcore
+shell m.yaml --side blue` binds them, and so does the first line that opens a
+match: `match new m.yaml` binds the side it was handed, and `match show m.yaml
+--side red` binds the side it names. That match's verbs are then written
+without their namespace, without the document and without the side:
+`act {type: buy_unit, name: marksman}`, `show`, `commit`. Every other line
+keeps its namespace.
+
+Naming a side once is the session's version of naming it every time. A process
+that lives for one operation has nowhere to carry a side, so each command
+names the side it was given; a shell is one process for a whole match, so it
+is told once and nothing after that repeats what it already holds.
 
 `--json` makes the prompt a request stream: one JSON request per line in, one
-JSON result per line out, which is the protocol `arena` speaks to a player. The
-shell holds a session between lines, so a game acquired by one line is still
+JSON result per line out, which is the protocol `arena` speaks to a player.
+Those requests name neither the document nor the side, exactly as an arena's do
+not, so a program written against one runs under the other unchanged. The shell
+holds a session between lines, so a game acquired by one line is still
 acquired for the next.
 
 ## `run`
