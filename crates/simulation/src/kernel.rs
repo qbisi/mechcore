@@ -461,6 +461,13 @@ struct Actor {
     last_damage_source: Option<(ObjectRef, u32)>,
     motion: MotionState,
     next_attack_step: u64,
+    /// The interval this cycle was scheduled with, in logic ticks: the
+    /// description plus the stagger drawn for it. The build keeps the same
+    /// thing in `FightSkill.attackInterval` and answers it from
+    /// `GetCurrentAttackInterval`, and a recording carries it so the two can
+    /// be compared. Before a unit's first attack it is the description with
+    /// the draw its deployment took.
+    current_attack_interval: u64,
     motion_attack_hold_fire: bool,
     lock_target: Option<FightActorRef>,
     lock_is_terminal_handoff: bool,
@@ -560,6 +567,7 @@ impl Actor {
             last_damage_source: None,
             motion: MotionState::Idle,
             next_attack_step: 0,
+            current_attack_interval: 0,
             motion_attack_hold_fire: false,
             lock_target: None,
             lock_is_terminal_handoff: false,
@@ -769,10 +777,8 @@ impl Actor {
                 // and level with it for others, which nobody has read yet —
                 // `docs/spec/mcfr/mcfr.md` names that as the one field the two
                 // backends knowingly answer differently.
-                attack_interval: i32::try_from(
-                    self.stats.attack_interval() / LOGIC_TICK_TIME_UNITS,
-                )
-                .unwrap_or(i32::MAX),
+                current_attack_interval: i32::try_from(self.current_attack_interval)
+                    .unwrap_or(i32::MAX),
             },
         }
     }
@@ -1176,9 +1182,12 @@ impl Simulation {
                 })?
                 .ensure_current_kernel_support()?;
         }
-        let actors = initialize_actors(layout, configs, seed)?;
+        let mut actors = initialize_actors(layout, configs, seed)?;
         let mut team_random = BTreeMap::new();
-        for actor in actors.values() {
+        // Deployment draws one stagger per member, in identity order, and the
+        // build keeps it as that member's first interval. Nothing schedules an
+        // attack yet, so the draw is kept rather than consumed and discarded.
+        for actor in actors.values_mut() {
             let random = team_random.entry(actor.placement.team).or_insert_with(|| {
                 GrRandom::new(u64::from(
                     layout
@@ -1197,10 +1206,22 @@ impl Simulation {
                 } else {
                     1
                 };
-                for _ in 0..skill_count {
-                    let _initial_sample =
+                for index in 0..skill_count {
+                    let sample =
                         random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
+                    if index == 0 {
+                        actor.current_attack_interval = i64::try_from(native_time_units_to_steps(
+                            actor.stats.attack_interval(),
+                        ))
+                        .unwrap_or(i64::MAX)
+                        .saturating_add(i64::from(sample))
+                        .max(1)
+                        .cast_unsigned();
+                    }
                 }
+            } else {
+                actor.current_attack_interval =
+                    native_time_units_to_steps(actor.stats.attack_interval()).max(1);
             }
         }
         let buildings = initialize_buildings(training_ground)?;
@@ -3028,6 +3049,7 @@ impl Simulation {
                         .max(1)
                         .cast_unsigned();
                     actor.next_attack_step = step.saturating_add(sampled);
+                    actor.current_attack_interval = sampled;
                     let attack_point_steps =
                         native_time_units_to_steps(actor.rules.attack.attack_point_time_units());
                     actor.pending = Some(PendingRelease {
@@ -3921,6 +3943,7 @@ impl Simulation {
         Ok(())
     }
 
+    /// Schedules the next attack and remembers the interval it used.
     fn sample_actor_attack_interval(&mut self, actor_id: u64, step: u64) -> Result<u64> {
         let actor = self
             .actors
@@ -3945,6 +3968,9 @@ impl Simulation {
             .saturating_add(sample)
             .max(1)
             .cast_unsigned();
+        if let Some(actor) = self.actors.get_mut(&actor_id) {
+            actor.current_attack_interval = sampled;
+        }
         Ok(step.saturating_add(sampled))
     }
 

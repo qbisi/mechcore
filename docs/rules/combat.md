@@ -16,7 +16,7 @@ obvious an extension of it looks.
 **Not covered.** The order in which several members, or one member's several
 skills, consume that stream.
 
-## The stored interval carries a per-unit stagger
+## The current interval carries a per-cycle stagger
 
 `RefreshAttackInterval` writes a skill's `attackInterval` as
 `attackIntervalProperty.Value` divided by the logical step and truncated, and
@@ -25,7 +25,7 @@ description's interval.** It differs from it by a stagger drawn per unit from
 the unit's `attackDurationRandomValue`, which
 [`config/units/`](../../config/units) calls `interval_offset`:
 
-| Unit | Interval | Offset | Description in ticks | The build stored |
+| Unit | Interval | Offset | Description in ticks | At tick one |
 | --- | ---: | ---: | ---: | ---: |
 | Stormcaller | 6.6 | 0 | 132 | 132 |
 | Rhino | 0.9 | 0 | 18 | 18 |
@@ -46,9 +46,11 @@ Four claims, each measured:
   under three different match seeds and in four different fixtures, and the
   three above came out in spawn order. Whatever stream it comes from is not
   seeded by the match.
-- **It does not move during the fight.** Read at ticks 1, 2, 3, 5, 10, 20 and
-  40, every one of those numbers is the same, so the field is a stored
-  interval rather than a countdown.
+- **Every cycle draws again.** Three Marksmen read `55, 65, 56` at tick one,
+  `62, 70, 52` once their first shot has gone, then `72, 57, 64`. The number
+  is the interval the cycle in progress was scheduled with, so a unit's
+  cadence jitters from cycle to cycle rather than being staggered once at
+  deployment.
 
 **The draw is the team stream's, and it is signed.** The stream is the
 `GRRandom` this file's first rule describes, seeded `(round + teamIndex) *
@@ -78,9 +80,33 @@ the Marksman the thirteenth unit and a draw per formation makes it the second:
 those two places in the stream hold different numbers, 72 and 55, and the game
 stored **72**.
 
+### The stagger cannot be separated from the interval it rides on
+
+`GetCurrentAttackInterval` is an exact concept and the name is the build's
+own: it is the interval the unit is on **now**, and it is right for it to
+move, because a correction can arrive or leave mid-fight. Electromagnetic
+Explosion disables the target's technologies on hit, and a technology that
+corrects an attack interval stops correcting it for as long as that lasts —
+the current interval is where a reader would see that happen.
+
+What a reading cannot do is tell the two apart. One number carries both the
+composed interval and that cycle's stagger, and no single reading separates
+them.
+
+**Except where the offset is zero.** A unit whose `interval_offset` is zero
+draws nothing, so its current interval is the composed interval exactly, with
+nothing added. The Rhino, the Stormcaller, the Crawler and the Steel Ball are
+that kind, and they are what a measurement of an interval correction should be
+built on. Where a measurement must use a unit that does draw — the
+Sledgehammer is the only one that can hold an interval value and an interval
+rate at once — the stagger has to be cancelled rather than avoided, which is
+what `tests/layouts/modifier/interval-order.mcscript` does with three
+calibration fixtures.
+
 **Not covered.** What else consumes from the same stream once the fight is
-running. This is the stagger at deployment; the rest of the stream is nobody's
-measurement yet.
+running, and what the current interval does while a technology is disabled —
+`combat.md` has no reading of an interval that changes for a reason other than
+the stagger.
 
 This simulator schedules its own stagger — `sample_actor_attack_interval` adds
 a draw from the team stream to the next attack step — and reproduces the

@@ -2,7 +2,7 @@
 
 Every layout here exists to measure **the random stagger on a unit's first
 attack interval**, and nothing else. The rule they measure is
-[`combat.md`](../../../docs/rules/combat.md#the-stored-interval-carries-a-per-unit-stagger)'s:
+[`combat.md`](../../../docs/rules/combat.md#the-current-interval-carries-a-per-cycle-stagger)'s:
 
 ```text
 stored interval = description + GRRandom(round + team) × 4444).next_in_range(offset)
@@ -13,10 +13,12 @@ deployment — ascending world `z`, then `x` — in that member's own
 `interval_offset`, and no draw at all when the offset is zero.
 
 They are read, not fought. What each one answers is
-`derived.attack_interval`, which a recording has carried since MCFR 0.5.0, at
-any tick: the number is stored once and never moves. Nothing here needs the
-fight to reach any particular state, so the layouts are arranged for
-legibility rather than for a battle.
+`derived.current_attack_interval`, the interval the cycle in progress was
+scheduled with. **It is not one number per fight**: every cycle draws again,
+so a unit reads one value before its first shot and another after it. The
+fixtures are read at tick one, where every unit is still on the interval its
+deployment drew, and `stagger-three-marksmen.yaml` is also read later to show
+the redraw.
 
 | Fixture | What it separates | Reading |
 | --- | --- | --- |
