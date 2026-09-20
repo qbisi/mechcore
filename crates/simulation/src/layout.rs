@@ -7,6 +7,7 @@ use crate::{
     data::{Channel, Entry, Stats},
     officers::OfficerEffects,
     rules::{UnitConfig, UnitConfigs},
+    technologies::TechnologyEffects,
 };
 
 #[derive(Debug, Clone)]
@@ -68,6 +69,16 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
     compile_with_seed(bytes, units).map(|(_, layout)| layout)
 }
 
+/// The tables a side's corrections are read from.
+///
+/// One per source of an `ICommonMechDataChangeDataSource`: officers and
+/// technologies today, equipment and the energy tower's skills when their
+/// tables are extracted.
+struct Loadouts {
+    officers: OfficerEffects,
+    technologies: TechnologyEffects,
+}
+
 pub(crate) fn compile_with_seed(
     bytes: &[u8],
     units: &UnitConfigs,
@@ -86,9 +97,12 @@ pub(crate) fn compile_with_seed(
     if !missing.is_empty() {
         return Err(Error::new(missing.join("; ")));
     }
-    let officers = OfficerEffects::load()?;
-    let mut placements = compile_side("blue", 0, &plan.blue, units, &officers)?;
-    placements.extend(compile_side("red", 1, &plan.red, units, &officers)?);
+    let loadouts = Loadouts {
+        officers: OfficerEffects::load()?,
+        technologies: TechnologyEffects::load()?,
+    };
+    let mut placements = compile_side("blue", 0, &plan.blue, units, &loadouts)?;
+    placements.extend(compile_side("red", 1, &plan.red, units, &loadouts)?);
 
     Ok((
         plan.seed,
@@ -104,13 +118,13 @@ fn compile_side(
     team: u32,
     side: &SidePlan,
     units: &UnitConfigs,
-    officers: &OfficerEffects,
+    loadouts: &Loadouts,
 ) -> Result<Vec<Placement>> {
     side.units
         .iter()
         .enumerate()
         .map(|(index, formation)| {
-            compile_formation(name, team, index, formation, units, side, officers)
+            compile_formation(name, team, index, formation, units, side, loadouts)
         })
         .collect()
 }
@@ -122,7 +136,7 @@ fn compile_formation(
     formation: &mechcore_document::Placement,
     units: &UnitConfigs,
     side: &SidePlan,
-    officers: &OfficerEffects,
+    loadouts: &Loadouts,
 ) -> Result<Placement> {
     // Level, equipment and travelling are claimed fields and were refused by
     // the module registry before this ran; what is left is a placement that is
@@ -140,7 +154,7 @@ fn compile_formation(
         ))
     })?;
     validate_formation_footprint(side_name, formation, rules)?;
-    let corrections = loadout(side_name, &formation.type_name, rules, side, officers)?;
+    let corrections = loadout(side_name, &formation.type_name, rules, side, loadouts)?;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z, rotation) = if team == 0 {
@@ -174,11 +188,18 @@ fn loadout(
     type_name: &str,
     rules: &UnitConfig,
     side: &SidePlan,
-    officers: &OfficerEffects,
+    loadouts: &Loadouts,
 ) -> Result<Vec<(Channel, Entry)>> {
-    let corrections = officers
+    let mut corrections = loadouts
+        .officers
         .corrections(&side.techs.officers, type_name)
         .map_err(|error| Error::new(format!("side {side_name}: {error}")))?;
+    corrections.extend(
+        loadouts
+            .technologies
+            .corrections(&side.techs.units, type_name)
+            .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
+    );
     Stats::corrected(rules, &corrections).map_err(|error| {
         Error::new(format!(
             "side {side_name} unit type {type_name:?} carries a loadout this \
@@ -303,13 +324,20 @@ red:
         assert!(layout.placements[0].corrections.is_empty());
     }
 
+    /// A technology reaches the fight as corrections on the units its table
+    /// row names, and on nothing else.
     #[test]
-    fn rejects_features_not_owned_by_this_slice() {
+    fn a_technology_writes_onto_the_unit_that_researched_it() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
             "techs: {marksman: [range_enhancement]}\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
         );
-        assert!(compile_default(&value).is_err());
+        let layout = compile_default(&value).unwrap();
+        let blue = &layout.placements[0];
+        assert_eq!(blue.type_name, "marksman");
+        assert_eq!(blue.corrections.len(), 1, "forty metres of range");
+        assert_eq!(blue.corrections[0].0, Channel::Skill);
+        assert!(layout.placements[1].corrections.is_empty());
     }
 
     #[test]

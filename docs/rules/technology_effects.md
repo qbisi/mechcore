@@ -97,6 +97,28 @@ this direction rather than the officers' because a technology's text states
 effects this table does not carry, so requiring the text's numbers to be in the
 table would refuse the rows above.
 
+## What this build applies
+
+`crates/simulation/src/technologies.rs` turns a row into corrections on the
+unit its row names, tagged `Modifier` like an officer's. Of the 137 rows,
+**125** are applied — 43 of them on the eleven units the kernel fights — and
+the other 12 refuse the side that holds them:
+
+| Why | Rows |
+| --- | ---: |
+| it corrects a number this simulator does not derive: a minimum range, a splash radius, a projectile's speed or life | 7 |
+| its effect grows with rank, and which entry a rank reads is not established | 5 |
+
+A growing technology is refused rather than read at index zero, even though a
+layout's units are rank one: the index a rank reads is the question below, and
+guessing it would be a rule nobody measured.
+
+`technology.mcscript` is what says the channel reaches the game. One Arclight
+researching Range Enhancement while its side holds Extended Range Arclight
+answers 155 metres of the description's 95, and the recording stores the
+technology's `+40` and the officer's `+20` as **one** `attack_range_value` of
+`+60` — the build merges two sources exactly as it merges two officers.
+
 ## What is not established here
 
 - **What the other 96 technologies do**, in the terms a simulator needs. Each

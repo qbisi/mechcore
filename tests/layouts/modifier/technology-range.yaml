@@ -1,0 +1,30 @@
+kind: layout
+round: 1
+
+# Two sources writing the same number. Blue's Arclight researches Range
+# Enhancement, `attack_range_value` of `+40`, and blue also holds Extended
+# Range Arclight, an officer carrying `+20` of range and `-0.2` of damage.
+#
+# The Arclight reaches 95 metres by its description. If the values of two
+# sources sum — the `+ Σ value` of the composition rule, across sources rather
+# than within one — it reaches 155, and its damage is still the 292 the
+# officer alone gives, because the technology writes nothing onto damage.
+#
+# This is also the first fight a technology reaches at all: the corrections it
+# writes travel the same channel an officer's do, since `TechnologyData` and
+# `OfficerData` answer the same interface.
+
+blue:
+  officers: [extended_range_arclight]
+  techs:
+    arclight: [range_enhancement]
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

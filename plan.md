@@ -16,9 +16,9 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 | 字段 | 欠哪个模块 | 挡住多少回合 |
 | --- | --- | ---: |
 | ~~`officers`~~ | ~~Modifier~~ | **已落地**（曾是 334，100%） |
+| ~~`techs`~~ | ~~Modifier~~ | **已落地**（曾是 256，76%） |
 | `constructions` | FightConstructionSystem | 322 (96%) |
 | 单位 `level` > 1 | Modifier | 276 (82%) |
-| `techs` | Modifier | 256 (76%) |
 | `battle_skills` | CommanderSkillSystem | 176 (52%) |
 | 单位 `equipment` | Modifier | 167 (50%) |
 | `contraptions` | InterceptSystem | 161 (48%) |
@@ -163,6 +163,10 @@ architecture.md 的 Unresolved 里。
 **科技带来了军官带不来的两样东西**：一是效果按**等级**索引（`List<FPoint>`，精英射手九
 条），二是同一个数上可能同时出现 value 和 rate——那正是合成公式里唯一还只靠类结构、没被
 测量过的顺序。
+
+科技通道也接上了：`crates/simulation/src/technologies.rs` 把 137 行里的 **125** 行应用到
+对应单位上（43 行落在内核打得动的 11 个单位），其余 12 行指名拒绝——7 行修的数这个模拟器
+不推导，5 行随等级增长而哪一级读哪一条还没确立。
 
 装备和能量塔技能是同一个接口的另外两个实现，所以表的形状已经定了；它们的数据在别的
 Unity 对象里，还要各解析一次。

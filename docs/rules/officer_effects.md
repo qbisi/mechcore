@@ -140,11 +140,22 @@ channel, the table's raw `+20` unchanged, beside a `damage_rate` whose
 `reduce` half carries the impairment.
 
 So a value is a sum in the number's own unit, which is what
-`AdditiveDataFloat` doing nothing but summing meant. What no officer can ask
-is what happens when a value and a rate meet **on one number**: no officer
-carries both for the same stat, so the order in the formula above is the
-build's class structure rather than a measurement, and a technology will be
-the one to test it.
+`AdditiveDataFloat` doing nothing but summing meant.
+
+**The sum reaches across sources.** `technology.mcscript` gave one Arclight
+both Range Enhancement, a technology of `+40`, and Extended Range Arclight, an
+officer of `+20`: the game answered 155 metres of the description's 95, and
+stored the two as **one** `attack_range_value` of `+60`, exactly as it stores
+two officers' rates as one. Which is why this table's rule is
+[`technology_effects.md`](technology_effects.md)'s too.
+
+What still has no measurement is what happens when a value and a rate meet
+**on one number**. No officer carries both for one stat, no technology does
+either, and the three units that could hold one of each — Fortress, Scorpion,
+Sledgehammer, all on an attack interval — are units this simulator's kernel
+does not fight. So the order in the formula above is the build's class
+structure rather than a measurement, and closing it needs one of those units
+or an interval a recording carries.
 
 ### A plain integer is a value too, and it sums
 
