@@ -176,8 +176,15 @@ any order, and a match is the same match whichever order they take.
 
 A round is fought when both sides have committed. A side that has not committed
 when the header's deployment time runs out has lost the match, which ends there
-and is not fought. Any operation that finds a round due, either way, settles it
-before it answers, so nothing has to be watching for the clock.
+and is not fought; the document states that side's loss as its concession,
+which is the one way a battle says that a side lost a round nobody fought. Any
+operation that finds a round due, either way, settles it before it answers, so
+nothing has to be watching for the clock.
+
+The clock runs on the rounds that are fought, so the opening has none. A match
+nobody has opened is a file rather than a stalled round: no round has been
+played, nothing is waiting on the other side, and a player that never joins
+costs the other nothing it could have won.
 
 **Running out of time loses, and that is this contract's simplification.** The
 tracked replays never show a round running out: every side of every deployment
@@ -202,7 +209,9 @@ Every option may be left out. A seed nobody chose is drawn, a map nobody chose
 is drawn from the maps this build has an opening initialization for, and a
 deployment time nobody chose is the 100 seconds a standard match deploys in.
 All three are written into the header, so a match nobody configured is as
-reproducible as one somebody did.
+reproducible as one somebody did. A side that names no loadout carries every
+technology this build gives its units, which is the most a side could have
+chosen and makes a dealt match the build's rather than an absent account's.
 
 Whichever caller names the document first deals the match and writes that
 header; the second joins it. A join that names a seed, map or deployment time
@@ -304,6 +313,14 @@ position has as many spellings as the board has places, so a list of them would
 be a shape of its own to define and to keep true; asking about one decision is
 exact, and it is the same code path that would take it.
 
+A decision is settled by the rules and then the position it leaves is put on
+the board: what it costs and what it holds are the transition's, and where a
+formation may stand is the layout compiler's, which is the same check the
+layout a fight runs over passes. So a purchase that the supply does not cover,
+a unit type the shop has not unlocked, a move off the board's grid and a
+formation placed on top of another are all refused here, each naming which
+rule refused it.
+
 Refuses a decision the rules do not settle, naming the reason the transition
 gives; refuses a side that has already committed the round, and a decision in a
 phase that does not hold one.
@@ -340,9 +357,13 @@ the same fight whenever it is run again. Nothing else answers a fight: a caller
 cannot hand a match an outcome it did not fight, because a document that reads
 like a played match has to be one.
 
-A fight nothing can resolve is refused, naming what is missing, and the match
-stays in the `fight` phase with both sides' decisions standing. Nothing
-approximates a fight it cannot resolve. No recording is kept: a round's fight
+A fight nothing can resolve is answered rather than refused: the match stays in
+the `fight` phase with both sides' decisions standing, and the answer's
+`unresolved` names what is missing. It is an answer because the commits that
+reached it stand — a commit cannot be taken back — and because every later
+operation takes the lock and tries the fight again, so a match stopped by a gap
+carries on by itself once the gap closes. Nothing approximates a fight it
+cannot resolve. No recording is kept: a round's fight
 is run again from the match itself, which `doc project` writes the layout for.
 
 ## `arena`
