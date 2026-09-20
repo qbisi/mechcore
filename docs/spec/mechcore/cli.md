@@ -147,7 +147,7 @@ Deals a match and writes its header.
 
 Operands: the match document to create. Options: `--seed <i32>`, `--map <i32>`,
 `--loadout <side>=<file>` for each side's technology loadout, `--fight
-sim|game|external` for the backend its fights are resolved by, and `--force` to
+sim|game` for the backend its fights are resolved by, and `--force` to
 replace an existing document.
 
 Answers the header it wrote: the seed, the map, and each side's opening offers
@@ -200,8 +200,7 @@ Ends one side's deployment, which is the native `FinishDeploy`, and answers
 with the next round.
 
 Operands: the match document. Options: `--side blue|red`, `--timeout
-<seconds>`, `--no-wait`, `--fight <backend>` to override the match's own, and
-`--outcome <file>` for the `external` backend.
+<seconds>`, `--no-wait`, and `--fight <backend>` to override the match's own.
 
 A commit waits for the other side. When both sides have committed, the fight is
 resolved and the round after it is opened, and the commit answers with that
@@ -227,19 +226,24 @@ the experience each unit gains, and which contraptions, terrains and airdrop
 shields remain. Everything else in the next position is the transition's, and
 is predicted rather than fought.
 
-| Backend | How it resolves |
-| --- | --- |
-| `sim` | the deterministic simulator, over the layout the position projects onto |
-| `game` | the game, through `game apply_layout` and `game record_battle` |
-| `external` | an outcome document the caller supplies |
+| Backend | How it fights | What it answers with |
+| --- | --- | --- |
+| `sim` | the deterministic simulator, over the layout the position projects onto | a recording, and the same fight again from the same seed |
+| `game` | the game, through `game apply_layout` and `game record_battle` | a recording of what the game did, which another run of the game need not repeat |
+
+Both fight and then read their answer out of the recording they produced, so
+the five fields are read one way whoever fought. A fight is answered by nobody
+else: a caller cannot hand a match an outcome it did not fight, because a
+document that reads like a played match has to be one.
 
 A backend that cannot resolve the fight refuses it, naming what it does not
 carry, and the match stays in the `fight` phase with both commits standing.
 Nothing approximates a fight it cannot resolve.
 
-An outcome document is `mechcore.fight-outcome.v1` and carries exactly those
-five fields per side. It is what `external` reads and what every backend
-answers, so an outcome may be recorded, replayed and compared.
+An outcome is `mechcore.fight-outcome.v1`: the five fields per side, and where
+they came from, which is the backend that fought, the recording it produced and
+the build it fought under. A `game` fight is not repeatable from a seed, so the
+outcome is what a match keeps of it.
 
 ## `arena`
 
