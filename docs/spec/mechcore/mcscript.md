@@ -33,7 +33,7 @@ vars:               # optional
   grbr: tests/grbr/example.grbr
   out: work/research/example
 steps:              # required, at least one
-  - record_replay_round:
+  - game.record_replay_round:
       grbr: $grbr
       round: 2
       output: $out/replay.mcfr
@@ -55,7 +55,7 @@ execution.** Nothing is probed and no game is started, so `--check` answers
 recording-comparison work share the same runner as native capture.
 
 An acquired game is released on every exit path. A game this run started is
-shut down through `quit_game`; a game it found already running is left running.
+shut down through `game.quit_game`; a game it found already running is left running.
 
 `level:` is what this run outranks, in `0..=4`, defaulting to `1`. A script
 whose level is strictly above the level of the client currently holding the
@@ -75,29 +75,32 @@ The acquisition states, their failure codes and what evicts what are in
 
 ## Operations
 
+A step names an operation of [cli.md](cli.md) as `<namespace>.<verb>`, so a
+step and a command say the same thing. `let` is the exception: it binds names
+and belongs to this document alone.
+
 This table says which operations need a game and what the script layer adds to
-each. A native operation's own arguments, result and refusals are
+each. A game operation's own arguments, result and refusals are
 [adapter.md](../adapter/adapter.md)'s, and a step passes them through rather
-than redefining them. The three offline operations, `let`, `compare` and `sim`,
-exist only here and are described below.
+than redefining them.
 
 | Operation | Needs a game | Notes |
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
-| `compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
-| `sim` | no | `layout`, optional `seed`, `output`; same report as `mechcore fight run` |
-| `status` | yes | current status snapshot |
-| `start_test` | yes | optional `seed`, `map_id`; rarely needed, see `apply_layout` |
-| `apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
-| `record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
-| `record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
-| `toggle_fight` | yes | |
-| `speed_up` | yes | standalone operation, distinct from the recording field |
-| `quit_match` | yes | |
-| `quit_game` | yes | |
+| `fight.compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
+| `fight.run` | no | `layout`, optional `seed`, `output`; same report as `mechcore fight run` |
+| `game.status` | yes | current status snapshot |
+| `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
+| `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
+| `game.record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
+| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
+| `game.record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
+| `game.toggle_fight` | yes | |
+| `game.speed_up` | yes | standalone operation, distinct from the recording field |
+| `game.quit_match` | yes | |
+| `game.quit_game` | yes | |
 
-For `record_battle` and `record_replay_round`, a recording refuses to overwrite
+For `game.record_battle` and `game.record_replay_round`, a recording refuses to overwrite
 its destination, and a script does not declare otherwise. Whether to replace
 an existing recording is a property of the run,
 not of the script: the same document is run once to produce its outputs and
@@ -109,7 +112,7 @@ The deletion happens in the client either way. The Adapter still refuses to
 write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
 
-`record_battle` and `record_replay_round` accept a research-only HDF5 sidecar request:
+`game.record_battle` and `game.record_replay_round` accept a research-only HDF5 sidecar request:
 
 ```yaml
 instrumentation:
@@ -124,29 +127,29 @@ carries one is rejected. RVO scope selects 1–8 unique positive MCFR unit IDs a
 64 ticks of update starts; delayed publications can appear after `end_tick`.
 This instrumentation is separate from MCFR and does not participate in its hash.
 
-`compare` returns the verdict, the two recording summaries, and the first
+`fight.compare` returns the verdict, the two recording summaries, and the first
 divergent tick. It omits the divergent tick states unless `verbose: true`,
 because those are whole world snapshots and a script that only wanted to know
 whether two recordings match should not carry megabytes of units through its
 log. `mechcore fight compare` always prints them.
 
-`sim` runs the deterministic simulator on a layout and returns the same result
+`fight.run` runs the deterministic simulator on a layout and returns the same result
 object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
 a dotted path like `hashes.physics_result_hash`. It needs no game, which is
 what lets `scripts/simulate-regressions.mcscript` drive the whole regression
 manifest offline. Omit `output` unless the run should also publish an MCFR.
 
-`apply_layout` owns the whole transaction from the main menu: it creates the
+`game.apply_layout` owns the whole transaction from the main menu: it creates the
 Training Ground itself and brings it to the layout's activation round. A layout
 already carries both the seed and the round, so nothing needs threading through
-a separate `start_test`, and calling `start_test` first is refused.
+a separate `game.start_test`, and calling `game.start_test` first is refused.
 
 It takes a layout object. Read one from disk with `read_yaml`, or take the
 authoritative one out of a replay recording with `embedded_layout`. To record
 one layout under several seeds, use the wrapper form:
 
 ```yaml
-- apply_layout:
+- game.apply_layout:
     layout: $layout
     seed: 1787720817
 ```
@@ -164,8 +167,8 @@ A string that is **exactly** one reference keeps the referenced value's type; a
 reference embedded in longer text is stringified and spliced:
 
 ```yaml
-- apply_layout: {layout: $layout, seed: $case.seed}  # stays a number
-- record_battle: {output: $out/battle.mcfr}          # becomes a path string
+- game.apply_layout: {layout: $layout, seed: $case.seed}  # stays a number
+- game.record_battle: {output: $out/battle.mcfr}          # becomes a path string
 ```
 
 `${name.field}` delimits the reference explicitly. A bare reference runs to
@@ -188,11 +191,11 @@ Only inside a `let` value.
 without a separate conversion step:
 
 ```yaml
-- record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
+- game.record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
 - let:
     layout: embedded_layout($out/replay.mcfr)
-- start_test: {seed: $layout.seed}
-- apply_layout: $layout
+- game.start_test: {seed: $layout.seed}
+- game.apply_layout: $layout
 ```
 
 ## Expectations
@@ -205,7 +208,7 @@ A key may be a dotted path, because the values worth asserting are nested: a
 recording reports `operation.tick_count`, not `tick_count`.
 
 ```yaml
-- compare:
+- fight.compare:
     left: $out/replay.mcfr
     right: $out/training.mcfr
   expect:
@@ -221,7 +224,7 @@ recording reports `operation.tick_count`, not `tick_count`.
 - foreach: {case: $cases}
   where: {smoke: true}
   steps:
-    - apply_layout: {layout: $layout, seed: ${case.seed}}
+    - game.apply_layout: {layout: $layout, seed: ${case.seed}}
 ```
 
 The source is any list value, so a loop consumes a data file rather than
@@ -247,7 +250,7 @@ hidden inside a loop to evade an offline script's `game:` requirement.
 
 ### Unattended standard 1v1 corpus recording
 
-`record_watch_replay` is one long, atomic native transaction. It refreshes the
+`game.record_watch_replay` is one long, atomic native transaction. It refreshes the
 server matchmaking watch list, selects an eligible scene at round one, watches
 through the result, and returns to the main menu. By default the result is the
 file already saved in the game's own `ProjectDatas/Replay` directory. Setting
@@ -281,7 +284,7 @@ steps:
       captures: range(10000)
   - foreach: {capture: $captures}
     steps:
-      - record_watch_replay:
+      - game.record_watch_replay:
           wait_for_scene_seconds: 900
           match_timeout_seconds: 7200
 ```
@@ -377,16 +380,16 @@ vars:
   out: work/research/tuff-replay-vs-training
 
 steps:
-  - record_replay_round:
+  - game.record_replay_round:
       grbr: $grbr
       round: 2
       output: $out/replay.mcfr
   - let:
       layout: embedded_layout($out/replay.mcfr)
-  - apply_layout: $layout
-  - record_battle:
+  - game.apply_layout: $layout
+  - game.record_battle:
       output: $out/training.mcfr
-  - compare:
+  - fight.compare:
       left: $out/replay.mcfr
       right: $out/training.mcfr
     expect:
@@ -414,10 +417,10 @@ steps:
     steps:
       - let:
           layout: read_yaml(${case.layout})
-      - apply_layout:
+      - game.apply_layout:
           layout: $layout
           seed: ${case.seed}
-      - record_battle:
+      - game.record_battle:
           output: $out/${case.name}.mcfr
         expect:
           operation.tick_count: ${case.tick_count}
@@ -434,7 +437,7 @@ them wastes a capture run:
   manifest. Nothing is written back automatically; the manifest is edited
   deliberately, so a refresh is a reviewable diff rather than a side effect.
 
-Because `apply_layout` creates the Training Ground itself, cases run one after
+Because `game.apply_layout` creates the Training Ground itself, cases run one after
 another in a single game process. Only the first pays the cold start.
 
 ## Unresolved

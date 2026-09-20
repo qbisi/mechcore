@@ -70,8 +70,11 @@ impl Failure {
         }
     }
 
-    /// Writes the failure as the contract's error object, and answers its code.
-    fn report(&self, operation: &str) -> ExitCode {
+    /// Writes the failure as the contract's error object.
+    ///
+    /// A prompt writes one and reads the next line; a command writes one and
+    /// exits, and both say the same thing in the same place.
+    pub(crate) fn write(&self, operation: &str) {
         let error = serde_json::json!({
             "schema": "mechcore.error.v1",
             "kind": self.kind.name(),
@@ -79,6 +82,11 @@ impl Failure {
             "reason": self.reason,
         });
         eprintln!("{error}");
+    }
+
+    /// Writes the failure and answers the exit code its kind decides.
+    fn report(&self, operation: &str) -> ExitCode {
+        self.write(operation);
         ExitCode::from(self.kind.code())
     }
 }

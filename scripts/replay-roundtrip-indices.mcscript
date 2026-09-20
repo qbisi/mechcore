@@ -28,32 +28,32 @@ vars:
   grbr: /Users/qbisi/mechcore/tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr
 
 steps:
-  - record_replay_round:
+  - game.record_replay_round:
       grbr: $grbr
       round: 2
       output: ${out}/replay-r2.mcfr
   - let:
       layout_r2: embedded_layout(${out}/replay-r2.mcfr)
-  - apply_layout: $layout_r2
-  - record_battle:
+  - game.apply_layout: $layout_r2
+  - game.record_battle:
       output: ${out}/training-r2.mcfr
-  - compare:
+  - fight.compare:
       left: ${out}/replay-r2.mcfr
       right: ${out}/training-r2.mcfr
     expect:
       equal: true
       content_equal: true
 
-  - record_replay_round:
+  - game.record_replay_round:
       grbr: $grbr
       round: 7
       output: ${out}/replay-r7.mcfr
   - let:
       layout_r7: embedded_layout(${out}/replay-r7.mcfr)
-  - apply_layout: $layout_r7
-  - record_battle:
+  - game.apply_layout: $layout_r7
+  - game.record_battle:
       output: ${out}/training-r7.mcfr
-  - compare:
+  - fight.compare:
       left: ${out}/replay-r7.mcfr
       right: ${out}/training-r7.mcfr
     expect:

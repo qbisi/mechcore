@@ -1,35 +1,42 @@
 //! Interactive REPL frontend.
 //!
-//! The shell owns the game process when it launched one, and never when it
-//! attached to one. Acquisition is declared up front with `--launch` or
-//! `--attach`, or performed later from the prompt; a shell started with
-//! neither is offline and refuses native commands. See `docs/spec/mechcore/session.md`.
+//! A line is a command with the program name dropped, so what works here works
+//! on a command line and in a run document. The shell owns the game process
+//! when it launched one, and never when it attached to one. Acquisition is
+//! declared up front with `--launch` or `--attach`, or performed later with
+//! `game launch` and `game attach`; a shell started with neither is offline and
+//! refuses the game's operations. See `docs/spec/mechcore/session.md`.
 
 use crate::acquire::{Mode, Ownership};
+use crate::cli::Args;
 use crate::session::Session;
-use mechcore_protocol::RecordBattleInstrumentation;
 use serde_json::Value;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 const HELP: &str = "\
-acquisition
-  launch                          start a game and own it
-  attach                          join a running game, leaving it to its owner
-  detach                          release an attached game
-native
-  status                          current status snapshot
-  start_test [seed] [--map-id id]  create the layout-test Training Ground
-  apply_layout <layout.yaml> [seed]
-                                  create the test and reach the layout's round
-  record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f]
-                                  -f replaces an existing destination
-  record_replay_round <in.grbr> <round> <out.mcfr> [-f]
-  toggle_fight                    start the current fight
-  speed_up                        request battle speed-up
-  quit_match                      leave the active test, replay or watch
-  quit_game                       shut the game down
+A line is a command with `mechcore` dropped, so `doc verify x.yaml` here and
+`mechcore doc verify x.yaml` outside are the same command.
+
+the game
+  game launch                     start a game and own it
+  game attach                     join a running game, leaving it to its owner
+  game detach                     release an attached game
+  game status                     current status snapshot
+  game start_test [--seed s] [--map-id id]
+  game apply_layout <layout.yaml> [--seed s]
+  game record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f]
+  game record_replay_round <in.grbr> <round> <out.mcfr> [-f]
+  game record_watch_replay [--output-dir <dir>]
+  game toggle_fight               start the current fight
+  game speed_up                   request battle speed-up
+  game quit_match                 leave the active test, replay or watch
+  game quit_game                  shut the game down
+offline
+  doc verify | format | diff      documents on disk
+  replay convert                  a native replay
+  fight run | compare | verify    one fight
+  man [<topic>]                   the manual this binary carries
 shell
   help                            this list
   quit | exit                     leave the shell";
@@ -62,7 +69,7 @@ async fn run_async(mode: Option<Mode>, level: u8) -> Result<(), String> {
     } else {
         write(
             &mut out,
-            "offline shell; `launch` or `attach` to acquire a game, `help` for commands\n",
+            "offline shell; `game launch` or `game attach` to acquire one, `help` for commands\n",
         )
         .await;
     }
@@ -114,25 +121,66 @@ async fn dispatch(
     level: u8,
     out: &mut tokio::io::Stdout,
 ) -> Flow {
-    let mut words = line.split_whitespace();
-    let command = words.next().unwrap_or_default();
-    let arguments: Vec<&str> = words.collect();
+    let mut words = line.split_whitespace().map(str::to_owned);
+    let namespace = words.next().unwrap_or_default();
+    let mut arguments = Args::new(words);
 
-    match command {
+    match namespace.as_str() {
         "help" => {
             write(out, &format!("{HELP}\n")).await;
-            return Flow::Continue;
+            Flow::Continue
         }
-        "quit" | "exit" => return Flow::Quit,
+        "quit" | "exit" => Flow::Quit,
+        "game" => {
+            game(session, ownership, level, out, arguments).await;
+            Flow::Continue
+        }
+        "doc" | "replay" | "fight" | "man" => {
+            let outcome = match namespace.as_str() {
+                "doc" => crate::doc::run(arguments),
+                "replay" => crate::replay::run(arguments),
+                "fight" => crate::fight::run(arguments),
+                _ => crate::man::run(arguments),
+            };
+            if let Err(failure) = outcome {
+                failure.write(&namespace);
+            }
+            Flow::Continue
+        }
+        other => {
+            let _ = arguments.operands();
+            write(
+                out,
+                &format!("{other} is not a command here; `help` lists them\n"),
+            )
+            .await;
+            Flow::Continue
+        }
+    }
+}
+
+/// The game's own namespace, which is the only one holding a session.
+async fn game(
+    session: &Arc<Session>,
+    ownership: &mut Option<Ownership>,
+    level: u8,
+    out: &mut tokio::io::Stdout,
+    mut arguments: Args,
+) {
+    let verb = match arguments.operand("a verb") {
+        Ok(verb) => verb,
+        Err(failure) => return failure.write("game"),
+    };
+    match verb.as_str() {
         "launch" | "attach" => {
-            let mode = if command == "launch" {
+            let mode = if verb == "launch" {
                 Mode::Launch
             } else {
                 Mode::Attach
             };
             if ownership.is_some() {
                 write(out, "already holding a game; detach or quit first\n").await;
-                return Flow::Continue;
+                return;
             }
             match session.acquire(mode, level).await {
                 Ok(owned) => {
@@ -141,175 +189,37 @@ async fn dispatch(
                 }
                 Err(failure) => write(out, &format!("{failure}\n")).await,
             }
-            return Flow::Continue;
         }
-        "detach" => {
-            match ownership.take() {
-                None => write(out, "not holding a game\n").await,
-                Some(owned @ Ownership::Owned { .. }) => {
-                    // Refuse silently dropping a game we started: quitting is
-                    // the explicit path, so the user cannot orphan it here.
-                    *ownership = Some(owned);
-                    write(
-                        out,
-                        "this shell owns the game; use quit_game then quit, or quit to shut it down\n",
-                    )
-                    .await;
-                }
-                Some(Ownership::Attached) => {
-                    session.disconnect_adapter().await;
-                    write(out, "detached; the game keeps running\n").await;
-                }
-            }
-            return Flow::Continue;
-        }
-        _ => {}
-    }
-
-    if ownership.is_none() {
-        write(
-            out,
-            &format!("{command} needs a game; run `launch` or `attach` first\n"),
-        )
-        .await;
-        return Flow::Continue;
-    }
-
-    let result = native(command, &arguments, session).await;
-    match result {
-        Ok(value) => write(out, &format!("{}\n", render(&value))).await,
-        Err(message) => write(out, &format!("error: {message}\n")).await,
-    }
-    Flow::Continue
-}
-
-async fn native(
-    command: &str,
-    arguments: &[&str],
-    session: &Arc<Session>,
-) -> Result<Value, String> {
-    match command {
-        "status" => Ok(session.current_status()),
-        "start_test" => {
-            let (seed_args, map_id) = match arguments {
-                [_, "--map-id", map] => (
-                    &arguments[..1],
-                    Some(
-                        map.parse::<i32>()
-                            .map_err(|_| "map_id must be an integer")?,
-                    ),
-                ),
-                ["--map-id", map] => (
-                    &arguments[..0],
-                    Some(
-                        map.parse::<i32>()
-                            .map_err(|_| "map_id must be an integer")?,
-                    ),
-                ),
-                _ => (arguments, None),
-            };
-            let seed = match seed_args {
-                [] => None,
-                [value] => Some(
-                    value
-                        .parse::<i32>()
-                        .map_err(|_| format!("seed must be a signed 32-bit integer: {value}"))?,
-                ),
-                _ => return Err("usage: start_test [seed] [--map-id id]".into()),
-            };
-            session.start_test(seed, map_id).await
-        }
-        "apply_layout" => {
-            let (path, seed) = match arguments {
-                [path] => (path, None),
-                [path, seed] => (
-                    path,
-                    Some(
-                        seed.parse::<i32>()
-                            .map_err(|_| format!("seed must be a signed 32-bit integer: {seed}"))?,
-                    ),
-                ),
-                _ => return Err("usage: apply_layout <layout.yaml> [seed]".into()),
-            };
-            let text = std::fs::read_to_string(path)
-                .map_err(|error| format!("cannot read {path}: {error}"))?;
-            let layout: Value = serde_yaml::from_str(&text)
-                .map_err(|error| format!("cannot parse {path}: {error}"))?;
-            session.apply_layout(layout, seed).await
-        }
-        "record_battle" => {
-            let (output, video, speed_up, force) = parse_record_battle(arguments)?;
-            session
-                .record_battle(
-                    output,
-                    video,
-                    speed_up,
-                    force,
-                    None::<RecordBattleInstrumentation>,
+        "detach" => match ownership.take() {
+            None => write(out, "not holding a game\n").await,
+            Some(owned @ Ownership::Owned { .. }) => {
+                // Refuse silently dropping a game we started: quitting is
+                // the explicit path, so the user cannot orphan it here.
+                *ownership = Some(owned);
+                write(
+                    out,
+                    "this shell owns the game; use game quit_game then quit, \
+                     or quit to shut it down\n",
                 )
-                .await
-                .map_err(|value| render(&value))
-        }
-        "record_replay_round" => {
-            const USAGE: &str =
-                "usage: record_replay_round <in.grbr> <round> <out.mcfr> [-f|--force]";
-            let ([grbr, round, output], rest) = match arguments {
-                [grbr, round, output, rest @ ..] => ([grbr, round, output], rest),
-                _ => return Err(USAGE.into()),
-            };
-            let force = match rest {
-                [] => false,
-                ["-f" | "--force"] => true,
-                _ => return Err(USAGE.into()),
-            };
-            let round = round
-                .parse::<i32>()
-                .map_err(|_| format!("round must be an integer: {round}"))?;
-            session
-                .record_replay_round(
-                    PathBuf::from(grbr),
-                    round,
-                    PathBuf::from(output),
-                    None,
-                    force,
-                    None,
-                )
-                .await
-        }
-        "toggle_fight" => session.toggle_fight().await,
-        "speed_up" => session.speed_up().await,
-        "quit_match" => session.quit_match().await,
-        "quit_game" => session.quit_game().await,
-        other => Err(format!("unknown command {other}; try `help`")),
-    }
-}
-
-type RecordBattleArgs = (PathBuf, Option<PathBuf>, Option<bool>, bool);
-
-/// `record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up]`
-///
-/// The two options are independent: video and speed-up coexist.
-fn parse_record_battle(arguments: &[&str]) -> Result<RecordBattleArgs, String> {
-    const USAGE: &str =
-        "usage: record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f|--force]";
-    let [output, rest @ ..] = arguments else {
-        return Err(USAGE.into());
-    };
-    let mut video = None;
-    let mut speed_up = None;
-    let mut force = false;
-    let mut rest = rest.iter();
-    while let Some(argument) = rest.next() {
-        match *argument {
-            "--video" if video.is_none() => {
-                video = Some(PathBuf::from(rest.next().ok_or(USAGE)?));
+                .await;
             }
-            "--no-speed-up" if speed_up.is_none() => speed_up = Some(false),
-            "-f" | "--force" if !force => force = true,
-            _ => return Err(USAGE.into()),
+            Some(Ownership::Attached) => {
+                session.disconnect_adapter().await;
+                write(out, "detached; the game keeps running\n").await;
+            }
+        },
+        _ if ownership.is_none() => {
+            write(
+                out,
+                &format!("game {verb} needs a game; run `game launch` or `game attach` first\n"),
+            )
+            .await;
         }
+        _ => match crate::game::operate(&verb, arguments, session).await {
+            Ok(value) => write(out, &format!("{}\n", render(&value))).await,
+            Err(failure) => failure.write("game"),
+        },
     }
-    Ok((PathBuf::from(output), video, speed_up, force))
 }
 
 fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
@@ -352,7 +262,7 @@ fn prompt(ownership: Option<&Ownership>, session: &Arc<Session>) -> String {
     format!("{label}> ")
 }
 
-fn render(value: &Value) -> String {
+pub(crate) fn render(value: &Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
 }
 
@@ -393,64 +303,23 @@ mod tests {
         );
     }
 
+    /// Help lists what a line may say: every game operation, every offline
+    /// namespace, and the shell's own two words.
     #[test]
-    fn record_battle_arguments_accept_only_the_documented_forms() {
-        // Omitting the flag leaves the default to the adapter, which speeds up.
-        assert_eq!(
-            parse_record_battle(&["/tmp/a.mcfr"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None, None, false)
-        );
-        assert_eq!(
-            parse_record_battle(&["/tmp/a.mcfr", "--no-speed-up"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None, Some(false), false)
-        );
-        assert_eq!(
-            parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov"]).unwrap(),
-            (
-                PathBuf::from("/tmp/a.mcfr"),
-                Some(PathBuf::from("/tmp/a.mov")),
-                None,
-                false
-            )
-        );
-        // The options are independent, in either order.
-        assert_eq!(
-            parse_record_battle(&["/tmp/a.mcfr", "--video", "/tmp/a.mov", "--no-speed-up"])
-                .unwrap(),
-            (
-                PathBuf::from("/tmp/a.mcfr"),
-                Some(PathBuf::from("/tmp/a.mov")),
-                Some(false),
-                false
-            )
-        );
-        // Force is independent of the other two and has both spellings.
-        assert_eq!(
-            parse_record_battle(&["/tmp/a.mcfr", "-f"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None, None, true)
-        );
-        assert_eq!(
-            parse_record_battle(&["/tmp/a.mcfr", "--force"]).unwrap(),
-            (PathBuf::from("/tmp/a.mcfr"), None, None, true)
-        );
-        assert!(parse_record_battle(&["/tmp/a.mcfr", "--no-speed-up", "--no-speed-up"]).is_err());
-        assert!(parse_record_battle(&["/tmp/a.mcfr", "-f", "--force"]).is_err());
-        assert!(parse_record_battle(&[]).is_err());
-        assert!(parse_record_battle(&["/tmp/a.mcfr", "--video"]).is_err());
-    }
-
-    #[test]
-    fn help_lists_every_native_command_the_shell_dispatches() {
+    fn help_lists_every_command_a_line_may_be() {
+        for command in crate::game::OPERATIONS {
+            assert!(HELP.contains(command), "{command} missing from help");
+        }
         for command in [
-            "status",
-            "start_test",
-            "apply_layout",
-            "record_battle",
-            "record_replay_round",
-            "toggle_fight",
-            "speed_up",
-            "quit_match",
-            "quit_game",
+            "game launch",
+            "game attach",
+            "game detach",
+            "doc",
+            "replay",
+            "fight",
+            "man",
+            "help",
+            "quit",
         ] {
             assert!(HELP.contains(command), "{command} missing from help");
         }

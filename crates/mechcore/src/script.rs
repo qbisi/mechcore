@@ -25,20 +25,20 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 /// Operations that require an acquired game.
 const NATIVE: &[&str] = &[
-    "status",
-    "start_test",
-    "apply_layout",
-    "record_battle",
-    "record_replay_round",
-    "record_watch_replay",
-    "toggle_fight",
-    "speed_up",
-    "quit_match",
-    "quit_game",
+    "game.status",
+    "game.start_test",
+    "game.apply_layout",
+    "game.record_battle",
+    "game.record_replay_round",
+    "game.record_watch_replay",
+    "game.toggle_fight",
+    "game.speed_up",
+    "game.quit_match",
+    "game.quit_game",
 ];
 
 /// Operations that run without a game.
-const OFFLINE: &[&str] = &["let", "compare", "sim"];
+const OFFLINE: &[&str] = &["let", "fight.compare", "fight.run"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -615,25 +615,25 @@ async fn perform(
             }
             Ok(Value::Object(bound))
         }
-        "compare" => {
+        "fight.compare" => {
             let fields = arguments
                 .as_object()
-                .ok_or("compare takes left and right paths")?;
+                .ok_or("fight.compare takes left and right paths")?;
             let left = scope.path(
-                fields.get("left").ok_or("compare needs left")?,
-                "compare left",
+                fields.get("left").ok_or("fight.compare needs left")?,
+                "fight.compare left",
             )?;
             let right = scope.path(
-                fields.get("right").ok_or("compare needs right")?,
-                "compare right",
+                fields.get("right").ok_or("fight.compare needs right")?,
+                "fight.compare right",
             )?;
             let detailed = optional_flag(fields.get("verbose"), "compare verbose")?;
             let (_, report) = fight::compare(&left, &right, detailed.unwrap_or(false))?;
             Ok(report)
         }
-        "sim" => simulate(arguments, scope),
-        "status" => Ok(session.current_status()),
-        "start_test" => {
+        "fight.run" => simulate(arguments, scope),
+        "game.status" => Ok(session.current_status()),
+        "game.start_test" => {
             let seed = arguments
                 .as_object()
                 .and_then(|fields| fields.get("seed"))
@@ -653,11 +653,11 @@ async fn perform(
                 .transpose()?;
             session.start_test(seed, map_id).await
         }
-        "apply_layout" => {
+        "game.apply_layout" => {
             let (layout, seed) = split_layout_arguments(arguments)?;
             session.apply_layout(layout, seed).await
         }
-        "record_battle" => {
+        "game.record_battle" => {
             let fields = arguments
                 .as_object()
                 .ok_or("record_battle takes a mapping")?;
@@ -669,7 +669,7 @@ async fn perform(
                 .get("video_output")
                 .map(|value| scope.path(value, "record_battle video_output"))
                 .transpose()?;
-            let speed_up = optional_flag(fields.get("speed_up"), "record_battle speed_up")?;
+            let speed_up = optional_flag(fields.get("speed_up"), "game.record_battle speed_up")?;
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
@@ -687,7 +687,7 @@ async fn perform(
                 .await
                 .map_err(|value| value.to_string())
         }
-        "record_replay_round" => {
+        "game.record_replay_round" => {
             let fields = arguments
                 .as_object()
                 .ok_or("record_replay_round takes a mapping")?;
@@ -706,7 +706,8 @@ async fn perform(
                 .and_then(Value::as_i64)
                 .and_then(|value| i32::try_from(value).ok())
                 .ok_or("record_replay_round needs an integer round")?;
-            let speed_up = optional_flag(fields.get("speed_up"), "record_replay_round speed_up")?;
+            let speed_up =
+                optional_flag(fields.get("speed_up"), "game.record_replay_round speed_up")?;
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
@@ -722,7 +723,7 @@ async fn perform(
                 )
                 .await
         }
-        "record_watch_replay" => {
+        "game.record_watch_replay" => {
             let fields = arguments
                 .as_object()
                 .ok_or("record_watch_replay takes a mapping")?;
@@ -755,10 +756,10 @@ async fn perform(
                 .record_watch_replay(output_dir, wait_for_scene_seconds, match_timeout_seconds)
                 .await
         }
-        "toggle_fight" => session.toggle_fight().await,
-        "speed_up" => session.speed_up().await,
-        "quit_match" => session.quit_match().await,
-        "quit_game" => session.quit_game().await,
+        "game.toggle_fight" => session.toggle_fight().await,
+        "game.speed_up" => session.speed_up().await,
+        "game.quit_match" => session.quit_match().await,
+        "game.quit_game" => session.quit_game().await,
         other => Err(format!("unknown operation {other}")),
     }
 }
@@ -906,17 +907,17 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
 fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
     let fields = arguments
         .as_object()
-        .ok_or("sim takes a mapping with layout and optional seed and output")?;
+        .ok_or("fight.run takes a mapping with layout and optional seed and output")?;
     for key in fields.keys() {
         if !matches!(key.as_str(), "layout" | "seed" | "output") {
             return Err(format!(
-                "sim accepts only layout, seed and output, got {key}"
+                "fight.run accepts only layout, seed and output, got {key}"
             ));
         }
     }
     let layout = scope.path(
-        fields.get("layout").ok_or("sim needs layout")?,
-        "sim layout",
+        fields.get("layout").ok_or("fight.run needs layout")?,
+        "fight.run layout",
     )?;
     let seed = match fields.get("seed") {
         None | Some(Value::Null) => None,
@@ -924,12 +925,12 @@ fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
             value
                 .as_i64()
                 .and_then(|seed| i32::try_from(seed).ok())
-                .ok_or("sim seed must be a signed 32-bit integer")?,
+                .ok_or("fight.run seed must be a signed 32-bit integer")?,
         ),
     };
     let output = match fields.get("output") {
         None | Some(Value::Null) => None,
-        Some(value) => Some(scope.path(value, "sim output")?),
+        Some(value) => Some(scope.path(value, "fight.run output")?),
     };
     let result = mechcore_simulation::simulate_layout(&layout, output.as_deref(), seed)
         .map_err(|error| format!("{}: {error}", layout.display()))?;
@@ -1032,7 +1033,7 @@ mod tests {
         let session = Session::new();
         let mut scope = scope_with(&[]);
         let call = Call {
-            operation: "record_battle".into(),
+            operation: "game.record_battle".into(),
             arguments: json!({"output": "/tmp/a.mcfr", "force": true}),
             expect: None,
         };
@@ -1044,26 +1045,27 @@ mod tests {
 
     #[test]
     fn offline_scripts_may_not_use_native_operations() {
-        let script = Script::parse("steps:\n  - start_test: {}\n").unwrap();
+        let script = Script::parse("steps:\n  - game.start_test: {}\n").unwrap();
         let error = script.check().unwrap_err();
-        assert!(error.contains("start_test"), "{error}");
+        assert!(error.contains("game.start_test"), "{error}");
         assert!(error.contains("game:"), "{error}");
     }
 
     #[test]
     fn offline_scripts_accept_offline_operations() {
-        let script = Script::parse("steps:\n  - compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
+        let script =
+            Script::parse("steps:\n  - fight.compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
 
-        let script = Script::parse("steps:\n  - sim: {layout: a.yaml, seed: 7}\n").unwrap();
+        let script = Script::parse("steps:\n  - fight.run: {layout: a.yaml, seed: 7}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
     }
 
     #[test]
     fn a_declared_game_admits_native_operations() {
-        let script = Script::parse("game: launch\nsteps:\n  - start_test: {}\n").unwrap();
+        let script = Script::parse("game: launch\nsteps:\n  - game.start_test: {}\n").unwrap();
         assert!(script.check().is_ok());
         assert_eq!(script.game, Some(Mode::Launch));
     }
@@ -1077,13 +1079,13 @@ mod tests {
     #[test]
     fn expect_is_not_mistaken_for_an_operation() {
         let script = Script::parse(
-            "game: attach\nsteps:\n  - status: {}\n    expect: {status: main_menu}\n",
+            "game: attach\nsteps:\n  - game.status: {}\n    expect: {status: main_menu}\n",
         )
         .unwrap();
         let Step::Call(call) = &script.steps[0] else {
             panic!("expected a plain operation");
         };
-        assert_eq!(call.operation, "status");
+        assert_eq!(call.operation, "game.status");
         assert!(call.expect.is_some());
     }
 
@@ -1132,19 +1134,21 @@ mod tests {
     #[test]
     fn a_loop_body_cannot_smuggle_a_native_operation_past_the_offline_rule() {
         let script = Script::parse(
-            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - record_battle: {output: a}\n",
+            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - game.record_battle: {output: a}\n",
         )
         .unwrap();
         let error = script.check().unwrap_err();
-        assert!(error.contains("record_battle"), "{error}");
+        assert!(error.contains("game.record_battle"), "{error}");
         assert!(error.contains("game:"), "{error}");
     }
 
     #[test]
     fn foreach_requires_one_binding_and_a_body() {
         assert!(
-            Script::parse("steps:\n  - foreach: {a: $x, b: $y}\n    steps:\n      - status: {}\n")
-                .is_err()
+            Script::parse(
+                "steps:\n  - foreach: {a: $x, b: $y}\n    steps:\n      - game.status: {}\n"
+            )
+            .is_err()
         );
         assert!(Script::parse("game: attach\nsteps:\n  - foreach: {case: $c}\n").is_err());
         assert!(
@@ -1156,7 +1160,7 @@ mod tests {
     #[test]
     fn nested_loops_are_refused() {
         let error = Script::parse(
-            "steps:\n  - foreach: {a: $x}\n    steps:\n      - foreach: {b: $y}\n        steps:\n          - compare: {left: a, right: b}\n",
+            "steps:\n  - foreach: {a: $x}\n    steps:\n      - foreach: {b: $y}\n        steps:\n          - fight.compare: {left: a, right: b}\n",
         )
         .unwrap_err();
         assert!(error.contains("a loop inside foreach"), "{error}");
@@ -1164,8 +1168,8 @@ mod tests {
 
     #[test]
     fn loop_only_keys_are_refused_on_a_plain_operation() {
-        let error =
-            Script::parse("game: attach\nsteps:\n  - status: {}\n    steps: []\n").unwrap_err();
+        let error = Script::parse("game: attach\nsteps:\n  - game.status: {}\n    steps: []\n")
+            .unwrap_err();
         assert!(error.contains("belongs to foreach"), "{error}");
     }
 
@@ -1179,7 +1183,7 @@ mod tests {
         assert_eq!(optional_flag(Some(&json!(true)), "x").unwrap(), Some(true));
         // A multiplier is not a thing the native vote can express, so a number
         // must be refused rather than silently treated as "on".
-        let error = optional_flag(Some(&json!(3)), "record_battle speed_up").unwrap_err();
+        let error = optional_flag(Some(&json!(3)), "game.record_battle speed_up").unwrap_err();
         assert!(error.contains("true or false"), "{error}");
     }
 
@@ -1197,13 +1201,14 @@ mod tests {
 
     #[test]
     fn watch_recording_is_native_and_its_timeouts_are_unsigned() {
-        let script = Script::parse("game: launch\nsteps:\n  - record_watch_replay: {}\n").unwrap();
+        let script =
+            Script::parse("game: launch\nsteps:\n  - game.record_watch_replay: {}\n").unwrap();
         assert!(script.check().is_ok());
 
         let session = Session::new();
         let mut scope = scope_with(&[]);
         let call = Call {
-            operation: "record_watch_replay".into(),
+            operation: "game.record_watch_replay".into(),
             arguments: json!({
                 "output_dir": "/tmp/corpus",
                 "wait_for_scene_seconds": -1,
@@ -1224,24 +1229,25 @@ mod tests {
 
     #[test]
     fn level_is_bounded_and_belongs_to_a_script_that_takes_a_game() {
-        let script = Script::parse("game: launch\nlevel: 0\nsteps:\n  - status: {}\n").unwrap();
+        let script =
+            Script::parse("game: launch\nlevel: 0\nsteps:\n  - game.status: {}\n").unwrap();
         assert_eq!(script.level, 0);
         // Ordinary work outranks a background batch without saying anything.
-        let script = Script::parse("game: attach\nsteps:\n  - status: {}\n").unwrap();
+        let script = Script::parse("game: attach\nsteps:\n  - game.status: {}\n").unwrap();
         assert_eq!(script.level, DEFAULT_LEVEL);
         assert!(script.level > 0);
 
-        assert!(Script::parse("game: attach\nlevel: 5\nsteps:\n  - status: {}\n").is_err());
-        assert!(Script::parse("game: attach\nlevel: -1\nsteps:\n  - status: {}\n").is_err());
-        assert!(Script::parse("game: attach\nlevel: high\nsteps:\n  - status: {}\n").is_err());
+        assert!(Script::parse("game: attach\nlevel: 5\nsteps:\n  - game.status: {}\n").is_err());
+        assert!(Script::parse("game: attach\nlevel: -1\nsteps:\n  - game.status: {}\n").is_err());
+        assert!(Script::parse("game: attach\nlevel: high\nsteps:\n  - game.status: {}\n").is_err());
         // A level with nothing to order is a mistake worth naming.
-        let error =
-            Script::parse("level: 2\nsteps:\n  - compare: {left: a, right: b}\n").unwrap_err();
+        let error = Script::parse("level: 2\nsteps:\n  - fight.compare: {left: a, right: b}\n")
+            .unwrap_err();
         assert!(error.contains("game:"), "{error}");
     }
 
     #[test]
     fn game_accepts_only_the_two_declaration_spellings() {
-        assert!(Script::parse("game: auto\nsteps:\n  - status: {}\n").is_err());
+        assert!(Script::parse("game: auto\nsteps:\n  - game.status: {}\n").is_err());
     }
 }

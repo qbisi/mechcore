@@ -186,17 +186,32 @@ is answerable without holding it.
 ### mechcore shell
 
 ```sh
-mechcore shell            # offline; native commands report how to acquire
+mechcore shell            # offline; a game operation reports how to acquire
 mechcore shell --launch
 mechcore shell --attach --level 3
 ```
 
 `--launch` and `--attach` are mutually exclusive. `--level` declares what the
-session outranks, defaulting to `1`, and applies to the REPL's own `launch` and
-`attach` as well. The REPL additionally offers
-`launch`, `attach`, and `detach`, so a session may start offline, run a
-comparison, and acquire the game only when needed. `detach` on an owned session
-requires confirmation, or `quit`.
+session outranks, defaulting to `1`, and applies to the prompt's own
+`game launch` and `game attach` as well. The prompt offers `game launch`,
+`game attach` and `game detach`, so a session may start offline, run a
+comparison, and acquire the game only when needed. `game detach` on an owned
+session requires confirmation, or `quit`.
+
+### mechcore game
+
+A command is one operation and then an exit, so it declares `--attach` and
+leaves the game to whoever is keeping it alive:
+
+```sh
+mechcore game status --attach
+mechcore game apply_layout layout.yaml --attach --level 3
+```
+
+`--launch` is refused there. A launched game is **owned**, and ownership is
+what shuts it down, so a command that launched one would take it down as it
+exits; a session that outlives one operation, which is the shell and a run
+document, is where launching belongs.
 
 ## Error taxonomy
 
