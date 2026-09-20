@@ -7,13 +7,13 @@ mod game;
 mod instant;
 mod man;
 mod r#match;
-mod modifiers;
 mod outcome;
 mod replay;
 mod scene;
 mod script;
 mod session;
 mod shell;
+mod stats;
 mod turn;
 
 use std::process::ExitCode;
@@ -29,7 +29,7 @@ fn usage(program: &str) {
     eprintln!("       {program} replay convert <replay.grbr> <battle.yaml> [--force]");
     eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
     eprintln!("       {program} fight outcome <recording.mcfr>");
-    eprintln!("       {program} fight modifiers <recording.mcfr> [--tick <n>]");
+    eprintln!("       {program} fight stats <recording.mcfr> [--tick <n>]");
     eprintln!("       {program} fight compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} fight verify <recording.mcfr>...");
     eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");

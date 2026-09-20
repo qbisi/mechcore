@@ -1,9 +1,9 @@
 //! The `fight` namespace: one fight, simulated or compared.
 //!
 //! `run` simulates a layout, `outcome` reads what a recorded fight decided,
-//! `modifiers` reads what was written onto its units, `compare` puts two
-//! recordings side by side, and `verify` simulates a recording's own layout
-//! again and compares the result with what the recording holds.
+//! `stats` reads a unit's numbers and the corrections behind them, `compare`
+//! puts two recordings side by side, and `verify` simulates a recording's own
+//! layout again and compares the result with what the recording holds.
 
 use std::path::{Path, PathBuf};
 
@@ -20,15 +20,15 @@ use crate::cli::{Args, Failure, Outcome, Verdict};
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
-    let verb = arguments.operand("a verb: run, outcome, modifiers, compare or verify")?;
+    let verb = arguments.operand("a verb: run, outcome, stats, compare or verify")?;
     let outcome = match verb.as_str() {
         "run" => simulate(arguments),
         "outcome" => outcome(arguments),
-        "modifiers" => modifiers(arguments),
+        "stats" => stats(arguments),
         "compare" => compare_recordings(arguments),
         "verify" => verify(arguments),
         other => Err(Failure::usage(format!(
-            "fight has no verb {other:?}; it has run, outcome, modifiers, compare and verify"
+            "fight has no verb {other:?}; it has run, outcome, stats, compare and verify"
         ))),
     };
     outcome.map_err(|failure| failure.at(format!("fight.{verb}")))
@@ -51,17 +51,17 @@ fn outcome(mut arguments: Args) -> Outcome {
     Ok(settled.into())
 }
 
-/// Answers what a recording holds written onto its units.
+/// Answers what a recording holds about a unit's numbers at one tick.
 ///
-/// This is an input to a fight rather than something it decided, which is why
-/// it is its own verb: a capture is read here for what the build stored, and
-/// in `outcome` for what the build then computed.
-fn modifiers(mut arguments: Args) -> Outcome {
+/// A correction is an input to a fight rather than something it decided, and
+/// so is the number derived from it, which is why neither belongs in
+/// `outcome`. Both halves are here because a capture reads them together.
+fn stats(mut arguments: Args) -> Outcome {
     let format = arguments.format()?;
     let tick = arguments.parsed::<u32>("--tick", "a tick the recording holds")?;
     let recording = arguments.path("a recording of a fight")?;
     arguments.finish()?;
-    let written = crate::modifiers::read(&recording, tick)?;
+    let written = crate::stats::read(&recording, tick)?;
     crate::cli::emit(&written, format)?;
     Ok(Verdict::Yes)
 }

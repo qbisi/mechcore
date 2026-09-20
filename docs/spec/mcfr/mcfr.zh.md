@@ -1,11 +1,11 @@
-# MCFR v6 格式规范（format 0.3.0）
+# MCFR v6 格式规范（format 0.4.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR v6 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.3.0"
+format = "0.4.0"
 ```
 
 当前 Adapter 原生字段映射绑定游戏 build `1.11.1.3.2259`。其他 build 可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -86,12 +86,12 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.3.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.4.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
 | `physics_hash_profile` | 精确值 `battle-physics-v1` | 稳定物理投影版本 |
 | `physics_result_hash` | 64 位小写十六进制 | 全部 `physics_tick_hash` 的有序摘要；回归判断依据 |
-| `content_hash_profile` | 精确值 `mcfr-content-0.3.0` | 完整内容摘要版本 |
+| `content_hash_profile` | 精确值 `mcfr-content-0.4.0` | 完整内容摘要版本 |
 | `content_result_hash` | 64 位小写十六进制 | 全部 `content_tick_hash` 的有序摘要；格式内诊断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -119,7 +119,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.3.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.4.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -141,6 +141,29 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `skill_dynamic_modifiers` | required sparse list | 各技能的非零动态修正 | 见 2.6 |
 | `personal_shield` | required struct | 单位个人能量盾状态 | 见 2.7 |
 | `weapon_aims` | required list | 主技能与子技能的各武器通道状态 | 见 2.8 |
+| `derived` | required struct | 战斗实际读取的那几个数，即所有修正作用之后的结果 | 见 2.9 |
+
+## 2.9 `derived`
+
+上面那几个 modifier 结构说的是**写到**单位身上的东西；这一个说的是 build 由它们**算出来**
+的东西。测量一条合成规则时要读的正是这两半，而把两半都记下来意味着读数是"一份录像的一个
+tick"，而不是"一场被设计成结果能区分候选假设的战斗"。
+
+| 字段 | 类型 | 原生来源 |
+| --- | --- | --- |
+| `move_speed` | `INT64 required`，Q32.32 原始值 | `FightMech.GetMoveSpeed()` |
+| `attack_range` | `INT64 required`，Q32.32 原始值 | 0 号技能槽的 `FightSkill.GetAttackRange()` |
+| `attack_damage` | `INT32 required` | 0 号技能槽的 `FightSkill.GetNormalDamage(0)` |
+
+0 号槽就是模拟器所建模的那个技能。各槽不同的单位目前不在闭包内；等它进来时这里会长成
+按槽的列表，而分歧会先在内容层暴露出来——那正是这一层的用途。
+
+**攻击间隔是故意不记的。** build 把它存成 `FPoint` 秒，模拟器数的是整数时间单位，两者
+无法在不指定"谁的舍入算数"的前提下比较；要记它，得取 build 自己的整数间隔，并用一次捕获
+证明两边一致。
+
+这些都是内容层字段。物理层不哈希它们，所以加上它们之后，所有已录制的
+`physics_result_hash` 一个都没变。
 
 ## 2.3 `status_mask`
 
@@ -565,9 +588,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.3.0 身份规则
+## B.1 format 0.4.0 身份规则
 
-format `0.3.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.4.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -644,13 +667,13 @@ physics_result_hash = H_battle-physics-result-v1(
 
 因此物理回归仍精确引用逻辑时间、Q32.32 位置/角度/速度、生命与护盾以及伤害等相互作用，但不会因增加纯诊断字段而要求重录。
 
-## C.3 完整内容层 `mcfr-content-0.3.0`
+## C.3 完整内容层 `mcfr-content-0.4.0`
 
-完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.3.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
+完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.4.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
 
 ```text
-content_tick_hash(t) = H_content-tick-0.3.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-content_result_hash  = H_content-result-0.3.0(
+content_tick_hash(t) = H_content-tick-0.4.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+content_result_hash  = H_content-result-0.4.0(
     LE_u32(tick_count),
     content_tick_hash(1)..content_tick_hash(n)
 )

@@ -242,13 +242,16 @@ red:
 
 /// What was written onto a fight's units, which is not what the fight decided.
 ///
-/// The simulator writes no correction yet — `Modifier` is unimplemented and a
-/// layout carrying an officer is refused — so a recording it produced holds
-/// none, and this pins the shape and the empty answer. The officer case is
-/// measured against the game by `tests/layouts/modifier/composition.mcscript`, which
-/// asserts the stored rates this verb reads.
+/// Both halves of a unit's numbers, read out of a recording.
+///
+/// This layout carries no officer, so nothing is written onto either unit and
+/// the corrections are neutral — and every formation still answers, with the
+/// numbers its description alone gives. That is the case a control is read
+/// for, and it is also what says the derived numbers are recorded rather than
+/// inferred. The corrected cases are measured against the game by the scripts
+/// under `tests/layouts/modifier/`.
 #[test]
-fn modifiers_read_a_tick_and_answer_what_it_holds() {
+fn stats_read_a_tick_and_answer_both_halves() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -267,27 +270,33 @@ fn modifiers_read_a_tick_and_answer_what_it_holds() {
     );
 
     let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "modifiers"])
+        .args(["fight", "stats"])
         .arg(&recording)
         .output()
         .unwrap();
     assert!(read.status.success());
     let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(written["schema"], "mechcore.fight-modifiers.v1");
+    assert_eq!(written["schema"], "mechcore.fight-stats.v1");
     assert_eq!(written["tick"], 1, "the first tick is the default");
     assert!(written["ticks"].as_u64().unwrap() > 1);
-    for side in ["blue", "red"] {
-        assert!(
-            written["sides"][side].as_array().unwrap().is_empty(),
-            "{written}"
-        );
-    }
+    // Every formation answers. A Marksman's description gives 8 m/s, 140 m
+    // and 2329 of damage, and nothing here corrects any of them.
+    let blue = &written["sides"]["blue"][0];
+    assert_eq!(blue["name"], "marksman", "{written}");
+    assert_eq!(blue["derived"]["move_speed"], 8_i64 << 32);
+    assert_eq!(blue["derived"]["attack_range"], 140_i64 << 32);
+    assert_eq!(blue["derived"]["attack_damage"], 2329);
+    assert!(
+        blue.get("unit").is_none() && blue.get("skill").is_none(),
+        "a neutral channel is left out: {written}"
+    );
+    assert_eq!(written["sides"]["red"][0]["name"], "arclight", "{written}");
 
     // A tick the recording does not hold is refused rather than answered from
     // the nearest one it does.
     let beyond = written["ticks"].as_u64().unwrap() + 1_000;
     let refused = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "modifiers"])
+        .args(["fight", "stats"])
         .arg(&recording)
         .arg("--tick")
         .arg(beyond.to_string())

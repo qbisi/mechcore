@@ -50,10 +50,11 @@ steps:
     expect:
       operation.tick_count: 104
       operation.hashes.physics_result_hash: f263a6ec4d94dfd0980244aa5225713cc3ecaeb08ba5013d316832ee6e56e4a8
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/speed-once.mcfr
     expect:
       sides.red.0.unit.move_speed_value: 3
+      sides.red.0.derived.move_speed: 81604378624
 
   - game.apply_layout:
       layout: $twice
@@ -67,7 +68,10 @@ steps:
       recording: ${out}/speed-twice.mcfr
     expect:
       sides.red.survivors.0.life: 14639
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/speed-twice.mcfr
     expect:
       sides.red.0.unit.move_speed_value: 6
+      # 16 m/s and two officers of three: the clock reading the tick count
+      # gave, now a number the recording carries outright.
+      sides.red.0.derived.move_speed: 94489280512

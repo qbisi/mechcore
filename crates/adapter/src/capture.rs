@@ -11,13 +11,13 @@ use mechcore_document::{
     contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32,
-    LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPose,
-    QVec3, RateModifier, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
-    TerrainType, TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility,
-    WeaponAimState, WorldSnapshot,
+    BuffModifierSet, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
+    GaugeI32, LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState,
+    ProjectileState, QPose, QVec3, RateModifier, Rational, ShieldDestroyedReason,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillDynamicModifierSet,
+    SkillNumericModifierState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
+    UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState, WorldSnapshot,
 };
 pub(crate) use mechcore_protocol::{CaptureInstrumentationProfile, RvoCaptureScope};
 use serde::Serialize;
@@ -6916,7 +6916,16 @@ fn read_unit(
         | (u64::from(invoke_value::<bool>(api, unit, "IsRecoverDisabled")?) << 3);
     let buff_modifiers = read_buff_modifiers(api, buff_manager)?;
     let unit_dynamic_modifiers = read_unit_modifiers(api, unit)?;
-    let (skill_dynamic_modifiers, weapon_aims, weapon_targets) = read_skill_state(api, unit)?;
+    let (skill_dynamic_modifiers, weapon_aims, weapon_targets, skill_derived) =
+        read_skill_state(api, unit)?;
+    // The numbers the fight reads, from the build's own properties. A
+    // recording that carries these answers how a correction composes without
+    // a fight being arranged to distinguish the candidates.
+    let derived = DerivedStats {
+        move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
+        attack_range: skill_derived.attack_range,
+        attack_damage: skill_derived.attack_damage,
+    };
     let formation = api
         .invoke(unit, "GetMechTeam", &mut [])
         .map_err(|error| error.to_string())?;
@@ -6964,6 +6973,7 @@ fn read_unit(
             skill_dynamic_modifiers,
             personal_shield,
             weapon_aims,
+            derived,
         },
         target_refs,
     })
@@ -7083,7 +7093,16 @@ type SkillState = (
     Vec<SkillNumericModifierState>,
     Vec<WeaponAimState>,
     Vec<usize>,
+    SkillDerived,
 );
+
+/// What the first skill's properties answer, which is the skill the simulator
+/// models. A unit with no skill at all answers zeroes.
+#[derive(Default)]
+struct SkillDerived {
+    attack_range: i64,
+    attack_damage: i32,
+}
 
 fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
     let all_skills = invoke_object(api, unit, "GetSkills")?;
@@ -7092,9 +7111,16 @@ fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
     let mut modifiers = Vec::with_capacity(capacity);
     let mut aims = Vec::new();
     let mut targets = Vec::new();
+    let mut derived = SkillDerived::default();
     for slot in 0..count {
         let skill = list_item(api, all_skills, slot)?;
         let skill_slot = u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?;
+        if slot == 0 {
+            derived = SkillDerived {
+                attack_range: invoke_value::<FixedPoint>(api, skill, "GetAttackRange")?.raw,
+                attack_damage: invoke_int_value(api, skill, "GetNormalDamage", 0)?,
+            };
+        }
         modifiers.push(SkillNumericModifierState {
             skill_slot,
             modifiers: read_skill_modifiers(api, skill)?,
@@ -7134,7 +7160,23 @@ fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
     let mut paired = aims.into_iter().zip(targets).collect::<Vec<_>>();
     paired.sort_by_key(|(aim, _)| (aim.skill_slot, aim.weapon_index));
     let (aims, targets) = paired.into_iter().unzip();
-    Ok((modifiers, aims, targets))
+    Ok((modifiers, aims, targets, derived))
+}
+
+/// Calls a method that takes one `System.Int32` and answers one.
+fn invoke_int_value(
+    api: Api,
+    object: *mut Object,
+    method: &str,
+    argument: i32,
+) -> Result<i32, String> {
+    let mut argument = argument;
+    api.invoke_value(
+        object,
+        method,
+        &mut [std::ptr::from_mut(&mut argument).cast::<std::ffi::c_void>()],
+    )
+    .map_err(|error| error.to_string())
 }
 
 fn read_skill_modifiers(api: Api, skill: *mut Object) -> Result<SkillDynamicModifierSet, String> {
@@ -9281,6 +9323,7 @@ mod tests {
                 },
             },
             weapon_aims: Vec::new(),
+            derived: DerivedStats::default(),
         }
     }
 

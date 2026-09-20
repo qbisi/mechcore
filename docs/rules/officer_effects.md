@@ -87,7 +87,7 @@ game played. The truncation is visible in the first number on its own:
 `2329 × 1.2999999998` is 3027.6999, and the build keeps 3027.
 
 The recordings say the same thing a second way, from the other side of the
-question, which `mechcore fight modifiers` reads. The `once` recording stores
+question, which `mechcore fight stats` reads. The `once` recording stores
 `damage_rate.add` of `1288490188` in the Marksman's **skill** channel — the officer table's `+0.3` exactly — and the
 `twice` recording stores `2576980376`, which is that number doubled. **The
 build sums two officers where it writes them**, so a recording holds one entry
@@ -174,6 +174,19 @@ shots either way: this measurement is the clock, not the damage.
 
 It also fixes the unit. `+3` is three metres per second, the same number the
 game's own text shows, and not a proportion of anything.
+
+### Reading a clause directly
+
+Each of the captures above was designed so that a *fight's outcome* would
+separate the candidates: two hits' worth of life for the damage, a shifted
+first shot for the range, a tick count for the movement. Since MCFR 0.4.0 a
+recording carries each unit's derived numbers as well, so
+`mechcore fight stats <recording>` answers both halves at one tick — the `+0.6`
+that was written and the 3726 the build computed from it. Every reading above
+was re-read that way and agrees.
+
+The next clause needs no such design: put the correction on a unit, record one
+tick, read the number.
 
 ## Which channel a field lands in
 

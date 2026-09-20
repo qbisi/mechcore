@@ -1,4 +1,4 @@
-# MCFR v6, format 0.3.0
+# MCFR v6, format 0.4.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 battle the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.3.0"
+format = "0.4.0"
 ```
 
 The native field mapping is bound to game build `1.11.1.3.2259`. Another build
@@ -114,12 +114,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.3.0` | the logical and physical contract version |
+| `format` | exactly `0.4.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `physics_hash_profile` | exactly `battle-physics-v1` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.3.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.4.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -169,6 +169,34 @@ death survives as a `unit_died` event.
 | `skill_dynamic_modifiers` | required sparse list | per-skill non-zero dynamic corrections | below |
 | `personal_shield` | required struct | the unit's own energy shield | below |
 | `weapon_aims` | required list | per-weapon channel state across main and sub skills | below |
+| `derived` | required struct | the numbers the fight reads, after every correction | below |
+
+### `derived`
+
+The modifier structs above say what was **written onto** a unit; this says what
+the build then **computed** from them. The two together are what a capture
+measuring a composition rule reads, and carrying both means the reading is one
+tick of one recording rather than a fight arranged so that its outcome
+distinguishes the candidates.
+
+| Field | Type | Native source |
+| --- | --- | --- |
+| `move_speed` | `INT64 required`, Q32.32 raw | `FightMech.GetMoveSpeed()` |
+| `attack_range` | `INT64 required`, Q32.32 raw | `FightSkill.GetAttackRange()` of skill slot 0 |
+| `attack_damage` | `INT32 required` | `FightSkill.GetNormalDamage(0)` of skill slot 0 |
+
+Slot 0 is the skill the simulator models. A unit whose skills differ per slot
+is outside the closure today; when one enters it, this grows a per-slot list
+and the divergence shows up in the content layer first, which is what that
+layer is for.
+
+An attack interval is deliberately absent. The build keeps it as `FPoint`
+seconds and the simulator counts whole time units, so the two cannot be
+compared without deciding whose rounding is authoritative; recording it needs
+the build's own integer interval and a capture to show the two agree.
+
+These are content-layer fields. The physics layer does not hash them, so
+adding them left every recorded `physics_result_hash` unchanged.
 
 ### `status_mask`
 
@@ -677,7 +705,7 @@ Identity is what makes two recordings of one battle the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.3.0` uses `team_zx_sequential_v1`.
+Format `0.4.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -792,17 +820,17 @@ A physics regression therefore still pins logical time, Q32.32 position,
 rotation and velocity, life and shields, and the interactions including damage,
 while a new purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.3.0`
+### The full content layer, `mcfr-content-0.4.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers
-every `S(t)` and `E(t)` field of format 0.3.0 and diagnoses capture
+every `S(t)` and `E(t)` field of format 0.4.0 and diagnoses capture
 completeness within one format. It carries neither the layout, nor the
 DurableContext, nor any other file metadata.
 
 ```text
-content_tick_hash(t) = H_content-tick-0.3.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-content_result_hash  = H_content-result-0.3.0(
+content_tick_hash(t) = H_content-tick-0.4.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+content_result_hash  = H_content-result-0.4.0(
     LE_u32(tick_count),
     content_tick_hash(1)..content_tick_hash(n)
 )
