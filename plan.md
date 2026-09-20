@@ -154,8 +154,18 @@ architecture.md 的 Unresolved 里。
 [`docs/rules/officer_effects.md`](docs/rules/officer_effects.md) 说明编码和瞄准规则，
 数字拿 build 2227 的本地化文案核对过 73 条、不一致就拒绝写表。
 
-科技、装备、能量塔技能是**同一个接口**（`ICommonMechDataChangeDataSource`）的另外三个
-实现，所以表的形状已经定了；它们的数据在别的 Unity 对象里，还要各解析一次。
+科技那份也做完了：[`config/technology_effects.yaml`](config/technology_effects.yaml) 是
+233 项科技里 137 项写给单位的修正，
+[`docs/rules/technology_effects.md`](docs/rules/technology_effects.md) 说明编码和等级索引。
+它不在 `ConfigDataContainer` 里，而在 `level0` 的 `TechnologyGroupData`（path id 184），
+也就是 `extract_prices.py` 已经在读的那个对象——这次只是沿着同一条记录往后读过 `supply`。
+
+**科技带来了军官带不来的两样东西**：一是效果按**等级**索引（`List<FPoint>`，精英射手九
+条），二是同一个数上可能同时出现 value 和 rate——那正是合成公式里唯一还只靠类结构、没被
+测量过的顺序。
+
+装备和能量塔技能是同一个接口的另外两个实现，所以表的形状已经定了；它们的数据在别的
+Unity 对象里，还要各解析一次。
 
 ## 二之半、一个机制怎么研究：循环
 
