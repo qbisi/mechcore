@@ -87,7 +87,22 @@ def main() -> int:
     )
 
     systems = names(database, "System")
+    hooks = ("Init", "Update", "OnFightStart", "OnFightEnd", "IsStepFinish",
+             "OnEnterFight", "OnExitFight", "OnActive", "OnDeactive", "Stop",
+             "PreCalculate")
+    built_with_match = 0
+    overriding = 0
+    for system in systems:
+        rows = database.execute(
+            "select name, signature from symbols"
+            " where namespace = ? and type_name = ?",
+            (NAMESPACE, system),
+        ).fetchall()
+        built_with_match += any("IMatch" in signature for _, signature in rows)
+        overriding += any(name in hooks for name, _ in rows)
     print(f"\nmodules ({len(systems)})")
+    print(f"  built with the match: {built_with_match}"
+          f", overriding at least one lifecycle hook: {overriding}")
     print(textwrap.fill("  ".join(systems), width=78, initial_indent="  ",
                         subsequent_indent="  "))
 
