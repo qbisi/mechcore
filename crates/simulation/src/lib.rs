@@ -57,25 +57,8 @@ pub fn simulate_layout(
     output_path: Option<&Path>,
     seed: Option<i32>,
 ) -> Result<SimulationResult> {
-    simulate_layout_with_config(layout_path, output_path, seed, None)
-}
-
-/// Simulates a layout with either the embedded defaults or an external
-/// config root containing `config.yaml`, `training_ground.yaml`, and one YAML
-/// file per unit type under `units/`.
-///
-/// # Errors
-///
-/// Returns the same errors as [`simulate_layout`], plus unit-config directory
-/// and validation failures.
-pub fn simulate_layout_with_config(
-    layout_path: impl AsRef<Path>,
-    output_path: Option<&Path>,
-    seed: Option<i32>,
-    config_directory: Option<&Path>,
-) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
-    let config = rules::SimulationConfig::load(config_directory)?;
+    let config = rules::SimulationConfig::load()?;
     let (layout_seed, layout, replay_layout) = layout::load(layout_path, &config.units)?;
     let (seed, source) = match (seed, layout_seed) {
         (Some(0), _) => {
@@ -100,11 +83,8 @@ pub fn simulate_layout_with_config(
 ///
 /// Returns an error for an invalid layout or config, a build mismatch, or a
 /// simulation/MCFR failure.
-pub fn compare_recording_with_config(
-    recording: &mechcore_mcfr::McfrReader,
-    config_directory: Option<&Path>,
-) -> Result<SimulationComparison> {
-    let config = rules::SimulationConfig::load(config_directory)?;
+pub fn compare_recording(recording: &mechcore_mcfr::McfrReader) -> Result<SimulationComparison> {
+    let config = rules::SimulationConfig::load()?;
     let (seed, layout) =
         layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
             .map_err(|error| Error::new(format!("cannot simulate embedded layout: {error}")))?;

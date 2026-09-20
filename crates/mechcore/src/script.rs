@@ -10,7 +10,7 @@
 //! "does this need the game?" without touching it.
 
 use crate::acquire::Mode;
-use crate::mcfr;
+use crate::fight;
 use crate::session::Session;
 use mechcore_protocol::{
     DEFAULT_LEVEL, DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS, DEFAULT_WATCH_SCENE_WAIT_SECONDS,
@@ -628,7 +628,7 @@ async fn perform(
                 "compare right",
             )?;
             let detailed = optional_flag(fields.get("verbose"), "compare verbose")?;
-            let (_, report) = mcfr::compare(&left, &right, detailed.unwrap_or(false))?;
+            let (_, report) = fight::compare(&left, &right, detailed.unwrap_or(false))?;
             Ok(report)
         }
         "sim" => simulate(arguments, scope),
@@ -902,15 +902,15 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
 }
 
 /// Runs the deterministic simulator without a game, returning the same result
-/// object `mechcore sim` prints so `expect` can assert any of its fields.
+/// object `mechcore fight run` prints so `expect` can assert any of its fields.
 fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
     let fields = arguments
         .as_object()
-        .ok_or("sim takes a mapping with layout and optional seed, output and config")?;
+        .ok_or("sim takes a mapping with layout and optional seed and output")?;
     for key in fields.keys() {
-        if !matches!(key.as_str(), "layout" | "seed" | "output" | "config") {
+        if !matches!(key.as_str(), "layout" | "seed" | "output") {
             return Err(format!(
-                "sim accepts only layout, seed, output and config, got {key}"
+                "sim accepts only layout, seed and output, got {key}"
             ));
         }
     }
@@ -931,17 +931,8 @@ fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
         None | Some(Value::Null) => None,
         Some(value) => Some(scope.path(value, "sim output")?),
     };
-    let config = match fields.get("config") {
-        None | Some(Value::Null) => None,
-        Some(value) => Some(scope.path(value, "sim config")?),
-    };
-    let result = mechcore_simulation::simulate_layout_with_config(
-        &layout,
-        output.as_deref(),
-        seed,
-        config.as_deref(),
-    )
-    .map_err(|error| format!("{}: {error}", layout.display()))?;
+    let result = mechcore_simulation::simulate_layout(&layout, output.as_deref(), seed)
+        .map_err(|error| format!("{}: {error}", layout.display()))?;
     serde_json::to_value(result)
         .map_err(|error| format!("cannot serialize the simulation result: {error}"))
 }
@@ -1244,8 +1235,8 @@ mod tests {
         assert!(Script::parse("game: attach\nlevel: -1\nsteps:\n  - status: {}\n").is_err());
         assert!(Script::parse("game: attach\nlevel: high\nsteps:\n  - status: {}\n").is_err());
         // A level with nothing to order is a mistake worth naming.
-        let error = Script::parse("level: 2\nsteps:\n  - compare: {left: a, right: b}\n")
-            .unwrap_err();
+        let error =
+            Script::parse("level: 2\nsteps:\n  - compare: {left: a, right: b}\n").unwrap_err();
         assert!(error.contains("game:"), "{error}");
     }
 

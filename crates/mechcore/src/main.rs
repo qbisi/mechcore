@@ -1,82 +1,48 @@
 mod acquire;
 mod adapter;
-mod convert;
-mod document;
-mod mcfr;
-mod opening;
+mod cli;
+mod doc;
+mod fight;
+mod man;
+mod replay;
 mod script;
 mod session;
 mod shell;
-mod sim;
 
 use std::process::ExitCode;
 
+use cli::{Args, Failure, Outcome, Verdict};
+
 fn usage(program: &str) {
-    eprintln!("usage: {program} shell [--launch | --attach] [--level <0-4>]");
+    eprintln!("usage: {program} doc verify <document>... | paths on stdin");
+    eprintln!("       {program} doc format <document.yaml> [--write]");
+    eprintln!("       {program} doc diff <left.yaml> <right.yaml>");
+    eprintln!("       {program} replay convert <replay.grbr> <battle.yaml> [--force]");
+    eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
+    eprintln!("       {program} fight compare <left.mcfr> <right.mcfr>");
+    eprintln!("       {program} fight verify <recording.mcfr>...");
+    eprintln!("       {program} man [<topic>] [--lang <code>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
-    eprintln!("       {program} mcfr compare <left.mcfr> <right.mcfr>");
-    eprintln!("       {program} verify <document>... | paths on stdin");
-    eprintln!("       {program} opening <seed> <map_id>");
-    eprintln!("       {program} format <document.yaml> [--write]");
-    eprintln!("       {program} diff <left.yaml> <right.yaml>");
-    eprintln!("       {program} convert <replay.grbr> <battle.yaml> [--force]");
-    eprintln!(
-        "       {program} sim <layout.yaml> [--seed <i32>] [--output <battle.mcfr>] [--config <directory>]"
-    );
-    eprintln!("       {program} sim compare <recording.mcfr>... [--config <directory>]");
+    eprintln!("       {program} shell [--launch | --attach] [--level <0-4>]");
     eprintln!();
+    eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
+    eprintln!("The contract is docs/spec/mechcore/cli.md, which `mechcore man cli` reads back;");
     eprintln!("run --check validates a script offline, without touching the game;");
     eprintln!("--force replaces existing recordings instead of asking about each.");
-    eprintln!("Script steps and their options are documented in docs/spec/mechcore/mcscript.md;");
-    eprintln!("shell commands are listed by `help` inside the shell.");
 }
 
 fn main() -> ExitCode {
     let mut arguments = std::env::args();
     let program = arguments.next().unwrap_or_else(|| "mechcore".into());
-    match arguments.next().as_deref() {
-        Some("shell") => match shell_options(arguments) {
-            Ok((mode, level)) => match shell::run(mode, level) {
-                Ok(()) => ExitCode::SUCCESS,
-                Err(error) => {
-                    eprintln!("mechcore shell: {error}");
-                    ExitCode::FAILURE
-                }
-            },
-            Err(error) => {
-                eprintln!("mechcore shell: {error}");
-                ExitCode::from(2)
-            }
-        },
-        Some("run") => match script::run(arguments) {
-            Ok(true) => ExitCode::SUCCESS,
-            Ok(false) => ExitCode::FAILURE,
-            Err(error) => {
-                eprintln!("mechcore run: {error}");
-                ExitCode::FAILURE
-            }
-        },
-        Some("mcfr") => match mcfr::run(arguments) {
-            Ok(true) => ExitCode::SUCCESS,
-            Ok(false) => ExitCode::FAILURE,
-            Err(error) => {
-                eprintln!("mechcore mcfr: {error}");
-                ExitCode::FAILURE
-            }
-        },
-        Some("opening") => report("opening", opening::run(arguments).map(|()| true)),
-        Some("verify") => report("verify", document::verify(arguments)),
-        Some("format") => report("format", document::format(arguments).map(|()| true)),
-        Some("diff") => report("diff", document::diff(arguments)),
-        Some("convert") => report("convert", convert::run(arguments).map(|()| true)),
-        Some("sim") => match sim::run(arguments) {
-            Ok(true) => ExitCode::SUCCESS,
-            Ok(false) => ExitCode::FAILURE,
-            Err(error) => {
-                eprintln!("mechcore sim: {error}");
-                ExitCode::FAILURE
-            }
-        },
+    let namespace = arguments.next();
+    let rest = Args::new(arguments);
+    match namespace.as_deref() {
+        Some("doc") => cli::exit("doc", doc::run(rest)),
+        Some("replay") => cli::exit("replay", replay::run(rest)),
+        Some("fight") => cli::exit("fight", fight::run(rest)),
+        Some("man") => cli::exit("man", man::run(rest)),
+        Some("run") => cli::exit("run", run_script(rest)),
+        Some("shell") => cli::exit("shell", run_shell(rest)),
         _ => {
             usage(&program);
             ExitCode::from(2)
@@ -84,46 +50,33 @@ fn main() -> ExitCode {
     }
 }
 
-/// Turns a command's outcome into an exit code, naming the command on failure.
-fn report(command: &str, outcome: Result<bool, String>) -> ExitCode {
-    match outcome {
-        Ok(true) => ExitCode::SUCCESS,
-        Ok(false) => ExitCode::FAILURE,
-        Err(error) => {
-            eprintln!("mechcore {command}: {error}");
-            ExitCode::FAILURE
-        }
-    }
+/// Executes a run document, which owns its own acquisition and reporting.
+fn run_script(arguments: Args) -> Outcome {
+    script::run(arguments.into_strings())
+        .map_err(Failure::failed)
+        .map(Verdict::from)
 }
 
-/// Acquisition is declared, never inferred: at most one of the two flags.
-///
-/// The level is a separate decision from the verb: it says what this session
-/// outranks, not how it gets the game.
-fn shell_options(
-    arguments: impl Iterator<Item = String>,
-) -> Result<(Option<acquire::Mode>, u8), String> {
-    let mut arguments = arguments.peekable();
-    let mut mode = None;
-    let mut level = None;
-    while let Some(argument) = arguments.next() {
-        let requested = match argument.as_str() {
-            "--launch" => acquire::Mode::Launch,
-            "--attach" => acquire::Mode::Attach,
-            "--level" => {
-                if level.is_some() {
-                    return Err("--level given twice".into());
-                }
-                let value = arguments.next().ok_or("--level needs a number")?;
-                level = Some(acquire::parse_level(&value)?);
-                continue;
-            }
-            other => return Err(format!("unexpected argument {other}")),
-        };
-        if mode.is_some() {
-            return Err("--launch and --attach are mutually exclusive".into());
+/// Opens the prompt, whose acquisition failures are the environment's.
+fn run_shell(mut arguments: Args) -> Outcome {
+    let level = match arguments.value("--level")? {
+        Some(value) => acquire::parse_level(&value).map_err(Failure::usage)?,
+        None => mechcore_protocol::DEFAULT_LEVEL,
+    };
+    let launch = arguments.flag("--launch")?;
+    let attach = arguments.flag("--attach")?;
+    arguments.finish()?;
+    let mode = match (launch, attach) {
+        (true, true) => {
+            return Err(Failure::usage(
+                "--launch and --attach are mutually exclusive",
+            ));
         }
-        mode = Some(requested);
-    }
-    Ok((mode, level.unwrap_or(mechcore_protocol::DEFAULT_LEVEL)))
+        (true, false) => Some(acquire::Mode::Launch),
+        (false, true) => Some(acquire::Mode::Attach),
+        (false, false) => None,
+    };
+    shell::run(mode, level)
+        .map_err(Failure::unavailable)
+        .map(|()| Verdict::Yes)
 }

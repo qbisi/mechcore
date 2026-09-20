@@ -65,7 +65,8 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
   和 mcscript 里对应的 `config` 字段一起去掉，配置只有内嵌这一份。
 - **`man`。** 把 `docs/rules` 和 `docs/spec` 编译进二进制，`mechcore man [<topic>]`
   读出来，这样分发出去的二进制能自己解释游戏规则和自己的格式与接口，不依赖仓库。
-- **`doc schema`。** 给出四种文档的 JSON Schema。
+- **`doc schema`。** 给出四种文档的 JSON Schema。layout 已经有 `JsonSchema`，
+  battle／state／action 还没有，要先给这些类型补上，所以它排在这一步的后半段。
 
 ### 二、对局最小可用
 

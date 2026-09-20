@@ -23,6 +23,7 @@ sides:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -54,6 +55,7 @@ fn verify_rejects_the_zero_seed_sentinel() {
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -94,6 +96,7 @@ sides:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -133,6 +136,7 @@ sides:
     let missing = directory.path().join("absent.yaml");
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("verify")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -166,6 +170,7 @@ sides:
 fn verify_refuses_a_directory_by_saying_what_to_name() {
     let directory = tempfile::tempdir().unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("verify")
         .arg(directory.path())
         .output()
@@ -198,6 +203,7 @@ sides:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("format")
         .arg(&layout)
         .output()
@@ -219,6 +225,7 @@ sides:
     assert!(!canonical.contains("grid_rows:"));
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("format")
         .arg(&layout)
         .arg("--write")
@@ -245,6 +252,7 @@ fn diff_compares_normalized_fields() {
     .unwrap();
 
     let equal = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("diff")
         .arg(&left)
         .arg(&right)
@@ -262,6 +270,7 @@ fn diff_compares_normalized_fields() {
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("doc")
         .arg("diff")
         .arg(&left)
         .arg(&right)
@@ -309,7 +318,8 @@ impl BattleFixture {
             .join("---\n");
         fs::write(&self.path, yaml).unwrap();
         Command::new(env!("CARGO_BIN_EXE_mechcore"))
-            .arg("verify")
+            .arg("doc")
+        .arg("verify")
             .arg(&self.path)
             .output()
             .unwrap()

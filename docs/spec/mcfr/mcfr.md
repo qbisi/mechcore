@@ -89,7 +89,7 @@ The layout is canonical YAML: `seed` is explicit, a field whose native value is
 the format default is omitted, and `formations` keeps declaration order by
 native Unit index. The four opening defensive buildings are recorded in manager
 order under a sibling `constructions`. This member exists for self-contained
-replay and `mechcore sim compare`. It does not enter `physics_*_hash` or
+replay and `mechcore fight verify`. It does not enter `physics_*_hash` or
 `content_*_hash`.
 
 ## Ticks and scene context
@@ -808,7 +808,7 @@ content_result_hash  = H_content-result-0.3.0(
 )
 ```
 
-`mechcore mcfr compare` and `mechcore sim compare` decide `equal` and the first
+`mechcore fight compare` and `mechcore fight verify` decide `equal` and the first
 divergence from the physics layer, and return `content_equal` separately. That
 is how the format gains observation without losing regression identity, and
 without hiding a genuine content difference inside one format.

@@ -12,7 +12,7 @@
 
 - `tests/grbr/README.md`：录像是原样拷贝的，不许重写或规范化，哈希一致本身
   就是 fixture 契约的一部分；
-- `tests/battle/README.md`：里面的 YAML 只能由 `mechcore convert` 重新生成，
+- `tests/battle/README.md`：里面的 YAML 只能由 `mechcore replay convert` 重新生成，
   不许手改。值不对是转换器的问题，改 `crates/document/src/convert.rs`；
 - `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；

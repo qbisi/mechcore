@@ -194,7 +194,7 @@ sides:
 ";
 
     fn compile_default(value: &str) -> Result<CompiledLayout> {
-        let config = SimulationConfig::load(None)?;
+        let config = SimulationConfig::load()?;
         compile(value.as_bytes(), &config.units)
     }
 

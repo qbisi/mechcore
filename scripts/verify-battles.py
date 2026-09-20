@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify every tracked battle's transitions and summarize the coverage.
 
-Runs ``mechcore verify`` over each battle YAML in one batch. Each battle's
+Runs ``mechcore doc verify`` over each battle YAML in one batch. Each battle's
 report holds the opening and reinforcement checks and the transition coverage
 that ``docs/spec/document/battle.md`` defines: every leaf of each next opening
 is equal, unequal, unimplemented or decided by the fight. This script adds the
@@ -54,7 +54,7 @@ def parse_arguments(root: Path) -> argparse.Namespace:
 def verify(executable: Path, battles: list[Path]) -> list[dict[str, Any]]:
     """One report per battle, in the order named."""
     result = subprocess.run(
-        [str(executable), "verify", *map(str, battles)],
+        [str(executable), "doc", "verify", *map(str, battles)],
         text=True,
         capture_output=True,
         check=False,
@@ -62,7 +62,7 @@ def verify(executable: Path, battles: list[Path]) -> list[dict[str, Any]]:
     reports = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
     if len(reports) != len(battles):
         raise RuntimeError(
-            f"mechcore verify printed {len(reports)} reports for {len(battles)} battles:\n"
+            f"mechcore doc verify printed {len(reports)} reports for {len(battles)} battles:\n"
             f"{result.stderr}"
         )
     return reports

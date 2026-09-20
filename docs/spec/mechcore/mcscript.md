@@ -85,7 +85,7 @@ exist only here and are described below.
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
 | `compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
-| `sim` | no | `layout`, optional `seed`, `output`, `config`; same report as `mechcore sim` |
+| `sim` | no | `layout`, optional `seed`, `output`; same report as `mechcore fight run` |
 | `status` | yes | current status snapshot |
 | `start_test` | yes | optional `seed`, `map_id`; rarely needed, see `apply_layout` |
 | `apply_layout` | yes | the layout object, or `{layout, seed}` |
@@ -128,10 +128,10 @@ This instrumentation is separate from MCFR and does not participate in its hash.
 divergent tick. It omits the divergent tick states unless `verbose: true`,
 because those are whole world snapshots and a script that only wanted to know
 whether two recordings match should not carry megabytes of units through its
-log. `mechcore mcfr compare` always prints them.
+log. `mechcore fight compare` always prints them.
 
 `sim` runs the deterministic simulator on a layout and returns the same result
-object `mechcore sim` prints, so `expect` can assert `seed_source`, `steps`, or
+object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
 a dotted path like `hashes.physics_result_hash`. It needs no game, which is
 what lets `scripts/simulate-regressions.mcscript` drive the whole regression
 manifest offline. Omit `output` unless the run should also publish an MCFR.

@@ -14,11 +14,11 @@ not contain `reactor_core`, `supply`, capture settings, or exit behavior.
 The same layout is also the input to the bounded deterministic simulator:
 
 ```text
-mechcore sim layout.yaml [--seed <i32>] [--output battle.mcfr] [--config <directory>]
-mechcore verify layout.yaml
+mechcore fight run layout.yaml [--seed <i32>] [--output battle.mcfr]
+mechcore doc verify layout.yaml
 ```
 
-`mechcore sim` returns hashes, terminal battle structure, and generation profiling
+`mechcore fight run` returns hashes, terminal battle structure, and generation profiling
 without generating MCFR storage by default. `--output` additionally serializes,
 validates, and publishes an MCFR at the requested path.
 
@@ -120,7 +120,7 @@ current 1v1 rules the collection holds at most one entry, so there is no order
 to observe; the sort is what keeps the rule total over the shape the schema
 admits rather than over the states today's rules can reach.
 
-`mechcore format` writes this form and `mechcore diff` compares it,
+`mechcore doc format` writes this form and `mechcore doc diff` compares it,
 so two documents that denote the same state compare equal. Normalizing an
 already-normal document changes nothing. A hand-written layout may still state a
 default explicitly, which is valid and merely not normal.
@@ -155,7 +155,7 @@ compiler before contacting the game; the Adapter consumes the same plan, while
 the Simulator adds only its narrower feature-support and configuration checks.
 Runtime catalog availability and native readback remain Adapter-owned.
 
-`mechcore verify layout.yaml` runs this shared static compiler without
+`mechcore doc verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. It prints one JSON object per input, and a
 layout's carries `kind: layout` beside the normalized seed, round, unit
 count, construction count, contraption count, and airdrop shield count.
@@ -172,7 +172,7 @@ to standard output as a single JSON object per line, a refusal included, and
 one unreadable input does not stop the rest. The exit code says whether every
 input was valid.
 
-`mechcore diff left.yaml right.yaml` normalizes both documents and reports
+`mechcore doc diff left.yaml right.yaml` normalizes both documents and reports
 the fields that differ. Each difference carries a JSON pointer, except that
 `units`, `constructions` and `contraptions` are aligned by their entries'
 `index` rather than by position, and their path segment reads `index=<value>`.
@@ -210,7 +210,7 @@ A seed is therefore not a state field with a baseline. It is an argument of the
 battle, and the layout only supplies a default for it. The call site holds the
 real parameter, which is why one layout can be recorded under many seeds:
 
-- `mechcore sim` resolves `--seed`, then `layout.seed`, then a generated seed,
+- `mechcore fight run` resolves `--seed`, then `layout.seed`, then a generated seed,
   and reports which of the three it used; `--seed 0` is refused for the same
   reason the field is, and a generated seed never lands on `0`;
 - `apply_layout` resolves its own optional `seed`, then `layout.seed`, and
@@ -238,7 +238,7 @@ layouts.
 The two readings pull apart at the upper end, so validation and staging are
 separate checks:
 
-- `mechcore verify` and every other schema consumer accept any positive
+- `mechcore doc verify` and every other schema consumer accept any positive
   round, since Training Ground and ranked matches both run past round 15;
 - `apply_layout` refuses a round above `MAX_STAGED_ROUND`, which is `15`,
   because it advances through every earlier setup round inside the adapter's
