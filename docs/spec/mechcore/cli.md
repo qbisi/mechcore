@@ -119,11 +119,11 @@ was, and a refused operation writes no file.
 A match is a [battle](../document/battle.md) document and a turn file beside
 it. `<match>.yaml` holds the rounds that have been played, and it is a valid
 battle document between operations, so `doc verify` reads it at any point.
-`<match>.turn` holds what the round in progress has not settled yet: which
-side each player was given, each side's decisions before they are committed,
-when the round opened, whether each side has committed, and which process is
-resolving the fight. It is the match's coordination and not its record, and it
-is gone when the match is over.
+`<match>.turn` holds what the round in progress has not settled yet: which side
+each player was given, each side's decisions before they are committed, when
+the round opened, and whether each side has committed. It is the match's
+coordination and not its record, it is gone when the match is over, and
+[turn.md](turn.md) defines it.
 
 **A commit is a write.** A side's decisions reach the document when that side
 commits and not before, and what is written is written: a match has no undo.
@@ -132,7 +132,9 @@ deploy at once without seeing each other.
 
 Two processes reach one match by naming one document, and the turn file carries
 one advisory lock that every operation takes for the read and the write it
-does.
+does. A fight is resolved inside that lock, so a round is fought once however
+many processes find it due, and a process that dies during a fight leaves
+nothing behind but a lock the next one takes.
 
 A side is given, not claimed. `match new` hands the first caller blue and the
 second red, records both in the turn file, and refuses a third, so two players
@@ -410,9 +412,6 @@ is `--help`, and what it contracts to do is this document.
 - Whether a match records the build that fought it, so that a match replayed
   under later rules is told apart from one replayed under the rules it was
   played under.
-- How long a fight may be marked as being resolved before another process may
-  resolve it instead, and how a process that died partway is told from one
-  still working.
 - Whether `arena` holds more than one match: a series, a rating, a tournament.
 - Whether `game` gains the decision operations of a live match, which would make
   the game a second engine for `match act` rather than a fight backend alone.

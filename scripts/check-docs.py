@@ -19,6 +19,7 @@ REPO = Path(__file__).resolve().parents[1]
 # spec without classifying it fails rather than being silently unchecked.
 DOCUMENT_FORMAT = {
     "docs/spec/document/layout.md",
+    "docs/spec/mechcore/turn.md",
     "docs/spec/document/state.md",
     "docs/spec/document/battle.md",
     "docs/spec/document/action.md",
