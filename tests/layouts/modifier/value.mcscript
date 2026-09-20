@@ -59,8 +59,13 @@ steps:
       recording: ${out}/range-value.mcfr
     expect:
       sides.red.survivors.0.life: 16961
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/range-value.mcfr
     expect:
       sides.blue.0.skill.0.modifiers.attack_range_value: 85899345920
       sides.blue.0.skill.0.modifiers.damage_rate.reduce: 858993459
+      # 95 metres and 20 more, and 365 impaired by a fifth, as the build's own
+      # properties answer them. Before the recording carried these, the value
+      # had to be read off the whole fight.
+      sides.blue.0.derived.attack_range: 493921239040
+      sides.blue.0.derived.attack_damage: 292

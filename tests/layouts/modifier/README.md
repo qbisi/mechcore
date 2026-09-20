@@ -61,7 +61,7 @@ the end.
 | `impairment.mcscript` | yes | records the two impairment fixtures |
 | `value.mcscript` | yes | records the range control and the value fixture |
 | `speed.mcscript` | yes | records the two movement fixtures |
-| `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts the hash the game produced |
+| `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts both hash layers |
 
 The three recording scripts are this directory's experiments: each one writes
 its expected numbers down before the game is started, records, and asserts
@@ -74,6 +74,21 @@ These fixtures are deliberately **not** in `tests/mcfr-regressions.yaml`. The
 table that holds them lives here, beside them and beside the scripts that
 produced them, so that a fixture, its measurement and its regression are one
 thing to read and one thing to move.
+
+## Reading a clause directly
+
+Since MCFR 0.4.0 a recording carries each unit's **derived** numbers beside the
+corrections written onto it, so `mechcore fight stats <recording>` answers both
+halves of a measurement at one tick: `+0.6` in the skill channel *and* the 3726
+of damage the build computed from it. The fixtures here predate that and were
+designed so that the *fight's outcome* would distinguish the candidates — which
+is why one of them reads a tick count and another reads two hits' worth of
+life. A new clause does not need that any more: put the correction on a unit,
+record one tick, and read the number.
+
+They are kept as they are because they are also the acceptance for the whole
+pipeline, not only for the arithmetic: a rule that resolves correctly but at
+the wrong moment still loses the hash.
 
 **Record before you believe.** A recording under `work/` is not tracked; what
 is tracked is what it decided.

@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.3.0";
+pub const MCFR_FORMAT: &str = "0.4.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v1";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.3.0";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.4.0";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 3;
 
@@ -561,6 +561,33 @@ pub struct LiveUnitState {
     pub personal_shield: PersonalShieldState,
     #[serde(default)]
     pub weapon_aims: Vec<WeaponAimState>,
+    /// The numbers the fight reads, after every correction on them.
+    #[serde(default)]
+    pub derived: DerivedStats,
+}
+
+/// A unit's derived numbers, as the build's own properties answer them.
+///
+/// The modifier sets beside these say what was *written onto* a unit; these
+/// say what the build then *computed* from them, which is the other half of
+/// any measurement of how a correction composes. A recording that carries both
+/// answers `(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)` in one tick,
+/// rather than by arranging a fight whose outcome happens to distinguish the
+/// candidates.
+///
+/// Only numbers that are exactly representable on both sides are here. An
+/// attack interval is not: the build keeps seconds as an `FPoint` and the
+/// simulator counts whole time units, so recording it needs the build's own
+/// integer interval and a capture to show the two agree.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DerivedStats {
+    /// `MoveSpeedProperty`, `FPoint` raw.
+    pub move_speed: i64,
+    /// `AttackRangeProperty` of the skill the simulator models, `FPoint` raw.
+    pub attack_range: i64,
+    /// `DamageProperty.GetDamage()`, which the build keeps as a plain integer.
+    pub attack_damage: i32,
 }
 
 /// Compares initial units in format 0.3.0 identity order.

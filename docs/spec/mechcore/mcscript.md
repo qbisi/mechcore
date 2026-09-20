@@ -88,7 +88,7 @@ than redefining them.
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
 | `fight.compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
-| `fight.modifiers` | no | `recording`, optional `tick`; what was written onto each formation, per channel |
+| `fight.stats` | no | `recording`, optional `tick`; what was written onto each formation, per channel |
 | `fight.outcome` | no | `recording`; what the recorded fight decided |
 | `fight.run` | no | `layout`, optional `seed`, `output`; same report as `mechcore fight run` |
 | `game.status` | yes | current status snapshot |
@@ -135,7 +135,7 @@ because those are whole world snapshots and a script that only wanted to know
 whether two recordings match should not carry megabytes of units through its
 log. `mechcore fight compare` always prints them.
 
-`fight.outcome` and `fight.modifiers` read a recording for the two halves a
+`fight.outcome` and `fight.stats` read a recording for the two halves a
 capture is taken for: what the fight decided, and what was written onto its
 units before it moved them. Both answer the same object their commands print,
 so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for

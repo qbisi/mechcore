@@ -65,7 +65,7 @@ steps:
     expect:
       sides.red.survivors.0.life: 12516
       sides.red.survivors.0.maximum: 17174
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/impair-once.mcfr
     expect:
       sides.red.0.unit.life_rate.reduce: 472446402
@@ -85,7 +85,7 @@ steps:
     expect:
       sides.red.survivors.0.life: 10627
       sides.red.survivors.0.maximum: 15285
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/impair-twice.mcfr
     expect:
       sides.red.0.unit.life_rate.reduce: 892923700

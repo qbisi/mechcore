@@ -5,10 +5,10 @@
 use std::{cmp::Ordering, collections::BTreeMap, path::Path, time::Instant};
 
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
-    IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, ProjectileState, QVec3, Rational, TickSlice, TransitionEvents,
-    UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
+    BuffModifierSet, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
+    GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState,
+    ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QVec3, Rational, TickSlice,
+    TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
 };
 use serde::Serialize;
 
@@ -753,6 +753,17 @@ impl Actor {
                 },
             },
             weapon_aims,
+            // What this fight reads, in the units the recording keeps them
+            // in: a distance is `FPoint`, and damage is the integer the
+            // build's own `DamageProperty` answers. Writing them here is what
+            // lets a capture compare the number the game computed with the
+            // number this simulator computed, one tick at a time, instead of
+            // arranging a fight whose outcome happens to tell them apart.
+            derived: DerivedStats {
+                move_speed: space_to_q32(self.stats.move_speed()),
+                attack_range: space_to_q32(self.stats.attack_range()),
+                attack_damage: i32::try_from(self.stats.attack_damage()).unwrap_or(i32::MAX),
+            },
         }
     }
 }

@@ -29,11 +29,11 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, Domain, DurableContext, Error, Event,
-    EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, MotionState, ObjectKind, ObjectRef,
-    PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPose, QVec3, RateModifier, Result,
-    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
+    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext,
+    Error, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
+    ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPose,
+    QVec3, RateModifier, Result, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
+    ShieldState, SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
     TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
     TerrainType, TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility,
     WeaponAimState, WorldSnapshot, canonical,
@@ -443,6 +443,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             skill_modifier_list_values(units.iter().map(|row| &row.skill_dynamic_modifiers))?,
             shield_values(units.iter().map(|row| row.personal_shield)),
             weapon_aim_list_values(units.iter().map(|row| &row.weapon_aims))?,
+            derived_values(units.iter().map(|row| row.derived)),
         ],
     )?))
 }
@@ -653,6 +654,19 @@ fn gauge_values(values: impl IntoIterator<Item = GaugeI32>) -> ArrayRef {
         vec![
             i32_values(values.iter().map(|value| value.current)),
             i32_values(values.iter().map(|value| value.maximum)),
+        ],
+        None,
+    ))
+}
+
+fn derived_values(values: impl IntoIterator<Item = DerivedStats>) -> ArrayRef {
+    let values = values.into_iter().collect::<Vec<_>>();
+    Arc::new(StructArray::new(
+        derived_fields(),
+        vec![
+            i64_values(values.iter().map(|value| value.move_speed)),
+            i64_values(values.iter().map(|value| value.attack_range)),
+            i32_values(values.iter().map(|value| value.attack_damage)),
         ],
         None,
     ))
@@ -1107,6 +1121,7 @@ fn unit_schema() -> SchemaRef {
         list_field("skill_dynamic_modifiers", skill_modifier_fields()),
         struct_field("personal_shield", shield_fields(), false),
         list_field("weapon_aims", weapon_aim_fields()),
+        struct_field("derived", derived_fields(), false),
     ]))
 }
 
@@ -1196,6 +1211,15 @@ fn shield_fields() -> Fields {
         Field::new("active", DataType::Boolean, false),
         Field::new("enabled", DataType::Boolean, false),
         struct_field("energy", gauge_fields(), false),
+    ]
+    .into()
+}
+
+fn derived_fields() -> Fields {
+    vec![
+        Field::new("move_speed", DataType::Int64, false),
+        Field::new("attack_range", DataType::Int64, false),
+        Field::new("attack_damage", DataType::Int32, false),
     ]
     .into()
 }
@@ -2447,6 +2471,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let skill_dynamic_modifiers = column::<ListArray>(&batch, "skill_dynamic_modifiers")?;
         let shield = struct_column(&batch, "personal_shield")?;
         let weapon_aims = column::<ListArray>(&batch, "weapon_aims")?;
+        let derived = struct_column(&batch, "derived")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2475,6 +2500,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                         index,
                     )?,
                     personal_shield: read_shield(shield, index)?,
+                    derived: read_derived(derived, index)?,
                     weapon_aims: read_weapon_aim_list(weapon_aims, index)?,
                 },
             ));
@@ -2713,6 +2739,14 @@ fn read_shield(array: &StructArray, index: usize) -> Result<PersonalShieldState>
         active: struct_child::<BooleanArray>(array, "active")?.value(index),
         enabled: struct_child::<BooleanArray>(array, "enabled")?.value(index),
         energy: read_gauge(struct_child::<StructArray>(array, "energy")?, index)?,
+    })
+}
+
+fn read_derived(array: &StructArray, index: usize) -> Result<DerivedStats> {
+    Ok(DerivedStats {
+        move_speed: struct_child::<Int64Array>(array, "move_speed")?.value(index),
+        attack_range: struct_child::<Int64Array>(array, "attack_range")?.value(index),
+        attack_damage: struct_child::<Int32Array>(array, "attack_damage")?.value(index),
     })
 }
 

@@ -2,8 +2,8 @@ use std::io::{Read, Write};
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, Domain, DurableContext, Event,
-    EventPayload, GaugeI32, Hashes, InstrumentationReader, InstrumentationRecord,
+    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext,
+    Event, EventPayload, GaugeI32, Hashes, InstrumentationReader, InstrumentationRecord,
     InstrumentationSink, InstrumentationWriter, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
     MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, QVec3,
     RateModifier, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
@@ -35,7 +35,7 @@ fn writes_and_reads_v6_tracks() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.3.0");
+    assert_eq!(MCFR_FORMAT, "0.4.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -817,6 +817,11 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
                 pose: None,
             })
             .collect(),
+        derived: DerivedStats {
+            move_speed: 8 << 32,
+            attack_range: 140 << 32,
+            attack_damage: 2329,
+        },
     }
 }
 

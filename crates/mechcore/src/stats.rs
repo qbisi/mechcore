@@ -1,11 +1,12 @@
-//! What a recording holds written onto its units, per channel.
+//! What a recording holds about a unit's numbers at one tick: the corrections
+//! written onto it, and the numbers the build then computed from them.
 //!
 //! This is not what a fight decided — [`crate::outcome`] answers that, and a
-//! correction is an input to a fight rather than an outcome of one. This reads
-//! the other half of a capture: what the build *stored* when a mechanism was
-//! applied, beside what it then computed. A rate that reads `+0.6` in one
-//! channel and a damage that reads 1.6 times the description are the same fact
-//! seen twice; a rate that reads `+0.3` twice over is a different one.
+//! correction is an input to a fight rather than an outcome of one. These are
+//! the two halves of a measurement, and they are one reader because a capture
+//! wants them together: a rate that reads `+0.6` in one channel beside a
+//! damage that reads 1.6 times the description is one fact seen twice, and a
+//! rate that reads `+0.3` twice over is a different one.
 //!
 //! The three channels stay apart because the build keeps them apart and MCFR
 //! records them apart: the unit's own `DataSet`, its skills', and the
@@ -20,8 +21,8 @@
 use std::{collections::BTreeMap, path::Path};
 
 use mechcore_mcfr::{
-    BuffModifierSet, LiveUnitState, McfrReader, SkillNumericModifierState, UnitDynamicModifierSet,
-    WorldSnapshot,
+    BuffModifierSet, DerivedStats, LiveUnitState, McfrReader, SkillNumericModifierState,
+    UnitDynamicModifierSet, WorldSnapshot,
 };
 use serde::Serialize;
 
@@ -31,7 +32,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-modifiers.v1";
+pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v1";
 
 /// Every correction one tick of a recording holds.
 #[derive(Serialize)]
@@ -50,7 +51,7 @@ struct Sides {
     red: Vec<Formation>,
 }
 
-/// One formation and what was written onto it, in document index order.
+/// One formation, what was written onto it, and what the build computed.
 ///
 /// A formation answers whether or not it survives the fight: the side that
 /// spends a correction attacking is commonly the side that loses the unit
@@ -60,6 +61,11 @@ struct Sides {
 struct Formation {
     index: i32,
     name: String,
+    /// The numbers the fight reads, after every correction on them. A
+    /// recording older than this build's format answers zeroes, which is why
+    /// they are printed rather than skipped: a zero here is a reading, not an
+    /// absence.
+    derived: DerivedStats,
     #[serde(flatten)]
     held: Modifiers,
 }
@@ -87,6 +93,15 @@ fn neutral_unit(held: &UnitDynamicModifierSet) -> bool {
 }
 
 impl Modifiers {
+    /// Nothing written, which is what a control answers.
+    fn neutral() -> Self {
+        Self {
+            buff: BuffModifierSet::default(),
+            unit: UnitDynamicModifierSet::default(),
+            skill: Vec::new(),
+        }
+    }
+
     fn of(unit: &LiveUnitState) -> Option<Self> {
         let held = Self {
             buff: unit.buff_modifiers,
@@ -125,15 +140,18 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
             scene::units_of(&layout, side)
                 .iter()
                 .filter_map(|placement| {
-                    let held = held.get(&(side, placement.index))?;
+                    let (derived, modifiers) = held.get(&(side, placement.index))?;
                     Some(Formation {
                         index: placement.index,
                         name: placement.type_name.clone(),
-                        held: Modifiers {
-                            buff: held.buff,
-                            unit: held.unit,
-                            skill: held.skill.clone(),
-                        },
+                        derived: *derived,
+                        held: modifiers.as_ref().map_or_else(Modifiers::neutral, |held| {
+                            Modifiers {
+                                buff: held.buff,
+                                unit: held.unit,
+                                skill: held.skill.clone(),
+                            }
+                        }),
                     })
                 })
                 .collect(),
@@ -150,22 +168,24 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
     })
 }
 
-/// What each formation carried, for the formations that carried anything.
+/// What each formation holds at this tick, for every formation that stands.
 ///
 /// One member answers for its formation: a correction is written onto the
-/// formation the build hands it to, so its members hold the same entries.
+/// formation the build hands it to, so its members hold the same entries and
+/// derive the same numbers from them. A formation carrying no correction is
+/// still answered, because its numbers are the description itself and that is
+/// what a control is read for.
 fn carried(
     formations: &BTreeMap<u64, (Side, i32)>,
     state: &WorldSnapshot,
-) -> BTreeMap<(Side, i32), Modifiers> {
-    let mut held = BTreeMap::new();
+) -> BTreeMap<(Side, i32), (DerivedStats, Option<Modifiers>)> {
+    let mut held: BTreeMap<(Side, i32), (DerivedStats, Option<Modifiers>)> = BTreeMap::new();
     for unit in &state.live_units {
         let Some(formation) = formations.get(&unit.formation_id) else {
             continue;
         };
-        if let Some(modifiers) = Modifiers::of(unit) {
-            held.entry(*formation).or_insert(modifiers);
-        }
+        held.entry(*formation)
+            .or_insert_with(|| (unit.derived, Modifiers::of(unit)));
     }
     held
 }

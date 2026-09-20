@@ -90,7 +90,7 @@ steps:
   # `trunc(2329 * 1.3)` and `trunc(2329 * 1.6)` over two hits: added, not
   # compounded, and truncated rather than rounded.
   #
-  # `fight modifiers` answers the other half, which is not an outcome at all
+  # `fight stats` answers the other half, which is not an outcome at all
   # but what the build *stored* when the officer was applied: which channel the
   # correction landed in — the unit's overlay, its skill's, or the buff
   # aggregate — and what it holds there. The `twice` recording holds one
@@ -105,24 +105,25 @@ steps:
       recording: ${out}/none-1.mcfr
     expect:
       sides.red.survivors.0.life: 14639
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/none-1.mcfr
     expect:
-      sides.blue: []
-      sides.red: []
+      sides.blue.0.derived.attack_damage: 2329
   - fight.outcome:
       recording: ${out}/once.mcfr
     expect:
       sides.red.survivors.0.life: 13243
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/once.mcfr
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 1288490188
+      sides.blue.0.derived.attack_damage: 3027
   - fight.outcome:
       recording: ${out}/twice.mcfr
     expect:
       sides.red.survivors.0.life: 11845
-  - fight.modifiers:
+  - fight.stats:
       recording: ${out}/twice.mcfr
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 2576980376
+      sides.blue.0.derived.attack_damage: 3726

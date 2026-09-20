@@ -41,7 +41,7 @@ const NATIVE: &[&str] = &[
 const OFFLINE: &[&str] = &[
     "let",
     "fight.compare",
-    "fight.modifiers",
+    "fight.stats",
     "fight.outcome",
     "fight.run",
 ];
@@ -655,13 +655,13 @@ async fn perform(
                 crate::outcome::read(&recording).map_err(|failure| failure.reason().to_owned())?;
             serde_json::to_value(&outcome).map_err(|error| error.to_string())
         }
-        "fight.modifiers" => {
+        "fight.stats" => {
             let fields = arguments.as_object();
             let recording = scope.path(
                 fields
                     .and_then(|fields| fields.get("recording"))
-                    .ok_or("fight.modifiers takes a recording")?,
-                "fight.modifiers recording",
+                    .ok_or("fight.stats takes a recording")?,
+                "fight.stats recording",
             )?;
             let tick = match fields.and_then(|fields| fields.get("tick")) {
                 None => None,
@@ -670,10 +670,10 @@ async fn perform(
                         .resolve(value)?
                         .as_u64()
                         .and_then(|tick| u32::try_from(tick).ok())
-                        .ok_or("fight.modifiers tick must be a tick the recording holds")?,
+                        .ok_or("fight.stats tick must be a tick the recording holds")?,
                 ),
             };
-            let written = crate::modifiers::read(&recording, tick)
+            let written = crate::stats::read(&recording, tick)
                 .map_err(|failure| failure.reason().to_owned())?;
             serde_json::to_value(&written).map_err(|error| error.to_string())
         }

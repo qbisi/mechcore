@@ -444,7 +444,7 @@ reaches the game reaches it here, rather than around it.
 | --- | --- |
 | `fight run <layout.yaml>` | simulates one fight from a layout, optionally writing a recording |
 | `fight outcome <recording.mcfr>` | answers what a recorded fight decided |
-| `fight modifiers <recording.mcfr>` | answers what was written onto its units, per channel |
+| `fight stats <recording.mcfr>` | answers a unit's numbers and the corrections behind them |
 | `fight compare <left.mcfr> <right.mcfr>` | compares two recordings and names the first tick they differ at |
 | `fight verify <recording.mcfr>...` | simulates each recording's own layout again and compares the result with the recording |
 
@@ -462,14 +462,19 @@ the answer is that it does not settle a round. It is the one reader both
 backends feed, because a fight the simulator ran and a fight the game played
 are the same recording.
 
-`fight modifiers` reads the same recording for what was *written onto* its
-units: each formation's corrections in the three channels the recording keeps
-apart — the unit's own overlay, its skills', and the buff aggregate — under the
-same document indices. A correction is an input to a fight rather than
-something it decided, which is why this is its own verb rather than a field of
-the outcome. It is the other half of a capture's reading: what the build stored
-beside what it then computed, as
-[officer_effects.md](../../rules/officer_effects.md) reads them together.
+`fight stats` reads the same recording for a unit's numbers at one tick, in
+both halves: the corrections **written onto** it, in the three channels the
+recording keeps apart — the unit's own overlay, its skills', and the buff
+aggregate — and the numbers the build then **computed** from them, which
+`derived` carries. Neither is something the fight decided, which is why neither
+belongs in the outcome, and they are one verb because a capture reads them
+together: a rate of `+0.6` beside a damage of 1.6 times the description is one
+fact seen twice. [officer_effects.md](../../rules/officer_effects.md) is what
+reads them that way.
+
+Every formation answers, whether or not it carries a correction: a unit with
+nothing written onto it still has numbers, and that is what a control is read
+for.
 
 `--tick <n>` picks the tick to read; the default is the first, where a
 correction applied as the fight is built has landed and nothing the fight does
