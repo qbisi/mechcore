@@ -45,6 +45,23 @@ pub enum Unsettled {
     Refused(&'static str),
 }
 
+impl std::fmt::Display for Unsettled {
+    /// Says the reason to whoever took the decision, which is a player as
+    /// often as it is a checker.
+    fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unpriced(what) => write!(out, "this build's tables state no {what}"),
+            Self::Missing(what) => write!(out, "this position holds no such {what}"),
+            Self::GrantedPosition => write!(
+                out,
+                "the board says where what a decision hands out lands, and this \
+                 caller named no board or the board has no room"
+            ),
+            Self::Refused(why) => write!(out, "{why}"),
+        }
+    }
+}
+
 /// Commander skills that fill a formation's experience bar: 强化训练,
 /// Intensive Training.
 ///
@@ -200,6 +217,11 @@ pub fn step_placing(
             position,
             rotated,
         } => {
+            // The shop sells what it has unlocked, and a side unlocks a type
+            // before it buys one.
+            if !state.shop.unlocked_units.contains(unit) {
+                return Err(Unsettled::Refused("buying a unit the shop has not unlocked"));
+            }
             let price = purse.buy(*unit).ok_or(Unsettled::Unpriced("unit"))?;
             let level = purse.shop_level(*unit);
             let upgrade = purse.upgrade(*unit).ok_or(Unsettled::Unpriced("upgrade"))?;
@@ -343,7 +365,32 @@ pub fn step_placing(
             next.next_index.contraption += 1;
         }
     }
+    afford(&next)?;
     Ok(next)
+}
+
+/// Refuses a decision the position could not pay for.
+///
+/// A side spends supply it holds and buys within the allowance the round
+/// gives it, so a decision that leaves either below zero is one the game does
+/// not offer. These two are what a position can answer on its own. What else
+/// each decision's `Perform` refuses is not established: `docs/rules/` carries
+/// no reading of `MAP_BuyUnit`, `MAP_UpgradeUnit` or
+/// `MAP_ChooseReinforceItem`, and no recording holds a refused decision to
+/// learn it from, so this refuses what it can show and nothing it cannot.
+fn afford(next: &SideState) -> Result<(), Unsettled> {
+    if next.supply < 0 {
+        return Err(Unsettled::Refused(
+            "spending more supply than the side holds",
+        ));
+    }
+    if next.shop.buys_remaining < 0 {
+        return Err(Unsettled::Refused("buying past the round's allowance"));
+    }
+    if next.shop.unlocks_remaining < 0 {
+        return Err(Unsettled::Refused("unlocking past the round's allowance"));
+    }
+    Ok(())
 }
 
 /// Records a release on the panel, and applies what it does to the board.
@@ -826,6 +873,24 @@ mod tests {
 
     /// Steps `actions` in order from `state` in an ordinary round, landing
     /// whatever a decision hands out at the main region's centre.
+    /// A position that can pay for what a test asks of it.
+    ///
+    /// A decision is refused when it spends supply the side does not hold,
+    /// buys past the round's allowance or buys a type the shop has not
+    /// unlocked, so a test about anything else starts from a side that can
+    /// afford what it asks for and has unlocked every type this build sells.
+    fn solvent() -> SideState {
+        SideState {
+            supply: 100_000,
+            shop: crate::battle::ShopState {
+                unlocked_units: (1..=31).chain([2002]).collect(),
+                buys_remaining: 99,
+                unlocks_remaining: 99,
+            },
+            ..SideState::default()
+        }
+    }
+
     fn fold(
         economy: &Economy,
         state: &SideState,
@@ -873,7 +938,7 @@ mod tests {
                     movable: true,
                 })
                 .collect(),
-            ..SideState::default()
+            ..solvent()
         }
     }
 
@@ -887,7 +952,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             officers: vec![20022],
-            ..SideState::default()
+            ..solvent()
         };
         let taken = [
             Action::ChooseReinforceItem {
@@ -958,7 +1023,7 @@ mod tests {
             offer: 0,
             id: Some(13_030_001),
         }];
-        let next = fold(&economy, &SideState::default(), &taken).unwrap();
+        let next = fold(&economy, &solvent(), &taken).unwrap();
         assert_eq!(
             next.equipment,
             vec![crate::battle::EquipmentItem {
@@ -1394,7 +1459,7 @@ mod tests {
                 unit: 7,
                 contraption: 3,
             },
-            ..SideState::default()
+            ..solvent()
         };
         let released = [
             Action::ReleaseContraption {
@@ -1612,7 +1677,7 @@ mod tests {
         };
         let next = step(&economy, &state, &released).unwrap();
         assert!(next.units.is_empty());
-        assert_eq!(next.supply, 400);
+        assert_eq!(next.supply, state.supply + 400);
         assert_eq!(
             next.equipment,
             vec![EquipmentItem {
@@ -1900,7 +1965,7 @@ mod tests {
                 rotated: false,
             },
         ];
-        assert!(travelling(&fold(&economy, &SideState::default(), &bought).unwrap()).is_empty());
+        assert!(travelling(&fold(&economy, &solvent(), &bought).unwrap()).is_empty());
     }
 
     /// What the tracked replays say about the travelling set.

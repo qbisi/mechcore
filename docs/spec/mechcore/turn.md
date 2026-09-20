@@ -124,8 +124,15 @@ A turn file may be deleted or found unreadable. That loses what it holds and
 nothing else: the uncommitted decisions of both sides, and the round's clock.
 
 It is rebuilt from the document, at the round the document is in, with both
-sides given, no decisions, no commits, the clock restarted and `rebuilt` set. A
-match whose turn file was rebuilt therefore keeps every round it has played,
+sides given, no decisions, the clock restarted and `rebuilt` set. A commit is
+in the document rather than here, so a rebuild reads each side's `committed`
+back out of it: an opening the document states was committed, and so were a
+round's decisions when that round's segment holds any. The one commit a
+document cannot state is a side that committed nothing at all in a later
+round, and a rebuild has that side commit again rather than freeze the round
+against it.
+
+A match whose turn file was rebuilt therefore keeps every round it has played,
 and both players carry on by naming the side they already had; a player that
 had not yet joined cannot join it afterwards.
 

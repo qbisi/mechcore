@@ -516,6 +516,21 @@ impl Economy {
         self.technology_owner.get(&technology).copied()
     }
 
+    /// Every technology this build gives each unit, keyed by unit and in ID
+    /// order.
+    ///
+    /// A battle's `tech_loadout` is an account's own choice of these, which a
+    /// replay records. A match nobody handed one to carries all of them: it is
+    /// the build's answer rather than an invented account's.
+    #[must_use]
+    pub fn unit_technologies(&self) -> BTreeMap<i32, Vec<i32>> {
+        let mut rows: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
+        for (technology, unit) in &self.technology_owner {
+            rows.entry(*unit).or_default().push(*technology);
+        }
+        rows
+    }
+
     /// What each technology already active on a unit adds to the next one.
     #[must_use]
     pub const fn technology_repeat_step(&self) -> i32 {

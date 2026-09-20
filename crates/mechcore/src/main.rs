@@ -4,11 +4,14 @@ mod cli;
 mod doc;
 mod fight;
 mod game;
+mod instant;
 mod man;
+mod r#match;
 mod replay;
 mod script;
 mod session;
 mod shell;
+mod turn;
 
 use std::process::ExitCode;
 
@@ -22,6 +25,10 @@ fn usage(program: &str) {
     eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
     eprintln!("       {program} fight compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} fight verify <recording.mcfr>...");
+    eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");
+    eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
+    eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
+    eprintln!("       {program} match commit <match.yaml> --side blue|red");
     eprintln!("       {program} game <operation> --attach [--level <0-4>]");
     eprintln!("       {program} man [<topic>] [--lang <code>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
@@ -42,6 +49,7 @@ fn main() -> ExitCode {
         Some("doc") => cli::exit("doc", doc::run(rest)),
         Some("replay") => cli::exit("replay", replay::run(rest)),
         Some("fight") => cli::exit("fight", fight::run(rest)),
+        Some("match") => cli::exit("match", r#match::run(rest)),
         Some("game") => cli::exit("game", game::run(rest)),
         Some("man") => cli::exit("man", man::run(rest)),
         Some("run") => cli::exit("run", run_script(rest)),

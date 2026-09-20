@@ -44,6 +44,9 @@ impl Kind {
 pub(crate) struct Failure {
     kind: Kind,
     reason: String,
+    /// The operation this failed in, when it is narrower than the namespace
+    /// the command line dispatched.
+    operation: Option<String>,
 }
 
 impl Failure {
@@ -67,7 +70,24 @@ impl Failure {
         Self {
             kind,
             reason: reason.into(),
+            operation: None,
         }
+    }
+
+    /// Names the operation this failed in, which a namespace knows and the
+    /// dispatcher does not.
+    ///
+    /// The first name given stands: a verb names itself, and a namespace does
+    /// not rename what a verb already named.
+    pub(crate) fn at(mut self, operation: impl Into<String>) -> Self {
+        self.operation.get_or_insert_with(|| operation.into());
+        self
+    }
+
+    /// Why the operation did not happen, for a caller that carries the reason
+    /// into a failure of its own.
+    pub(crate) fn reason(&self) -> &str {
+        &self.reason
     }
 
     /// Writes the failure as the contract's error object.
@@ -78,7 +98,7 @@ impl Failure {
         let error = serde_json::json!({
             "schema": "mechcore.error.v1",
             "kind": self.kind.name(),
-            "operation": operation,
+            "operation": self.operation.as_deref().unwrap_or(operation),
             "reason": self.reason,
         });
         eprintln!("{error}");
@@ -225,6 +245,31 @@ impl Args {
             return Err(Failure::usage(format!("option {name} is duplicated")));
         }
         Ok(Some(value))
+    }
+
+    /// An option whose value may be left out, such as `--wait [<seconds>]`.
+    ///
+    /// Answers nothing when the option is absent, `Some(None)` when it stands
+    /// alone, and the number when one follows it. Only a number is taken as
+    /// the value, because options are read before operands and `--wait` before
+    /// a path would otherwise swallow the path.
+    // The three cases are the three a caller means: no option, the option
+    // alone, and the option with a number. An enum of three would be read back
+    // out into these same three arms.
+    #[allow(clippy::option_option)]
+    pub(crate) fn optional_number(&mut self, name: &str) -> Result<Option<Option<f64>>, Failure> {
+        let Some(at) = self.items.iter().position(|item| item == name) else {
+            return Ok(None);
+        };
+        self.items.remove(at);
+        if self.items.iter().any(|item| item == name) {
+            return Err(Failure::usage(format!("option {name} is duplicated")));
+        }
+        let Some(value) = self.items.get(at).and_then(|item| item.parse::<f64>().ok()) else {
+            return Ok(Some(None));
+        };
+        self.items.remove(at);
+        Ok(Some(Some(value)))
     }
 
     /// An option's value, read as whatever it names.

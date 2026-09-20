@@ -400,6 +400,17 @@ pub struct Prediction {
     pub constructions: Constructions,
 }
 
+/// The maps this build has an opening initialization for, in ID order.
+///
+/// A match dealt on any of them is one [`predict`] can deal, so this is what a
+/// caller that was given no map draws from.
+///
+/// # Errors
+/// Returns an error when the embedded initialization cannot be read.
+pub fn maps() -> Result<Vec<i32>, String> {
+    Ok(Setup::embedded()?.maps.into_keys().collect())
+}
+
 /// The reactor core a seat starts a match on `map_id` with, before its
 /// opening moves it.
 ///
@@ -505,6 +516,8 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
 pub struct Stated {
     pub map_id: i32,
     pub seed: i32,
+    /// The header's deployment clock, which only a match states.
+    pub deploy_time: Option<i32>,
     pub blue: StatedSide,
     pub red: StatedSide,
     pub turns: Vec<Turn>,
@@ -518,8 +531,9 @@ pub struct Stated {
 
 #[derive(Debug, Deserialize)]
 pub struct StatedSide {
+    /// The opening this side took, absent while it has not taken one.
     #[serde(skip)]
-    pub opening: StatedOpening,
+    pub opening: Option<StatedOpening>,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
     #[serde(with = "crate::names::loadout")]
@@ -549,13 +563,20 @@ struct StatedHeader {
     game_build: String,
     map_id: i32,
     seed: i32,
+    #[serde(default)]
+    deploy_time: Option<i32>,
     blue: StatedSide,
     red: StatedSide,
 }
 
 impl StatedOpening {
-    fn opening(choices: &[Action], side: &str) -> Result<StatedOpening, String> {
+    /// Reads one side's round-zero decisions, which are its opening or, while
+    /// the side has not taken one, nothing.
+    fn opening(choices: &[Action], side: &str) -> Result<Option<StatedOpening>, String> {
         let [choice] = choices else {
+            if choices.is_empty() {
+                return Ok(None);
+            }
             return Err(format!(
                 "{side} takes {} decisions in round 0, and the opening is one",
                 choices.len()
@@ -569,13 +590,13 @@ impl StatedOpening {
         else {
             return Err(format!("{side} opening is not choose_advance_team"));
         };
-        Ok(Self {
+        Ok(Some(Self {
             choose: *offer,
             taken: OpeningOffer {
                 team: *id,
                 specialist: *specialist,
             },
-        })
+        }))
     }
 }
 
@@ -628,6 +649,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     Ok(Some(Stated {
         map_id: header.map_id,
         seed: header.seed,
+        deploy_time: header.deploy_time,
         blue,
         red,
         turns,
@@ -647,21 +669,27 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
         if side.offers.len() != CHOOSE_COUNT {
             return Err(format!("{name} opening requires {CHOOSE_COUNT} offers"));
         }
-        let Some(offered) = usize::try_from(side.opening.choose)
+        // A match in progress may have one opening and not the other, and a
+        // side that has taken none has nothing here to disagree with. What
+        // the seed deals it is checked below all the same.
+        let Some(opening) = &side.opening else {
+            continue;
+        };
+        let Some(offered) = usize::try_from(opening.choose)
             .ok()
             .filter(|at| *at < CHOOSE_COUNT)
             .map(|at| side.offers[at])
         else {
             return Err(format!(
                 "{name} opening offer {} is outside 0..{CHOOSE_COUNT}",
-                side.opening.choose
+                opening.choose
             ));
         };
-        if side.opening.taken != offered {
+        if opening.taken != offered {
             return Err(format!(
                 "{name} opening offer {} holds team {} and specialist {}, \
                  and the decision names {:?}",
-                side.opening.choose, offered.team, offered.specialist, side.opening.taken
+                opening.choose, offered.team, offered.specialist, opening.taken
             ));
         }
     }
@@ -895,7 +923,7 @@ mod tests {
                 } else {
                     &mut stated.red.opening
                 };
-                opening.choose = choose;
+                opening.as_mut().unwrap().choose = choose;
                 let error = verify(&economy, &stated).unwrap_err();
                 assert!(
                     error.contains(&format!("{side} opening offer {choose}")),
@@ -915,11 +943,12 @@ mod tests {
             let held = segments[0][side].as_mapping().unwrap();
             let keys: Vec<&str> = held.keys().filter_map(serde_yaml::Value::as_str).collect();
             assert_eq!(keys, ["offers", "constructions", "tech_loadout"]);
-            let taken = &opening.offers[usize::try_from(opening.choose).unwrap()];
+            let chose = opening.choose.unwrap();
+            let taken = &opening.offers[usize::try_from(chose).unwrap()];
             let decisions = segments[1][side].as_sequence().unwrap();
             assert_eq!(decisions.len(), 1);
             assert_eq!(decisions[0]["type"], "choose_advance_team");
-            assert_eq!(decisions[0]["offer"], i64::from(opening.choose));
+            assert_eq!(decisions[0]["offer"], i64::from(chose));
             let name = |kind: Option<&str>| serde_yaml::Value::from(kind.unwrap());
             assert_eq!(
                 decisions[0]["name"],

@@ -150,6 +150,9 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
+        // A replay was played under the game's own clock, not under this
+        // platform's rule for running out of one, so it states none.
+        deploy_time: None,
         blue: battle_side(&economy, &blue, Seat::Blue, dealt.blue)?,
         red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
         turns,
@@ -370,7 +373,7 @@ fn opening_taken(
         ));
     }
     Ok(Opening {
-        choose: offer,
+        choose: Some(offer),
         offers: dealt,
     })
 }
@@ -1203,15 +1206,16 @@ mod tests {
             // and the three are rebuilt from the seed rather than left out.
             let offers = &side.offers;
             assert_eq!(offers.len(), 4);
-            let taken = &offers[usize::try_from(side.choose).unwrap()];
+            let chose = side.choose.unwrap();
+            let taken = &offers[usize::try_from(chose).unwrap()];
             assert_eq!((taken.team, taken.specialist), (team, specialist));
             assert_eq!(
                 side.action(),
-                Action::ChooseAdvanceTeam {
-                    offer: side.choose,
+                Some(Action::ChooseAdvanceTeam {
+                    offer: chose,
                     id: team,
                     specialist,
-                }
+                })
             );
         }
         // Both halves reach the first round, which is what the opening is for.
