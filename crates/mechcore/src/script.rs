@@ -197,7 +197,9 @@ impl Script {
             Some(other) => return Err(format!("level must be 0..={MAX_LEVEL}, got {other}")),
         };
         if document.contains_key("level") && game.is_none() {
-            return Err("level orders clients of one game, but the script declares no `game:` key".into());
+            return Err(
+                "level orders clients of one game, but the script declares no `game:` key".into(),
+            );
         }
 
         let mut vars = Vec::new();
@@ -643,8 +645,8 @@ async fn perform(
             // A fight nothing can settle is still a fight worth reading: the
             // survivors and their life are the measurement a capture is taken
             // for, and `unresolved` says what the reading does not cover.
-            let outcome = crate::outcome::read(&recording)
-                .map_err(|failure| failure.reason().to_owned())?;
+            let outcome =
+                crate::outcome::read(&recording).map_err(|failure| failure.reason().to_owned())?;
             serde_json::to_value(&outcome).map_err(|error| error.to_string())
         }
         "game.status" => Ok(session.current_status()),
@@ -966,10 +968,16 @@ fn check_expectations(expect: &Map<String, Value>, result: &Value) -> Result<(),
 }
 
 /// Follow a dotted key into a result. The interesting values are nested:
-/// a recording reports `operation.tick_count`, not `tick_count`.
+/// a recording reports `operation.tick_count`, not `tick_count`, and a
+/// measurement is commonly one entry of a list, as
+/// `sides.red.survivors.0.life` is.
 fn field_at<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
-    key.split('.')
-        .try_fold(value, |current, part| current.get(part))
+    key.split('.').try_fold(value, |current, part| {
+        match (current, part.parse::<usize>()) {
+            (Value::Array(items), Ok(at)) => items.get(at),
+            _ => current.get(part),
+        }
+    })
 }
 
 #[cfg(test)]
@@ -1114,6 +1122,23 @@ mod tests {
             check_expectations(&expect, &json!({"other": 1}))
                 .unwrap_err()
                 .contains("no equal")
+        );
+    }
+
+    /// A measurement is commonly one entry of a list, so a dotted key walks
+    /// into one by position.
+    #[test]
+    fn an_expectation_reaches_into_a_list_by_position() {
+        let result = json!({"sides": {"red": {"survivors": [{"life": 14639}]}}});
+        let expect: Map<String, Value> =
+            serde_json::from_value(json!({"sides.red.survivors.0.life": 14639})).unwrap();
+        check_expectations(&expect, &result).unwrap();
+        let missing: Map<String, Value> =
+            serde_json::from_value(json!({"sides.red.survivors.1.life": 14639})).unwrap();
+        assert!(
+            check_expectations(&missing, &result)
+                .unwrap_err()
+                .contains("no sides.red.survivors.1.life")
         );
     }
 

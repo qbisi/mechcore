@@ -52,6 +52,12 @@ struct SideOutcome {
     /// The formations still standing when the fight ended, by the index the
     /// document knows them under.
     survivors: Vec<Survivor>,
+    /// What was written onto this side's formations before the fight moved
+    /// them, whether or not they came out of it. A correction is commonly
+    /// carried by the side that spends it attacking, and a formation that
+    /// dies carried it just as much as one that lives.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    modifiers: Vec<Written>,
     /// Which of the things a fight thins out remain, by their place in the
     /// round's own list. Absent when this reader cannot say.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,6 +104,15 @@ impl Modifiers {
     }
 }
 
+/// One formation and what a mechanism had written onto it.
+#[derive(Serialize)]
+struct Written {
+    index: i32,
+    name: String,
+    #[serde(flatten)]
+    held: Modifiers,
+}
+
 /// One formation that survived, and how much of it did.
 #[derive(Serialize)]
 struct Survivor {
@@ -110,9 +125,6 @@ struct Survivor {
     /// The life those members have left, and what they would hold whole.
     life: i64,
     maximum: i64,
-    /// What was written onto this formation, when anything was.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    modifiers: Option<Modifiers>,
 }
 
 /// Reads a recording on disk.
@@ -162,7 +174,8 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
         let placed = units_of(&layout, side);
         let carried = layout_side(&layout, side);
         answered.push(SideOutcome {
-            survivors: survivors(side, &started, &survived, &written, placed),
+            survivors: survivors(side, &started, &survived, placed),
+            modifiers: corrections(side, &written, placed),
             contraptions: thinned(
                 carried.contraptions.len(),
                 side,
@@ -372,7 +385,6 @@ fn survivors(
     side: Side,
     started: &BTreeMap<(Side, i32), (usize, i64, i64)>,
     survived: &BTreeMap<(Side, i32), (usize, i64, i64)>,
-    written: &BTreeMap<(Side, i32), Modifiers>,
     placed: &[UnitPlacement],
 ) -> Vec<Survivor> {
     placed
@@ -388,11 +400,29 @@ fn survivors(
                 alive,
                 life,
                 maximum,
-                modifiers: written.get(&(side, placement.index)).map(|held| Modifiers {
+            })
+        })
+        .collect()
+}
+
+/// One side's formations that carried a correction, in document index order.
+fn corrections(
+    side: Side,
+    written: &BTreeMap<(Side, i32), Modifiers>,
+    placed: &[UnitPlacement],
+) -> Vec<Written> {
+    placed
+        .iter()
+        .filter_map(|placement| {
+            let held = written.get(&(side, placement.index))?;
+            Some(Written {
+                index: placement.index,
+                name: placement.type_name.clone(),
+                held: Modifiers {
                     buff: held.buff,
                     unit: held.unit,
                     skill: held.skill.clone(),
-                }),
+                },
             })
         })
         .collect()

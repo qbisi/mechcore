@@ -268,11 +268,14 @@ contract says. Three things are deliberately not claimed:
 
 ## Unresolved
 
-- **How overlays compose into a number.** Whether rates are
-  `base × (1 + add − reduce)` or a product over entries, how Float and FloatRate
-  entries at one index interact, and what `AdditiveDataFloat` and
-  `MultiplicativeDataFloat` mean for the order. The index carries no bodies, so
-  this closes by fitting a recording's aggregates against its outcomes.
+- **How a value composes, and what order two channels apply in.** A rate is
+  settled: `scripts/officer-composition.mcscript` measured
+  `base × (1 + Σ add − Σ reduce)` within one channel, truncated toward zero,
+  and [`officer_effects.md`](../../rules/officer_effects.md) records it. That
+  capture put both corrections in one channel and both were rates, so a Float
+  entry beside a FloatRate at one index, and the order the unit, skill and buff
+  channels apply in, are still nobody's measurement — `data.rs` refuses each
+  rather than extending the rule to it.
 - **The order the modules are driven in, and the order of work inside one
   advance.** `FightCoreSystem.Update` calls `TeamUpdate` then `GroupUpdate`, and
   `PreCalculate` exists beside `Update`, but a body's call order is not in the
