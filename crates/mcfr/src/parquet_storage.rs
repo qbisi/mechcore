@@ -667,6 +667,7 @@ fn derived_values(values: impl IntoIterator<Item = DerivedStats>) -> ArrayRef {
             i64_values(values.iter().map(|value| value.move_speed)),
             i64_values(values.iter().map(|value| value.attack_range)),
             i32_values(values.iter().map(|value| value.attack_damage)),
+            i32_values(values.iter().map(|value| value.attack_interval)),
         ],
         None,
     ))
@@ -1220,6 +1221,7 @@ fn derived_fields() -> Fields {
         Field::new("move_speed", DataType::Int64, false),
         Field::new("attack_range", DataType::Int64, false),
         Field::new("attack_damage", DataType::Int32, false),
+        Field::new("attack_interval", DataType::Int32, false),
     ]
     .into()
 }
@@ -2747,6 +2749,7 @@ fn read_derived(array: &StructArray, index: usize) -> Result<DerivedStats> {
         move_speed: struct_child::<Int64Array>(array, "move_speed")?.value(index),
         attack_range: struct_child::<Int64Array>(array, "attack_range")?.value(index),
         attack_damage: struct_child::<Int32Array>(array, "attack_damage")?.value(index),
+        attack_interval: struct_child::<Int32Array>(array, "attack_interval")?.value(index),
     })
 }
 

@@ -1,0 +1,21 @@
+kind: layout
+round: 1
+
+# Mechanical Rage alone: one `attack_interval_value` of `-1` second.
+#
+# It gives the line its slope. A second is twenty ticks, so a reading twenty
+# below the base fixture's is what one second of value looks like.
+
+blue:
+  techs:
+    sledgehammer: [mechanical_rage]
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: 5, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

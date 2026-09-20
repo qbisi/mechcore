@@ -149,13 +149,38 @@ stored the two as **one** `attack_range_value` of `+60`, exactly as it stores
 two officers' rates as one. Which is why this table's rule is
 [`technology_effects.md`](technology_effects.md)'s too.
 
-What still has no measurement is what happens when a value and a rate meet
-**on one number**. No officer carries both for one stat, no technology does
-either, and the three units that could hold one of each — Fortress, Scorpion,
-Sledgehammer, all on an attack interval — are units this simulator's kernel
-does not fight. So the order in the formula above is the build's class
-structure rather than a measurement, and closing it needs one of those units
-or an interval a recording carries.
+### A value applies before a rate
+
+The order in the formula was the build's class structure rather than a
+measurement until a recording carried an attack interval.
+`tests/layouts/modifier/interval-order.mcscript` measured it on the
+Sledgehammer, the one unit that can hold both corrections on one number:
+Mechanical Rage is `-1` second of value and Armour Piercing Bullets is `+0.3`
+of rate.
+
+| The Sledgehammer holds | Interval reads |
+| --- | ---: |
+| nothing | 83 |
+| Mechanical Rage | 63 |
+| Armour Piercing Bullets | 110 |
+| both | **84** |
+
+The first three pin the reading's line — a second is twenty ticks, and the
+build counts this unit from seven ticks below its description — and under that
+line the two orders answer different integers:
+
+```text
+value first   ((83 + 7) − 20) × 1.3 − 7 = 84
+rate first    ((83 + 7) × 1.3 − 20) − 7 = 90
+```
+
+The game played 84. **A value joins the description before a rate multiplies
+it**, which is what the formula says and what nothing had shown.
+
+Note what the measurement did not need: where the build's integer counts from.
+Three fixtures fix the line whatever its zero is, so an unresolved offset costs
+the experiment nothing — `mcfr.md` carries that offset as its own open
+question.
 
 ### A plain integer is a value too, and it sums
 

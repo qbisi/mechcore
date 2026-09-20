@@ -6923,8 +6923,9 @@ fn read_unit(
     // a fight being arranged to distinguish the candidates.
     let derived = DerivedStats {
         move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
-        attack_range: skill_derived.attack_range,
-        attack_damage: skill_derived.attack_damage,
+        attack_range: skill_derived.range,
+        attack_damage: skill_derived.damage,
+        attack_interval: skill_derived.interval,
     };
     let formation = api
         .invoke(unit, "GetMechTeam", &mut [])
@@ -7100,8 +7101,9 @@ type SkillState = (
 /// models. A unit with no skill at all answers zeroes.
 #[derive(Default)]
 struct SkillDerived {
-    attack_range: i64,
-    attack_damage: i32,
+    range: i64,
+    damage: i32,
+    interval: i32,
 }
 
 fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
@@ -7117,8 +7119,9 @@ fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
         let skill_slot = u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?;
         if slot == 0 {
             derived = SkillDerived {
-                attack_range: invoke_value::<FixedPoint>(api, skill, "GetAttackRange")?.raw,
-                attack_damage: invoke_int_value(api, skill, "GetNormalDamage", 0)?,
+                range: invoke_value::<FixedPoint>(api, skill, "GetAttackRange")?.raw,
+                damage: invoke_int_value(api, skill, "GetNormalDamage", 0)?,
+                interval: invoke_value::<i32>(api, skill, "GetCurrentAttackInterval")?,
             };
         }
         modifiers.push(SkillNumericModifierState {
