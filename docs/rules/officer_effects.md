@@ -73,8 +73,8 @@ game played. The truncation is visible in the first number on its own:
 `2329 × 1.2999999998` is 3027.6999, and the build keeps 3027.
 
 The recordings say the same thing a second way, from the other side of the
-question. The `once` recording stores `damage_rate.add` of `1288490188` in the
-Marksman's **skill** channel — the officer table's `+0.3` exactly — and the
+question, which `mechcore fight modifiers` reads. The `once` recording stores
+`damage_rate.add` of `1288490188` in the Marksman's **skill** channel — the officer table's `+0.3` exactly — and the
 `twice` recording stores `2576980376`, which is that number doubled. **The
 build sums two officers where it writes them**, so a recording holds one entry
 of `+0.6` rather than two of `+0.3`, and summing entries in a simulator mirrors
