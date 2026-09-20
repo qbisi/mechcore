@@ -1,0 +1,91 @@
+# Is an impairment a negative enhancement, or its own factor?
+#
+# `scripts/officer-composition.mcscript` measured two enhancements and found
+# them summed: two officers of `+0.3` reach a recording as one `+0.6`, and the
+# damage is 1.6 times the description. This asks the same question of the other
+# sign, where the answer is not the same.
+#
+#   mechcore run scripts/modifier-impairment.mcscript --check   validate offline
+#   mechcore run scripts/modifier-impairment.mcscript           record
+#
+# The decompilation says what to expect, which is why this script exists rather
+# than a guess. `DataSet.floatRateDatas` is a `List<MultiplicativeDataFloat>`,
+# and that class's `Refresh` keeps two accumulators: one reset to zero, one
+# reset to a metadata constant of one, with each entry routed between them by
+# `FPoint.op_GreaterThan` — by its sign. Entries in the first are summed, in
+# the second multiplied. So an impairment compounds where an enhancement adds,
+# and `DataSet.GetDataFloatReduceRate` hands back the product rather than a
+# sum. MCFR stores `1 − that product`, which is why one recorded `reduce` can
+# stand for several impairments.
+#
+# Cost Control Specialist is `-0.11` on both damage and life, over every unit,
+# and a side may hold it twice. It goes on red, so only the Rhino's numbers
+# move.
+#
+# `officer-impair-once.yaml` cannot tell the two rules apart — one impairment
+# is `0.89` either way — which is exactly what makes it the control for this
+# run. `officer-impair-twice.yaml` is the measurement:
+#
+#   compound   0.89 x 0.89 = 0.7921   Rhino 15285 whole, 10627 left
+#   summed     1 - 0.22    = 0.78     Rhino 15051 whole, 10393 left
+#
+# Both halves are asserted. The stored half is the sharper of the two: a
+# recording that holds `reduce` of 0.2079 was written by a build that
+# multiplied, and one that holds 0.22 by a build that added, and neither needs
+# the fight to be read at all.
+#
+# Every expectation below is the simulator's own answer, computed before any
+# recording existed. A failure here is the rule being wrong, not the fixture.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/modifier-impairment
+  seed: 4242
+
+steps:
+  - let:
+      once: read_yaml(tests/layouts/modifier/officer-impair-once.yaml)
+      twice: read_yaml(tests/layouts/modifier/officer-impair-twice.yaml)
+
+  # One impairment. The two rules agree here, so a disagreement is the
+  # pipeline rather than the arithmetic, and the run should stop.
+  - game.apply_layout:
+      layout: $once
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/impair-once.mcfr
+    expect:
+      operation.tick_count: 120
+      operation.hashes.physics_result_hash: 63d2e62ace717f23f98c60316c985af170f79f94f07d0f24b09cd7ad89837b69
+  - fight.outcome:
+      recording: ${out}/impair-once.mcfr
+    expect:
+      sides.red.survivors.0.life: 12516
+      sides.red.survivors.0.maximum: 17174
+  - fight.modifiers:
+      recording: ${out}/impair-once.mcfr
+    expect:
+      sides.red.0.unit.life_rate.reduce: 472446402
+      sides.red.0.unit.life_rate.add: 0
+
+  # Two impairments. This is the measurement.
+  - game.apply_layout:
+      layout: $twice
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/impair-twice.mcfr
+    expect:
+      operation.tick_count: 120
+      operation.hashes.physics_result_hash: 748447c302915373c9add912eb826ed053e811c3a8e736d0ec6dc84129371a21
+  - fight.outcome:
+      recording: ${out}/impair-twice.mcfr
+    expect:
+      sides.red.survivors.0.life: 10627
+      sides.red.survivors.0.maximum: 15285
+  - fight.modifiers:
+      recording: ${out}/impair-twice.mcfr
+    expect:
+      sides.red.0.unit.life_rate.reduce: 892923700

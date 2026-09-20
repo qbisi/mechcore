@@ -1,0 +1,15 @@
+kind: layout
+round: 1
+
+# The control for `officer-range-value.yaml`: the same fight with no officer.
+blue:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

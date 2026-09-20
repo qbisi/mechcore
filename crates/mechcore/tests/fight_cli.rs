@@ -242,7 +242,7 @@ red:
 
 /// What was written onto a fight's units, which is not what the fight decided.
 ///
-/// The simulator writes no correction yet — `Loadout` is unimplemented and a
+/// The simulator writes no correction yet — `Modifier` is unimplemented and a
 /// layout carrying an officer is refused — so a recording it produced holds
 /// none, and this pins the shape and the empty answer. The officer case is
 /// measured against the game by `scripts/officer-composition.mcscript`, which

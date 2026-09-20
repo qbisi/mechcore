@@ -117,7 +117,7 @@ field and the module otherwise. Implementing a mechanism is filling in its
 module, never editing the loop that drives it.
 
 **A module is not all or nothing.** It claims fields and understands some of
-them; the rest are refused exactly as an empty module's claims are. `Loadout`
+them; the rest are refused exactly as an empty module's claims are. `Modifier`
 claims officers, technologies, equipment and levels, and understands officers
 today, because the officers' effect table is extracted and the other three are
 not. A field it understands can still refuse one particular layout: an officer
@@ -128,7 +128,7 @@ One module is not the build's. Officers, technologies, equipment and levels are
 applied to a unit **before** the fight rather than inside it — the build's
 `TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is called
 from the deployment's `MAP_AddUnit` — so the simulator applies them as the fight
-is built, in a step of its own called `Loadout`. Which module claims which field
+is built, in a step of its own called `Modifier`. Which module claims which field
 is otherwise this simulator's arrangement; the names are the build's, and two of
 the arrangements are the build's too, `RangeItemSystem` owning terrain and
 `SuperDeploymentSystem` owning a travelling unit because
@@ -140,8 +140,8 @@ fought:
 
 ```text
 side blue needs modules this build has not implemented: constructions
-(FightConstructionSystem), units above level one (Loadout); side red needs
-modules this build has not implemented: unit technologies (Loadout)
+(FightConstructionSystem), units above level one (Modifier); side red needs
+modules this build has not implemented: unit technologies (Modifier)
 ```
 
 A refusal from inside a field the registry lets through names the thing rather
@@ -229,6 +229,43 @@ arithmetic that combines them is not:
 | `MoveSpeedProperty` | `FightMech` `GetDataFloatAddRate` / `GetDataFloatReduceRate` / `GetDataInt`; a `DataSet`'s add and reduce rates; `BuffManager.GetMoveSpeedChangeValue` |
 | `ProjectileCountProperty` | `DataSet.GetDataInt` |
 
+### How a correction composes
+
+The build says this in its own type names. `DataSet` keeps three lists:
+
+```text
+List<DataInt>                 intDatas        a plain integer
+List<AdditiveDataFloat>       floatDatas      ChangeDataFloat      — a value
+List<MultiplicativeDataFloat> floatRateDatas  ChangeDataFloatRate  — a rate
+```
+
+`AdditiveDataFloat.Refresh` sums its entries — the ISIL is an `add` in a loop
+with saturation guards — and the class carries `Min` and `Max` with
+`FPoint.Clamp` in its call list, so a value is a sum that can be clamped.
+
+`MultiplicativeDataFloat.Refresh` keeps **two** accumulators. It resets one to
+zero and the other to a metadata constant of one, then walks its entries and
+routes each by `FPoint.op_GreaterThan` — by its sign — summing into the first
+and multiplying into the second. `GetDataFloatAddRate` returns the first and
+`GetDataFloatReduceRate` the second, which is why one recorded `reduce` can
+stand for several impairments: the build has already multiplied them together,
+and MCFR stores `1 − that product`.
+
+`FightMech.CalculateMaxLife` shows the assembly: it loads `0x100000000`, the
+Q32.32 one, adds the add-rate to it, shifts an integer from the data source
+left by 32 to make it an `FPoint`, and multiplies. So:
+
+```text
+(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)
+```
+
+truncated toward zero once, where the build casts back to `Int32`. **An
+impairment is not a negative enhancement**: two of `0.11` leave `0.89 × 0.89`,
+not `1 − 0.22`. `tests/layouts/modifier/` holds the fixtures that measure each
+clause against the game, and
+[`officer_effects.md`](../../rules/officer_effects.md) records what they
+answered.
+
 Two things fall out of that table. An attack interval is clamped from below and
 a range is not, which is a difference in kind and not an accident. And a
 property's inputs are exactly the recorded columns, so **a mechanism can be
@@ -285,14 +322,11 @@ contract says. Three things are deliberately not claimed:
 
 ## Unresolved
 
-- **How a value composes, and what order two channels apply in.** A rate is
-  settled: `scripts/officer-composition.mcscript` measured
-  `base × (1 + Σ add − Σ reduce)` within one channel, truncated toward zero,
-  and [`officer_effects.md`](../../rules/officer_effects.md) records it. That
-  capture put both corrections in one channel and both were rates, so a Float
-  entry beside a FloatRate at one index, and the order the unit, skill and buff
-  channels apply in, are still nobody's measurement — `data.rs` refuses each
-  rather than extending the rule to it.
+- **What a property does with two channels' aggregates.** One channel is
+  settled, below; what `AttackIntervalProperty` does when a skill's `DataSet`
+  and the `BuffManager` both answer is not, and `data.rs` refuses a number
+  corrected in two channels at once rather than assuming the same shape
+  extends across them.
 - **The order the modules are driven in, and the order of work inside one
   advance.** `FightCoreSystem.Update` calls `TeamUpdate` then `GroupUpdate`, and
   `PreCalculate` exists beside `Update`, but a body's call order is not in the

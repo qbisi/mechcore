@@ -1,0 +1,66 @@
+# Is a value added to the description in the number's own units?
+#
+#   mechcore run scripts/modifier-value.mcscript --check   validate offline
+#   mechcore run scripts/modifier-value.mcscript           record
+#
+# The rate clauses are measured: `scripts/officer-composition.mcscript` found
+# enhancements summing, `scripts/modifier-impairment.mcscript` found
+# impairments compounding. This asks the remaining clause of
+# `(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)`.
+#
+# The build says what to expect. `DataSet.floatDatas` is a
+# `List<AdditiveDataFloat>`, and that class's `Refresh` is a summing loop with
+# `Min`/`Max` and `FPoint.Clamp` beside it. So a value is a sum in the
+# number's own unit, and 20 means twenty metres of range rather than a
+# proportion of anything.
+#
+# Extended Range Arclight is `+20` of range and `-0.2` of damage, so one
+# recording carries a value and an impairment at once. An Arclight reaches 95
+# metres and should reach 115, opening fire about twenty metres earlier and
+# moving every tick after it — which is why the whole recording, not one
+# number, is the reading. The control is the same fight with no officer.
+#
+# Both hashes below are the simulator's, computed before the recording
+# existed.
+
+game: launch
+
+vars:
+  out: work/research/modifier-value
+  seed: 4242
+
+steps:
+  - let:
+      none: read_yaml(tests/layouts/modifier/officer-range-none.yaml)
+      ranged: read_yaml(tests/layouts/modifier/officer-range-value.yaml)
+
+  - game.apply_layout:
+      layout: $none
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/range-none.mcfr
+    expect:
+      operation.tick_count: 137
+      operation.hashes.physics_result_hash: dbd4b7304520721e75701f77c3658ed5dfdbd21035f652e2ddf68bb3ed8810ba
+  - fight.outcome:
+      recording: ${out}/range-none.mcfr
+    expect:
+      sides.red.survivors.0.life: 16377
+
+  - game.apply_layout:
+      layout: $ranged
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/range-value.mcfr
+    expect:
+      operation.tick_count: 137
+      operation.hashes.physics_result_hash: 63871702be6cd5cb0dc6041a1b6d2a0572a06b45f676d5c9112790409d7ec282
+  - fight.outcome:
+      recording: ${out}/range-value.mcfr
+    expect:
+      sides.red.survivors.0.life: 16961
+  - fight.modifiers:
+      recording: ${out}/range-value.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.attack_range_value: 85899345920
+      sides.blue.0.skill.0.modifiers.damage_rate.reduce: 858993459

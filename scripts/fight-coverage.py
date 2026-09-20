@@ -29,12 +29,12 @@ import tempfile
 
 REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
 
-# `side blue needs modules this build has not implemented: officers (Loadout),
+# `side blue needs modules this build has not implemented: officers (Modifier),
 # constructions (FightConstructionSystem)`, one clause per side.
 ASKED = re.compile(r"([a-z][a-z ]+) \(([A-Za-z]+)\)")
 
 # A refusal that names no field at all: a module claims the field and still
-# refuses what the round put in it, as `Loadout` does for an officer whose
+# refuses what the round put in it, as `Modifier` does for an officer whose
 # effect this build cannot compose. Such a round is blocked by something no
 # module landing can clear, so it is counted apart rather than dropped — a
 # refusal nobody attributes would otherwise read as a round already inside the

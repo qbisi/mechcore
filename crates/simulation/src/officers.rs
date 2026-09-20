@@ -25,7 +25,7 @@ const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../config/officer_effe
 
 /// The module that tags every entry an officer writes, so that taking the
 /// officer away takes its corrections with it.
-pub(crate) const SOURCE: &str = "Loadout";
+pub(crate) const SOURCE: &str = "Modifier";
 
 /// Every officer's combat effect, by the id a layout compiles to.
 #[derive(Debug, Clone)]
@@ -246,12 +246,32 @@ impl Officer {
 /// exactly one place for each field, so which channel a field lives in is the
 /// recording's own shape rather than a choice made here. Every other field is
 /// refused with what it would take to support it.
+///
+/// A rate is routed by its sign, as `MultiplicativeDataFloat.Refresh` routes
+/// it: a positive rate enhances and a negative one impairs, and the two are
+/// not each other's negation once there are two of them.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
     let mut written = Vec::new();
-    let mut rate = |value: Option<i64>, channel, index| {
-        if let Some(add) = value.filter(|value| *value != 0) {
-            written.push((channel, index, Correction::Rate { add, reduce: 0 }));
+    let mut rate = |value: Option<i64>, channel, index| match value.filter(|value| *value != 0) {
+        None => {}
+        Some(raw) if raw > 0 => {
+            written.push((
+                channel,
+                index,
+                Correction::Rate {
+                    add: raw,
+                    reduce: 0,
+                },
+            ));
         }
+        Some(raw) => written.push((
+            channel,
+            index,
+            Correction::Rate {
+                add: 0,
+                reduce: -raw,
+            },
+        )),
     };
     rate(row.damage_rate, Channel::Skill, Index::AttackDamage);
     rate(
@@ -262,13 +282,28 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     rate(row.attack_range_rate, Channel::Skill, Index::AttackRange);
     rate(row.life_rate, Channel::Unit, Index::MaxLife);
 
+    // An FPoint value in metres or seconds reaches the simulator in the
+    // number's own quantized units, which is what `Stats` resolves against.
+    if let Some(raw) = row.attack_range_value.filter(|raw| *raw != 0) {
+        written.push((
+            Channel::Skill,
+            Index::AttackRange,
+            Correction::Value(fixed_to(raw, METERS)),
+        ));
+    }
+    if let Some(raw) = row.attack_interval_value.filter(|raw| *raw != 0) {
+        written.push((
+            Channel::Skill,
+            Index::AttackInterval,
+            Correction::Value(fixed_to(raw, SECONDS)),
+        ));
+    }
+
     let unsupported = [
-        (row.attack_range_value, "attack_range_value", VALUE),
         (row.min_attack_range_value, "min_attack_range_value", VALUE),
-        (row.attack_interval_value, "attack_interval_value", VALUE),
-        (row.splash_range_value, "splash_range_value", VALUE),
+        (row.splash_range_value, "splash_range_value", SPLASH),
         (row.projectile_speed_value, "projectile_speed_value", VALUE),
-        (row.speed_value, "speed_value", VALUE),
+        (row.speed_value, "speed_value", INTEGER),
         (
             row.damage_rate_by_kill_count,
             "damage_rate_by_kill_count",
@@ -302,9 +337,30 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     Ok(written)
 }
 
+/// The build's quantum for a distance and for a time, which
+/// `crates/simulation/src/rules.rs` quantizes a description with.
+const METERS: i64 = 1_000;
+const SECONDS: i64 = 2_000;
+const FIXED_ONE: i128 = 1 << 32;
+
+/// An `FPoint` in its own unit, in the quantized units the simulator holds.
+///
+/// Every value in the table is a whole number of metres or a tenth of a
+/// second, so this is exact; it truncates toward zero for anything else, as
+/// the build's own quantization does.
+fn fixed_to(raw: i64, quantum: i64) -> i64 {
+    let scaled = i128::from(raw) * i128::from(quantum) / FIXED_ONE;
+    i64::try_from(scaled).unwrap_or(i64::MAX)
+}
+
 const VALUE: &str = "how a value composes with a description is not measured: \
                      see the unresolved questions in \
                      docs/spec/simulation/architecture.md";
+const SPLASH: &str = "no number this simulator derives is a splash radius";
+const INTEGER: &str = "the build keeps it in `DataSet.intDatas`, a third \
+                       aggregation class beside the additive and the \
+                       multiplicative one, and how a `DataInt` composes has \
+                       not been read";
 const KILLS: &str = "no mechanism here counts a unit's kills";
 const UNREAD: &str = "no mechanism here reads a projectile's life";
 const ELSEWHERE: &str = "it corrects a tower, a shield, a mine, a deployment \
@@ -320,8 +376,11 @@ mod tests {
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
     /// Advanced Defensive Tactics, the same shape on life instead.
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
-    /// Advanced Targeting System, whose `+10` of range is a value.
+    /// Advanced Targeting System, whose `+10` of range reaches a category
+    /// nothing enumerates.
     const ADVANCED_TARGETING_SYSTEM: i32 = 20006;
+    /// Advanced Power System, whose `+3` of movement is a plain integer.
+    const ADVANCED_POWER_SYSTEM: i32 = 20004;
     /// Aerial Specialist, which lists the units it reaches.
     const AERIAL_SPECIALIST: i32 = 20021;
     const THIRTY_PERCENT: i64 = 1_288_490_188;
@@ -389,8 +448,16 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(refused.contains("20006"), "{refused}");
-        assert!(refused.contains("attack_range_value"), "{refused}");
-        assert!(refused.contains("not measured"), "{refused}");
+        assert!(refused.contains("ranged units"), "{refused}");
+
+        // Its `+10` of range is applied now, so what refuses it is which
+        // units it reaches; a speed value is refused for its own reason.
+        let speed = table
+            .corrections(&[ADVANCED_POWER_SYSTEM], "marksman")
+            .unwrap_err()
+            .to_string();
+        assert!(speed.contains("speed_value"), "{speed}");
+        assert!(speed.contains("intDatas"), "{speed}");
     }
 
     /// An officer that only touches a ledger is not in this table, and writes

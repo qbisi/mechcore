@@ -51,11 +51,25 @@ read as a decimal, and is a comment because the decimal is the lossy one:
 `1288490188 / 2^32` is `0.29999999981`, and the build never computes with
 `0.3`.
 
-## How a rate composes
+## How a correction composes
 
-A rate multiplies the description once, and two rates on one number sum before
-they do: `base × (1 + Σ add − Σ reduce)`, truncated toward zero rather than
-rounded.
+```text
+(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)
+```
+
+truncated toward zero once, at the end. The shape is the build's own and
+[`architecture.md`](../spec/simulation/architecture.md) reads it out of
+`DataSet`'s two aggregation classes; what follows is what each clause answered
+when it was measured against the game.
+
+**An impairment is not a negative enhancement.** Enhancements sum inside one
+bracket; impairments each contribute their own factor. Two of `0.11` leave
+`0.89 × 0.89 = 0.7921`, not `1 − 0.22 = 0.78`.
+
+### Enhancements sum
+
+A rate multiplies the description once, and two enhancements on one number sum
+before they do.
 
 `scripts/officer-composition.mcscript` measured it against the game. One
 Marksman shoots one Rhino, twice, and the Rhino outlives the fight in all three
@@ -82,12 +96,55 @@ the build rather than inventing an order over them. The unit overlay and the
 buff aggregate are neutral in both: this officer's damage does not land on the
 unit at all.
 
-`crates/simulation/src/data.rs` implements exactly this and refuses what the
-capture did not reach: a `*_value` correction, whose composition nothing has
-measured, and one number corrected in two channels at once, whose order nothing
-has. Two control recordings of the no-officer layout were taken first and
-compared tick for tick, so the differences above are the officer's and not the
+Two control recordings of the no-officer layout were taken first and compared
+tick for tick, so the differences above are the officer's and not the
 pipeline's.
+
+### Impairments compound
+
+`scripts/modifier-impairment.mcscript` asked the same question of the other
+sign, where the answer is different. Cost Control Specialist is `−0.11` on
+damage and life over every unit, and a side may hold it twice:
+
+| Red's officers | Rhino whole | left after two hits |
+| --- | ---: | ---: |
+| Cost Control Specialist | 17174 | 12516 |
+| twice | **15285** | **10627** |
+
+`19297 × 0.89 × 0.89` is 15285. `19297 × (1 − 0.22)` is 15051, and the game
+did not play that fight. One impairment cannot tell the two rules apart — it is
+`0.89` either way — which is what made that recording the run's control.
+
+The stored half says it more sharply than the fight does, and needs no fight at
+all: the two-officer recording holds a `life_rate` of `reduce` **892923700**,
+which is `1 − 0.89²` to the last digit. Summed impairments would have stored
+944892804.
+
+Both recordings' hashes and all four numbers were the simulator's own
+predictions, written into the script before the game was started, and the
+prediction came from `MultiplicativeDataFloat.Refresh` rather than from a
+guess.
+
+### A value is added in the number's own unit
+
+`scripts/modifier-value.mcscript` closed the last clause. Extended Range
+Arclight is `+20` of range and `−0.2` of damage, so one recording carries a
+value and an impairment at once. An Arclight reaches 95 metres; with the
+officer it opens fire twenty metres earlier and every tick after that moves.
+
+The game's recording is the simulator's prediction to the tick — same 137
+ticks, same physics hash, the Rhino left with 16961 against the control's
+16377 — under `range + 20_000` in the quantized metres the description uses.
+The recording also holds `attack_range_value` of `85899345920` in the skill
+channel, the table's raw `+20` unchanged, beside a `damage_rate` whose
+`reduce` half carries the impairment.
+
+So a value is a sum in the number's own unit, which is what
+`AdditiveDataFloat` doing nothing but summing meant. What no officer can ask
+is what happens when a value and a rate meet **on one number**: no officer
+carries both for the same stat, so the order in the formula above is the
+build's class structure rather than a measurement, and a technology will be
+the one to test it.
 
 ## Which channel a field lands in
 
@@ -98,7 +155,7 @@ skill modifier set holds `damage_rate`, `attack_range_rate` and
 move-speed fields.
 
 Both readings are measured. The damage capture above found `+0.3` in the
-Marksman's skill channel. A second capture, `tests/layouts/officer-life-rate.yaml`,
+Marksman's skill channel. A second capture, `tests/layouts/modifier/officer-life-rate.yaml`,
 put Advanced Defensive Tactics' `life_rate` on a Rhino: the game stored it in
 the **unit** channel, gave the Rhino 25086 of its 19297, and left it 20428 after
 two hits — all three numbers predicted by the simulator before the recording
@@ -107,27 +164,24 @@ existed, and the whole fight hashes identically.
 ## What this build applies
 
 `crates/simulation/src/officers.rs` turns a row of the table into corrections
-on the units it reaches, tagged `Loadout` so removing the officer removes them.
-Of the 79 rows, 21 are applied: the ones whose every field is a rate on a
-number the simulator derives — damage, life, attack interval, attack range —
-and whose `mech_type` is 0, 1 or 10.
+on the units it reaches, tagged `Modifier` so removing the officer removes
+them. Of the 79 rows, **47** are applied: the ones whose every field is a rate
+or a value on a number the simulator derives — damage, life, attack interval,
+attack range — and whose `mech_type` is 0, 1 or 10.
 
 The rest refuse the side that holds them, by name:
 
 | Why | Rows | What would close it |
 | --- | ---: | --- |
-| a `*_value` field, commonly `attack_range_value` or `speed_value` | 44 | measuring how a value composes, the way the rate was measured |
+| `speed_value` | 16 | reading how `DataSet.intDatas` composes; it is a third aggregation class, `DataInt`, and nobody has read it |
 | a tower, shield, mine, deployment clock, experience or a projectile's life | 11 | the mechanism that owns that object |
 | `*_by_kill_count` | 3 | a mechanism that counts a unit's kills |
+| `splash_range_value` | 1 | a splash radius among the numbers this simulator derives |
+| `mech_type` 4 | 1 | knowing which units count as ranged |
 
-`mech_type` 4, the category nothing enumerates, refuses nothing today: its one
-row is 先进瞄准系统, whose `attack_range_value` is refused before its targeting
-is ever asked about. The refusal is in place for the row that carries the
-category without a field to refuse first.
-
-**A value is what stands between this and most of the table**: 44 of the 58
-refusals are one, and the capture that would settle them is the same shape as
-the one that settled the rate.
+**`speed_value` is what stands between this and the rest of the table.** It is
+a plain integer rather than an `FPoint`, which is the build saying it lives in
+the third list, and that list's aggregation has not been read yet.
 
 A partly applied officer is not offered: a side carrying one this build cannot
 compose is refused, because a fight with two thirds of an officer on it is a

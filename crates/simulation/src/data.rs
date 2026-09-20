@@ -74,9 +74,17 @@ pub(crate) enum Channel {
 
 /// A correction, in the two shapes the build stores.
 ///
-/// A rate's two halves are both non-negative and neutral at zero, as MCFR
-/// stores them: the native reduce getter answers the remaining multiplier and
-/// the recording keeps `1 − it`, so a 30% slow is `reduce` of 0.3.
+/// The build keeps them in two different classes, named after their own
+/// arithmetic: `DataSet.floatDatas` is a `List<AdditiveDataFloat>` whose
+/// `Refresh` sums its entries, and `DataSet.floatRateDatas` is a
+/// `List<MultiplicativeDataFloat>` whose `Refresh` keeps two accumulators —
+/// one reset to zero and summed, one reset to one and multiplied — with each
+/// entry routed to one of them by its sign. A rate's two halves are therefore
+/// not symmetric: enhancements add, impairments compound.
+///
+/// Both halves of a rate are stored non-negative, as MCFR stores them: the
+/// native reduce getter answers the remaining multiplier and the recording
+/// keeps `1 − it`, so a 30% slow is `reduce` of 0.3.
 #[allow(
     dead_code,
     reason = "a mechanism writes these; the neutral case and the refusal are \
@@ -84,18 +92,20 @@ pub(crate) enum Channel {
 )]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Correction {
-    /// Q32.32 raw, `{add, reduce}`.
+    /// Q32.32 raw. `add` enhances and `reduce` impairs; one entry commonly
+    /// carries one of them, and a recording's aggregate carries both.
     Rate { add: i64, reduce: i64 },
-    /// Native units, `{add, reduce}`.
-    Value { add: i64, reduce: i64 },
+    /// The number's own units, signed. A value has one accumulator because
+    /// the build gives it one: `AdditiveDataFloat` sums and clamps.
+    Value(i64),
 }
 
 impl Correction {
-    /// Whether this correction changes nothing, which is the only case the
-    /// composition rule is not needed for.
+    /// Whether this correction changes nothing.
     const fn neutral(self) -> bool {
         match self {
-            Self::Rate { add, reduce } | Self::Value { add, reduce } => add == 0 && reduce == 0,
+            Self::Rate { add, reduce } => add == 0 && reduce == 0,
+            Self::Value(value) => value == 0,
         }
     }
 }
@@ -158,64 +168,75 @@ impl Overlays {
         }
     }
 
-    /// The description's number, corrected by every overlay that touches it.
+    /// The description's number, with every overlay that touches it applied.
     ///
-    /// A rate is summed within its channel and applied once:
-    /// `base × (1 + Σ add − Σ reduce)`, truncated toward zero. The build sums
-    /// them itself — two officers of one kind reach a recording as one entry
-    /// holding their sum rather than two entries — so summing here mirrors
-    /// what the build stores rather than inventing an order over entries.
-    /// `docs/rules/officer_effects.md` records the capture that establishes
-    /// it.
+    /// The build's shape, which `docs/spec/simulation/architecture.md` derives
+    /// from `DataSet`'s two aggregation classes:
+    ///
+    /// ```text
+    /// (base + Σ value) × (1 + Σ enhance) × Π (1 − impair)
+    /// ```
+    ///
+    /// Values sum because `AdditiveDataFloat.Refresh` sums them.
+    /// Enhancements sum and impairments compound because
+    /// `MultiplicativeDataFloat.Refresh` keeps one accumulator reset to zero
+    /// and one reset to one, and routes each entry by its sign. The whole
+    /// thing truncates toward zero once, at the end, because the build casts
+    /// an `FPoint` to `Int32` there and not before.
+    ///
+    /// An impairment is therefore not a negative enhancement: two of `0.11`
+    /// leave `0.89 × 0.89`, not `1 − 0.22`.
     ///
     /// # Errors
     ///
-    /// Two questions that capture does not answer are refused rather than
-    /// guessed: a value correction, which nothing has measured the composition
-    /// of, and one number corrected in more than one channel at once, which
-    /// nothing has measured the order of.
+    /// Returns an error when one number is corrected in more than one channel
+    /// at once. What a property does with two channels' aggregates is its own
+    /// arithmetic — `AttackIntervalProperty` reads a skill's and a buff's, and
+    /// how it combines them is not measured — so this refuses rather than
+    /// assuming the formula extends across channels.
     fn resolve(&self, index: Index, base: i64) -> Result<i64> {
-        let mut corrected: Option<(&'static str, i128)> = None;
+        let mut corrected: Option<&'static str> = None;
+        let mut value = 0_i128;
+        let mut enhance = 0_i128;
+        let mut remaining = ONE;
         for (channel, overlay) in [
             ("unit", &self.unit),
             ("skill", &self.skill),
             ("buff", &self.buff),
         ] {
-            let mut rate = 0_i128;
+            let mut touched = false;
             for entry in overlay.corrections(index) {
+                if entry.correction.neutral() {
+                    continue;
+                }
+                touched = true;
                 match entry.correction {
+                    Correction::Value(add) => value += i128::from(add),
                     Correction::Rate { add, reduce } => {
-                        rate += i128::from(add) - i128::from(reduce);
+                        enhance += i128::from(add);
+                        if reduce != 0 {
+                            remaining = remaining * (ONE - i128::from(reduce)) / ONE;
+                        }
                     }
-                    Correction::Value { .. } if !entry.correction.neutral() => {
-                        return Err(Error::new(format!(
-                            "{} carries a {channel} value correction from {}, and how a \
-                             value composes is not measured: see the unresolved questions \
-                             in docs/spec/simulation/architecture.md",
-                            index.name(),
-                            entry.source
-                        )));
-                    }
-                    Correction::Value { .. } => {}
                 }
             }
-            if rate != 0 {
-                if let Some((first, _)) = corrected {
+            if touched {
+                if let Some(first) = corrected {
                     return Err(Error::new(format!(
                         "{} is corrected in the {first} channel and the {channel} channel \
-                         at once, and what order two channels apply in is not measured: \
-                         see the unresolved questions in \
+                         at once, and what a property does with two channels' aggregates \
+                         is not measured: see the unresolved questions in \
                          docs/spec/simulation/architecture.md",
                         index.name()
                     )));
                 }
-                corrected = Some((channel, rate));
+                corrected = Some(channel);
             }
         }
-        let Some((_, rate)) = corrected else {
+        if corrected.is_none() {
             return Ok(base);
-        };
-        let scaled = i128::from(base) * (ONE + rate) / ONE;
+        }
+        let scaled = (i128::from(base) + value) * (ONE + enhance) / ONE * remaining / ONE;
         i64::try_from(scaled).map_err(|_| {
             Error::new(format!(
                 "{} resolved outside the range a number can hold",
@@ -367,7 +388,7 @@ mod tests {
 
         let officer = Entry {
             index: Index::AttackDamage,
-            source: "Loadout",
+            source: "Modifier",
             correction: Correction::Rate {
                 add: THIRTY_PERCENT,
                 reduce: 0,
@@ -392,27 +413,79 @@ mod tests {
         let mut stats = Stats::of(&rules).unwrap();
         stats.overlays.channel(Channel::Buff).write(Entry {
             index: Index::MoveSpeed,
-            source: "Loadout",
+            source: "Modifier",
             correction: Correction::Rate { add: 0, reduce: 0 },
         });
         stats.refresh(&rules).unwrap();
         assert_eq!(stats.move_speed(), rules.move_speed());
     }
 
-    /// The capture measured a rate. A value is refused until one measures it.
+    /// A value is added to the description in its own units, before any rate
+    /// multiplies it, and two values add.
     #[test]
-    fn a_value_correction_is_refused_until_it_is_measured() {
+    fn values_add_to_the_description_before_a_rate_multiplies_it() {
         let rules = marksman();
         let mut stats = Stats::of(&rules).unwrap();
-        stats.overlays.channel(Channel::Unit).write(Entry {
+        let base = rules.attack.range();
+        for _ in 0..2 {
+            stats.overlays.channel(Channel::Skill).write(Entry {
+                index: Index::AttackRange,
+                source: "Modifier",
+                correction: Correction::Value(10_000),
+            });
+        }
+        stats.refresh(&rules).unwrap();
+        assert_eq!(stats.attack_range(), base + 20_000, "ten metres, twice");
+
+        stats.overlays.channel(Channel::Skill).write(Entry {
             index: Index::AttackRange,
-            source: "Loadout",
-            correction: Correction::Value { add: 40, reduce: 0 },
+            source: "Modifier",
+            correction: Correction::Rate {
+                add: THIRTY_PERCENT,
+                reduce: 0,
+            },
         });
-        let refused = stats.refresh(&rules).unwrap_err().to_string();
-        assert!(refused.contains("attack range"), "{refused}");
-        assert!(refused.contains("Loadout"), "{refused}");
-        assert!(refused.contains("unit value correction"), "{refused}");
+        stats.refresh(&rules).unwrap();
+        let expected = i64::try_from(
+            (i128::from(base + 20_000) * (i128::from(THIRTY_PERCENT) + (1 << 32))) >> 32,
+        )
+        .unwrap();
+        assert_eq!(stats.attack_range(), expected, "the rate takes the sum");
+    }
+
+    /// An impairment is not a negative enhancement: two of them compound,
+    /// because the build keeps one accumulator reset to one and multiplies
+    /// into it.
+    #[test]
+    fn impairments_compound_and_enhancements_sum() {
+        let rules = marksman();
+        let base = rules.attack.base_damage;
+        let eleven_percent = 472_446_402_i64;
+        let impair = Entry {
+            index: Index::AttackDamage,
+            source: "Modifier",
+            correction: Correction::Rate {
+                add: 0,
+                reduce: eleven_percent,
+            },
+        };
+
+        let mut once = Stats::of(&rules).unwrap();
+        once.overlays.channel(Channel::Skill).write(impair.clone());
+        once.refresh(&rules).unwrap();
+        assert_eq!(once.attack_damage(), 2072, "2329 x 0.89");
+
+        let mut twice = Stats::of(&rules).unwrap();
+        for _ in 0..2 {
+            twice.overlays.channel(Channel::Skill).write(impair.clone());
+        }
+        twice.refresh(&rules).unwrap();
+        assert_eq!(twice.attack_damage(), 1844, "2329 x 0.89 x 0.89");
+        let summed = i64::try_from(
+            (i128::from(base) * ((1_i128 << 32) - 2 * i128::from(eleven_percent))) >> 32,
+        )
+        .unwrap();
+        assert_eq!(summed, 1816, "and not 2329 x (1 - 0.22)");
     }
 
     /// The capture put both officers in one channel, so what two channels do
@@ -424,7 +497,7 @@ mod tests {
         for channel in [Channel::Skill, Channel::Buff] {
             stats.overlays.channel(channel).write(Entry {
                 index: Index::AttackDamage,
-                source: "Loadout",
+                source: "Modifier",
                 correction: Correction::Rate {
                     add: THIRTY_PERCENT,
                     reduce: 0,
@@ -450,7 +523,7 @@ mod tests {
             stats.overlays.channel(channel).write(Entry {
                 index: Index::AttackRange,
                 source: "CommanderSkillSystem",
-                correction: Correction::Value { add: 40, reduce: 0 },
+                correction: Correction::Value(40),
             });
         }
         assert!(stats.refresh(&rules).is_err());

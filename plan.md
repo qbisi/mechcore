@@ -15,12 +15,12 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 | 字段 | 欠哪个模块 | 挡住多少回合 |
 | --- | --- | ---: |
-| ~~`officers`~~ | ~~Loadout~~ | **已落地**（曾是 334，100%） |
+| ~~`officers`~~ | ~~Modifier~~ | **已落地**（曾是 334，100%） |
 | `constructions` | FightConstructionSystem | 322 (96%) |
-| 单位 `level` > 1 | Loadout | 276 (82%) |
-| `techs` | Loadout | 256 (76%) |
+| 单位 `level` > 1 | Modifier | 276 (82%) |
+| `techs` | Modifier | 256 (76%) |
 | `battle_skills` | CommanderSkillSystem | 176 (52%) |
-| 单位 `equipment` | Loadout | 167 (50%) |
+| 单位 `equipment` | Modifier | 167 (50%) |
 | `contraptions` | InterceptSystem | 161 (48%) |
 | `tower_strengthen_levels` | BuildingSystem | 123 (36%) |
 | `energy_tower_skills` | BuildingSystem | 118 (35%) |
@@ -45,7 +45,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 ```text
 + FightConstructionSystem        28/334
-+ Loadout                        79/334
++ Modifier                        79/334
 + CommanderSkillSystem          102/334
 + InterceptSystem               139/334
 + BuildingSystem                233/334
@@ -54,10 +54,17 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 + AdvancedEnergyShieldSystem    334/334
 ```
 
-`Loadout` 还排在第二，因为它认领的另外三个字段（科技、装备、等级）还欠各自的效果表。
-军官那一份已经装上：`crates/simulation/src/officers.rs` 把 79 行里的 21 行应用到目标
-单位上，其余指名拒绝——**58 次拒绝里 44 次卡在同一件事上，`*_value` 怎么合成**。测它的
-实验和测比率的那次是同一个形状。
+`Modifier` 还排在第二，因为它认领的另外三个字段（科技、装备、等级）还欠各自的效果表。
+军官那一份已经装上：`crates/simulation/src/officers.rs` 把 79 行里的 **47** 行应用到目标
+单位上，其余指名拒绝。合成规则三条子句全部对着游戏量过：
+
+```text
+(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)
+```
+
+增强相加、削弱相乘、value 按本单位相加，形状先从 `DataSet` 的两个聚合类读出来，再用
+`tests/layouts/modifier/` 下的 fixture 逐条验证。现在挡着剩下 32 行的是 `speed_value`
+（16 行）——它是普通整数，住在第三个聚合类 `DataInt` 里，那张列表还没人读。
 
 脚本第一行报"模拟器现在接受几个回合"，今天是 0，这就是进度条。
 
@@ -119,7 +126,7 @@ architecture.md 的 Unresolved 里。
 
 | 模块 | 认领的字段 | 验收面 |
 | --- | --- | --- |
-| **Loadout**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment`、单位 `level` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
+| **Modifier**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment`、单位 `level` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
 | **FightConstructionSystem** | `constructions` | 录像的 `buildings`（内核已经有塔了） |
 | **BuildingSystem** | `energy_tower_skills`、`tower_strengthen_levels` | 录像的 `buildings` |
 | **CommanderSkillSystem** | `battle_skills` | 录像的 `terrains`、`shields` 和释放事件 |
@@ -128,7 +135,7 @@ architecture.md 的 Unresolved 里。
 | **InterceptSystem** | `contraptions` | 录像的 `buildings` 与拦截事件 |
 | **SuperDeploymentSystem** | `travelling` | 录像的 `units.position`／`motion_state` |
 
-`Loadout` 之所以不是原生的 35 个之一：军官、科技、装备、等级在游戏里是**开打之前**
+`Modifier` 之所以不是原生的 35 个之一：军官、科技、装备、等级在游戏里是**开打之前**
 施加到单位上的（`TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由
 部署动作 `MAP_AddUnit` 调用），不是战斗里的系统。模拟器照样在建立战斗时一次性把它们
 写进覆盖层。
