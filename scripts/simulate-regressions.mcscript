@@ -10,7 +10,7 @@
 #
 # Scope: smoke cases only, which is the tier the commit gate used to carry.
 # Delete the `where` line to cover every case in the manifest instead; that is
-# far longer, because the manifest holds 82 cases against 16 smoke ones.
+# far longer, because the manifest holds 85 cases against 19 smoke ones.
 #
 # A case that no longer matches stops the run at that case and names the field,
 # which is the drift check. Re-recording after an intended change is the other

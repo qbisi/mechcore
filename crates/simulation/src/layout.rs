@@ -4,6 +4,8 @@ use mechcore_document::{NativeFormation, SidePlan};
 
 use crate::{
     Error, Result,
+    data::{Channel, Entry, Stats},
+    officers::OfficerEffects,
     rules::{UnitConfig, UnitConfigs},
 };
 
@@ -19,6 +21,11 @@ pub(crate) struct Placement {
     pub(crate) world_z: i64,
     pub(crate) rotation: i64,
     pub(crate) rotated: bool,
+    /// What the side's loadout wrote onto this formation, in the channel each
+    /// correction belongs to. The entries are verified to resolve while the
+    /// layout is compiled, which is the only place that can name the side and
+    /// the officer in a refusal.
+    pub(crate) corrections: Vec<(Channel, Entry)>,
 }
 
 #[derive(Debug, Clone)]
@@ -79,8 +86,9 @@ pub(crate) fn compile_with_seed(
     if !missing.is_empty() {
         return Err(Error::new(missing.join("; ")));
     }
-    let mut placements = compile_side("blue", 0, &plan.blue, units)?;
-    placements.extend(compile_side("red", 1, &plan.red, units)?);
+    let officers = OfficerEffects::load()?;
+    let mut placements = compile_side("blue", 0, &plan.blue, units, &officers)?;
+    placements.extend(compile_side("red", 1, &plan.red, units, &officers)?);
 
     Ok((
         plan.seed,
@@ -96,11 +104,14 @@ fn compile_side(
     team: u32,
     side: &SidePlan,
     units: &UnitConfigs,
+    officers: &OfficerEffects,
 ) -> Result<Vec<Placement>> {
     side.units
         .iter()
         .enumerate()
-        .map(|(index, formation)| compile_formation(name, team, index, formation, units))
+        .map(|(index, formation)| {
+            compile_formation(name, team, index, formation, units, side, officers)
+        })
         .collect()
 }
 
@@ -110,6 +121,8 @@ fn compile_formation(
     index: usize,
     formation: &mechcore_document::Placement,
     units: &UnitConfigs,
+    side: &SidePlan,
+    officers: &OfficerEffects,
 ) -> Result<Placement> {
     // Level, equipment and travelling are claimed fields and were refused by
     // the module registry before this ran; what is left is a placement that is
@@ -127,6 +140,7 @@ fn compile_formation(
         ))
     })?;
     validate_formation_footprint(side_name, formation, rules)?;
+    let corrections = loadout(side_name, &formation.type_name, rules, side, officers)?;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z, rotation) = if team == 0 {
@@ -145,7 +159,33 @@ fn compile_formation(
         world_z,
         rotation,
         rotated,
+        corrections,
     })
+}
+
+/// What this side's loadout writes onto one of its unit types.
+///
+/// The corrections are resolved here as well as gathered, because this is
+/// where a refusal can still say whose side and which unit it is about. Once
+/// they are known to resolve, the fight applies them without a decision to
+/// make.
+fn loadout(
+    side_name: &str,
+    type_name: &str,
+    rules: &UnitConfig,
+    side: &SidePlan,
+    officers: &OfficerEffects,
+) -> Result<Vec<(Channel, Entry)>> {
+    let corrections = officers
+        .corrections(&side.techs.officers, type_name)
+        .map_err(|error| Error::new(format!("side {side_name}: {error}")))?;
+    Stats::corrected(rules, &corrections).map_err(|error| {
+        Error::new(format!(
+            "side {side_name} unit type {type_name:?} carries a loadout this \
+             build cannot resolve: {error}"
+        ))
+    })?;
+    Ok(corrections)
 }
 
 fn validate_formation_footprint(
@@ -213,6 +253,54 @@ red:
                 .iter()
                 .all(|placement| placement.unit_id == 0 && placement.formation_id == 0)
         );
+    }
+
+    /// An officer reaches the fight as corrections on the units it targets.
+    ///
+    /// The game agrees with this one to the tick: the same layout is
+    /// `marksman-vs-rhino-officer-damage` in `tests/mcfr-regressions.yaml`,
+    /// recorded natively.
+    #[test]
+    fn an_officer_writes_onto_the_units_it_reaches() {
+        let value = LAYOUT.replace(
+            "blue:\n  units:",
+            "blue:\n  officers: [advanced_offensive_tactics]\n  units:",
+        );
+        let layout = compile_default(&value).unwrap();
+        let blue = &layout.placements[0];
+        assert_eq!(blue.type_name, "marksman");
+        assert_eq!(blue.corrections.len(), 1, "one officer, one rate");
+        assert_eq!(blue.corrections[0].0, Channel::Skill);
+        assert!(
+            layout.placements[1].corrections.is_empty(),
+            "the other side holds no officer"
+        );
+    }
+
+    /// A side that carries an officer this build cannot apply is refused, and
+    /// the refusal names the side, the officer and what is missing.
+    #[test]
+    fn an_officer_this_build_cannot_apply_refuses_the_side_that_holds_it() {
+        let value = LAYOUT.replace(
+            "blue:\n  units:",
+            "blue:\n  officers: [advanced_targeting_system]\n  units:",
+        );
+        let refused = compile_default(&value).unwrap_err().to_string();
+        assert!(refused.contains("side blue"), "{refused}");
+        assert!(refused.contains("20006"), "{refused}");
+        assert!(refused.contains("attack_range_value"), "{refused}");
+    }
+
+    /// An officer that only touches a ledger reaches the fight as nothing,
+    /// rather than as a refusal.
+    #[test]
+    fn an_officer_with_no_combat_effect_compiles_to_no_correction() {
+        let value = LAYOUT.replace(
+            "blue:\n  units:",
+            "blue:\n  officers: [supply_specialist]\n  units:",
+        );
+        let layout = compile_default(&value).unwrap();
+        assert!(layout.placements[0].corrections.is_empty());
     }
 
     #[test]

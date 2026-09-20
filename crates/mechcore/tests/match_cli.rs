@@ -302,12 +302,13 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(fought["phase"], "fight");
     // The fight is run from the position the round ends in, so what stops it
     // is what the simulator says about that position. Every opening hands its
-    // side an officer, so that is what a real match meets first.
+    // side an officer and a construction; the officer is applied now, so the
+    // construction is what a real match meets first.
     let unresolved = fought["unresolved"].as_str().unwrap();
     assert!(
         unresolved.contains(
             "round 1 is not fought: side blue needs modules this build has not \
-             implemented: officers (Loadout)"
+             implemented: constructions (FightConstructionSystem)"
         ),
         "{unresolved}"
     );

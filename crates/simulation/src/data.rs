@@ -261,6 +261,21 @@ impl Stats {
         Ok(stats)
     }
 
+    /// The numbers a description gives once a loadout has corrected them.
+    ///
+    /// # Errors
+    ///
+    /// Returns whatever [`Overlays::resolve`] refuses, which is what makes a
+    /// correction this build cannot compose a refusal rather than a number.
+    pub(crate) fn corrected(rules: &UnitConfig, written: &[(Channel, Entry)]) -> Result<Self> {
+        let mut stats = Self::of(rules)?;
+        for (channel, entry) in written {
+            stats.overlays.channel(*channel).write(entry.clone());
+        }
+        stats.refresh(rules)?;
+        Ok(stats)
+    }
+
     /// Recomputes every derived number from the description and the overlays.
     ///
     /// # Errors

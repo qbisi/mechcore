@@ -33,6 +33,14 @@ REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
 # constructions (FightConstructionSystem)`, one clause per side.
 ASKED = re.compile(r"([a-z][a-z ]+) \(([A-Za-z]+)\)")
 
+# A refusal that names no field at all: a module claims the field and still
+# refuses what the round put in it, as `Loadout` does for an officer whose
+# effect this build cannot compose. Such a round is blocked by something no
+# module landing can clear, so it is counted apart rather than dropped — a
+# refusal nobody attributes would otherwise read as a round already inside the
+# closure.
+UNATTRIBUTED = ("«refused without naming a field»", "—")
+
 
 def asked_for(refusal: str) -> set[tuple[str, str]]:
     """Which (field, module) pairs a refusal names, across both sides."""
@@ -56,6 +64,7 @@ def main() -> int:
     asked: collections.Counter[tuple[str, str]] = collections.Counter()
     blockers: list[set[tuple[str, str]]] = []
     refused_projection = []
+    unattributed: list[tuple[str, int, str]] = []
     accepted = 0
     with tempfile.TemporaryDirectory() as room:
         layout = pathlib.Path(room) / "deployment.yaml"
@@ -80,6 +89,9 @@ def main() -> int:
                     continue
                 reason = json.loads(fought.stderr.decode())["reason"]
                 held = asked_for(reason)
+                if not held:
+                    unattributed.append((battle.name, round_number, reason))
+                    held = {UNATTRIBUTED}
                 blockers.append(held)
                 for field in held:
                     asked[field] += 1
@@ -88,6 +100,10 @@ def main() -> int:
     print(f"{total} rounds projected, {accepted} of them the simulator accepts")
     for name, round_number, reason in refused_projection:
         print(f"  projection refused {name} round {round_number}: {reason}")
+    if unattributed:
+        print(f"  {len(unattributed)} refused without naming a field, for example:")
+        for name, round_number, reason in unattributed[:3]:
+            print(f"    {name} round {round_number}: {reason}")
     if not total:
         return 1
 
@@ -107,7 +123,9 @@ def main() -> int:
     print("\nrounds inside the closure as modules land, greedily ordered")
     done: set[str] = set()
     while True:
-        remaining = set().union(*owed) - done if owed else set()
+        # The marker is not a module and never lands, so a round owing it
+        # stays outside the closure however many modules arrive.
+        remaining = (set().union(*owed) - done - {UNATTRIBUTED[1]}) if owed else set()
         if not remaining:
             break
         best = max(

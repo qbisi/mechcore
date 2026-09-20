@@ -7,6 +7,7 @@ mod data;
 mod kernel;
 mod layout;
 mod module;
+mod officers;
 mod random;
 mod rules;
 mod rvo;

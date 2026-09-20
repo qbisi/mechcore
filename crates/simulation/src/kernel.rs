@@ -505,8 +505,11 @@ impl Actor {
         x_q32: i64,
         z_q32: i64,
     ) -> Self {
-        let stats = crate::data::Stats::of(&rules)
-            .expect("a description with no correction on it resolves");
+        // The layout resolved these when it compiled the placement, which is
+        // where a refusal can name the side and the officer; reaching here
+        // means they resolve.
+        let stats = crate::data::Stats::corrected(&rules, &placement.corrections)
+            .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
@@ -5275,6 +5278,7 @@ mod tests {
             world_z,
             rotation: if team == 0 { 0 } else { 180_000 },
             rotated: false,
+            corrections: Vec::new(),
         }
     }
 
@@ -5462,6 +5466,7 @@ mod tests {
                     world_z: -105,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -5473,6 +5478,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -5484,6 +5490,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -5647,6 +5654,7 @@ mod tests {
             world_z: -100,
             rotation: 0,
             rotated: false,
+            corrections: Vec::new(),
         }];
         placements.extend((0_i32..18).map(|index| Placement {
             team: 1,
@@ -5658,6 +5666,7 @@ mod tests {
             world_z: 100,
             rotation: 180_000,
             rotated: false,
+            corrections: Vec::new(),
         }));
         let layout = CompiledLayout {
             round: 1,
@@ -7238,6 +7247,7 @@ mod tests {
                     world_z: -105,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -7249,6 +7259,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -7260,6 +7271,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -7312,6 +7324,7 @@ mod tests {
             world_z: 0,
             rotation: 0,
             rotated: false,
+            corrections: Vec::new(),
         };
         let seed = 1_787_601_811;
         let positions = generate_formation_positions(&placement, rules, seed).unwrap();
@@ -7395,6 +7408,7 @@ mod tests {
             world_z: 0,
             rotation: 0,
             rotated: false,
+            corrections: Vec::new(),
         };
         let seed = 1_787_601_811;
         let positions = generate_formation_positions(&placement, rules, seed).unwrap();
@@ -7436,6 +7450,7 @@ mod tests {
                 world_z: -50,
                 rotation: 0,
                 rotated: false,
+                corrections: Vec::new(),
             }],
         };
         let actors = initialize_actors(&layout, &config.units, 1_787_601_811).unwrap();
@@ -7701,6 +7716,7 @@ mod tests {
                 world_z: 0,
                 rotation: 0,
                 rotated: false,
+                corrections: Vec::new(),
             },
             rules,
             0,
@@ -7727,6 +7743,7 @@ mod tests {
                     world_z: -105,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -7738,6 +7755,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -7924,6 +7942,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -7935,6 +7954,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -7982,6 +8002,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -7993,6 +8014,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -8044,6 +8066,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -8055,6 +8078,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -8175,6 +8199,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -8186,6 +8211,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -8251,6 +8277,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -8262,6 +8289,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -8357,6 +8385,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -8368,6 +8397,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -8418,6 +8448,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -8429,6 +8460,7 @@ mod tests {
                     world_z: 100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
@@ -8487,6 +8519,7 @@ mod tests {
                     world_z: -50,
                     rotation: 0,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
                 Placement {
                     team: 1,
@@ -8498,6 +8531,7 @@ mod tests {
                     world_z: -100,
                     rotation: 180_000,
                     rotated: false,
+                    corrections: Vec::new(),
                 },
             ],
         };
