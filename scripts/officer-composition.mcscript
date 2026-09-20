@@ -91,9 +91,24 @@ steps:
   # there. A rate that reads `+0.6` in one channel and a damage that reads
   # 1.6 times the description are the same fact seen twice; a rate that reads
   # `+0.3` twice over is a different one.
+  #
+  # The game answered 14639, 13243 and 11845, which is `trunc(2329 * 1.3)` and
+  # `trunc(2329 * 1.6)` over two hits — added, not compounded, and truncated
+  # rather than rounded. The `twice` recording stores one `+0.6` in the skill
+  # channel rather than two of `+0.3`, so the build sums them where it writes
+  # them. Both halves are asserted here, which is what makes this script a
+  # regression against the build rather than a probe of it.
   - fight.outcome:
       recording: ${out}/none-1.mcfr
+    expect:
+      sides.red.survivors.0.life: 14639
   - fight.outcome:
       recording: ${out}/once.mcfr
+    expect:
+      sides.red.survivors.0.life: 13243
+      sides.blue.modifiers.0.skill.0.modifiers.damage_rate.add: 1288490188
   - fight.outcome:
       recording: ${out}/twice.mcfr
+    expect:
+      sides.red.survivors.0.life: 11845
+      sides.blue.modifiers.0.skill.0.modifiers.damage_rate.add: 2576980376

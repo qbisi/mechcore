@@ -51,11 +51,43 @@ read as a decimal, and is a comment because the decimal is the lossy one:
 `1288490188 / 2^32` is `0.29999999981`, and the build never computes with
 `0.3`.
 
-**How a correction composes with a description is not stated here.** Whether a
-rate multiplies or adds, and in what order two of them apply, belongs to the
-derived-value layer and is
-[architecture.md](../spec/simulation/architecture.md)'s unresolved question.
-This index says what the build stores and what it targets, and stops there.
+## How a rate composes
+
+A rate multiplies the description once, and two rates on one number sum before
+they do: `base × (1 + Σ add − Σ reduce)`, truncated toward zero rather than
+rounded.
+
+`scripts/officer-composition.mcscript` measured it against the game. One
+Marksman shoots one Rhino, twice, and the Rhino outlives the fight in all three
+recordings, so the reading is the life it has left of 19297:
+
+| Blue's officers | Rhino's life | Damage a hit |
+| --- | ---: | ---: |
+| none | 14639 | 2329, the description unchanged |
+| 先进进攻战术 | 13243 | 3027 |
+| 先进进攻战术 twice | 11845 | 3726 |
+
+3027 is `trunc(2329 × 1.3)` and 3726 is `trunc(2329 × 1.6)`. Compounding the
+two would be `trunc(2329 × 1.69)` = 3935, leaving 11427, which is not what the
+game played. The truncation is visible in the first number on its own:
+`2329 × 1.2999999998` is 3027.6999, and the build keeps 3027.
+
+The recordings say the same thing a second way, from the other side of the
+question. The `once` recording stores `damage_rate.add` of `1288490188` in the
+Marksman's **skill** channel — the officer table's `+0.3` exactly — and the
+`twice` recording stores `2576980376`, which is that number doubled. **The
+build sums two officers where it writes them**, so a recording holds one entry
+of `+0.6` rather than two of `+0.3`, and summing entries in a simulator mirrors
+the build rather than inventing an order over them. The unit overlay and the
+buff aggregate are neutral in both: this officer's damage does not land on the
+unit at all.
+
+`crates/simulation/src/data.rs` implements exactly this and refuses what the
+capture did not reach: a `*_value` correction, whose composition nothing has
+measured, and one number corrected in two channels at once, whose order nothing
+has. Two control recordings of the no-officer layout were taken first and
+compared tick for tick, so the differences above are the officer's and not the
+pipeline's.
 
 ## Which units a correction reaches
 
@@ -105,11 +137,9 @@ gaining any, so the field's name is not what it does.
 
 ## What is not established here
 
-- **How a correction composes with the description.** Whether a rate multiplies
-  or adds, in what order two of them apply, and whether two officers of one kind
-  stack by adding their rates, are one question asked three ways. It belongs to
-  the derived-value layer and is the one thing a mechanism cannot be finished
-  without.
+- **How a `*_value` correction composes**, and what order two channels apply in
+  when both correct one number. The capture above settled the rate and reached
+  neither of these.
 - **Which units are "ranged"**, which `mech_type` 4 selects and neither the data
   nor the text enumerates.
 - **What a correction does once it lands**, for the four fields above: no

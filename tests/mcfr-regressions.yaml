@@ -726,3 +726,12 @@
   seed: 1788397284
   tick_count: 146
   physics_result_hash: aef4eb9c44236044b27a99a4ec50b3364eb0762fe0fb2608b7501cd042c01c34
+
+- name: marksman-vs-rhino-officer-control
+  smoke: true
+  layout: tests/layouts/officer-composition-none.yaml
+  game_build: 1.11.1.3.2259
+  format: 0.3.0
+  seed: 4242
+  tick_count: 120
+  physics_result_hash: 075c230640b049bddb88084752a4f7599ba58f1df757ec275c1624e0da8081a9

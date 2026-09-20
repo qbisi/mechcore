@@ -231,10 +231,13 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 
 ## Unresolved
 
-- **覆盖层怎么合成出一个数。** 比率是 `base × (1 + add − reduce)` 还是对条目连乘，
-  同一下标上的 Float 与 FloatRate 条目如何相互作用，`AdditiveDataFloat` 与
-  `MultiplicativeDataFloat` 对顺序意味着什么。索引没有方法体，所以这一条要靠把录像的
-  聚合值和它的结果拟合起来才能关掉。
+- **一个 value 怎么合成，以及两条通道按什么顺序作用。** 比率已经定了：
+  `scripts/officer-composition.mcscript` 测出的是同一条通道内
+  `base × (1 + Σ add − Σ reduce)`、向零截断，
+  [`officer_effects.md`](../../rules/officer_effects.zh.md) 记录了那次捕获。但那次捕获
+  把两条修正放在同一条通道里、而且两条都是比率，所以同一下标上 Float 与 FloatRate 并存
+  时如何相互作用、单位/技能/buff 三条通道按什么顺序作用，仍然没有人测过——`data.rs`
+  对这两种情况一律拒绝，而不是把规则外推过去。
 - **模块被驱动的顺序，以及一次推进内部的工作顺序。** `FightCoreSystem.Update` 调用
   `TeamUpdate` 再调用 `GroupUpdate`，`PreCalculate` 和 `Update` 并列存在，但方法体内的
   调用顺序不在索引里。这一条靠对着录像测量关掉。
