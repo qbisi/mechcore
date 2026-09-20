@@ -305,7 +305,10 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     // side an officer, so that is what a real match meets first.
     let unresolved = fought["unresolved"].as_str().unwrap();
     assert!(
-        unresolved.contains("round 1 is not fought: side blue officers are outside"),
+        unresolved.contains(
+            "round 1 is not fought: side blue needs modules this build has not \
+             implemented: officers (Loadout)"
+        ),
         "{unresolved}"
     );
 
