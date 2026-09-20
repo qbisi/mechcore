@@ -127,10 +127,13 @@ architecture.md 的 Unresolved 里。
 部署动作 `MAP_AddUnit` 调用），不是战斗里的系统。模拟器照样在建立战斗时一次性把它们
 写进覆盖层。
 
-每个模块各自还欠一份**配置提取**，这是研究不是工程，可以和引擎并行：
-`config/officers.yaml` 现在只有经济效果（折扣、收入），军官的战斗效果、科技效果、
-装备效果都还没有表。提取脚本照 `scripts/extract_prices.py` 的路子走，每张表落一份
-`docs/rules/` 索引说明出处。
+每个模块各自还欠一份**配置提取**，这是研究不是工程，可以和引擎并行。军官那份已经做完：
+[`config/officer_effects.yaml`](config/officer_effects.yaml) 是 79 名军官写给单位的修正，
+[`docs/rules/officer_effects.md`](docs/rules/officer_effects.md) 说明编码和瞄准规则，
+数字拿 build 2227 的本地化文案核对过 73 条、不一致就拒绝写表。
+
+科技、装备、能量塔技能是**同一个接口**（`ICommonMechDataChangeDataSource`）的另外三个
+实现，所以表的形状已经定了；它们的数据在别的 Unity 对象里，还要各解析一次。
 
 ## 三、验收分三层，覆盖率钉在 CI
 
