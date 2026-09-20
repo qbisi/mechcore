@@ -1,8 +1,9 @@
 //! The `fight` namespace: one fight, simulated or compared.
 //!
-//! `run` simulates a layout, `compare` puts two recordings side by side, and
-//! `verify` simulates a recording's own layout again and compares the result
-//! with what the recording holds.
+//! `run` simulates a layout, `outcome` reads what a recorded fight decided,
+//! `modifiers` reads what was written onto its units, `compare` puts two
+//! recordings side by side, and `verify` simulates a recording's own layout
+//! again and compares the result with what the recording holds.
 
 use std::path::{Path, PathBuf};
 
@@ -19,14 +20,15 @@ use crate::cli::{Args, Failure, Outcome, Verdict};
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
-    let verb = arguments.operand("a verb: run, outcome, compare or verify")?;
+    let verb = arguments.operand("a verb: run, outcome, modifiers, compare or verify")?;
     let outcome = match verb.as_str() {
         "run" => simulate(arguments),
         "outcome" => outcome(arguments),
+        "modifiers" => modifiers(arguments),
         "compare" => compare_recordings(arguments),
         "verify" => verify(arguments),
         other => Err(Failure::usage(format!(
-            "fight has no verb {other:?}; it has run, outcome, compare and verify"
+            "fight has no verb {other:?}; it has run, outcome, modifiers, compare and verify"
         ))),
     };
     outcome.map_err(|failure| failure.at(format!("fight.{verb}")))
@@ -47,6 +49,21 @@ fn outcome(mut arguments: Args) -> Outcome {
     let settled = outcome.unresolved.is_empty();
     crate::cli::emit(&outcome, format)?;
     Ok(settled.into())
+}
+
+/// Answers what a recording holds written onto its units.
+///
+/// This is an input to a fight rather than something it decided, which is why
+/// it is its own verb: a capture is read here for what the build stored, and
+/// in `outcome` for what the build then computed.
+fn modifiers(mut arguments: Args) -> Outcome {
+    let format = arguments.format()?;
+    let tick = arguments.parsed::<u32>("--tick", "a tick the recording holds")?;
+    let recording = arguments.path("a recording of a fight")?;
+    arguments.finish()?;
+    let written = crate::modifiers::read(&recording, tick)?;
+    crate::cli::emit(&written, format)?;
+    Ok(Verdict::Yes)
 }
 
 /// Simulates one fight from a layout.

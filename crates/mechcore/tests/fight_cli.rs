@@ -239,3 +239,66 @@ red:
     assert!(unresolved[0].as_str().unwrap().starts_with("reactor_core:"));
     assert!(unresolved[1].as_str().unwrap().starts_with("units.exp:"));
 }
+
+/// What was written onto a fight's units, which is not what the fight decided.
+///
+/// The simulator writes no correction yet — `Loadout` is unimplemented and a
+/// layout carrying an officer is refused — so a recording it produced holds
+/// none, and this pins the shape and the empty answer. The officer case is
+/// measured against the game by `scripts/officer-composition.mcscript`, which
+/// asserts the stored rates this verb reads.
+#[test]
+fn modifiers_read_a_tick_and_answer_what_it_holds() {
+    let directory = tempfile::tempdir().unwrap();
+    let recording = directory.path().join("fight.mcfr");
+    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+    let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "run"])
+        .arg(&layout)
+        .arg("--output")
+        .arg(&recording)
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+
+    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "modifiers"])
+        .arg(&recording)
+        .output()
+        .unwrap();
+    assert!(read.status.success());
+    let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
+    assert_eq!(written["schema"], "mechcore.fight-modifiers.v1");
+    assert_eq!(written["tick"], 1, "the first tick is the default");
+    assert!(written["ticks"].as_u64().unwrap() > 1);
+    for side in ["blue", "red"] {
+        assert!(
+            written["sides"][side].as_array().unwrap().is_empty(),
+            "{written}"
+        );
+    }
+
+    // A tick the recording does not hold is refused rather than answered from
+    // the nearest one it does.
+    let beyond = written["ticks"].as_u64().unwrap() + 1_000;
+    let refused = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "modifiers"])
+        .arg(&recording)
+        .arg("--tick")
+        .arg(beyond.to_string())
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(
+        String::from_utf8_lossy(&refused.stdout).contains("has no tick")
+            || String::from_utf8_lossy(&refused.stderr).contains("has no tick"),
+        "stdout {} stderr {}",
+        String::from_utf8_lossy(&refused.stdout),
+        String::from_utf8_lossy(&refused.stderr)
+    );
+}

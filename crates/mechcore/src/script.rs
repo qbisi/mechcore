@@ -38,7 +38,13 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const OFFLINE: &[&str] = &["let", "fight.compare", "fight.outcome", "fight.run"];
+const OFFLINE: &[&str] = &[
+    "let",
+    "fight.compare",
+    "fight.modifiers",
+    "fight.outcome",
+    "fight.run",
+];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -648,6 +654,28 @@ async fn perform(
             let outcome =
                 crate::outcome::read(&recording).map_err(|failure| failure.reason().to_owned())?;
             serde_json::to_value(&outcome).map_err(|error| error.to_string())
+        }
+        "fight.modifiers" => {
+            let fields = arguments.as_object();
+            let recording = scope.path(
+                fields
+                    .and_then(|fields| fields.get("recording"))
+                    .ok_or("fight.modifiers takes a recording")?,
+                "fight.modifiers recording",
+            )?;
+            let tick = match fields.and_then(|fields| fields.get("tick")) {
+                None => None,
+                Some(value) => Some(
+                    scope
+                        .resolve(value)?
+                        .as_u64()
+                        .and_then(|tick| u32::try_from(tick).ok())
+                        .ok_or("fight.modifiers tick must be a tick the recording holds")?,
+                ),
+            };
+            let written = crate::modifiers::read(&recording, tick)
+                .map_err(|failure| failure.reason().to_owned())?;
+            serde_json::to_value(&written).map_err(|error| error.to_string())
         }
         "game.status" => Ok(session.current_status()),
         "game.start_test" => {
