@@ -1,0 +1,608 @@
+schema: mechcore.technology_effects
+game_build: 1.11.1.3.2259
+
+# What a technology does to a fight, which is a correction it writes onto
+# the unit that researched it. `config/unit_techs.yaml` carries which
+# technologies a unit may research and what each costs.
+# `docs/rules/technology_effects.md` states what each field means and what
+# is not established.
+#
+# Every effect is a list indexed by the unit's rank: one entry for a
+# technology whose effect is flat, and one per rank for a technology that
+# grows with it. A rate is an FPoint Q32.32 raw integer, a value is an
+# FPoint in the number's own units, and speed is a plain integer.
+
+technologies:
+  - id: 304
+    name: 能量汲取
+    unit: melting_point
+    life_rate: [2576980377]  # +0.6
+  - id: 308
+    name: 能量汲取
+    unit: steel_ball
+    life_rate: [1717986918]  # +0.4
+  - id: 330
+    name: 能量汲取
+    unit: void_eye
+    life_rate: [2576980377]  # +0.6
+  - id: 406
+    name: 高爆弹药
+    unit: wasp
+    damage_rate: [-1288490188]  # -0.3
+  - id: 407
+    name: 高爆弹药
+    unit: mustang
+    damage_rate: [-1503238553]  # -0.35
+  - id: 411
+    name: 高爆弹药
+    unit: overlord
+    damage_rate: [-1717986918]  # -0.4
+  - id: 412
+    name: 高爆弹药
+    unit: stormcaller
+    damage_rate: [-2147483648]  # -0.5
+  - id: 417
+    name: 高爆弹药
+    unit: war_factory
+    damage_rate: [-1717986918]  # -0.4
+  - id: 418
+    name: 高爆弹药
+    unit: wraith
+    damage_rate: [-1288490188]  # -0.3
+  - id: 424
+    name: 高爆弹药
+    unit: tarantula
+    damage_rate: [-1932735283]  # -0.45
+  - id: 425
+    name: 高爆弹药
+    unit: phantom_ray
+    damage_rate: [-1717986918]  # -0.4
+  - id: 608
+    name: 伤害分摊
+    unit: steel_ball
+    life_rate: [5153960755]  # +1.2
+  - id: 613
+    name: 伤害分摊
+    unit: sledgehammer
+    life_rate: [5153960755]  # +1.2
+  - id: 701
+    name: 双发
+    unit: fortress
+    attack_interval_rate: [515396075]  # +0.12
+  - id: 702
+    name: 双发
+    unit: marksman
+    attack_interval_rate: [644245094]  # +0.15
+  - id: 719
+    name: 双发
+    unit: scorpion
+    attack_interval_rate: [515396075]  # +0.12
+  - id: 721
+    name: 双发
+    unit: sabertooth
+    attack_interval_rate: [515396075]  # +0.12
+  - id: 725
+    name: 全弹发射
+    unit: phantom_ray
+    attack_interval_rate: [6442450944]  # +1.5
+  - id: 726
+    name: 全弹发射
+    unit: farseer
+    attack_interval_rate: [8589934592]  # +2
+  - id: 812
+    name: 燃烧弹
+    unit: stormcaller
+    attack_range_value: [-85899345920]  # -20
+  - id: 820
+    name: 液态火
+    unit: fire_badger
+    life_rate: [-1288490188]  # -0.3
+  - id: 911
+    name: 战地维修
+    unit: overlord
+    life_rate: [1288490188]  # +0.3
+  - id: 913
+    name: 战地维修
+    unit: sledgehammer
+    life_rate: [1288490188]  # +0.3
+  - id: 918
+    name: 战地维修
+    unit: wraith
+    life_rate: [1288490188]  # +0.3
+  - id: 919
+    name: 战地维修
+    unit: scorpion
+    life_rate: [1288490188]  # +0.3
+  - id: 920
+    name: 战地维修
+    unit: fire_badger
+    life_rate: [1288490188]  # +0.3
+  - id: 923
+    name: 潜地维修
+    unit: sandworm
+    life_rate: [858993459]  # +0.2
+  - id: 924
+    name: 战地维修
+    unit: tarantula
+    life_rate: [1288490188]  # +0.3
+  - id: 931
+    name: 战地维修
+    unit: vortex
+    life_rate: [1288490188]  # +0.3
+  - id: 1107
+    name: 能量散射
+    unit: melting_point
+    attack_range_value: [-128849018880]  # -30
+  - id: 1606
+    name: 高速引擎
+    unit: wasp
+    speed_value: [5]
+  - id: 1611
+    name: 高速引擎
+    unit: overlord
+    speed_value: [5]
+  - id: 1616
+    name: 高速引擎
+    unit: phoenix
+    speed_value: [5]
+  - id: 2305
+    name: 残骸利用
+    unit: rhino
+    damage_rate: [2576980377]  # +0.6
+  - id: 2329
+    name: 残骸利用
+    unit: abyss
+    damage_rate: [1503238553]  # +0.35
+  - id: 2505
+    name: 动力装甲
+    unit: rhino
+    life_rate: [1073741824]  # +0.25
+  - id: 2610
+    name: 潜地行动
+    unit: crawler
+    speed_value: [3]
+  - id: 3001
+    name: 装甲强化
+    unit: fortress
+    life_rate: [2147483648]  # +0.5
+  - id: 3003
+    name: 装甲强化
+    unit: vulcan
+    life_rate: [2147483648]  # +0.5
+  - id: 3004
+    name: 装甲强化
+    unit: melting_point
+    life_rate: [2147483648]  # +0.5
+  - id: 3005
+    name: 装甲强化
+    unit: rhino
+    life_rate: [2147483648]  # +0.5
+  - id: 3008
+    name: 装甲强化
+    unit: steel_ball
+    life_rate: [1503238553]  # +0.35
+  - id: 3011
+    name: 装甲强化
+    unit: overlord
+    life_rate: [1503238553]  # +0.35
+  - id: 3013
+    name: 装甲强化
+    unit: sledgehammer
+    life_rate: [1503238553]  # +0.35
+  - id: 3015
+    name: 装甲强化
+    unit: arclight
+    life_rate: [2147483648]  # +0.5
+  - id: 3017
+    name: 装甲强化
+    unit: war_factory
+    life_rate: [2147483648]  # +0.5
+  - id: 3018
+    name: 装甲强化
+    unit: wraith
+    life_rate: [1503238553]  # +0.35
+  - id: 3019
+    name: 装甲强化
+    unit: scorpion
+    life_rate: [2147483648]  # +0.5
+  - id: 3023
+    name: 装甲强化
+    unit: sandworm
+    life_rate: [2147483648]  # +0.5
+  - id: 3024
+    name: 装甲强化
+    unit: tarantula
+    life_rate: [2147483648]  # +0.5
+  - id: 3025
+    name: 装甲强化
+    unit: phantom_ray
+    life_rate: [1503238553]  # +0.35
+  - id: 3028
+    name: 装甲强化
+    unit: hound
+    life_rate: [858993459]  # +0.2
+  - id: 3109
+    name: 榴弹发射器
+    unit: fang
+    attack_range_value: [42949672960]  # +10
+    splash_range_value: [30064771072]  # +7
+    projectile_speed_value: [-601295421440]  # -140
+  - id: 3123
+    name: 对空
+    unit: sandworm
+    attack_range_value: [85899345920]  # +20
+  - id: 3510
+    name: 松散队列
+    unit: crawler
+    life_rate: [-1717986918]  # -0.4
+  - id: 3925
+    name: 隐形
+    unit: phantom_ray
+    life_rate: [858993459]  # +0.2
+    damage_rate: [858993459]  # +0.2
+  - id: 4027
+    name: 连锁
+    unit: raiden
+    attack_range_value: [-85899345920]  # -20
+  - id: 4127
+    name: 电离
+    unit: raiden
+    damage_rate: [-3006477107]  # -0.7
+  - id: 4329
+    name: 纵扫
+    unit: abyss
+    damage_rate: [2147483648]  # +0.5
+  - id: 4418
+    name: 地面巡航
+    unit: wraith
+    attack_range_value: [214748364800]  # +50
+    attack_interval_value: [2576980377]  # +0.6
+  - id: 4430
+    name: 飞行模式
+    unit: void_eye
+    speed_value: [3]
+    attack_range_value: [-64424509440]  # -15
+  - id: 4515
+    name: 震荡波
+    unit: arclight
+    attack_range_value: [-21474836480]  # -5
+  - id: 4607
+    name: 斩杀弹
+    unit: mustang
+    damage_rate: [-1503238553]  # -0.35
+  - id: 10019
+    name: 攻城模式
+    unit: scorpion
+    damage_rate: [-1717986918]  # -0.4
+    min_attack_range_value: [75]
+    attack_range_value: [429496729600]  # +100
+    attack_interval_value: [6442450944]  # +1.5
+    projectile_speed_value: [-858993459200]  # -200
+  - id: 10102
+    name: 突击模式
+    unit: marksman
+    life_rate: [21474836480]  # +5
+    damage_rate: [2576980377]  # +0.6
+    speed_value: [3]
+    attack_range_value: [-300647710720]  # -70
+    splash_range_value: [38654705664]  # +9
+  - id: 10201
+    name: 射程强化
+    unit: fortress
+    attack_range_value: [171798691840]  # +40
+  - id: 10202
+    name: 射程强化
+    unit: marksman
+    attack_range_value: [171798691840]  # +40
+  - id: 10203
+    name: 射程强化
+    unit: vulcan
+    attack_range_value: [171798691840]  # +40
+  - id: 10204
+    name: 射程强化
+    unit: melting_point
+    attack_range_value: [171798691840]  # +40
+  - id: 10206
+    name: 射程强化
+    unit: wasp
+    attack_range_value: [171798691840]  # +40
+  - id: 10207
+    name: 射程强化
+    unit: mustang
+    attack_range_value: [171798691840]  # +40
+  - id: 10208
+    name: 射程强化
+    unit: steel_ball
+    attack_range_value: [171798691840]  # +40
+  - id: 10209
+    name: 射程强化
+    unit: fang
+    attack_range_value: [171798691840]  # +40
+  - id: 10211
+    name: 射程强化
+    unit: overlord
+    attack_range_value: [171798691840]  # +40
+  - id: 10212
+    name: 射程强化
+    unit: stormcaller
+    attack_range_value: [171798691840]  # +40
+  - id: 10213
+    name: 射程强化
+    unit: sledgehammer
+    attack_range_value: [171798691840]  # +40
+  - id: 10214
+    name: 射程强化
+    unit: hacker
+    attack_range_value: [171798691840]  # +40
+  - id: 10215
+    name: 射程强化
+    unit: arclight
+    attack_range_value: [171798691840]  # +40
+  - id: 10216
+    name: 射程强化
+    unit: phoenix
+    attack_range_value: [171798691840]  # +40
+  - id: 10217
+    name: 射程强化
+    unit: war_factory
+    attack_range_value: [171798691840]  # +40
+  - id: 10218
+    name: 射程强化
+    unit: wraith
+    attack_range_value: [171798691840]  # +40
+  - id: 10219
+    name: 射程强化
+    unit: scorpion
+    attack_range_value: [171798691840]  # +40
+  - id: 10220
+    name: 射程强化
+    unit: fire_badger
+    attack_range_value: [171798691840]  # +40
+  - id: 10221
+    name: 射程强化
+    unit: sabertooth
+    attack_range_value: [171798691840]  # +40
+  - id: 10222
+    name: 射程强化
+    unit: typhoon
+    attack_range_value: [171798691840]  # +40
+  - id: 10224
+    name: 射程强化
+    unit: tarantula
+    attack_range_value: [171798691840]  # +40
+  - id: 10225
+    name: 射程强化
+    unit: phantom_ray
+    attack_range_value: [171798691840]  # +40
+  - id: 10226
+    name: 射程强化
+    unit: farseer
+    attack_range_value: [171798691840]  # +40
+  - id: 10227
+    name: 射程强化
+    unit: raiden
+    attack_range_value: [171798691840]  # +40
+  - id: 10228
+    name: 射程强化
+    unit: hound
+    attack_range_value: [171798691840]  # +40
+  - id: 10229
+    name: 射程强化
+    unit: abyss
+    attack_range_value: [171798691840]  # +40
+  - id: 10230
+    name: 射程强化
+    unit: void_eye
+    attack_range_value: [171798691840]  # +40
+  - id: 10231
+    name: 射程强化
+    unit: vortex
+    attack_range_value: [171798691840]  # +40
+  - id: 10301
+    name: 发射器过载
+    unit: fortress
+    attack_range_value: [-85899345920]  # -20
+    attack_interval_rate: [-2147483648]  # -0.5
+  - id: 10311
+    name: 发射器过载
+    unit: overlord
+    attack_range_value: [-85899345920]  # -20
+    attack_interval_rate: [-2147483648]  # -0.5
+  - id: 10312
+    name: 发射器过载
+    unit: stormcaller
+    speed_value: [5]
+    attack_range_value: [-171798691840]  # -40
+    attack_interval_rate: [-2147483648]  # -0.5
+  - id: 10316
+    name: 发射器过载
+    unit: phoenix
+    attack_range_value: [-107374182400]  # -25
+    attack_interval_rate: [-2147483648]  # -0.5
+  - id: 10317
+    name: 发射器过载
+    unit: war_factory
+    attack_range_value: [-85899345920]  # -20
+    attack_interval_rate: [-2147483648]  # -0.5
+  - id: 10321
+    name: 战地维修
+    unit: sabertooth
+    life_rate: [1288490188]  # +0.3
+  - id: 10401
+    name: 实心弹
+    unit: fortress
+    attack_range_value: [257698037760]  # +60
+    attack_interval_value: [3006477107]  # +0.7
+    splash_range_value: [-8589934592]  # -2
+  - id: 10402
+    name: 快速弹夹
+    unit: marksman
+    damage_rate: [-2576980377]  # -0.6
+    attack_interval_rate: [-2147483648]  # -0.5
+  - id: 10419
+    name: 收束射击
+    unit: scorpion
+    attack_range_value: [128849018880]  # +30
+    attack_interval_value: [-4294967296]  # -1
+    splash_range_value: [-34359738368]  # -8
+  - id: 10505
+    name: 机械狂暴
+    unit: rhino
+    speed_value: [5]
+    attack_interval_value: [-1288490188]  # -0.3
+  - id: 10509
+    name: 机械狂暴
+    unit: fang
+    speed_value: [5]
+    attack_interval_value: [-2147483648]  # -0.5
+  - id: 10510
+    name: 机械狂暴
+    unit: crawler
+    speed_value: [5]
+    attack_interval_value: [-858993459]  # -0.2
+  - id: 10513
+    name: 机械狂暴
+    unit: sledgehammer
+    speed_value: [6]
+    attack_interval_value: [-4294967296]  # -1
+  - id: 10523
+    name: 机械狂暴
+    unit: sandworm
+    speed_value: [5]
+    attack_interval_value: [-3435973836]  # -0.8
+  - id: 10524
+    name: 机械狂暴
+    unit: tarantula
+    speed_value: [4]
+    attack_interval_value: [-858993459]  # -0.2
+  - id: 10528
+    name: 机械狂暴
+    unit: hound
+    speed_value: [4]
+    attack_interval_value: [-3435973836]  # -0.8
+  - id: 10603
+    name: 高温火焰
+    unit: vulcan
+    damage_rate: [3650722201]  # +0.85
+  - id: 10606
+    name: 穿甲弹
+    unit: wasp
+    damage_rate: [2147483648]  # +0.5
+  - id: 10607
+    name: 穿甲弹
+    unit: mustang
+    damage_rate: [2147483648]  # +0.5
+  - id: 10609
+    name: 穿甲弹
+    unit: fang
+    damage_rate: [2147483648]  # +0.5
+  - id: 10613
+    name: 穿甲弹
+    unit: sledgehammer
+    damage_rate: [10737418240]  # +2.5
+    attack_interval_rate: [1288490188]  # +0.3
+  - id: 10620
+    name: 高温火焰
+    unit: fire_badger
+    damage_rate: [3650722201]  # +0.85
+  - id: 10624
+    name: 穿甲弹
+    unit: tarantula
+    damage_rate: [2147483648]  # +0.5
+  - id: 10710
+    name: 冲击钻头
+    unit: crawler
+    damage_rate: [5368709120]  # +1.25
+  - id: 10801
+    name: 精英射手
+    unit: fortress
+    damage_rate: [1073741824, 2147483648, 3221225472, 4294967296, 5368709120, 6442450944, 7516192768, 8589934592, 9663676416]  # +0.25, +0.5, +0.75, +1, +1.25, +1.5, +1.75, +2, +2.25
+    attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
+  - id: 10802
+    name: 精英射手
+    unit: marksman
+    damage_rate: [730144440, 1460288880, 2190433320, 2920577761, 3650722201, 4380866641, 5111011082, 5841155522, 6571299962]  # +0.17, +0.34, +0.51, +0.68, +0.85, +1.02, +1.19, +1.36, +1.53
+    attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
+  - id: 10806
+    name: 精英射手
+    unit: wasp
+    damage_rate: [1073741824, 2147483648, 3221225472, 4294967296, 5368709120, 6442450944, 7516192768, 8589934592, 9663676416]  # +0.25, +0.5, +0.75, +1, +1.25, +1.5, +1.75, +2, +2.25
+    attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
+  - id: 10815
+    name: 精英射手
+    unit: arclight
+    damage_rate: [730144440, 1460288880, 2190433320, 2920577761, 3650722201, 4380866641, 5111011082, 5841155522, 6571299962]  # +0.17, +0.34, +0.51, +0.68, +0.85, +1.02, +1.19, +1.36, +1.53
+    attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
+  - id: 10816
+    name: 精英射手
+    unit: phoenix
+    damage_rate: [858993459, 1717986918, 2576980377, 3435973836, 4294967296, 5153960755, 6012954214, 6871947673, 7730941132]  # +0.2, +0.4, +0.6, +0.8, +1, +1.2, +1.4, +1.6, +1.8
+    attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
+  - id: 10912
+    name: 重型导弹
+    unit: stormcaller
+    damage_rate: [3435973836]  # +0.8
+    attack_interval_rate: [1073741824]  # +0.25
+    projectile_life_rate: [8589934592]  # +2
+  - id: 10915
+    name: 蓄能攻击
+    unit: arclight
+    damage_rate: [12884901888]  # +3
+    attack_interval_rate: [1503238553]  # +0.35
+  - id: 10916
+    name: 蓄能攻击
+    unit: phoenix
+    damage_rate: [8589934592]  # +2
+    attack_range_value: [-107374182400]  # -25
+  - id: 10930
+    name: 蓄能攻击
+    unit: void_eye
+    damage_rate: [5153960755]  # +1.2
+    attack_interval_rate: [1073741824]  # +0.25
+  - id: 11014
+    name: 多重控制
+    unit: hacker
+    attack_range_value: [-107374182400]  # -25
+  - id: 11020
+    name: 焦土冲击
+    unit: fire_badger
+    life_rate: [3435973836]  # +0.8
+  - id: 72002
+    name: 饱和打击
+    unit: mountain
+    attack_interval_rate: [5153960755]  # +1.2
+    splash_range_value: [12884901888]  # +3
+    projectile_speed_value: [-429496729600]  # -100
+  - id: 110271
+    name: 分叉
+    unit: raiden
+    attack_range_value: [-42949672960]  # -10
+  - id: 180430
+    name: 压制射击
+    unit: void_eye
+    attack_range_value: [42949672960]  # +10
+  - id: 180620
+    name: 逆火 
+    unit: fire_badger
+    life_rate: [2147483648]  # +0.5
+  - id: 180828
+    name: 枪膛增压
+    unit: hound
+    attack_interval_value: [2576980377]  # +0.6
+  - id: 180931
+    name: 移动电站
+    unit: vortex
+    attack_range_value: [42949672960]  # +10
+  - id: 312002
+    name: 防空弹药
+    unit: mountain
+    damage_rate: [-1717986918]  # -0.4
+  - id: 1022002
+    name: 射程强化
+    unit: mountain
+    attack_range_value: [171798691840]  # +40
+  - id: 1032002
+    name: 增程炮弹
+    unit: mountain
+    damage_rate: [-3221225472]  # -0.75
+    attack_range_value: [687194767360]  # +160

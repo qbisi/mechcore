@@ -106,6 +106,14 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/reinforcements.zh.md"),
     ),
     (
+        "rules/technology_effects",
+        include_str!("../../../docs/rules/technology_effects.md"),
+    ),
+    (
+        "rules/technology_effects.zh",
+        include_str!("../../../docs/rules/technology_effects.zh.md"),
+    ),
+    (
         "rules/terrain",
         include_str!("../../../docs/rules/terrain.md"),
     ),
