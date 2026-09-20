@@ -15,7 +15,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 | 字段 | 欠哪个模块 | 挡住多少回合 |
 | --- | --- | ---: |
-| `officers` | Loadout | 334 (100%) |
+| ~~`officers`~~ | ~~Loadout~~ | **已落地**（曾是 334，100%） |
 | `constructions` | FightConstructionSystem | 322 (96%) |
 | 单位 `level` > 1 | Loadout | 276 (82%) |
 | `techs` | Loadout | 256 (76%) |
@@ -31,7 +31,8 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 （`blueprints` 不在表里：编译 layout 时每条链都按它交出的军官应用，所以蓝图是以军官
 的身份到达战斗、也以军官的身份被拒。）
 
-**没有一个回合只差一样东西。** 按字段算最少差 2 样、中位数 6 样；按**模块**算差 2 到
+**军官落地之前，没有一个回合只差一样东西**——那时按字段算最少差 2 样。军官是每个回合
+都带的那一样，它关掉之后有 28 个回合只差 `constructions` 一件了。按模块算现在差 1 到
 6 个，中位数 4 个。所以"按字段实现、拿真实对局验收"这条路，早期根本走不通——真实回合
 要等四五个模块齐了才第一次可用。早期验收只能靠**合成 layout**：一份只动一个字段的
 布阵，拿游戏录一份原生 MCFR，模拟器必须逐 tick 对上。这正是
@@ -43,18 +44,22 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 这样涨：
 
 ```text
-+ AdvancedEnergyShieldSystem      0/334
-+ CommanderSkillSystem            0/334
-+ InterceptSystem                 0/334
-+ SuperDeploymentSystem           0/334
-+ FightConstructionSystem         0/334
-+ Loadout                       166/334
-+ BuildingSystem                329/334
-+ RangeItemSystem               334/334
++ FightConstructionSystem        28/334
++ Loadout                        79/334
++ CommanderSkillSystem          102/334
++ InterceptSystem               139/334
++ BuildingSystem                233/334
++ SuperDeploymentSystem         325/334
++ RangeItemSystem               330/334
++ AdvancedEnergyShieldSystem    334/334
 ```
 
-**`Loadout` 是最大的一根杠杆**：它一个模块认领四个字段（军官、科技、装备、等级），
-自己就压着 166 个回合。脚本第一行报"模拟器现在接受几个回合"，今天是 0，这就是进度条。
+`Loadout` 还排在第二，因为它认领的另外三个字段（科技、装备、等级）还欠各自的效果表。
+军官那一份已经装上：`crates/simulation/src/officers.rs` 把 79 行里的 21 行应用到目标
+单位上，其余指名拒绝——**58 次拒绝里 44 次卡在同一件事上，`*_value` 怎么合成**。测它的
+实验和测比率的那次是同一个形状。
+
+脚本第一行报"模拟器现在接受几个回合"，今天是 0，这就是进度条。
 
 ## 一、先定架构，否则并行不起来
 
@@ -102,10 +107,11 @@ architecture.md 的 Unresolved 里。
 `rules.move_speed()`，**收敛的范围就是录像记了的那几个数值**（移速、生命上限、伤害、
 攻击间隔、射程），其余保持直读，改动量正好等于机制面。
 
-做完这条，"军官给 +20% 伤害"是一张表里的一行，不是内核里的一段 if。至于三层**怎么
-合成**出一个数（连乘还是 `base × (1 + add − reduce)`），索引答不了，要靠拿录像的聚合值
-去拟合结果。在那之前，**任何非中性的修正一律拒绝而不是猜**：`resolve` 遇到非中性条目
-就报错并指向 architecture.md 的未决项，所以没有哪个机制能在规则立起来之前先蒙混过去。
+做完这条，"军官给 +20% 伤害"是一张表里的一行，不是内核里的一段 if——这一条已经成立：
+`officers.rs` 读 `config/officer_effects.yaml`，内核里没有一行认识军官。比率**怎么
+合成**也已经量出来了（通道内相加、乘一次、向零截断），并且拿游戏三场录像逐位验过。
+剩下没量的照旧**一律拒绝而不是猜**：`resolve` 遇到 value 修正、或同一个数被两条通道
+修正，就报错并指向 architecture.md 的未决项。
 
 ## 二、模块并行，按登记表分工
 
@@ -113,7 +119,7 @@ architecture.md 的 Unresolved 里。
 
 | 模块 | 认领的字段 | 验收面 |
 | --- | --- | --- |
-| **Loadout**（非原生模块） | `officers`、`techs`、`equipment`、单位 `level` | 录像的三条修饰符通道，逐 tick 对齐 |
+| **Loadout**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment`、单位 `level` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
 | **FightConstructionSystem** | `constructions` | 录像的 `buildings`（内核已经有塔了） |
 | **BuildingSystem** | `energy_tower_skills`、`tower_strengthen_levels` | 录像的 `buildings` |
 | **CommanderSkillSystem** | `battle_skills` | 录像的 `terrains`、`shields` 和释放事件 |

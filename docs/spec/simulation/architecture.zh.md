@@ -101,8 +101,14 @@ TechnologySystem            WreckageRecoverySystem
 
 **什么都不做的模块也要存在。** 它声明自己会认领 layout 的哪些字段，然后拒绝它们——
 这正是闭包成为登记表的性质、而不是一串手写拒绝的原因：一份 layout 能编译，当且仅当
-它带的每个字段都被一个**已实现**的模块认领；否则拒绝，并指名字段和模块。实现一个机制
+它带的每个字段都被一个**看得懂它**的模块认领；否则拒绝，并指名字段和模块。实现一个机制
 是把它的模块填满，永远不是去改驱动它的那个循环。
+
+**一个模块不是全有或全无。** 它认领若干字段，其中一部分是它当下看得懂的，其余的照样
+被拒绝，和空模块的认领一模一样。`Loadout` 认领军官、科技、装备、等级，今天看得懂的是
+军官——因为军官的效果表已经提取出来，另外三张还没有。而且即使字段本身看得懂，某一份
+具体 layout 仍可能被拒：一名军官的效果这个 build 合成不出来时，持有它的那一方被拒绝，
+并指名是哪名军官、哪个字段，而不是把它应用一半。
 
 有一个模块不是 build 的。军官、科技、装备、等级是在**开打之前**施加到单位上的——
 build 自己的 `TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由部署
@@ -115,9 +121,17 @@ travelling 的单位——因为 `FightCoreSystem.PreCalculate` 问的正是它 
 能打还有多远：
 
 ```text
-side blue needs modules this build has not implemented: officers (Loadout),
-constructions (FightConstructionSystem); side red needs modules this build has
-not implemented: officers (Loadout)
+side blue needs modules this build has not implemented: constructions
+(FightConstructionSystem), units above level one (Loadout); side red needs
+modules this build has not implemented: unit technologies (Loadout)
+```
+
+来自"字段本身能过、但其中某一项不行"的拒绝，指的是那一项而不是那个字段——字段是看得懂
+的，看不懂的是它里面这一个：
+
+```text
+side blue: officer 20006 (先进瞄准系统) writes attack_range_value, and how a
+value composes with a description is not measured
 ```
 
 ## 对象

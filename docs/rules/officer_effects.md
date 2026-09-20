@@ -89,6 +89,50 @@ has. Two control recordings of the no-officer layout were taken first and
 compared tick for tick, so the differences above are the officer's and not the
 pipeline's.
 
+## Which channel a field lands in
+
+A recording keeps exactly one place for each field, so which channel a
+correction lives in is the recording's own shape rather than a choice: MCFR's
+skill modifier set holds `damage_rate`, `attack_range_rate` and
+`attack_interval_rate`, and its unit modifier set holds `life_rate` and the
+move-speed fields.
+
+Both readings are measured. The damage capture above found `+0.3` in the
+Marksman's skill channel. A second capture, `tests/layouts/officer-life-rate.yaml`,
+put Advanced Defensive Tactics' `life_rate` on a Rhino: the game stored it in
+the **unit** channel, gave the Rhino 25086 of its 19297, and left it 20428 after
+two hits — all three numbers predicted by the simulator before the recording
+existed, and the whole fight hashes identically.
+
+## What this build applies
+
+`crates/simulation/src/officers.rs` turns a row of the table into corrections
+on the units it reaches, tagged `Loadout` so removing the officer removes them.
+Of the 79 rows, 21 are applied: the ones whose every field is a rate on a
+number the simulator derives — damage, life, attack interval, attack range —
+and whose `mech_type` is 0, 1 or 10.
+
+The rest refuse the side that holds them, by name:
+
+| Why | Rows | What would close it |
+| --- | ---: | --- |
+| a `*_value` field, commonly `attack_range_value` or `speed_value` | 44 | measuring how a value composes, the way the rate was measured |
+| a tower, shield, mine, deployment clock, experience or a projectile's life | 11 | the mechanism that owns that object |
+| `*_by_kill_count` | 3 | a mechanism that counts a unit's kills |
+
+`mech_type` 4, the category nothing enumerates, refuses nothing today: its one
+row is 先进瞄准系统, whose `attack_range_value` is refused before its targeting
+is ever asked about. The refusal is in place for the row that carries the
+category without a field to refuse first.
+
+**A value is what stands between this and most of the table**: 44 of the 58
+refusals are one, and the capture that would settle them is the same shape as
+the one that settled the rate.
+
+A partly applied officer is not offered: a side carrying one this build cannot
+compose is refused, because a fight with two thirds of an officer on it is a
+fight whose numbers nobody can check.
+
 ## Which units a correction reaches
 
 Each row carries the `mech_type` the build stores and, where the build resolves
@@ -137,9 +181,10 @@ gaining any, so the field's name is not what it does.
 
 ## What is not established here
 
-- **How a `*_value` correction composes**, and what order two channels apply in
-  when both correct one number. The capture above settled the rate and reached
-  neither of these.
+- **How a `*_value` correction composes**, which 44 of the table's 79 rows
+  wait on, and what order two channels apply in when both correct one number.
+  The captures above settled the rate in each channel and reached neither of
+  these.
 - **Which units are "ranged"**, which `mech_type` 4 selects and neither the data
   nor the text enumerates.
 - **What a correction does once it lands**, for the four fields above: no

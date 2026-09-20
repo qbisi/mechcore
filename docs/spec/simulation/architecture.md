@@ -112,9 +112,17 @@ TechnologySystem            WreckageRecoverySystem
 **A module that does nothing still exists.** It declares the layout fields it
 would claim and refuses them, which is what makes the closure a property of the
 registry rather than a hand-written list: a layout compiles when every field it
-carries is claimed by a module that implements it, and is refused naming the
+carries is claimed by a module that understands it, and is refused naming the
 field and the module otherwise. Implementing a mechanism is filling in its
 module, never editing the loop that drives it.
+
+**A module is not all or nothing.** It claims fields and understands some of
+them; the rest are refused exactly as an empty module's claims are. `Loadout`
+claims officers, technologies, equipment and levels, and understands officers
+today, because the officers' effect table is extracted and the other three are
+not. A field it understands can still refuse one particular layout: an officer
+whose effect this build cannot compose refuses the side holding it, by name and
+by field, rather than being half applied.
 
 One module is not the build's. Officers, technologies, equipment and levels are
 applied to a unit **before** the fight rather than inside it — the build's
@@ -131,9 +139,18 @@ because what a caller wants to know is how far a deployment is from being
 fought:
 
 ```text
-side blue needs modules this build has not implemented: officers (Loadout),
-constructions (FightConstructionSystem); side red needs modules this build has
-not implemented: officers (Loadout)
+side blue needs modules this build has not implemented: constructions
+(FightConstructionSystem), units above level one (Loadout); side red needs
+modules this build has not implemented: unit technologies (Loadout)
+```
+
+A refusal from inside a field the registry lets through names the thing rather
+than the field, because the field is understood and this one member of it is
+not:
+
+```text
+side blue: officer 20006 (先进瞄准系统) writes attack_range_value, and how a
+value composes with a description is not measured
 ```
 
 ## Objects

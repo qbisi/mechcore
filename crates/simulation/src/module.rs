@@ -7,8 +7,11 @@
 //! makes the closure a property of this table rather than a hand-written list
 //! of rejections.
 //!
-//! Adding a mechanism is filling in its module and setting `implemented`. The
-//! loop that drives them is never edited for a mechanism.
+//! Adding a mechanism is filling in its module and listing the fields it now
+//! understands. A module is not all or nothing: `Loadout` applies an officer
+//! and refuses the technology beside it, because one effect table is extracted
+//! and the other is not. The loop that drives them is never edited for a
+//! mechanism.
 
 use mechcore_document::SidePlan;
 
@@ -83,7 +86,15 @@ pub(crate) struct Module {
     pub(crate) native: &'static str,
     /// The layout fields this module is responsible for understanding.
     pub(crate) claims: &'static [Field],
-    /// Whether this build of the simulator implements it.
+    /// Which of its claims this build understands.
+    ///
+    /// A module is not all or nothing: `Loadout` applies an officer and not a
+    /// technology, because the officers' effect table is extracted and the
+    /// technologies' is not yet. A field left out of this list is refused
+    /// exactly as an unimplemented module's claim is, so a side carrying it is
+    /// still outside the closure.
+    pub(crate) understood: &'static [Field],
+    /// Whether this build of the simulator implements the module at all.
     pub(crate) implemented: bool,
 }
 
@@ -110,66 +121,79 @@ pub(crate) static MODULES: &[Module] = &[
             Field::UnitEquipment,
             Field::UnitLevel,
         ],
-        implemented: false,
+        understood: &[Field::Officers],
+        implemented: true,
     },
     Module {
         native: "AdvancedEnergyShieldSystem",
         claims: &[Field::AirdropShields],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "AutoRecoverySystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "BuffSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "BuildingSystem",
         claims: &[Field::EnergyTowerSkills, Field::TowerStrengthenLevels],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "BurrowSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "ClearRangeItemSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "CloakSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "CommanderSkillSystem",
         claims: &[Field::BattleSkills],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "DeadEffectSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "ExpSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "ExtraSkillSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "FightConstructionSystem",
         claims: &[Field::Constructions],
+        understood: &[],
         implemented: false,
     },
     // The only one that is implemented: units, their movement, their targets,
@@ -177,116 +201,139 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "FightCoreSystem",
         claims: &[],
+        understood: &[],
         implemented: true,
     },
     Module {
         native: "FightEffectSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "FightGroupSystem",
         claims: &[],
+        understood: &[],
         implemented: true,
     },
     Module {
         native: "FightTeamSystem",
         claims: &[],
+        understood: &[],
         implemented: true,
     },
     Module {
         native: "InterceptSystem",
         claims: &[Field::Contraptions],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "IterationEffectSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "LifeChangeEffectSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "MechGrounpSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "MineSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "MoveAbilityRangeItemSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "MoveAbilitySummonSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "ProjectileSystem",
         claims: &[],
+        understood: &[],
         implemented: true,
     },
     Module {
         native: "RangeItemSystem",
         claims: &[Field::Terrains],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "ReactiveArmorSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "RecoveryEffectSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "SiegeModeEffectSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "StealthTechSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "SummonSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "SuperDeploymentSystem",
         claims: &[Field::Travelling],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "SupportUnitSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "TeamTranslationSystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "TechnologySystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
     Module {
         native: "WreckageRecoverySystem",
         claims: &[],
+        understood: &[],
         implemented: false,
     },
 ];
@@ -299,12 +346,14 @@ pub(crate) static MODULES: &[Module] = &[
 pub(crate) fn unsupported(side: &SidePlan) -> Vec<(Field, &'static str)> {
     let mut missing: Vec<(Field, &'static str)> = MODULES
         .iter()
-        .filter(|module| !module.implemented)
         .flat_map(|module| {
             module
                 .claims
                 .iter()
-                .filter(|field| field.carried(side))
+                .filter(|field| {
+                    let understood = module.implemented && module.understood.contains(field);
+                    !understood && field.carried(side)
+                })
                 .map(|field| (*field, module.native))
         })
         .collect();
@@ -409,10 +458,33 @@ mod tests {
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
             [
-                ("officers", "Loadout"),
                 ("constructions", "FightConstructionSystem"),
                 ("units above level one", "Loadout"),
-            ]
+            ],
+            "officers are understood; the level beside them is not"
         );
+    }
+
+    /// A module understands only what it claims, and only if it is
+    /// implemented at all. Either would otherwise let a field through that
+    /// nothing applies.
+    #[test]
+    fn what_a_module_understands_is_a_subset_of_what_it_claims() {
+        for module in MODULES {
+            for field in module.understood {
+                assert!(
+                    module.claims.contains(field),
+                    "{} understands {} without claiming it",
+                    module.native,
+                    field.name()
+                );
+                assert!(
+                    module.implemented,
+                    "{} understands {} while unimplemented",
+                    module.native,
+                    field.name()
+                );
+            }
+        }
     }
 }

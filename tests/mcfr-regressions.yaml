@@ -735,3 +735,30 @@
   seed: 4242
   tick_count: 120
   physics_result_hash: 075c230640b049bddb88084752a4f7599ba58f1df757ec275c1624e0da8081a9
+
+- name: marksman-vs-rhino-officer-damage
+  smoke: true
+  layout: tests/layouts/officer-composition-once.yaml
+  game_build: 1.11.1.3.2259
+  format: 0.3.0
+  seed: 4242
+  tick_count: 120
+  physics_result_hash: 71b59177811277d38d63be58d6cb919f94ac14d9b29f2765297920f732faf376
+
+- name: marksman-vs-rhino-officer-damage-twice
+  smoke: true
+  layout: tests/layouts/officer-composition-twice.yaml
+  game_build: 1.11.1.3.2259
+  format: 0.3.0
+  seed: 4242
+  tick_count: 120
+  physics_result_hash: f41478211eb3bb389e1aa72f226d1dd222095238ba1de42b7dbbe283a55ba0a1
+
+- name: marksman-vs-rhino-officer-life
+  smoke: true
+  layout: tests/layouts/officer-life-rate.yaml
+  game_build: 1.11.1.3.2259
+  format: 0.3.0
+  seed: 4242
+  tick_count: 120
+  physics_result_hash: a59b3ed21921bb789ac91814f6769ac5ab7e9fa707bee6365f0b97438ab6a289
