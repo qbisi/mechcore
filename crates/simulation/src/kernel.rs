@@ -426,6 +426,10 @@ impl TargetActorQuadtree {
 struct Actor {
     placement: Placement,
     rules: UnitConfig,
+    /// The numbers the fight reads, which are the description corrected by the
+    /// overlays. `crate::data` is the layer; nothing here reads `rules` for a
+    /// number this carries.
+    stats: crate::data::Stats,
     x: i64,
     z: i64,
     x_q32: i64,
@@ -484,16 +488,29 @@ impl Actor {
         Self::at_generated_position(placement, rules, x_q32, z_q32)
     }
 
+    /// Gives this actor another description, and recomputes what the fight
+    /// reads from it.
+    ///
+    /// The build never swaps a description; a test does, and a derived number
+    /// that kept the old one would be a cache telling a lie.
+    #[cfg(test)]
+    fn describe(&mut self, rules: UnitConfig) {
+        self.stats = crate::data::Stats::of(&rules).expect("an uncorrected description resolves");
+        self.rules = rules;
+    }
+
     fn at_generated_position(
         placement: Placement,
         rules: UnitConfig,
         x_q32: i64,
         z_q32: i64,
     ) -> Self {
-        let max_life = rules.max_life;
+        let stats = crate::data::Stats::of(&rules)
+            .expect("a description with no correction on it resolves");
+        let max_life = stats.max_life();
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
-        let max_speed_q32 = space_to_q32(rules.move_speed());
+        let max_speed_q32 = space_to_q32(stats.move_speed());
         let weapon_rotations_q32 = vec![
             mdeg_to_degrees_q32(placement.rotation);
             usize::try_from(rules.attack.weapons.count)
@@ -522,6 +539,7 @@ impl Actor {
             weapon_rotations_q32,
             placement,
             rules,
+            stats,
             current_velocity_x_q32: 0,
             current_velocity_z_q32: 0,
             next_target_x_q32: x_q32,
@@ -714,7 +732,7 @@ impl Actor {
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
-                maximum: i32::try_from(self.rules.max_life).expect("unit max life fits i32"),
+                maximum: i32::try_from(self.stats.max_life()).expect("unit max life fits i32"),
             },
             active: true,
             targetable: true,
@@ -1507,7 +1525,7 @@ impl Simulation {
                 if natural_finish_handoff {
                     actor.next_target_x_q32 = target_x_q32;
                     actor.next_target_z_q32 = target_z_q32;
-                    actor.next_speed_q32 = space_to_q32(actor.rules.move_speed());
+                    actor.next_speed_q32 = space_to_q32(actor.stats.move_speed());
                 } else {
                     let (move_target_x_q32, move_target_z_q32) = native_auto_move_target_point(
                         actor.x_q32,
@@ -1516,12 +1534,12 @@ impl Simulation {
                         target_x_q32,
                         target_z_q32,
                         target_radius,
-                        actor.rules.attack.range(),
+                        actor.stats.attack_range(),
                     );
                     actor.next_target_x_q32 = move_target_x_q32;
                     actor.next_target_z_q32 = move_target_z_q32;
                     actor.next_speed_q32 = turn_limited_move_speed_q32(
-                        space_to_q32(actor.rules.move_speed()),
+                        space_to_q32(actor.stats.move_speed()),
                         actor.rules.rotate_speed_mdeg_per_second(),
                         actor.body_rotation_q32,
                         actor.current_velocity_x_q32,
@@ -1713,7 +1731,7 @@ impl Simulation {
                 building.position.z,
                 building_radius(building),
                 source.rules.attack.min_range(),
-                source.rules.attack.range(),
+                source.stats.attack_range(),
             ) else {
                 continue;
             };
@@ -1821,7 +1839,7 @@ impl Simulation {
                     candidate_z_q32,
                     target.radius,
                     source.rules.attack.min_range(),
-                    source.rules.attack.range(),
+                    source.stats.attack_range(),
                 ) {
                     consider(candidate, score);
                 }
@@ -1879,7 +1897,7 @@ impl Simulation {
                     candidate_z_q32,
                     candidate_actor.rules.collision_radius(),
                     source.rules.attack.min_range(),
-                    source.rules.attack.range(),
+                    source.stats.attack_range(),
                 ) else {
                     continue;
                 };
@@ -1952,7 +1970,7 @@ impl Simulation {
                 )
                 .saturating_sub(space_to_q32(actor.rules.collision_radius()))
                 .saturating_sub(space_to_q32(target.rules.collision_radius()))
-                    <= space_to_q32(actor.rules.attack.range())
+                    <= space_to_q32(actor.stats.attack_range())
             })
             .collect::<Vec<_>>();
         let current_target = actor
@@ -2285,7 +2303,7 @@ impl Simulation {
                 actor.next_target_x_q32 = actor.x_q32;
                 actor.next_target_z_q32 = actor.z_q32;
                 actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 true
             }
         };
@@ -2345,7 +2363,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         self.update_group_skill_targets(actor_id, step, target_search_order)?;
@@ -2395,7 +2413,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         let bodyless_skill_starts_before_idle_search = {
@@ -2515,7 +2533,7 @@ impl Simulation {
                 actor.next_target_x_q32 = actor.x_q32;
                 actor.next_target_z_q32 = actor.z_q32;
                 actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 return Ok(());
             }
             let due = {
@@ -2527,7 +2545,7 @@ impl Simulation {
                 actor.next_target_x_q32 = actor.x_q32;
                 actor.next_target_z_q32 = actor.z_q32;
                 actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 let mut due = Vec::new();
                 actor.projectile_pending_releases.retain(|pending| {
                     if pending.step <= step {
@@ -2593,7 +2611,7 @@ impl Simulation {
                 actor.next_target_z_q32 = actor.z_q32;
             }
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         if backswing_just_finished {
@@ -2655,7 +2673,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         let released_this_step = self.actors[&actor_id]
@@ -2788,7 +2806,7 @@ impl Simulation {
                     actor.next_target_z_q32 = actor.z_q32;
                 }
                 actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 return Ok(());
             }
             if !target_alive && backswing_just_finished {
@@ -2805,7 +2823,7 @@ impl Simulation {
                     actor.next_target_z_q32 = actor.z_q32;
                 }
                 actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 return Ok(());
             }
             if !target_alive {
@@ -2825,7 +2843,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         };
         let target_view = self.fight_actor(target).expect("target identity is stable");
@@ -2865,7 +2883,7 @@ impl Simulation {
             return Ok(());
         }
         if edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(actor.rules.attack.range())
+            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
         {
             let (entered_attack, release_now, clear_hold_after_motion) = {
                 let entered_attack = actor.motion != MotionState::Attacking;
@@ -2877,7 +2895,7 @@ impl Simulation {
                 actor.next_target_x_q32 = actor.x_q32;
                 actor.next_target_z_q32 = actor.z_q32;
                 actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 let in_attack_angle = if actor.rules.has_body {
                     actor.weapons_in_attack_angle(target_rotation_q32)
                 } else {
@@ -2900,7 +2918,7 @@ impl Simulation {
                     actor.next_target_x_q32 = actor.x_q32;
                     actor.next_target_z_q32 = actor.z_q32;
                     actor.next_speed_q32 = 0;
-                    actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                    actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                     return Ok(());
                 }
                 if entered_attack {
@@ -2935,7 +2953,7 @@ impl Simulation {
                     actor.next_target_x_q32 = actor.x_q32;
                     actor.next_target_z_q32 = actor.z_q32;
                     actor.next_speed_q32 = 0;
-                    actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+                    actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                     return Ok(());
                 }
                 let clear_hold_after_motion = actor.motion_attack_hold_fire && in_attack_angle;
@@ -2967,8 +2985,7 @@ impl Simulation {
                     && !entered_skill_phase
                     && step >= actor.next_attack_step
                 {
-                    let interval_steps =
-                        native_time_units_to_steps(actor.rules.attack.interval_time_units());
+                    let interval_steps = native_time_units_to_steps(actor.stats.attack_interval());
                     let offset_steps =
                         native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
                     let sample = if offset_steps == 0 {
@@ -3087,7 +3104,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         if attack_point_rejected
@@ -3106,7 +3123,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         if backswing_just_finished
@@ -3124,7 +3141,7 @@ impl Simulation {
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.rules.move_speed());
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         let entered_move_from_idle = actor.motion == MotionState::Idle;
@@ -3157,7 +3174,7 @@ impl Simulation {
             target_x_q32,
             target_z_q32,
             target_radius,
-            actor.rules.attack.range(),
+            actor.stats.attack_range(),
         );
         actor.next_target_x_q32 = move_target_x_q32;
         actor.next_target_z_q32 = move_target_z_q32;
@@ -3170,7 +3187,7 @@ impl Simulation {
             ));
         }
         actor.next_speed_q32 = turn_limited_move_speed_q32(
-            space_to_q32(actor.rules.move_speed()),
+            space_to_q32(actor.stats.move_speed()),
             actor.rules.rotate_speed_mdeg_per_second(),
             actor.body_rotation_q32,
             actor.current_velocity_x_q32,
@@ -3445,7 +3462,7 @@ impl Simulation {
             .saturating_sub(space_to_q32(target.radius))
             .max(0);
         edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(actor.rules.attack.range())
+            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
     }
 
     fn bodyless_target_in_attack_angle(&self, actor_id: u64, target: FightActorRef) -> bool {
@@ -3842,7 +3859,7 @@ impl Simulation {
             cached_target_z_q32: target_z_q32,
             cached_target_radius: target_radius,
             speed: owner.rules.attack.projectile_speed(),
-            damage: owner.rules.attack.base_damage,
+            damage: owner.stats.attack_damage(),
             life: owner.rules.attack.projectile_life(),
             lock_target: owner.rules.attack.lock_target,
         };
@@ -3885,7 +3902,7 @@ impl Simulation {
             .actors
             .get(&actor_id)
             .ok_or_else(|| Error::new("attack interval owner is absent"))?;
-        let interval_steps = native_time_units_to_steps(actor.rules.attack.interval_time_units());
+        let interval_steps = native_time_units_to_steps(actor.stats.attack_interval());
         let offset_steps =
             native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
         let team = actor.placement.team;
@@ -3914,7 +3931,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let attacker = &self.actors[&actor_id];
-        let damage = attacker.rules.attack.base_damage;
+        let damage = attacker.stats.attack_damage();
         let attacker_team = attacker.placement.team;
         let attacker_ref = attacker.object_ref();
         let splash_radius = attacker.rules.attack.splash_radius();
@@ -4422,7 +4439,7 @@ pub(crate) fn run(
                 unit: actor.placement.type_name.clone(),
                 alive: actor.alive(),
                 remaining_life: actor.life,
-                max_life: actor.rules.max_life,
+                max_life: actor.stats.max_life(),
             })
             .collect(),
         hashes,
@@ -6149,7 +6166,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Moving;
         source.backswing_finish_step = Some(10);
@@ -6175,7 +6192,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 5_000);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Moving;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6206,7 +6223,7 @@ mod tests {
         for type_name in ["crawler", "wasp"] {
             let mut simulation = raw_test_simulation(&layout, &config, 7);
             let source = simulation.actors.get_mut(&1).unwrap();
-            source.rules = config.units.get(type_name).unwrap().clone();
+            source.describe(config.units.get(type_name).unwrap().clone());
             source.lock_target = Some(unit_target(3));
             source.motion = MotionState::Attacking;
             source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6259,7 +6276,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6291,7 +6308,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Idle;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6325,7 +6342,7 @@ mod tests {
         for type_name in ["crawler", "fang"] {
             let mut simulation = raw_test_simulation(&layout, &config, 7);
             let source = simulation.actors.get_mut(&1).unwrap();
-            source.rules = config.units.get(type_name).unwrap().clone();
+            source.describe(config.units.get(type_name).unwrap().clone());
             source.lock_target = Some(unit_target(2));
             source.motion = MotionState::Attacking;
             source.fight_skill_phase = FightSkillPhase::Idle;
@@ -6361,7 +6378,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("fang").unwrap().clone();
+        source.describe(config.units.get("fang").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Idle;
@@ -6387,7 +6404,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("fang").unwrap().clone();
+        source.describe(config.units.get("fang").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Idle;
 
@@ -6413,7 +6430,7 @@ mod tests {
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation.team_random.insert(0, GrRandom::new(7));
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("wasp").unwrap().clone();
+        source.describe(config.units.get("wasp").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6451,7 +6468,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Idle;
@@ -6475,7 +6492,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.set_body_rotation(mdeg_to_degrees_q32(123_000));
@@ -6500,7 +6517,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("fang").unwrap().clone();
+        source.describe(config.units.get("fang").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6527,7 +6544,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.motion_attack_hold_fire = true;
@@ -6552,7 +6569,7 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("crawler").unwrap().clone();
+        source.describe(config.units.get("crawler").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.pending = Some(PendingRelease {
@@ -6587,7 +6604,7 @@ mod tests {
         for type_name in ["crawler", "fang"] {
             let mut simulation = raw_test_simulation(&layout, &config, 7);
             let source = simulation.actors.get_mut(&1).unwrap();
-            source.rules = config.units.get(type_name).unwrap().clone();
+            source.describe(config.units.get(type_name).unwrap().clone());
             source.lock_target = Some(unit_target(2));
             source.motion = MotionState::Attacking;
             source.pending = Some(PendingRelease {
@@ -6629,7 +6646,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("steel_ball").unwrap().clone();
+        source.describe(config.units.get("steel_ball").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6670,7 +6687,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("steel_ball").unwrap().clone();
+        source.describe(config.units.get("steel_ball").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.fight_skill_phase = FightSkillPhase::Attack;
@@ -6703,7 +6720,7 @@ mod tests {
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
-        source.rules = config.units.get("fang").unwrap().clone();
+        source.describe(config.units.get("fang").unwrap().clone());
         source.lock_target = Some(unit_target(2));
         source.motion = MotionState::Attacking;
         source.pending = Some(PendingRelease {
@@ -6812,7 +6829,11 @@ mod tests {
             ],
         };
         let mut simulation = raw_test_simulation(&layout, &config, 7);
-        simulation.actors.get_mut(&1).unwrap().rules = config.units.get("crawler").unwrap().clone();
+        simulation
+            .actors
+            .get_mut(&1)
+            .unwrap()
+            .describe(config.units.get("crawler").unwrap().clone());
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 1_000, 20_000);
         let primary_life = simulation.actors[&2].life;
@@ -6898,7 +6919,7 @@ mod tests {
             cached_target_z_q32: space_to_q32(20_000),
             cached_target_radius: simulation.actors[&2].rules.collision_radius(),
             speed: simulation.actors[&1].rules.attack.projectile_speed(),
-            damage: simulation.actors[&1].rules.attack.base_damage,
+            damage: simulation.actors[&1].stats.attack_damage(),
             life: 1,
             lock_target: true,
         };
@@ -6974,7 +6995,7 @@ mod tests {
             cached_target_z_q32: space_to_q32(20_000),
             cached_target_radius: simulation.actors[&2].rules.collision_radius(),
             speed: simulation.actors[&1].rules.attack.projectile_speed(),
-            damage: simulation.actors[&1].rules.attack.base_damage,
+            damage: simulation.actors[&1].stats.attack_damage(),
             life: 1,
             lock_target: true,
         };
@@ -7073,7 +7094,7 @@ mod tests {
             cached_target_z_q32: space_to_q32(20_000),
             cached_target_radius: simulation.actors[&2].rules.collision_radius(),
             speed: simulation.actors[&1].rules.attack.projectile_speed(),
-            damage: simulation.actors[&1].rules.attack.base_damage,
+            damage: simulation.actors[&1].stats.attack_damage(),
             life: 1,
             lock_target: true,
         };
@@ -7110,7 +7131,7 @@ mod tests {
         source.motion = MotionState::Moving;
         source.next_target_x_q32 = target_position.0;
         source.next_target_z_q32 = target_position.1;
-        source.next_speed_q32 = space_to_q32(source.rules.move_speed());
+        source.next_speed_q32 = space_to_q32(source.stats.move_speed());
         source.next_max_speed_q32 = source.next_speed_q32;
         simulation.rvo_counter = 3;
         simulation.step_rvo();
@@ -7168,7 +7189,7 @@ mod tests {
         source.motion = MotionState::Moving;
         source.next_target_x_q32 = target_position.0;
         source.next_target_z_q32 = target_position.1;
-        source.next_speed_q32 = space_to_q32(source.rules.move_speed());
+        source.next_speed_q32 = space_to_q32(source.stats.move_speed());
         source.next_max_speed_q32 = source.next_speed_q32;
         simulation.rvo_counter = 3;
         simulation.step_rvo();
@@ -7852,7 +7873,7 @@ mod tests {
         let actor = simulation.actors.get_mut(&1).unwrap();
         assert!(actor.rvo_stopped_snap_since_boundary);
         actor.motion = MotionState::Moving;
-        actor.next_speed_q32 = space_to_q32(actor.rules.move_speed());
+        actor.next_speed_q32 = space_to_q32(actor.stats.move_speed());
         actor.next_max_speed_q32 = actor.next_speed_q32;
         actor.solver_target_x_q32 = 1_717_060_204_994;
         actor.solver_target_z_q32 = 1_696_431_970_300;
