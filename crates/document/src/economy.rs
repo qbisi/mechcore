@@ -15,6 +15,54 @@ const UNIT_REINFORCEMENTS: &str = include_str!("../../../config/unit_reinforceme
 const ADVANCE_TEAMS: &str = include_str!("../../../config/advance_teams.yaml");
 const OFFICERS: &str = include_str!("../../../config/officers.yaml");
 const ECONOMY: &str = include_str!("../../../config/economy.yaml");
+
+/// The build every document this binary writes belongs to.
+///
+/// It is read from the embedded tables rather than written in the code, so a
+/// binary built against another build's configuration cannot claim this one.
+///
+/// # Panics
+///
+/// Panics when the embedded economy does not state a build, which is a
+/// configuration this binary could not have been built with.
+#[must_use]
+pub fn game_build() -> &'static str {
+    static BUILD: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    BUILD.get_or_init(|| {
+        #[derive(Deserialize)]
+        struct Stated {
+            game_build: String,
+        }
+        let stated: Stated =
+            serde_yaml::from_str(ECONOMY).expect("the embedded economy states its build");
+        stated.game_build
+    })
+}
+
+/// The same, as a document's own field reads when it states nothing.
+pub(crate) fn this_build() -> String {
+    game_build().to_owned()
+}
+
+/// Refuses a document written against another build.
+///
+/// A document that states nothing is this build's, because a reader has no
+/// other build to read it as. One that names another is refused rather than
+/// read with the wrong tables under it.
+///
+/// # Errors
+///
+/// Returns the two builds when they differ.
+pub(crate) fn require_this_build(stated: &str) -> Result<(), String> {
+    if stated == game_build() {
+        Ok(())
+    } else {
+        Err(format!(
+            "document is written against game build {stated}, and this binary carries {}",
+            game_build()
+        ))
+    }
+}
 const COMMANDER_SKILLS: &str = include_str!("../../../config/commander_skills.yaml");
 
 /// The prices and payouts of one build.

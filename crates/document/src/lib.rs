@@ -42,6 +42,7 @@ pub use catalog::{
     construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
+pub use economy::game_build;
 pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
 pub use layout::{
     BattleSkillDefinition, ContraptionPlacement, Experience, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
@@ -155,6 +156,42 @@ sides:
                 .unwrap_err()
                 .starts_with("invalid layout YAML:")
         );
+    }
+
+    /// A document states the build its tables are those of. One that states
+    /// another build is refused; one that states none is this binary's,
+    /// because a reader has no other build to read it as.
+    #[test]
+    fn a_document_of_another_build_is_refused() {
+        let foreign = br"
+kind: layout
+game_build: 1.11.1.3.0001
+round: 1
+sides:
+  blue:
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+  red:
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+";
+        let error = parse_embedded_yaml(foreign).unwrap_err();
+        assert_eq!(
+            error,
+            format!(
+                "document is written against game build 1.11.1.3.0001, and this binary carries {}",
+                game_build()
+            )
+        );
+
+        let silent = br"
+kind: layout
+round: 1
+sides:
+  blue:
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+  red:
+    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+";
+        assert_eq!(parse_embedded_yaml(silent).unwrap().game_build, game_build());
     }
 
     #[test]

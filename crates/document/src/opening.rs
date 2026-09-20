@@ -549,6 +549,9 @@ impl StatedSide {
 
 #[derive(Deserialize)]
 struct StatedHeader {
+    /// A battle that states no build is this binary's, as a layout is.
+    #[serde(default = "crate::economy::this_build")]
+    game_build: String,
     map_id: i32,
     seed: i32,
     sides: StatedSides,
@@ -593,6 +596,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     };
     let header: StatedHeader = serde_yaml::from_value(stream.header)
         .map_err(|error| format!("battle header is not readable: {error}"))?;
+    crate::economy::require_this_build(&header.game_build)?;
     let opening = stream
         .opening
         .ok_or("battle states no round 0 opening decisions")?;

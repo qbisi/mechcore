@@ -94,16 +94,17 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
         Value::Bool(value) => out.push_str(if *value { "true" } else { "false" }),
         Value::Number(value) => out.push_str(&value.to_string()),
         Value::String(value) => {
-            // An identifier, a gauge such as `124/450` or a team such as
-            // `vortex-fire_badger` is written bare, unless the reader would
-            // take it for something other than this string, as it would
-            // `true`, `null` or `12`.
+            // An identifier, a gauge such as `124/450`, a team such as
+            // `vortex-fire_badger` or a build such as `1.11.1.3.2259` is
+            // written bare, unless the reader would take it for something
+            // other than this string, as it would `true`, `null`, `12` or
+            // `1.5`.
             let plain = value
                 .chars()
                 .next()
                 .is_some_and(|first| first.is_ascii_alphanumeric())
                 && value.chars().all(|character| {
-                    character.is_ascii_alphanumeric() || matches!(character, '_' | '/' | '-')
+                    character.is_ascii_alphanumeric() || matches!(character, '_' | '/' | '-' | '.')
                 })
                 && serde_yaml::from_str::<Value>(value).is_ok_and(|read| read == *value.as_str());
             if plain {
@@ -144,4 +145,37 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_yaml::Value;
+
+    fn written(value: &str) -> String {
+        let mut out = String::new();
+        super::flow(&Value::String(value.to_owned()), &mut out).unwrap();
+        out
+    }
+
+    /// A string is written bare when it reads back as itself, which is what
+    /// keeps a name, a gauge and a build readable and a number quoted.
+    #[test]
+    fn a_string_is_bare_only_when_it_reads_back_as_itself() {
+        for bare in [
+            "marksman",
+            "vortex-fire_badger",
+            "124/450",
+            "1.11.1.3.2259",
+            "2259a",
+        ] {
+            assert_eq!(written(bare), bare);
+        }
+        for quoted in ["12", "1.5", "true", "null", "", "a b", "a:b"] {
+            assert_eq!(
+                written(quoted),
+                format!("{quoted:?}"),
+                "{quoted} must be quoted"
+            );
+        }
+    }
 }

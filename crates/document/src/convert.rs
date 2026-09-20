@@ -71,37 +71,7 @@ impl Seat {
 /// or this format cannot name.
 pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     let record = record::read(grbr)?;
-    if record.version != BUILD {
-        return Err(format!(
-            "replay is build {}, and this converter reads build {BUILD}",
-            record.version
-        ));
-    }
-    if record.seat < 0 {
-        return Err(
-            "replay was downloaded from the server, whose snapshots are reconstructions; \
-             see tests/grbr/README.md"
-                .into(),
-        );
-    }
-    if record.info.match_mode != "VS_1_1" {
-        return Err(format!(
-            "replay is match mode {}, and this format describes VS_1_1",
-            record.info.match_mode
-        ));
-    }
-    if let Some(match_type) = &record.info.match_type {
-        return Err(format!(
-            "replay is a {match_type} match, not a played one; \
-             its snapshots were installed by Training Ground commands"
-        ));
-    }
-    if !record.info.game_rules.values.is_empty() {
-        return Err(format!(
-            "replay carries game rules {:?}, which this format has not been measured against",
-            record.info.game_rules.values
-        ));
-    }
+    readable(&record)?;
     let [blue, red] = <[record::PlayerRecord; 2]>::try_from(record.players.entries)
         .map_err(|players| format!("replay has {} sides, and a battle has two", players.len()))?;
 
@@ -177,6 +147,7 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     check_concession(&turns)?;
 
     Ok(Battle {
+        game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
         sides: BattleSides {
@@ -185,6 +156,46 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         },
         turns,
     })
+}
+
+/// Refuses a replay this converter does not read, by the property it fails.
+///
+/// Each of these is a premise the rest of the conversion rests on, and naming
+/// which one failed is what tells a caller whether the file is the wrong build,
+/// the wrong provenance or the wrong kind of match.
+fn readable(record: &record::BattleRecord) -> Result<(), String> {
+    if record.version != BUILD {
+        return Err(format!(
+            "replay is build {}, and this converter reads build {BUILD}",
+            record.version
+        ));
+    }
+    if record.seat < 0 {
+        return Err(
+            "replay was downloaded from the server, whose snapshots are reconstructions; \
+             see tests/grbr/README.md"
+                .into(),
+        );
+    }
+    if record.info.match_mode != "VS_1_1" {
+        return Err(format!(
+            "replay is match mode {}, and this format describes VS_1_1",
+            record.info.match_mode
+        ));
+    }
+    if let Some(match_type) = &record.info.match_type {
+        return Err(format!(
+            "replay is a {match_type} match, not a played one; \
+             its snapshots were installed by Training Ground commands"
+        ));
+    }
+    if !record.info.game_rules.values.is_empty() {
+        return Err(format!(
+            "replay carries game rules {:?}, which this format has not been measured against",
+            record.info.game_rules.values
+        ));
+    }
+    Ok(())
 }
 
 /// One deployment round: the position each side opens it with, and the
@@ -1745,7 +1756,10 @@ mod tests {
     #[test]
     fn serializes_to_normal_form_yaml() {
         let yaml = canonical_yaml(&tuff()).unwrap();
-        assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\nsides:\n"));
+        assert!(yaml.starts_with(&format!(
+            "kind: battle\ngame_build: {}\nmap_id: 1021\nseed: 31103914\nsides:\n",
+            crate::economy::game_build()
+        )));
         assert!(yaml.contains(
             "\n---\nkind: action\nround: 0\nblue:\n\
              - {type: choose_advance_team, offer: 1, name: vortex-fire_badger, \

@@ -46,8 +46,15 @@ names no kind is refused as well, since a default would make the answer a guess.
 `kind` marks a document root, not a subtree. A future document that embeds part
 of a layout does not repeat it inside that part.
 
+`game_build` names the build whose tables the document is written against, as
+`config/` states it. Every writer writes it, and a reader refuses a document
+that names another build rather than reading it with the wrong tables
+underneath. A document that states no build is the reader's own, because a
+reader has no other build to read it as.
+
 ```yaml
 kind: layout
+game_build: 1.11.1.3.2259
 round: 3
 
 sides:

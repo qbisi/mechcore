@@ -20,6 +20,8 @@ use std::collections::BTreeMap;
 /// segment and an action segment per turn.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Battle {
+    /// The build whose tables this battle is written against.
+    pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
     pub sides: BattleSides,
@@ -640,6 +642,7 @@ enum Segment<'a> {
 
 #[derive(Serialize)]
 struct Header<'a> {
+    game_build: &'a str,
     map_id: i32,
     seed: i32,
     sides: HeaderSides<'a>,
@@ -713,6 +716,7 @@ pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
 fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
     let mut segments = vec![
         Segment::Battle(Header {
+            game_build: &battle.game_build,
             map_id: battle.map_id,
             seed: battle.seed,
             sides: HeaderSides {

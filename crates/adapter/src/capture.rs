@@ -4825,6 +4825,7 @@ fn read_native_layout_inner(
     }
     let layout = Layout {
         kind: DocumentKind::Layout,
+        game_build: mechcore_document::game_build().to_owned(),
         map_id: Some(invoke_value::<i32>(
             runtime.api,
             invoke_object(runtime.api, current, "GetBattleInfo")?,

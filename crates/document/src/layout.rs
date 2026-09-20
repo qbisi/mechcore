@@ -61,6 +61,10 @@ pub const FIGHT_VISIBLE_ENERGY_TOWER_SKILLS: [i32; 2] =
 #[serde(deny_unknown_fields)]
 pub struct Layout {
     pub kind: DocumentKind,
+    /// The build whose tables this document is written against, which a
+    /// document stating nothing inherits from the binary that reads it.
+    #[serde(default = "crate::economy::this_build")]
+    pub game_build: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
     pub map_id: Option<i32>,
@@ -468,6 +472,7 @@ pub fn parse_embedded_yaml(bytes: &[u8]) -> Result<Layout, String> {
     }
     let layout: Layout =
         serde_yaml::from_slice(bytes).map_err(|error| format!("invalid layout YAML: {error}"))?;
+    crate::economy::require_this_build(&layout.game_build)?;
     validate_embedded_categories(&layout)?;
     Ok(layout)
 }

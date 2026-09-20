@@ -27,6 +27,7 @@ use crate::layout::{
 pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layout, String> {
     Ok(Layout {
         kind: DocumentKind::Layout,
+        game_build: crate::economy::game_build().to_owned(),
         map_id: Some(map_id),
         seed: Some(seed),
         round,
