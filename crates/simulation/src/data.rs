@@ -12,14 +12,18 @@
 //! the description and the overlays and recomputed when one of them changes.
 //! Nothing in the fight reads a description directly.
 //!
-//! **How corrections compose is not established.** The decompilation index
-//! carries no method bodies, so whether a rate is `base × (1 + add − reduce)`
-//! or a product over entries is one of the architecture contract's unresolved
-//! questions. A resolve of a non-empty overlay therefore fails rather than
-//! guessing, and every overlay is empty today — which is why this layer changes
-//! no number and no recording.
+//! **A rate composes by summing within its channel and multiplying once**,
+//! which `scripts/officer-composition.mcscript` measured against the game and
+//! `docs/rules/officer_effects.md` records. The decompilation index carries no
+//! method bodies, so nothing here is read off the build; what the build stores
+//! and what it then computed were captured together and agree. What that
+//! capture did not reach — a value correction, and one number corrected in two
+//! channels at once — is refused rather than extended to.
 
 use crate::{Error, Result, rules::UnitConfig};
+
+/// One, in the Q32.32 fixed point a rate is stored in.
+const ONE: i128 = 1 << 32;
 
 /// Which of a unit's numbers an overlay entry corrects.
 ///
@@ -156,30 +160,68 @@ impl Overlays {
 
     /// The description's number, corrected by every overlay that touches it.
     ///
+    /// A rate is summed within its channel and applied once:
+    /// `base × (1 + Σ add − Σ reduce)`, truncated toward zero. The build sums
+    /// them itself — two officers of one kind reach a recording as one entry
+    /// holding their sum rather than two entries — so summing here mirrors
+    /// what the build stores rather than inventing an order over entries.
+    /// `docs/rules/officer_effects.md` records the capture that establishes
+    /// it.
+    ///
     /// # Errors
     ///
-    /// Returns an error for any correction that is not neutral, because how
-    /// corrections compose is not established. A mechanism that writes one
-    /// therefore cannot be finished before the rule is.
+    /// Two questions that capture does not answer are refused rather than
+    /// guessed: a value correction, which nothing has measured the composition
+    /// of, and one number corrected in more than one channel at once, which
+    /// nothing has measured the order of.
     fn resolve(&self, index: Index, base: i64) -> Result<i64> {
+        let mut corrected: Option<(&'static str, i128)> = None;
         for (channel, overlay) in [
             ("unit", &self.unit),
             ("skill", &self.skill),
             ("buff", &self.buff),
         ] {
+            let mut rate = 0_i128;
             for entry in overlay.corrections(index) {
-                if !entry.correction.neutral() {
-                    return Err(Error::new(format!(
-                        "{} carries a {channel} correction from {}, and how corrections \
-                         compose is not established: see the unresolved questions in \
-                         docs/spec/simulation/architecture.md",
-                        index.name(),
-                        entry.source
-                    )));
+                match entry.correction {
+                    Correction::Rate { add, reduce } => {
+                        rate += i128::from(add) - i128::from(reduce);
+                    }
+                    Correction::Value { .. } if !entry.correction.neutral() => {
+                        return Err(Error::new(format!(
+                            "{} carries a {channel} value correction from {}, and how a \
+                             value composes is not measured: see the unresolved questions \
+                             in docs/spec/simulation/architecture.md",
+                            index.name(),
+                            entry.source
+                        )));
+                    }
+                    Correction::Value { .. } => {}
                 }
             }
+            if rate != 0 {
+                if let Some((first, _)) = corrected {
+                    return Err(Error::new(format!(
+                        "{} is corrected in the {first} channel and the {channel} channel \
+                         at once, and what order two channels apply in is not measured: \
+                         see the unresolved questions in \
+                         docs/spec/simulation/architecture.md",
+                        index.name()
+                    )));
+                }
+                corrected = Some((channel, rate));
+            }
         }
-        Ok(base)
+        let Some((_, rate)) = corrected else {
+            return Ok(base);
+        };
+        let scaled = i128::from(base) * (ONE + rate) / ONE;
+        i64::try_from(scaled).map_err(|_| {
+            Error::new(format!(
+                "{} resolved outside the range a number can hold",
+                index.name()
+            ))
+        })
     }
 }
 
@@ -288,10 +330,49 @@ mod tests {
         assert_eq!(stats.attack_range(), rules.attack.range());
     }
 
-    /// A correction that changes nothing needs no composition rule, so it
-    /// resolves; one that changes something is refused rather than guessed at.
+    /// Advanced Offensive Tactics' `+0.3`, in the Q32.32 raw the build stores
+    /// and `config/officer_effects.yaml` carries.
+    const THIRTY_PERCENT: i64 = 1_288_490_188;
+
+    /// The capture, replayed against this layer.
+    ///
+    /// `scripts/officer-composition.mcscript` recorded one Marksman shooting
+    /// one Rhino under no officer, one and two, and the game's own damage was
+    /// 2329, 3027 and 3726. Two officers of one kind reach the recording as a
+    /// single `+0.6`, so they sum and multiply once rather than compounding —
+    /// compounding would be 3935, which the recording is not.
     #[test]
-    fn a_correction_is_refused_until_the_composition_rule_is_known() {
+    fn a_rate_sums_within_its_channel_and_multiplies_once() {
+        let rules = marksman();
+        let mut stats = Stats::of(&rules).unwrap();
+        assert_eq!(
+            rules.attack.base_damage, 2329,
+            "the Marksman the capture shot with"
+        );
+
+        let officer = Entry {
+            index: Index::AttackDamage,
+            source: "Loadout",
+            correction: Correction::Rate {
+                add: THIRTY_PERCENT,
+                reduce: 0,
+            },
+        };
+        stats
+            .overlays
+            .channel(Channel::Skill)
+            .write(officer.clone());
+        stats.refresh(&rules).unwrap();
+        assert_eq!(stats.attack_damage(), 3027);
+
+        stats.overlays.channel(Channel::Skill).write(officer);
+        stats.refresh(&rules).unwrap();
+        assert_eq!(stats.attack_damage(), 3726);
+    }
+
+    /// A correction that changes nothing needs no composition rule at all.
+    #[test]
+    fn a_neutral_correction_leaves_the_description_alone() {
         let rules = marksman();
         let mut stats = Stats::of(&rules).unwrap();
         stats.overlays.channel(Channel::Buff).write(Entry {
@@ -299,20 +380,48 @@ mod tests {
             source: "Loadout",
             correction: Correction::Rate { add: 0, reduce: 0 },
         });
-        assert!(stats.refresh(&rules).is_ok());
+        stats.refresh(&rules).unwrap();
+        assert_eq!(stats.move_speed(), rules.move_speed());
+    }
 
-        stats.overlays.channel(Channel::Buff).write(Entry {
-            index: Index::MoveSpeed,
+    /// The capture measured a rate. A value is refused until one measures it.
+    #[test]
+    fn a_value_correction_is_refused_until_it_is_measured() {
+        let rules = marksman();
+        let mut stats = Stats::of(&rules).unwrap();
+        stats.overlays.channel(Channel::Unit).write(Entry {
+            index: Index::AttackRange,
             source: "Loadout",
-            correction: Correction::Rate {
-                add: 1 << 32,
-                reduce: 0,
-            },
+            correction: Correction::Value { add: 40, reduce: 0 },
         });
         let refused = stats.refresh(&rules).unwrap_err().to_string();
-        assert!(refused.contains("move speed"), "{refused}");
+        assert!(refused.contains("attack range"), "{refused}");
         assert!(refused.contains("Loadout"), "{refused}");
-        assert!(refused.contains("buff correction"), "{refused}");
+        assert!(refused.contains("unit value correction"), "{refused}");
+    }
+
+    /// The capture put both officers in one channel, so what two channels do
+    /// to one number in what order is still nobody's measurement.
+    #[test]
+    fn two_channels_correcting_one_number_are_refused() {
+        let rules = marksman();
+        let mut stats = Stats::of(&rules).unwrap();
+        for channel in [Channel::Skill, Channel::Buff] {
+            stats.overlays.channel(channel).write(Entry {
+                index: Index::AttackDamage,
+                source: "Loadout",
+                correction: Correction::Rate {
+                    add: THIRTY_PERCENT,
+                    reduce: 0,
+                },
+            });
+        }
+        let refused = stats.refresh(&rules).unwrap_err().to_string();
+        assert!(refused.contains("attack damage"), "{refused}");
+        assert!(
+            refused.contains("skill channel and the buff channel"),
+            "{refused}"
+        );
     }
 
     /// An overlay is a set of tagged entries and not a running total, so what
