@@ -61,6 +61,10 @@ pub const FIGHT_VISIBLE_ENERGY_TOWER_SKILLS: [i32; 2] =
 #[serde(deny_unknown_fields)]
 pub struct Layout {
     pub kind: DocumentKind,
+    /// The build whose tables this document is written against, which a
+    /// document stating nothing inherits from the binary that reads it.
+    #[serde(default = "crate::economy::this_build")]
+    pub game_build: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
     pub map_id: Option<i32>,
@@ -68,12 +72,6 @@ pub struct Layout {
     pub seed: Option<i32>,
     #[schemars(range(min = 1))]
     pub round: i32,
-    pub sides: Sides,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct Sides {
     pub blue: Side,
     pub red: Side,
 }
@@ -391,7 +389,7 @@ impl Layout {
     /// Applying this twice changes nothing the first pass did not already do.
     #[must_use]
     pub fn normalized(mut self) -> Self {
-        for side in [&mut self.sides.blue, &mut self.sides.red] {
+        for side in [&mut self.blue, &mut self.red] {
             side.officers.sort_unstable();
             side.techs.sort_unstable();
             side.blueprints.sort_unstable();
@@ -468,6 +466,7 @@ pub fn parse_embedded_yaml(bytes: &[u8]) -> Result<Layout, String> {
     }
     let layout: Layout =
         serde_yaml::from_slice(bytes).map_err(|error| format!("invalid layout YAML: {error}"))?;
+    crate::economy::require_this_build(&layout.game_build)?;
     validate_embedded_categories(&layout)?;
     Ok(layout)
 }
@@ -502,7 +501,7 @@ pub(crate) fn require_layout_kind(kind: Option<&str>) -> Result<(), String> {
 }
 
 fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
-    for (side_name, side) in [("blue", &layout.sides.blue), ("red", &layout.sides.red)] {
+    for (side_name, side) in [("blue", &layout.blue), ("red", &layout.red)] {
         for formation in &side.units {
             if resolve_unit_type(&formation.type_name).is_none() {
                 let destination = if resolve_construction_type(&formation.type_name).is_some() {

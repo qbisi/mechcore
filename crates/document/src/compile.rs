@@ -134,8 +134,8 @@ pub fn compile_layout(layout: Layout) -> Result<Plan, String> {
                 .to_owned(),
         );
     }
-    let blue = compile_side("blue", layout.sides.blue, layout.round)?;
-    let red = compile_side("red", layout.sides.red, layout.round)?;
+    let blue = compile_side("blue", layout.blue, layout.round)?;
+    let red = compile_side("red", layout.red, layout.round)?;
     validate_placement_footprints("blue", &blue.units)?;
     validate_placement_footprints("red", &red.units)?;
     validate_placement_footprints("blue", &blue.constructions)?;

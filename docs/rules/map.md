@@ -26,8 +26,7 @@ A layout selects one through its optional top-level `map_id`, which
 map_id: 1001
 seed: 2038621361
 round: 7
-sides:
-  # ...
+# ...
 ```
 
 A layout exported from a replay records the original MapID, and `apply_layout`

@@ -1,31 +1,30 @@
 kind: layout
 round: 3
 
-sides:
-  blue:
-    units:
-      - name: crawler
-        index: 0
-        position: {x: 310, y: 285}
-        travelling: true
-      - name: phantom_ray
-        index: 1
-        position: {x: 330, y: 285}
-      - name: typhoon
-        index: 2
-        position: {x: 350, y: 290}
+blue:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: 310, y: 285}
+      travelling: true
+    - name: phantom_ray
+      index: 1
+      position: {x: 330, y: 285}
+    - name: typhoon
+      index: 2
+      position: {x: 350, y: 290}
 
-  red:
-    units:
-      - name: typhoon
-        index: 0
-        position: {x: -250, y: -290}
-        rotated: true
-      - name: phantom_ray
-        index: 1
-        position: {x: -270, y: -285}
-        rotated: true
-      - name: crawler
-        index: 2
-        position: {x: -290, y: -285}
-        rotated: true
+red:
+  units:
+    - name: typhoon
+      index: 0
+      position: {x: -250, y: -290}
+      rotated: true
+    - name: phantom_ray
+      index: 1
+      position: {x: -270, y: -285}
+      rotated: true
+    - name: crawler
+      index: 2
+      position: {x: -290, y: -285}
+      rotated: true

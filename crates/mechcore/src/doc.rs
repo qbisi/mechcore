@@ -389,13 +389,13 @@ mod tests {
 
     #[test]
     fn field_diff_uses_json_pointers_and_marks_missing_values() {
-        let left = serde_json::json!({"sides": {"blue": {"units": [1, 2]}}});
-        let right = serde_json::json!({"sides": {"blue": {"units": [1, 3, 4]}}});
+        let left = serde_json::json!({"blue": {"units": [1, 2]}});
+        let right = serde_json::json!({"blue": {"units": [1, 3, 4]}});
         let mut differences = Vec::new();
         collect_differences("", Some(&left), Some(&right), &mut differences);
         assert_eq!(differences.len(), 2);
-        assert_eq!(differences[0].path, "/sides/blue/units/1");
-        assert_eq!(differences[1].path, "/sides/blue/units/2");
+        assert_eq!(differences[0].path, "/blue/units/1");
+        assert_eq!(differences[1].path, "/blue/units/2");
         assert!(differences[1].left.is_none());
     }
 

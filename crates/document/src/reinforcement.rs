@@ -449,7 +449,7 @@ impl Dealer {
 
     fn context(&self, economy: &Economy, stated: &Stated, turn: &Turn) -> Result<Context, String> {
         let mut context = Context::default();
-        for side in [&turn.state.sides.blue, &turn.state.sides.red] {
+        for side in [&turn.state.blue, &turn.state.red] {
             context.officers.extend(side.officers.iter());
             let delivered = delivered_before(economy, side, turn.round)?;
             for formation in side
@@ -473,8 +473,8 @@ impl Dealer {
             }
         }
         for (side, loadout) in [
-            (&turn.state.sides.blue, &stated.sides.blue.tech_loadout),
-            (&turn.state.sides.red, &stated.sides.red.tech_loadout),
+            (&turn.state.blue, &stated.blue.tech_loadout),
+            (&turn.state.red, &stated.red.tech_loadout),
         ] {
             for technology in &side.techs {
                 let owner = economy

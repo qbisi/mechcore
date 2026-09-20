@@ -21,8 +21,7 @@ Layout 顶层可选字段 `map_id` 选择地图：
 map_id: 1001
 seed: 2038621361
 round: 7
-sides:
-  # ...
+# ...
 ```
 
 录像导出的 layout 会记录原始 MapID，`apply_layout` 在创建试验场前加载该地图。

@@ -961,7 +961,7 @@ mod tests {
         let failure = record_battle_failure(
             "cleanup failed",
             &json!({"recorded": true}),
-            &json!({"kind": "layout", "round": 1, "sides": {}}),
+            &json!({"kind": "layout", "round": 1, }),
             Err("native exit failed".into()),
             json!({"status": "training_ground", "fighting": false}),
         );
@@ -1020,10 +1020,8 @@ mod tests {
                 json!({
                     "kind": "layout",
                     "round": 1,
-                    "sides": {
-                        "blue": {"units": [{"name": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
-                        "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
-                    }
+                    "blue": {"units": [{"name": "unknown", "index": 0, "position": {"x": 0, "y": -50}}]},
+                    "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                 }),
                 None,
             )
@@ -1040,16 +1038,14 @@ mod tests {
                 json!({
                     "kind": "layout",
                     "round": 1,
-                    "sides": {
-                        "blue": {
-                            "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
-                            "terrains": [{
-                                "name": "oil",
-                                "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
-                            }]
-                        },
-                        "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
-                    }
+                    "blue": {
+                        "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
+                        "terrains": [{
+                            "name": "oil",
+                            "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
+                        }]
+                    },
+                    "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
                 }),
                 None,
             )

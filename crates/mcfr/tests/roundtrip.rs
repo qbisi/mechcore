@@ -15,7 +15,7 @@ use mechcore_mcfr::{
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
 
-const LAYOUT_YAML: &str = "kind: layout\nseed: 42\nround: 1\nsides:\n  blue:\n    units:\n    - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  red:\n    units:\n    - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
+const LAYOUT_YAML: &str = "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
 
 #[test]
 #[allow(clippy::too_many_lines)]
@@ -366,7 +366,7 @@ fn physics_hash_ignores_event_provenance_annotations() {
 
 #[test]
 fn embedded_layout_is_not_a_hash_input() {
-    const OTHER_LAYOUT: &str = "kind: layout\nseed: 42\nround: 1\nsides:\n  blue:\n    units:\n    - {name: marksman, index: 0, position: {x: 20, y: -50}}\n  red:\n    units:\n    - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
+    const OTHER_LAYOUT: &str = "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 20, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
     let directory = tempfile::tempdir().unwrap();
     let events = damage_events();
     let left = write_battle(
@@ -387,7 +387,7 @@ fn embedded_layout_is_not_a_hash_input() {
 
 #[test]
 fn embedded_layout_preserves_adapter_state_outside_public_legality() {
-    const PARTIAL_LAYOUT: &str = "kind: layout\nseed: 42\nround: 1\nsides:\n  blue:\n    units:\n    - {name: marksman, index: 0, position: {x: -310, y: 20}}\n  red:\n    units:\n    - {name: arclight, index: 0, position: {x: -310, y: 20}}\n";
+    const PARTIAL_LAYOUT: &str = "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: -310, y: 20}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: -310, y: 20}}\n";
     assert!(mechcore_document::parse_yaml(PARTIAL_LAYOUT.as_bytes()).is_err());
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("partial-layout.mcfr");

@@ -1,15 +1,14 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: sledgehammer
-        index: 0
-        position: {x: 285, y: -60}
+blue:
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: 285, y: -60}
 
-  red:
-    units:
-      - name: marksman
-        index: 0
-        position: {x: 0, y: -50}
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}

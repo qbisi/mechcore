@@ -1,23 +1,22 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: arclight
-        index: 0
-        position: {x: 0, y: -100}
-      - name: crawler
-        index: 1
-        rotated: true
-        position: {x: 0, y: -135}
+blue:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -100}
+    - name: crawler
+      index: 1
+      rotated: true
+      position: {x: 0, y: -135}
 
-  red:
-    units:
-      - name: arclight
-        index: 0
-        position: {x: 0, y: -100}
-      - name: crawler
-        index: 1
-        rotated: true
-        position: {x: 0, y: -135}
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -100}
+    - name: crawler
+      index: 1
+      rotated: true
+      position: {x: 0, y: -135}

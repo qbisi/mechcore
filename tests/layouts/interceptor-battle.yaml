@@ -1,23 +1,22 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: stormcaller
-        index: 0
-        position: {x: 5, y: -120}
-    contraptions:
-      - name: interceptor
-        index: 0
-        position: {x: 5, y: -85}
+blue:
+  units:
+    - name: stormcaller
+      index: 0
+      position: {x: 5, y: -120}
+  contraptions:
+    - name: interceptor
+      index: 0
+      position: {x: 5, y: -85}
 
-  red:
-    units:
-      - name: stormcaller
-        index: 0
-        position: {x: 5, y: -120}
-    contraptions:
-      - name: interceptor
-        index: 0
-        position: {x: 5, y: -85}
+red:
+  units:
+    - name: stormcaller
+      index: 0
+      position: {x: 5, y: -120}
+  contraptions:
+    - name: interceptor
+      index: 0
+      position: {x: 5, y: -85}

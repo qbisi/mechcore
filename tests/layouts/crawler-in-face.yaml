@@ -1,17 +1,16 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      # The front edge is y=-10, legal only in the standard 300 m-deep region.
-      - name: crawler
-        index: 0
-        position: {x: -5, y: -20}
-        equipment: amplifying_core
+blue:
+  units:
+    # The front edge is y=-10, legal only in the standard 300 m-deep region.
+    - name: crawler
+      index: 0
+      position: {x: -5, y: -20}
+      equipment: amplifying_core
 
-  red:
-    units:
-      - name: crawler
-        index: 0
-        position: {x: 5, y: -20}
+red:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: 5, y: -20}

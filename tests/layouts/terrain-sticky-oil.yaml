@@ -1,25 +1,24 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: arclight
-        index: 0
-        position: {x: 0, y: -280}
+blue:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -280}
 
-    battle_skills:
-      - name: sticky_oil_bomb
-        positions:
-          - {x: -60, y: 40}
-          - {x: 60, y: 40}
+  battle_skills:
+    - name: sticky_oil_bomb
+      positions:
+        - {x: -60, y: 40}
+        - {x: 60, y: 40}
 
-  red:
-    units:
-      - name: sledgehammer
-        index: 0
-        position: {x: 5, y: -100}
-    contraptions:
-      - name: shield
-        index: 0
-        position: {x: -56, y: -82}
+red:
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: 5, y: -100}
+  contraptions:
+    - name: shield
+      index: 0
+      position: {x: -56, y: -82}

@@ -1,31 +1,30 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: wraith
-        index: 0
-        position: {x: -5, y: -95}
-      - name: crawler
-        index: 1
-        rotated: true
-        position: {x: 0, y: -135}
-      - name: steel_ball
-        index: 2
-        rotated: true
-        position: {x: 20, y: -135}
+blue:
+  units:
+    - name: wraith
+      index: 0
+      position: {x: -5, y: -95}
+    - name: crawler
+      index: 1
+      rotated: true
+      position: {x: 0, y: -135}
+    - name: steel_ball
+      index: 2
+      rotated: true
+      position: {x: 20, y: -135}
 
-  red:
-    units:
-      - name: wraith
-        index: 0
-        position: {x: -5, y: -95}
-      - name: crawler
-        index: 1
-        rotated: true
-        position: {x: 0, y: -135}
-      - name: steel_ball
-        index: 2
-        rotated: true
-        position: {x: 20, y: -135}
+red:
+  units:
+    - name: wraith
+      index: 0
+      position: {x: -5, y: -95}
+    - name: crawler
+      index: 1
+      rotated: true
+      position: {x: 0, y: -135}
+    - name: steel_ball
+      index: 2
+      rotated: true
+      position: {x: 20, y: -135}

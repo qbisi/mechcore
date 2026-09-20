@@ -14,9 +14,8 @@ round: 7
 
 reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2]
 
-sides:
-  blue: { ... }
-  red: { ... }
+blue: { ... }
+red: { ... }
 ```
 
 `map_id` and `seed` carry the same meaning and the same optionality as in a
@@ -77,7 +76,7 @@ layout holds.
 ## Match level and side level
 
 The reinforcement offer is dealt once per round and both players choose from the
-same array, so it is the one field above `sides`.
+same array, so it is the one field the two sides share rather than one each.
 
 Round 1 is dealt no offer, and neither is the opening the game numbers round 0.
 The field is absent there rather than an empty array, since no array was dealt.
@@ -86,8 +85,8 @@ The field is absent there rather than an empty array, since no array was dealt.
 
 The opening is the exception, and it is not here. It deals each side four
 combinations of an advance team and a specialist officer, privately: neither
-player sees the other's, so it could never be `reinforce_offers`, which is above
-`sides` precisely because both players choose from one array.
+player sees the other's, so it could never be `reinforce_offers`, which the two
+sides share precisely because both choose from one array.
 
 It is not under a side's state either, because the position it is dealt in is
 not a round worth stating. A battle's [header](battle.md#the-opening-offers)

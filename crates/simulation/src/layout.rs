@@ -186,11 +186,10 @@ mod tests {
     const LAYOUT: &str = r"
 kind: layout
 round: 1
-sides:
-  blue:
-    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
-  red:
-    units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
+blue:
+  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
+red:
+  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ";
 
     fn compile_default(value: &str) -> Result<CompiledLayout> {
@@ -234,7 +233,7 @@ sides:
     fn rejects_features_not_owned_by_this_slice() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "techs: {marksman: [range_enhancement]}\n    units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "techs: {marksman: [range_enhancement]}\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
         );
         assert!(compile_default(&value).is_err());
     }
@@ -243,7 +242,7 @@ sides:
     fn rejects_constructions_outside_the_baseline_slice() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n    constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
@@ -255,7 +254,7 @@ sides:
     fn rejects_persistent_terrains_outside_simulator_closure() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n    terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),

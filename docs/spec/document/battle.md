@@ -11,9 +11,8 @@ side takes from it.
 kind: battle
 map_id: 1001
 seed: 2038621361
-sides:
-  blue: {offers: [...], constructions: [...], tech_loadout: {...}}
-  red: {offers: [...], constructions: [...], tech_loadout: {...}}
+blue: {offers: [...], constructions: [...], tech_loadout: {...}}
+red: {offers: [...], constructions: [...], tech_loadout: {...}}
 ---
 kind: action
 round: 0
@@ -24,9 +23,8 @@ red:
 ---
 kind: state
 round: 1
-sides:
-  blue: { ... }
-  red: { ... }
+blue: { ... }
+red: { ... }
 ---
 kind: action
 round: 1
@@ -104,10 +102,14 @@ The header holds what every round of the match shares.
 
 | Field | Source |
 | --- | --- |
+| `game_build` | the build whose tables the battle is written against |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
 
-Both keep the meaning and the optionality a layout gives them.
+`seed` and `map_id` keep the meaning and the optionality a layout gives them.
+`game_build` is the one a [layout](layout.md#document-shape) states: every
+writer writes it, a reader refuses another build, and a battle that states none
+is the reader's own.
 
 The rest of the match header is a property of the standard 1v1 rule set rather
 than of a match: the phase durations, the round cap, the advance team,
@@ -143,7 +145,7 @@ side is identified by which side it is.
 ### What a side brings to the match
 
 Three per-side facts are properties of the match rather than of a round, and
-they are what the header's `sides` holds. Two of them are dealt before either
+they are what the header holds under each side. Two of them are dealt before either
 player decides anything, and the third bounds every round.
 
 #### The opening offers

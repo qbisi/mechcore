@@ -8,8 +8,8 @@
 //! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, BattleSides, DECLINED_OFFER, EquipmentItem, NextIndex, Opening,
-    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit, StateSides,
+    Action, Battle, BattleSide, DECLINED_OFFER, EquipmentItem, NextIndex, Opening,
+    OpeningOffer, PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit,
     Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
@@ -71,37 +71,7 @@ impl Seat {
 /// or this format cannot name.
 pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     let record = record::read(grbr)?;
-    if record.version != BUILD {
-        return Err(format!(
-            "replay is build {}, and this converter reads build {BUILD}",
-            record.version
-        ));
-    }
-    if record.seat < 0 {
-        return Err(
-            "replay was downloaded from the server, whose snapshots are reconstructions; \
-             see tests/grbr/README.md"
-                .into(),
-        );
-    }
-    if record.info.match_mode != "VS_1_1" {
-        return Err(format!(
-            "replay is match mode {}, and this format describes VS_1_1",
-            record.info.match_mode
-        ));
-    }
-    if let Some(match_type) = &record.info.match_type {
-        return Err(format!(
-            "replay is a {match_type} match, not a played one; \
-             its snapshots were installed by Training Ground commands"
-        ));
-    }
-    if !record.info.game_rules.values.is_empty() {
-        return Err(format!(
-            "replay carries game rules {:?}, which this format has not been measured against",
-            record.info.game_rules.values
-        ));
-    }
+    readable(&record)?;
     let [blue, red] = <[record::PlayerRecord; 2]>::try_from(record.players.entries)
         .map_err(|players| format!("replay has {} sides, and a battle has two", players.len()))?;
 
@@ -177,14 +147,53 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
     check_concession(&turns)?;
 
     Ok(Battle {
+        game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
-        sides: BattleSides {
-            blue: battle_side(&economy, &blue, Seat::Blue, dealt.blue)?,
-            red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
-        },
+        blue: battle_side(&economy, &blue, Seat::Blue, dealt.blue)?,
+        red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
         turns,
     })
+}
+
+/// Refuses a replay this converter does not read, by the property it fails.
+///
+/// Each of these is a premise the rest of the conversion rests on, and naming
+/// which one failed is what tells a caller whether the file is the wrong build,
+/// the wrong provenance or the wrong kind of match.
+fn readable(record: &record::BattleRecord) -> Result<(), String> {
+    if record.version != BUILD {
+        return Err(format!(
+            "replay is build {}, and this converter reads build {BUILD}",
+            record.version
+        ));
+    }
+    if record.seat < 0 {
+        return Err(
+            "replay was downloaded from the server, whose snapshots are reconstructions; \
+             see tests/grbr/README.md"
+                .into(),
+        );
+    }
+    if record.info.match_mode != "VS_1_1" {
+        return Err(format!(
+            "replay is match mode {}, and this format describes VS_1_1",
+            record.info.match_mode
+        ));
+    }
+    if let Some(match_type) = &record.info.match_type {
+        return Err(format!(
+            "replay is a {match_type} match, not a played one; \
+             its snapshots were installed by Training Ground commands"
+        ));
+    }
+    if !record.info.game_rules.values.is_empty() {
+        return Err(format!(
+            "replay carries game rules {:?}, which this format has not been measured against",
+            record.info.game_rules.values
+        ));
+    }
+    Ok(())
 }
 
 /// One deployment round: the position each side opens it with, and the
@@ -198,10 +207,11 @@ fn turn(
     offers: Option<Vec<i32>>,
     declined: Option<i32>,
 ) -> Result<Turn, String> {
-    let sides = StateSides {
-        blue: side_state(grbr, economy, blue, position, Seat::Blue)?,
-        red: side_state(grbr, economy, red, position, Seat::Red)?,
-    };
+    let opened = [
+        side_state(grbr, economy, blue, position, Seat::Blue)?,
+        side_state(grbr, economy, red, position, Seat::Red)?,
+    ];
+    let [blue_state, red_state] = opened;
     let taken = |player: &record::PlayerRecord, seat, opened| {
         actions(
             economy,
@@ -213,14 +223,15 @@ fn turn(
         .map_err(|error| format!("round {round}: {error}"))
     };
     let actions = TurnActions {
-        blue: taken(blue, Seat::Blue, &sides.blue)?,
-        red: taken(red, Seat::Red, &sides.red)?,
+        blue: taken(blue, Seat::Blue, &blue_state)?,
+        red: taken(red, Seat::Red, &red_state)?,
     };
     Ok(Turn {
         round,
         state: State {
             reinforce_offers: offers,
-            sides,
+            blue: blue_state,
+            red: red_state,
         },
         actions,
     })
@@ -1033,7 +1044,7 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
     battle
         .turns
         .iter()
-        .flat_map(|turn| [&turn.state.sides.blue, &turn.state.sides.red])
+        .flat_map(|turn| [&turn.state.blue, &turn.state.red])
         .flat_map(|side| side.units.iter().map(|unit| unit.unit.type_name.clone()))
         .collect()
 }
@@ -1136,15 +1147,15 @@ mod tests {
             }
         };
         assert_eq!(
-            stated(&round.state.sides.red.tower_strengthen_levels),
-            layout.sides.red.tower_strengthen_levels
+            stated(&round.state.red.tower_strengthen_levels),
+            layout.red.tower_strengthen_levels
         );
         assert_eq!(
-            stated(&round.state.sides.blue.tower_strengthen_levels),
-            layout.sides.blue.tower_strengthen_levels
+            stated(&round.state.blue.tower_strengthen_levels),
+            layout.blue.tower_strengthen_levels
         );
         assert_eq!(
-            layout.sides.red.tower_strengthen_levels,
+            layout.red.tower_strengthen_levels,
             vec![0, 2],
             "the live capture put the level 2 at red's second position"
         );
@@ -1185,8 +1196,8 @@ mod tests {
                 .all(|action| !matches!(action, Action::ChooseAdvanceTeam { .. }))
         );
         for (side, team, specialist) in [
-            (&battle.sides.blue.opening, 9910, 20005),
-            (&battle.sides.red.opening, 9891, 10002),
+            (&battle.blue.opening, 9910, 20005),
+            (&battle.red.opening, 9891, 10002),
         ] {
             // A replay records the opening taken and not the three refused,
             // and the three are rebuilt from the seed rather than left out.
@@ -1205,8 +1216,8 @@ mod tests {
         }
         // Both halves reach the first round, which is what the opening is for.
         let first = round(&battle, 1);
-        assert!(first.state.sides.blue.officers.contains(&20005));
-        assert!(first.state.sides.red.officers.contains(&10002));
+        assert!(first.state.blue.officers.contains(&20005));
+        assert!(first.state.red.officers.contains(&10002));
     }
 
     #[test]
@@ -1237,14 +1248,14 @@ mod tests {
     fn the_opening_construction_layout_is_what_the_first_round_stands_on() {
         let battle = tuff();
         let first = round(&battle, 1);
-        assert!(!battle.sides.blue.constructions.is_empty());
+        assert!(!battle.blue.constructions.is_empty());
         assert_eq!(
-            battle.sides.blue.constructions,
-            first.state.sides.blue.constructions
+            battle.blue.constructions,
+            first.state.blue.constructions
         );
         assert_eq!(
-            battle.sides.red.constructions,
-            first.state.sides.red.constructions
+            battle.red.constructions,
+            first.state.red.constructions
         );
         // The map deals the layout to both sides, and each reads it in its own
         // frame, so the two lists name the same buildings and not the same
@@ -1256,8 +1267,8 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         assert_eq!(
-            kinds(&battle.sides.blue.constructions),
-            kinds(&battle.sides.red.constructions)
+            kinds(&battle.blue.constructions),
+            kinds(&battle.red.constructions)
         );
     }
 
@@ -1266,16 +1277,16 @@ mod tests {
         let battle = tuff();
         // The record also lists Death Knell (2001) and Experimental Death
         // Knell (4001), which no standard 1v1 match fields.
-        assert_eq!(battle.sides.blue.tech_loadout.len(), 32);
-        assert_eq!(battle.sides.red.tech_loadout.len(), 32);
+        assert_eq!(battle.blue.tech_loadout.len(), 32);
+        assert_eq!(battle.red.tech_loadout.len(), 32);
         for unit in [2001, 4001] {
-            assert!(!battle.sides.blue.tech_loadout.contains_key(&unit));
+            assert!(!battle.blue.tech_loadout.contains_key(&unit));
         }
         assert_eq!(
-            battle.sides.blue.tech_loadout[&1],
+            battle.blue.tech_loadout[&1],
             vec![1105, 10301, 10401, 10801]
         );
-        assert_ne!(battle.sides.blue.tech_loadout, battle.sides.red.tech_loadout);
+        assert_ne!(battle.blue.tech_loadout, battle.red.tech_loadout);
     }
 
     #[test]
@@ -1283,8 +1294,8 @@ mod tests {
         let battle = tuff();
         for turn in &battle.turns {
             for (state, side) in [
-                (&turn.state.sides.blue, &battle.sides.blue),
-                (&turn.state.sides.red, &battle.sides.red),
+                (&turn.state.blue, &battle.blue),
+                (&turn.state.red, &battle.red),
             ] {
                 for tech in &state.techs {
                     assert!(
@@ -1302,7 +1313,7 @@ mod tests {
         // tests/layouts/tuff-replay-round-7.yaml is the position round 7 ends
         // in, so its roster is the round 8 snapshot.
         let battle = tuff();
-        let blue = &round(&battle, 8).state.sides.blue;
+        let blue = &round(&battle, 8).state.blue;
         let vortex = blue
             .units
             .iter()
@@ -1313,7 +1324,7 @@ mod tests {
         assert_eq!(vortex.unit.position, Position { x: -250, y: -120 });
         // What recovering it pays back is what the side paid for it.
         assert_eq!(vortex.value, Some(100));
-        let red = &round(&battle, 8).state.sides.red;
+        let red = &round(&battle, 8).state.red;
         let marksman = red
             .units
             .iter()
@@ -1330,7 +1341,7 @@ mod tests {
         let battle = tuff();
         // The map pays 200 in round 1, and red holds a supply officer that
         // adds fifty to every round's income.
-        let opening = &round(&battle, 1).state.sides;
+        let opening = &round(&battle, 1).state;
         assert_eq!(opening.blue.supply, 200);
         assert_eq!(opening.red.supply, 250);
         for state in [&opening.blue, &opening.red] {
@@ -1338,7 +1349,7 @@ mod tests {
             assert_eq!(state.shop.unlocks_remaining, 1);
         }
         for turn in &battle.turns {
-            for state in [&turn.state.sides.blue, &turn.state.sides.red] {
+            for state in [&turn.state.blue, &turn.state.red] {
                 assert!(state.energy_tower_skills.is_empty());
                 assert_eq!(state.tower_strengthen_levels.len(), 2);
             }
@@ -1423,7 +1434,7 @@ mod tests {
                     converted += 1;
                     assert!(!battle.turns.is_empty());
                     for turn in &battle.turns {
-                        for state in [&turn.state.sides.blue, &turn.state.sides.red] {
+                        for state in [&turn.state.blue, &turn.state.red] {
                             assert!(state.supply >= 0);
                             assert!(state.next_index.unit >= 0);
                             for formation in &state.units {
@@ -1450,8 +1461,8 @@ mod tests {
     fn a_standing_shield_is_the_previous_rounds_release_or_its_own_survival() {
         fn pick<'a>(turn: &'a Turn, side: &str) -> (&'a SideState, &'a [Action]) {
             match side {
-                "blue" => (&turn.state.sides.blue, &turn.actions.blue),
-                _ => (&turn.state.sides.red, &turn.actions.red),
+                "blue" => (&turn.state.blue, &turn.actions.blue),
+                _ => (&turn.state.red, &turn.actions.red),
             }
         }
         let mut standing = Vec::new();
@@ -1631,7 +1642,7 @@ mod tests {
     #[test]
     fn a_round_opens_with_what_its_officers_deliver() {
         let battle = battle_from_grbr(&std::fs::read(READING).unwrap()).unwrap();
-        let opened = &round(&battle, 2).state.sides.blue;
+        let opened = &round(&battle, 2).state.blue;
         let delivered = opened
             .units
             .iter()
@@ -1646,7 +1657,6 @@ mod tests {
         assert!(
             round(&battle, 1)
                 .state
-                .sides
                 .blue
                 .shop
                 .unlocked_units
@@ -1666,7 +1676,6 @@ mod tests {
         let battle = battle_from_grbr(&std::fs::read(BORK).unwrap()).unwrap();
         let delivered = round(&battle, 4)
             .state
-            .sides
             .red
             .units
             .iter()
@@ -1745,16 +1754,19 @@ mod tests {
     #[test]
     fn serializes_to_normal_form_yaml() {
         let yaml = canonical_yaml(&tuff()).unwrap();
-        assert!(yaml.starts_with("kind: battle\nmap_id: 1021\nseed: 31103914\nsides:\n"));
+        assert!(yaml.starts_with(&format!(
+            "kind: battle\ngame_build: {}\nmap_id: 1021\nseed: 31103914\n",
+            crate::economy::game_build()
+        )));
         assert!(yaml.contains(
             "\n---\nkind: action\nround: 0\nblue:\n\
              - {type: choose_advance_team, offer: 1, name: vortex-fire_badger, \
              specialist: giant_specialist}\n"
         ));
-        assert!(yaml.contains("\n---\nkind: state\nround: 1\nsides:\n"));
+        assert!(yaml.contains("\n---\nkind: state\nround: 1\n"));
         assert!(yaml.contains("\n---\nkind: action\nround: 1\nblue:\n"));
         assert!(yaml.contains(
-            "    units:\n    - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
+            "  units:\n  - {name: vortex, index: 0, position: {x: 0, y: -160}, value: 100, movable: true}\n"
         ));
         assert!(yaml.contains("\n- {type: buy_unit, name: "));
         assert!(!yaml.contains("\n- type: "));

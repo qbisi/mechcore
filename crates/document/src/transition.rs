@@ -1349,8 +1349,8 @@ mod tests {
             };
             for turn in &battle.turns {
                 for (side, state, actions) in [
-                    ("blue", &turn.state.sides.blue, &turn.actions.blue),
-                    ("red", &turn.state.sides.red, &turn.actions.red),
+                    ("blue", &turn.state.blue, &turn.actions.blue),
+                    ("red", &turn.state.red, &turn.actions.red),
                 ] {
                     if !state.equipment.is_empty() {
                         held += 1;
@@ -1926,8 +1926,8 @@ mod tests {
             };
             for turn in &battle.turns {
                 for (state, actions) in [
-                    (&turn.state.sides.blue, &turn.actions.blue),
-                    (&turn.state.sides.red, &turn.actions.red),
+                    (&turn.state.blue, &turn.actions.blue),
+                    (&turn.state.red, &turn.actions.red),
                 ] {
                     // No converted state carries one, which is the fight
                     // clearing the set between rounds.

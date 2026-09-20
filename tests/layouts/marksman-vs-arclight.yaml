@@ -1,15 +1,14 @@
 kind: layout
 round: 1
 
-sides:
-  blue:
-    units:
-      - name: marksman
-        index: 0
-        position: {x: 0, y: -50}
+blue:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -50}
 
-  red:
-    units:
-      - name: arclight
-        index: 0
-        position: {x: 0, y: -50}
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}
