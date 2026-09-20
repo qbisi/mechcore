@@ -1,0 +1,28 @@
+kind: layout
+round: 1
+
+# Four single-member units, three different offsets, four different rows.
+#
+# The stream walks a deployment in the order the recording numbers it —
+# ascending world z, then x — and hands each unit one draw in its own offset.
+# With one member per formation there is nothing to interleave, so this
+# fixture reads that rule directly:
+#
+#   z = -200  Marksman   offset 12 ticks
+#   z = -150  Arclight   offset  6
+#   z = -100  Marksman   offset 12
+#   z =  -55  Wraith     offset  4
+#
+# The Rhino is red's, and its offset is zero, so it draws nothing and reads its
+# description.
+
+blue:
+  units:
+    - {name: wraith, index: 0, position: {x: 5, y: -55}}
+    - {name: marksman, index: 1, position: {x: 0, y: -100}}
+    - {name: arclight, index: 2, position: {x: 0, y: -150}}
+    - {name: marksman, index: 3, position: {x: 60, y: -200}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: 5, y: -55}}

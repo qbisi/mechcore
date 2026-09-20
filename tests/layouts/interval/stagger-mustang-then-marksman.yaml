@@ -1,0 +1,25 @@
+kind: layout
+round: 1
+
+# Does every member of a formation consume a draw, or only the formation?
+#
+# A Mustang formation is twelve members with an `interval_offset` of `0.2`
+# seconds, and it stands in front of a single Marksman whose offset is `0.6`.
+# The Marksman is therefore the thirteenth unit of the deployment under one
+# rule and the second under the other, and the team stream answers a different
+# number at those two places:
+#
+#   one draw per member       62 + (13th draw) = 72
+#   one draw per formation    62 + (2nd draw)  = 55
+#
+# The Mustang is in front because the stream walks the deployment in the order
+# the recording numbers it: ascending world z, then x.
+
+blue:
+  units:
+    - {name: mustang, index: 0, position: {x: 5, y: -200}}
+    - {name: marksman, index: 1, position: {x: 0, y: -100}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: 5, y: -55}}
