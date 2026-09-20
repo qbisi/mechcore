@@ -59,7 +59,41 @@ pub fn simulate_layout(
 ) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
     let config = rules::SimulationConfig::load()?;
-    let (layout_seed, layout, replay_layout) = layout::load(layout_path, &config.units)?;
+    let loaded = layout::load(layout_path, &config.units)?;
+    run_loaded(loaded, &config, output_path, seed, || {
+        generate_seed(layout_path)
+    })
+}
+
+/// Simulates a layout held in memory, which is what a match does with the
+/// position a round ends in.
+///
+/// # Errors
+///
+/// Returns an error for unsupported layout features, an invalid document, an
+/// existing requested output, simulation failure, or MCFR generation failure.
+pub fn simulate_document(
+    layout: &[u8],
+    output_path: Option<&Path>,
+    seed: Option<i32>,
+) -> Result<SimulationResult> {
+    let config = rules::SimulationConfig::load()?;
+    let loaded = layout::read(layout, &config.units)?;
+    run_loaded(loaded, &config, output_path, seed, || {
+        Err(Error::new(
+            "a layout with no seed cannot be simulated from memory: name the seed",
+        ))
+    })
+}
+
+/// Runs a compiled layout, whichever way it was read.
+fn run_loaded(
+    (layout_seed, layout, replay_layout): (Option<i32>, layout::CompiledLayout, String),
+    config: &rules::SimulationConfig,
+    output_path: Option<&Path>,
+    seed: Option<i32>,
+    generate: impl FnOnce() -> Result<i32>,
+) -> Result<SimulationResult> {
     let (seed, source) = match (seed, layout_seed) {
         (Some(0), _) => {
             return Err(Error::new(
@@ -68,9 +102,9 @@ pub fn simulate_layout(
         }
         (Some(seed), _) => (seed, "external"),
         (None, Some(seed)) => (seed, "layout"),
-        (None, None) => (generate_seed(layout_path)?, "generated"),
+        (None, None) => (generate()?, "generated"),
     };
-    kernel::run(&layout, &config, seed, source, output_path, &replay_layout)
+    kernel::run(&layout, config, seed, source, output_path, &replay_layout)
 }
 
 /// Simulates the layout embedded in an MCFR and compares canonical ticks

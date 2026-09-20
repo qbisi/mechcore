@@ -33,13 +33,25 @@ pub(crate) fn load(
 ) -> Result<(Option<i32>, CompiledLayout, String)> {
     let bytes = fs::read(path)
         .map_err(|error| Error::new(format!("failed to read {}: {error}", path.display())))?;
-    let (seed, layout) = compile_with_seed(&bytes, units).map_err(|error| {
+    read(&bytes, units).map_err(|error| {
         Error::new(format!(
             "cannot simulate layout {}: {error}",
             path.display()
         ))
-    })?;
-    let parsed = mechcore_document::parse_yaml(&bytes).map_err(Error::new)?;
+    })
+}
+
+/// A layout held in memory, compiled and kept in its normal form.
+///
+/// A caller that has the document rather than a file on disk says so, and its
+/// errors then name what is wrong with the layout rather than where it was
+/// read from.
+pub(crate) fn read(
+    bytes: &[u8],
+    units: &UnitConfigs,
+) -> Result<(Option<i32>, CompiledLayout, String)> {
+    let (seed, layout) = compile_with_seed(bytes, units)?;
+    let parsed = mechcore_document::parse_yaml(bytes).map_err(Error::new)?;
     let canonical = mechcore_document::canonical_yaml(parsed).map_err(Error::new)?;
     Ok((seed, layout, canonical))
 }
@@ -73,9 +85,16 @@ fn compile_side(
     side: &SidePlan,
     units: &UnitConfigs,
 ) -> Result<Vec<Placement>> {
-    if !side.techs.officers.is_empty() || !side.techs.units.is_empty() {
+    // Named apart because a match meets them apart: every opening hands its
+    // side an officer, so this is the first thing a real deployment fails on.
+    if !side.techs.officers.is_empty() {
         return Err(Error::new(format!(
-            "side {name} technologies are outside the current baseline simulator slice"
+            "side {name} officers are outside the current baseline simulator slice"
+        )));
+    }
+    if !side.techs.units.is_empty() {
+        return Err(Error::new(format!(
+            "side {name} unit technologies are outside the current baseline simulator slice"
         )));
     }
     if !side.energy_tower_skills.is_empty()
