@@ -50,9 +50,24 @@ Four claims, each measured:
   40, every one of those numbers is the same, so the field is a stored
   interval rather than a countdown.
 
-**Not covered.** The distribution the draw comes from, which three samples
-cannot pin, and which stream it consumes. What is certain is that it lies
-within the offset and that offset zero means no draw.
+**The draw is the team stream's, and it is signed.** The stream is the
+`GRRandom` this file's first rule describes, seeded `(round + teamIndex) *
+4444` rather than by the match, which is why the same layout answers the same
+numbers under any seed. The projection is `next_in_range(offset)`, uniform
+over `[1 − offset, offset − 1]` by masked rejection, which is why a unit can
+read *above* its description as well as below.
+
+Three Marksmen in a round-one fight are the reading: their offset is twelve
+ticks, and `GRRandom(4444)` answers `−7, +3, −6` for its first three draws in
+that range, which is exactly `55, 65, 56` against a description of 62.
+`crates/simulation/src/random.rs` pins those three numbers in a test.
+
+**Not covered.** How many draws a deployment consumes and in what order, once
+its units differ in kind. An independent reconstruction of the six-unit fight
+above got the first unit right and then drifted, so the order is not stated
+here — this simulator reproduces both fights tick for tick, which says its own
+consumption matches the game's, but a passing hash is a fact about the
+simulator and not a rule about the build.
 
 This simulator schedules its own stagger — `sample_actor_attack_interval` adds
 a draw from the team stream to the next attack step — and reproduces the

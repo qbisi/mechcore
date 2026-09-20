@@ -62,4 +62,24 @@ mod tests {
         let actual = (0..12).map(|_| random.next_in_range(6)).collect::<Vec<_>>();
         assert_eq!(actual, [5, -1, 5, 4, 0, -2, -4, 1, 0, 3, 4, -4]);
     }
+
+    /// The stream a unit's first attack interval is staggered by, read back
+    /// out of the game.
+    ///
+    /// Three Marksmen in one round-one fight stored intervals of 55, 65 and 56
+    /// ticks against a description of 62, and their `interval_offset` of
+    /// `0.6` seconds is twelve ticks. Those three numbers are this stream's
+    /// first three draws in that range, in spawn order, which is what says the
+    /// stagger comes from the team stream seeded `(round + team) * 4444` and
+    /// not from the match seed — the same layout answers the same numbers
+    /// under any seed. `docs/rules/combat.md` carries the measurement.
+    #[test]
+    fn the_first_interval_stagger_is_this_stream() {
+        // Round one, team zero: `(round + teamIndex) * 4444`.
+        let mut random = GrRandom::new(4_444);
+        let drawn = (0..3).map(|_| random.next_in_range(12)).collect::<Vec<_>>();
+        assert_eq!(drawn, [-7, 3, -6]);
+        let stored = drawn.iter().map(|draw| 62 + draw).collect::<Vec<_>>();
+        assert_eq!(stored, [55, 65, 56], "what the game stored for each");
+    }
 }
