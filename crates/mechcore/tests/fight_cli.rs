@@ -245,7 +245,7 @@ red:
 /// The simulator writes no correction yet — `Modifier` is unimplemented and a
 /// layout carrying an officer is refused — so a recording it produced holds
 /// none, and this pins the shape and the empty answer. The officer case is
-/// measured against the game by `scripts/officer-composition.mcscript`, which
+/// measured against the game by `tests/layouts/modifier/composition.mcscript`, which
 /// asserts the stored rates this verb reads.
 #[test]
 fn modifiers_read_a_tick_and_answer_what_it_holds() {

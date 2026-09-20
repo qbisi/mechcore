@@ -62,7 +62,7 @@ build 的 132 名军官里，79 名带有修正。
 
 比率对描述**乘一次**，同一个数上的两条增强**先相加再乘**。
 
-`scripts/officer-composition.mcscript` 对着游戏把它测了出来。一个长弓打一个犀牛，打两
+`tests/layouts/modifier/composition.mcscript` 对着游戏把它测了出来。一个长弓打一个犀牛，打两
 下，三份录制里犀牛都活到最后，所以读数就是它在 19297 里还剩多少：
 
 | 蓝方军官 | 犀牛剩余生命 | 每击伤害 |
@@ -87,7 +87,7 @@ build 的 132 名军官里，79 名带有修正。
 
 ### 削弱相乘
 
-`scripts/modifier-impairment.mcscript` 对另一个符号问了同一个问题，答案不一样。成本控制
+`tests/layouts/modifier/impairment.mcscript` 对另一个符号问了同一个问题，答案不一样。成本控制
 专家对所有单位的伤害和生命都是 `−0.11`，而且一方可以持有两份：
 
 | 红方军官 | 犀牛满血 | 挨两下后剩 |
@@ -106,7 +106,7 @@ build 的 132 名军官里，79 名带有修正。
 
 ### 一个 value 按本单位相加
 
-`scripts/modifier-value.mcscript` 关掉了最后一条子句。增程弧光是射程 `+20`、伤害 `−0.2`，
+`tests/layouts/modifier/value.mcscript` 关掉了最后一条子句。增程弧光是射程 `+20`、伤害 `−0.2`，
 所以一份录像里同时带着一个 value 和一条削弱。弧光的射程是 95 米，带上军官后提前二十米开火，
 之后每一 tick 都跟着变。
 

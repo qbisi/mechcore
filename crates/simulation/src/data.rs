@@ -13,7 +13,7 @@
 //! Nothing in the fight reads a description directly.
 //!
 //! **A rate composes by summing within its channel and multiplying once**,
-//! which `scripts/officer-composition.mcscript` measured against the game and
+//! which `tests/layouts/modifier/composition.mcscript` measured against the game and
 //! `docs/rules/officer_effects.md` records. The decompilation index carries no
 //! method bodies, so nothing here is read off the build; what the build stores
 //! and what it then computed were captured together and agree. What that
@@ -372,7 +372,7 @@ mod tests {
 
     /// The capture, replayed against this layer.
     ///
-    /// `scripts/officer-composition.mcscript` recorded one Marksman shooting
+    /// `tests/layouts/modifier/composition.mcscript` recorded one Marksman shooting
     /// one Rhino under no officer, one and two, and the game's own damage was
     /// 2329, 3027 and 3726. Two officers of one kind reach the recording as a
     /// single `+0.6`, so they sum and multiply once rather than compounding —

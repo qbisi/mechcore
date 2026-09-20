@@ -1,10 +1,10 @@
 # Is a value added to the description in the number's own units?
 #
-#   mechcore run scripts/modifier-value.mcscript --check   validate offline
-#   mechcore run scripts/modifier-value.mcscript           record
+#   mechcore run tests/layouts/modifier/value.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/value.mcscript           record
 #
-# The rate clauses are measured: `scripts/officer-composition.mcscript` found
-# enhancements summing, `scripts/modifier-impairment.mcscript` found
+# The rate clauses are measured: `tests/layouts/modifier/composition.mcscript` found
+# enhancements summing, `tests/layouts/modifier/impairment.mcscript` found
 # impairments compounding. This asks the remaining clause of
 # `(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)`.
 #

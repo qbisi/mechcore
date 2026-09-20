@@ -31,11 +31,16 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 # CI 与自动合并
 
-`.github/workflows/ci.yml` 在 macOS 上跑五件事：fixture 哈希、
+`.github/workflows/ci.yml` 在 macOS 上跑六件事：fixture 哈希、
 `cargo fmt --all -- --check`、`cargo clippy -D warnings`、
-`cargo test --workspace --all-features`，以及重新生成 `tests/battle` 并要求
-结果没有差异。最后一条意味着改了转换器就必须在同一次提交里重新生成语料。
-`docs.yml` 另跑 `scripts/check-docs.py`。
+`cargo test --workspace --all-features`、重新生成 `tests/battle` 并要求结果没有
+差异，以及把每一份被跟踪的 `.mcscript` 过一遍 `--check`、并**实际运行其中不需要
+游戏的那些**。倒数第二条意味着改了转换器就必须在同一次提交里重新生成语料；最后一条
+意味着一份离线脚本里的断言和一份测试同等有效，`tests/layouts/modifier/regressions.mcscript`
+就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
+
+一份 `.mcscript` 要么需要游戏、要么不需要，`run --check` 的 `game` 字段就是答案：
+需要游戏的只被解析，不需要的会被跑起来。新增一份离线脚本不用改 CI。
 
 格式这一条曾经不在 CI 里，因为仓库本来就不符合当前 rustfmt 的输出。那次全仓
 格式化已经做过了，所以现在它是 CI 的一条硬检查：**提交前跑 `cargo fmt --all`**，
