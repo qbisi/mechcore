@@ -542,15 +542,58 @@ pub fn verify(
     stated: &Stated,
     opening: &Prediction,
 ) -> Result<Verified, String> {
+    walk(economy, stated, opening, false).map(|walked| walked.verified)
+}
+
+/// Deals the offers of the round the battle has just opened, which is its
+/// last, or nothing when that round is dealt none.
+///
+/// The deal is stateful, so this replays every earlier round first: each one's
+/// offers are dealt again and the choice taken from them applied. The last
+/// round's own `reinforce_offers` are the one thing not read, which is what
+/// makes this a deal rather than a check — a match writes what comes back into
+/// the state that round opens with, and [`verify`] then agrees with it.
+///
+/// # Errors
+/// The same as [`verify`], for every round but the last.
+pub fn deal_last_round(
+    economy: &Economy,
+    stated: &Stated,
+    opening: &Prediction,
+) -> Result<Option<Vec<i32>>, String> {
+    walk(economy, stated, opening, true).map(|walked| walked.dealt)
+}
+
+/// One battle's rounds, replayed through the dealer.
+struct Walked {
+    verified: Verified,
+    /// The last round's offers, when they were dealt rather than checked.
+    dealt: Option<Vec<i32>>,
+}
+
+/// Replays every stated round through one stream.
+///
+/// `deal_last` decides what happens at the last round: a check compares the
+/// offers it states, and a deal answers the offers it should state.
+fn walk(
+    economy: &Economy,
+    stated: &Stated,
+    opening: &Prediction,
+    deal_last: bool,
+) -> Result<Walked, String> {
     // A match that has not opened its first round has no draw to check. That
     // is a battle in progress rather than a battle missing something: the
     // header and the openings are all a dealt match has.
     if stated.turns.is_empty() {
-        return Ok(Verified {
-            rounds: Vec::new(),
-            offers_checked: 0,
+        return Ok(Walked {
+            verified: Verified {
+                rounds: Vec::new(),
+                offers_checked: 0,
+            },
+            dealt: None,
         });
     }
+    let mut dealt = None;
     let mut dealer = Dealer::new(opening)?;
     let mut rounds = Vec::new();
     let mut offers_checked = 0;
@@ -583,14 +626,17 @@ pub fn verify(
             dealer.ordinary(turn.round, &context.units)
         }
         .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
+        let last = at + 1 == stated.turns.len();
         let expected_offers = if turn.round == 1 { None } else { Some(&offers) };
-        if turn.state.reinforce_offers.as_ref() != expected_offers {
+        if deal_last && last {
+            dealt = expected_offers.cloned();
+        } else if turn.state.reinforce_offers.as_ref() != expected_offers {
             return Err(format!(
                 "round {} reinforcement offers disagree: predicted {expected_offers:?}, stated {:?}",
                 turn.round, turn.state.reinforce_offers
             ));
         }
-        dealer.apply_choices(turn, &offers, at + 1 == stated.turns.len())?;
+        dealer.apply_choices(turn, &offers, last)?;
         if turn.round > 1 {
             offers_checked += offers.len();
             rounds.push(Round {
@@ -607,9 +653,12 @@ pub fn verify(
             });
         }
     }
-    Ok(Verified {
-        rounds,
-        offers_checked,
+    Ok(Walked {
+        verified: Verified {
+            rounds,
+            offers_checked,
+        },
+        dealt,
     })
 }
 
@@ -659,6 +708,32 @@ mod tests {
         )
         .unwrap();
         crate::opening::stated(&bytes).unwrap().unwrap()
+    }
+
+    /// A match deals the round it has just opened rather than checking one
+    /// already written, and what it deals is what the replay dealt.
+    ///
+    /// Every prefix of a tracked battle is replayed and its last round dealt
+    /// again, so this covers a first round that is dealt nothing, an ordinary
+    /// round and a unit round alike.
+    #[test]
+    fn the_round_a_match_opens_is_dealt_as_the_replay_dealt_it() {
+        let economy = Economy::embedded().unwrap();
+        let full = sample();
+        let opening = crate::opening::verify(&economy, &full).unwrap();
+        let mut dealt = 0;
+        for rounds in 1..=full.turns.len() {
+            let mut opened = sample();
+            opened.turns.truncate(rounds);
+            let stated = opened.turns[rounds - 1].state.reinforce_offers.clone();
+            let answered = deal_last_round(&economy, &opened, &opening)
+                .unwrap_or_else(|error| panic!("round {rounds}: {error}"));
+            assert_eq!(answered, stated, "round {rounds}");
+            dealt += usize::from(answered.is_some());
+        }
+        // The first round is dealt nothing, and every later one a full hand.
+        assert_eq!(dealt, full.turns.len() - 1);
+        assert!(dealt > 5, "the sample is long enough to cover a unit round");
     }
 
     #[test]

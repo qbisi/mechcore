@@ -536,17 +536,9 @@ impl Game {
     fn fight(&mut self, held: &mut Held) -> Result<(), String> {
         let round = self.round();
         if round > 0 {
-            // The five fields a fight decides are `battle.md`'s, and nothing
-            // this binary carries answers them: the experience a fight hands
-            // out is in no MCFR recording and in no prediction. The round
-            // after one also needs its reinforcement offers dealt, which is
-            // the same step's work. `plan.md` step four is where both come
-            // from; until then a fight is named rather than approximated.
-            return Err(format!(
-                "round {round} is not fought: the experience a fight hands out is \
-                 not recorded by an MCFR recording and not predicted by this \
-                 build, so no backend answers the five fields a fight decides"
-            ));
+            // A fight that ran and a fight that could not run end the same way
+            // here: the round is not settled, and the answer says why.
+            return Err(self.fought(round).unwrap_or_else(|reason| reason));
         }
         let mut states = Vec::new();
         for side in Side::BOTH {
@@ -566,16 +558,87 @@ impl Game {
         self.battle.turns.push(BattleTurn {
             round: round + 1,
             state: State {
-                // The first round deals no reinforcement offer.
                 reinforce_offers: None,
                 blue,
                 red,
             },
             actions: TurnActions::default(),
         });
+        let dealt = self.deal()?;
+        if let Some(opened) = self.battle.turns.last_mut() {
+            opened.state.reinforce_offers = dealt;
+        }
         self.turn = Turn::opening(round + 1, self.turn.given(), false);
         self.write(held)
             .map_err(|failure| failure.reason().to_owned())
+    }
+
+    /// Deals the reinforcement offers of the round the match has just opened.
+    ///
+    /// The deal is stateful and the stream it runs on is the header's, so the
+    /// match hands the whole document over rather than keeping a dealer
+    /// between operations: a round is dealt the same way whichever process
+    /// opened it, and a turn file that was lost changes nothing.
+    fn deal(&self) -> Result<Option<Vec<i32>>, String> {
+        let yaml = mechcore_document::battle::canonical_yaml(&self.battle)?;
+        let stated = mechcore_document::opening::stated(yaml.as_bytes())?
+            .ok_or("a match in progress is not a battle document")?;
+        let opening = opening::verify(&self.economy, &stated)?;
+        mechcore_document::reinforcement::deal_last_round(&self.economy, &stated, &opening)
+    }
+
+    /// Runs the round's fight and reads what it decided.
+    ///
+    /// The simulator fights it, over the layout the deployment-end position
+    /// projects onto, and [`crate::outcome`] reads the recording for the five
+    /// fields `battle.md` says a fight decides. Nothing here writes them into
+    /// the next position yet: two of the five have no rule, so every fight
+    /// ends at a named gap rather than at a guess. The recording is thrown
+    /// away with the directory it was written in, because the same fight is
+    /// run again from the match itself.
+    ///
+    /// # Errors
+    ///
+    /// Both halves of the answer are the same sentence to a caller: what came
+    /// back settles nothing, and what went wrong stopped it earlier.
+    fn fought(&self, round: i32) -> Result<String, String> {
+        // Both sides have committed, so each one's position is the one its
+        // decisions reached: the same position `show` answers with.
+        let mut positions = Vec::new();
+        for side in Side::BOTH {
+            positions.push(
+                self.position(side)
+                    .map_err(|failure| failure.reason().to_owned())?,
+            );
+        }
+        let [blue, red] = [positions.remove(0), positions.remove(0)];
+        let state = State {
+            reinforce_offers: None,
+            blue,
+            red,
+        };
+        let layout = mechcore_document::project::project(
+            &state,
+            round,
+            self.battle.map_id,
+            self.battle.seed,
+        )?;
+        let yaml = mechcore_document::canonical_yaml(layout)?;
+        let directory = tempfile::tempdir()
+            .map_err(|error| format!("cannot make room for the fight: {error}"))?;
+        let recording = directory.path().join("fight.mcfr");
+        mechcore_simulation::simulate_document(yaml.as_bytes(), Some(&recording), None)
+            .map_err(|error| format!("round {round} is not fought: {error}"))?;
+        let outcome = crate::outcome::read(&recording).map_err(|failure| {
+            format!(
+                "round {round} was fought and not read: {}",
+                failure.reason()
+            )
+        })?;
+        Ok(format!(
+            "round {round} is fought and not settled: {}",
+            outcome.unresolved.join("; ")
+        ))
     }
 
     /// The position the round in progress opened with, before any decision.

@@ -23,7 +23,7 @@ pub(crate) const SCHEMA: &str = "mechcore.match-turn.v1";
 /// A side is given rather than claimed, so this says who is calling; nothing
 /// here stops a process naming the side it was not given, and
 /// `docs/spec/mechcore/cli.md` says why that is not a permission system.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum Side {
     Blue,

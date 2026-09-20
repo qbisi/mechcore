@@ -352,10 +352,13 @@ and which contraptions, terrains and airdrop shields remain. Everything else in
 the next position is the transition's, and is predicted rather than fought.
 
 The simulator fights it, over the layout the deployment-end position projects
-onto, with a seed derived from the match's seed and the round, so a fight is
-the same fight whenever it is run again. Nothing else answers a fight: a caller
-cannot hand a match an outcome it did not fight, because a document that reads
-like a played match has to be one.
+onto. That layout carries the match's seed and the round, which is everything
+the fight is drawn from, so a fight is the same fight whenever it is run again
+and nothing has to be derived for it. What the fight decided is read back with
+[`fight outcome`](#fight), so the reading is one piece of work rather than one
+per backend. Nothing else answers a fight: a caller cannot hand a match an
+outcome it did not fight, because a document that reads like a played match has
+to be one.
 
 A fight nothing can resolve is answered rather than refused: the match stays in
 the `fight` phase with both sides' decisions standing, and the answer's
@@ -433,6 +436,7 @@ reaches the game reaches it here, rather than around it.
 | Verb | What it does |
 | --- | --- |
 | `fight run <layout.yaml>` | simulates one fight from a layout, optionally writing a recording |
+| `fight outcome <recording.mcfr>` | answers what a recorded fight decided |
 | `fight compare <left.mcfr> <right.mcfr>` | compares two recordings and names the first tick they differ at |
 | `fight verify <recording.mcfr>...` | simulates each recording's own layout again and compares the result with the recording |
 
@@ -440,6 +444,15 @@ reaches the game reaches it here, rather than around it.
 the simulation result: the terminal structure of the
 fight, its hashes and its profiling. `fight compare` and `fight verify` answer
 the verdict and the divergence, and exit 1 when the verdict is no.
+
+`fight outcome` reads a recording for [the five fields a fight
+decides](#the-fight): which formations came out of it, under the indices the
+document knows them by, and what remains of the collections a fight thins out.
+What no rule and no recording answers is named in `unresolved` and never
+approximated, and the verdict is no while anything is — the fight was read, and
+the answer is that it does not settle a round. It is the one reader both
+backends feed, because a fight the simulator ran and a fight the game played
+are the same recording.
 
 [mcfr.md](../mcfr/mcfr.md) defines what a recording holds and what makes two of
 them equal.
