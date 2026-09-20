@@ -13,7 +13,10 @@
 use std::{collections::BTreeMap, path::Path};
 
 use mechcore_document::{Layout, Position, UnitPlacement};
-use mechcore_mcfr::{LiveUnitState, McfrReader, WorldSnapshot};
+use mechcore_mcfr::{
+    BuffModifierSet, LiveUnitState, McfrReader, SkillNumericModifierState, UnitDynamicModifierSet,
+    WorldSnapshot,
+};
 use serde::Serialize;
 
 use crate::{cli::Failure, turn::Side};
@@ -59,6 +62,42 @@ struct SideOutcome {
     airdrop_shields: Option<Vec<usize>>,
 }
 
+/// What a mechanism wrote onto a unit, as the recording holds it.
+///
+/// The three channels are separately attributable, so this is the other half
+/// of a capture's reading: what the game stored, beside what it then computed.
+/// They are taken at the first tick, which is where a correction applied as the
+/// fight is built has landed and nothing a fight does has moved it yet.
+#[derive(Serialize)]
+struct Modifiers {
+    #[serde(skip_serializing_if = "neutral_buff")]
+    buff: BuffModifierSet,
+    #[serde(skip_serializing_if = "neutral_unit")]
+    unit: UnitDynamicModifierSet,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    skill: Vec<SkillNumericModifierState>,
+}
+
+fn neutral_buff(held: &BuffModifierSet) -> bool {
+    held.is_zero()
+}
+
+fn neutral_unit(held: &UnitDynamicModifierSet) -> bool {
+    held.is_zero()
+}
+
+impl Modifiers {
+    fn of(unit: &LiveUnitState) -> Option<Self> {
+        let held = Self {
+            buff: unit.buff_modifiers,
+            unit: unit.unit_dynamic_modifiers,
+            skill: unit.skill_dynamic_modifiers.clone(),
+        };
+        let neutral = held.buff.is_zero() && held.unit.is_zero() && held.skill.is_empty();
+        (!neutral).then_some(held)
+    }
+}
+
 /// One formation that survived, and how much of it did.
 #[derive(Serialize)]
 struct Survivor {
@@ -71,6 +110,9 @@ struct Survivor {
     /// The life those members have left, and what they would hold whole.
     life: i64,
     maximum: i64,
+    /// What was written onto this formation, when anything was.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    modifiers: Option<Modifiers>,
 }
 
 /// Reads a recording on disk.
@@ -103,6 +145,7 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
     let formations = formations(&layout, &opened)?;
     let started = members(&formations, &opened);
     let survived = members(&formations, &ended);
+    let written = written(&formations, &opened);
 
     // Two of the five fields are decided by rules nobody has. The recording
     // holds what they would be computed from and not what they are.
@@ -119,7 +162,7 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
         let placed = units_of(&layout, side);
         let carried = layout_side(&layout, side);
         answered.push(SideOutcome {
-            survivors: survivors(side, &started, &survived, placed),
+            survivors: survivors(side, &started, &survived, &written, placed),
             contraptions: thinned(
                 carried.contraptions.len(),
                 side,
@@ -306,11 +349,30 @@ fn members(
     counted
 }
 
+/// What each formation carried at the first tick, for the formations that
+/// carried anything.
+fn written(
+    formations: &BTreeMap<u64, (Side, i32)>,
+    opened: &WorldSnapshot,
+) -> BTreeMap<(Side, i32), Modifiers> {
+    let mut held = BTreeMap::new();
+    for unit in &opened.live_units {
+        let Some(formation) = formations.get(&unit.formation_id) else {
+            continue;
+        };
+        if let Some(modifiers) = Modifiers::of(unit) {
+            held.entry(*formation).or_insert(modifiers);
+        }
+    }
+    held
+}
+
 /// One side's formations that still stand, in document index order.
 fn survivors(
     side: Side,
     started: &BTreeMap<(Side, i32), (usize, i64, i64)>,
     survived: &BTreeMap<(Side, i32), (usize, i64, i64)>,
+    written: &BTreeMap<(Side, i32), Modifiers>,
     placed: &[UnitPlacement],
 ) -> Vec<Survivor> {
     placed
@@ -326,6 +388,11 @@ fn survivors(
                 alive,
                 life,
                 maximum,
+                modifiers: written.get(&(side, placement.index)).map(|held| Modifiers {
+                    buff: held.buff,
+                    unit: held.unit,
+                    skill: held.skill.clone(),
+                }),
             })
         })
         .collect()

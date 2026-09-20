@@ -38,7 +38,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const OFFLINE: &[&str] = &["let", "fight.compare", "fight.run"];
+const OFFLINE: &[&str] = &["let", "fight.compare", "fight.outcome", "fight.run"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -632,6 +632,21 @@ async fn perform(
             Ok(report)
         }
         "fight.run" => simulate(arguments, scope),
+        "fight.outcome" => {
+            let recording = scope.path(
+                arguments
+                    .as_object()
+                    .and_then(|fields| fields.get("recording"))
+                    .ok_or("fight.outcome takes a recording")?,
+                "fight.outcome recording",
+            )?;
+            // A fight nothing can settle is still a fight worth reading: the
+            // survivors and their life are the measurement a capture is taken
+            // for, and `unresolved` says what the reading does not cover.
+            let outcome = crate::outcome::read(&recording)
+                .map_err(|failure| failure.reason().to_owned())?;
+            serde_json::to_value(&outcome).map_err(|error| error.to_string())
+        }
         "game.status" => Ok(session.current_status()),
         "game.start_test" => {
             let seed = arguments

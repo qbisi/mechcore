@@ -455,6 +455,9 @@ the verdict and the divergence, and exit 1 when the verdict is no.
 `fight outcome` reads a recording for [the five fields a fight
 decides](#the-fight): which formations came out of it, under the indices the
 document knows them by, and what remains of the collections a fight thins out.
+A formation that carried a correction into the fight also answers with it, in
+the three channels the recording holds it in, which is what a capture taken to
+establish a rule is read for.
 What no rule and no recording answers is named in `unresolved` and never
 approximated, and the verdict is no while anything is — the fight was read, and
 the answer is that it does not settle a round. It is the one reader both
