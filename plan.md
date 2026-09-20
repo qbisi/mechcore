@@ -38,6 +38,11 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 布阵，拿游戏录一份原生 MCFR，模拟器必须逐 tick 对上。这正是
 `tests/mcfr-regressions.yaml` 现在的 81 条在做的事。
 
+**一个机制的回归表跟着它的 fixture 走。** 修饰符那一组不在上面那张表里：
+`tests/layouts/modifier/` 下同时放着 fixture、录制脚本（要游戏）和
+`regressions.mcscript`（不要游戏，CI 跑的就是它）。fixture、它量出来的数、守着它的回归，
+是一起读、一起搬的一件东西。
+
 上面那张表和下面这串数都出自
 [`scripts/fight-coverage.py`](scripts/fight-coverage.py)，而且**是问二进制自己要的**：
 拒绝一次把两边所有欠账一起报出来，脚本只做汇总。模块按贪心次序落地时，闭包内回合数
@@ -150,7 +155,7 @@ architecture.md 的 Unresolved 里。
 
 ## 二之半、一个机制怎么研究：循环
 
-每个机制都是同一个循环，[`scripts/officer-composition.mcscript`](scripts/officer-composition.mcscript)
+每个机制都是同一个循环，[`tests/layouts/modifier/composition.mcscript`](tests/layouts/modifier/composition.mcscript)
 是它的范本——那一份脚本同时是实验设计、实验记录和可重跑的过程：
 
 1. **把问题收成一个数。** 不是"军官怎么生效"，而是"`+0.3` 是乘上去还是加上去，两份

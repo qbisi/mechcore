@@ -8,8 +8,8 @@
 # carries call edges and no method bodies — so it is measured here, and
 # `crates/simulation/src/data.rs` refuses a correction until it is.
 #
-#   mechcore run scripts/officer-composition.mcscript --check   validate offline
-#   mechcore run scripts/officer-composition.mcscript           record
+#   mechcore run tests/layouts/modifier/composition.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/composition.mcscript           record
 #
 # One Marksman shoots one Rhino. The Rhino outlives the fight in every case, so
 # the measurement is the life it has left: a Marksman that hits n times for d

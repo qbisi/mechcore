@@ -1,12 +1,12 @@
 # Is an impairment a negative enhancement, or its own factor?
 #
-# `scripts/officer-composition.mcscript` measured two enhancements and found
+# `tests/layouts/modifier/composition.mcscript` measured two enhancements and found
 # them summed: two officers of `+0.3` reach a recording as one `+0.6`, and the
 # damage is 1.6 times the description. This asks the same question of the other
 # sign, where the answer is not the same.
 #
-#   mechcore run scripts/modifier-impairment.mcscript --check   validate offline
-#   mechcore run scripts/modifier-impairment.mcscript           record
+#   mechcore run tests/layouts/modifier/impairment.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/impairment.mcscript           record
 #
 # The decompilation says what to expect, which is why this script exists rather
 # than a guess. `DataSet.floatRateDatas` is a `List<MultiplicativeDataFloat>`,
