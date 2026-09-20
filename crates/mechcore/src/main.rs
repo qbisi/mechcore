@@ -6,6 +6,7 @@ mod fight;
 mod game;
 mod instant;
 mod man;
+mod outcome;
 mod r#match;
 mod replay;
 mod script;
@@ -23,6 +24,7 @@ fn usage(program: &str) {
     eprintln!("       {program} doc diff <left.yaml> <right.yaml>");
     eprintln!("       {program} replay convert <replay.grbr> <battle.yaml> [--force]");
     eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
+    eprintln!("       {program} fight outcome <recording.mcfr>");
     eprintln!("       {program} fight compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} fight verify <recording.mcfr>...");
     eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");

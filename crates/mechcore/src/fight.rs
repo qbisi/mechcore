@@ -19,17 +19,34 @@ use crate::cli::{Args, Failure, Outcome, Verdict};
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
-    match arguments
-        .operand("a verb: run, compare or verify")?
-        .as_str()
-    {
+    let verb = arguments.operand("a verb: run, outcome, compare or verify")?;
+    let outcome = match verb.as_str() {
         "run" => simulate(arguments),
+        "outcome" => outcome(arguments),
         "compare" => compare_recordings(arguments),
         "verify" => verify(arguments),
         other => Err(Failure::usage(format!(
-            "fight has no verb {other:?}; it has run, compare and verify"
+            "fight has no verb {other:?}; it has run, outcome, compare and verify"
         ))),
-    }
+    };
+    outcome.map_err(|failure| failure.at(format!("fight.{verb}")))
+}
+
+/// Answers what a recorded fight decided.
+///
+/// The five fields a fight decides are `battle.md`'s, and this reads a
+/// recording for as much of them as it holds. What no rule and no recording
+/// answers is named in `unresolved` rather than approximated, which is why the
+/// verdict is no when anything is: the fight was read, and the answer is that
+/// it does not settle the round.
+fn outcome(mut arguments: Args) -> Outcome {
+    let format = arguments.format()?;
+    let recording = arguments.path("a recording of a fight")?;
+    arguments.finish()?;
+    let outcome = crate::outcome::read(&recording)?;
+    let settled = outcome.unresolved.is_empty();
+    crate::cli::emit(&outcome, format)?;
+    Ok(settled.into())
 }
 
 /// Simulates one fight from a layout.

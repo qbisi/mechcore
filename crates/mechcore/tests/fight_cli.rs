@@ -150,3 +150,92 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
         1
     );
 }
+
+/// What a fight decided, read back out of the recording of it.
+///
+/// The recording numbers its formations by where their members stand, not by
+/// the order the layout declares them, so this fixture gives three formations
+/// of one type gapped document indices: a reader that lost the mapping would
+/// answer 0, 1, 2.
+#[test]
+fn outcome_reads_survivors_under_the_indices_the_document_uses() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("deployment.yaml");
+    let recording = directory.path().join("fight.mcfr");
+    fs::write(
+        &layout,
+        r"
+kind: layout
+round: 1
+seed: 4242
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: -60, y: -100}}
+    - {name: marksman, index: 3, position: {x: 0, y: -100}}
+    - {name: marksman, index: 7, position: {x: 60, y: -100}}
+red:
+  units:
+    - {name: arclight, index: 2, position: {x: 0, y: -60}}
+",
+    )
+    .unwrap();
+    let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "run"])
+        .arg(&layout)
+        .arg("--output")
+        .arg(&recording)
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+
+    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "outcome"])
+        .arg(&recording)
+        .output()
+        .unwrap();
+    // The answer is no, because two of the five fields have no rule: the fight
+    // was read and it does not settle a round.
+    assert_eq!(read.status.code(), Some(1));
+    let outcome: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
+    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v1");
+    assert!(outcome["ticks"].as_u64().unwrap() > 0);
+
+    let blue = &outcome["sides"]["blue"]["survivors"];
+    let indices: Vec<i64> = blue
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|survivor| survivor["index"].as_i64().unwrap())
+        .collect();
+    assert_eq!(indices, vec![0, 3, 7], "{outcome}");
+    assert_eq!(blue[0]["name"], "marksman");
+    assert_eq!(blue[0]["members"], 1);
+    assert_eq!(blue[0]["alive"], 1);
+    assert!(blue[0]["life"].as_i64().unwrap() > 0);
+    assert!(
+        outcome["sides"]["red"]["survivors"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    // A round that carried no contraption, terrain or shield into the fight
+    // has none left, and that is the only one of the three this reader closes.
+    for side in ["blue", "red"] {
+        for field in ["contraptions", "terrains", "airdrop_shields"] {
+            assert_eq!(
+                outcome["sides"][side][field].as_array().unwrap().len(),
+                0,
+                "{side} {field}"
+            );
+        }
+    }
+    let unresolved = outcome["unresolved"].as_array().unwrap();
+    assert_eq!(unresolved.len(), 2, "{outcome}");
+    assert!(unresolved[0].as_str().unwrap().starts_with("reactor_core:"));
+    assert!(unresolved[1].as_str().unwrap().starts_with("units.exp:"));
+}
