@@ -444,6 +444,7 @@ reaches the game reaches it here, rather than around it.
 | --- | --- |
 | `fight run <layout.yaml>` | simulates one fight from a layout, optionally writing a recording |
 | `fight outcome <recording.mcfr>` | answers what a recorded fight decided |
+| `fight modifiers <recording.mcfr>` | answers what was written onto its units, per channel |
 | `fight compare <left.mcfr> <right.mcfr>` | compares two recordings and names the first tick they differ at |
 | `fight verify <recording.mcfr>...` | simulates each recording's own layout again and compares the result with the recording |
 
@@ -455,16 +456,27 @@ the verdict and the divergence, and exit 1 when the verdict is no.
 `fight outcome` reads a recording for [the five fields a fight
 decides](#the-fight): which formations came out of it, under the indices the
 document knows them by, and what remains of the collections a fight thins out.
-Each side also answers the corrections its formations carried into the fight,
-in the three channels the recording holds them in, which is what a capture
-taken to establish a rule is read for. A formation answers with what it carried
-whether or not it survived, because the side that spends a correction attacking
-is commonly the side that loses the unit carrying it.
 What no rule and no recording answers is named in `unresolved` and never
 approximated, and the verdict is no while anything is — the fight was read, and
 the answer is that it does not settle a round. It is the one reader both
 backends feed, because a fight the simulator ran and a fight the game played
 are the same recording.
+
+`fight modifiers` reads the same recording for what was *written onto* its
+units: each formation's corrections in the three channels the recording keeps
+apart — the unit's own overlay, its skills', and the buff aggregate — under the
+same document indices. A correction is an input to a fight rather than
+something it decided, which is why this is its own verb rather than a field of
+the outcome. It is the other half of a capture's reading: what the build stored
+beside what it then computed, as
+[officer_effects.md](../../rules/officer_effects.md) reads them together.
+
+`--tick <n>` picks the tick to read; the default is the first, where a
+correction applied as the fight is built has landed and nothing the fight does
+has moved it yet. A mechanism that writes during the fight is read at the tick
+it is expected at. A formation answers whether or not it survives, because the
+side that spends a correction attacking is commonly the side that loses the
+unit carrying it.
 
 [mcfr.md](../mcfr/mcfr.md) defines what a recording holds and what makes two of
 them equal.

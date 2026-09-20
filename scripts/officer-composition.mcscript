@@ -81,34 +81,48 @@ steps:
   - game.record_battle:
       output: ${out}/twice.mcfr
 
-  # The measurement. Each answers the survivors and the life they have left,
-  # and the three numbers are the experiment: `none` fixes the description,
-  # `once` fixes the arithmetic of one rate, `twice` fixes what two do.
+  # The measurement has two halves, and a verb each.
   #
-  # Each answer also carries the modifier channels the recording holds, which
-  # is the other half of the reading: where the correction landed — the unit's
-  # overlay, its skill's, or the buff aggregate — and what the game stored
-  # there. A rate that reads `+0.6` in one channel and a damage that reads
-  # 1.6 times the description are the same fact seen twice; a rate that reads
-  # `+0.3` twice over is a different one.
+  # `fight outcome` answers what the fight decided: the survivors and the life
+  # they have left. The three numbers are the experiment — `none` fixes the
+  # description, `once` fixes the arithmetic of one rate, `twice` fixes what
+  # two do. The game answered 14639, 13243 and 11845, which is
+  # `trunc(2329 * 1.3)` and `trunc(2329 * 1.6)` over two hits: added, not
+  # compounded, and truncated rather than rounded.
   #
-  # The game answered 14639, 13243 and 11845, which is `trunc(2329 * 1.3)` and
-  # `trunc(2329 * 1.6)` over two hits — added, not compounded, and truncated
-  # rather than rounded. The `twice` recording stores one `+0.6` in the skill
-  # channel rather than two of `+0.3`, so the build sums them where it writes
-  # them. Both halves are asserted here, which is what makes this script a
-  # regression against the build rather than a probe of it.
+  # `fight modifiers` answers the other half, which is not an outcome at all
+  # but what the build *stored* when the officer was applied: which channel the
+  # correction landed in — the unit's overlay, its skill's, or the buff
+  # aggregate — and what it holds there. The `twice` recording holds one
+  # `+0.6` in the skill channel rather than two of `+0.3`, so the build sums
+  # two officers where it writes them. A rate of `+0.6` beside a damage of 1.6
+  # times the description is one fact seen twice; `+0.3` stored twice over
+  # would have been a different one.
+  #
+  # Both halves are asserted, which is what makes this script a regression
+  # against the build rather than a probe of it.
   - fight.outcome:
       recording: ${out}/none-1.mcfr
     expect:
       sides.red.survivors.0.life: 14639
+  - fight.modifiers:
+      recording: ${out}/none-1.mcfr
+    expect:
+      sides.blue: []
+      sides.red: []
   - fight.outcome:
       recording: ${out}/once.mcfr
     expect:
       sides.red.survivors.0.life: 13243
-      sides.blue.modifiers.0.skill.0.modifiers.damage_rate.add: 1288490188
+  - fight.modifiers:
+      recording: ${out}/once.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.damage_rate.add: 1288490188
   - fight.outcome:
       recording: ${out}/twice.mcfr
     expect:
       sides.red.survivors.0.life: 11845
-      sides.blue.modifiers.0.skill.0.modifiers.damage_rate.add: 2576980376
+  - fight.modifiers:
+      recording: ${out}/twice.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.damage_rate.add: 2576980376
