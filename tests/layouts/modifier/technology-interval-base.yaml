@@ -1,0 +1,22 @@
+kind: layout
+round: 1
+
+# The Sledgehammer with nothing on it. Three of these fixtures calibrate the
+# integer interval a recording carries and the fourth asks the question: what
+# order a value and a rate apply in, on one number.
+#
+# This one is the line's intercept. Its reading is what the other three are
+# read against, and it is why the question can be answered without anybody
+# knowing what the build's integer counts from.
+
+blue:
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: 5, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

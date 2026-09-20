@@ -23,10 +23,18 @@ build computed, which a recording has carried since MCFR 0.4.0 — the fixture i
 measurable at all only because of that, and the offline table pins its content
 hash for the same reason.
 
-**A fixture in this directory changes one thing.** Every one of them is the
-same fight — one Marksman shooting one Rhino, the shooter at `(0, -50)` and
-the Rhino at `(5, -55)` — and differs only in the `officers` line, or in the
-one case of the range fixtures in the shooter being an Arclight. That is what
+**A fixture in this directory changes one thing.** Most of them are the same
+fight — one Marksman shooting one Rhino, the shooter at `(0, -50)` and the
+Rhino at `(5, -55)` — differing only in the `officers` line, or in the shooter
+being an Arclight for the range fixtures and a Sledgehammer for the interval
+ones.
+
+The four interval fixtures are the exception to "one fixture, one clause": they
+work as a set. Three calibrate the reading and the fourth is read against them,
+which is how the order was measured without anybody knowing where the build's
+integer interval counts from. They are also the only fixtures this simulator
+cannot fight — its kernel has no Sledgehammer — so they are recorded and read
+rather than simulated, and they are not in `regressions.mcscript`. That is what
 makes the difference between two of them attributable: the Rhino outlives every
 one of these fights, so the reading is the life it has left of its 19297, and
 nothing else in the layout can have moved it.
@@ -52,6 +60,10 @@ Normal selector takes the Rhino rather than a building.
 | `officer-speed-once.yaml` | a plain integer, in `DataSet.intDatas` | ends at tick 104 |
 | `officer-speed-twice.yaml` | **two integers sum, rather than the larger winning** | ends at tick 92 |
 | `technology-range.yaml` | a technology and an officer on one number | 155 m of the description's 95 |
+| `technology-interval-base.yaml` | the Sledgehammer alone: the line's intercept | interval reads 83 |
+| `technology-interval-value.yaml` | one second of value | 63 |
+| `technology-interval-rate.yaml` | one rate of `+0.3` | 110 |
+| `technology-interval.yaml` | **a value and a rate on one number** | 84, so the value applies first |
 
 `officer-impair-once.yaml` cannot separate the two rules — one impairment is
 `0.89` either way — which is what makes it this experiment's control.
@@ -70,6 +82,7 @@ the end.
 | `value.mcscript` | yes | records the range control and the value fixture |
 | `speed.mcscript` | yes | records the two movement fixtures |
 | `technology.mcscript` | yes | records the technology fixture |
+| `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
 | `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts both hash layers |
 
 The three recording scripts are this directory's experiments: each one writes

@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.4.0";
+pub const MCFR_FORMAT: &str = "0.5.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v1";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.4.0";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.5.0";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 3;
 
@@ -575,10 +575,9 @@ pub struct LiveUnitState {
 /// rather than by arranging a fight whose outcome happens to distinguish the
 /// candidates.
 ///
-/// Only numbers that are exactly representable on both sides are here. An
-/// attack interval is not: the build keeps seconds as an `FPoint` and the
-/// simulator counts whole time units, so recording it needs the build's own
-/// integer interval and a capture to show the two agree.
+/// Only numbers that are exactly representable on both sides are here, which
+/// is why an interval is the build's own integer rather than the `FPoint`
+/// seconds its property answers.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DerivedStats {
@@ -588,6 +587,12 @@ pub struct DerivedStats {
     pub attack_range: i64,
     /// `DamageProperty.GetDamage()`, which the build keeps as a plain integer.
     pub attack_damage: i32,
+    /// `FightSkill.GetCurrentAttackInterval()`, the interval in whole time
+    /// units. The build keeps it as an integer beside the `FPoint` seconds
+    /// its property answers — `RefreshAttackInterval` divides the property by
+    /// the step and truncates — so this is the one form both sides can hold
+    /// without deciding whose rounding is authoritative.
+    pub attack_interval: i32,
 }
 
 /// Compares initial units in format 0.3.0 identity order.

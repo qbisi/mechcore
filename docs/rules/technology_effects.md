@@ -119,6 +119,12 @@ answers 155 metres of the description's 95, and the recording stores the
 technology's `+40` and the officer's `+20` as **one** `attack_range_value` of
 `+60` — the build merges two sources exactly as it merges two officers.
 
+The interval technologies did one more thing: Mechanical Rage and Armour
+Piercing Bullets are the only pair in the build that put a value and a rate on
+one number, which is what finally measured the order in the composition rule.
+[`officer_effects.md`](officer_effects.md#a-value-applies-before-a-rate)
+carries the reading.
+
 ## What is not established here
 
 - **What the other 96 technologies do**, in the terms a simulator needs. Each

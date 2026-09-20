@@ -1,0 +1,25 @@
+kind: layout
+round: 1
+
+# Both technologies at once, which is the measurement.
+#
+#   value first   (base + value) x (1 + rate)
+#   rate first    base x (1 + rate) + value
+#
+# The three fixtures beside this one pin the scale and the offset exactly, and
+# under them the two orders answer different integers. Only one of them is
+# what the game plays.
+
+blue:
+  techs:
+    sledgehammer: [mechanical_rage, armor_piercing_bullets]
+  units:
+    - name: sledgehammer
+      index: 0
+      position: {x: 5, y: -50}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

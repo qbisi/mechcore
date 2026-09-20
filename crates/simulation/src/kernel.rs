@@ -763,6 +763,16 @@ impl Actor {
                 move_speed: space_to_q32(self.stats.move_speed()),
                 attack_range: space_to_q32(self.stats.attack_range()),
                 attack_damage: i32::try_from(self.stats.attack_damage()).unwrap_or(i32::MAX),
+                // The recording counts an interval in logic ticks, which is
+                // the unit the build's own integer uses. The build's number
+                // also runs a few ticks under the description for some units
+                // and level with it for others, which nobody has read yet —
+                // `docs/spec/mcfr/mcfr.md` names that as the one field the two
+                // backends knowingly answer differently.
+                attack_interval: i32::try_from(
+                    self.stats.attack_interval() / LOGIC_TICK_TIME_UNITS,
+                )
+                .unwrap_or(i32::MAX),
             },
         }
     }

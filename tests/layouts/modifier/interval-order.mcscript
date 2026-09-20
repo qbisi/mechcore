@@ -1,0 +1,100 @@
+# What order does a value and a rate apply in, on one number?
+#
+#   mechcore run tests/layouts/modifier/interval-order.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/interval-order.mcscript           record
+#
+# The composition rule reads `(base + Σ value) × (1 + Σ enhance)`, and every
+# clause of it has been measured except the order in that line. Officers cannot
+# ask it — none carries a value and a rate for one stat — and neither can a
+# technology on its own. The Sledgehammer can: Mechanical Rage is an
+# `attack_interval_value` of `-1` second and Armour Piercing Bullets is an
+# `attack_interval_rate` of `+0.3`, and both land on its attack interval.
+#
+# This simulator's kernel does not fight a Sledgehammer, so nothing here is
+# simulated. The recording answers on its own, because since MCFR 0.5.0 it
+# carries the interval the build computed.
+#
+# The reading is an integer whose zero nobody has located: the build counts a
+# Marksman seven ticks below its description and a Rhino level with it. That
+# does not matter here, because three fixtures pin the line and the fourth is
+# read against it:
+#
+#   base    the Sledgehammer alone                     intercept
+#   value   Mechanical Rage alone, one second less     slope: 20 ticks a second
+#   rate    Armour Piercing Bullets alone, x 1.3       offset: 7 ticks
+#
+# Under that line the two orders answer different integers, which is the whole
+# experiment:
+#
+#   value first   ((83 + 7) - 20) x 1.3 - 7 = 84
+#   rate first    ((83 + 7) x 1.3 - 20) - 7 = 90
+#
+# Every expectation below was computed from the three calibration readings
+# before the fourth recording was read.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/interval-order
+  seed: 4242
+
+steps:
+  - let:
+      base: read_yaml(tests/layouts/modifier/technology-interval-base.yaml)
+      value: read_yaml(tests/layouts/modifier/technology-interval-value.yaml)
+      rate: read_yaml(tests/layouts/modifier/technology-interval-rate.yaml)
+      both: read_yaml(tests/layouts/modifier/technology-interval.yaml)
+
+  - game.apply_layout:
+      layout: $base
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/base.mcfr
+  - fight.stats:
+      recording: ${out}/base.mcfr
+    expect:
+      sides.blue.0.derived.attack_interval: 83
+      sides.blue.0.derived.attack_damage: 608
+
+  - game.apply_layout:
+      layout: $value
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/value.mcfr
+  - fight.stats:
+      recording: ${out}/value.mcfr
+    expect:
+      # One second of value is twenty ticks, whatever the zero is.
+      sides.blue.0.derived.attack_interval: 63
+      sides.blue.0.derived.attack_damage: 608
+
+  - game.apply_layout:
+      layout: $rate
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/rate.mcfr
+  - fight.stats:
+      recording: ${out}/rate.mcfr
+    expect:
+      # (83 + 7) x 1.3 - 7, which is what locates the zero at seven ticks.
+      sides.blue.0.derived.attack_interval: 110
+      # 608 x 3.5, the rate on the other number this technology carries.
+      sides.blue.0.derived.attack_damage: 2128
+
+  - game.apply_layout:
+      layout: $both
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/both.mcfr
+  - fight.stats:
+      recording: ${out}/both.mcfr
+    expect:
+      # The measurement. 84 is the value applied first; a rate applied first
+      # would read 90.
+      sides.blue.0.derived.attack_interval: 84
+      sides.blue.0.derived.attack_damage: 2128
+      # Both technologies' corrections, as the build stored them.
+      sides.blue.0.skill.0.modifiers.attack_interval_value: -4294967296
+      sides.blue.0.skill.0.modifiers.attack_interval_rate.add: 1288490188
