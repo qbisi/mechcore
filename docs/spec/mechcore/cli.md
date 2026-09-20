@@ -116,12 +116,30 @@ was, and a refused operation writes no file.
 
 ## `match`
 
-A match is two files. `<match>.yaml` is a [battle](../document/battle.md)
-document holding the rounds that are over, and it is a valid battle document
-between operations, so `doc verify` reads it at any point. `<match>.journal` is
-a JSONL record of the round in progress: every decision as it was taken, and
-each side's commit. Resolving a fight folds the journal into the document, in
-the normal form a battle is written in, and empties it.
+A match is a [battle](../document/battle.md) document and a turn file beside
+it. `<match>.yaml` holds the rounds that have been played, and it is a valid
+battle document between operations, so `doc verify` reads it at any point.
+`<match>.turn` holds what the round in progress has not settled yet: which side
+each player was given, each side's decisions before they are committed, when
+the round opened, and whether each side has committed. It is the match's
+coordination and not its record, it is gone when the match is over, and
+[turn.md](turn.md) defines it.
+
+**A commit is a write.** A side's decisions reach the document when that side
+commits and not before, and what is written is written: a match has no undo.
+A side's own decisions are its own until then, which is what lets two sides
+deploy at once without seeing each other.
+
+Two processes reach one match by naming one document, and the turn file carries
+one advisory lock that every operation takes for the read and the write it
+does. A fight is resolved inside that lock, so a round is fought once however
+many processes find it due, and a process that dies during a fight leaves
+nothing behind but a lock the next one takes.
+
+A side is given, not claimed. `match new` hands the first caller blue and the
+second red, records both in the turn file, and refuses a third, so two players
+agree on a path and on nothing else. Every later operation names the side it
+was given, which says who is calling rather than asking for a side.
 
 A match is in one of four phases:
 
@@ -129,30 +147,40 @@ A match is in one of four phases:
 | --- | --- |
 | `opening` | each side's `choose_advance_team` |
 | `deploy` | each side's decisions, and its commit |
-| `fight` | a fight both sides have committed to and no backend has resolved |
+| `fight` | a fight both sides are in and no backend has resolved |
 | `over` | nothing; a side's reactor core has reached zero, a side conceded, or the match reached its last round |
 
 Deployment is simultaneous. A side's decisions are taken from the position the
-round opened with and reach no other side, so the two sides may be played by
-two processes in any order, and a match is the same match whichever order they
-take.
+round opened with and reach no other side, so the two sides may be played in
+any order, and a match is the same match whichever order they take.
 
-Three verbs are the whole of playing: `show` to see, `act` to decide, `commit`
-to end the round. A player loops over them, and `commit` answers with the next
-round, so nothing polls.
+A round is fought when both sides have committed, or when the deployment time
+the header states has run out, whichever comes first. Whatever a side has not
+committed by then was not played: a side that never committed plays that round
+with no decisions at all. Any operation that finds a round due resolves it
+before it answers, so nothing has to be watching for the clock.
 
 ### `match new`
 
-Deals a match and writes its header.
+Deals a match, or joins one already dealt.
 
-Operands: the match document to create. Options: `--seed <i32>`, `--map <i32>`,
-`--loadout <side>=<file>` for each side's technology loadout, `--fight
-sim|game|external` for the backend its fights are resolved by, and `--force` to
-replace an existing document.
+Operands: the match document. Options: `--seed <i32>`, `--map <i32>`,
+`--loadout <file>` for that side's technology loadout, and `--deploy-time
+<seconds>`.
 
-Answers the header it wrote: the seed, the map, and each side's opening offers
-and initial constructions. Refuses a seed or map the build has no opening
-initialization for, and an existing document without `--force`.
+Every option may be left out. A seed nobody chose is drawn, a map nobody chose
+is drawn from the maps this build has an opening initialization for, and a
+deployment time nobody chose is the 100 seconds a standard match deploys in.
+All three are written into the header, so a match nobody configured is as
+reproducible as one somebody did.
+
+Whichever caller names the document first deals the match and writes that
+header; the second joins it. A join that names a seed, map or deployment time
+the document does not carry is refused rather than silently adopting the
+document's, and so is a document that is not a battle.
+
+Answers the side the caller was given, the header, and that side's opening
+offers and initial constructions.
 
 The deal follows from the seed, which [battle.md](../document/battle.md)
 defines. What else that seed decides, the streams and pools a match is dealt
@@ -163,13 +191,20 @@ it.
 
 Answers one side's view of the match.
 
-Operands: the match document. Options: `--side blue|red`, and `--omniscient`
-for both sides in full, which is what a spectator and a test read.
+Operands: the match document. Options: `--side blue|red`, `--wait
+[<seconds>]`, and `--omniscient` for both sides in full, which is what a
+spectator and a test read.
 
-The view carries the phase, the round, that side's own position in full, the
-round's reinforcement offers, whether the other side has committed, and the
-other side's board as the round opened. Which of the other side's fields a
-player may see is stated in [Unresolved](#unresolved).
+The view carries the phase, the round, that side's own position with its
+uncommitted decisions applied, the round's reinforcement offers, whether the
+other side has committed, and the other side's board as the round opened. Which
+of the other side's fields a player may see is stated in
+[Unresolved](#unresolved).
+
+`--wait` blocks until the match is waiting for that side again: a new round has
+opened, or the match is over. It is how a side that has committed learns what
+the fight did, and a wait that reaches its own timeout answers with the phase
+it is still in, which is an answer rather than an error.
 
 ### `match act`
 
@@ -177,69 +212,55 @@ Takes one decision for one side.
 
 Operands: the match document, and the decision as the [action](../document/action.md)
 spec writes it. Options: `--side blue|red`, and `--dry-run` to answer without
-writing anything.
+keeping the decision.
 
-Answers the side's position after the decision, and the events the decision
-produced. An event is a one-key mapping naming what happened, such as
-`{created: {index: 7, name: marksman, position: {x: -40, y: -160}}}`, so that a
-caller learns the index a purchase created and where the board put it without
-diffing two positions.
+The decision joins that side's uncommitted decisions in the turn file, and the
+answer is that side's position after it, with the events the decision produced.
+An event is a one-key mapping naming what happened, such as `{created: {index:
+7, name: marksman, position: {x: -40, y: -160}}}`, so that a caller learns the
+index a purchase created and where the board put it without diffing two
+positions.
 
 `--dry-run` is how a player asks whether a decision is one it may take: the
-answer is the same answer, and the refusal is the same refusal, but the match
-is untouched either way. A decision is legal exactly when the rules settle it
-from the position it is taken in, so asking is running it.
+answer is the same answer, and the refusal is the same refusal, but nothing is
+kept. A decision is legal exactly when the rules settle it from the position it
+is taken in, so asking is running it.
 
 Refuses a decision the rules do not settle, naming the reason the transition
-gives; refuses a side that has already committed to the round, and a decision
-in a phase that does not hold one.
+gives; refuses a side that has already committed the round, and a decision in a
+phase that does not hold one.
 
 ### `match commit`
 
-Ends one side's deployment, which is the native `FinishDeploy`, and answers
-with the next round.
+Writes that side's decisions into the match, which is what playing them means.
 
-Operands: the match document. Options: `--side blue|red`, `--timeout
-<seconds>`, `--no-wait`, `--fight <backend>` to override the match's own, and
-`--outcome <file>` for the `external` backend.
+Operands: the match document. Options: `--side blue|red`.
 
-A commit waits for the other side. When both sides have committed, the fight is
-resolved and the round after it is opened, and the commit answers with that
-round's view of the committing side, or with the match's outcome when the match
-is over. A commit that reaches its timeout answers with the phase it is still
-in, which is an answer rather than an error; `--no-wait` answers that way
-immediately.
+The decisions are collapsed into the normal form a battle is written in and
+written to the round's actions, the turn file records that this side has
+committed, and the round is fought when the other side has committed too.
+Answers the phase the match is now in; a side that wants the next round waits
+for it with `show --wait`.
 
-The fight is resolved once. Whichever process sees both commits resolves it and
-writes the result; a process waiting in its own commit answers from what that
-one wrote, so two players never fight the same round twice.
+A commit cannot be taken back, and a side commits a round once.
 
-A side that has already committed may commit again. It waits as before, and
-when the match is in the `fight` phase it resolves the fight again, which is
-how a fight a backend refused is retried after the backend can carry it.
+### The fight
 
-A fight's seed is derived from the match's seed and the round, so a match
-replays identically.
+A fight answers the five fields [battle.md](../document/battle.md) says it
+decides: the damage each reactor core takes, the experience each unit gains,
+and which contraptions, terrains and airdrop shields remain. Everything else in
+the next position is the transition's, and is predicted rather than fought.
 
-A backend answers the five fields a fight decides, which
-[battle.md](../document/battle.md) names: the damage each reactor core takes,
-the experience each unit gains, and which contraptions, terrains and airdrop
-shields remain. Everything else in the next position is the transition's, and
-is predicted rather than fought.
+The simulator fights it, over the layout the deployment-end position projects
+onto, with a seed derived from the match's seed and the round, so a fight is
+the same fight whenever it is run again. Nothing else answers a fight: a caller
+cannot hand a match an outcome it did not fight, because a document that reads
+like a played match has to be one.
 
-| Backend | How it resolves |
-| --- | --- |
-| `sim` | the deterministic simulator, over the layout the position projects onto |
-| `game` | the game, through `game apply_layout` and `game record_battle` |
-| `external` | an outcome document the caller supplies |
-
-A backend that cannot resolve the fight refuses it, naming what it does not
-carry, and the match stays in the `fight` phase with both commits standing.
-Nothing approximates a fight it cannot resolve.
-
-An outcome document is `mechcore.fight-outcome.v1` and carries exactly those
-five fields per side. It is what `external` reads and what every backend
-answers, so an outcome may be recorded, replayed and compared.
+A fight nothing can resolve is refused, naming what is missing, and the match
+stays in the `fight` phase with both sides' decisions standing. Nothing
+approximates a fight it cannot resolve. No recording is kept: a round's fight
+is run again from the match itself, which `doc project` writes the layout for.
 
 ## `arena`
 
@@ -249,8 +270,8 @@ reads its decisions from that player's standard output, so a player is any
 program that answers requests, and the human front end is `shell`.
 
 Operands: the match document. Options: `--blue <command>`, `--red <command>`,
-`--fight <backend>`, and `--rounds <n>` to stop early. A player sees only the
-view `match show --side` gives it.
+and `--rounds <n>` to stop early. A player sees only the view
+`match show --side` gives it.
 
 Answers the match's outcome: the last round, the phase it ended in, and each
 side's reactor core.
@@ -272,8 +293,8 @@ and not a command's: a launched game is owned, and a command that launched one
 would shut it down as it exits, so launching belongs to the shell and to a run
 document.
 
-This namespace is the one place the running game is driven, and `match --fight
-game` reaches the game through it rather than around it.
+This namespace is the one place the running game is driven. Everything that
+reaches the game reaches it here, rather than around it.
 
 ## `fight`
 
@@ -307,12 +328,19 @@ and the refusal names which of the replay's properties it stands on.
 | `doc verify <document>...` | checks each document against the contract its `kind` names |
 | `doc format <document.yaml>` | writes the document in its normal form, in place with `--write` |
 | `doc diff <left.yaml> <right.yaml>` | normalizes both and reports every field they differ in |
+| `doc project <battle.yaml>` | writes the layout a round's fight starts from |
 | `doc schema <kind>...` | answers the JSON Schema of a document kind |
 
 `doc verify` takes its paths as operands, or one per line on standard input
 when it has none, and answers one report per document. A document that does not
 verify is an answer, not an error: the reports are written and the command
 exits 1.
+
+`doc project` takes `--round <n>` and writes the layout that round's fight
+starts from: the round's decisions applied to the position it opened with, and
+that position projected. It is how a fight is run again without a recording
+being kept of it, and `--output <layout.yaml>` writes the layout rather than
+answering with it.
 
 `doc schema` takes the kinds a document declares in its own `kind` field:
 `layout`, `state`, `battle` and `action`. It answers the shape of the document,
@@ -381,10 +409,9 @@ is `--help`, and what it contracts to do is this document.
   opened is visible, and supply is not; officers, technologies, the skill panel
   and the shop are not decided, and the answer is the game's rather than this
   contract's.
-- Whether a match document records which backend resolved each round's fight,
-  and with which seed, or whether that belongs to the journal alone.
-- Whether the journal stays a second file once a battle document can carry a
-  round that is still being played.
+- Whether a match records the build that fought it, so that a match replayed
+  under later rules is told apart from one replayed under the rules it was
+  played under.
 - Whether `arena` holds more than one match: a series, a rating, a tournament.
 - Whether `game` gains the decision operations of a live match, which would make
   the game a second engine for `match act` rather than a fight backend alone.

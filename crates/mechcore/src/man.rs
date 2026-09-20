@@ -126,6 +126,10 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/spec/mechcore/session.md"),
     ),
     (
+        "spec/mechcore/turn",
+        include_str!("../../../docs/spec/mechcore/turn.md"),
+    ),
+    (
         "spec/simulation/quadtree",
         include_str!("../../../docs/spec/simulation/quadtree.md"),
     ),
