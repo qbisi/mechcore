@@ -141,7 +141,7 @@ units before it moved them. Both answer the same object their commands print,
 so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for
 the one, `sides.blue.0.skill.0.modifiers.damage_rate.add` for the other. That
 is what turns a capture script from a probe of the build into a regression
-against it; `scripts/officer-composition.mcscript` is the worked example.
+against it; `tests/layouts/modifier/composition.mcscript` is the worked example.
 
 `fight.run` runs the deterministic simulator on a layout and returns the same result
 object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or

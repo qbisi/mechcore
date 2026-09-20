@@ -43,8 +43,26 @@ leave `0.89 × 0.89 = 0.7921` of the number under the rule above, and
 19297 that is **15285 against 15051**, and the fight carries the difference to
 the end.
 
-**Record before you believe.** Every fixture's expected numbers are written
-into `scripts/officer-composition.mcscript` before the recording exists, and
-the recordings' hashes live in `tests/mcfr-regressions.yaml` so the simulator
-has to reproduce the game tick for tick rather than merely agree about the last
-number.
+## The scripts beside them
+
+| Script | Needs the game | What it does |
+| --- | --- | --- |
+| `composition.mcscript` | yes | records the control and the two enhancement fixtures |
+| `impairment.mcscript` | yes | records the two impairment fixtures |
+| `value.mcscript` | yes | records the range control and the value fixture |
+| `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts the hash the game produced |
+
+The three recording scripts are this directory's experiments: each one writes
+its expected numbers down before the game is started, records, and asserts
+both halves against the recording — what the build stored, and what it then
+computed. `regressions.mcscript` is the other side of the same table, and it
+is what CI runs: the simulator has to reproduce each recording tick for tick
+from the layout and the seed alone, on a machine that has no game at all.
+
+These fixtures are deliberately **not** in `tests/mcfr-regressions.yaml`. The
+table that holds them lives here, beside them and beside the scripts that
+produced them, so that a fixture, its measurement and its regression are one
+thing to read and one thing to move.
+
+**Record before you believe.** A recording under `work/` is not tracked; what
+is tracked is what it decided.

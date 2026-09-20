@@ -71,7 +71,7 @@ bracket; impairments each contribute their own factor. Two of `0.11` leave
 A rate multiplies the description once, and two enhancements on one number sum
 before they do.
 
-`scripts/officer-composition.mcscript` measured it against the game. One
+`tests/layouts/modifier/composition.mcscript` measured it against the game. One
 Marksman shoots one Rhino, twice, and the Rhino outlives the fight in all three
 recordings, so the reading is the life it has left of 19297:
 
@@ -102,7 +102,7 @@ pipeline's.
 
 ### Impairments compound
 
-`scripts/modifier-impairment.mcscript` asked the same question of the other
+`tests/layouts/modifier/impairment.mcscript` asked the same question of the other
 sign, where the answer is different. Cost Control Specialist is `−0.11` on
 damage and life over every unit, and a side may hold it twice:
 
@@ -127,7 +127,7 @@ guess.
 
 ### A value is added in the number's own unit
 
-`scripts/modifier-value.mcscript` closed the last clause. Extended Range
+`tests/layouts/modifier/value.mcscript` closed the last clause. Extended Range
 Arclight is `+20` of range and `−0.2` of damage, so one recording carries a
 value and an impairment at once. An Arclight reaches 95 metres; with the
 officer it opens fire twenty metres earlier and every tick after that moves.
