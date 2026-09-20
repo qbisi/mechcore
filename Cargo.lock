@@ -493,6 +493,7 @@ dependencies = [
  "mechcore-mcfr",
  "mechcore-protocol",
  "mechcore-simulation",
+ "schemars",
  "serde",
  "serde_json",
  "serde_yaml",

@@ -676,18 +676,18 @@ impl Game {
     /// This side's position in the round in progress: what the round opened
     /// with, and the decisions taken from it.
     fn position(&self, side: Side) -> Result<SideState, Failure> {
-        let mut position = self.opened(side)?;
-        let mut placement = mechcore_document::landing::placement(side.red());
-        for action in self.decisions(side) {
-            position =
-                transition::step_placing(&self.economy, &position, &action, None, &mut placement)
-                    .map_err(|unsettled| {
-                    Failure::failed(format!(
-                        "a decision this match holds is not settled: {unsettled}"
-                    ))
-                })?;
-        }
-        Ok(position)
+        transition::deployed(
+            &self.economy,
+            &self.opened(side)?,
+            &self.decisions(side),
+            side.red(),
+            None,
+        )
+        .map_err(|unsettled| {
+            Failure::failed(format!(
+                "a decision this match holds is not settled: {unsettled}"
+            ))
+        })
     }
 
     /// Takes one decision, answering what it did, without keeping it.

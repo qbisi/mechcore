@@ -649,6 +649,31 @@ pub(crate) const BUY_COUNT_PER_ROUND: i32 = 2;
 /// `Shop.UNLOCK_COUNT_PER_ROUND`.
 pub(crate) const UNLOCK_COUNT_PER_ROUND: i32 = 1;
 
+/// The position a round's decisions reach, which is what the fight starts
+/// from.
+///
+/// It is the first half of [`predict`]: every decision applied in the order
+/// the side took them, and nothing of the round after. A fight is run over
+/// this, and `doc project` writes the layout of it.
+///
+/// # Errors
+///
+/// The same as [`step_placing`].
+pub fn deployed(
+    economy: &Economy,
+    state: &SideState,
+    actions: &[Action],
+    red: bool,
+    declined: Option<i32>,
+) -> Result<SideState, Unsettled> {
+    let mut placement = crate::landing::placement(red);
+    let mut position = state.clone();
+    for action in actions {
+        position = step_placing(economy, &position, action, declined, &mut placement)?;
+    }
+    Ok(position)
+}
+
 /// Opens `round` on the position the previous round left.
 ///
 /// Two things happen, in this order, before either side takes a decision, so
@@ -833,10 +858,7 @@ pub fn predict(
     declined: Option<i32>,
 ) -> Result<SideState, Unsettled> {
     let mut placement = crate::landing::placement(red);
-    let mut position = state.clone();
-    for action in actions {
-        position = step_placing(economy, &position, action, declined, &mut placement)?;
-    }
+    let mut position = deployed(economy, state, actions, red, declined)?;
     // Whatever else the fight does, it empties the travelling set: a
     // formation's crossing is over once the fight has run.
     for entry in &mut position.units {

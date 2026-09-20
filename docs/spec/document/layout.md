@@ -964,6 +964,11 @@ second ends the intermediate segment, and the third is the final endpoint.
 Position order must be preserved through the side-local to world-coordinate
 transform and native release action.
 
+A skill type may appear more than once. A side holding two of one skill can
+release both in a round — the Missile Specialist hands out two Missile Strikes,
+and the tracked set records rounds that release both — so the list is the
+round's releases in order and not a set of the types it used.
+
 The order of the entries themselves is also semantic, and a normalizing
 consumer must never sort `battle_skills`. One side's skills draw from a single
 `GRRandom` that `FightTeam` holds at field offset `0x68`, reached from the

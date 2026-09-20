@@ -2,10 +2,12 @@
 //!
 //! A line is a command with the program name dropped, so what works here works
 //! on a command line and in a run document. The shell owns the game process
-//! when it launched one, and never when it attached to one. Acquisition is
-//! declared up front with `--launch` or `--attach`, or performed later with
-//! `game launch` and `game attach`; a shell started with neither is offline and
-//! refuses the game's operations. See `docs/spec/mechcore/session.md`.
+//! when it launched one, and never when it attached to one.
+//!
+//! Acquiring the game is an operation rather than an option: a shell opens
+//! offline and takes the game with `game launch` or `game attach`, each
+//! carrying the level it claims at. A prompt is a session, and a session
+//! acquires by saying so. See `docs/spec/mechcore/session.md`.
 
 use crate::acquire::{Mode, Ownership};
 use crate::cli::Args;
@@ -19,8 +21,8 @@ A line is a command with `mechcore` dropped, so `doc verify x.yaml` here and
 `mechcore doc verify x.yaml` outside are the same command.
 
 the game
-  game launch                     start a game and own it
-  game attach                     join a running game, leaving it to its owner
+  game launch [--level 0-4]       start a game and own it
+  game attach [--level 0-4]       join a running game, leaving it to its owner
   game detach                     release an attached game
   game status                     current status snapshot
   game start_test [--seed s] [--map-id id]
@@ -41,42 +43,29 @@ shell
   help                            this list
   quit | exit                     leave the shell";
 
-pub(crate) fn run(mode: Option<Mode>, level: u8) -> Result<(), String> {
+pub(crate) fn run() -> Result<(), String> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| format!("cannot create async runtime: {error}"))?
-        .block_on(run_async(mode, level))
+        .block_on(run_async())
 }
 
-async fn run_async(mode: Option<Mode>, level: u8) -> Result<(), String> {
+async fn run_async() -> Result<(), String> {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
     let mut ownership: Option<Ownership> = None;
 
     let mut out = tokio::io::stdout();
-    if let Some(mode) = mode {
-        match session.acquire(mode, level).await {
-            Ok(owned) => {
-                write(&mut out, &banner(&owned, &session)).await;
-                ownership = Some(owned);
-            }
-            Err(failure) => {
-                monitor.abort();
-                return Err(failure);
-            }
-        }
-    } else {
-        write(
-            &mut out,
-            "offline shell; `game launch` or `game attach` to acquire one, `help` for commands\n",
-        )
-        .await;
-    }
+    write(
+        &mut out,
+        "offline shell; `game launch` or `game attach` to acquire one, `help` for commands\n",
+    )
+    .await;
 
     // Never leave this function without running shut_down: an owned game is
     // only shut down here, and a dropped Child does not terminate it.
-    let looped = repl(&session, &mut ownership, level, &mut out).await;
+    let looped = repl(&session, &mut ownership, &mut out).await;
     let closed = session.release(ownership).await;
     monitor.abort();
     looped.and(closed)
@@ -85,7 +74,6 @@ async fn run_async(mode: Option<Mode>, level: u8) -> Result<(), String> {
 async fn repl(
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
-    level: u8,
     out: &mut tokio::io::Stdout,
 ) -> Result<(), String> {
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
@@ -102,7 +90,7 @@ async fn repl(
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        match dispatch(line, session, ownership, level, out).await {
+        match dispatch(line, session, ownership, out).await {
             Flow::Continue => {}
             Flow::Quit => return Ok(()),
         }
@@ -118,7 +106,6 @@ async fn dispatch(
     line: &str,
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
-    level: u8,
     out: &mut tokio::io::Stdout,
 ) -> Flow {
     let mut words = line.split_whitespace().map(str::to_owned);
@@ -132,7 +119,7 @@ async fn dispatch(
         }
         "quit" | "exit" => Flow::Quit,
         "game" => {
-            game(session, ownership, level, out, arguments).await;
+            game(session, ownership, out, arguments).await;
             Flow::Continue
         }
         "doc" | "replay" | "fight" | "man" => {
@@ -163,7 +150,6 @@ async fn dispatch(
 async fn game(
     session: &Arc<Session>,
     ownership: &mut Option<Ownership>,
-    level: u8,
     out: &mut tokio::io::Stdout,
     mut arguments: Args,
 ) {
@@ -173,6 +159,10 @@ async fn game(
     };
     match verb.as_str() {
         "launch" | "attach" => {
+            let level = match crate::acquire::level(&mut arguments) {
+                Ok(level) => level,
+                Err(failure) => return failure.write(&format!("game.{verb}")),
+            };
             let mode = if verb == "launch" {
                 Mode::Launch
             } else {

@@ -1,4 +1,4 @@
-use std::{fs, process::Command};
+use std::{fs, path::PathBuf, process::Command};
 
 #[test]
 fn verify_reports_shared_compiler_summary() {
@@ -418,4 +418,142 @@ fn battle_verification_reads_fields_outside_the_deal() {
             "{case}: {report}"
         );
     }
+}
+
+/// The schema of a kind describes what a document of that kind is written
+/// with.
+///
+/// A tracked battle is the evidence: every key its segments carry has to be a
+/// property the schema names, and every decision it records has to be a
+/// variant the action schema holds. A field renamed on one side and not the
+/// other fails here.
+#[test]
+fn every_key_a_tracked_battle_writes_is_in_its_kind_schema() {
+    let battle = fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"),
+    )
+    .unwrap();
+    let segments: Vec<serde_yaml::Value> = serde_yaml::Deserializer::from_str(&battle)
+        .map(|document| serde::Deserialize::deserialize(document).unwrap())
+        .collect();
+
+    let schema = |kind: &str| -> serde_json::Value {
+        let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .args(["doc", "schema", kind])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        serde_json::from_slice(&output.stdout).unwrap()
+    };
+    let properties = |schema: &serde_json::Value, of: &str| -> Vec<String> {
+        let held = if of.is_empty() {
+            schema.clone()
+        } else {
+            schema["$defs"][of].clone()
+        };
+        held["properties"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect()
+    };
+    let keys = |segment: &serde_yaml::Value| -> Vec<String> {
+        segment
+            .as_mapping()
+            .unwrap()
+            .keys()
+            .map(|key| key.as_str().unwrap().to_owned())
+            .collect()
+    };
+    let covered = |written: &[String], named: &[String], what: &str| {
+        for key in written {
+            assert!(named.contains(key), "{what} schema names no {key:?}");
+        }
+    };
+
+    let header = &segments[0];
+    let battle_schema = schema("battle");
+    covered(&keys(header), &properties(&battle_schema, ""), "battle");
+    covered(
+        &keys(&header["blue"]),
+        &properties(&battle_schema, "Side"),
+        "battle side",
+    );
+
+    let state = segments
+        .iter()
+        .find(|segment| segment["kind"] == "state")
+        .unwrap();
+    let state_schema = schema("state");
+    covered(&keys(state), &properties(&state_schema, ""), "state");
+    covered(
+        &keys(&state["blue"]),
+        &properties(&state_schema, "SideState"),
+        "state side",
+    );
+
+    let action_schema = schema("action");
+    let variants: Vec<String> = action_schema["$defs"]["Action"]["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|variant| variant["properties"]["type"]["const"].as_str().unwrap().to_owned())
+        .collect();
+    let mut seen = 0;
+    for segment in segments.iter().filter(|segment| segment["kind"] == "action") {
+        for side in ["blue", "red"] {
+            for action in segment[side].as_sequence().into_iter().flatten() {
+                let named = action["type"].as_str().unwrap();
+                assert!(variants.contains(&named.to_owned()), "action {named}");
+                seen += 1;
+            }
+        }
+    }
+    assert!(seen > 20, "the sample records enough decisions to matter");
+}
+
+/// The layout a round's fight starts from is one the compiler accepts.
+#[test]
+fn project_writes_a_layout_that_verifies() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("round-3.yaml");
+    let battle = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml");
+    let projected = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["doc", "project"])
+        .arg(&battle)
+        .args(["--round", "3", "--output"])
+        .arg(&layout)
+        .output()
+        .unwrap();
+    assert!(
+        projected.status.success(),
+        "{}",
+        String::from_utf8_lossy(&projected.stderr)
+    );
+
+    let written = fs::read_to_string(&layout).unwrap();
+    assert!(written.starts_with("kind: layout\n"), "{written}");
+    assert!(written.contains("round: 3"), "{written}");
+
+    let verified = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["doc", "verify"])
+        .arg(&layout)
+        .output()
+        .unwrap();
+    assert!(
+        verified.status.success(),
+        "{}",
+        String::from_utf8_lossy(&verified.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&verified.stdout).unwrap();
+    assert_eq!(report["valid"], true, "{report}");
+    assert_eq!(report["kind"], "layout");
+    assert_eq!(report["round"], 3);
 }

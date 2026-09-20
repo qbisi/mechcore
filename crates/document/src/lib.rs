@@ -1653,7 +1653,7 @@ red:
     }
 
     #[test]
-    fn rejects_unknown_duplicate_and_wrong_length_battle_skills() {
+    fn rejects_an_unknown_skill_and_a_wrong_length_release_and_allows_a_repeat() {
         let layout = |battle_skills| {
             json!({
                 "kind": "layout",
@@ -1686,15 +1686,15 @@ red:
             "side blue battle skill type \"mobile_beacon\" requires 3 positions, got 1"
         );
 
-        let duplicate = compile(&layout(json!([
+        // A side holding two of one skill releases both in a round, which the
+        // tracked set records, so the list is the round's releases in order
+        // rather than a set of the types it used.
+        let twice = compile(&layout(json!([
             {"name": "missile_strike", "positions": [{"x": 0, "y": 0}]},
             {"name": "missile_strike", "positions": [{"x": 10, "y": 10}]}
         ])))
-        .unwrap_err();
-        assert_eq!(
-            duplicate,
-            "side blue battle skill type \"missile_strike\" is declared more than once"
-        );
+        .unwrap();
+        assert_eq!(twice.blue.battle_skills.len(), 2);
     }
 
     #[test]
