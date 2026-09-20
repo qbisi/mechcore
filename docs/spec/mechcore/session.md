@@ -106,8 +106,9 @@ State **B** does not unlink anything. The Adapter clears the stale endpoint
 when the newly launched game binds.
 
 States **E1** and **E2** are the same endpoint seen by two different clients.
-Every acquisition carries a level in `0..=4`, declared by a script's `level:`
-key or `shell --level`, and defaulting to `1`. A claim strictly above the
+Every acquisition carries a level in `0..=4`, declared where the acquisition is
+made — a script's `level:` key, `game launch --level` in a prompt, `--level` on
+a command — and defaulting to `1`. A claim strictly above the
 holder's takes the game; an equal or lower one is refused with the holder's
 level named.
 
@@ -186,32 +187,41 @@ is answerable without holding it.
 ### mechcore shell
 
 ```sh
-mechcore shell            # offline; a game operation reports how to acquire
-mechcore shell --launch
-mechcore shell --attach --level 3
+mechcore shell
+> game launch
+> game attach --level 3
+> game detach
 ```
 
-`--launch` and `--attach` are mutually exclusive. `--level` declares what the
-session outranks, defaulting to `1`, and applies to the prompt's own
-`game launch` and `game attach` as well. The prompt offers `game launch`,
-`game attach` and `game detach`, so a session may start offline, run a
-comparison, and acquire the game only when needed. `game detach` on an owned
-session requires confirmation, or `quit`.
+A shell opens offline and reports how to acquire when a game operation is
+asked for. Acquiring is an operation and not an option: the prompt is a
+session, and a session says so in a line rather than in the command that
+started it. `--level` rides on the line that claims, defaulting to `1`, so
+what a session outranks is stated where it is claimed and nowhere else.
+
+A session may therefore start offline, run a comparison, and take the game
+only when it needs one. `game detach` on an owned session requires
+confirmation, or `quit`.
 
 ### mechcore game
 
-A command is one operation and then an exit, so it declares `--attach` and
-leaves the game to whoever is keeping it alive:
+A command is one operation and then an exit, so it joins a game whoever is
+keeping it alive and leaves it to them:
 
 ```sh
-mechcore game status --attach
-mechcore game apply_layout layout.yaml --attach --level 3
+mechcore game status
+mechcore game apply_layout layout.yaml --level 3
 ```
 
-`--launch` is refused there. A launched game is **owned**, and ownership is
-what shuts it down, so a command that launched one would take it down as it
-exits; a session that outlives one operation, which is the shell and a run
-document, is where launching belongs.
+There is nothing else a command could do, so it does not declare it. A launched
+game is **owned**, and ownership is what shuts it down, so a command that
+launched one would take it down as it exits; a session that outlives one
+operation, which is the shell and a run document, is where launching belongs.
+`--launch` is refused with that, and `launch`, `attach` and `detach` are
+refused as verbs for the same reason.
+
+`--level` is the one acquisition option a command takes, because a command
+claims like any other client.
 
 ## Error taxonomy
 

@@ -421,12 +421,19 @@ argument object that protocol defines and answers what it answers.
 
 Three more belong to the session rather than the game:
 [session.md](session.md) defines `launch`, `attach` and `detach`, their
-`--level` and what each refuses. Acquisition is declared, never inferred, so a
-command in this namespace declares `--attach`, and one that reaches no game
-refuses with `unavailable` rather than starting one. `--launch` is a session's
-and not a command's: a launched game is owned, and a command that launched one
-would shut it down as it exits, so launching belongs to the shell and to a run
-document.
+`--level` and what each refuses. **Acquiring the game is an operation, not an
+option.** A caller that holds a session takes the game by naming one of those
+three, and a caller that holds none — a command, which is one operation and
+then an exit — joins a game somebody else is keeping alive as it runs, because
+there is nothing else it could do: a launched game is owned, and a command that
+launched one would shut it down as it exits. So a command takes `--level
+<0-4>`, which orders it against other clients, and nothing else; one that
+reaches no game refuses with `unavailable` rather than starting one, and
+`--launch` names where launching belongs.
+
+That is why `launch`, `attach` and `detach` are verbs of this namespace and not
+of a session's own: the object is the game either way, and what differs is
+whether the caller lives long enough to hold it.
 
 This namespace is the one place the running game is driven. Everything that
 reaches the game reaches it here, rather than around it.
@@ -497,9 +504,10 @@ kind this contract does not name is refused.
 
 `shell` opens a prompt whose every line is a command with the program name
 dropped, so a line in the shell and a command in a script are the same text.
-Options: `--launch`, `--attach` and `--level <0-4>` as
-[session.md](session.md) defines them, `--json`, and a match document to open
-with the `--side` to play it as.
+Options: `--json`, and a match document to open with the `--side` to play it
+as. The game is not among them: a prompt is a session, and a session acquires
+by saying so, with `game launch --level 3` or `game attach`. A shell opens
+offline and refuses the game's operations until it holds one.
 
 A shell that opens a match holds both the document and the side. `mechcore
 shell m.yaml --side blue` binds them, and so does the first line that opens a

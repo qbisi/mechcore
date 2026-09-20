@@ -29,9 +29,10 @@ pub(crate) const OPERATIONS: &[&str] = &[
 
 /// One operation, acquired for the length of the command.
 ///
-/// A command is one operation and then an exit, so it attaches to a game
-/// somebody else is keeping alive. Launching belongs to a session that outlives
-/// one operation, which is the shell and a run document.
+/// A command is one operation and then an exit, so it joins a game somebody
+/// else is keeping alive; there is nothing else it could do, which is why it
+/// says so by running rather than by declaring it. Launching belongs to a
+/// session that outlives one operation, which is the shell and a run document.
 ///
 /// # Errors
 ///
@@ -40,32 +41,30 @@ pub(crate) const OPERATIONS: &[&str] = &[
 /// and whatever the operation refuses.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
     let verb = arguments.operand("a verb: status, apply_layout, record_battle, ...")?;
-    if matches!(verb.as_str(), "launch" | "attach" | "detach") {
+    one(&verb, arguments).map_err(|failure| failure.at(format!("game.{verb}")))
+}
+
+/// One operation, once the verb is known.
+fn one(verb: &str, mut arguments: Args) -> Outcome {
+    if matches!(verb, "launch" | "attach" | "detach") {
         return Err(Failure::usage(format!(
-            "{verb} holds a game for longer than one command; \
-             acquire in `mechcore shell` or a run document, and pass --attach here"
+            "{verb} holds a game for longer than one command; acquire in \
+             `mechcore shell` or a run document, and name the operation here"
         )));
     }
-    let level = match arguments.value("--level")? {
-        Some(value) => crate::acquire::parse_level(&value).map_err(Failure::usage)?,
-        None => mechcore_protocol::DEFAULT_LEVEL,
-    };
+    let level = crate::acquire::level(&mut arguments)?;
     if arguments.flag("--launch")? {
         return Err(Failure::usage(
-            "a command cannot outlive the game it launches; attach to a running game, \
-             or launch one in `mechcore shell` or a run document",
-        ));
-    }
-    if !arguments.flag("--attach")? {
-        return Err(Failure::usage(
-            "declare the acquisition: pass --attach to join a running game",
+            "a command cannot outlive the game it launches; run it against a game \
+             somebody is keeping alive, or launch one in `mechcore shell` or a run \
+             document",
         ));
     }
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| Failure::failed(format!("cannot create async runtime: {error}")))?
-        .block_on(attached(&verb, arguments, level))
+        .block_on(attached(verb, arguments, level))
 }
 
 /// Attaches, runs the one operation, and leaves the game to its owner.

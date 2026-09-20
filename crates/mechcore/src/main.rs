@@ -34,7 +34,7 @@ fn usage(program: &str) {
     eprintln!("       {program} game <operation> --attach [--level <0-4>]");
     eprintln!("       {program} man [<topic>] [--lang <code>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
-    eprintln!("       {program} shell [--launch | --attach] [--level <0-4>]");
+    eprintln!("       {program} shell");
     eprintln!();
     eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
     eprintln!("The contract is docs/spec/mechcore/cli.md, which `mechcore man cli` reads back;");
@@ -70,26 +70,13 @@ fn run_script(arguments: Args) -> Outcome {
         .map(Verdict::from)
 }
 
-/// Opens the prompt, whose acquisition failures are the environment's.
-fn run_shell(mut arguments: Args) -> Outcome {
-    let level = match arguments.value("--level")? {
-        Some(value) => acquire::parse_level(&value).map_err(Failure::usage)?,
-        None => mechcore_protocol::DEFAULT_LEVEL,
-    };
-    let launch = arguments.flag("--launch")?;
-    let attach = arguments.flag("--attach")?;
+/// Opens the prompt, which starts offline.
+///
+/// Acquiring the game is an operation rather than an option, so a shell takes
+/// one with `game launch` or `game attach` once it is open.
+fn run_shell(arguments: Args) -> Outcome {
     arguments.finish()?;
-    let mode = match (launch, attach) {
-        (true, true) => {
-            return Err(Failure::usage(
-                "--launch and --attach are mutually exclusive",
-            ));
-        }
-        (true, false) => Some(acquire::Mode::Launch),
-        (false, true) => Some(acquire::Mode::Attach),
-        (false, false) => None,
-    };
-    shell::run(mode, level)
+    shell::run()
         .map_err(Failure::unavailable)
         .map(|()| Verdict::Yes)
 }

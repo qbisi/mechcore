@@ -105,6 +105,22 @@ pub(crate) struct GameProcess {
     pub(crate) path: PathBuf,
 }
 
+/// The level an acquisition claims at, taken from the command line.
+///
+/// Every acquisition carries one, and it is declared where the acquisition is
+/// made: on `game launch` and `game attach` in a session, on the operation
+/// itself in a one-shot command, and in a run document's header.
+///
+/// # Errors
+///
+/// Returns a usage failure when the level is not a number in `0..=MAX_LEVEL`.
+pub(crate) fn level(arguments: &mut crate::cli::Args) -> Result<u8, crate::cli::Failure> {
+    match arguments.value("--level")? {
+        Some(value) => parse_level(&value).map_err(crate::cli::Failure::usage),
+        None => Ok(mechcore_protocol::DEFAULT_LEVEL),
+    }
+}
+
 /// Read a declared run level, which orders clients and nothing else.
 pub(crate) fn parse_level(value: &str) -> Result<u8, String> {
     let level: u8 = value

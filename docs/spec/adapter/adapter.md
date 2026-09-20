@@ -55,7 +55,7 @@ target/release/libmechcore_adapter.dylib
 
 Debug builds, custom target directories and explicit target triples use their
 corresponding output directory. Distribute both files together. After changing
-the Adapter, start a new game with `game: launch` (or `shell --launch`): an
+the Adapter, start a new game with `game: launch` (or `game launch` in a shell): an
 already running game keeps its loaded Adapter, including when using `attach`.
 That is why `quit_game` stays a plain operation any client can call: shutting
 the running game down is the only way to load a rebuilt Adapter, and a client
@@ -80,7 +80,8 @@ Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/C
 its own executable and injects it, so no caller assembles that command:
 
 ```sh
-mechcore shell --launch
+mechcore shell
+> game launch
 ```
 
 The equivalent by hand, for a game this tool will later `attach` to:
