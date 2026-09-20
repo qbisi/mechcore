@@ -33,6 +33,7 @@ INTERFACE_CONTRACT = {
     "docs/spec/mechcore/session.md",
 }
 ALGORITHM_CONTRACT = {
+    "docs/spec/simulation/architecture.md",
     "docs/spec/simulation/rvo.md",
     "docs/spec/simulation/quadtree.md",
 }
