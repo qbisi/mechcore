@@ -31,6 +31,7 @@ One JSON object, written whole:
   "schema": "mechcore.match-turn.v1",
   "round": 3,
   "opened": "2026-09-20T01:02:03.123456Z",
+  "rebuilt": false,
   "sides": {
     "blue": {"given": true, "committed": true, "decisions": []},
     "red": {"given": true, "committed": false, "decisions": [
@@ -50,11 +51,20 @@ decision per side is a `choose_advance_team`.
 ### `opened`
 
 When that round opened, as an RFC 3339 instant in UTC. It is the only clock a
-match reads, and it decides one thing: the round is fought when the header's
-deployment time has passed since it, whether or not both sides have committed.
+match reads, and it decides one thing: a side that has not committed once the
+header's deployment time has passed since it has lost the match, which
+[cli.md](cli.md) states as this platform's own rule rather than the game's.
 
 A round opens when the fight before it is resolved, and `opened` is written in
 the same locked write that opens it.
+
+### `rebuilt`
+
+Whether this round's file was rebuilt rather than carried, which means its
+clock restarted and any uncommitted decisions were lost. It is written when a
+file is rebuilt and cleared when the next round opens, so it describes the
+round it stands in and not the match. A side waiting on a round learns from it
+why the wait grew, rather than waiting an unexplained second time.
 
 ### `sides`
 
@@ -114,14 +124,16 @@ A turn file may be deleted or found unreadable. That loses what it holds and
 nothing else: the uncommitted decisions of both sides, and the round's clock.
 
 It is rebuilt from the document, at the round the document is in, with both
-sides given, no decisions, no commits, and the clock restarted. A match whose
-turn file was rebuilt therefore keeps every round it has played, and both
-players carry on by naming the side they already had; a player that had not yet
-joined cannot join it afterwards.
+sides given, no decisions, no commits, the clock restarted and `rebuilt` set. A
+match whose turn file was rebuilt therefore keeps every round it has played,
+and both players carry on by naming the side they already had; a player that
+had not yet joined cannot join it afterwards.
+
+A match that reaches its end deletes the file. What goes with it is the last
+round's uncommitted decisions, which were never played, and a clock no round is
+waiting on. What a reader wants afterwards is the battle document, which holds
+every round that was.
 
 ## Unresolved
 
-- Whether a rebuilt file should be told apart from an original one, so that a
-  round whose clock restarted is visible to a player that was waiting on it.
-- Whether a match that ends should leave the file behind for a reader to see
-  the last round's uncommitted decisions, or delete it as this contract says.
+None.

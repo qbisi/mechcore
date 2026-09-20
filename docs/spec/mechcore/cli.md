@@ -22,7 +22,12 @@ documents and these contracts are what `man` answers with, so a reader needs
 the binary and nothing else. This document says how each is invoked and what
 comes back.
 
-A match played here is a match of standard 1v1 as the documents describe it.
+A match played here is a match of standard 1v1 as the documents describe it,
+played by the rules this binary carries and fought by the simulator it carries.
+The game is driven, never asked to decide: if a running game ever gains the
+operations to take a player's decisions, that is another contract and not a
+second engine behind this one.
+
 The binary carries no matchmaking, no accounts and no network transport: two
 players reach one match by opening the same match document, and a match is a
 file rather than a service.
@@ -69,6 +74,12 @@ other option may accompany.
 A shell line is a command with the program name dropped. A request is one JSON
 object on a line, answered by one JSON object on a line. A run step is a
 one-key mapping from the operation's name to its argument object.
+
+A caller that holds a session fills in the fields that session already knows,
+so the object reaching an operation is the same whoever wrote it. A
+[`shell`](#shell) with a match open supplies its document and its side, and an
+[`arena`](#arena) supplies them to a player that could not name them; the field
+is absent from what they write and present in what the operation reads.
 
 ## Results
 
@@ -130,6 +141,11 @@ commits and not before, and what is written is written: a match has no undo.
 A side's own decisions are its own until then, which is what lets two sides
 deploy at once without seeing each other.
 
+A match is played under one build, which its document states as `game_build`
+and a binary carrying another build refuses to read at all. A match therefore
+cannot be carried on under rules it was not played under, and a document that
+reads is a document this binary can finish.
+
 Two processes reach one match by naming one document, and the turn file carries
 one advisory lock that every operation takes for the read and the write it
 does. A fight is resolved inside that lock, so a round is fought once however
@@ -139,7 +155,11 @@ nothing behind but a lock the next one takes.
 A side is given, not claimed. `match new` hands the first caller blue and the
 second red, records both in the turn file, and refuses a third, so two players
 agree on a path and on nothing else. Every later operation names the side it
-was given, which says who is calling rather than asking for a side.
+was given, which says who is calling rather than asking for a side: a process
+that lives for one operation carries nothing between operations, and the turn
+file holds no process identity for it to be recognised by. A caller that lives
+longer names it once instead — a [`shell`](#shell) binds a side when it opens a
+match, and a player under an [`arena`](#arena) never names one at all.
 
 A match is in one of four phases:
 
@@ -148,17 +168,27 @@ A match is in one of four phases:
 | `opening` | each side's `choose_advance_team` |
 | `deploy` | each side's decisions, and its commit |
 | `fight` | a fight both sides are in and no backend has resolved |
-| `over` | nothing; a side's reactor core has reached zero, a side conceded, or the match reached its last round |
+| `over` | nothing; a side's reactor core has reached zero, a side conceded, a side ran out of deployment time, or the match reached its last round |
 
 Deployment is simultaneous. A side's decisions are taken from the position the
 round opened with and reach no other side, so the two sides may be played in
 any order, and a match is the same match whichever order they take.
 
-A round is fought when both sides have committed, or when the deployment time
-the header states has run out, whichever comes first. Whatever a side has not
-committed by then was not played: a side that never committed plays that round
-with no decisions at all. Any operation that finds a round due resolves it
+A round is fought when both sides have committed. A side that has not committed
+when the header's deployment time runs out has lost the match, which ends there
+and is not fought. Any operation that finds a round due, either way, settles it
 before it answers, so nothing has to be watching for the clock.
+
+**Running out of time loses, and that is this contract's simplification.** The
+tracked replays never show a round running out: every side of every deployment
+round ended it deliberately, so what the game does with a side that stops
+answering is not established, and [the visibility
+index](../../rules/visibility.md) is where a reading of the game would go.
+A platform whose players are programs needs a bound that a stalled one cannot
+outlive, and playing a round on a program's behalf would be deciding for it. So
+the clock ends the match rather than the round, for a program and a person
+alike, and a match that wants a longer one says so in `match new
+--deploy-time`.
 
 ### `match new`
 
@@ -269,6 +299,11 @@ answer is the same answer, and the refusal is the same refusal, but nothing is
 kept. A decision is legal exactly when the rules settle it from the position it
 is taken in, so asking is running it.
 
+Nothing enumerates the decisions a side may take. A decision that names a
+position has as many spellings as the board has places, so a list of them would
+be a shape of its own to define and to keep true; asking about one decision is
+exact, and it is the same code path that would take it.
+
 Refuses a decision the rules do not settle, naming the reason the transition
 gives; refuses a side that has already committed the round, and a decision in a
 phase that does not hold one.
@@ -286,6 +321,11 @@ Answers the phase the match is now in; a side that wants the next round waits
 for it with `show --wait`.
 
 A commit cannot be taken back, and a side commits a round once.
+
+A decision the rules refuse is refused and may be replaced by another: nothing
+about a refusal ends a round or a match. What ends a match beside its own
+course is the clock, and it ends it against the side that did not commit in
+time.
 
 ### The fight
 
@@ -307,17 +347,45 @@ is run again from the match itself, which `doc project` writes the layout for.
 
 ## `arena`
 
-`arena run` plays one match between two players, each a command the arena
-starts. It speaks the request protocol to each player's standard input and
-reads its decisions from that player's standard output, so a player is any
-program that answers requests, and the human front end is `shell`.
+`arena run` plays matches between players, each a command it starts.
 
-Operands: the match document. Options: `--blue <command>`, `--red <command>`,
-and `--rounds <n>` to stop early. A player sees only the view
-`match show --side` gives it.
+**A player is a client and the arena is its match.** A player writes one JSON
+request per line on its standard output and reads one JSON result per line on
+its standard input, and the requests are `match`'s own operations: `match.show`,
+`match.act` with its decision and its `dry_run`, and `match.commit`. A request
+names neither the document nor a side, because the arena knows both and a
+player cannot ask about a side it was not given. A player that speaks this to
+`shell --json` and a player that speaks it to an arena are the same program.
 
-Answers the match's outcome: the last round, the phase it ended in, and each
-side's reactor core.
+That is also what makes the arena the only place a side's own view is enforced
+rather than agreed. A player run by an arena never opens the match document or
+its turn file, so what it knows is what `match show` gave it;
+[what a side sees of the other](#what-a-side-sees-of-the-other) is the rule, and
+here nothing but the pipe can be read around.
+
+Operands: the match document, or the directory a batch writes into. Options:
+`--blue <command>`, `--red <command>`, `--matches <n>` for how many to play,
+`--seed`, `--map` and `--deploy-time` as `match new` takes them, and
+`--request-timeout <seconds>`.
+
+The arena deals each match rather than joining one: it runs `match new`, hands
+one player blue and the other red, and varies the seed across a batch, which is
+what makes a batch a comparison rather than one match played twice.
+
+A player that exits, crashes or stops answering is not answered for. It simply
+stops committing, and the deployment clock ends the match against it, which is
+[the rule a round runs out by](#match). `--request-timeout` bounds one request
+rather than the round: a player that has not answered by then is killed, and
+the clock does the rest. A player's own standard error is kept beside the match
+rather than read as protocol, so a program may log where it likes.
+
+Answers one match's outcome, or one per line and a summary for a batch: the
+last round, the phase it ended in, each side's reactor core, and the document
+it was written to.
+
+One match is one document. A series, a rating and a tournament are things a
+caller builds out of matches, and this namespace plays them rather than
+ranking them.
 
 ## `game`
 
@@ -396,15 +464,27 @@ kind this contract does not name is refused.
 `shell` opens a prompt whose every line is a command with the program name
 dropped, so a line in the shell and a command in a script are the same text.
 Options: `--launch`, `--attach` and `--level <0-4>` as
-[session.md](session.md) defines them, `--json`, and a match document to open.
+[session.md](session.md) defines them, `--json`, and a match document to open
+with the `--side` to play it as.
 
-With a match open, that match's verbs are written without their namespace and
-without the document: `act blue {type: buy_unit, name: marksman}`, `show blue`,
-`finish blue`. Every other line keeps its namespace.
+A shell that opens a match holds both the document and the side. `mechcore
+shell m.yaml --side blue` binds them, and so does the first line that opens a
+match: `match new m.yaml` binds the side it was handed, and `match show m.yaml
+--side red` binds the side it names. That match's verbs are then written
+without their namespace, without the document and without the side:
+`act {type: buy_unit, name: marksman}`, `show`, `commit`. Every other line
+keeps its namespace.
+
+Naming a side once is the session's version of naming it every time. A process
+that lives for one operation has nowhere to carry a side, so each command
+names the side it was given; a shell is one process for a whole match, so it
+is told once and nothing after that repeats what it already holds.
 
 `--json` makes the prompt a request stream: one JSON request per line in, one
-JSON result per line out, which is the protocol `arena` speaks to a player. The
-shell holds a session between lines, so a game acquired by one line is still
+JSON result per line out, which is the protocol `arena` speaks to a player.
+Those requests name neither the document nor the side, exactly as an arena's do
+not, so a program written against one runs under the other unchanged. The shell
+holds a session between lines, so a game acquired by one line is still
 acquired for the next.
 
 ## `run`
@@ -446,21 +526,12 @@ than answered in another one.
 The manual is the game's rules and not this binary's usage: what a command does
 is `--help`, and what it contracts to do is this document.
 
+The build's tables have no surface of their own. They are compiled in, and a
+reader that wants a price or a pool reads the index that explains it, which is
+what the manual answers with. A table answered as data would be a second
+spelling of what the binary already computes with, and nothing here asks for
+one.
+
 ## Unresolved
 
-- Whether a match records the build that fought it, so that a match replayed
-  under later rules is told apart from one replayed under the rules it was
-  played under.
-- Whether `arena` holds more than one match: a series, a rating, a tournament.
-- Whether `game` gains the decision operations of a live match, which would make
-  the game a second engine for `match act` rather than a fight backend alone.
-- Whether a player that fails to answer, or answers something illegal, forfeits
-  the match or is asked again, and how many times.
-- Whether the build's tables need a surface of their own, answered as data
-  rather than read out of the manual's prose, and if so whether a name in a
-  table is asked for the way a document writes it.
-- Whether a player needs the decisions it may take enumerated, beyond asking
-  about one with `match act --dry-run`.
-- What becomes of a fight whose resolving process dies partway: how a match
-  tells that from a fight still being resolved, and how long it waits before
-  another process may resolve it.
+None.
