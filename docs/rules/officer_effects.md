@@ -177,10 +177,12 @@ rate first    ((83 + 7) × 1.3 − 20) − 7 = 90
 The game played 84. **A value joins the description before a rate multiplies
 it**, which is what the formula says and what nothing had shown.
 
-Note what the measurement did not need: where the build's integer counts from.
-Three fixtures fix the line whatever its zero is, so an unresolved offset costs
-the experiment nothing — `mcfr.md` carries that offset as its own open
-question.
+Note what the measurement did not need: what the build's integer counts from.
+It is the interval plus a stagger drawn per unit, which
+[`combat.md`](combat.md#the-stored-interval-carries-a-per-unit-stagger)
+measures — and a stagger that is the same in all four recordings cancels in
+the line the first three pin. An unresolved zero costs the experiment
+nothing.
 
 ### A plain integer is a value too, and it sums
 
