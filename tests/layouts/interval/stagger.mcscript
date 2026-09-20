@@ -1,0 +1,86 @@
+# What does the attack interval stagger draw, and in what order?
+#
+#   mechcore run tests/layouts/interval/stagger.mcscript --check   parse without the game
+#   mechcore run tests/layouts/interval/stagger.mcscript           record
+#
+# A unit's stored attack interval is not its description: it carries a draw
+# from the team's `GRRandom`, seeded `(round + team) * 4444`. This records the
+# three fixtures that measure what the draw is and who consumes one.
+#
+# Every number below was recomputed from that seed before the game was
+# started. `crates/simulation/src/random.rs` holds the generator and pins its
+# first draws in a test, so these expectations are a prediction rather than a
+# transcription.
+#
+# Round one, team zero is seed 4444, and its draws in the ranges these units
+# use come out as:
+#
+#   in_range(12) -7    a Marksman's 0.6 seconds
+#   in_range(6)  +5    an Arclight's 0.3
+#   in_range(12) -6
+#   in_range(4)   0    a Wraith's 0.2
+#
+# `README.md` says what each fixture separates.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/interval-stagger
+  seed: 4242
+
+steps:
+  - let:
+      singles: read_yaml(tests/layouts/interval/stagger-singles.yaml)
+      marksmen: read_yaml(tests/layouts/interval/stagger-three-marksmen.yaml)
+      members: read_yaml(tests/layouts/interval/stagger-mustang-then-marksman.yaml)
+
+  # The walk order, with nothing to interleave. The layout declares these in
+  # the opposite order to the one the stream takes them in, which is how the
+  # fixture shows that the order is the recording's and not the document's.
+  - game.apply_layout:
+      layout: $singles
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/singles.mcfr
+  - fight.stats:
+      recording: ${out}/singles.mcfr
+    expect:
+      # z = -200, the first draw: 62 - 7
+      sides.blue.3.derived.attack_interval: 55
+      # z = -150, the second: 18 + 5
+      sides.blue.2.derived.attack_interval: 23
+      # z = -100, the third: 62 - 6
+      sides.blue.1.derived.attack_interval: 56
+      # z = -55, the fourth: 32 + 0
+      sides.blue.0.derived.attack_interval: 32
+      # Red's own stream, and an offset of zero draws nothing.
+      sides.red.0.derived.attack_interval: 18
+
+  # One type, one row, and a draw that comes out positive.
+  - game.apply_layout:
+      layout: $marksmen
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/three-marksmen.mcfr
+  - fight.stats:
+      recording: ${out}/three-marksmen.mcfr
+    expect:
+      sides.blue.0.derived.attack_interval: 55
+      sides.blue.1.derived.attack_interval: 65
+      sides.blue.2.derived.attack_interval: 56
+
+  # Twelve members in front of one Marksman. A draw per member puts the
+  # Marksman thirteenth and answers 72; a draw per formation puts it second
+  # and answers 55.
+  - game.apply_layout:
+      layout: $members
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/mustang-then-marksman.mcfr
+  - fight.stats:
+      recording: ${out}/mustang-then-marksman.mcfr
+    expect:
+      sides.blue.0.derived.attack_interval: 7
+      sides.blue.1.derived.attack_interval: 72

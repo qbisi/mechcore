@@ -62,12 +62,25 @@ ticks, and `GRRandom(4444)` answers `−7, +3, −6` for its first three draws i
 that range, which is exactly `55, 65, 56` against a description of 62.
 `crates/simulation/src/random.rs` pins those three numbers in a test.
 
-**Not covered.** How many draws a deployment consumes and in what order, once
-its units differ in kind. An independent reconstruction of the six-unit fight
-above got the first unit right and then drifted, so the order is not stated
-here — this simulator reproduces both fights tick for tick, which says its own
-consumption matches the game's, but a passing hash is a fact about the
-simulator and not a rule about the build.
+**Every member draws, in the order the recording numbers them.** The stream
+walks the deployment by ascending world `z`, then `x` — the order
+[`mcfr.md`](../spec/mcfr/mcfr.md) already gives a recording's initial units —
+and hands each **member** one draw in that member's own offset. A member whose
+offset is zero takes nothing from the stream.
+
+Two fixtures separate that from the alternatives.
+`tests/layouts/interval/stagger-singles.yaml` puts four single-member units in
+four rows, declared in the opposite order to the one the stream takes them in,
+and all four readings come out of the seed in `z` order:
+`62−7, 18+5, 62−6, 32+0`. `stagger-mustang-then-marksman.yaml` puts a twelve
+member Mustang formation in front of one Marksman, so a draw per member makes
+the Marksman the thirteenth unit and a draw per formation makes it the second:
+those two places in the stream hold different numbers, 72 and 55, and the game
+stored **72**.
+
+**Not covered.** What else consumes from the same stream once the fight is
+running. This is the stagger at deployment; the rest of the stream is nobody's
+measurement yet.
 
 This simulator schedules its own stagger — `sample_actor_attack_interval` adds
 a draw from the team stream to the next attack step — and reproduces the

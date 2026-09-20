@@ -1,0 +1,20 @@
+kind: layout
+round: 1
+
+# Three units of one type, one row, so the draws come out in x order and the
+# type is held constant. Their offset is `0.6` seconds, which is twelve ticks,
+# and the team stream's first three draws in that range are -7, +3 and -6.
+#
+# One of those is positive, which is what says the stagger is a signed draw
+# over `[1 - offset, offset - 1]` and not a subtraction: the middle Marksman
+# reads *above* its description.
+
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: -60, y: -100}}
+    - {name: marksman, index: 1, position: {x: 0, y: -100}}
+    - {name: marksman, index: 2, position: {x: 60, y: -100}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: 5, y: -55}}
