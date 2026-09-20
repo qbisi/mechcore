@@ -1,5 +1,7 @@
 # Combat internals
 
+[简体中文](combat.zh.md)
+
 What the fight core does inside a tick, on build `1.11.1.3.2259`.
 
 Every entry is scoped, and the scope binds. What a rule does not cover is stated

@@ -1,5 +1,7 @@
 # Reinforcement cards
 
+[简体中文](reinforce_items.zh.md)
+
 Every round from the second on, a match deals both sides the same four cards and
 each side takes one. This document says what the five kinds of card are, what
 taking one changes, and what it costs. The catalogues themselves are machine
