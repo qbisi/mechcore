@@ -119,10 +119,11 @@ was, and a refused operation writes no file.
 A match is a [battle](../document/battle.md) document and a turn file beside
 it. `<match>.yaml` holds the rounds that have been played, and it is a valid
 battle document between operations, so `doc verify` reads it at any point.
-`<match>.turn` holds what the round in progress has not settled yet: each
-side's decisions before they are committed, when the round opened, whether each
-side has committed, and which process is resolving the fight. It is the
-match's coordination and not its record, and it is gone when the match is over.
+`<match>.turn` holds what the round in progress has not settled yet: which
+side each player was given, each side's decisions before they are committed,
+when the round opened, whether each side has committed, and which process is
+resolving the fight. It is the match's coordination and not its record, and it
+is gone when the match is over.
 
 **A commit is a write.** A side's decisions reach the document when that side
 commits and not before, and what is written is written: a match has no undo.
@@ -132,6 +133,11 @@ deploy at once without seeing each other.
 Two processes reach one match by naming one document, and the turn file carries
 one advisory lock that every operation takes for the read and the write it
 does.
+
+A side is given, not claimed. `match new` hands the first caller blue and the
+second red, records both in the turn file, and refuses a third, so two players
+agree on a path and on nothing else. Every later operation names the side it
+was given, which says who is calling rather than asking for a side.
 
 A match is in one of four phases:
 
@@ -156,19 +162,23 @@ before it answers, so nothing has to be watching for the clock.
 
 Deals a match, or joins one already dealt.
 
-Operands: the match document. Options: `--side blue|red`, `--seed <i32>`,
-`--map <i32>`, `--loadout <file>` for that side's technology loadout, and
-`--deploy-time <seconds>`, which defaults to the 100 seconds a standard match
-deploys in.
+Operands: the match document. Options: `--seed <i32>`, `--map <i32>`,
+`--loadout <file>` for that side's technology loadout, and `--deploy-time
+<seconds>`.
 
-Whichever side names the document first deals the match and writes its header;
-the other side names the same document and joins it. Two sides therefore reach
-one match by agreeing on a path and nothing else. A join that names a different
-seed, map or deployment time is refused rather than silently adopting the
+Every option may be left out. A seed nobody chose is drawn, a map nobody chose
+is drawn from the maps this build has an opening initialization for, and a
+deployment time nobody chose is the 100 seconds a standard match deploys in.
+All three are written into the header, so a match nobody configured is as
+reproducible as one somebody did.
+
+Whichever caller names the document first deals the match and writes that
+header; the second joins it. A join that names a seed, map or deployment time
+the document does not carry is refused rather than silently adopting the
 document's, and so is a document that is not a battle.
 
-Answers the header: the seed, the map, the deployment time, and that side's
-opening offers and initial constructions.
+Answers the side the caller was given, the header, and that side's opening
+offers and initial constructions.
 
 The deal follows from the seed, which [battle.md](../document/battle.md)
 defines. What else that seed decides, the streams and pools a match is dealt
@@ -403,8 +413,6 @@ is `--help`, and what it contracts to do is this document.
 - How long a fight may be marked as being resolved before another process may
   resolve it instead, and how a process that died partway is told from one
   still working.
-- Whether a side is claimed, so that two processes cannot both play blue, or
-  whether naming a side on every operation is as far as this goes.
 - Whether `arena` holds more than one match: a series, a rating, a tournament.
 - Whether `game` gains the decision operations of a live match, which would make
   the game a second engine for `match act` rather than a fight backend alone.
