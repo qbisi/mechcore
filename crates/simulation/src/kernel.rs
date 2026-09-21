@@ -378,6 +378,23 @@ impl TargetActorQuadtree {
         }
     }
 
+    /// Takes an element out, keeping the order of the rest.
+    fn remove(&mut self, candidate: FightActorRef) {
+        let mut path = Vec::new();
+        if !self.root.find_path(candidate, &mut path) {
+            return;
+        }
+        let node = self.root.node_at_path_mut(&path);
+        if let Some(index) = node
+            .elements
+            .iter()
+            .position(|element| *element == candidate)
+        {
+            node.elements.remove(index);
+        }
+        self.ranges.remove(&candidate);
+    }
+
     fn position_changed(&mut self, candidate: FightActorRef, x_q32: i64, z_q32: i64, radius: i64) {
         if !self.ranges.contains_key(&candidate) {
             self.insert(candidate, x_q32, z_q32, radius);
@@ -1219,7 +1236,6 @@ const CONSTRUCTION_BUILDING_TYPE: u32 = 3;
 fn initialize_target_quadtrees(
     actors: &BTreeMap<u64, Actor>,
     buildings: &[BuildingState],
-    unsearchable: &BTreeSet<u64>,
 ) -> BTreeMap<u32, TargetActorQuadtree> {
     let teams = actors
         .values()
@@ -1235,10 +1251,11 @@ fn initialize_target_quadtrees(
             .filter(|building| building.team_id == team)
             .collect::<Vec<_>>();
         team_buildings.sort_by_key(|building| building.building_id);
+        // A construction no unit searches for is still in the tree: the
+        // selector passes it over, and a splash takes it where it stands in
+        // the tree's order — an Arclight's shot at a block of a wall reads its
+        // damage on the block between the Crawlers around it.
         for building in team_buildings {
-            if unsearchable.contains(&building.building_id) {
-                continue;
-            }
             tree.insert(
                 FightActorRef::Building(building.building_id),
                 building.position.x,
@@ -1338,6 +1355,8 @@ struct Stroke {
 struct Struck {
     deaths: Vec<(u64, QVec3)>,
     fallen: Vec<(u64, QVec3)>,
+    /// Every death and fall together, in the order the hit struck them.
+    ends: Vec<(FightActorRef, QVec3)>,
 }
 
 #[derive(Debug, Clone)]
@@ -1493,6 +1512,9 @@ struct Simulation {
     /// overlapping block 3 is pushed off it as that agent pushes it, tick for
     /// tick, and every other wall fight is unchanged by it.
     construction_colliders: BTreeMap<u64, i32>,
+    /// The buildings no unit searches for, which the target trees hold all
+    /// the same.
+    unsearchable_buildings: BTreeSet<u64>,
 }
 
 impl Simulation {
@@ -1572,7 +1594,7 @@ impl Simulation {
             unsearchable,
             colliders: construction_colliders,
         } = initialize_buildings(training_ground, &layout.constructions)?;
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         Ok(Self {
             actors,
             team_random,
@@ -1586,6 +1608,7 @@ impl Simulation {
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
+            unsearchable_buildings: unsearchable.clone(),
         })
     }
 
@@ -2096,6 +2119,25 @@ impl Simulation {
             .into_iter()
             .partition(|event| !matches!(&event.payload, EventPayload::UnitDied { .. }));
         events.extend(deaths);
+        // What the tick's hits killed and felled comes last, in the order they
+        // struck: a block a shot fells reads between the deaths its splash
+        // caused, and after every removal the tick resolved.
+        events.append(&mut self.fallen_buildings);
+        // A unit that died leaves its team's target tree, which keeps the
+        // rest in their order but changes when a node next splits: a splash
+        // that kills a crowd reads the next crowd in the order the game does
+        // only with the dead taken out.
+        let dead = self
+            .actors
+            .iter()
+            .filter(|(_, actor)| !actor.alive())
+            .map(|(&actor_id, actor)| (actor.placement.team, actor_id))
+            .collect::<Vec<_>>();
+        for (team, actor_id) in dead {
+            if let Some(tree) = self.target_quadtrees.get_mut(&team) {
+                tree.remove(FightActorRef::Unit(actor_id));
+            }
+        }
         Ok(TransitionEvents { events })
     }
 
@@ -2366,6 +2408,8 @@ impl Simulation {
                 if target.team != team
                     || !candidate_alive
                     || !candidate_targetable
+                    || matches!(candidate, FightActorRef::Building(id)
+                        if self.unsearchable_buildings.contains(&id))
                     || !source.rules.attack.accepts(target.domain)
                 {
                     continue;
@@ -2945,6 +2989,12 @@ impl Simulation {
         };
         actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         actor.retarget_after_own_direct_kill = false;
+        // A quick switch asks the line of fire like any other search: the
+        // Arclight whose splash killed its lock takes the next Crawler and,
+        // the same tick, the block standing between them.
+        if !entered_idle {
+            self.engage_wall_in_the_way(actor_id);
+        }
         Ok(entered_idle)
     }
 
@@ -2985,6 +3035,9 @@ impl Simulation {
         // the Wraith was recorded doing, with no weapon left naming anything.
         let fallen = {
             let actor = &self.actors[&actor_id];
+            let lock_alive = actor
+                .lock_target
+                .is_some_and(|lock| self.fight_actor_is_alive(lock));
             match actor.attack_target() {
                 Some(FightActorRef::Building(building))
                     if actor.group_skill_targets.is_empty()
@@ -2996,12 +3049,12 @@ impl Simulation {
                         && actor.in_the_way.is_some_and(|(wall, _)| wall == building)
                         && !self.fight_actor_is_alive(FightActorRef::Building(building)) =>
                 {
-                    Some(building)
+                    Some((building, lock_alive))
                 }
                 _ => None,
             }
         };
-        if let Some(building) = fallen {
+        if let Some((building, lock_alive)) = fallen {
             let actor = self
                 .actors
                 .get_mut(&actor_id)
@@ -3011,7 +3064,10 @@ impl Simulation {
             // Only a unit with a body is read still aiming at the block: the
             // Marksman is, the Rhino and the Steel Balls read no weapon
             // target at all on the same tick.
-            actor.fallen_attack_target = actor.rules.has_body.then_some(building);
+            // and only while the unit it was shooting the block for is alive:
+            // the Arclight of `wall-splash.yaml`, whose splash kills its lock
+            // with the block, reads no weapon target at all.
+            actor.fallen_attack_target = (actor.rules.has_body && lock_alive).then_some(building);
             actor.fight_skill_phase = FightSkillPhase::Idle;
             // And it looks again on the very next tick, whatever its search
             // timer says: the Rhino takes the next block, or the unit behind a
@@ -3023,6 +3079,33 @@ impl Simulation {
             actor.next_speed_q32 = 0;
             actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
+        }
+        // A unit attacking a block in the way of a lock that has died looks
+        // for a new lock at once, and keeps the block if it stands in the way
+        // of that one too. The Arclight of `wall-splash.yaml`, shooting block 5
+        // for the Crawler behind it, kills that Crawler with its own splash;
+        // the tick after, it is locked on another Crawler and still on block 5.
+        let orphaned = {
+            let actor = &self.actors[&actor_id];
+            matches!(
+                (actor.lock_target, actor.in_the_way),
+                (Some(lock @ FightActorRef::Unit(_)), Some((wall, found_for)))
+                    if found_for == lock
+                        && actor.group_skill_targets.is_empty()
+                        && !self.fight_actor_is_alive(lock)
+                        && self.fight_actor_is_alive(FightActorRef::Building(wall))
+            )
+        };
+        if orphaned {
+            let selected =
+                self.select_normal_target_with_order(actor_id, target_search_order, true)?;
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.lock_target = selected;
+            actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
+            self.engage_wall_in_the_way(actor_id);
         }
         // A block that comes into the way while an attack on a unit is being
         // prepared ends that attack. The Steel Ball of `wall-laser.yaml`
@@ -3041,6 +3124,7 @@ impl Simulation {
         let interrupted = {
             let actor = &self.actors[&actor_id];
             let between_blows = actor.fight_skill_phase != FightSkillPhase::Idle
+                && !actor.rules.attack.quick_switch_target
                 && actor
                     .backswing_finish_step
                     .is_none_or(|finish| finish < step);
@@ -3086,7 +3170,22 @@ impl Simulation {
         // `WallConstructionTargetChecker` — while the mech's lock is searched
         // on its own ten-tick timer. So a wall that comes into reach between
         // two lock searches is engaged the tick it does.
-        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Idle {
+        // A unit that switches targets quickly is idle between its shots for
+        // this purpose too, and changes blocks — or leaves one, or takes one —
+        // without an idle tick: the Arclight of `wall-splash-line.yaml` turns
+        // from a block to the Crawler behind it the tick the block leaves its
+        // line, and onto a block the tick one enters it.
+        let quick_between_shots = {
+            let actor = &self.actors[&actor_id];
+            actor.rules.attack.quick_switch_target
+                && actor.rules.attack.weapons.mode == WeaponMode::Normal
+                && actor.pending.is_none()
+                && actor
+                    .backswing_finish_step
+                    .is_none_or(|finish| finish < step)
+        };
+        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Idle || quick_between_shots
+        {
             self.engage_wall_in_the_way(actor_id);
         }
         if matches!(
@@ -4854,94 +4953,97 @@ impl Simulation {
                 building_x(building).saturating_sub(center_x),
                 building_z(building).saturating_sub(center_z),
             ) <= building_radius(building).saturating_add(hit.splash_radius);
-            let mut struck = Vec::new();
-            if reached {
-                struck.push(hit.aimed);
-            }
             if hit.splash_radius == 0 || !hit.reach.touches(UnitDomain::Ground) {
-                return Ok(struck);
+                return Ok(if reached { vec![hit.aimed] } else { Vec::new() });
             }
-            // A shot at a building splashes the enemy buildings around it, for
-            // its full damage and after the building it was aimed at: a
-            // Wraith's shot at one block of a wall reads 381 on that block,
-            // then 381 on the next one, whose edge is exactly its 8 metres of
-            // splash away.
-            struck.extend(
-                self.buildings
-                    .iter()
-                    .filter(|other| {
-                        other.building_id != building_id
-                            && building_alive(other)
-                            && other.targetable
-                            && other.team_id != hit.team
+            // A shot at a building splashes everything of the other side
+            // around it, units and buildings alike, in the order the target
+            // trees hold them: a Wraith's shot at one block of a wall reads 381
+            // on that block and 381 on the next, whose edge is exactly its 8
+            // metres of splash away, and an Arclight's shot at a block that
+            // Crawlers are crossing reads the Crawlers and the block
+            // interleaved, the block where the tree puts it.
+            let struck = self
+                .target_search_order()
+                .into_iter()
+                .filter(|(team, _)| *team != hit.team)
+                .flat_map(|(_, candidates)| candidates)
+                .filter(|candidate| match *candidate {
+                    FightActorRef::Unit(unit_id) => {
+                        let unit = &self.actors[&unit_id];
+                        unit.alive()
+                            && hit.reach.touches(unit.rules.domain)
                             && magnitude(
-                                building_x(other).saturating_sub(center_x),
-                                building_z(other).saturating_sub(center_z),
+                                unit.x.saturating_sub(center_x),
+                                unit.z.saturating_sub(center_z),
                             )
-                            .saturating_sub(building_radius(other))
+                            .saturating_sub(unit.rules.collision_radius())
                                 <= hit.splash_radius
-                    })
-                    .map(|other| FightActorRef::Building(other.building_id)),
-            );
-            // Whether it takes a unit standing by the building too has not been
-            // recorded.
-            let unit_in_reach = self.actors.values().any(|unit| {
-                unit.alive()
-                    && unit.placement.team != hit.team
-                    && hit.reach.touches(unit.rules.domain)
-                    && magnitude(
-                        unit.x.saturating_sub(center_x),
-                        unit.z.saturating_sub(center_z),
-                    )
-                    .saturating_sub(unit.rules.collision_radius())
-                        <= hit.splash_radius
-            });
-            if unit_in_reach {
-                return Err(Error::new(
-                    "splash from a shot at a building onto a unit is not closed",
-                ));
-            }
+                    }
+                    FightActorRef::Building(other_id) => self
+                        .buildings
+                        .iter()
+                        .find(|other| other.building_id == other_id)
+                        .is_some_and(|other| {
+                            building_alive(other)
+                                && other.targetable
+                                && magnitude(
+                                    building_x(other).saturating_sub(center_x),
+                                    building_z(other).saturating_sub(center_z),
+                                )
+                                .saturating_sub(building_radius(other))
+                                    <= hit.splash_radius
+                        }),
+                })
+                .collect::<Vec<_>>();
             return Ok(struck);
         }
-        let units = self
+        // A shot at a unit takes what it was aimed at and, with a splash,
+        // everything of the other side around it — buildings as well as units,
+        // in the order the target trees hold them. An Arclight's shot at a
+        // Crawler standing just in front of a wall reads the block between the
+        // Crawlers around it, for the shot's full damage.
+        let splash_reaches_buildings =
+            hit.splash_radius > 0 && hit.reach.touches(UnitDomain::Ground);
+        let struck = self
             .target_search_order()
-            .into_values()
-            .flatten()
-            .filter(|candidate_ref| {
-                let FightActorRef::Unit(candidate_id) = *candidate_ref else {
-                    return false;
-                };
-                let candidate = &self.actors[&candidate_id];
-                candidate.alive()
-                    && candidate.placement.team != hit.team
-                    && hit.reach.touches(candidate.rules.domain)
-                    && ((hit.hits_aimed && *candidate_ref == hit.aimed)
-                        || (hit.splash_radius > 0
-                            && magnitude(
-                                candidate.x.saturating_sub(center_x),
-                                candidate.z.saturating_sub(center_z),
-                            )
-                            .saturating_sub(candidate.rules.collision_radius())
-                                <= hit.splash_radius))
+            .into_iter()
+            .filter(|(team, _)| *team != hit.team)
+            .flat_map(|(_, candidates)| candidates)
+            .filter(|candidate_ref| match *candidate_ref {
+                FightActorRef::Unit(candidate_id) => {
+                    let candidate = &self.actors[&candidate_id];
+                    candidate.alive()
+                        && hit.reach.touches(candidate.rules.domain)
+                        && ((hit.hits_aimed && *candidate_ref == hit.aimed)
+                            || (hit.splash_radius > 0
+                                && magnitude(
+                                    candidate.x.saturating_sub(center_x),
+                                    candidate.z.saturating_sub(center_z),
+                                )
+                                .saturating_sub(candidate.rules.collision_radius())
+                                    <= hit.splash_radius))
+                }
+                FightActorRef::Building(building_id) => {
+                    splash_reaches_buildings
+                        && self
+                            .buildings
+                            .iter()
+                            .find(|building| building.building_id == building_id)
+                            .is_some_and(|building| {
+                                building_alive(building)
+                                    && building.targetable
+                                    && magnitude(
+                                        building_x(building).saturating_sub(center_x),
+                                        building_z(building).saturating_sub(center_z),
+                                    )
+                                    .saturating_sub(building_radius(building))
+                                        <= hit.splash_radius
+                            })
+                }
             })
             .collect::<Vec<_>>();
-        if hit.splash_radius > 0
-            && hit.reach.touches(UnitDomain::Ground)
-            && self.buildings.iter().any(|building| {
-                building_alive(building)
-                    && building.targetable
-                    && building.team_id != hit.team
-                    && magnitude(
-                        building_x(building).saturating_sub(center_x),
-                        building_z(building).saturating_sub(center_z),
-                    )
-                    .saturating_sub(building_radius(building))
-                        <= hit.splash_radius
-            })
-        {
-            return Err(Error::new("splash against a building is not closed"));
-        }
-        Ok(units)
+        Ok(struck)
     }
 
     /// Takes one hit's damage off one target, unit or building alike.
@@ -5032,9 +5134,11 @@ impl Simulation {
             };
             if let Some(position) = stroke.death {
                 struck.deaths.push((id, position));
+                struck.ends.push((target, position));
             }
             if let Some(position) = stroke.fallen {
                 struck.fallen.push((id, position));
+                struck.ends.push((target, position));
             }
         }
         Ok(struck)
@@ -5225,7 +5329,6 @@ impl Simulation {
         }
         retained.reverse();
         self.projectiles = retained;
-        events.append(&mut self.fallen_buildings);
         Ok(())
     }
 
@@ -5281,19 +5384,26 @@ impl Simulation {
                 absorbed_by: None,
             },
         ));
-        self.record_deaths(struck.deaths, events);
-        // A building falls after every shot the tick resolves has been
-        // recorded, not after its own: a tick that lands two reads `damage`,
-        // `projectile_removed`, `projectile_removed`, `building_destroyed`.
-        // `step_projectiles` emits these last.
-        for (building_id, position) in struck.fallen {
-            self.fallen_buildings.push(event(
-                Some(ObjectRef::new(ObjectKind::Building, building_id)),
-                None,
-                None,
-                None,
-                EventPayload::BuildingDestroyed { position },
-            ));
+        // Deaths and falls wait for every shot the tick resolves, and then
+        // come in the order the shots struck them: an Arclight's splash that
+        // kills nine Crawlers and fells a block between them reads the block's
+        // fall between their deaths, and a tick that lands two shots on a
+        // wall reads both removals before the block falls.
+        for (target, position) in struck.ends {
+            match target {
+                FightActorRef::Unit(dead_id) => {
+                    let mut death = Vec::new();
+                    self.record_deaths(vec![(dead_id, position)], &mut death);
+                    self.fallen_buildings.extend(death);
+                }
+                FightActorRef::Building(building_id) => self.fallen_buildings.push(event(
+                    Some(ObjectRef::new(ObjectKind::Building, building_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed { position },
+                )),
+            }
         }
         Ok(())
     }
@@ -6288,7 +6398,7 @@ mod tests {
             unsearchable,
             colliders: construction_colliders,
         } = initialize_buildings(&config.training_ground, &[]).unwrap();
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         Simulation {
             actors,
             team_random: BTreeMap::new(),
@@ -6302,6 +6412,7 @@ mod tests {
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
+            unsearchable_buildings: unsearchable.clone(),
         }
     }
 
@@ -6520,7 +6631,7 @@ mod tests {
                 unsearchable,
                 colliders: construction_colliders,
             } = initialize_buildings(&config.training_ground, &[]).unwrap();
-            let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
+            let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
             Simulation {
                 actors,
                 team_random: BTreeMap::new(),
@@ -6534,6 +6645,7 @@ mod tests {
                 late_building_events_pending: false,
                 fallen_buildings: Vec::new(),
                 construction_colliders: construction_colliders.clone(),
+                unsearchable_buildings: unsearchable.clone(),
             }
         };
         let mut simulation = make_simulation();
@@ -6677,7 +6789,7 @@ mod tests {
             unsearchable,
             colliders: construction_colliders,
         } = initialize_buildings(&config.training_ground, &[]).unwrap();
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let simulation = Simulation {
             actors,
             team_random: BTreeMap::new(),
@@ -6691,6 +6803,7 @@ mod tests {
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
+            unsearchable_buildings: unsearchable.clone(),
         };
         assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
     }
@@ -7870,7 +7983,7 @@ mod tests {
     }
 
     #[test]
-    fn direct_splash_refuses_a_building_before_unit_damage() {
+    fn direct_splash_takes_a_building_beside_the_unit() {
         let config = SimulationConfig::load().unwrap();
         let layout = CompiledLayout::of_units(
             1,
@@ -7890,13 +8003,24 @@ mod tests {
             .find(|building| building.team_id == 1)
             .unwrap();
         building.position = point(1_000, 20_000);
+        let building_id = building.building_id;
+        let building_life = building.life.current;
         let previous_life = simulation.actors[&2].life;
-        let error = simulation
+        simulation
             .direct_effect(1, FightActorRef::Unit(2), &mut Vec::new())
-            .unwrap_err()
-            .to_string();
-        assert!(error.contains("splash against a building is not closed"));
-        assert_eq!(simulation.actors[&2].life, previous_life);
+            .unwrap();
+        let dealt = previous_life - simulation.actors[&2].life;
+        assert!(dealt > 0);
+        let building = simulation
+            .buildings
+            .iter()
+            .find(|building| building.building_id == building_id)
+            .unwrap();
+        // A Rhino's blow is more than the tower's life, which caps it.
+        assert_eq!(
+            i64::from(building_life - building.life.current),
+            dealt.min(i64::from(building_life))
+        );
     }
 
     #[test]
@@ -8074,7 +8198,7 @@ mod tests {
     }
 
     #[test]
-    fn projectile_splash_refuses_a_secondary_building_before_damage() {
+    fn projectile_splash_takes_a_building_beside_its_target() {
         let config = SimulationConfig::load().unwrap();
         let layout = CompiledLayout::of_units(
             1,
@@ -8094,6 +8218,8 @@ mod tests {
             .find(|building| building.team_id == 1)
             .unwrap();
         building.position = point(1_000, 20_000);
+        let building_id = building.building_id;
+        let building_life = building.life.current;
         let projectile = Projectile {
             id: 1,
             team: 0,
@@ -8119,12 +8245,15 @@ mod tests {
             lock_target: true,
         };
         let previous_life = simulation.actors[&2].life;
-        let error = simulation
-            .impact(&projectile, &mut Vec::new())
-            .unwrap_err()
-            .to_string();
-        assert!(error.contains("splash against a building is not closed"));
-        assert_eq!(simulation.actors[&2].life, previous_life);
+        simulation.impact(&projectile, &mut Vec::new()).unwrap();
+        let dealt = previous_life - simulation.actors[&2].life;
+        assert!(dealt > 0);
+        let building = simulation
+            .buildings
+            .iter()
+            .find(|building| building.building_id == building_id)
+            .unwrap();
+        assert_eq!(i64::from(building_life - building.life.current), dealt);
     }
 
     #[test]

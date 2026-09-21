@@ -1,0 +1,22 @@
+kind: layout
+round: 1
+
+# Crawlers crossing their own wall toward an Arclight that is shooting blocks
+# for the Crawlers behind them. The Arclight turns from a block to the Crawler
+# behind it the tick the block leaves its line, and onto a block the tick one
+# enters it, and its splash reads blocks and Crawlers in the order the target
+# trees hold them.
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -145, y: -100}
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 40, y: -20}

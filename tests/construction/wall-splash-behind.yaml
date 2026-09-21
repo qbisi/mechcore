@@ -1,0 +1,21 @@
+kind: layout
+round: 1
+
+# An Arclight shooting a Crawler with a block of the Crawler's own wall just
+# behind it — beyond the Arclight's reach, so not in its line of fire, and
+# inside its splash. The shot at the Crawler takes the block too, for the
+# shot's full damage, between the Crawlers around it.
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -185, y: -100}
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 80, y: -60}

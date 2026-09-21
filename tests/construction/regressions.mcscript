@@ -121,3 +121,36 @@ steps:
       steps: 209
       hashes.physics_result_hash: cdff39d42765941071c7eb9ce26900d05c0486020e7b96c387b6c7d8abe9a800
       hashes.content_result_hash: 13768c9b5347ba61f0088819c835ee5675278f30436b85a9585255ae462c08fd
+
+  # A splash across a wall, from a shot at a building: an Arclight's shots at
+  # the block Crawlers are crossing take the Crawlers on it with the block, in
+  # the order the target trees hold them. 158 ticks, the game's hashes.
+  - fight.run:
+      layout: tests/construction/wall-splash.yaml
+      seed: 4242
+    expect:
+      steps: 158
+      hashes.physics_result_hash: feb1225a306cb86afd95cf737b52037cfc6e9e2e0c66ce0fb2de554ea7a0af14
+      hashes.content_result_hash: 93124fd978ed648375973cad29fa445e902615c80598eddc674f3ffcbe8d31af
+
+  # The same, with the Arclight turning onto blocks and off them as they enter
+  # and leave its line, and re-locking when its splash kills its lock. 161
+  # ticks, the game's hashes.
+  - fight.run:
+      layout: tests/construction/wall-splash-line.yaml
+      seed: 4242
+    expect:
+      steps: 161
+      hashes.physics_result_hash: 0ee71021c5d43cfab02d2e4232e26fdce601abe1e44358939959ac09c369846b
+      hashes.content_result_hash: 2a16971920806061017481a8694ec3eaa456eac460ae89e85c4b0d8dd9cbfc4b
+
+  # A splash across a wall, from a shot at a unit: the block behind the Crawler
+  # it hit, out of the Arclight's reach, takes the shot's full damage. 176
+  # ticks, the game's hashes.
+  - fight.run:
+      layout: tests/construction/wall-splash-behind.yaml
+      seed: 4242
+    expect:
+      steps: 176
+      hashes.physics_result_hash: 1a97a4e6d185010d107a5e72970c93b467aaa253cf7185f8358e8e7000907d4a
+      hashes.content_result_hash: e80fa9f29003dbeb966fc5803204ae3a3736db58543e68c0697021e4714ea7ef

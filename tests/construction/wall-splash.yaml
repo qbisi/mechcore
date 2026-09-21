@@ -1,0 +1,23 @@
+kind: layout
+round: 1
+
+# Crawlers walking through their own wall into an Arclight's fire. The
+# Arclight's 7 metres of splash is what this measures, in both directions a
+# wall allows: a shot at a Crawler crossing the blocks, whose splash may reach
+# a block, and a shot at a block in the way of a Crawler, whose splash may
+# reach the Crawlers around it.
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -145, y: -100}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 140, y: -20}
