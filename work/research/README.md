@@ -104,6 +104,12 @@ Something found by accident rather than pursued is not research. It becomes a
 GitHub issue, and [CONTRIBUTING.md](../../.github/CONTRIBUTING.md) says what
 qualifies.
 
+A question published for another agent to answer keeps its record elsewhere:
+the issue and the pull request that claims it hold the hypotheses, the first
+divergences and the ticks that decided, because the claimant's checkout dies
+with its session. The same file's Research section says how such a question
+is opened, answered and accepted. The gates above apply to it unchanged.
+
 ## Tracking
 
 This README is tracked. The research is not.
