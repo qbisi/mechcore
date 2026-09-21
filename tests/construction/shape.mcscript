@@ -34,7 +34,7 @@
 game: launch
 
 vars:
-  out: work/research/construction-shape
+  out: /tmp/mechcore/construction/shape
   seed: 4242
 
 steps:

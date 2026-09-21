@@ -34,7 +34,7 @@
 game: launch
 
 vars:
-  out: work/research/modifier-speed
+  out: /tmp/mechcore/modifier/speed
   seed: 4242
 
 steps:

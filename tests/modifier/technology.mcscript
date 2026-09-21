@@ -30,7 +30,7 @@
 game: launch
 
 vars:
-  out: work/research/modifier-technology
+  out: /tmp/mechcore/modifier/technology
   seed: 4242
 
 steps:

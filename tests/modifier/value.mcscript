@@ -26,7 +26,7 @@
 game: launch
 
 vars:
-  out: work/research/modifier-value
+  out: /tmp/mechcore/modifier/value
   seed: 4242
 
 steps:

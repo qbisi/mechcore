@@ -27,7 +27,7 @@
 game: launch
 
 vars:
-  out: work/research/construction-placement
+  out: /tmp/mechcore/construction/placement
   seed: 4242
 
 steps:

@@ -27,7 +27,7 @@
 game: launch
 
 vars:
-  out: work/research/interval-stagger
+  out: /tmp/mechcore/interval/stagger
   seed: 4242
 
 steps:
