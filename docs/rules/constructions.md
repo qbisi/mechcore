@@ -188,7 +188,11 @@ does the same with the block in its line.
 reach the neighbouring block, whose edge is exactly 8 metres from the one it
 aims at: one projectile removed at block 4 reads `damage` 381 on block 4 and
 381 on block 5. An earlier version of this document took that for two slots
-firing at two blocks; every slot was on block 4.
+firing at two blocks; every slot was on block 4. The simulator reproduces it —
+`wall-weapon-group.yaml` over all 242 ticks — by giving a shot at a building
+every other enemy building whose edge its splash reaches. Whether that splash
+also takes a unit standing by the block, and what a shot at a unit does to a
+block inside its splash, are not measured, and the simulator refuses both.
 
 **A block falls after the shot that felled it is recorded.** The three events
 one hit produces arrive in the order `damage`, `projectile_removed`,

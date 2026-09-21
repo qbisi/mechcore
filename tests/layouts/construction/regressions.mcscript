@@ -56,3 +56,16 @@ steps:
       steps: 19
       winner: red
       hashes.physics_result_hash: dc9a77c75eab511539a7b0556bd9f0efcf495aa484e026157e1e19ddc7a46099
+
+  # A flying unit with four weapon slots against a wall, from its approach to
+  # the end: the core and then every slot take the block in the way, a shot at
+  # one block splashes the next for its full damage, the slots are dropped
+  # with the lock when a block falls, and the Wraith turns back to the
+  # Marksman once the blocks in its way are gone. 242 ticks, the game's hash.
+  - fight.run:
+      layout: tests/layouts/construction/wall-weapon-group.yaml
+      seed: 4242
+    expect:
+      steps: 242
+      winner: red
+      hashes.physics_result_hash: 71bdc736cefec8f464e50775dfacff94f24cb2540109223c270a40f3968e19bf

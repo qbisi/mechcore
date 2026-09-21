@@ -308,9 +308,12 @@ differs between them is only where they record what follows — a projectile
 records its own removal before the deaths it caused — so deaths and fallen
 buildings are handed back to the caller rather than recorded by the performer.
 
-**What the performer does not yet decide, it refuses in one place.** A splash
-that would reach a building from a hit aimed at a unit is refused in
-`damage_targets`, whatever dealt it, because which buildings it takes and for
+**What the performer does not yet decide, it refuses in one place.** A hit
+aimed at a building splashes the other enemy buildings whose edge its splash
+reaches, each for the full amount, because that is what the game was measured
+to do. Across the two kinds it is not decided: a splash that would reach a
+building from a hit aimed at a unit, or a unit from a hit aimed at a building,
+is refused in `damage_targets`, whatever dealt it, because who it takes and for
 how much is a measurement this contract does not carry.
 
 ## The mirror, and what is dummy

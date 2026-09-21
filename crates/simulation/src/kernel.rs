@@ -4435,15 +4435,12 @@ impl Simulation {
     ///
     /// # Errors
     ///
-    /// Refuses a hit whose splash would reach a building while it is aimed at
-    /// a unit: which buildings a splash takes, and for how much, has not been
-    /// measured.
+    /// Refuses a splash that has not been measured: one reaching a building
+    /// from a hit aimed at a unit, and one reaching a unit from a hit aimed at
+    /// a building.
     fn damage_targets(&self, hit: &DamageHit) -> Result<Vec<FightActorRef>> {
         let (center_x, center_z) = hit.center;
         if let FightActorRef::Building(building_id) = hit.aimed {
-            // A shot at a building strikes that building and nothing else. A
-            // splash from it reaches the next block of a wall in the game, and
-            // that is not modelled: it strikes nothing it was not aimed at.
             let building = self
                 .buildings
                 .iter()
@@ -4453,7 +4450,54 @@ impl Simulation {
                 building_x(building).saturating_sub(center_x),
                 building_z(building).saturating_sub(center_z),
             ) <= building_radius(building).saturating_add(hit.splash_radius);
-            return Ok(if reached { vec![hit.aimed] } else { Vec::new() });
+            let mut struck = Vec::new();
+            if reached {
+                struck.push(hit.aimed);
+            }
+            if hit.splash_radius == 0 || !hit.reach.touches(UnitDomain::Ground) {
+                return Ok(struck);
+            }
+            // A shot at a building splashes the enemy buildings around it, for
+            // its full damage and after the building it was aimed at: a
+            // Wraith's shot at one block of a wall reads 381 on that block,
+            // then 381 on the next one, whose edge is exactly its 8 metres of
+            // splash away.
+            struck.extend(
+                self.buildings
+                    .iter()
+                    .filter(|other| {
+                        other.building_id != building_id
+                            && building_alive(other)
+                            && other.targetable
+                            && other.team_id != hit.team
+                            && magnitude(
+                                building_x(other).saturating_sub(center_x),
+                                building_z(other).saturating_sub(center_z),
+                            )
+                            .saturating_sub(building_radius(other))
+                                <= hit.splash_radius
+                    })
+                    .map(|other| FightActorRef::Building(other.building_id)),
+            );
+            // Whether it takes a unit standing by the building too has not been
+            // recorded.
+            let unit_in_reach = self.actors.values().any(|unit| {
+                unit.alive()
+                    && unit.placement.team != hit.team
+                    && hit.reach.touches(unit.rules.domain)
+                    && magnitude(
+                        unit.x.saturating_sub(center_x),
+                        unit.z.saturating_sub(center_z),
+                    )
+                    .saturating_sub(unit.rules.collision_radius())
+                        <= hit.splash_radius
+            });
+            if unit_in_reach {
+                return Err(Error::new(
+                    "splash from a shot at a building onto a unit is not closed",
+                ));
+            }
+            return Ok(struck);
         }
         let units = self
             .target_search_order()
@@ -4759,9 +4803,11 @@ impl Simulation {
             .get(&projectile.owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         let (aimed, reach) = if projectile.target_kind == ObjectKind::Building {
+            // A building stands on the ground, and a projectile narrows a
+            // dual-domain skill to its target's domain.
             (
                 FightActorRef::Building(projectile.target),
-                Reach::Targets(owner.rules.attack.targets),
+                Reach::Domain(UnitDomain::Ground),
             )
         } else {
             let target_domain = self
@@ -8624,6 +8670,44 @@ mod tests {
                 assert_ne!(arclight.body_rotation, initial.body_rotation);
             }
         }
+    }
+
+    /// A shot at a block of a wall splashes the next block for its full
+    /// damage.
+    ///
+    /// The Wraith of `wall-weapon-group.yaml` fires at block 4 at tick 93 and
+    /// its 8 metres of splash reach block 5, whose edge is exactly 8 metres
+    /// from the point of impact: the game recorded 381 on each, from one
+    /// projectile.
+    #[test]
+    fn a_shot_at_a_block_splashes_the_next_block() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/layouts/construction/wall-weapon-group.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        let life = |simulation: &Simulation, id: u64| {
+            simulation
+                .buildings
+                .iter()
+                .find(|building| building.building_id == id)
+                .unwrap()
+                .life
+                .current
+        };
+        for step in 0..92 {
+            simulation.step(step).unwrap();
+        }
+        assert_eq!((life(&simulation, 4), life(&simulation, 5)), (1112, 1112));
+        simulation.step(92).unwrap();
+        assert_eq!(
+            (life(&simulation, 4), life(&simulation, 5)),
+            (731, 731),
+            "one shot at block 4, 381 on each"
+        );
     }
 
     /// Every slot of a grouped skill takes the construction in its way, and
