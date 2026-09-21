@@ -2,6 +2,7 @@ mod acquire;
 mod adapter;
 mod buildings;
 mod cli;
+mod difference;
 mod doc;
 mod fight;
 mod game;

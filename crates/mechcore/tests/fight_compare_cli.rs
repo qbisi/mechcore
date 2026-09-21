@@ -14,10 +14,13 @@ fn compare_reports_equal_physics_result_hashes() {
     let output = compare(&path, &path);
     assert!(output.status.success());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.fight-compare-result.v1");
+    assert_eq!(report["schema"], "mechcore.fight-compare-result.v2");
     assert_eq!(report["equal"], true);
     assert!(report["first_divergence"].is_null());
-    assert!(report["divergent_ticks"].is_null());
+    assert_eq!(report["compared_ticks"], 1);
+    assert_eq!(report["fields_equal"], true);
+    assert_eq!(report["fields"], serde_json::json!({}));
+    assert!(report.get("at").is_none());
     assert_eq!(
         report["left"]["physics_result_hash"],
         report["right"]["physics_result_hash"]
@@ -47,6 +50,18 @@ fn compare_reports_content_differences_outside_the_physics_projection() {
         report["left"]["content_result_hash"],
         report["right"]["content_result_hash"]
     );
+    // The content difference is named: the shield's creation event, at the
+    // one tick it happens.
+    assert_eq!(report["fields"]["events"]["first_divergence"], 1);
+    assert_eq!(report["fields"]["events"]["divergent_ticks"], 1);
+    assert_eq!(report["at"]["tick"], 1);
+    assert_eq!(report["at"]["differences"][0]["field"], "events");
+    assert!(
+        report["at"]["differences"][0]["left"]
+            .as_str()
+            .unwrap()
+            .contains("source_kind=commander_skill")
+    );
 }
 
 #[test]
@@ -62,16 +77,17 @@ fn compare_reports_the_first_divergent_tick_and_fails() {
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["equal"], false);
     assert_eq!(report["first_divergence"], 1);
-    assert_eq!(report["divergent_ticks"]["left"]["tick"], 1);
-    assert_eq!(report["divergent_ticks"]["right"]["tick"], 1);
-    assert_ne!(
-        report["divergent_ticks"]["left"]["physics_tick_hash"],
-        report["divergent_ticks"]["right"]["physics_tick_hash"]
+    assert_eq!(report["fields_equal"], false);
+    assert_eq!(report["at"]["tick"], 1);
+    assert_eq!(
+        report["at"]["events"]["left"],
+        serde_json::json!(["t1 damage at unit 1 amount=1"])
     );
-    assert_ne!(
-        report["divergent_ticks"]["left"]["events"],
-        report["divergent_ticks"]["right"]["events"]
+    assert_eq!(
+        report["at"]["events"]["right"],
+        serde_json::json!(["t1 damage at unit 1 amount=2"])
     );
+    assert_eq!(report["at"]["references"]["unit 1"]["left"], "absent");
     assert_ne!(
         report["left"]["physics_result_hash"],
         report["right"]["physics_result_hash"]
@@ -92,8 +108,66 @@ fn compare_reports_the_first_missing_tick() {
     assert_eq!(report["first_divergence"], 2);
     assert_eq!(report["left"]["tick_count"], 1);
     assert_eq!(report["right"]["tick_count"], 2);
-    assert!(report["divergent_ticks"]["left"].is_null());
-    assert_eq!(report["divergent_ticks"]["right"]["tick"], 2);
+    // Fields are compared over the ticks both hold, and those agree.
+    assert_eq!(report["compared_ticks"], 1);
+    assert_eq!(report["fields_equal"], true);
+}
+
+/// Naming field groups makes them the verdict: two recordings whose physics
+/// differs in an event agree on every unit field.
+#[test]
+fn a_selection_of_fields_is_the_verdict() {
+    let directory = tempfile::tempdir().unwrap();
+    let left = directory.path().join("left.mcfr");
+    let right = directory.path().join("right.mcfr");
+    write_recording(&left, 42, &[1, 1]);
+    write_recording(&right, 42, &[1, 2]);
+
+    let output = compare_with(&left, &right, &["--fields", "units.motion_state"]);
+    assert!(output.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["equal"], false);
+    assert_eq!(report["fields_equal"], true);
+
+    let output = compare_with(&left, &right, &["--fields", "events"]);
+    assert_eq!(output.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["fields"]["events"]["first_divergence"], 2);
+    assert_eq!(report["at"]["tick"], 2);
+}
+
+/// A tick can be explained whether or not it differs, and one neither side
+/// holds is refused.
+#[test]
+fn a_named_tick_is_explained_and_one_outside_is_refused() {
+    let directory = tempfile::tempdir().unwrap();
+    let left = directory.path().join("left.mcfr");
+    let right = directory.path().join("right.mcfr");
+    write_recording(&left, 42, &[1, 1]);
+    write_recording(&right, 42, &[1, 2]);
+
+    let output = compare_with(&left, &right, &["--tick", "1"]);
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["at"]["tick"], 1);
+    assert_eq!(report["at"]["differences"], serde_json::json!([]));
+
+    let output = compare_with(&left, &right, &["--tick", "3"]);
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+}
+
+#[test]
+fn the_text_rendering_names_the_verdict_and_the_groups() {
+    let directory = tempfile::tempdir().unwrap();
+    let left = directory.path().join("left.mcfr");
+    let right = directory.path().join("right.mcfr");
+    write_recording(&left, 42, &[1]);
+    write_recording(&right, 42, &[2]);
+
+    let output = compare_with(&left, &right, &["--format", "text"]);
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.starts_with("physics different from t1"), "{text}");
+    assert!(text.contains("events"), "{text}");
+    assert!(text.contains("at t1:"), "{text}");
 }
 
 #[test]
@@ -112,11 +186,16 @@ fn compare_ignores_context_when_ticks_are_equal() {
 }
 
 fn compare(left: &Path, right: &Path) -> std::process::Output {
+    compare_with(left, right, &[])
+}
+
+fn compare_with(left: &Path, right: &Path, options: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .arg("fight")
         .arg("compare")
         .arg(left)
         .arg(right)
+        .args(options)
         .output()
         .unwrap()
 }
