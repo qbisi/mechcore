@@ -42,7 +42,7 @@
 game: launch
 
 vars:
-  out: work/research/modifier-impairment
+  out: /tmp/mechcore/modifier/impairment
   seed: 4242
 
 steps:

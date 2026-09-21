@@ -30,7 +30,7 @@
 game: launch
 
 vars:
-  out: work/research/construction-line
+  out: /tmp/mechcore/construction/line-of-fire
   seed: 4242
 
 steps:

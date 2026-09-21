@@ -32,7 +32,7 @@
 game: launch
 
 vars:
-  out: work/research/skill-release-order
+  out: /tmp/mechcore/skill-order/release-order
   seed: 20260907
 
 steps:

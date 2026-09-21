@@ -25,7 +25,7 @@
 game: launch
 
 vars:
-  out: work/captures/regression-refresh
+  out: /tmp/mechcore/regression/refresh
 
 steps:
   - let:

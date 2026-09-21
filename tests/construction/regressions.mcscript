@@ -4,7 +4,7 @@
 #
 # This needs no game, which is why CI runs it: the hash below is what the game
 # recorded, and the simulator has to reproduce it tick for tick from the layout
-# and the seed alone. The recording itself lives under `work/`, which is not
+# and the seed alone. The recording itself is written under `/tmp` and never
 # tracked; what is tracked is what it decided.
 #
 # `placement.mcscript` and `line-of-fire.mcscript` are the other half. They

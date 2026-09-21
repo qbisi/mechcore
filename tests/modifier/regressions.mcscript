@@ -4,8 +4,8 @@
 #
 # This needs no game, which is why CI runs it: the hashes below are what the
 # game recorded, and the simulator has to reproduce each one tick for tick
-# from the layout and the seed alone. The recordings themselves live under
-# `work/`, which is not tracked; what is tracked is what they decided.
+# from the layout and the seed alone. The recordings themselves are written
+# under `/tmp` and never tracked; what is tracked is what they decided.
 #
 # The other scripts here produce these numbers. `composition.mcscript`,
 # `impairment.mcscript` and `value.mcscript` each launch the game, record, and

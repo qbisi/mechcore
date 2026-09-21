@@ -129,5 +129,5 @@ They are kept as they are because they are also the acceptance for the whole
 pipeline, not only for the arithmetic: a rule that resolves correctly but at
 the wrong moment still loses the hash.
 
-**Record before you believe.** A recording under `work/` is not tracked; what
+**Record before you believe.** A recording is written under `/tmp` and never tracked; what
 is tracked is what it decided.

@@ -31,7 +31,7 @@ game: launch        # optional: launch | attach; omitted means offline
 level: 1            # optional: 0..4, needs a game; higher takes it from lower
 vars:               # optional
   grbr: replay/grbr/example.grbr
-  out: work/research/example
+  out: /tmp/mechcore/example
 steps:              # required, at least one
   - game.record_replay_round:
       grbr: $grbr
@@ -42,6 +42,11 @@ steps:              # required, at least one
 Each step is a mapping with exactly one operation key, plus an optional
 `expect`. Relative paths resolve against the working directory, matching every
 other subcommand.
+
+What a script records goes under `/tmp/mechcore/<topic>/<script>`, the
+directory and file the script itself is named by, and never into the
+checkout: a recording is regenerable evidence, and what the repository keeps
+is the script that regenerates it and the readings it asserts.
 
 ## Acquisition
 
@@ -387,7 +392,7 @@ game: launch
 
 vars:
   grbr: replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
-  out: work/research/tuff-replay-vs-training
+  out: /tmp/mechcore/tuff-replay-vs-training
 
 steps:
   - game.record_replay_round:
@@ -419,7 +424,7 @@ not a copy of it:
 game: launch
 
 vars:
-  out: work/research/regression-refresh
+  out: /tmp/mechcore/regression/refresh
 
 steps:
   - let:

@@ -39,7 +39,7 @@
 game: launch
 
 vars:
-  out: work/research/construction-wall
+  out: /tmp/mechcore/construction/wall
   seed: 4242
 
 steps:

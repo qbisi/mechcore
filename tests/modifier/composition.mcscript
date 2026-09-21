@@ -41,7 +41,7 @@
 game: launch
 
 vars:
-  out: work/research/officer-composition
+  out: /tmp/mechcore/modifier/composition
   seed: 4242
 
 steps:
