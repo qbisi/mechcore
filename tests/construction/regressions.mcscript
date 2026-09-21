@@ -104,3 +104,15 @@ steps:
     expect:
       steps: 341
       hashes.physics_result_hash: 742ab9964980d2df6bca04e90546f5e54f3ea91e317158e639e3923875ec552c
+
+  # The other side, stopped by the wall and taking it down. Twenty-four
+  # Crawlers pushed along the wall as they strike it change blocks between
+  # blows, go straight on when a block they had not yet struck falls, and take
+  # four of the five before the fight ends. 209 ticks, the game's hash; its
+  # content hash agrees too.
+  - fight.run:
+      layout: tests/construction/wall-block.yaml
+      seed: 4242
+    expect:
+      steps: 209
+      hashes.physics_result_hash: cdff39d42765941071c7eb9ce26900d05c0486020e7b96c387b6c7d8abe9a800
