@@ -332,15 +332,33 @@ red:
         assert_eq!(once.clone().normalized(), once);
     }
 
+    /// Every layout under `tests/`, wherever its topic keeps it.
+    ///
+    /// A fixture lives beside the scripts that use it, so layouts are spread
+    /// over one directory per topic; a file is one when it says so.
+    fn tracked_layouts(directory: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(directory).expect("tracked fixture directory") {
+            let path = entry.expect("directory entry").path();
+            if path.is_dir() {
+                tracked_layouts(&path, found);
+            } else if path
+                .extension()
+                .is_some_and(|extension| extension == "yaml")
+                && std::fs::read_to_string(&path)
+                    .is_ok_and(|text| text.lines().any(|line| line == "kind: layout"))
+            {
+                found.push(path);
+            }
+        }
+    }
+
     #[test]
     fn tracked_layouts_are_normal_and_normalize_idempotently() {
-        let directory = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/layouts");
+        let directory = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests");
+        let mut paths = Vec::new();
+        tracked_layouts(std::path::Path::new(directory), &mut paths);
         let mut checked = 0;
-        for entry in std::fs::read_dir(directory).expect("tracked layout directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "yaml") {
-                continue;
-            }
+        for path in paths {
             let bytes = std::fs::read(&path).expect("readable layout");
             let layout = parse_yaml(&bytes).unwrap_or_else(|error| {
                 panic!("{} does not parse: {error}", path.display());

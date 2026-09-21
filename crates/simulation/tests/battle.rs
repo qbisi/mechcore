@@ -29,7 +29,7 @@ fn repository() -> PathBuf {
 }
 
 fn native_regressions() -> Vec<NativeRegression> {
-    let manifest = repository().join("tests/mcfr-regressions.yaml");
+    let manifest = repository().join("tests/regression/mcfr-regressions.yaml");
     serde_yaml::from_slice(&fs::read(manifest).unwrap()).unwrap()
 }
 
@@ -45,7 +45,8 @@ fn regression_layout(regression: &NativeRegression) -> PathBuf {
 }
 
 fn fixture() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/regression/marksman-vs-arclight.yaml")
 }
 
 #[test]
@@ -89,7 +90,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 /// Runs a native regression case through the simulator and opens what it
 /// wrote.
 ///
-/// Its physics hash is not checked here: `scripts/simulate-regressions.mcscript`
+/// Its physics hash is not checked here: `tests/regression/simulate.mcscript`
 /// holds every smoke case to it, and the hash already covers positions, life
 /// and every event, damage included. What these tests check is the content
 /// layer the hash leaves out — a unit's lock and its motion state.

@@ -7,7 +7,7 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+        .join("../../tests/regression/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .arg("fight")
         .arg("run")
@@ -44,7 +44,7 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
     let layout = directory.path().join("battle.yaml");
     fs::copy(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tests/layouts/marksman-vs-arclight.yaml"),
+            .join("../../tests/regression/marksman-vs-arclight.yaml"),
         &layout,
     )
     .unwrap();
@@ -81,7 +81,7 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     let recording_path = directory.path().join("equal.mcfr");
     let divergent_path = directory.path().join("divergent.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+        .join("../../tests/regression/marksman-vs-arclight.yaml");
     let generated = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .arg("fight")
         .arg("run")
@@ -249,13 +249,13 @@ red:
 /// numbers its description alone gives. That is the case a control is read
 /// for, and it is also what says the derived numbers are recorded rather than
 /// inferred. The corrected cases are measured against the game by the scripts
-/// under `tests/layouts/modifier/`.
+/// under `tests/modifier/`.
 #[test]
 fn stats_read_a_tick_and_answer_both_halves() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+        .join("../../tests/regression/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["fight", "run"])
         .arg(&layout)
@@ -320,13 +320,13 @@ fn stats_read_a_tick_and_answer_both_halves() {
 /// other half of the answer: the two towers a map gives each side, named by
 /// the build's own `BuildingType`, and an empty construction list beside them.
 /// What a construction becomes is measured against the game by
-/// `tests/layouts/construction/shape.mcscript`.
+/// `tests/construction/shape.mcscript`.
 #[test]
 fn buildings_read_the_towers_a_map_gives_each_side() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+        .join("../../tests/regression/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["fight", "run"])
         .arg(&layout)

@@ -36,13 +36,13 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 6 个，中位数 4 个。所以"按字段实现、拿真实对局验收"这条路，早期根本走不通——真实回合
 要等四五个模块齐了才第一次可用。早期验收只能靠**合成 layout**：一份只动一个字段的
 布阵，拿游戏录一份原生 MCFR，模拟器必须逐 tick 对上。这正是
-`tests/mcfr-regressions.yaml` 现在的 81 条在做的事。
+`tests/regression/mcfr-regressions.yaml` 现在的 81 条在做的事。
 
 **一个机制的回归表跟着它的 fixture 走。** 修饰符那一组不在上面那张表里：
-`tests/layouts/modifier/` 下同时放着 fixture、录制脚本（要游戏）和
+`tests/modifier/` 下同时放着 fixture、录制脚本（要游戏）和
 `regressions.mcscript`（不要游戏，CI 跑的就是它）。fixture、它量出来的数、守着它的回归，
 是一起读、一起搬的一件东西。攻击间隔随机流是另一个问题，所以它在
-`tests/layouts/interval/`，工事在 `tests/layouts/construction/`——**按问题归类，不按
+`tests/interval/`，工事在 `tests/construction/`——**按问题归类，不按
 工具**。
 
 上面那张表和下面这串数都出自
@@ -74,7 +74,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 增强相加、削弱相乘、value 按本单位相加、普通整数也相加——形状先从 `DataSet` 的**三张
 列表**读出来（`AdditiveDataFloat`、`MultiplicativeDataFloat`、`DataIntGroup`），再用
-`tests/layouts/modifier/` 下的 fixture 逐条对着游戏验证。
+`tests/modifier/` 下的 fixture 逐条对着游戏验证。
 
 **剩下 18 行已经不是"怎么合成"的问题**：11 行修的是塔/护盾/地雷/部署时钟/经验，3 行按
 击杀数算，3 行是溅射半径，1 行是没人枚举过的"远程"类别——每一条欠的都是一个机制或一份
@@ -225,7 +225,7 @@ Unity 对象里，还要各解析一次。
 
 ## 二之半、一个机制怎么研究：循环
 
-每个机制都是同一个循环，[`tests/layouts/modifier/composition.mcscript`](tests/layouts/modifier/composition.mcscript)
+每个机制都是同一个循环，[`tests/modifier/composition.mcscript`](tests/modifier/composition.mcscript)
 是它的范本——那一份脚本同时是实验设计、实验记录和可重跑的过程：
 
 1. **把问题收成一个数。** 不是"军官怎么生效"，而是"`+0.3` 是乘上去还是加上去，两份
@@ -298,7 +298,7 @@ Unity 对象里，还要各解析一次。
   残留，读不出来的逐项报缺；`fight stats` 读一个单位两半的数——写进去的修正、build 算出
   的派生值，以及科技是否被禁用。
 - **修饰符（`Modifier` 模块）**：军官 61/79、科技 125/137 落地，合成规则四条子句全部
-  对着游戏量完。`tests/layouts/modifier/` 十二条离线回归钉住物理和内容两层哈希。
+  对着游戏量完。`tests/modifier/` 十二条离线回归钉住物理和内容两层哈希。
 - **工事（`FightConstructionSystem`）**：一条 `constructions` 落到战斗里是 `count` 个
   对象——防御墙五块、每块 1112 命、相隔 12 米，都是对着游戏量的。墙摆得对、谁也挡不
   住，**挡路的那块会挨打**：单位不换锁定，打的是自己到目标那条线够得着的最近一块敌方
@@ -318,7 +318,7 @@ Unity 对象里，还要各解析一次。
 - **等级索引。** 效果列表按等级索引，而"施加那一刻单位是几级"没人确立过；会增长的
   5 行因此被拒绝而不是读第 0 条。
 - **战斗中还有什么在消耗攻击间隔随机流。** 部署时那次错开已经量完
-  （`tests/layouts/interval/`），流的其余部分没有。
+  （`tests/interval/`），流的其余部分没有。
 
 ## 还没做、但不在这条主线上
 

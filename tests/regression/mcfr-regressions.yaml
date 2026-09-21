@@ -1,6 +1,6 @@
 - name: marksman-vs-arclight
   smoke: true
-  layout: tests/layouts/marksman-vs-arclight.yaml
+  layout: tests/regression/marksman-vs-arclight.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787720817
@@ -9,7 +9,7 @@
 
 - name: rhino-vs-arclight
   smoke: true
-  layout: tests/layouts/rhino-vs-arclight.yaml
+  layout: tests/regression/rhino-vs-arclight.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787720897
@@ -18,7 +18,7 @@
 
 - name: rhino-retarget
   smoke: true
-  layout: tests/layouts/rhino-retarget-vs-arclights.yaml
+  layout: tests/regression/rhino-retarget-vs-arclights.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787720956
@@ -27,7 +27,7 @@
 
 - name: rhino-vs-crawlers-01
   smoke: true
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748319
@@ -36,7 +36,7 @@
 
 - name: rhino-vs-crawlers-02
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748346
@@ -45,7 +45,7 @@
 
 - name: rhino-vs-crawlers-03
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748375
@@ -54,7 +54,7 @@
 
 - name: rhino-vs-crawlers-04
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748402
@@ -63,7 +63,7 @@
 
 - name: rhino-vs-crawlers-05
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748432
@@ -72,7 +72,7 @@
 
 - name: rhino-vs-crawlers-06
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748486
@@ -81,7 +81,7 @@
 
 - name: rhino-vs-crawlers-07
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748526
@@ -90,7 +90,7 @@
 
 - name: rhino-vs-crawlers-08
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748558
@@ -99,7 +99,7 @@
 
 - name: rhino-vs-crawlers-09
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748599
@@ -108,7 +108,7 @@
 
 - name: rhino-vs-crawlers-10
   smoke: false
-  layout: tests/layouts/rhino-vs-crawlers.yaml
+  layout: tests/regression/rhino-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787748638
@@ -117,7 +117,7 @@
 
 - name: crawlers-vs-rhino-01
   smoke: true
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787757964
@@ -126,7 +126,7 @@
 
 - name: crawlers-vs-rhino-02
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758008
@@ -135,7 +135,7 @@
 
 - name: crawlers-vs-rhino-03
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758042
@@ -144,7 +144,7 @@
 
 - name: crawlers-vs-rhino-04
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758104
@@ -153,7 +153,7 @@
 
 - name: crawlers-vs-rhino-05
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758157
@@ -162,7 +162,7 @@
 
 - name: crawlers-vs-rhino-06
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758202
@@ -171,7 +171,7 @@
 
 - name: crawlers-vs-rhino-07
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758244
@@ -180,7 +180,7 @@
 
 - name: crawlers-vs-rhino-08
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758281
@@ -189,7 +189,7 @@
 
 - name: crawlers-vs-rhino-09
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758328
@@ -198,7 +198,7 @@
 
 - name: crawlers-vs-rhino-10
   smoke: false
-  layout: tests/layouts/crawlers-vs-rhino.yaml
+  layout: tests/regression/crawlers-vs-rhino.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787758384
@@ -207,7 +207,7 @@
 
 - name: crawlers-vs-crawlers-01
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787778788
@@ -216,7 +216,7 @@
 
 - name: crawlers-vs-crawlers-05
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787778960
@@ -225,7 +225,7 @@
 
 - name: crawlers-vs-crawlers-09
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787791755
@@ -234,7 +234,7 @@
 
 - name: crawlers-vs-crawlers-13
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787799499
@@ -243,7 +243,7 @@
 
 - name: crawlers-vs-crawlers-17
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787799748
@@ -252,7 +252,7 @@
 
 - name: crawlers-vs-crawlers-21
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787800633
@@ -261,7 +261,7 @@
 
 - name: crawlers-vs-crawlers-25
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787800781
@@ -270,7 +270,7 @@
 
 - name: crawlers-vs-crawlers-29
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787801010
@@ -279,7 +279,7 @@
 
 - name: crawlers-vs-crawlers-33
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787802518
@@ -288,7 +288,7 @@
 
 - name: crawlers-vs-crawlers-37
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787803517
@@ -297,7 +297,7 @@
 
 - name: crawlers-vs-crawlers-41
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787803732
@@ -306,7 +306,7 @@
 
 - name: crawlers-vs-crawlers-45
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787803881
@@ -315,7 +315,7 @@
 
 - name: crawlers-vs-crawlers-49
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787804531
@@ -324,7 +324,7 @@
 
 - name: crawlers-vs-crawlers-53
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787805016
@@ -333,7 +333,7 @@
 
 - name: crawlers-vs-crawlers-54
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787805051
@@ -342,7 +342,7 @@
 
 - name: crawlers-vs-crawlers-55
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787805107
@@ -351,7 +351,7 @@
 
 - name: crawlers-vs-crawlers-60
   smoke: true
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787805959
@@ -360,7 +360,7 @@
 
 - name: crawlers-vs-crawlers-65
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787806536
@@ -369,7 +369,7 @@
 
 - name: crawlers-vs-crawlers-68
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787806713
@@ -378,7 +378,7 @@
 
 - name: crawlers-vs-crawlers-70
   smoke: false
-  layout: tests/layouts/crawlers-vs-crawlers.yaml
+  layout: tests/regression/crawlers-vs-crawlers.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787806795
@@ -387,7 +387,7 @@
 
 - name: fangs-vs-fangs-01
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787808873
@@ -396,7 +396,7 @@
 
 - name: fangs-vs-fangs-02
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787808906
@@ -405,7 +405,7 @@
 
 - name: fangs-vs-fangs-03
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787808949
@@ -414,7 +414,7 @@
 
 - name: fangs-vs-fangs-04
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787808985
@@ -423,7 +423,7 @@
 
 - name: fangs-vs-fangs-05
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787809018
@@ -432,7 +432,7 @@
 
 - name: fangs-vs-fangs-06
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787816186
@@ -441,7 +441,7 @@
 
 - name: fangs-vs-fangs-07
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787816925
@@ -450,7 +450,7 @@
 
 - name: fangs-vs-fangs-08
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787817059
@@ -459,7 +459,7 @@
 
 - name: fangs-vs-fangs-09
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787818397
@@ -468,7 +468,7 @@
 
 - name: fangs-vs-fangs-10
   smoke: false
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787818488
@@ -477,7 +477,7 @@
 
 - name: fangs-vs-fangs-11
   smoke: true
-  layout: tests/layouts/fangs-vs-fangs.yaml
+  layout: tests/regression/fangs-vs-fangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787819220
@@ -486,7 +486,7 @@
 
 - name: mustangs-vs-mustangs-01
   smoke: true
-  layout: tests/layouts/mustangs-vs-mustangs.yaml
+  layout: tests/regression/mustangs-vs-mustangs.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787823221
@@ -495,7 +495,7 @@
 
 - name: wasps-vs-wasps-01
   smoke: true
-  layout: tests/layouts/wasps-vs-wasps.yaml
+  layout: tests/regression/wasps-vs-wasps.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787829131
@@ -504,7 +504,7 @@
 
 - name: steel-balls-vs-steel-balls-01
   smoke: true
-  layout: tests/layouts/steel-balls-vs-steel-balls.yaml
+  layout: tests/regression/steel-balls-vs-steel-balls.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787831322
@@ -513,7 +513,7 @@
 
 - name: crawler-vs-rotated-01
   smoke: true
-  layout: tests/layouts/crawler-vs-rotated.yaml
+  layout: tests/regression/crawler-vs-rotated.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787833929
@@ -522,7 +522,7 @@
 
 - name: arclight-splash-01
   smoke: true
-  layout: tests/layouts/arclight-splash.yaml
+  layout: tests/regression/arclight-splash.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787837829
@@ -531,7 +531,7 @@
 
 - name: wraith-group-attack-01
   smoke: true
-  layout: tests/layouts/wraith-group-attack.yaml
+  layout: tests/regression/wraith-group-attack.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787857041
@@ -540,7 +540,7 @@
 
 - name: stormcaller-vs-self-01
   smoke: true
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887280
@@ -549,7 +549,7 @@
 
 - name: stormcaller-vs-self-02
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787863348
@@ -558,7 +558,7 @@
 
 - name: stormcaller-vs-self-03
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787863396
@@ -567,7 +567,7 @@
 
 - name: stormcaller-vs-self-04
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787863436
@@ -576,7 +576,7 @@
 
 - name: stormcaller-vs-self-05
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787863478
@@ -585,7 +585,7 @@
 
 - name: stormcaller-vs-self-06
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787863515
@@ -594,7 +594,7 @@
 
 - name: stormcaller-vs-self-07
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887111
@@ -603,7 +603,7 @@
 
 - name: stormcaller-vs-self-08
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887134
@@ -612,7 +612,7 @@
 
 - name: stormcaller-vs-self-09
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887155
@@ -621,7 +621,7 @@
 
 - name: stormcaller-vs-self-10
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887178
@@ -630,7 +630,7 @@
 
 - name: stormcaller-vs-self-11
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887201
@@ -639,7 +639,7 @@
 
 - name: stormcaller-vs-self-12
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887304
@@ -648,7 +648,7 @@
 
 - name: stormcaller-vs-self-13
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887323
@@ -657,7 +657,7 @@
 
 - name: stormcaller-vs-self-14
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887345
@@ -666,7 +666,7 @@
 
 - name: stormcaller-vs-self-15
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787887368
@@ -675,7 +675,7 @@
 
 - name: stormcaller-vs-self-16
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787884975
@@ -684,7 +684,7 @@
 
 - name: stormcaller-vs-self-17
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787882500
@@ -693,7 +693,7 @@
 
 - name: stormcaller-vs-self-18
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787881295
@@ -702,7 +702,7 @@
 
 - name: stormcaller-vs-self-19
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787880738
@@ -711,7 +711,7 @@
 
 - name: stormcaller-vs-self-20
   smoke: false
-  layout: tests/layouts/stormcaller-vs-self.yaml
+  layout: tests/regression/stormcaller-vs-self.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1787869558
@@ -720,7 +720,7 @@
 
 - name: phoenix-vs-phoenix
   smoke: true
-  layout: tests/layouts/phoenix-vs-phoenix.yaml
+  layout: tests/regression/phoenix-vs-phoenix.yaml
   game_build: 1.11.1.3.2259
   format: 0.3.0
   seed: 1788397284

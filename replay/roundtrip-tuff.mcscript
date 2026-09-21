@@ -1,7 +1,7 @@
 # TUFF round 7: the roundtrip that tells the two fixed towers apart.
 #
-#   mechcore run scripts/replay-roundtrip-tuff.mcscript --check   validate offline
-#   mechcore run scripts/replay-roundtrip-tuff.mcscript           record
+#   mechcore run replay/roundtrip-tuff.mcscript --check   validate offline
+#   mechcore run replay/roundtrip-tuff.mcscript           record
 #
 # Red holds a level 2 Energy Tower beside an unstrengthened Research Center, so
 # its `tower_strengthen_levels` is `[0, 2]` and reversing the two is visible in

@@ -209,7 +209,7 @@ native recording and a simulated one of the same fight carry the same sequence
 — which makes the field a check on the stagger rather than a difference to
 explain.
 
-`tests/layouts/modifier/interval-order.mcscript` measured the composition
+`tests/modifier/interval-order.mcscript` measured the composition
 rule's order through this field without ever locating that zero: three fixtures
 pin the line and the fourth is read against it.
 

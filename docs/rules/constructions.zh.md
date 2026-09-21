@@ -82,7 +82,7 @@
 却还指着那块已经不在的墙，而且不会回到墙后面那个单位。这状态是持续到下一次搜索还
 是更早结束，没有分开过。
 
-**墙从来不是单位去找的目标。** `tests/layouts/construction/` 下十份录像、其中 931
+**墙从来不是单位去找的目标。** `tests/construction/` 下十份录像、其中 931
 个 tick 有墙站着：工事做单位**锁定目标**的次数是 **0**，做**攻击目标** 1482 次。
 而塔做锁定目标 6013 次，从第 1 tick 就是——所以被排除的是墙，不是"建筑"，这正是
 墙那一行 `enable_search_target: false` 说的事。单位从来不"搜"墙却照样打墙，下一
@@ -190,9 +190,9 @@
 [`economy.yaml`](../../config/economy.yaml) 里，这里没有。
 
 读数是用
-[`tests/layouts/construction/shape.mcscript`](../../tests/layouts/construction/shape.mcscript)
-、[`wall.mcscript`](../../tests/layouts/construction/wall.mcscript) 和
-[`line-of-fire.mcscript`](../../tests/layouts/construction/line-of-fire.mcscript)
+[`tests/construction/shape.mcscript`](../../tests/construction/shape.mcscript)
+、[`wall.mcscript`](../../tests/construction/wall.mcscript) 和
+[`line-of-fire.mcscript`](../../tests/construction/line-of-fire.mcscript)
 取的：第一份的对照组是一个什么都不放、读回来只有两座塔的一方，第二份用同一个兵
 种把同一个问题问了两边，第三份的四个布阵先把"最近的墙"和"挡路的墙"分开，再把
 "挡路"有多宽夹出来，最后拿一只带四个武器位的飞行单位把同一个问题再问一遍。

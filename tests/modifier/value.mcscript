@@ -1,10 +1,10 @@
 # Is a value added to the description in the number's own units?
 #
-#   mechcore run tests/layouts/modifier/value.mcscript --check   parse without the game
-#   mechcore run tests/layouts/modifier/value.mcscript           record
+#   mechcore run tests/modifier/value.mcscript --check   parse without the game
+#   mechcore run tests/modifier/value.mcscript           record
 #
-# The rate clauses are measured: `tests/layouts/modifier/composition.mcscript` found
-# enhancements summing, `tests/layouts/modifier/impairment.mcscript` found
+# The rate clauses are measured: `tests/modifier/composition.mcscript` found
+# enhancements summing, `tests/modifier/impairment.mcscript` found
 # impairments compounding. This asks the remaining clause of
 # `(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)`.
 #
@@ -31,8 +31,8 @@ vars:
 
 steps:
   - let:
-      none: read_yaml(tests/layouts/modifier/officer-range-none.yaml)
-      ranged: read_yaml(tests/layouts/modifier/officer-range-value.yaml)
+      none: read_yaml(tests/modifier/officer-range-none.yaml)
+      ranged: read_yaml(tests/modifier/officer-range-value.yaml)
 
   - game.apply_layout:
       layout: $none

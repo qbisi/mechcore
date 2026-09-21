@@ -1,7 +1,7 @@
 # What does the attack interval stagger draw, and in what order?
 #
-#   mechcore run tests/layouts/interval/stagger.mcscript --check   parse without the game
-#   mechcore run tests/layouts/interval/stagger.mcscript           record
+#   mechcore run tests/interval/stagger.mcscript --check   parse without the game
+#   mechcore run tests/interval/stagger.mcscript           record
 #
 # A unit's stored attack interval is not its description: it carries a draw
 # from the team's `GRRandom`, seeded `(round + team) * 4444`. This records the
@@ -32,9 +32,9 @@ vars:
 
 steps:
   - let:
-      singles: read_yaml(tests/layouts/interval/stagger-singles.yaml)
-      marksmen: read_yaml(tests/layouts/interval/stagger-three-marksmen.yaml)
-      members: read_yaml(tests/layouts/interval/stagger-mustang-then-marksman.yaml)
+      singles: read_yaml(tests/interval/stagger-singles.yaml)
+      marksmen: read_yaml(tests/interval/stagger-three-marksmen.yaml)
+      members: read_yaml(tests/interval/stagger-mustang-then-marksman.yaml)
 
   # The walk order, with nothing to interleave. The layout declares these in
   # the opposite order to the one the stream takes them in, which is how the

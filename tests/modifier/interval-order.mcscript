@@ -1,7 +1,7 @@
 # What order does a value and a rate apply in, on one number?
 #
-#   mechcore run tests/layouts/modifier/interval-order.mcscript --check   parse without the game
-#   mechcore run tests/layouts/modifier/interval-order.mcscript           record
+#   mechcore run tests/modifier/interval-order.mcscript --check   parse without the game
+#   mechcore run tests/modifier/interval-order.mcscript           record
 #
 # The composition rule reads `(base + Σ value) × (1 + Σ enhance)`, and every
 # clause of it has been measured except the order in that line. Officers cannot
@@ -42,10 +42,10 @@ vars:
 
 steps:
   - let:
-      base: read_yaml(tests/layouts/modifier/technology-interval-base.yaml)
-      value: read_yaml(tests/layouts/modifier/technology-interval-value.yaml)
-      rate: read_yaml(tests/layouts/modifier/technology-interval-rate.yaml)
-      both: read_yaml(tests/layouts/modifier/technology-interval.yaml)
+      base: read_yaml(tests/modifier/technology-interval-base.yaml)
+      value: read_yaml(tests/modifier/technology-interval-value.yaml)
+      rate: read_yaml(tests/modifier/technology-interval-rate.yaml)
+      both: read_yaml(tests/modifier/technology-interval.yaml)
 
   - game.apply_layout:
       layout: $base

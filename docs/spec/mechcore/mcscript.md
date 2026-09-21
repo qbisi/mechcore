@@ -141,12 +141,12 @@ units before it moved them. Both answer the same object their commands print,
 so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for
 the one, `sides.blue.0.skill.0.modifiers.damage_rate.add` for the other. That
 is what turns a capture script from a probe of the build into a regression
-against it; `tests/layouts/modifier/composition.mcscript` is the worked example.
+against it; `tests/modifier/composition.mcscript` is the worked example.
 
 `fight.run` runs the deterministic simulator on a layout and returns the same result
 object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
 a dotted path like `hashes.physics_result_hash`. It needs no game, which is
-what lets `scripts/simulate-regressions.mcscript` drive the whole regression
+what lets `tests/regression/simulate.mcscript` drive the whole regression
 manifest offline. Omit `output` unless the run should also publish an MCFR.
 
 `game.apply_layout` owns the whole transaction from the main menu: it creates the
@@ -308,7 +308,7 @@ The loop fails closed on the first unsuccessful match and emits one JSON result
 line per recording. Add `output_dir` only when a separate corpus copy is wanted.
 Redirect stdout to a JSONL file when the per-file path, publication mode and
 selected scene metadata should travel with the corpus. A ready-to-run batch
-lives at `scripts/record-standard-1v1-grbr.mcscript`.
+lives at `replay/record-standard-1v1.mcscript`.
 
 The native replay is never deleted, and neither is a copy that reached the
 corpus directory. A published copy survives even when only the match-exit check
@@ -409,7 +409,7 @@ steps:
 
 ## Regression re-recording
 
-`tests/mcfr-regressions.yaml` stays a data table. `scripts/simulate-regressions.mcscript`
+`tests/regression/mcfr-regressions.yaml` stays a data table. `tests/regression/simulate.mcscript`
 reads it for the offline simulator regression, which CI runs, and
 `crates/simulation/tests/battle.rs` reads it for the content-layer fields the
 physics hash leaves out. Re-recording is one more reader of that same table,
@@ -423,7 +423,7 @@ vars:
 
 steps:
   - let:
-      cases: read_yaml(tests/mcfr-regressions.yaml)
+      cases: read_yaml(tests/regression/mcfr-regressions.yaml)
   - foreach: {case: $cases}
     where: {smoke: true}
     steps:

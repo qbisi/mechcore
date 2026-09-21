@@ -1,7 +1,7 @@
 # Do two sources writing one number sum?
 #
-#   mechcore run tests/layouts/modifier/technology.mcscript --check   parse without the game
-#   mechcore run tests/layouts/modifier/technology.mcscript           record
+#   mechcore run tests/modifier/technology.mcscript --check   parse without the game
+#   mechcore run tests/modifier/technology.mcscript           record
 #
 # The composition rule was measured with officers alone, so `Σ value` was
 # always a sum over one source's entries. A technology writes through the same
@@ -35,7 +35,7 @@ vars:
 
 steps:
   - let:
-      ranged: read_yaml(tests/layouts/modifier/technology-range.yaml)
+      ranged: read_yaml(tests/modifier/technology-range.yaml)
 
   - game.apply_layout:
       layout: $ranged

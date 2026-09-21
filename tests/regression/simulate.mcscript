@@ -1,15 +1,15 @@
-# Check the simulator against tests/mcfr-regressions.yaml without the game.
+# Check the simulator against tests/regression/mcfr-regressions.yaml without the game.
 #
 # The manifest stays the data; this script is one of its readers. The other is
-# scripts/refresh-regressions.mcscript, which re-records the same cases
+# tests/regression/refresh.mcscript, which re-records the same cases
 # natively. This one only replays them through the simulator and compares the
 # recorded tick count and physics hash, so it needs no game and no MCFR output.
 #
-#   mechcore run scripts/simulate-regressions.mcscript --check   validate offline
-#   mechcore run scripts/simulate-regressions.mcscript           run the smoke tier
+#   mechcore run tests/regression/simulate.mcscript --check   validate offline
+#   mechcore run tests/regression/simulate.mcscript           run the smoke tier
 #
 # The modifier fixtures are not in this manifest: they carry their own table,
-# `tests/layouts/modifier/regressions.mcscript`, beside the fixtures and the
+# `tests/modifier/regressions.mcscript`, beside the fixtures and the
 # capture scripts that produced them.
 #
 # Scope: smoke cases only, which is the tier the commit gate used to carry.
@@ -25,7 +25,7 @@
 
 steps:
   - let:
-      cases: read_yaml(tests/mcfr-regressions.yaml)
+      cases: read_yaml(tests/regression/mcfr-regressions.yaml)
 
   - foreach: {case: $cases}
     where: {smoke: true}
@@ -45,7 +45,7 @@ steps:
   # hash is the simulator's own, not the game's, so a change that moves it has
   # to say why the new run is the right one.
   - fight.run:
-      layout: tests/layouts/rhino-vs-two-arclights.yaml
+      layout: tests/regression/rhino-vs-two-arclights.yaml
       seed: 1787634176
     expect:
       steps: 321

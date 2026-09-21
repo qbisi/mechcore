@@ -2,7 +2,7 @@
 
 Every layout here exists to measure **what a `constructions` entry becomes in a
 fight**, and nothing else. The rule they measure is
-[`constructions.md`](../../../docs/rules/constructions.md)'s: a construction is
+[`constructions.md`](../../docs/rules/constructions.md)'s: a construction is
 placed once and arrives as `count` objects, each with its own life, its own
 box and its own place in the row.
 

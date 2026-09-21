@@ -105,7 +105,7 @@ that is gone, and it does not go back to the unit behind the wall. Whether that
 lasts until the next search or ends sooner has not been separated.
 
 **A wall is never a target a unit looks for.** Across the ten recordings under
-`tests/layouts/construction/`, 931 ticks of which have a wall standing, a
+`tests/construction/`, 931 ticks of which have a wall standing, a
 construction is a unit's lock target **zero** times and its attack target 1482
 times. A tower is a lock target 6013 times, from the first tick, so the
 exclusion belongs to the wall and not to buildings — which is what the wall's
@@ -243,11 +243,11 @@ destroying a construction pays, or what any of it costs —
 nothing here does.
 
 The readings were taken with
-[`tests/layouts/construction/shape.mcscript`](../../tests/layouts/construction/shape.mcscript),
+[`tests/construction/shape.mcscript`](../../tests/construction/shape.mcscript),
 whose control is a side that places nothing and reads back two towers, and
-[`wall.mcscript`](../../tests/layouts/construction/wall.mcscript), which asks
+[`wall.mcscript`](../../tests/construction/wall.mcscript), which asks
 both sides the same question with the same unit, and
-[`line-of-fire.mcscript`](../../tests/layouts/construction/line-of-fire.mcscript),
+[`line-of-fire.mcscript`](../../tests/construction/line-of-fire.mcscript),
 whose four layouts separate the nearest wall from the wall in the way, bracket
 how wide the way is, and ask a flying unit with four weapon slots the same
 question.

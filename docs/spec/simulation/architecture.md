@@ -269,7 +269,7 @@ left by 32 to make it an `FPoint`, and multiplies. So:
 
 truncated toward zero once, where the build casts back to `Int32`. **An
 impairment is not a negative enhancement**: two of `0.11` leave `0.89 × 0.89`,
-not `1 − 0.22`. `tests/layouts/modifier/` holds the fixtures that measure each
+not `1 − 0.22`. `tests/modifier/` holds the fixtures that measure each
 clause against the game, and
 [`officer_effects.md`](../../rules/officer_effects.md) records what they
 answered.

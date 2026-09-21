@@ -56,7 +56,7 @@ build `1.11.1.3.2259` 上，战斗核心在一个 tick 内做了什么。
 个**成员**在它自己的偏移里发一次抽取。偏移为 0 的成员不从流里拿走任何东西。
 
 有两份 fixture 把它和别的可能分开。
-`tests/layouts/interval/stagger-singles.yaml` 把四个单成员单位放在四行上，而且 layout 声明
+`tests/interval/stagger-singles.yaml` 把四个单成员单位放在四行上，而且 layout 声明
 的顺序和流走过它们的顺序**正好相反**，四个读数仍然按 `z` 顺序从种子里算了出来：
 `62−7、18+5、62−6、32+0`。`stagger-mustang-then-marksman.yaml` 把一支十二成员的野马编队放
 在一只长弓前面——按成员抽，长弓是第 13 个单位；按编队抽，它是第 2 个——流在这两处的数不同，
@@ -75,13 +75,13 @@ build `1.11.1.3.2259` 上，战斗核心在一个 tick 内做了什么。
 **除非偏移为 0。** `interval_offset` 为 0 的单位根本不抽，所以它的当前间隔**就是**合成出
 来的间隔，一点都不加。犀牛、暴雨、爬虫、钢球都是这一类，测量"间隔类修正"就该建在它们身上。
 如果测量非得用一个会抽的单位——铁锤是唯一能同时持有间隔 value 和间隔 rate 的——那就只能把
-错开**消掉**而不是躲开，`tests/layouts/modifier/interval-order.mcscript` 用三份校准 fixture
+错开**消掉**而不是躲开，`tests/modifier/interval-order.mcscript` 用三份校准 fixture
 做的正是这件事。
 
 **一项科技被禁用时，它的修正也跟着走，而当前间隔会说出来。** 一只研发了机械狂暴
 （`attack_interval_value` 为 `−0.3` 秒）的犀牛，读数是描述 18 tick 里的 12。电磁弹命中的
 那一 tick，它的 `IsTechnologyDisabled` 置位，同一个读数变成 18：科技关着的时候，那条修正
-就不在了。`tests/layouts/modifier/disable.mcscript` 录下了它。选犀牛当目标有两个硬碰硬试
+就不在了。`tests/modifier/disable.mcscript` 录下了它。选犀牛当目标有两个硬碰硬试
 出来的理由——它**扛得住**那一发（先拿暴雨和长弓试过，射击根本没够着，什么都没读到），而且
 它的偏移为 0，所以这个数上不叠别的东西。
 

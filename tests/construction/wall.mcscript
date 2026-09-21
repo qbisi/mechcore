@@ -1,7 +1,7 @@
 # Does a Defensive Wall stop anything?
 #
-#   mechcore run tests/layouts/construction/wall.mcscript --check   parse without the game
-#   mechcore run tests/layouts/construction/wall.mcscript           record
+#   mechcore run tests/construction/wall.mcscript --check   parse without the game
+#   mechcore run tests/construction/wall.mcscript           record
 #
 # `shape.mcscript` settled what a wall is: five objects 12 metres apart, 1112
 # of life and an 8 metre box each. What that does not say is whether the box is
@@ -44,8 +44,8 @@ vars:
 
 steps:
   - let:
-      passage: read_yaml(tests/layouts/construction/wall-passage.yaml)
-      block: read_yaml(tests/layouts/construction/wall-block.yaml)
+      passage: read_yaml(tests/construction/wall-passage.yaml)
+      block: read_yaml(tests/construction/wall-block.yaml)
 
   # The side that placed it. Twenty-four Crawlers cross the line the wall
   # stands on and not one block loses a point of life.

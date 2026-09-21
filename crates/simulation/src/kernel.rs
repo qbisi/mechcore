@@ -1124,7 +1124,7 @@ struct RawBuilding {
 /// both sides, a Crawler ends up 0.567 metres from a wall block's centre on
 /// the side that placed it and 0.711 on the other, against a block radius of
 /// 4 and a Crawler inner radius of 1.5. `docs/rules/constructions.md` carries
-/// the measurement and `tests/layouts/construction/wall.mcscript` is the
+/// the measurement and `tests/construction/wall.mcscript` is the
 /// recording. Every construction is `BuildingType.Special` and only the map's
 /// own two towers are anything else, so the type is what separates them.
 const fn rvo_collides(building: &BuildingState) -> bool {
@@ -8675,7 +8675,7 @@ mod tests {
     /// Every slot of a grouped skill takes the construction in its way, and
     /// every slot is dropped with the lock.
     ///
-    /// The Wraith of `tests/layouts/construction/wall-weapon-group.yaml` was
+    /// The Wraith of `tests/construction/wall-weapon-group.yaml` was
     /// recorded doing all of it: its core engages block 3 at tick 32 and the
     /// other three slots follow eight ticks later, while the lock stays on the
     /// Marksman; block 3 falls at tick 59 and all four slots read empty at
@@ -8685,7 +8685,7 @@ mod tests {
     fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
         let config = SimulationConfig::load().unwrap();
         let (_, layout) = crate::layout::compile_with_seed(
-            include_bytes!("../../../tests/layouts/construction/wall-weapon-group.yaml"),
+            include_bytes!("../../../tests/construction/wall-weapon-group.yaml"),
             &config.units,
         )
         .unwrap();
@@ -8737,14 +8737,14 @@ mod tests {
     /// Red's Marksman locks onto the Marksman behind blue's wall and shoots
     /// block 6, which stands in its line of fire: `docs/rules/combat.md`
     /// measured the lock staying on the unit while the weapon holds the block,
-    /// and `tests/layouts/construction/line-of-fire.mcscript` recorded this
+    /// and `tests/construction/line-of-fire.mcscript` recorded this
     /// exact fight. The physics hash cannot see either field, which is why
     /// this pins them here.
     #[test]
     fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
         let config = SimulationConfig::load().unwrap();
         let (_, layout) = crate::layout::compile_with_seed(
-            include_bytes!("../../../tests/layouts/construction/wall-line-of-fire.yaml"),
+            include_bytes!("../../../tests/construction/wall-line-of-fire.yaml"),
             &config.units,
         )
         .unwrap();
@@ -8789,7 +8789,7 @@ mod tests {
     fn first_rvo_solve_avoids_same_formation_at_tick_eight() {
         let config = SimulationConfig::load().unwrap();
         let (_, layout) = crate::layout::compile_with_seed(
-            include_bytes!("../../../tests/layouts/steel-balls-vs-steel-balls.yaml"),
+            include_bytes!("../../../tests/regression/steel-balls-vs-steel-balls.yaml"),
             &config.units,
         )
         .unwrap();
@@ -8823,7 +8823,7 @@ mod tests {
     fn first_split_rvo_tree_uses_the_zero_position_buffer() {
         let config = SimulationConfig::load().unwrap();
         let (_, layout) = crate::layout::compile_with_seed(
-            include_bytes!("../../../tests/layouts/rhino-vs-crawlers.yaml"),
+            include_bytes!("../../../tests/regression/rhino-vs-crawlers.yaml"),
             &config.units,
         )
         .unwrap();

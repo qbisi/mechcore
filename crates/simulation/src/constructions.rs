@@ -34,7 +34,7 @@ const SPECIAL: u32 = 3;
 /// why: `block_width` and `space` span 83 metres across a footprint 60 wide,
 /// and the one row that would settle a general rule — the Magnetic Barrier,
 /// whose `real_row_count` is 2 — cannot be placed by this build.
-/// `tests/layouts/construction/shape.mcscript` is the measurement.
+/// `tests/construction/shape.mcscript` is the measurement.
 const MEASURED_SPACING: &[(i32, i64)] = &[(1, 12)];
 
 /// One building a construction places.
@@ -274,7 +274,7 @@ mod tests {
         }
     }
 
-    /// The five blocks `tests/layouts/construction/shape.mcscript` read back,
+    /// The five blocks `tests/construction/shape.mcscript` read back,
     /// which is the whole of what the geometry rests on.
     #[test]
     fn a_wall_is_five_blocks_twelve_metres_apart() {

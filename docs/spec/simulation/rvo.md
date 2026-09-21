@@ -291,7 +291,7 @@ Three layers of test hold this:
   construction at raw values;
 - kernel tests cover building collision, Q32.32 distance boundaries, the tree's
   coarse reachable range, and the behaviour at the edge of stopping;
-- the native smoke samples in `tests/mcfr-regressions.yaml` compare the stable
+- the native smoke samples in `tests/regression/mcfr-regressions.yaml` compare the stable
   physics projection's per-tick `physics_result_hash`, the Steel Ball battle
   sample included.
 

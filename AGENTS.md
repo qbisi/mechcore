@@ -48,7 +48,7 @@ Adapter 是 `mechcore` 的默认 feature `adapter`；只有它需要 macOS，关
 macOS 上成立，要用 `cfg(target_os = "macos")` 隔开，不然 Linux 上的 job 会失败。
 
 `scripts` 里重新生成语料那条意味着改了转换器就必须在同一次提交里重新生成语料；跑离线
-脚本那条意味着一份离线脚本里的断言和一份测试同等有效，`tests/layouts/modifier/regressions.mcscript`
+脚本那条意味着一份离线脚本里的断言和一份测试同等有效，`tests/modifier/regressions.mcscript`
 就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
 
 一份 `.mcscript` 要么需要游戏、要么不需要，`run --check` 的 `game` 字段就是答案：

@@ -1,7 +1,7 @@
 # What does one `constructions` entry become in a fight?
 #
-#   mechcore run tests/layouts/construction/shape.mcscript --check   parse without the game
-#   mechcore run tests/layouts/construction/shape.mcscript           record
+#   mechcore run tests/construction/shape.mcscript --check   parse without the game
+#   mechcore run tests/construction/shape.mcscript           record
 #
 # A layout places a construction at one position, and the simulator has to know
 # what stands there afterwards. `FightConstructionSystem.Create` answers an
@@ -39,7 +39,7 @@ vars:
 
 steps:
   - let:
-      shape: read_yaml(tests/layouts/construction/shape.yaml)
+      shape: read_yaml(tests/construction/shape.yaml)
 
   - game.apply_layout:
       layout: $shape

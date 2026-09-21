@@ -8,8 +8,8 @@
 # carries call edges and no method bodies — so it is measured here, and
 # `crates/simulation/src/data.rs` refuses a correction until it is.
 #
-#   mechcore run tests/layouts/modifier/composition.mcscript --check   parse without the game
-#   mechcore run tests/layouts/modifier/composition.mcscript           record
+#   mechcore run tests/modifier/composition.mcscript --check   parse without the game
+#   mechcore run tests/modifier/composition.mcscript           record
 #
 # One Marksman shoots one Rhino. The Rhino outlives the fight in every case, so
 # the measurement is the life it has left: a Marksman that hits n times for d
@@ -46,9 +46,9 @@ vars:
 
 steps:
   - let:
-      none: read_yaml(tests/layouts/modifier/officer-composition-none.yaml)
-      once: read_yaml(tests/layouts/modifier/officer-composition-once.yaml)
-      twice: read_yaml(tests/layouts/modifier/officer-composition-twice.yaml)
+      none: read_yaml(tests/modifier/officer-composition-none.yaml)
+      once: read_yaml(tests/modifier/officer-composition-once.yaml)
+      twice: read_yaml(tests/modifier/officer-composition-twice.yaml)
 
   - game.apply_layout:
       layout: $none
