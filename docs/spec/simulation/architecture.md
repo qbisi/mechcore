@@ -382,16 +382,34 @@ in were read from a capture of each unit's `SkillStateController` state and
 `SkillAttackController` phase (the `target_refs_v1` instrumentation profile),
 beside the recordings under `tests/construction/`.
 
-**What the mirror does not carry yet.** The skill states the kernel passes
-through now match a capture of the game's on 99% of unit-ticks across the
-regression manifest; what is left is the tick a unit enters its attack while
-its facing is still being corrected. `check_attackable` searches for every
-dead lock, and a cooling starts only from `finish_attack`. A live lock that
-leaves the attack area is still answered by the quick-switch and stale-target
-paths of `step_actor_with_target_order`: what `SearchLockTarget` returns
-there is the selector job `PreCalculate` prepared, which the attack state
-prepares only for a dead or missing lock, and the kernel does not yet carry
-that job.
+**How it was held to the game.** Two captures of the whole regression
+manifest are the oracle: each unit's skill state and attack phase per tick
+(`tests/regression/skill-state.mcscript`), and every `Check` call with the
+skill's lock and attack target on either side of it (the
+`skill_attackable_checker_v1` profile). The kernel's states now match the game's
+on every comparable unit-tick but three, and `check_attackable` answers the
+game's own calls identically on 148,466 of 148,595. What that took, beyond the
+checker itself:
+
+- the checker runs between blows, through the wait before a blow, and on the
+  update the blow lands, before it is performed;
+- a backswing ends by the next blow: the one a description states is cut to
+  the attack interval, as a Wasp's is;
+- the attack state outlives the backswing, for every unit;
+- a state is not updated on the tick it is entered: the skill enters its
+  prepare or attack state the tick the unit comes into range, even while its
+  facing is still being corrected, and the first blow waits for the tick after
+  the prepare ends.
+
+With those, the stale-target, quick-switch-out-of-range and stale-replacement
+paths that answered a lock dying or walking away are gone: the checker answers
+all of it.
+
+**What the mirror does not carry yet.** A grouped skill's core is a
+`GroupedSkillAttackBehaviour` rather than a `FightSkill`; the capture holds no
+state for it, and it keeps the prepare timing it was calibrated with. Which
+branch of the build makes a skill that cannot switch quickly keep a live lock
+out of reach, rather than search again, is measured but not read.
 
 ## The mirror, and what is dummy
 

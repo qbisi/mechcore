@@ -419,7 +419,7 @@ fn bodyless_attack_defers_a_dead_target_replacement_outside_attack_area() {
         source.describe(config.units.get(type_name).unwrap().clone());
         source.skill.lock_target = Some(unit_target(2));
         source.motion.state = MotionState::Attacking;
-        source.skill.set_phase(FightSkillPhase::Idle);
+        source.skill.set_phase(FightSkillPhase::Attack);
         source.motion.attack_hold_fire = false;
         source.skill.next_attack_step = 20;
         simulation.actors.get_mut(&2).unwrap().life = 0;
@@ -509,7 +509,8 @@ fn bodyless_quick_switch_replaces_a_dead_target_immediately_in_range() {
     source.motion.state = MotionState::Attacking;
     source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.next_attack_step = 10;
-    source.skill.set_backswing_finish_step(Some(20));
+    // A backswing ends by the next blow.
+    source.skill.set_backswing_finish_step(Some(10));
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
@@ -520,7 +521,7 @@ fn bodyless_quick_switch_replaces_a_dead_target_immediately_in_range() {
     );
     assert_eq!(
         simulation.actors[&1].skill.backswing_finish_step(),
-        Some(20)
+        Some(10)
     );
 
     let mut events = Vec::new();
@@ -532,7 +533,7 @@ fn bodyless_quick_switch_replaces_a_dead_target_immediately_in_range() {
     );
     assert_eq!(
         simulation.actors[&1].skill.backswing_finish_step(),
-        Some(41)
+        Some(simulation.actors[&1].skill.next_attack_step)
     );
     assert!(
         events
@@ -557,7 +558,9 @@ fn bodyless_non_quick_switch_defers_an_in_range_dead_target_replacement() {
     source.describe(config.units.get("crawler").unwrap().clone());
     source.skill.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Attacking;
-    source.skill.set_phase(FightSkillPhase::Idle);
+    // Between two blows the skill is still attacking, and the checker finds
+    // the dead lock there.
+    source.skill.set_phase(FightSkillPhase::Attack);
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();

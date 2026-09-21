@@ -31,9 +31,17 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         owner.skill.set_pending(None);
-        owner.skill.set_backswing_finish_step(
-            (backswing_steps > 0).then(|| pending.step.saturating_add(backswing_steps)),
-        );
+        // The backswing is cut short by the next blow: a Wasp's 1.5-second
+        // backswing reads 27 ticks, its interval, in the game's own states.
+        let next_attack_step = owner.skill.next_attack_step;
+        owner
+            .skill
+            .set_backswing_finish_step((backswing_steps > 0).then(|| {
+                pending
+                    .step
+                    .saturating_add(backswing_steps)
+                    .min(next_attack_step)
+            }));
         owner.skill.set_phase(
             if owner.skill.backswing_finish_step().is_none()
                 && !owner.rules.attack.quick_switch_target
