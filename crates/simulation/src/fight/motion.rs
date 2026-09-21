@@ -274,7 +274,7 @@ impl Simulation {
 
         let mut agents = Vec::new();
         let (tower_layer, tower_collides_with) =
-            immovable_rvo_collision_masks(CORE_TOWER_RVO_COLLIDER_PRIORITY);
+            immovable_rvo_collision_masks(TOWER_RVO_COLLIDER_PRIORITY);
         for building in &self.buildings {
             let construction = self
                 .construction_colliders

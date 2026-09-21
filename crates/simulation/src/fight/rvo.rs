@@ -167,7 +167,7 @@ pub(crate) struct AgentInput {
     /// avoiding it. A construction sinks for its own side: it is still among
     /// that side's neighbours, and yields them no velocity obstacle.
     pub(crate) passable_by_own_group: bool,
-    /// Native sampled-agent lock. Immovable core towers set this bit, which
+    /// Native sampled-agent lock. Immovable towers set this bit, which
     /// makes a movable neighbour take the full avoidance responsibility.
     pub(crate) locked: bool,
     /// Position published before native's current `BufferSwitch`. The

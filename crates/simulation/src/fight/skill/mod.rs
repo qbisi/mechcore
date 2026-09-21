@@ -443,10 +443,26 @@ impl Simulation {
             .skill
             .searched_this_tick = true;
 
-        let mut selected_candidate = self
-            .select_normal_target_with_order(actor_id, target_search_order, target_died_during_tick)
-            .map_err(|error| Error::new(format!("logic step {step} actor {actor_id}: {error}")))?;
-        if !target_died_during_tick
+        // With no enemy unit left, the idle search is the match's end: the
+        // selector would answer the defeated team's `FightCrystal`, and
+        // `Simulation::step` stands in for that tick (the terminal handoff).
+        let source_team = self.actors[&actor_id].placement.team;
+        let match_over = !self
+            .actors
+            .values()
+            .any(|candidate| candidate.placement.team != source_team && candidate.alive());
+        let mut selected_candidate = if match_over {
+            None
+        } else {
+            self.select_normal_target_with_order(
+                actor_id,
+                target_search_order,
+                target_died_during_tick,
+            )
+            .map_err(|error| Error::new(format!("logic step {step} actor {actor_id}: {error}")))?
+        };
+        if !match_over
+            && !target_died_during_tick
             && selected_candidate
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
@@ -746,17 +762,18 @@ impl Simulation {
         Ok(Flow::Next)
     }
 
-    /// The match's end hands a unit the defeated team's first core building
-    /// for one tick, and takes it back the tick after.
+    /// The match's end hands a unit one of the defeated team's towers
+    /// (`FightCrystal.IsTower`: its `EnergyTower` or `ResearchCenter`) for one
+    /// tick, and takes it back the tick after.
     fn release_terminal_handoff(&mut self, actor_id: u64) -> Flow {
         if matches!(
             self.actors[&actor_id].skill.lock_target,
             Some(FightActorRef::Building(_))
         ) && self.actors[&actor_id].skill.lock_is_terminal_handoff
         {
-            // The native terminal handoff exposes the defeated team's first
-            // core building for one tick. The following update consumes the
-            // already published displacement, then the tower teardown clears
+            // The native terminal handoff exposes one of the defeated team's
+            // towers for one tick. The following update consumes the already
+            // published displacement, then `FightCoreSystem.TryDstroyTower` clears
             // the transient lock before the terminal snapshot is written.
             let clear_velocity = self.terminal_drain_pending;
             let actor = self
