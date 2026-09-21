@@ -99,6 +99,11 @@ through, because the other side's units go through as well.
 blocks is held by them has not been measured, and neither has any construction
 other than the wall.
 
+**What a unit does once the block it was shooting falls is not established.**
+The tick after, its lock reads empty while its weapon still points at the block
+that is gone, and it does not go back to the unit behind the wall. Whether that
+lasts until the next search or ends sooner has not been separated.
+
 **A wall is never a target a unit looks for.** Across the ten recordings under
 `tests/layouts/construction/`, 931 ticks of which have a wall standing, a
 construction is a unit's lock target **zero** times and its attack target 1482
@@ -143,6 +148,12 @@ would have included.
 
 **The range does.** A Crawler reaches 6 metres and stops considering a wall
 beyond about 12; a Marksman reaches 140 and attacks one 96 metres away.
+
+**A block falls after the shot that felled it is recorded.** The three events
+one hit produces arrive in the order `damage`, `projectile_removed`,
+`building_destroyed`, and the destruction comes after *every* projectile the
+tick resolves, not after its own: a tick that lands two shots reads
+`damage`, `removed`, `removed`, `destroyed`.
 
 Both numbers are brackets rather than readings, from 25 decisions taken at the
 first tick of three fights across three unit types, plus 52 decisions from a

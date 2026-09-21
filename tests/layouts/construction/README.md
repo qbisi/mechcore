@@ -77,8 +77,8 @@ Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
 
-**What a unit does once the wall between it and its target is gone.** Every
-layout here is read at the first tick or at the end. The late phase of
-`wall-block.yaml`, where blocks are falling and aims go stale, is where the
-measured rule's residuals are, and nothing here separates a stale aim from a
-new decision.
+**What a unit does once the block it was shooting falls.** The tick after, the
+game reads an empty lock and a weapon still pointing at the block that is gone.
+`wall-line-tolerance.yaml` is where that shows: the simulator reproduces 17 of
+its 19 ticks and parts company in the bookkeeping after a block dies. The late
+phase of `wall-block.yaml` is the same question at scale.

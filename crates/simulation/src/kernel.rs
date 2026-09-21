@@ -51,6 +51,19 @@ const TARGET_QUADTREE_HALF_HEIGHT_Q32: i64 = 350 * Q32_ONE;
 const RVO_SIMULATOR_ORIGIN_OFFSET_Q32: i64 = 400 * Q32_ONE;
 const CORE_TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
 const SEARCH_TARGET_RESET_TICKS: i32 = 10;
+/// How far off the line of fire an enemy construction may stand and still take
+/// the shot, and how far past its reach an attacker still considers one, both
+/// in space units.
+///
+/// `docs/rules/constructions.md` carries the measurement. Twenty-five
+/// first-tick decisions over three unit types leave the width in
+/// `[10.7, 12.1]` metres and the allowance in `[6, 8]`; these are the numbers
+/// a wall's own `path_radius` of 7 and `radius` of 4 would give, which is a
+/// reading of the table rather than a measurement of the build. The width is
+/// not the attacker's: a Fang of radius 2 and a Marksman of radius 8 use the
+/// same one.
+const WALL_IN_THE_WAY_WIDTH: i64 = 11_000;
+const WALL_IN_THE_WAY_REACH: i64 = 7_000;
 
 #[derive(Debug, Clone, Copy)]
 struct RvoProfile {
@@ -476,6 +489,17 @@ struct Actor {
     current_attack_interval: u64,
     motion_attack_hold_fire: bool,
     lock_target: Option<FightActorRef>,
+    /// The wall standing between this actor and what its skill searched for,
+    /// with the target it searched for.
+    ///
+    /// A recording keeps the two apart and so does the build: the mech's lock
+    /// stays the unit behind the wall while the weapon points at the block in
+    /// the way. `lock_target` is the block, because everything a fight does
+    /// with a target — range, motion, firing, damage — it does with the block;
+    /// this remembers what the lock would otherwise be, and only for as long
+    /// as `lock_target` is still that block. Any other assignment to
+    /// `lock_target` retires it without anyone having to clear it.
+    in_the_way: Option<(u64, FightActorRef)>,
     lock_is_terminal_handoff: bool,
     fight_skill_search_target_time: i32,
     fight_skill_searched_this_tick: bool,
@@ -576,6 +600,7 @@ impl Actor {
             current_attack_interval: 0,
             motion_attack_hold_fire: false,
             lock_target: None,
+            in_the_way: None,
             lock_is_terminal_handoff: false,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
@@ -598,6 +623,19 @@ impl Actor {
 
     fn alive(&self) -> bool {
         self.life > 0
+    }
+
+    /// What the mech is locked onto, which is not always what its weapon
+    /// points at: a wall in the way takes the weapon and leaves the lock.
+    fn mech_lock_target(&self) -> Option<FightActorRef> {
+        match self.in_the_way {
+            Some((building, behind))
+                if self.lock_target == Some(FightActorRef::Building(building)) =>
+            {
+                Some(behind)
+            }
+            _ => self.lock_target,
+        }
     }
 
     fn mechanical_lock_target(&self) -> Option<FightActorRef> {
@@ -745,7 +783,7 @@ impl Actor {
                 z: self.current_velocity_z_q32,
             },
             motion_state: self.motion,
-            mech_lock_target: self.lock_target.map(FightActorRef::object_ref),
+            mech_lock_target: self.mech_lock_target().map(FightActorRef::object_ref),
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
@@ -1371,6 +1409,7 @@ impl Simulation {
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
+            self.engage_wall_in_the_way(actor_id);
         }
         Ok(())
     }
@@ -1885,6 +1924,77 @@ impl Simulation {
         best.map(|(building_id, _)| building_id)
     }
 
+    /// Points this actor's weapon at the wall in its way, if one is.
+    ///
+    /// `FightSkill.SearchAttackTarget` asks `WallConstructionTargetChecker`
+    /// after it has a target, so this is called wherever a search settles.
+    /// The lock it found is remembered and the block takes its place; nothing
+    /// happens when no enemy construction stands in the line, which is every
+    /// fight that places none.
+    fn engage_wall_in_the_way(&mut self, actor_id: u64) {
+        let Some(target @ FightActorRef::Unit(_)) = self.actors[&actor_id].lock_target else {
+            // A search that already chose a building is not redirected: the
+            // measurement is a wall taking the place of a unit.
+            return;
+        };
+        let Some(building) = self.wall_in_the_way(actor_id, target) else {
+            return;
+        };
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.in_the_way = Some((building, target));
+        actor.lock_target = Some(FightActorRef::Building(building));
+    }
+
+    /// Which enemy construction stands between this actor and its target.
+    ///
+    /// `docs/rules/constructions.md` states the rule and the readings behind
+    /// it: of the enemy's constructions, the ones near enough to be considered
+    /// and near enough to the line of fire, the **nearest to the attacker** —
+    /// not the nearest construction and not the one nearest the line.
+    fn wall_in_the_way(&self, actor_id: u64, target: FightActorRef) -> Option<u64> {
+        let actor = self.actors.get(&actor_id)?;
+        let aimed = self.fight_actor(target)?;
+        let reach = space_to_q32(
+            actor
+                .stats
+                .attack_range()
+                .saturating_add(WALL_IN_THE_WAY_REACH),
+        );
+        let width = space_to_q32(WALL_IN_THE_WAY_WIDTH);
+        let mut nearest: Option<(i64, u64)> = None;
+        for building in &self.buildings {
+            if building.building_type_id != CONSTRUCTION_BUILDING_TYPE
+                || building.team_id == actor.placement.team
+                || !building_alive(building)
+                || !building.targetable
+            {
+                continue;
+            }
+            let distance = magnitude(
+                building.position.x.saturating_sub(actor.x_q32),
+                building.position.z.saturating_sub(actor.z_q32),
+            );
+            if distance > reach {
+                continue;
+            }
+            if distance_to_segment_q32(
+                (actor.x_q32, actor.z_q32),
+                (aimed.x_q32, aimed.z_q32),
+                (building.position.x, building.position.z),
+            ) > width
+            {
+                continue;
+            }
+            if nearest.is_none_or(|(best, _)| distance < best) {
+                nearest = Some((distance, building.building_id));
+            }
+        }
+        nearest.map(|(_, building_id)| building_id)
+    }
+
     /// The selector, restricted to units. A test asks for one; the fight
     /// itself takes whatever stands nearest, buildings included.
     #[cfg(test)]
@@ -2364,6 +2474,7 @@ impl Simulation {
         actor.lock_target = selected;
         actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         actor.retarget_after_own_direct_kill = false;
+        self.engage_wall_in_the_way(actor_id);
         Ok(())
     }
 
@@ -4337,17 +4448,7 @@ impl Simulation {
             if destroyed {
                 building.targetable = false;
             }
-            if destroyed {
-                events.push(event(
-                    Some(target_ref),
-                    None,
-                    None,
-                    None,
-                    EventPayload::BuildingDestroyed {
-                        position: building.position,
-                    },
-                ));
-            }
+            let destroyed_at = building.position;
             if actual_damage > 0 {
                 events.push(event(
                     None,
@@ -4374,6 +4475,20 @@ impl Simulation {
                     absorbed_by: None,
                 },
             ));
+            // A building falls after the shot that felled it has been
+            // recorded, which is the order both wall recordings hold:
+            // `damage`, then `projectile_removed`, then `building_destroyed`.
+            if destroyed {
+                events.push(event(
+                    Some(target_ref),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed {
+                        position: destroyed_at,
+                    },
+                ));
+            }
             return Ok(());
         }
         // FightProjectile.Init narrows a dual-domain skill to the actual
@@ -4930,6 +5045,36 @@ const fn unit_height(domain: UnitDomain) -> i64 {
         UnitDomain::Ground => 0,
         UnitDomain::Air => AIR_UNIT_HEIGHT,
     }
+}
+
+/// How far a point lies from a segment, in the fixed point the fight holds.
+///
+/// The build asks `LineRange.Overlaps(CircleRange)`, a rectangle from the
+/// attacker to its target against a circle on the construction. This is the
+/// same test written as a distance, which is what makes it one comparison
+/// against a measured width.
+fn distance_to_segment_q32(from: (i64, i64), to: (i64, i64), point: (i64, i64)) -> i64 {
+    let (dx, dz) = (
+        i128::from(to.0) - i128::from(from.0),
+        i128::from(to.1) - i128::from(from.1),
+    );
+    let (px, pz) = (
+        i128::from(point.0) - i128::from(from.0),
+        i128::from(point.1) - i128::from(from.1),
+    );
+    let length = dx * dx + dz * dz;
+    if length == 0 {
+        return magnitude(
+            i64::try_from(px).unwrap_or(i64::MAX),
+            i64::try_from(pz).unwrap_or(i64::MAX),
+        );
+    }
+    let along = (px * dx + pz * dz).clamp(0, length);
+    let (nearest_x, nearest_z) = (dx * along / length, dz * along / length);
+    magnitude(
+        i64::try_from(px - nearest_x).unwrap_or(i64::MAX),
+        i64::try_from(pz - nearest_z).unwrap_or(i64::MAX),
+    )
 }
 
 fn magnitude(x: i64, z: i64) -> i64 {
