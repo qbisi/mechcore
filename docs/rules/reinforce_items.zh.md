@@ -6,7 +6,7 @@
 拿一张会改变什么、以及它要花多少钱。目录本身是机器可读的，放在 `config/` 下。
 
 证据是本机 Steam 安装里本地录下的排位录像，哪些录像可用由
-`replay/grbr/README.md` 说明。
+`replay/README.md` 说明。
 
 ## 五类卡
 

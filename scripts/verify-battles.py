@@ -10,9 +10,11 @@ reports up by field group and lists every unequal leaf.
 The exit status is 0 only when every battle verifies, which needs no unequal
 and no unimplemented leaf anywhere. CI runs it on every push and pull request.
 
-Run from anywhere inside the checkout, after a release build:
+Run from anywhere inside the checkout, after a release build and a corpus
+fetch:
 
     cargo build --release -p mechcore
+    python3 scripts/replay.py sync
     python3 scripts/verify-battles.py
     python3 scripts/verify-battles.py --json > coverage.json
 """
@@ -36,7 +38,12 @@ def parse_arguments(root: Path) -> argparse.Namespace:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--mechcore", type=Path, default=root / "target/release/mechcore")
-    parser.add_argument("--battle-dir", type=Path, default=root / "replay/battle")
+    parser.add_argument(
+        "--battle-dir",
+        type=Path,
+        default=root / "work/replay/replays/1.11.1.3.2259/battle",
+        help="the corpus build's battle/, as scripts/replay.py sync fetches it",
+    )
     parser.add_argument(
         "--json",
         action="store_true",

@@ -8,7 +8,7 @@ taking one changes, and what it costs. The catalogues themselves are machine
 readable and live in `config/`.
 
 Evidence is the locally recorded ranked replays of this machine's Steam
-installation, and `replay/grbr/README.md` explains which replays are usable.
+installation, and `replay/README.md` explains which replays are usable.
 
 ## The five kinds
 

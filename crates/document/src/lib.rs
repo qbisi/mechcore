@@ -336,7 +336,7 @@ red:
     ///
     /// A fixture lives beside the scripts that use it, so layouts are spread
     /// over one directory per topic under `tests/`, and the rest are in
-    /// `layouts/` and `replay/layout/`; a file is one when it says so.
+    /// `layouts/`; a file is one when it says so.
     fn tracked_layouts(directory: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
         for entry in std::fs::read_dir(directory).expect("tracked fixture directory") {
             let path = entry.expect("directory entry").path();

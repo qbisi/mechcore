@@ -6,7 +6,7 @@ script measures both halves. `BattleInfo` and each `PlayerRecord.data` say what
 is invariant across rounds, and consecutive `playerRoundRecords` say which side
 quantities can only move one way.
 
-`replay/grbr/README.md` explains which replays are usable and why the downloaded
+`replay/README.md` explains which replays are usable and why the downloaded
 ones are not.
 
     python3 scripts/battle_invariant_support.py

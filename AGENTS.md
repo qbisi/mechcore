@@ -10,10 +10,9 @@
 这些 readme 写的是所在目录的准入规则，从文件本身看不出来，而且往往正好禁止
 了 agent 默认会做的事。例如：
 
-- `replay/grbr/README.md`：录像是原样拷贝的，不许重写或规范化，哈希一致本身
-  就是 fixture 契约的一部分；
-- `replay/battle/README.md`：里面的 YAML 只能由 `mechcore replay convert` 重新生成，
-  不许手改。值不对是转换器的问题，改 `crates/document/src/convert.rs`；
+- `replay/README.md`：录像和转换出的对局文档不在这个仓库里，在 `mechcore-replay`，
+  这里只钉一个 commit（`REPLAY_REV`），`scripts/replay.py sync` 取到 `work/replay/`；
+  录像不许重写，对局文档只能由转换器生成，值不对改 `crates/document/src/convert.rs`；
 - `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；
 - `work/research/README.md`：一个数值要拿什么才算有据，什么看着像证据其实
@@ -36,9 +35,10 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 - `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
   `cargo clippy -D warnings`、`cargo test`，都是
   `--workspace --exclude mechcore-adapter --no-default-features`。
-- `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——fixture 哈希、
-  重新生成 `replay/battle` 并要求结果没有差异、把每一份被跟踪的 `.mcscript` 过一遍
-  `--check` 并**实际运行其中不需要游戏的那些**、`scripts/verify-battles.py`。
+- `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——按
+  `replay/REPLAY_REV` 取回 `mechcore-replay` 的语料并核对它的哈希、用当前转换器把语料
+  再转一遍并要求逐字节一致、把每一份被跟踪的 `.mcscript` 过一遍 `--check` 并
+  **实际运行其中不需要游戏的那些**、`scripts/verify-battles.py`。
 - `adapter`（macOS）：只查别处查不了的——Adapter 自己的 clippy 和测试、默认
   feature 下 `mechcore` 把 dylib 打包到可执行文件旁边、以及找游戏进程的那段 macOS
   代码。
@@ -47,7 +47,8 @@ Adapter 是 `mechcore` 的默认 feature `adapter`；只有它需要 macOS，关
 （`--no-default-features`）整个 CLI 在任何平台都能构建和测试。所以新代码若只在
 macOS 上成立，要用 `cfg(target_os = "macos")` 隔开，不然 Linux 上的 job 会失败。
 
-`scripts` 里重新生成语料那条意味着改了转换器就必须在同一次提交里重新生成语料；跑离线
+`scripts` 里再转一遍语料那条意味着改了转换器就得把 `mechcore-replay` 的 `MECHCORE_REV`
+推到这次改动、再把 `REPLAY_REV` 跟上，不然 CI 过不去；跑离线
 脚本那条意味着一份离线脚本里的断言和一份测试同等有效，`tests/modifier/regressions.mcscript`
 就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
 

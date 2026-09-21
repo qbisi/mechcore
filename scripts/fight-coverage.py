@@ -54,7 +54,7 @@ def rounds_of(battle: pathlib.Path) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", default="target/debug/mechcore")
-    parser.add_argument("--battles", default="replay/battle")
+    parser.add_argument("--battles", default="work/replay/replays/1.11.1.3.2259/battle")
     arguments = parser.parse_args()
     binary = REPOSITORY / arguments.binary
     if not binary.exists():
