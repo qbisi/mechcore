@@ -496,6 +496,17 @@ the class of the skill's current `SkillStateController` state
 reads `FightSkillBase.IsIdle`. All three are plain field reads at the snapshot
 boundary; they are null for a skill that is not a `FightSkill`.
 
+The `skill_attackable_checker_v1` profile records every call of
+`SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
+row closes, in call order: the skill's owner, `is_attacking_check`, the skill's
+lock, attack target, state and attack phase read just `before` the call and
+just `after` it, and what it returned. The method is hooked the way the RVO and
+selector methods are — its first four arm64 instructions, `sub sp` and three
+`stp`, are stack-only and move to a trampoline unchanged — and is forwarded
+with its arguments and result untouched; the reads on either side are field
+reads, with no managed call. A recording made with it is byte-identical to one
+made without it.
+
 The Adapter requires `main_menu` and passes the requested round unchanged to
 the native `PlayReplayCommand.Execute(IReplay, startRound)` argument. Replay
 `Match.get_RoundCount()` must read back the same value before capture is armed.
