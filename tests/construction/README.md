@@ -33,9 +33,11 @@ simulator to the physics hash the game produced for `wall-aside.yaml`,
 
 A physics hash does not cover a unit's lock, its weapons' targets or its motion
 state, which are content-layer fields, so a matching hash does not say they
-match. Compared field by field, they agree on every tick of `wall-aside.yaml`
-and `wall-weapon-group.yaml`, and on all but one of the other two — the tick
-after a block falls, below.
+match. Compared field by field, they agree on every tick of all four:
+`line-of-fire.mcscript` simulates each fight it records and holds the lock, the
+weapons' target and the motion state to the game's with `fight.compare`. What
+the content layer still differs in is `derived.current_attack_interval`, the
+per-cycle stagger `tests/interval/` measures, and nothing that is the wall's.
 
 The three `wall-line-*` layouts are read by which block ends up destroyed,
 because that is what a reader answers. The decision itself — a unit whose lock
@@ -86,13 +88,10 @@ Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
 
-**What a unit with a body does once the block it was shooting falls.** The tick
-after, a Marksman reads an empty lock, an idle motion state and a weapon still
-pointing at the block that is gone; the simulator does not. The Wraith, which
-has no body and a group of weapons, is reproduced through the same moment: its
-lock and all four slots empty for a tick, then back to the unit behind the wall.
-Only the content layer sees the Marksman's tick, because both fights end within
-it.
+**How long a unit stays idle once its block falls.** That it goes idle, drops
+its lock and keeps the fallen block in its weapon is reproduced. How long it
+stays so is not: the two recordings where it lasts more than a tick carry a
+Farseer and a Fortress, which the simulator cannot run.
 
 **A splash that reaches across a wall.** A shot at a block splashes the enemy
 buildings around it, and that is measured and reproduced. Two neighbouring

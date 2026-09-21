@@ -155,12 +155,16 @@ architecture.md 的 Unresolved 里。
   字段定义写进了 `docs/spec/mcfr/mcfr.md` 的"What a unit is directed at"，测量写进了
   `docs/rules/combat.md`。物理层和拆开前逐位相同。
 - **物理对上不等于锁定对上。** `mech_lock_target`、`weapon_aims`、`motion_state` 是
-  内容层字段，物理哈希不看；而 `content_equal` 在每份录像上都是 false（连不放墙的也
-  是，老问题），所以离线回归**钉不住**这些字段。这次是写了个逐 tick 对比才看见的：
-  line-of-fire 20 里对 19、line-tolerance 19 里对 18、aside 91 全对。
-- **墙块倒下那一 tick 之后怎么办。** 游戏：下一 tick 进 Idle、锁定变空；射手的武器还
-  报着倒掉的那块，幽灵（成组武器）则四个位全清空，**一个 tick 后**回到墙后那个单位。
-  模拟器当场就重新交战。上面那两个"差一 tick"就是它。
+  内容层字段，物理哈希不看，所以离线回归**钉不住**这些字段。`fight compare` 现在按
+  字段组逐 tick 报差异，`content_equal` 在每份录像上都是 false 的原因也就看清了：
+  墙战斗里只剩 `derived.current_attack_interval`（`tests/interval/` 那个错开），
+  跟墙无关。
+- ~~**墙块倒下那一 tick 之后怎么办。**~~ 做了：单位打倒正在打的那块墙之后，下一 tick
+  进 Idle、锁定清空、武器还报着倒掉的那块，之后才重新找目标；武器组照旧整组清空。
+  模拟器以前当场就去打下一块。现在三场能跑的墙战斗，锁定、武器目标、运动状态逐 tick
+  全对（`fight compare --fields` 看的），`line-of-fire.mcscript` 录完就拿模拟器比这三项。
+- **墙块倒了之后空闲多久。** 能看出长度的两份录像（4 tick、10 tick）带着 Farseer 和
+  堡垒，模拟器跑不了，所以长度由什么决定还没分开。
 - ~~**成组武器的其余武器位打墙。**~~ 做了：每个位分配到的仍是单位，挡路检查在分配之
   后按位替换"这个位打什么"；锁定丢掉时整个武器组一起清空。`wall-weapon-group` 从第
   40 tick 推到第 93 tick。之前以为"同一 tick 打两块墙＝各个位各自判断"，其实是**溅射**。
