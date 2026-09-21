@@ -730,11 +730,11 @@ mod tests {
     use crate::convert::battle_from_grbr;
     use crate::economy::Economy;
 
-    const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
+    const TUFF: &str = "../../replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
 
     fn battles() -> Vec<crate::battle::Battle> {
         let mut out = Vec::new();
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;
@@ -760,7 +760,7 @@ mod tests {
     #[test]
     fn the_seed_reaches_the_state_the_opening_round_recorded() {
         let mut reached = 0;
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;
@@ -951,7 +951,7 @@ mod tests {
     /// Nothing but a battle takes this path.
     #[test]
     fn a_layout_is_not_a_battle() {
-        let layout = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml").unwrap();
+        let layout = std::fs::read("../../replay/layout/tuff-replay-round-7.yaml").unwrap();
         assert!(stated(&layout).unwrap().is_none());
         assert!(stated(b"not a document at all").unwrap().is_none());
     }

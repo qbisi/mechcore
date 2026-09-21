@@ -178,7 +178,7 @@ fn readable(record: &record::BattleRecord) -> Result<(), String> {
     if record.seat < 0 {
         return Err(
             "replay was downloaded from the server, whose snapshots are reconstructions; \
-             see tests/grbr/README.md"
+             see replay/grbr/README.md"
                 .into(),
         );
     }
@@ -1110,13 +1110,13 @@ mod tests {
             [moved(7, 100, -100), moved(7, -330, 200)]
         );
     }
-    const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
-    const CAINE: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
-    const CRBN: &str = "../../tests/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
+    const TUFF: &str = "../../replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
+    const CAINE: &str = "../../replay/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
+    const CRBN: &str = "../../replay/grbr/2259_20260911--67398165_[Dr. crbN]VS[trevorism].grbr";
     const READING: &str =
-        "../../tests/grbr/2259_20260910--134505087_[Dr.Reading♠Ace]VS[Burned My Tongue].grbr";
-    const BORK: &str = "../../tests/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
-    const THORRRIN: &str = "../../tests/grbr/2259_20260911--134508150_[Thorrrin]VS[占星].grbr";
+        "../../replay/grbr/2259_20260910--134505087_[Dr.Reading♠Ace]VS[Burned My Tongue].grbr";
+    const BORK: &str = "../../replay/grbr/2259_20260901--201562557_[crower]VS[[BORK]  Caine].grbr";
+    const THORRRIN: &str = "../../replay/grbr/2259_20260911--134508150_[Thorrrin]VS[占星].grbr";
 
     fn tuff() -> super::Battle {
         battle_from_grbr(&std::fs::read(TUFF).expect("tracked GRBR fixture")).unwrap()
@@ -1124,7 +1124,7 @@ mod tests {
 
     /// The one player-round that names the two fixed towers apart.
     ///
-    /// `tests/layouts/tuff-replay-round-7.yaml` was captured from the game while
+    /// `replay/layout/tuff-replay-round-7.yaml` was captured from the game while
     /// this replay played, and the record keys the same two levels by
     /// building-manager position. Red bought both of its strengthenings in round
     /// 5, so the round's start and its deployment end hold the same levels and
@@ -1142,7 +1142,7 @@ mod tests {
             .iter()
             .find(|turn| turn.round == 7)
             .expect("the replay reaches round 7");
-        let bytes = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml")
+        let bytes = std::fs::read("../../replay/layout/tuff-replay-round-7.yaml")
             .expect("tracked layout fixture");
         let layout = crate::layout::parse_yaml(&bytes).expect("a valid layout");
         // Normal form omits an all-zero list, which the state still writes.
@@ -1312,7 +1312,7 @@ mod tests {
 
     #[test]
     fn formations_match_the_layout_projection_of_the_same_round() {
-        // tests/layouts/tuff-replay-round-7.yaml is the position round 7 ends
+        // replay/layout/tuff-replay-round-7.yaml is the position round 7 ends
         // in, so its roster is the round 8 snapshot.
         let battle = tuff();
         let blue = &round(&battle, 8).state.blue;
@@ -1440,7 +1440,7 @@ mod tests {
             }
         }
         let mut standing = Vec::new();
-        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
+        for entry in std::fs::read_dir("../../replay/grbr").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;
@@ -1560,7 +1560,7 @@ mod tests {
     fn the_recorded_energy_tower_list_is_the_previous_rounds_debt() {
         let mut deferred = 0;
         let mut immediate = 0;
-        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
+        for entry in std::fs::read_dir("../../replay/grbr").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;

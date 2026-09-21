@@ -1428,7 +1428,7 @@ mod tests {
         let (mut fits, mut cards) = (0, 0);
         let mut held = 0;
         let mut refused = Vec::new();
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;
@@ -2005,7 +2005,7 @@ mod tests {
         let (mut side_rounds, mut travelled, mut formations) = (0, 0, 0);
         let mut widest = 0;
         let mut first_round = i32::MAX;
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;

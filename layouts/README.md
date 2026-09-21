@@ -1,9 +1,13 @@
 # Layout fixtures
 
-Each file is a layout document as [layout.md](../../docs/spec/document/layout.md)
+Each file is a layout document as [layout.md](../docs/spec/document/layout.md)
 defines it, used as input to `apply_layout` against the live game, to
 `mechcore fight run`, or to both. A fixture is a scenario someone chose, so the
 reason it exists belongs with it.
+
+These are the layouts built by hand that no script uses. One a script reads
+lives with it, in its topic directory under [`../tests/`](../tests/README.md);
+one converted from a replay is in [`../replay/layout/`](../replay/README.md).
 
 Most files here are named for what they contain and need no further
 explanation. The ones below were built to exercise a specific native path, and
@@ -18,10 +22,10 @@ side-local coordinates that compile back to R002's recorded world positions.
 Magnetic Barrier is absent because it is not part of that opening group, and
 because this build cannot place one: a layout compiles it and the release is
 then refused by the game, as
-[constructions.md](../../docs/rules/constructions.md#where-the-objects-stand)
+[constructions.md](../docs/rules/constructions.md#where-the-objects-stand)
 records.
 
-[`../construction/`](../construction/README.md) is the directory that
+[`../construction/`](../tests/construction/README.md) is the directory that
 measures what a construction becomes; this one is where a construction appears
 inside a fixture built for something else.
 

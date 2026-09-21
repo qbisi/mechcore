@@ -332,10 +332,11 @@ red:
         assert_eq!(once.clone().normalized(), once);
     }
 
-    /// Every layout under `tests/`, wherever its topic keeps it.
+    /// Every layout under `directory`, wherever its topic keeps it.
     ///
     /// A fixture lives beside the scripts that use it, so layouts are spread
-    /// over one directory per topic; a file is one when it says so.
+    /// over one directory per topic under `tests/`, and the rest are in
+    /// `layouts/` and `replay/layout/`; a file is one when it says so.
     fn tracked_layouts(directory: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
         for entry in std::fs::read_dir(directory).expect("tracked fixture directory") {
             let path = entry.expect("directory entry").path();
@@ -354,9 +355,11 @@ red:
 
     #[test]
     fn tracked_layouts_are_normal_and_normalize_idempotently() {
-        let directory = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests");
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
         let mut paths = Vec::new();
-        tracked_layouts(std::path::Path::new(directory), &mut paths);
+        for directory in ["tests", "layouts", "replay"] {
+            tracked_layouts(&std::path::Path::new(root).join(directory), &mut paths);
+        }
         let mut checked = 0;
         for path in paths {
             let bytes = std::fs::read(&path).expect("readable layout");
@@ -379,7 +382,7 @@ red:
             );
             checked += 1;
         }
-        assert!(checked > 0, "no tracked layouts were read from {directory}");
+        assert!(checked > 0, "no tracked layouts were read from {root}");
     }
 
     #[test]

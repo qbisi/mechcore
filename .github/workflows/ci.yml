@@ -70,27 +70,27 @@ jobs:
           key: cargo-scripts-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: cargo-scripts-${{ runner.os }}-
 
-      # The replays are byte-exact fixtures: `tests/grbr/README.md` makes hash
+      # The replays are byte-exact fixtures: `replay/grbr/README.md` makes hash
       # equality part of the contract, and the battle documents are generated
       # from them, so a hand-edited one would otherwise pass unnoticed.
       - name: Fixtures are the bytes they claim to be
         run: |
-          shasum -c tests/grbr/SHA256SUMS
-          shasum -c tests/battle/SHA256SUMS
+          shasum -c replay/grbr/SHA256SUMS
+          shasum -c replay/battle/SHA256SUMS
 
       - name: Release build, without the Adapter
         run: cargo build --release -p mechcore --no-default-features
 
       # A converter change that nobody regenerated the corpus for leaves
-      # `tests/battle` describing an older converter. Regenerating has to be a
+      # `replay/battle` describing an older converter. Regenerating has to be a
       # no-op on a tree that is up to date.
       - name: The battle corpus is what this converter writes
         run: |
           python3 scripts/export-replay-corpus.py
-          if [ -n "$(git status --porcelain -- tests/battle)" ]; then
-            echo "tests/battle is stale; regenerate it in the same commit:" >&2
-            git status --porcelain -- tests/battle >&2
-            git --no-pager diff -- tests/battle >&2
+          if [ -n "$(git status --porcelain -- replay/battle)" ]; then
+            echo "replay/battle is stale; regenerate it in the same commit:" >&2
+            git status --porcelain -- replay/battle >&2
+            git --no-pager diff -- replay/battle >&2
             exit 1
           fi
 

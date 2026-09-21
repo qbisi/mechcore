@@ -36,7 +36,7 @@ def parse_arguments(root: Path) -> argparse.Namespace:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--mechcore", type=Path, default=root / "target/release/mechcore")
-    parser.add_argument("--battle-dir", type=Path, default=root / "tests/battle")
+    parser.add_argument("--battle-dir", type=Path, default=root / "replay/battle")
     parser.add_argument(
         "--json",
         action="store_true",

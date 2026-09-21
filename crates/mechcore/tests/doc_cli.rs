@@ -292,7 +292,7 @@ impl BattleFixture {
     fn new() -> Self {
         use serde::Deserialize;
         let source = include_str!(
-            "../../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"
+            "../../../replay/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"
         );
         let original = serde_yaml::Deserializer::from_str(source)
             .map(|document| serde_yaml::Value::deserialize(document).unwrap())
@@ -431,7 +431,7 @@ fn battle_verification_reads_fields_outside_the_deal() {
 fn every_key_a_tracked_battle_writes_is_in_its_kind_schema() {
     let battle = fs::read_to_string(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"),
+            .join("../../replay/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml"),
     )
     .unwrap();
     let segments: Vec<serde_yaml::Value> = serde_yaml::Deserializer::from_str(&battle)
@@ -532,7 +532,7 @@ fn project_writes_a_layout_that_verifies() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("round-3.yaml");
     let battle = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml");
+        .join("../../replay/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml");
     let projected = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["doc", "project"])
         .arg(&battle)

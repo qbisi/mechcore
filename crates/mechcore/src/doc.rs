@@ -110,7 +110,7 @@ fn project(mut arguments: Args) -> Outcome {
 ///
 /// ```text
 /// mechcore doc verify layout.yaml
-/// ls tests/battle/*.yaml | mechcore doc verify
+/// ls replay/battle/*.yaml | mechcore doc verify
 /// ```
 ///
 /// One report per input goes to standard output, one JSON object per line, a
