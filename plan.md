@@ -150,6 +150,10 @@ architecture.md 的 Unresolved 里。
   立），线宽 11 米是常数，**技能每个空闲 tick 都在问**（不是锁定那十 tick 的搜索）。
   物理层逐 tick 对上：`wall-line-of-fire` 20/20、`wall-line-tolerance` 19/19、
   `wall-aside` 91/91。
+- ~~**本体和武器拆开。**~~ 做了：`lock_target` 永远是本体目标（朝它走、有身体的朝着
+  它），武器的目标由 `Actor::attack_target()` 派生（有墙挡着就是墙，否则就是锁定）。
+  字段定义写进了 `docs/spec/mcfr/mcfr.md` 的"What a unit is directed at"，测量写进了
+  `docs/rules/combat.md`。物理层和拆开前逐位相同。
 - **物理对上不等于锁定对上。** `mech_lock_target`、`weapon_aims`、`motion_state` 是
   内容层字段，物理哈希不看；而 `content_equal` 在每份录像上都是 false（连不放墙的也
   是，老问题），所以离线回归**钉不住**这些字段。这次是写了个逐 tick 对比才看见的：

@@ -156,8 +156,8 @@ death survives as a `unit_died` event.
 | `position` | `QVec3 required` | world coordinates | FightTransform `GetPositionInt3D()` |
 | `body_rotation` | `INT64 required` | body facing, Q32.32 raw | FightTransform `GetRotationInt()` |
 | `velocity` | `QVec3 required` | current velocity | MotionController native velocity |
-| `motion_state` | `UINT8 required` | idle, moving, attacking, stopped | native motion state machine mapping |
-| `mech_lock_target` | nullable `ObjectRef` | what the FightMech has locked | `FightMech.lockTarget` |
+| `motion_state` | `UINT8 required` | idle, moving, attacking, stopped; [below](#what-a-unit-is-directed-at) | native motion state machine mapping |
+| `mech_lock_target` | nullable `ObjectRef` | what the unit's body is directed at; [below](#what-a-unit-is-directed-at) | `FightMech.lockTarget` |
 | `collision_radius` | `INT64 required` | collision radius, Q32.32 raw | `FightMech.GetRadius()` |
 | `life` | `GaugeI32 required` | current and maximum life | `GetLife()` / `GetMaxLife()` |
 | `active` | `BOOLEAN required` | current activation | `get_IsActive()` |
@@ -349,6 +349,41 @@ null position and null rotation together, never one of the two.
 The list is strictly ascending by `(skill_slot, weapon_index)`. It enumerates
 weapon channels independently, so it may carry a skill slot that the sparse
 `skill_dynamic_modifiers` omits.
+
+### What a unit is directed at
+
+Three fields answer three different questions about a unit's intent, and a
+reader who takes any one of them for another misreads the fight.
+
+| Field | Answers | Owned by |
+| --- | --- | --- |
+| `mech_lock_target` | what the unit's **body** is directed at | the mech |
+| `weapon_aims[].attack_target` | what each **weapon channel** fires at | the skill that owns the channel |
+| `motion_state` | whether the body is travelling, holding to attack, idle or stopped | the mech's motion state machine |
+
+**`mech_lock_target` is the body's target.** It is what the mech's own search
+found: the unit moves toward it while `moving`, and a unit with a body keeps
+its body facing it while `attacking`. It is not a statement about what is being
+shot at, and it is null when the mech holds no target.
+
+**`attack_target` is the weapon's target.** It is what the owning skill fires
+that channel at, and it may differ from `mech_lock_target`: a skill hands its
+weapons an object standing in the line of fire while the mech keeps its lock,
+and the channels of one grouped skill may each hold a different target. A unit
+without a body has no facing of its own apart from its weapon's, so its
+`body_rotation` follows its attack target rather than its lock.
+
+**`motion_state` follows the attack target, not the lock.** `attacking` means a
+weapon's attack target is within reach and the body has stopped for it; `moving`
+is the only state in which the body travels, and it travels toward
+`mech_lock_target`. A unit can therefore be `attacking` while its lock is out of
+reach, whenever something it can shoot stands in reach in front of it.
+
+A capture records all three as the native objects report them and derives none
+from another, which is what lets a reader compare them. They are content-layer
+fields: the physics layer excludes them (see
+[the physics layer](#the-stable-physics-layer-battle-physics-v1)), so a fight
+whose physics matches can still disagree in them.
 
 ## Projectiles
 

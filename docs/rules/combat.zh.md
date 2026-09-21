@@ -107,6 +107,39 @@ build `1.11.1.3.2259` 上，战斗核心在一个 tick 内做了什么。
 
 **未覆盖。** 所有方向上的 `Normalize -> Angle -> RawAcos`，以及边界取整。
 
+## 本体跟锁定走，武器跟攻击目标走
+
+单位有两个目标，build 把它们分开放：机甲的锁定（`FightMech.lockTarget`，录像里是
+`mech_lock_target`）和每个技能的攻击目标（`GetAttackTarget()`，录像里按武器通道记在
+`weapon_aims`）。字段定义见 [mcfr.md](../spec/mcfr/mcfr.md#what-a-unit-is-directed-at)，
+这里是量出来它们做了什么。普通战斗里两者一致；有敌方工事挡在射线上时才会分开，下面
+每个读数都是在这种情况下取的。
+
+**本体朝锁定行进。** `moving` 时，速度方向和指向锁定目标的方向之间的夹角，每个兵种
+的中位数都不到 1°：射手 0.7°、77 个样本全部在 5° 以内，幽灵 108 个样本 0.0°，爬虫
+9814 个 0.8°，毒牙 215 个 0.8°。偏得更远的爬虫和毒牙是成群被邻居推着走。
+
+**走不走由攻击目标决定。** 只要有攻击目标在射程内，单位就进入 `attacking`，不管锁定
+是什么：墙的录像里有 1429 个 unit-tick 是锁定够不着、墙够得着，单位在 `attacking`
+打墙。`MotionAttackState.Enter` 调用 `RVOControllerFixed.StopMove`，而只有
+`MotionMoveState` 调用 `MotionController.Move`，所以没有一个状态既行进又开火。单只单
+位在 `attacking` 时每 tick 位移正好是 0，打单位和打工事都一样。已经发布出去的速度会
+一直生效到下一次 RVO 发布：一只幽灵进入攻击后，又以满速 0.5 米走了 5 个 tick 才停。
+
+**有身体的朝锁定，没身体的朝攻击目标。** 打工事时，射手（`has_body: true`）的身体一
+直对着墙后那个单位：离锁定方向 0.0°、离它正在打的那块墙 6.6°，95 个 tick 里 95 个
+更接近锁定。`MotionAttackState.AttackRotate` 先问 `FightMech.IsHaveBody` 再
+`RotateBodyTo`，有身体的单位在攻击时只转武器。没身体的单位——毒牙、爬虫、幽灵——把
+根节点转向攻击目标：可判定的 tick 里分别是 328 中 311、1034 中 850、54 中 52 更接近攻
+击目标。
+
+**不覆盖。** `MotionMoveState.Update` 进入攻击前问的是哪个接口槽位：调用经过索引认不
+出名字的槽位，所以"攻击目标在射程内"是录像和 `IAttacker` 的形状——
+`IsAttackTargetInAttackRange` 和 `GetLockTarget` 并列——告诉我们的，不是读出来的方法
+体。射手的武器在录像里没有姿态，看不到它的枪口角度，只看得到弹丸打到了工事。以上读数
+都是 build 的；`crates/simulation/src/kernel.rs` 用 `lock_target` 和
+`Actor::attack_target` 实现这一拆分。
+
 ## 普通目标评分与战前索敌
 
 在当前可见、已完成转向、四叉树未分裂的普通地面目标中，且最优解唯一时，本 build 按

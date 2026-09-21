@@ -128,8 +128,8 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `position` | `QVec3 required` | 世界坐标 | FightTransform `GetPositionInt3D()` |
 | `body_rotation` | `INT64 required` | 机体朝向，Q32.32 raw | FightTransform `GetRotationInt()` |
 | `velocity` | `QVec3 required` | 当前速度 | MotionController 原生速度 |
-| `motion_state` | `UINT8 required` | idle/moving/attacking/stopped | 原生运动状态机映射 |
-| `mech_lock_target` | nullable `ObjectRef` | FightMech 当前锁定对象 | `FightMech.lockTarget` |
+| `motion_state` | `UINT8 required` | idle/moving/attacking/stopped，见 2.10 | 原生运动状态机映射 |
+| `mech_lock_target` | nullable `ObjectRef` | 单位**本体**指向的对象，见 2.10 | `FightMech.lockTarget` |
 | `collision_radius` | `INT64 required` | 碰撞半径，Q32.32 raw | `FightMech.GetRadius()` |
 | `life` | `GaugeI32 required` | 当前/最大生命 | `GetLife()` / `GetMaxLife()` |
 | `active` | `BOOLEAN required` | 当前激活状态 | `get_IsActive()` |
@@ -280,6 +280,34 @@ rotation     : INT64 nullable
 Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历各技能的 `GetWeapons()`。`skill_slot` 表示技能通道；`weapon_index` 来自 `WeaponData.get_Index()`，表示该技能内的原生武器通道编号。`attack_target` 来自技能的 `GetAttackTarget()`；姿态来自武器 `GetFightTransform()`。武器缺少 FightTransform 时，position 与 rotation 同时为 null。
 
 列表按 `(skill_slot, weapon_index)` 严格升序。`weapon_aims` 独立枚举当前武器通道，因此可以包含未出现在稀疏 `skill_dynamic_modifiers` 中的 skill slot。
+
+## 2.10 单位指向什么
+
+三个字段回答关于单位意图的三个不同问题，把其中一个当成另一个，就会读错这场仗。
+
+| 字段 | 回答 | 归属 |
+| --- | --- | --- |
+| `mech_lock_target` | 单位**本体**指向什么 | 机甲 |
+| `weapon_aims[].attack_target` | 每个**武器通道**朝什么开火 | 拥有该通道的技能 |
+| `motion_state` | 本体是在行进、停下攻击、空闲还是停止 | 机甲的运动状态机 |
+
+**`mech_lock_target` 是本体的目标。** 它是机甲自己的搜索找到的对象：`moving` 时单位
+朝它走，有身体的单位在 `attacking` 时身体也一直朝着它。它不说明正在打什么；机甲没
+有目标时为空。
+
+**`attack_target` 是武器的目标。** 它是拥有该通道的技能让这个通道朝之开火的对象，
+可以和 `mech_lock_target` 不同：技能会把挡在射线上的对象交给武器，而机甲保持自己的
+锁定；同一个成组技能的各个通道也可以各持不同的目标。没有身体的单位除了武器之外没有
+自己的朝向，所以它的 `body_rotation` 跟着攻击目标，而不是锁定。
+
+**`motion_state` 跟着攻击目标，不跟锁定。** `attacking` 表示某个武器的攻击目标在射
+程之内、本体为它停了下来；`moving` 是本体唯一会行进的状态，行进方向是
+`mech_lock_target`。所以只要前方有能打的东西在射程内，单位就可以在锁定目标够不着的
+情况下处于 `attacking`。
+
+采集按原生对象的报告原样记录这三项，不由其中一个推出另一个，这样读者才能拿它们互
+相比较。它们都是内容层字段：物理层不纳入它们（见 C.2），所以物理层一致的两场仗，
+仍可能在这三项上不同。
 
 ---
 
