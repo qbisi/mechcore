@@ -923,11 +923,10 @@ impl Actor {
                 })
                 .unwrap_or(i32::MAX),
                 // The recording counts an interval in logic ticks, which is
-                // the unit the build's own integer uses. The build's number
-                // also runs a few ticks under the description for some units
-                // and level with it for others, which nobody has read yet —
-                // `docs/spec/mcfr/mcfr.md` names that as the one field the two
-                // backends knowingly answer differently.
+                // the unit the build's own integer uses: the interval the
+                // cycle in progress was scheduled with, stagger included, the
+                // core's for a group, and the composed interval once no enemy
+                // is left. `docs/rules/combat.md` says how each was read.
                 current_attack_interval: i32::try_from(self.current_attack_interval)
                     .unwrap_or(i32::MAX),
             },
@@ -1682,8 +1681,40 @@ impl Simulation {
         }
     }
 
+    /// Reads every unit with no enemy left at its interval as composed, with
+    /// no stagger.
+    ///
+    /// The stagger rides on the cycle in progress, and once a unit's last
+    /// enemy is dead there is none: from the tick after, and on the fight's
+    /// final tick if that is the one, the game reads a Marksman at 62, an
+    /// Arclight at 18 and a Wraith at 32 — their descriptions — whatever
+    /// cycle they were on.
+    fn settle_intervals(&mut self) {
+        let alive_teams = self
+            .actors
+            .values()
+            .filter(|actor| actor.alive())
+            .map(|actor| actor.placement.team)
+            .collect::<BTreeSet<_>>();
+        for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
+            let team = actor.placement.team;
+            if alive_teams.iter().all(|&other| other == team) {
+                actor.current_attack_interval =
+                    native_time_units_to_steps(actor.stats.attack_interval());
+            }
+        }
+    }
+
+    /// The same, on the fight's last tick, before its snapshot is written.
+    fn settle_intervals_if_finishing(&mut self) {
+        if self.ready_to_finish() {
+            self.settle_intervals();
+        }
+    }
+
     #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
+        self.settle_intervals();
         let publish_late_building_events = self.late_building_events_pending;
         self.late_building_events_pending = false;
         if self.terminal_drain_pending {
@@ -4748,11 +4779,17 @@ impl Simulation {
         skill_index: usize,
         step: u64,
     ) -> Result<()> {
+        // What a recording reads as the unit's current interval is its core
+        // skill's, so a child slot's draw does not replace it.
+        let core_interval = self.actors[&actor_id].current_attack_interval;
         let sampled_step = self.sample_actor_attack_interval(actor_id, step)?;
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("group skill owner identity is stable");
+        if skill_index != 0 {
+            actor.current_attack_interval = core_interval;
+        }
         let next_attack_step = actor
             .group_skill_next_attack_steps
             .get_mut(skill_index)
@@ -5491,6 +5528,7 @@ fn execute(
         let events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
+        simulation.settle_intervals_if_finishing();
         let mut state = simulation.snapshot();
         state.canonicalize();
         let tick_hashes = writer.append_tick(state.clone(), &events)?;

@@ -117,12 +117,17 @@ offset is zero, so nothing else rides on the number.
 running, and how long a disable lasts: the Raiden in that recording fires
 every 92 ticks and the Rhino is never undisabled before it dies.
 
-This simulator schedules its own stagger — `sample_actor_attack_interval` adds
-a draw from the team stream to the next attack step — and reproduces the
-game's fights tick for tick, so the two agree about *when* a unit fires while
-storing different numbers for *what its interval is*. That is why
-[`mcfr.md`](../spec/mcfr/mcfr.md) calls this the one field the two backends
-knowingly answer differently.
+This simulator schedules the same stagger — `sample_actor_attack_interval`
+adds a draw from the team stream to the next attack step — and stores the
+interval each cycle was scheduled with, so the two backends carry the same
+series. Two readings complete it. A unit with a group of weapons reads its
+**core**'s interval, not whichever slot drew last: a Wraith's children draw on
+their own cycles and never show. And a unit with **no enemy left** reads its
+interval as composed, with no stagger, from the tick after its last enemy dies
+— and on that tick if it is the fight's last — because there is no cycle in
+progress: a Marksman reads 62, an Arclight 18, a Wraith 32. With those, every
+recording the simulator can run carries the same numbers in this field as the
+game's, on every tick.
 
 ## Where a moving unit is sent
 
