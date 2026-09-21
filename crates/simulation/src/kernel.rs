@@ -519,6 +519,20 @@ struct Actor {
     /// striking it go straight on to the Marksman behind the wall when a third
     /// fells it, with no idle tick, where the one that felled it idles for one.
     attacked_wall: Option<u64>,
+    /// The last step of the cooling that follows a shot, and the target the
+    /// skill quick-switched to if its own died during it.
+    ///
+    /// A Marksman whose shot kills its target reads idle with no lock until
+    /// its cooling is over, its weapon already on the unit the selector
+    /// answers the tick after the kill; one tick after the cooling ends the
+    /// weapon clears, and the lock is searched the tick after that. Both
+    /// Marksmen that were recorded killing with enemies left — in
+    /// `crawlers-vs-marksman.yaml` and `wall-passage.yaml` — do exactly this.
+    cooling_until_step: Option<u64>,
+    cooling_candidate: Option<FightActorRef>,
+    /// Whether this actor is being held through its cooling, which only a
+    /// target dying during it starts.
+    cooling_hold: Option<u64>,
     lock_is_terminal_handoff: bool,
     fight_skill_search_target_time: i32,
     fight_skill_searched_this_tick: bool,
@@ -629,6 +643,9 @@ impl Actor {
             in_the_way: None,
             fallen_attack_target: None,
             attacked_wall: None,
+            cooling_until_step: None,
+            cooling_candidate: None,
+            cooling_hold: None,
             lock_is_terminal_handoff: false,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
@@ -831,6 +848,9 @@ impl Actor {
                         self.fallen_attack_target
                             .filter(|_| self.lock_target.is_none())
                             .map(FightActorRef::Building)
+                            .or(self
+                                .cooling_candidate
+                                .filter(|_| self.lock_target.is_none()))
                     })
                 };
                 WeaponAimState {
@@ -2604,6 +2624,90 @@ impl Simulation {
         Ok(())
     }
 
+    /// Holds a unit whose shot's target has died idle and without a lock
+    /// until its cooling is over, with its weapon quick-switched to the
+    /// selector's answer. Answers whether it did.
+    ///
+    /// The weapon holds the candidate for the cooling's length, counted from
+    /// the step after the target died; it clears the step after that, and the
+    /// lock is searched the step after that. A Marksman's cooling is 0.2
+    /// seconds, four steps: idle five, locked on the sixth.
+    fn hold_through_cooling(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
+        let actor = &self.actors[&actor_id];
+        let started = if let Some(started) = actor.cooling_hold {
+            started
+        } else {
+            {
+                // Only a target that dies while the attack that fired at it is
+                // still running starts a hold: one that dies later, at the
+                // end of a longer flight, is replaced at once, as quick
+                // switching does.
+                let Some(until) = actor.cooling_until_step else {
+                    return Ok(false);
+                };
+                let target_dead = actor
+                    .mechanical_attack_target()
+                    .and_then(|target| self.fight_actor(target))
+                    .is_some_and(|target| !(target.alive && target.targetable));
+                // Seen on the step after the death.
+                if !target_dead || step > until.saturating_add(1) {
+                    return Ok(false);
+                }
+                // A replacement the quick switch can attack at once is
+                // taken at once; only one it cannot starts the hold.
+                let candidate =
+                    self.select_normal_target_with_order(actor_id, target_search_order, true)?;
+                if candidate.is_none_or(|candidate| self.target_in_attack_area(actor_id, candidate))
+                {
+                    return Ok(false);
+                }
+                step
+            }
+        };
+        let cooling_steps =
+            native_time_units_to_steps(self.actors[&actor_id].rules.attack.cooling_time_units());
+        if step > started.saturating_add(cooling_steps) {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.cooling_hold = None;
+            actor.cooling_until_step = None;
+            actor.cooling_candidate = None;
+            return Ok(false);
+        }
+        let candidate = if step < started.saturating_add(cooling_steps) {
+            match self.actors[&actor_id].cooling_candidate {
+                Some(candidate) => Some(candidate),
+                None => {
+                    self.select_normal_target_with_order(actor_id, target_search_order, true)?
+                }
+            }
+        } else {
+            None
+        };
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.lock_target = None;
+        actor.cooling_candidate = candidate;
+        actor.cooling_hold = Some(started);
+        actor.motion = MotionState::Idle;
+        actor.fight_skill_phase = FightSkillPhase::Idle;
+        actor.fight_skill_search_target_time = 0;
+        actor.next_target_x_q32 = actor.x_q32;
+        actor.next_target_z_q32 = actor.z_q32;
+        actor.next_speed_q32 = 0;
+        actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+        Ok(true)
+    }
+
     fn update_fight_skill_target_search(
         &mut self,
         actor_id: u64,
@@ -2837,6 +2941,9 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.exit_fight_on_death();
+            return Ok(());
+        }
+        if self.hold_through_cooling(actor_id, step, target_search_order)? {
             return Ok(());
         }
         // A block that falls ends the attack on it, and the lock with it. The
@@ -4307,6 +4414,28 @@ impl Simulation {
         step: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            // A cooling of nothing holds nothing: the Stormcaller's is 0,
+            // and its regressions, the game's, never hold.
+            if actor.rules.has_body
+                && actor.rules.attack.quick_switch_target
+                && actor.rules.attack.weapons.mode == WeaponMode::Normal
+                && actor.rules.attack.cooling_time_units() > 0
+            {
+                // The attack is still running for its attack point after the
+                // release; a target that dies in that time is held for.
+                let attack_point_steps =
+                    native_time_units_to_steps(actor.rules.attack.attack_point_time_units());
+                actor.cooling_until_step =
+                    Some(step.saturating_add(attack_point_steps.saturating_sub(1)));
+                actor.cooling_hold = None;
+                actor.cooling_candidate = None;
+            }
+        }
         let target_view = self
             .fight_actor(target)
             .ok_or_else(|| Error::new("projectile target is absent"))?;
@@ -9165,6 +9294,48 @@ mod tests {
                 "Crawler {id}"
             );
         }
+    }
+
+    /// A Marksman whose shot kills its target before the attack is over holds
+    /// through its cooling when the replacement cannot be attacked at once.
+    ///
+    /// In `crawlers-vs-marksman.yaml` the Marksman releases at tick 135 and
+    /// kills Crawler 8 at 136. The Crawler the selector answers, 4, is out of
+    /// its attack angle, so for ticks 137 to 140 it reads idle with no lock and
+    /// its weapon on Crawler 4; at 141 the weapon clears; at 142 it locks
+    /// Crawler 7, whom the Crawlers' approach has made the selector's answer.
+    #[test]
+    fn a_marksman_holds_through_its_cooling_after_a_kill_it_cannot_follow() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/regression/crawlers-vs-marksman.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        let mut states = BTreeMap::new();
+        for step in 0..142u64 {
+            simulation.step(step).unwrap();
+            if step + 1 >= 137 {
+                states.insert(step + 1, simulation.actors[&1].snapshot());
+            }
+        }
+        for tick in 137..=140 {
+            let state = &states[&tick];
+            assert_eq!(state.motion_state, MotionState::Idle, "tick {tick}");
+            assert_eq!(state.mech_lock_target, None, "tick {tick}");
+            assert_eq!(
+                state.weapon_aims[0].attack_target,
+                Some(ObjectRef::new(ObjectKind::Unit, 4)),
+                "tick {tick}"
+            );
+        }
+        assert_eq!(states[&141].weapon_aims[0].attack_target, None);
+        assert_eq!(
+            states[&142].mech_lock_target,
+            Some(ObjectRef::new(ObjectKind::Unit, 7))
+        );
     }
 
     /// The body and the weapons have separate targets, and a recording reports

@@ -647,6 +647,10 @@ impl AttackConfig {
         quantize_u64(self.timing.attack_point, TIME_UNITS_PER_SECOND)
     }
 
+    pub(crate) fn cooling_time_units(&self) -> u64 {
+        quantize_u64(self.timing.cooling, TIME_UNITS_PER_SECOND)
+    }
+
     pub(crate) fn backswing_time_units(&self) -> u64 {
         quantize_u64(self.timing.backswing, TIME_UNITS_PER_SECOND)
     }
