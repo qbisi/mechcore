@@ -23,6 +23,6 @@ which is not the repository either; [`.github/CONTRIBUTING.md`](../.github/CONTR
 says how one is used.
 
 Two kinds of fixture live outside `tests/` because no topic owns them. The
-tracked native replays, and everything converted from them, are in
-[`../replay/`](../replay/README.md). Layouts built by hand that no script uses
-are in [`../layouts/`](../layouts/README.md).
+native replays, and everything converted from them, are in the corpus
+[`../replay/`](../replay/README.md) pins. Layouts built by hand that no script
+uses are in [`../layouts/`](../layouts/README.md).

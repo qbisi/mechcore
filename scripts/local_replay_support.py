@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Measure the state-document claims over the locally recorded replay set.
 
-`replay/grbr` tracks 41 files. The Steam installation also keeps a downloaded
+mechcore-replay tracks 41 files. The Steam installation also keeps a downloaded
 provenance class that does not agree with them, so this script uses only
 the locally recorded ones and says how it tells them apart. See
-`replay/grbr/README.md` for the rule and why the downloaded class is unusable.
+`replay/README.md` for the rule and why the downloaded class is unusable.
 
     python3 scripts/local_replay_support.py
 """

@@ -3987,8 +3987,8 @@ mod tests {
     /// list the adapter must reproduce without naming either position.
     #[test]
     fn the_captured_fixture_keeps_its_tower_levels_in_position_order() {
-        let bytes = std::fs::read("../../replay/layout/tuff-replay-round-7.yaml")
-            .expect("tracked layout fixture");
+        let bytes = std::fs::read("../../layouts/tuff-replay-round-7.yaml")
+            .expect("the captured layout fixture");
         let parsed = layout::parse_yaml(&bytes).expect("a valid layout");
         let plan = layout::compile_layout(parsed).expect("the fixture compiles");
         assert_eq!(plan.red.tower_strengthen_levels, vec![0, 2]);

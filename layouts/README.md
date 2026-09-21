@@ -5,9 +5,17 @@ defines it, used as input to `apply_layout` against the live game, to
 `mechcore fight run`, or to both. A fixture is a scenario someone chose, so the
 reason it exists belongs with it.
 
-These are the layouts built by hand that no script uses. One a script reads
-lives with it, in its topic directory under [`../tests/`](../tests/README.md);
-one converted from a replay is in [`../replay/layout/`](../replay/README.md).
+These are the layouts built by hand that no script uses, and one captured live.
+One a script reads lives with it, in its topic directory under
+[`../tests/`](../tests/README.md); the replays a layout can be projected from
+are in the corpus [`../replay/README.md`](../replay/README.md) points at.
+
+`tuff-replay-round-7.yaml` is not built by hand: it was captured from the game
+at the end of round 7's deployment in the `[crower]VS[[TUFF]MARLFAUX]` replay,
+so it is the round's decisions stepped from the position it opened with, both
+sides, board included. `crates/document/src/project.rs` holds the projection
+to it, and `crates/adapter/src/operations.rs` reads red's two towers from it,
+one strengthened to level 2 beside one that is not.
 
 Most files here are named for what they contain and need no further
 explanation. The ones below were built to exercise a specific native path, and
