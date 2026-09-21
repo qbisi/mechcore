@@ -8,7 +8,7 @@ impl Simulation {
     ) -> Result<bool> {
         let pending = self.actors[&actor_id]
             .skill
-            .pending
+            .pending()
             .ok_or_else(|| Error::new("attack release has no pending action"))?;
         let release_attackable_invalid = self.bodyless_attackable_invalid(actor_id, pending.target);
         if release_attackable_invalid {
@@ -20,8 +20,8 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.skill.pending = None;
-            actor.skill.phase = FightSkillPhase::Idle;
+            actor.skill.set_pending(None);
+            actor.skill.set_phase(FightSkillPhase::Idle);
             return Ok(true);
         }
         let backswing_steps =
@@ -30,17 +30,20 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        owner.skill.pending = None;
-        owner.skill.backswing_finish_step =
-            (backswing_steps > 0).then(|| pending.step.saturating_add(backswing_steps));
-        owner.skill.phase = if owner.skill.backswing_finish_step.is_none()
-            && !owner.rules.attack.quick_switch_target
-            && !matches!(owner.rules.attack.path, AttackPath::Laser { .. })
-        {
-            FightSkillPhase::Idle
-        } else {
-            FightSkillPhase::Attack
-        };
+        owner.skill.set_pending(None);
+        owner.skill.set_backswing_finish_step(
+            (backswing_steps > 0).then(|| pending.step.saturating_add(backswing_steps)),
+        );
+        owner.skill.set_phase(
+            if owner.skill.backswing_finish_step().is_none()
+                && !owner.rules.attack.quick_switch_target
+                && !matches!(owner.rules.attack.path, AttackPath::Laser { .. })
+            {
+                FightSkillPhase::Idle
+            } else {
+                FightSkillPhase::Attack
+            },
+        );
         if matches!(
             self.actors[&actor_id].rules.attack.path,
             AttackPath::Direct { .. }

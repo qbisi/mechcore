@@ -73,7 +73,7 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
         simulation.step(step).unwrap();
     }
     assert!(matches!(
-        simulation.actors[&4].skill.phase,
+        simulation.actors[&4].skill.phase(),
         FightSkillPhase::Prepare { .. }
     ));
     simulation.step(145).unwrap();

@@ -102,7 +102,7 @@ fn grouped_core_replacement_swaps_or_shares_existing_child_targets() {
     let mut swap = raw_test_simulation(&layout, &config, 7);
     let source = swap.actors.get_mut(&1).unwrap();
     source.motion.state = MotionState::Attacking;
-    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.lock_target = None;
     source.skill.group_skill_targets = vec![None, Some(2), Some(3), Some(4)];
     swap.refresh_target_query_snapshot();
@@ -121,7 +121,7 @@ fn grouped_core_replacement_swaps_or_shares_existing_child_targets() {
     let mut shared = raw_test_simulation(&layout, &config, 7);
     let source = shared.actors.get_mut(&1).unwrap();
     source.motion.state = MotionState::Attacking;
-    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.lock_target = Some(unit_target(5));
     source.skill.group_skill_targets = vec![Some(5), Some(2), Some(3), Some(4)];
     source.skill.group_skill_next_attack_steps = vec![0, 0, 0, 11];
@@ -155,7 +155,7 @@ fn grouped_core_search_assigns_the_core_before_children() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.motion.state = MotionState::Attacking;
-    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.lock_target = Some(unit_target(5));
     source.skill.group_skill_targets = vec![Some(5), Some(2), Some(3), Some(4)];
     simulation.actors.get_mut(&4).unwrap().life = 0;
@@ -195,7 +195,7 @@ fn grouped_child_replacements_follow_skill_order() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.motion.state = MotionState::Attacking;
-    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.lock_target = Some(unit_target(5));
     source.skill.group_skill_targets = vec![Some(2), Some(3), Some(4), Some(5)];
     source.skill.group_skill_next_attack_steps = vec![0, 0, 10, 0];
@@ -236,7 +236,7 @@ fn grouped_intervening_attack_rebalances_the_later_missing_child() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.motion.state = MotionState::Attacking;
-    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.lock_target = Some(unit_target(5));
     source.skill.group_skill_targets = vec![Some(2), Some(3), Some(4), Some(5)];
     source.skill.group_skill_next_attack_steps = vec![0, 248, 228, 229];

@@ -91,17 +91,17 @@ impl Simulation {
     /// before its next blow, each when a nearer block has come into its line.
     pub(in crate::fight) fn between_blows(&self, actor_id: u64, step: u64) -> bool {
         let actor = &self.actors[&actor_id];
-        let waiting = actor.skill.pending.is_none()
+        let waiting = actor.skill.pending().is_none()
             && actor.skill.projectile_pending_releases.is_empty()
             && actor
                 .skill
-                .backswing_finish_step
+                .backswing_finish_step()
                 .is_none_or(|finish| finish < step);
         let before = actor
             .skill
-            .pending
+            .pending()
             .is_some_and(|pending| step < pending.step);
-        actor.skill.phase == FightSkillPhase::Attack && (waiting || before)
+        actor.skill.phase() == FightSkillPhase::Attack && (waiting || before)
     }
 
     /// `SkillAttackState.CheckAttackable`: an attack on a building that has
@@ -144,10 +144,10 @@ impl Simulation {
         actor.skill.drop_lock();
         actor.skill.laser_attack_count = 0;
         actor.skill.retarget_after_own_direct_kill = false;
-        actor.skill.phase = FightSkillPhase::Idle;
+        actor.skill.set_phase(FightSkillPhase::Idle);
 
-        actor.skill.backswing_finish_step = None;
-        actor.skill.pending = None;
+        actor.skill.set_backswing_finish_step(None);
+        actor.skill.set_pending(None);
         if entered_idle {
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
@@ -155,8 +155,7 @@ impl Simulation {
         actor.motion.next_speed_q32 = 0;
         actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
         if cooling_steps > 0 {
-            actor.skill.cooling_hold = Some(step);
-            actor.skill.cooling_candidate = fired_at;
+            actor.skill.set_cooling(Some((step, fired_at)));
         }
     }
 
@@ -219,10 +218,10 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.motion.state = MotionState::Idle;
         actor.skill.drop_lock();
-        actor.skill.phase = FightSkillPhase::Idle;
+        actor.skill.set_phase(FightSkillPhase::Idle);
         actor.skill.search_target_time = 0;
-        actor.skill.backswing_finish_step = None;
-        actor.skill.pending = None;
+        actor.skill.set_backswing_finish_step(None);
+        actor.skill.set_pending(None);
         actor.motion.next_target_x_q32 = actor.x_q32;
         actor.motion.next_target_z_q32 = actor.z_q32;
         actor.motion.next_speed_q32 = 0;

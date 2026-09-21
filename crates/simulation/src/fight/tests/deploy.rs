@@ -189,7 +189,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     current.z_q32 = space_to_q32(current.z);
     let source = attack_state.actors.get_mut(&1).unwrap();
     source.skill.search_target_time = 0;
-    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.set_phase(FightSkillPhase::Attack);
     attack_state.refresh_target_query_snapshot();
     let target_search_order = attack_state.target_search_order();
     attack_state
@@ -210,11 +210,9 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     current.z_q32 = space_to_q32(current.z);
     let source = prepare_state.actors.get_mut(&1).unwrap();
     source.skill.search_target_time = 0;
-    source.skill.phase = FightSkillPhase::Prepare { finish_step: 20 };
-    source.skill.pending = Some(PendingRelease {
-        step: 20,
-        target: unit_target(3),
-    });
+    source
+        .skill
+        .set_phase(FightSkillPhase::Prepare { finish_step: 20 });
     prepare_state.refresh_target_query_snapshot();
     let target_search_order = prepare_state.target_search_order();
     prepare_state
