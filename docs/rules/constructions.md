@@ -99,13 +99,56 @@ through, because the other side's units go through as well.
 blocks is held by them has not been measured, and neither has any construction
 other than the wall.
 
-**What makes a unit attack a wall is not established.** A wall is not something
-a unit searches for — its row answers `IsEnableSearchTarget` with false, and
-Crawlers deployed opposite one lock onto the unit behind it at tick one, not
-onto the wall. They attack it later all the same, and a Marksman standing
-opposite one destroys a block without ever having searched for it. The build
-carries a `WallConstructionTargetChecker` and what it decides has not been
-read.
+A unit attacks a wall without ever searching for one, and the next section
+says how.
+
+## A wall is attacked because it is in the way
+
+A unit keeps its target and shoots what stands between them. A recording shows
+both at once: the **lock target** stays the unit behind the wall while the
+**attack target** becomes a block, and different members of one formation pick
+different blocks from the same lock.
+
+The rule, measured:
+
+```text
+among the enemy's constructions,
+  keep the ones within  attack range + 7 metres  of the attacker,
+  keep the ones within  11 metres  of the line from the attacker to its target,
+  take the nearest of those to the attacker.
+```
+
+It is **the nearest wall the line reaches**, not the nearest wall and not the
+wall nearest the line. One Marksman settles that: with the nearest block 75
+metres away and 39 off the line, and a block dead on the line 92 metres away
+and 0.12 off, it destroyed neither. It destroyed the block 86 metres away and
+9.9 off — the nearest of the ones the line reaches.
+
+**The width does not belong to the attacker.** A Marksman carries 8 metres of
+collision radius, a Fang 2 and a Farseer 11, so `attacker + block` would give
+them 12, 6 and 15 metres. It gives them the same number instead: the Fang's
+members take blocks 10.0 and 10.7 metres off the line, which 6 would have
+excluded, and the Farseer takes nothing while a block sits 13.13 off, which 15
+would have included.
+
+**The range does.** A Crawler reaches 6 metres and stops considering a wall
+beyond about 12; a Marksman reaches 140 and attacks one 96 metres away.
+
+Both numbers are brackets rather than readings, from 25 decisions taken at the
+first tick of three fights across three unit types, plus 52 decisions from a
+Crawler fight before its first block fell:
+
+| | Bracket | Written as |
+| --- | --- | --- |
+| width | `[10.7, 12.1]` metres | 11 |
+| range allowance | `[6, 8]` metres | 7 |
+
+Every pair in those brackets explains all 25 first-tick decisions and 51 of the
+52 Crawler ones; the odd one out is a tie, two blocks 10.94 and 10.95 metres
+away, so it says the sort key is not quite a 2D centre distance rather than
+anything about the width. A wall's `path_radius` is 7 and its `radius` is 4,
+which is where 11 and 7 would come from, and that is a reading of the table
+rather than a measurement.
 
 ## What the footprint is and what it is not
 
@@ -141,8 +184,9 @@ The map's own buildings are the exception and are named: each side gets one
 ## Scope
 
 Everything above is build 2259 and the 1v1 board. It covers what stands when a
-fight begins, and whether a Crawler-sized unit is held by a Defensive Wall. It
-does not cover what makes a unit attack a wall, what a turret's skill is, what a Magnetic Barrier does to what
+fight begins, whether a Crawler-sized unit is held by a Defensive Wall, and
+which wall a unit shoots when one is in its way. It does not cover what a
+turret's skill is, what a Magnetic Barrier does to what
 comes near it, what a unit too large for the gaps between blocks does, what
 destroying a construction pays, or what any of it costs —
 [`economy.yaml`](../../config/economy.yaml) carries the recovery price and
@@ -152,4 +196,7 @@ The readings were taken with
 [`tests/layouts/construction/shape.mcscript`](../../tests/layouts/construction/shape.mcscript),
 whose control is a side that places nothing and reads back two towers, and
 [`wall.mcscript`](../../tests/layouts/construction/wall.mcscript), which asks
-both sides the same question with the same unit.
+both sides the same question with the same unit, and
+[`line-of-fire.mcscript`](../../tests/layouts/construction/line-of-fire.mcscript),
+whose three layouts separate the nearest wall from the wall in the way and then
+bracket how wide the way is.

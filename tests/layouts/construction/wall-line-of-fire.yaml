@@ -1,0 +1,40 @@
+kind: layout
+round: 1
+
+# Which wall does a unit attack: the nearest one, or the one in its way?
+#
+# `wall-block.yaml` cannot tell. Its Crawlers charge straight at the unit
+# behind the wall, so the nearest block and the block on the line of fire are
+# always the same block, and "nearest within twelve metres" explains its
+# readings exactly as well as anything about a line does.
+#
+# This separates them. Blue's wall stands at `(-140, -55)`, five blocks at
+# `x = -164, -152, -140, -128, -116`. Red's Marksman stands at world
+# `(-170, 20)`, almost straight above the leftmost block, and blue's Marksman
+# stands at world `(-90, -90)`, behind the rightmost. So:
+#
+#   nearest block        `-164`, 75 metres away, 39 metres off the line
+#   block on the line    `-116`, 89 metres away, half a metre off the line
+#
+# The two rules name different buildings. 136 metres separate the two
+# Marksmen, inside the 140 one reaches, so the answer is there at the first
+# tick without either of them moving.
+#
+# Blue's wall is the one this seed's opening already stands, because a release
+# anywhere else is refused.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -90, y: -90}
+
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 170, y: -20}

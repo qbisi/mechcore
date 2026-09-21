@@ -1,0 +1,54 @@
+kind: layout
+round: 1
+
+# How wide is the line of fire that picks a wall?
+#
+# `wall-line-of-fire.yaml` settled the shape: a unit attacks the nearest enemy
+# wall its line of fire passes through, not the nearest wall. What it could not
+# settle is how far off the line a block may be and still count. That one
+# reading brackets it between 9.92 and 19.71 metres, which is wide.
+#
+# Four Marksmen, one target, one wall. Each stands where a different tolerance
+# answers a different block, so one recording narrows the bracket four times.
+# With the wall at `(-140, -55)` and blue's Marksman at `(-90.6, -90.6)`:
+#
+#   world x   answer if the tolerance is
+#             < 9.0    < 10.4   < 13.1   < 15.7   >= 15.7
+#   -140      none     7        7        7        7
+#   -200      6        6        5        5        5
+#   -160      7        7        7        6        6
+#   -120      none     none     none     none     7
+#
+# A tolerance of 12 — the Marksman's own 8 metres plus a block's 4 — reads
+# `7, 5, 7, none`, and no other whole number in the bracket reads the same.
+#
+# The four are 20 metres apart so their footprints touch and do not overlap,
+# and each reaches the target: 121, 156, 131 and 115 metres against a reach of
+# 140, so the two furthest are still closing when the first tick is read. The
+# reading is the attack target at tick one, which is decided before anything
+# moves.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -90, y: -90}
+
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 200, y: -20}
+    - name: marksman
+      index: 1
+      position: {x: 160, y: -20}
+    - name: marksman
+      index: 2
+      position: {x: 140, y: -20}
+    - name: marksman
+      index: 3
+      position: {x: 120, y: -20}
