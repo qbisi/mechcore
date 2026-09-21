@@ -87,10 +87,10 @@ attack being made). A path through a unit reads as the build's does:
 | `deploy.rs` | deployment: formations, the initial actors and buildings, the presearch |
 | `mech.rs` | `FightMech`: position, facing, life, and its snapshot |
 | `search.rs` | the target quadtrees and the target selector |
-| `motion.rs` | `MotionController` and the RVO submission |
+| `motion.rs` | `MotionController`: holding a dead target, attacking one in range, leaving or approaching one; the RVO submission |
 | `damage.rs` | `DamagePerformer`, [below](#damage) |
 | `projectile.rs` | `ProjectileSystem` |
-| `skill/mod.rs` | `FightSkill`'s update, its search timer, the attack-area checkers |
+| `skill/mod.rs` | `FightSkill`'s update as named parts, its `SkillState`, the search timer, `TryStartAttack`, the attack-area checkers |
 | `skill/check.rs` | `SearchAttackTarget`, `SkillAttackableChecker`, `WallConstructionTargetChecker`, `SkillAttackState.Finish` |
 | `skill/perform.rs` | the attack performers: a blow, a shot, a burst |
 | `skill/group.rs` | a grouped skill's slots |
