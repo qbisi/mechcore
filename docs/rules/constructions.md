@@ -87,9 +87,8 @@ it, and treating the block as no obstacle, or as one to both sides, or with
 the 7-metre `path_radius`, each fails somewhere in the six wall fights.
 Opponent avoidance looks 0.01 seconds ahead, so it holds a unit off a block
 and does not hold back a crowd: a Crawler of the other side still reached
-**0.711 metres** of a block's centre with 23 others behind it. That is the one
-reading this does not reproduce, because that fight parts company at tick 8
-over how Crawlers form up, before any Crawler reaches the wall.
+**0.711 metres** of a block's centre with 23 others behind it, and the
+simulator puts the same Crawler at the same 0.711 metres on the same tick.
 
 What differs between the two sides is targeting, not collision. The side that
 did not place it **stops and attacks it**: twenty-four Crawlers take four of

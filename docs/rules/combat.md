@@ -124,6 +124,24 @@ storing different numbers for *what its interval is*. That is why
 [`mcfr.md`](../spec/mcfr/mcfr.md) calls this the one field the two backends
 knowingly answer differently.
 
+## Where a moving unit is sent
+
+A unit moving on its target is sent to the point along the line to it where
+its reach begins: the target's centre distance, less the target's radius,
+plus the unit's attack range and its own radius. It is sent to the target's
+centre instead when it is no farther than that already.
+
+"No farther" is asked of the **squared** centre distance, which is exact,
+against the square of that stopping distance, which comes from the fast
+fixed-point square root. They disagree in the last bits exactly where a unit's
+reach cancels the target's radius, as a Crawler's range 6 and radius 2 cancel a
+Marksman's 8. Of 24 Crawlers charging one Marksman, the game sends the eight in
+front to the Marksman's centre and the sixteen behind to a point a few
+thousand raw units off it, the side each falls on decided by that comparison;
+comparing the two roots instead sent all 24 to the centre and moved every
+Crawler behind the front row by a few hundred raw units at the first RVO
+publication. `tests/regression/crawlers-vs-marksman.yaml` is that fight.
+
 ## Attack scheduling
 
 `RefreshAttackInterval` converts by the logical step and floors at one tick.
