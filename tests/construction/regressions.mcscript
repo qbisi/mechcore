@@ -69,3 +69,15 @@ steps:
       steps: 242
       winner: red
       hashes.physics_result_hash: 71bdc736cefec8f464e50775dfacff94f24cb2540109223c270a40f3968e19bf
+
+  # A blow, and not a shot. The Rhino takes the block in its line one hit at a
+  # time, stays on each until its swing is over, reads idle for a tick, and
+  # takes the next thing in its way. 189 ticks, the game's hash; its content
+  # hash agrees as well, which `attacks.mcscript` checks against the game.
+  - fight.run:
+      layout: tests/construction/wall-rhino.yaml
+      seed: 4242
+    expect:
+      steps: 189
+      winner: red
+      hashes.physics_result_hash: 44ae3c4c81b15563f6a7b924591385baf12813c27714d4d23cb7a2ebe25cdf1f

@@ -99,17 +99,18 @@ through, because the other side's units go through as well.
 blocks is held by them has not been measured, and neither has any construction
 other than the wall.
 
-**A block that falls ends the attack on it, and the lock with it.** The tick
-after a unit fells the block it was shooting, it reads idle, with an empty lock
-and its weapon still naming the fallen block — not the next block in its line,
-and not the unit behind the wall — and it takes a new target only from there.
-Every recording under `tests/construction/` shows it, for a Marksman, for four
-Marksmen at once, and for a Fortress's two weapons; a group of weapons is the
-exception, and drops every slot with the lock instead (below). How long the
-unit stays idle is not settled: a tick where the fight ends or it is killed
-first, four ticks for a Marksman in `wall-line-width.yaml` and ten for the
-Fortress, in fights the simulator cannot run, so what decides the length has
-not been separated from the search timer.
+**A block that falls ends the attack on it, and the lock with it.** Once the
+attack on a block is over, the unit reads idle for a tick with an empty lock,
+and takes its next target the tick after — the next block in its line, or the
+unit behind the wall once the line is clear. A Marksman's fight is over the
+tick the shot lands; a Rhino's only when its swing is, and until then it reads
+attacking, still on the fallen block. What the idle tick shows as the weapon's
+target depends on the unit: a unit with a body — the Marksman, four Marksmen at
+once, a Fortress's two weapons — still names the fallen block, and a bodyless
+one — the Rhino, the Steel Balls — names nothing. A group of weapons drops
+every slot with the lock instead (below). Two recordings show the idle lasting
+longer, four ticks for a Marksman in `wall-line-width.yaml` and ten for the
+Fortress, in fights the simulator cannot run.
 
 **A wall is never a target a unit looks for.** Across the ten recordings under
 `tests/construction/`, 931 ticks of which have a wall standing, a
@@ -137,7 +138,7 @@ The rule, measured:
 among the enemy's constructions,
   keep the ones within attack range of the attacker, edge to edge
       (centre distance <= range + attacker radius + block radius),
-  keep the ones within  11 metres  of the line from the attacker to its target,
+  keep the ones within 11.5 metres of the line from the attacker to its target,
   take the nearest of those to the attacker.
 ```
 
@@ -146,6 +147,13 @@ searched. `SkillIdleState.TryPerform` reaches `FightSkill.SearchAttackTarget`,
 which is what calls `WallConstructionTargetChecker`, while the lock search runs
 on its own ten-tick timer. A Wraith closing on a wall engages it the tick the
 wall comes into reach, between two lock searches.
+
+**It is asked while an attack is being prepared, too, and what it finds ends
+that attack.** A Steel Ball of `wall-laser.yaml` was preparing a beam on the
+Marksman behind the wall when block 3 came within the line. The tick after, it
+read idle, with no lock and no weapon target; the tick after that, it was on
+block 3 with its lock back on the Marksman. The prepared beam was never
+fired.
 
 It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. One Marksman settles that: with the nearest block 75
@@ -173,14 +181,25 @@ first tick of each fight and before the first block of the Crawler fight fell:
 
 | | Bracket | Written as |
 | --- | --- | --- |
-| width | `[10.8, 11.8]` metres | 11 |
+| width | `[11.447, 11.507)` metres | 11.5 |
 | reach | `range + attacker radius + block radius + [0, 1.5]` | edge to edge |
 
 Both explain 93 of the 94; the odd one out is a tie, two blocks 10.94 and 10.95
 metres away, so it says the sort key is not quite a 2D centre distance rather
-than anything about the width. A wall's `path_radius` is 7 and its `radius` is
-4, which is where 11 would come from, and that is a reading of the table rather
-than a measurement.
+than anything about the width. Those decisions bracketed the width at
+`[10.8, 11.8]`; one Steel Ball closing on block 3 a few centimetres a tick
+narrowed it, passing the block by at 11.507 metres for nine ticks and taking it
+on the tick after 11.447. An earlier version of this document wrote 11 because a
+wall's `path_radius` is 7 and its `radius` 4, a reading of the table that the
+Steel Ball ruled out.
+
+**A blow and a beam take a wall the way a shot does.** A Rhino charging a
+Marksman behind the wall takes the block in its line, one hit each, the damage
+event capped at the life the block had — 1112 against its 3560 — and its 6
+metres of splash reach no neighbour, whose edge is 8 away. Four Steel Balls
+take three blocks with the beam's ramp, 2, 3, 8, 17 and on, each on the block
+in its own line, the last hit capped at what is left. A blow's block falls as
+it lands, `damage` then `building_destroyed`, and so does a beam's.
 
 **Every weapon of a group takes a wall, the lock follows none of them, and an
 air unit's shot is taken too.** A Wraith flies and carries four weapon slots.

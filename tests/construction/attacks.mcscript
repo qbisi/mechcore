@@ -1,0 +1,110 @@
+# How does a melee attack, and a laser, take a wall?
+#
+#   mechcore run tests/construction/attacks.mcscript --check   parse without the game
+#   mechcore run tests/construction/attacks.mcscript           record
+#
+# Every wall measured before this was taken by projectiles. A blow and a beam
+# reach a block by other paths — no flight, no splash for a beam, a ramp of
+# damage that restarts — so each is recorded against the same wall and read
+# back against the simulator, which reproduces both.
+#
+#   wall-rhino.yaml   a Rhino charging a Marksman behind the middle block
+#   wall-laser.yaml   four Steel Balls against the same Marksman
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/construction/attacks
+  seed: 4242
+
+steps:
+  - let:
+      rhino: read_yaml(tests/construction/wall-rhino.yaml)
+      laser: read_yaml(tests/construction/wall-laser.yaml)
+
+  # A blow takes a block as a shot does: the block in the line, one hit each,
+  # the damage event capped at the life the block had — 1112, not the
+  # Rhino's 3560. Block 5 falls at tick 93 and block 4 at tick 113, and the
+  # blow's splash of 6 metres reaches no neighbour, whose edge is 8 away.
+  #
+  # After each block the Rhino stays on it, attacking, until its swing is
+  # over; reads idle with no lock and no weapon target for one tick; and then
+  # takes the next thing in its way — block 4 the first time, the Marksman,
+  # through the gap, the second.
+  - game.apply_layout:
+      layout: $rhino
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/rhino.mcfr
+    expect:
+      operation.tick_count: 189
+  - fight.buildings:
+      recording: ${out}/rhino.mcfr
+      tick: 189
+    expect:
+      sides.blue.constructions.0.standing: 3
+      sides.blue.constructions.0.parts.0.id: 3
+      sides.blue.constructions.0.parts.1.id: 6
+      sides.blue.constructions.0.parts.2.id: 7
+  - fight.run:
+      layout: tests/construction/wall-rhino.yaml
+      seed: $seed
+      output: ${out}/simulated-rhino.mcfr
+  # Every field of every tick, the content layer included.
+  - fight.compare:
+      left: ${out}/rhino.mcfr
+      right: ${out}/simulated-rhino.mcfr
+    expect:
+      equal: true
+      content_equal: true
+
+  # A beam takes a block with its ramp: 2, 3, 8, 17, 31, 51, 77, 109, 148,
+  # 193, 245, each Steel Ball on the block in its own line, the last hit
+  # capped at what is left. Blocks 4, 6 and 5 fall at ticks 82, 89 and 128,
+  # and 3 at the end.
+  #
+  # Two readings came out of this fight that the projectile fights could not
+  # give. The line is 11.5 metres wide, not 11: one Steel Ball passes block 3
+  # by at 11.507 metres for nine ticks and takes it the tick after 11.447.
+  # And the question is asked while an attack is being prepared, not only
+  # while the skill is idle: that Steel Ball was preparing a beam on the
+  # Marksman when block 3 came within the line, and it read idle with no lock
+  # for a tick before turning on the block.
+  #
+  # The simulator agrees on every tick up to 167. At 168 that same Steel Ball,
+  # overlapping block 3, is pushed differently: whether a block stands in the
+  # way of its movement, where it does not of a Crawler's, is the next question
+  # and not this one.
+  - game.apply_layout:
+      layout: $laser
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/laser.mcfr
+    expect:
+      operation.tick_count: 243
+  - fight.buildings:
+      recording: ${out}/laser.mcfr
+      tick: 128
+    expect:
+      sides.blue.constructions.0.standing: 2
+      sides.blue.constructions.0.parts.0.id: 3
+      sides.blue.constructions.0.parts.1.id: 7
+  - fight.buildings:
+      recording: ${out}/laser.mcfr
+      tick: 243
+    expect:
+      sides.blue.constructions.0.standing: 1
+      sides.blue.constructions.0.parts.0.id: 7
+  - fight.run:
+      layout: tests/construction/wall-laser.yaml
+      seed: $seed
+      output: ${out}/simulated-laser.mcfr
+  - fight.compare:
+      left: ${out}/laser.mcfr
+      right: ${out}/simulated-laser.mcfr
+      fields: [units.position, units.mech_lock_target, units.motion_state, units.weapon_aims.attack_target, events]
+    expect:
+      first_divergence: 168
+      fields.units.position.x.first_divergence: 169
