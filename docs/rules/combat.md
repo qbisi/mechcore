@@ -142,6 +142,22 @@ comparing the two roots instead sent all 24 to the centre and moved every
 Crawler behind the front row by a few hundred raw units at the first RVO
 publication. `tests/regression/crawlers-vs-marksman.yaml` is that fight.
 
+## A kill the quick switch cannot follow
+
+A unit that switches targets quickly — the Marksman does — takes a new target
+the moment its own dies, as long as the new one can be attacked at once. When
+its shot kills the target before the attack that fired it is over, within the
+attack point, and the selector's answer lies outside its attack area, it does
+not: it stays idle with no lock for its cooling, its weapon already on that
+answer, clears the weapon on the tick after, and searches for a lock on the
+tick after that. A Marksman's cooling is 0.2 seconds, so it is idle for five
+ticks and locked on the sixth, on whatever the selector answers then — in
+`crawlers-vs-marksman.yaml` a different Crawler from the one its weapon held,
+because the Crawlers have moved. A shot that kills later in its flight, or a
+replacement already in the attack area, is followed at once, and a unit whose
+cooling is nothing — the Stormcaller's — never holds. Both fights recorded
+with a Marksman killing while enemies remained show it, on every tick.
+
 ## Attack scheduling
 
 `RefreshAttackInterval` converts by the logical step and floors at one tick.

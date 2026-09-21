@@ -182,6 +182,10 @@ architecture.md 的 Unresolved 里。
   米照样开打）；近战打倒的墙也在本 tick 所有命中之后才倒；只有打过这块墙的单位倒墙后
   才空闲一 tick，还没挥出第一下的直接转向；挥击收尾期间继续转向倒掉的墙块。至此能跑的
   8 场墙战斗全部逐 tick 对上。
+- ~~**射手击杀后的锁定（内容层）。**~~ 做了：射手在攻击点内打死目标、而下一个目标不在
+  攻击范围里时，会在冷却期间空闲、武器先对着选择器的答案，冷却后下一 tick 清空武器、再
+  下一 tick 才锁定。`crawlers-vs-marksman` 和 `wall-passage` 因此内容层也全等。至此所有
+  能跑的录像内容层只剩 `derived.current_attack_interval`（攻击间隔的逐周期错开）。
 - ~~**`wall-passage` 第 44 tick。**~~ 做了：原生 sidecar 显示，爬虫穿自己的墙时 20 个
   邻居里有 3 块墙、速度障碍只有 17 个——自己的墙照样占邻居名额，只在生成速度障碍时跳
   过。改完 `wall-passage` 341 tick 物理全对，进了 `regressions.mcscript`（内容层只在
