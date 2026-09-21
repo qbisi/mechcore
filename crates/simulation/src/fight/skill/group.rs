@@ -326,4 +326,151 @@ impl Simulation {
         *next_attack_step = sampled_step;
         Ok(())
     }
+
+    /// A grouped skill's blows: the core's, once its interval and prepare are
+    /// up, and each slot's release that is due.
+    pub(in crate::fight) fn perform_group_blows(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let group_core_target = {
+            let actor = &self.actors[&actor_id];
+            (actor.rules.attack.weapons.mode == WeaponMode::Group
+                && actor.motion.state == MotionState::Attacking
+                && !actor.motion.attack_hold_fire
+                && actor.skill.pending().is_none()
+                && actor.skill.backswing_finish_step().is_none()
+                && actor.skill.phase() == FightSkillPhase::Attack
+                && actor
+                    .skill
+                    .group_skill_prepare_ready_steps
+                    .first()
+                    .is_none_or(|ready_step| *ready_step <= step)
+                && step >= actor.skill.next_attack_step)
+                .then(|| actor.skill.mechanical_attack_target())
+                .flatten()
+        };
+        if let Some(target_id) = group_core_target
+            && self.target_in_attack_area(actor_id, target_id)
+        {
+            let next_attack_step = self.sample_actor_attack_interval(actor_id, step)?;
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.skill.next_attack_step = next_attack_step;
+            actor.skill.set_pending(Some(PendingRelease {
+                step,
+                target: target_id,
+            }));
+            let _attack_point_rejected = self.release(actor_id, events)?;
+        }
+        self.release_group_slots(actor_id, step, events)
+    }
+
+    /// Each slot's release that is due, fired at what the slot fires at now.
+    fn release_group_slots(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let group_releases = {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            let mut due = Vec::new();
+            actor
+                .skill
+                .group_pending_releases
+                .retain(|&(skill_index, pending)| {
+                    if pending.step <= step {
+                        due.push((skill_index, pending));
+                        false
+                    } else {
+                        true
+                    }
+                });
+            for skill_index in 1..actor.skill.group_skill_targets.len() {
+                let next_attack_step = actor.skill.group_skill_next_attack_steps[skill_index];
+                let prepare_ready_step = actor.skill.group_skill_prepare_ready_steps[skill_index];
+                if next_attack_step > 0
+                    && next_attack_step <= step
+                    && prepare_ready_step <= step
+                    && let Some(target) = actor.skill.group_attack_target(skill_index)
+                {
+                    due.push((skill_index, PendingRelease { step, target }));
+                }
+            }
+            // A release queued when its slot was allocated names the unit it
+            // was allocated. It fires at what that slot fires at now, which is
+            // a construction in its way if one has been found since: the slot
+            // still holds the same unit, and only what it shoots has changed.
+            for (skill_index, pending) in &mut due {
+                if pending.target.unit_id()
+                    == actor
+                        .skill
+                        .group_skill_targets
+                        .get(*skill_index)
+                        .copied()
+                        .flatten()
+                    && let Some(target) = actor.skill.group_attack_target(*skill_index)
+                {
+                    pending.target = target;
+                }
+            }
+            due.sort_by_key(|&(skill_index, _)| skill_index);
+            due
+        };
+        for (skill_index, pending) in group_releases {
+            match pending.target {
+                FightActorRef::Unit(target_id)
+                    if self.actors.get(&target_id).is_some_and(Actor::alive) =>
+                {
+                    self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
+                    self.release_projectile(actor_id, target_id, skill_index, skill_index, events)?;
+                }
+                // A slot whose line of fire a construction stands in fires at
+                // the construction, as the core does.
+                FightActorRef::Building(building_id) => {
+                    let Some((x_q32, z_q32, radius)) = self
+                        .buildings
+                        .iter()
+                        .find(|building| {
+                            building.building_id == building_id && building_alive(building)
+                        })
+                        .map(|building| {
+                            (
+                                building.position.x,
+                                building.position.z,
+                                building_radius(building),
+                            )
+                        })
+                    else {
+                        continue;
+                    };
+                    self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
+                    self.release_projectile_to(
+                        actor_id,
+                        ObjectKind::Building,
+                        building_id,
+                        q32_to_space_rounded(x_q32),
+                        0,
+                        q32_to_space_rounded(z_q32),
+                        x_q32,
+                        z_q32,
+                        radius,
+                        skill_index,
+                        skill_index,
+                        events,
+                    )?;
+                }
+                FightActorRef::Unit(_) => {}
+            }
+        }
+        Ok(())
+    }
 }

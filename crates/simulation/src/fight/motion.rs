@@ -1,3 +1,4 @@
+use super::skill::Flow;
 use super::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -374,6 +375,578 @@ impl Simulation {
             actor.motion.rvo_tree_x_q32 = actor.x_q32;
             actor.motion.rvo_tree_z_q32 = actor.z_q32;
             actor.motion.rvo_stopped_snap_since_boundary = false;
+        }
+    }
+}
+
+/// Where a unit out of range of what it fires at stands against it, and where
+/// its body goes if it moves.
+#[derive(Debug, Clone, Copy)]
+struct Approach {
+    edge_distance_q32: i64,
+    target_rotation_q32: i64,
+    body_x_q32: i64,
+    body_z_q32: i64,
+    body_radius: i64,
+}
+
+impl Simulation {
+    /// `MotionController`'s update, with the `SkillIdleState.TryStartAttack`
+    /// it runs into: holding a target that died, attacking one in range, and
+    /// leaving one or moving towards it.
+    pub(in crate::fight) fn update_motion(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+        backswing_just_finished: bool,
+        prepare_finished: bool,
+        attack_point_rejected: bool,
+    ) -> Result<()> {
+        if let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) {
+            return Ok(());
+        }
+        let target = self.actors[&actor_id].skill.mechanical_attack_target();
+        let Some(target) = target else {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.motion.state = MotionState::Idle;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            return Ok(());
+        };
+        let target_view = self.fight_actor(target).expect("target identity is stable");
+        let target_x_q32 = target_view.x_q32;
+        let target_z_q32 = target_view.z_q32;
+        let target_radius = target_view.radius;
+        // Where the body goes when it moves is the lock's, not the weapons':
+        // a unit held by a construction in its line of fire still advances on
+        // the unit behind it, and only stops because the construction is in
+        // reach. The two coincide in every fight without one.
+        let (body_x_q32, body_z_q32, body_radius) = self.actors[&actor_id]
+            .skill
+            .mechanical_lock_target()
+            .and_then(|lock| self.fight_actor(lock))
+            .map_or((target_x_q32, target_z_q32, target_radius), |view| {
+                (view.x_q32, view.z_q32, view.radius)
+            });
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let target_rotation_q32 = direction_degrees_q32_raw(
+            target_x_q32.saturating_sub(actor.x_q32),
+            target_z_q32.saturating_sub(actor.z_q32),
+        );
+        let center_distance_q32 = native_q32_magnitude(
+            target_x_q32.saturating_sub(actor.x_q32),
+            target_z_q32.saturating_sub(actor.z_q32),
+        );
+        let edge_distance_q32 = center_distance_q32
+            .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+            .saturating_sub(space_to_q32(target_radius))
+            .max(0);
+        if actor.rules.attack.weapons.mode == WeaponMode::Group
+            && actor.motion.state == MotionState::Attacking
+            && actor
+                .skill
+                .group_skill_targets
+                .first()
+                .is_some_and(Option::is_none)
+            && actor
+                .skill
+                .group_skill_targets
+                .iter()
+                .skip(1)
+                .any(Option::is_some)
+        {
+            actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
+            actor.aim_rotation = actor.body_rotation;
+            return Ok(());
+        }
+        if edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
+        {
+            return self.attack_in_range(
+                actor_id,
+                step,
+                events,
+                target,
+                target_rotation_q32,
+                backswing_just_finished,
+                prepare_finished,
+            );
+        }
+        self.leave_or_approach(
+            actor_id,
+            Approach {
+                edge_distance_q32,
+                target_rotation_q32,
+                body_x_q32,
+                body_z_q32,
+                body_radius,
+            },
+            backswing_just_finished,
+            attack_point_rejected,
+        );
+        Ok(())
+    }
+
+    /// A target that died while the unit still swings at it: a unit is left
+    /// idle with it through its backswing, a felled block keeps it attacking
+    /// and turning to it, and a unit whose backswing just ended drops it.
+    fn hold_dead_target(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
+        let lock_target = self.actors[&actor_id].skill.mechanical_attack_target();
+        if let Some(target) = lock_target {
+            let target_alive = self.fight_actor_is_alive(target);
+            if !target_alive
+                && self.actors[&actor_id]
+                    .skill
+                    .backswing_finish_step()
+                    .is_some()
+            {
+                // Build 2259 enters idle but retains the dead target through
+                // the remaining backswing even when an ally dealt the kill.
+                // MotionIdleState.Enter publishes StopMove once; its Update
+                // does not refresh that target on every remaining backswing
+                // tick.
+                // A felled block is held differently: the Rhino of
+                // `wall-rhino.yaml` reads attacking, still on the block, until
+                // its swing is over, and only then goes idle.
+                let holds_a_block = matches!(target, FightActorRef::Building(_));
+                // And keeps turning to it: the Crawlers of `wall-block.yaml`
+                // that fell block 5 face it a little more each tick of their
+                // swing, as they did while it stood.
+                // A tower the match's end tears down is not turned to.
+                let holds_a_wall = matches!(target, FightActorRef::Building(building)
+                    if self.actors[&actor_id].skill.in_the_way.is_some_and(|(wall, _)| wall == building));
+                let held_rotation = self
+                    .fight_actor(target)
+                    .filter(|_| holds_a_wall)
+                    .map(|view| {
+                        let actor = &self.actors[&actor_id];
+                        direction_degrees_q32_raw(
+                            view.x_q32.saturating_sub(actor.x_q32),
+                            view.z_q32.saturating_sub(actor.z_q32),
+                        )
+                    });
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                if let Some(rotation) = held_rotation {
+                    actor.rotate_weapons_towards(rotation);
+                    if actor.rules.has_body {
+                        actor.aim_rotation = degrees_q32_to_mdeg(
+                            actor
+                                .skill
+                                .weapon_rotations_q32
+                                .first()
+                                .copied()
+                                .unwrap_or(actor.body_rotation_q32),
+                        );
+                    } else {
+                        actor.rotate_body_towards(rotation);
+                        actor.aim_rotation = actor.body_rotation;
+                        actor.rotate_weapons_towards(rotation);
+                    }
+                }
+                let entered_idle = actor.motion.state != MotionState::Idle && !holds_a_block;
+                if !holds_a_block {
+                    actor.motion.state = MotionState::Idle;
+                }
+                if entered_idle {
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                }
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                return Flow::Done;
+            }
+            if !target_alive && backswing_just_finished {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.skill.drop_lock();
+                actor.skill.retarget_after_own_direct_kill = false;
+                actor.motion.state = MotionState::Idle;
+                if entered_idle {
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                }
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                return Flow::Done;
+            }
+            if !target_alive {
+                self.actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable")
+                    .skill
+                    .drop_lock();
+            }
+        }
+        Flow::Next
+    }
+
+    /// `MotionAttackState` with a target in range, and the skill it starts:
+    /// `TryStartAttack` from idle, and the next blow's wait once the interval
+    /// is up.
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the motion's reading of its target, handed on from update_motion"
+    )]
+    fn attack_in_range(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+        target: FightActorRef,
+        target_rotation_q32: i64,
+        backswing_just_finished: bool,
+        prepare_finished: bool,
+    ) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let (entered_attack, release_now, clear_hold_after_motion) = {
+            let entered_attack = actor.motion.state != MotionState::Attacking;
+            actor.motion.state = MotionState::Attacking;
+            // RVOControllerFixed.StopMove refreshes the target point on
+            // every MotionAttackState update. It submits zero desired
+            // speed while retaining the unit's configured maximum speed,
+            // so neighbouring agents can still push a stopped attacker.
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            let in_attack_angle = if actor.rules.has_body {
+                actor.weapons_in_attack_angle(target_rotation_q32)
+            } else {
+                // SkillAttackAngleChecker falls back to the FightMech
+                // transform when a bodyless unit's weapon has no own
+                // transform. Its root rotation is therefore the attack
+                // gate even though FightSkill also updates weapon state.
+                rotation_distance_q32(actor.body_rotation_q32, target_rotation_q32)
+                    <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
+            };
+            let completed_attack_reentry_rejected = entered_attack
+                && backswing_just_finished
+                && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+                && !actor.rules.has_body
+                && !in_attack_angle;
+            if completed_attack_reentry_rejected {
+                actor.motion.state = MotionState::Idle;
+                actor.skill.drop_lock();
+                actor.skill.set_phase(FightSkillPhase::Idle);
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                return Ok(());
+            }
+            if entered_attack {
+                // A newly entered bodyless attack state cannot start its
+                // FightSkill while the root transform is outside the
+                // attack cone. MotionController clears this hold only
+                // after it has observed and corrected the facing.
+                actor.motion.attack_hold_fire = !actor.rules.has_body
+                    && !in_attack_angle
+                    && matches!(
+                        actor.rules.attack.path,
+                        AttackPath::Projectile { .. }
+                            | AttackPath::Direct { melee: true }
+                            | AttackPath::Laser { .. }
+                    );
+            }
+            let invalid_attack_angle_barrier = !actor.rules.has_body
+                && !entered_attack
+                && !actor.motion.attack_hold_fire
+                && !in_attack_angle
+                && actor.skill.pending().is_none()
+                && actor.skill.backswing_finish_step().is_none();
+            if invalid_attack_angle_barrier {
+                // MotionAttackState returns to Idle when an active bodyless
+                // skill loses its root-transform attack angle. The new
+                // Idle state is entered synchronously but is not updated
+                // recursively, so target reacquisition waits one tick and
+                // this transition tick preserves the old body facing.
+                actor.motion.state = MotionState::Idle;
+                actor.skill.drop_lock();
+                actor.skill.set_phase(FightSkillPhase::Idle);
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                return Ok(());
+            }
+            let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
+            self.try_start_attack(
+                actor_id,
+                step,
+                target,
+                entered_attack,
+                in_attack_angle,
+                prepare_finished,
+            );
+            (
+                entered_attack,
+                self.actors[&actor_id]
+                    .skill
+                    .pending()
+                    .is_some_and(|pending| pending.step == step),
+                clear_hold_after_motion,
+            )
+        };
+        if release_now {
+            let _attack_point_rejected = self.release(actor_id, events)?;
+        }
+        if self.actors[&actor_id].motion.state != MotionState::Attacking {
+            // FightSkill runs before MotionController. A laser own-kill
+            // exits MotionAttackState during the skill update, so the
+            // killed target is retained for the snapshot but cannot drive
+            // another root rotation in the same tick.
+            return Ok(());
+        }
+        if entered_attack {
+            // SimpleFSM enters MotionAttackState synchronously but does not
+            // update the newly entered state in the same tick. FightSkill
+            // therefore starts tracking the target on the next tick.
+            return Ok(());
+        }
+        self.track_target_in_range(actor_id, target_rotation_q32, clear_hold_after_motion);
+        Ok(())
+    }
+
+    /// `FightSkill.Update` and `MotionAttackState` turning the weapons, and a
+    /// bodyless root, to a target in range, and letting a held attack go once
+    /// the facing is right.
+    fn track_target_in_range(
+        &mut self,
+        actor_id: u64,
+        target_rotation_q32: i64,
+        clear_hold_after_motion: bool,
+    ) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        // FightSkill.Update rotates every free weapon after its state controller.
+        actor.rotate_weapons_towards(target_rotation_q32);
+        if actor.rules.has_body {
+            actor.aim_rotation = degrees_q32_to_mdeg(
+                actor
+                    .skill
+                    .weapon_rotations_q32
+                    .first()
+                    .copied()
+                    .unwrap_or(actor.body_rotation_q32),
+            );
+        } else {
+            actor.rotate_body_towards(target_rotation_q32);
+            actor.aim_rotation = actor.body_rotation;
+            // MotionAttackState subsequently asks the active FightSkill to rotate its weapons.
+            actor.rotate_weapons_towards(target_rotation_q32);
+        }
+        if clear_hold_after_motion {
+            // FightMech runs SkillManager before MotionController. The
+            // current skill update therefore remains held; clearing here
+            // makes the attack eligible on the following logic tick.
+            actor.motion.attack_hold_fire = false;
+        }
+        if actor.rules.has_body
+            && (actor.motion.current_velocity_x_q32 != 0
+                || actor.motion.current_velocity_z_q32 != 0)
+        {
+            actor.rotate_body_towards(direction_degrees_q32_raw(
+                actor.motion.current_velocity_x_q32,
+                actor.motion.current_velocity_z_q32,
+            ));
+        }
+    }
+
+    /// A target out of range: the attack motion is left, through idle where
+    /// the build does, or the unit moves towards where its lock stands.
+    fn leave_or_approach(
+        &mut self,
+        actor_id: u64,
+        approach: Approach,
+        backswing_just_finished: bool,
+        attack_point_rejected: bool,
+    ) {
+        if let Flow::Done =
+            self.leave_attack_range(actor_id, backswing_just_finished, attack_point_rejected)
+        {
+            return;
+        }
+        self.approach(actor_id, approach);
+    }
+
+    /// The ways a unit leaves its attack motion when what it fires at is out
+    /// of range: a grouped root turning back while its slots still fire, and
+    /// the bodyless exits through idle.
+    fn leave_attack_range(
+        &mut self,
+        actor_id: u64,
+        backswing_just_finished: bool,
+        attack_point_rejected: bool,
+    ) -> Flow {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if actor.rules.attack.weapons.mode == WeaponMode::Group
+            && actor.motion.state == MotionState::Attacking
+            && actor
+                .skill
+                .group_skill_targets
+                .iter()
+                .skip(1)
+                .any(Option::is_some)
+        {
+            // GroupedSkillAttackBehaviour keeps the group attacking while any
+            // child FightSkill remains in SkillAttackState. When the core
+            // target is outside its own range, the bodyless root returns to
+            // the deployment facing while child weapons keep their locks.
+            actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
+            actor.aim_rotation = actor.body_rotation;
+            return Flow::Done;
+        }
+        if actor.motion.state == MotionState::Attacking
+            && !actor.rules.has_body
+            && !actor.motion.attack_hold_fire
+            && actor.skill.pending().is_none()
+            && actor.skill.backswing_finish_step().is_none()
+            && (matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+                || actor.skill.phase() == FightSkillPhase::Attack)
+        {
+            // FightSkill updates before MotionController. An active bodyless
+            // attack rejects an out-of-range retained target and enters
+            // SkillIdleState before MotionAttackState can fall through to
+            // movement. Both state machines expose one targetless Idle tick.
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.set_phase(FightSkillPhase::Idle);
+            actor.motion.attack_hold_fire = false;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            return Flow::Done;
+        }
+        if attack_point_rejected
+            && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+            && !actor.rules.has_body
+            && actor.motion.state == MotionState::Attacking
+            && actor.skill.pending().is_none()
+            && actor.skill.backswing_finish_step().is_none()
+        {
+            // MotionAttackState leaves through Idle when its current attack
+            // target is no longer in range. Idle target acquisition runs on
+            // the following update rather than recursively entering Moving.
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.set_phase(FightSkillPhase::Idle);
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            return Flow::Done;
+        }
+        if backswing_just_finished
+            && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+            && !actor.rules.has_body
+        {
+            // SkillAttackState rechecks its retained target after the attack
+            // controller finishes. If that target has left the legal attack
+            // area, Finish synchronously enters SkillIdleState; SimpleFSM does
+            // not update the new state recursively, so MotionController sees
+            // one targetless Idle tick before reacquisition on the next tick.
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.set_phase(FightSkillPhase::Idle);
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            return Flow::Done;
+        }
+        Flow::Next
+    }
+
+    /// `MotionMoveState`: moves towards where the lock stands, turning first.
+    fn approach(&mut self, actor_id: u64, approach: Approach) {
+        let Approach {
+            edge_distance_q32,
+            target_rotation_q32,
+            body_x_q32,
+            body_z_q32,
+            body_radius,
+        } = approach;
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let entered_move_from_idle = actor.motion.state == MotionState::Idle;
+        let entered_move = actor.motion.state != MotionState::Moving;
+        let entered_move_below_min_range =
+            entered_move && edge_distance_q32 < space_to_q32(actor.rules.attack.min_range());
+        if !entered_move_from_idle && !entered_move_below_min_range {
+            // FightSkill.Update tracks an existing target before MotionController updates movement.
+            // A target acquired by MotionIdleState is not visible to FightSkill until the next tick.
+            actor.rotate_weapons_towards(target_rotation_q32);
+            if actor.rules.has_body {
+                actor.aim_rotation = degrees_q32_to_mdeg(
+                    actor
+                        .skill
+                        .weapon_rotations_q32
+                        .first()
+                        .copied()
+                        .unwrap_or(actor.body_rotation_q32),
+                );
+            }
+        }
+        actor.motion.state = MotionState::Moving;
+        actor.motion.attack_hold_fire = false;
+        if entered_move {
+            return;
+        }
+        let (move_target_x_q32, move_target_z_q32) = native_auto_move_target_point(
+            actor.x_q32,
+            actor.z_q32,
+            actor.rules.collision_radius(),
+            body_x_q32,
+            body_z_q32,
+            body_radius,
+            actor.stats.attack_range(),
+        );
+        actor.motion.next_target_x_q32 = move_target_x_q32;
+        actor.motion.next_target_z_q32 = move_target_z_q32;
+        if actor.motion.current_velocity_x_q32 != 0 || actor.motion.current_velocity_z_q32 != 0 {
+            // MotionMoveState.MoveUpdate runs NormalRotate before Move;
+            // CalculateMoveSpeed therefore observes this tick's new facing.
+            actor.rotate_body_towards(direction_degrees_q32_raw(
+                actor.motion.current_velocity_x_q32,
+                actor.motion.current_velocity_z_q32,
+            ));
+        }
+        actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
+            space_to_q32(actor.stats.move_speed()),
+            actor.rules.rotate_speed_mdeg_per_second(),
+            actor.body_rotation_q32,
+            actor.motion.current_velocity_x_q32,
+            actor.motion.current_velocity_z_q32,
+        );
+        actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
+        if !actor.rules.has_body {
+            actor.aim_rotation = actor.body_rotation;
         }
     }
 }

@@ -76,10 +76,10 @@
 | `deploy.rs` | 部署：编队、初始单位和建筑、预搜索 |
 | `mech.rs` | `FightMech`：位置、朝向、生命及其快照 |
 | `search.rs` | 目标四叉树和目标选择器 |
-| `motion.rs` | `MotionController` 和 RVO 提交 |
+| `motion.rs` | `MotionController`：保持死掉的目标、攻击射程内的目标、离开或走近目标；RVO 提交 |
 | `damage.rs` | `DamagePerformer`，见下文"伤害" |
 | `projectile.rs` | `ProjectileSystem` |
-| `skill/mod.rs` | `FightSkill` 的更新、搜索计时器、攻击区域检查 |
+| `skill/mod.rs` | 按命名步骤组织的 `FightSkill` 更新、`SkillState`、搜索计时器、`TryStartAttack`、攻击区域检查 |
 | `skill/check.rs` | `SearchAttackTarget`、`SkillAttackableChecker`、`WallConstructionTargetChecker`、`SkillAttackState.Finish` |
 | `skill/perform.rs` | 攻击执行器：一击、一发、一串连发 |
 | `skill/group.rs` | 成组技能的各个位 |
