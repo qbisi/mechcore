@@ -28,12 +28,14 @@ released it.
 fixture and the measurement that reads it are one file to rerun.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
 simulator to the physics hash the game produced for `wall-aside.yaml`,
-`wall-line-of-fire.yaml` and `wall-line-tolerance.yaml`.
+`wall-line-of-fire.yaml`, `wall-line-tolerance.yaml` and
+`wall-weapon-group.yaml`, the last over all 242 of its ticks.
 
 A physics hash does not cover a unit's lock, its weapons' targets or its motion
 state, which are content-layer fields, so a matching hash does not say they
 match. Compared field by field, they agree on every tick of `wall-aside.yaml`
-and on all but one of the other two — the tick after a block falls, below.
+and `wall-weapon-group.yaml`, and on all but one of the other two — the tick
+after a block falls, below.
 
 The three `wall-line-*` layouts are read by which block ends up destroyed,
 because that is what a reader answers. The decision itself — a unit whose lock
@@ -92,9 +94,8 @@ lock and all four slots empty for a tick, then back to the unit behind the wall.
 Only the content layer sees the Marksman's tick, because both fights end within
 it.
 
-**Splash on a block, in the simulator.** A shot at a block splashes the next one
-— the Wraith's 8 metres reach the neighbouring block's edge exactly — and the
-simulator damages only the block it aims at, without refusing. So
-`wall-weapon-group.yaml` reproduces 92 of its 242 ticks and parts company at the
-first splash, which is why it is measured in `line-of-fire.mcscript` and not
-pinned in `regressions.mcscript`.
+**A splash that reaches across a wall.** A shot at a block splashes the enemy
+buildings around it, and that is measured and reproduced. Two neighbouring
+cases are not: whether a shot at a block also takes a unit standing by it, and
+what a shot at a unit takes when its splash reaches a block. The simulator
+refuses both rather than guess.
