@@ -92,12 +92,15 @@ Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
 
-**How the other side's Crawlers get inside a block.** A block is an obstacle
-to the side that did not place it, and one of that side's Crawlers still reached
-0.711 metres of a block's centre in `wall-block.yaml`, with 23 others crowding
-behind. Opponent avoidance looks only 0.01 seconds ahead, which may be all
-there is to it, but that fight parts company at tick 8 over how Crawlers form
-up, so it cannot say.
+**A Crawler attacking a block, from tick 96 of `wall-block.yaml`.** The
+simulator agrees with that fight's physics to tick 95 and its positions to 120,
+which includes the Crawler pressed 0.711 metres from a block's centre. At 96 a
+Crawler the game reads idle and lockless keeps attacking in the simulator.
+
+**The placing side's Crawlers crossing their own wall, from tick 44 of
+`wall-passage.yaml`.** Their avoidance velocities part there. The wall is no
+neighbour to them in the simulator; whether the game still counts it among a
+Crawler's twenty neighbours and only then ignores it is the next reading.
 
 **How long a unit stays idle once its block falls.** That it goes idle, drops
 its lock and keeps the fallen block in its weapon is reproduced. How long it

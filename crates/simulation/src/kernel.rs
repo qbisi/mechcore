@@ -5698,7 +5698,16 @@ fn native_auto_move_target_point(
         .saturating_add(space_to_q32(attack_range))
         .saturating_add(space_to_q32(source_radius));
     let requested_distance = if target_distance > MIN_AUTO_MOVE_DISTANCE_Q32 {
-        if center_distance > target_distance {
+        // Whether the unit is farther than it needs to be is asked of the
+        // squared distance, which is exact, against the squared stopping
+        // distance, which comes from the fast square root. The two disagree
+        // in the last bits where a unit's reach exactly cancels the target's
+        // radius, as a Crawler's 6 + 2 does a Marksman's 8: of 24 Crawlers
+        // charging one, the game sends the ones whose exact distance is
+        // longer to the computed point and the rest to the Marksman itself.
+        let squared_distance = q32_mul(delta_x, delta_x).saturating_add(q32_mul(delta_z, delta_z));
+        if crate::rvo::fpoint_less_than(q32_mul(target_distance, target_distance), squared_distance)
+        {
             target_distance
         } else {
             return (target_x_q32, target_z_q32);
