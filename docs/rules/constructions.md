@@ -128,10 +128,17 @@ The rule, measured:
 
 ```text
 among the enemy's constructions,
-  keep the ones within  attack range + 7 metres  of the attacker,
+  keep the ones within attack range of the attacker, edge to edge
+      (centre distance <= range + attacker radius + block radius),
   keep the ones within  11 metres  of the line from the attacker to its target,
   take the nearest of those to the attacker.
 ```
+
+**It is asked every tick the skill is idle**, not when the mech's lock is
+searched. `SkillIdleState.TryPerform` reaches `FightSkill.SearchAttackTarget`,
+which is what calls `WallConstructionTargetChecker`, while the lock search runs
+on its own ten-tick timer. A Wraith closing on a wall engages it the tick the
+wall comes into reach, between two lock searches.
 
 It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. One Marksman settles that: with the nearest block 75
@@ -146,30 +153,42 @@ members take blocks 10.0 and 10.7 metres off the line, which 6 would have
 excluded, and the Farseer takes nothing while a block sits 13.13 off, which 15
 would have included.
 
-**The range does.** A Crawler reaches 6 metres and stops considering a wall
-beyond about 12; a Marksman reaches 140 and attacks one 96 metres away.
+**The reach does belong to the attacker, edge to edge.** A Crawler reaches 6
+metres and stops considering a wall beyond 12, its range plus its radius of 2
+plus the block's 4; a Wraith reaches 60 and attacks a block 73.8 metres off,
+inside its 60 + 11 + 4. A constant allowance fits the Crawler and not the
+Wraith, and an earlier version of this document said "range + 7" because only
+the Crawler had been asked.
+
+The width is a bracket rather than a reading, from 94 decisions across six unit
+types — Crawler, Marksman, Fang, Farseer, Wraith and Fortress — taken at the
+first tick of each fight and before the first block of the Crawler fight fell:
+
+| | Bracket | Written as |
+| --- | --- | --- |
+| width | `[10.8, 11.8]` metres | 11 |
+| reach | `range + attacker radius + block radius + [0, 1.5]` | edge to edge |
+
+Both explain 93 of the 94; the odd one out is a tie, two blocks 10.94 and 10.95
+metres away, so it says the sort key is not quite a 2D centre distance rather
+than anything about the width. A wall's `path_radius` is 7 and its `radius` is
+4, which is where 11 would come from, and that is a reading of the table rather
+than a measurement.
+
+**Every weapon of a group takes a wall, the lock follows none of them, and an
+air unit's shot is taken too.** A Wraith flies and carries four weapon slots.
+Once it is attacking, all four point at the block in its way while its lock
+stays on the Marksman behind the wall — so whatever a group's weapons tell the
+mech's lock, a wall in the way is not part of it. Its slots answer for
+themselves: later in the same fight they hit two different blocks in the same
+tick. A Fortress, whose weapons are grouped too, does the same with the block
+in its line.
 
 **A block falls after the shot that felled it is recorded.** The three events
 one hit produces arrive in the order `damage`, `projectile_removed`,
 `building_destroyed`, and the destruction comes after *every* projectile the
 tick resolves, not after its own: a tick that lands two shots reads
 `damage`, `removed`, `removed`, `destroyed`.
-
-Both numbers are brackets rather than readings, from 25 decisions taken at the
-first tick of three fights across three unit types, plus 52 decisions from a
-Crawler fight before its first block fell:
-
-| | Bracket | Written as |
-| --- | --- | --- |
-| width | `[10.7, 12.1]` metres | 11 |
-| range allowance | `[6, 8]` metres | 7 |
-
-Every pair in those brackets explains all 25 first-tick decisions and 51 of the
-52 Crawler ones; the odd one out is a tie, two blocks 10.94 and 10.95 metres
-away, so it says the sort key is not quite a 2D centre distance rather than
-anything about the width. A wall's `path_radius` is 7 and its `radius` is 4,
-which is where 11 and 7 would come from, and that is a reading of the table
-rather than a measurement.
 
 ## What the footprint is and what it is not
 
@@ -219,5 +238,6 @@ whose control is a side that places nothing and reads back two towers, and
 [`wall.mcscript`](../../tests/layouts/construction/wall.mcscript), which asks
 both sides the same question with the same unit, and
 [`line-of-fire.mcscript`](../../tests/layouts/construction/line-of-fire.mcscript),
-whose three layouts separate the nearest wall from the wall in the way and then
-bracket how wide the way is.
+whose four layouts separate the nearest wall from the wall in the way, bracket
+how wide the way is, and ask a flying unit with four weapon slots the same
+question.

@@ -52,18 +52,14 @@ const RVO_SIMULATOR_ORIGIN_OFFSET_Q32: i64 = 400 * Q32_ONE;
 const CORE_TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
 const SEARCH_TARGET_RESET_TICKS: i32 = 10;
 /// How far off the line of fire an enemy construction may stand and still take
-/// the shot, and how far past its reach an attacker still considers one, both
-/// in space units.
+/// the shot, in space units.
 ///
-/// `docs/rules/constructions.md` carries the measurement. Twenty-five
-/// first-tick decisions over three unit types leave the width in
-/// `[10.7, 12.1]` metres and the allowance in `[6, 8]`; these are the numbers
-/// a wall's own `path_radius` of 7 and `radius` of 4 would give, which is a
-/// reading of the table rather than a measurement of the build. The width is
-/// not the attacker's: a Fang of radius 2 and a Marksman of radius 8 use the
-/// same one.
+/// `docs/rules/constructions.md` carries the measurement: 94 decisions over
+/// six unit types leave it in `[10.8, 11.8]` metres, and 11 is what a wall's
+/// own `path_radius` of 7 and `radius` of 4 would give, which is a reading of
+/// the table rather than a measurement of the build. It is not the attacker's:
+/// a Fang of radius 2, a Marksman of 8 and a Wraith of 11 use the same one.
 const WALL_IN_THE_WAY_WIDTH: i64 = 11_000;
-const WALL_IN_THE_WAY_REACH: i64 = 7_000;
 
 #[derive(Debug, Clone, Copy)]
 struct RvoProfile {
@@ -1274,6 +1270,9 @@ struct Simulation {
     rvo_first_tree_pending: bool,
     terminal_drain_pending: bool,
     late_building_events_pending: bool,
+    /// Buildings a projectile destroyed this tick, held until every projectile
+    /// has resolved so their events follow all of the tick's shots.
+    fallen_buildings: Vec<Event>,
 }
 
 impl Simulation {
@@ -1362,6 +1361,7 @@ impl Simulation {
             rvo_first_tree_pending: true,
             terminal_drain_pending: false,
             late_building_events_pending: false,
+            fallen_buildings: Vec::new(),
         })
     }
 
@@ -1951,17 +1951,21 @@ impl Simulation {
     /// Which enemy construction stands between this actor and its target.
     ///
     /// `docs/rules/constructions.md` states the rule and the readings behind
-    /// it: of the enemy's constructions, the ones near enough to be considered
-    /// and near enough to the line of fire, the **nearest to the attacker** —
+    /// it: of the enemy's constructions, the ones within reach edge to edge and
+    /// within the width of the line of fire, the **nearest to the attacker** —
     /// not the nearest construction and not the one nearest the line.
     fn wall_in_the_way(&self, actor_id: u64, target: FightActorRef) -> Option<u64> {
         let actor = self.actors.get(&actor_id)?;
         let aimed = self.fight_actor(target)?;
+        // A wall is considered when it is within reach edge to edge: the
+        // attacker's range plus its own radius and the block's. A constant
+        // allowance fits a Crawler and not a Wraith, which attacks a block 73.8
+        // metres off with a reach of 60.
         let reach = space_to_q32(
             actor
                 .stats
                 .attack_range()
-                .saturating_add(WALL_IN_THE_WAY_REACH),
+                .saturating_add(actor.rules.collision_radius()),
         );
         let width = space_to_q32(WALL_IN_THE_WAY_WIDTH);
         let mut nearest: Option<(i64, u64)> = None;
@@ -1977,7 +1981,7 @@ impl Simulation {
                 building.position.x.saturating_sub(actor.x_q32),
                 building.position.z.saturating_sub(actor.z_q32),
             );
-            if distance > reach {
+            if distance > reach.saturating_add(building.bounds_width / 2) {
                 continue;
             }
             if distance_to_segment_q32(
@@ -2594,6 +2598,14 @@ impl Simulation {
                 .expect("actor identity is stable");
             actor.exit_fight_on_death();
             return Ok(());
+        }
+        // A skill looks for its attack target every tick it is idle —
+        // `SkillIdleState.TryPerform` reaches `SearchAttackTarget`, which asks
+        // `WallConstructionTargetChecker` — while the mech's lock is searched
+        // on its own ten-tick timer. So a wall that comes into reach between
+        // two lock searches is engaged the tick it does.
+        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Idle {
+            self.engage_wall_in_the_way(actor_id);
         }
         if matches!(
             self.actors[&actor_id].lock_target,
@@ -4413,6 +4425,7 @@ impl Simulation {
         }
         retained.reverse();
         self.projectiles = retained;
+        events.append(&mut self.fallen_buildings);
         Ok(())
     }
 
@@ -4475,11 +4488,12 @@ impl Simulation {
                     absorbed_by: None,
                 },
             ));
-            // A building falls after the shot that felled it has been
-            // recorded, which is the order both wall recordings hold:
-            // `damage`, then `projectile_removed`, then `building_destroyed`.
+            // A building falls after every shot the tick resolves has been
+            // recorded, not after its own: a tick that lands two reads
+            // `damage`, `projectile_removed`, `projectile_removed`,
+            // `building_destroyed`. `step_projectiles` emits these last.
             if destroyed {
-                events.push(event(
+                self.fallen_buildings.push(event(
                     Some(target_ref),
                     None,
                     None,
@@ -5599,6 +5613,7 @@ mod tests {
             rvo_first_tree_pending: true,
             terminal_drain_pending: false,
             late_building_events_pending: false,
+            fallen_buildings: Vec::new(),
         }
     }
 
@@ -5826,6 +5841,7 @@ mod tests {
                 rvo_first_tree_pending: true,
                 terminal_drain_pending: false,
                 late_building_events_pending: false,
+                fallen_buildings: Vec::new(),
             }
         };
         let mut simulation = make_simulation();
@@ -5977,6 +5993,7 @@ mod tests {
             rvo_first_tree_pending: true,
             terminal_drain_pending: false,
             late_building_events_pending: false,
+            fallen_buildings: Vec::new(),
         };
         assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
     }

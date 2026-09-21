@@ -38,6 +38,7 @@ steps:
       line: read_yaml(tests/layouts/construction/wall-line-of-fire.yaml)
       tolerance: read_yaml(tests/layouts/construction/wall-line-tolerance.yaml)
       width: read_yaml(tests/layouts/construction/wall-line-width.yaml)
+      group: read_yaml(tests/layouts/construction/wall-weapon-group.yaml)
 
   # Nearest against on-the-line. Blue's five blocks are ids 3 to 7, left to
   # right. Red's Marksman stands above block 3 and shoots past the far end of
@@ -120,3 +121,42 @@ steps:
       sides.blue.constructions.0.parts.2.life.current: 986
       sides.blue.constructions.0.parts.3.id: 7
       sides.blue.constructions.0.parts.3.life.current: 167
+
+  # A group of weapons, in the air. A Wraith flies and carries four weapon
+  # slots, so it asks at once whether a wall takes an air unit's shot, whether
+  # every slot takes it, and whether the lock follows the weapons.
+  #
+  # It does, they do, and it does not. The Wraith closes from 86 metres and
+  # engages block 3 at tick 32 from 73.8 metres — beyond `range + 7` and within
+  # `range + radius + block`, 60 + 11 + 4 — and by tick 40 all four slots
+  # point at block 3 while its lock stays on the Marksman behind the wall.
+  # Later its slots split: at ticks 93 and 101 it hits blocks 4 and 5 in the
+  # same tick, so each slot answers for itself rather than copying the first.
+  #
+  # The readings are the blocks that fall and when: 3 by tick 60 from
+  # 381 + 381 + 350, then 4 and 5 together at tick 101, and 6 and 7 stand.
+  - game.apply_layout:
+      layout: $group
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/weapon-group.mcfr
+    expect:
+      operation.tick_count: 242
+  - fight.buildings:
+      recording: ${out}/weapon-group.mcfr
+      tick: 31
+    expect:
+      sides.blue.constructions.0.standing: 5
+  - fight.buildings:
+      recording: ${out}/weapon-group.mcfr
+      tick: 60
+    expect:
+      sides.blue.constructions.0.standing: 4
+      sides.blue.constructions.0.parts.0.id: 4
+  - fight.buildings:
+      recording: ${out}/weapon-group.mcfr
+      tick: 242
+    expect:
+      sides.blue.constructions.0.standing: 2
+      sides.blue.constructions.0.parts.0.id: 6
+      sides.blue.constructions.0.parts.1.id: 7

@@ -1,0 +1,34 @@
+kind: layout
+round: 1
+
+# Does a wall take the shot of a unit with a group of weapons, and of an air
+# unit, and does its lock then follow the weapons?
+#
+# Every unit the other wall fixtures use carries one weapon, so "the lock
+# follows the group's last attack target" and "the lock stays on what the
+# search found" answer the same for them: there is only one weapon, and it
+# points at the wall while the lock stays on the unit behind it. A Wraith
+# carries four weapon slots and flies, so it asks all of it at once.
+#
+# Blue's wall stands at `(-140, -55)` with blue's Marksman behind it at
+# `(-140, -100)`. Red's Wraith starts at world `(-195, 25)`, 86 metres from the
+# nearest block against a reach of 60, so it has to close before any block is
+# in reach — and it attacks one from 73.8 metres, which is what showed that
+# reach is measured edge to edge: 60 of range, 11 of its own radius and 4 of
+# the block's.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -140, y: -100}
+
+red:
+  units:
+    - name: wraith
+      index: 0
+      position: {x: 195, y: -25}
