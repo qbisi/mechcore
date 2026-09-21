@@ -121,8 +121,6 @@ pub(in crate::fight) struct Skill {
     pub(in crate::fight) group_skill_prepare_ready_steps: Vec<u64>,
     pub(in crate::fight) group_pending_releases: Vec<(usize, PendingRelease)>,
     pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
-    pub(in crate::fight) projectile_burst_finished: bool,
-    pub(in crate::fight) projectile_burst_finished_same_tick_dead: bool,
     pub(in crate::fight) laser_attack_count: usize,
     pub(in crate::fight) retarget_after_own_direct_kill: bool,
 }
@@ -511,103 +509,6 @@ impl Simulation {
         Ok(())
     }
 
-    pub(in crate::fight) fn quick_switch_active_target_outside_attack_area(
-        &mut self,
-        actor_id: u64,
-        step: u64,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
-        allow_phase_override: bool,
-    ) -> Result<bool> {
-        let actor = &self.actors[&actor_id];
-        let Some(FightActorRef::Unit(target_id)) = actor.skill.attack_target() else {
-            return Ok(false);
-        };
-        let target = FightActorRef::Unit(target_id);
-        let in_attacking_phase = actor.skill.phase() == FightSkillPhase::Attack
-            || (actor.skill.phase() == FightSkillPhase::Idle
-                && actor.motion.state == MotionState::Attacking
-                && !self.bodyless_target_in_attack_range(actor_id, target));
-        if (!allow_phase_override && !in_attacking_phase)
-            || !actor.rules.has_body
-            || !actor.rules.attack.quick_switch_target
-            || actor.rules.attack.weapons.mode != WeaponMode::Normal
-            || !actor.skill.projectile_pending_releases.is_empty()
-            || (!allow_phase_override
-                && !self.fight_actor_is_alive(target)
-                && actor.motion.state != MotionState::Attacking)
-            || self.target_in_attack_area(actor_id, target)
-        {
-            return Ok(false);
-        }
-        let use_live_candidate_positions = {
-            let target = self
-                .fight_actor(target)
-                .expect("lock target identity is stable");
-            target.query_alive && !target.alive
-        };
-        let mut selected = self
-            .select_normal_target_with_order(
-                actor_id,
-                target_search_order,
-                use_live_candidate_positions,
-            )
-            .map_err(|error| Error::new(format!("logic step {step} actor {actor_id}: {error}")))?;
-        if !use_live_candidate_positions
-            && selected
-                .and_then(|candidate| self.fight_actor(candidate))
-                .is_some_and(|target| target.query_alive && !target.alive)
-        {
-            selected = self
-                .select_normal_target_with_order(actor_id, target_search_order, true)
-                .map_err(|error| {
-                    Error::new(format!("logic step {step} actor {actor_id}: {error}"))
-                })?;
-        }
-        let selected = selected.filter(|candidate| match candidate {
-            FightActorRef::Unit(_) => self.target_in_attack_area(actor_id, *candidate),
-            FightActorRef::Building(_) => false,
-        });
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        let entered_idle = match selected {
-            Some(FightActorRef::Unit(target_id)) => {
-                let target = FightActorRef::Unit(target_id);
-                if actor.skill.attack_target() != Some(target) {
-                    actor.skill.laser_attack_count = 0;
-                }
-                actor.skill.lock_target = Some(target);
-                false
-            }
-            Some(FightActorRef::Building(building_id)) => {
-                actor.skill.lock_target = Some(FightActorRef::Building(building_id));
-                actor.skill.lock_is_terminal_handoff = false;
-                false
-            }
-            None => {
-                actor.skill.drop_lock();
-                actor.motion.state = MotionState::Idle;
-                actor.skill.set_phase(FightSkillPhase::Idle);
-                actor.skill.set_pending(None);
-                actor.motion.next_target_x_q32 = actor.x_q32;
-                actor.motion.next_target_z_q32 = actor.z_q32;
-                actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
-                true
-            }
-        };
-        actor.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        actor.skill.retarget_after_own_direct_kill = false;
-        // A quick switch asks the line of fire like any other search: the
-        // Arclight whose splash killed its lock takes the next Crawler and,
-        // the same tick, the block standing between them.
-        if !entered_idle {
-            self.search_attack_target(actor_id);
-        }
-        Ok(entered_idle)
-    }
-
     #[cfg(test)]
     pub(in crate::fight) fn step_actor(
         &mut self,
@@ -675,9 +576,7 @@ impl Simulation {
                 .skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
-        if let Flow::Done =
-            self.settle_projectile_burst(actor_id, step, target_search_order, events)?
-        {
+        if let Flow::Done = self.projectile_burst_lost_target(actor_id, step, events)? {
             return Ok(());
         }
         // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
@@ -938,73 +837,6 @@ impl Simulation {
         }
     }
 
-    /// The bookkeeping of a projectile burst: its finish, and a burst whose
-    /// target died while it was still firing.
-    fn settle_projectile_burst(
-        &mut self,
-        actor_id: u64,
-        step: u64,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
-        events: &mut Vec<Event>,
-    ) -> Result<Flow> {
-        let deferred_projectile_burst_finish = {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            std::mem::replace(&mut actor.skill.projectile_burst_finished, false)
-        };
-        let deferred_same_tick_dead_burst_finish = {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            std::mem::replace(
-                &mut actor.skill.projectile_burst_finished_same_tick_dead,
-                false,
-            )
-        };
-        if deferred_same_tick_dead_burst_finish
-            && self.quick_switch_active_target_outside_attack_area(
-                actor_id,
-                step,
-                target_search_order,
-                true,
-            )?
-        {
-            return Ok(Flow::Done);
-        }
-        let deferred_target_outside_attack_area = deferred_projectile_burst_finish
-            && self.actors[&actor_id]
-                .skill
-                .attack_target()
-                .is_none_or(|target_id| !self.target_in_attack_area(actor_id, target_id));
-        if deferred_target_outside_attack_area
-            && self.quick_switch_active_target_outside_attack_area(
-                actor_id,
-                step,
-                target_search_order,
-                true,
-            )?
-        {
-            return Ok(Flow::Done);
-        }
-        let force_burst_finish_target_search = deferred_projectile_burst_finish
-            && self.actors[&actor_id]
-                .skill
-                .attack_target()
-                .is_none_or(|target_id| !self.target_in_attack_area(actor_id, target_id));
-        if force_burst_finish_target_search {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.skill.set_phase(FightSkillPhase::Idle);
-            actor.skill.search_target_time = 0;
-        }
-        self.projectile_burst_lost_target(actor_id, step, events)
-    }
-
     /// A burst whose target died while it was still firing: with no enemy
     /// left it stops, and otherwise the rest of it is fired where it was aimed
     /// while the unit stands.
@@ -1035,8 +867,6 @@ impl Simulation {
                     .expect("actor identity is stable");
                 actor.motion.state = MotionState::Idle;
                 actor.skill.projectile_pending_releases.clear();
-                actor.skill.projectile_burst_finished = false;
-                actor.skill.projectile_burst_finished_same_tick_dead = false;
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
@@ -1062,10 +892,6 @@ impl Simulation {
                         true
                     }
                 });
-                if !due.is_empty() && actor.skill.projectile_pending_releases.is_empty() {
-                    actor.skill.projectile_burst_finished = true;
-                    actor.skill.projectile_burst_finished_same_tick_dead = true;
-                }
                 due
             };
             for pending in due {
@@ -1199,12 +1025,6 @@ impl Simulation {
                     true
                 }
             });
-            let burst_finished =
-                !due.is_empty() && actor.skill.projectile_pending_releases.is_empty();
-            if burst_finished {
-                actor.skill.projectile_burst_finished = true;
-                actor.skill.projectile_burst_finished_same_tick_dead = false;
-            }
             due
         };
         for pending in projectile_releases {

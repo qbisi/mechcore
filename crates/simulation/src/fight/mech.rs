@@ -99,8 +99,6 @@ impl Actor {
                 group_skill_prepare_ready_steps: vec![0; group_skill_count],
                 group_pending_releases: Vec::new(),
                 projectile_pending_releases: Vec::new(),
-                projectile_burst_finished: false,
-                projectile_burst_finished_same_tick_dead: false,
                 laser_attack_count: 0,
                 retarget_after_own_direct_kill: false,
             },
@@ -124,8 +122,6 @@ impl Actor {
         self.skill.group_skill_prepare_ready_steps.fill(0);
         self.skill.group_pending_releases.clear();
         self.skill.projectile_pending_releases.clear();
-        self.skill.projectile_burst_finished = false;
-        self.skill.projectile_burst_finished_same_tick_dead = false;
         self.skill.laser_attack_count = 0;
         self.skill.retarget_after_own_direct_kill = false;
         self.motion.attack_hold_fire = false;
