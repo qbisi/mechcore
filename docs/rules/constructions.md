@@ -245,9 +245,18 @@ aims at: one projectile removed at block 4 reads `damage` 381 on block 4 and
 381 on block 5. An earlier version of this document took that for two slots
 firing at two blocks; every slot was on block 4. The simulator reproduces it —
 `wall-weapon-group.yaml` over all 242 ticks — by giving a shot at a building
-every other enemy building whose edge its splash reaches. Whether that splash
-also takes a unit standing by the block, and what a shot at a unit does to a
-block inside its splash, are not measured, and the simulator refuses both.
+every other enemy building whose edge its splash reaches.
+
+**A splash does not care what it was aimed at.** An Arclight shooting a block
+in the way of Crawlers takes the Crawlers standing on it, and a shot at a
+Crawler takes a block of its wall behind it, beyond the Arclight's reach and
+so out of its line of fire, for the shot's full damage — block 5 reads 747 at
+tick 77 of `wall-splash-behind.yaml`. A splash takes every enemy unit and
+building within reach, in the order the target trees hold them, walls
+included. The deaths and falls it causes come at the end of the tick, in the
+order they were struck, and a unit that dies leaves the tree at once. The
+simulator reproduces all three `wall-splash*.yaml` fights over every tick, in
+physics and in content.
 
 **A block falls after the shot that felled it is recorded.** The three events
 one hit produces arrive in the order `damage`, `projectile_removed`,

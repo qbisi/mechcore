@@ -23,22 +23,25 @@ released it.
 | `wall-line-width.yaml` | whether that width is the attacker's | it is not: Fang, Marksman and Farseer share it |
 | `wall-weapon-group.yaml` | an air unit with four weapon slots | every slot takes the wall, the lock follows none, a shot splashes the next block |
 | `wall-rhino.yaml` | a blow against a shot | the same rule, one hit a block, the swing held on a fallen block |
+| `wall-splash.yaml` | a splash against what it was aimed at | a shot at a block takes the Crawlers on it |
+| `wall-splash-line.yaml` | the same, with blocks entering and leaving the line | the order the target trees hold them |
+| `wall-splash-behind.yaml` | a shot at a unit against a block out of reach | the block takes the full shot, **747** |
 | `wall-laser.yaml` | a beam against a shot, the line's width at the centimetre, a block in the way of a unit's movement | the same rule; the line is **11.5** metres; asked while an attack is prepared; a block is an obstacle to the other side |
 
-`shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`
-and `attacks.mcscript` record them and carry every number as an `expect`, so a
+`shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`,
+`attacks.mcscript` and `splash.mcscript` record them and carry every number as an `expect`, so a
 fixture and the measurement that reads it are one file to rerun.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
 simulator to the physics hash the game produced for `wall-aside.yaml`,
 `wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
-`wall-rhino.yaml`, `wall-laser.yaml`, `wall-passage.yaml` and `wall-block.yaml`
-— every wall fight here the simulator can run, each over every one of its
-ticks.
+`wall-rhino.yaml`, `wall-laser.yaml`, `wall-passage.yaml`, `wall-block.yaml`
+and the three `wall-splash*.yaml` — every wall fight here the simulator can
+run, each over every one of its ticks.
 
 A physics hash does not cover a unit's lock, its weapons' targets or its motion
 state, which are content-layer fields, so every fight above is pinned by its
 content hash as well, the game's too: the simulator carries the same content
-as the game on every tick of all eight. The measurement scripts also compare
+as the game on every tick of all eleven. The measurement scripts also compare
 each fight they record with the simulator after recording it.
 
 The three `wall-line-*` layouts are read by which block ends up destroyed,
@@ -98,9 +101,3 @@ the locks and motion of Crawlers retargeting as the last enemy dies.
 its lock and keeps the fallen block in its weapon is reproduced. How long it
 stays so is not: the two recordings where it lasts more than a tick carry a
 Farseer and a Fortress, which the simulator cannot run.
-
-**A splash that reaches across a wall.** A shot at a block splashes the enemy
-buildings around it, and that is measured and reproduced. Two neighbouring
-cases are not: whether a shot at a block also takes a unit standing by it, and
-what a shot at a unit takes when its splash reaches a block. The simulator
-refuses both rather than guess.
