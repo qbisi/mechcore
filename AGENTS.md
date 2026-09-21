@@ -10,9 +10,9 @@
 这些 readme 写的是所在目录的准入规则，从文件本身看不出来，而且往往正好禁止
 了 agent 默认会做的事。例如：
 
-- `tests/grbr/README.md`：录像是原样拷贝的，不许重写或规范化，哈希一致本身
+- `replay/grbr/README.md`：录像是原样拷贝的，不许重写或规范化，哈希一致本身
   就是 fixture 契约的一部分；
-- `tests/battle/README.md`：里面的 YAML 只能由 `mechcore replay convert` 重新生成，
+- `replay/battle/README.md`：里面的 YAML 只能由 `mechcore replay convert` 重新生成，
   不许手改。值不对是转换器的问题，改 `crates/document/src/convert.rs`；
 - `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；
@@ -37,7 +37,7 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
   `cargo clippy -D warnings`、`cargo test`，都是
   `--workspace --exclude mechcore-adapter --no-default-features`。
 - `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——fixture 哈希、
-  重新生成 `tests/battle` 并要求结果没有差异、把每一份被跟踪的 `.mcscript` 过一遍
+  重新生成 `replay/battle` 并要求结果没有差异、把每一份被跟踪的 `.mcscript` 过一遍
   `--check` 并**实际运行其中不需要游戏的那些**、`scripts/verify-battles.py`。
 - `adapter`（macOS）：只查别处查不了的——Adapter 自己的 clippy 和测试、默认
   feature 下 `mechcore` 把 dylib 打包到可执行文件旁边、以及找游戏进程的那段 macOS

@@ -56,7 +56,7 @@ This directory is build 2259 only. Training Ground recordings carry
 ## Derived corpora
 
 The tracked set contains 41 matches and 750 player-rounds. Battle documents are
-generated under `tests/battle`, one per replay, and its README records what the
+generated under `replay/battle`, one per replay, and its README records what the
 conversion establishes about them. They are regenerated offline by:
 
 ```bash

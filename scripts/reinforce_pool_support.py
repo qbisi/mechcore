@@ -6,7 +6,7 @@
 shows how the recorded lists behave: append-only across rounds, no id twice, and
 no id both added and removed in one match.
 
-`tests/grbr/README.md` explains which replays are usable and why the downloaded
+`replay/grbr/README.md` explains which replays are usable and why the downloaded
 ones are not.
 
     python3 scripts/reinforce_pool_support.py

@@ -399,7 +399,7 @@ fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 mod tests {
     use super::read;
 
-    const TUFF: &str = "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
+    const TUFF: &str = "../../replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
 
     fn tuff() -> Vec<u8> {
         std::fs::read(TUFF).expect("tracked GRBR fixture")

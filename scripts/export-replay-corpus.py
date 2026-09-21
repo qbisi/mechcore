@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Regenerate every tracked battle document from its replay.
 
-Each GRBR under ``tests/grbr`` is converted offline with ``mechcore replay convert``
-into the battle YAML of the same basename under ``tests/battle``, replacing
+Each GRBR under ``replay/grbr`` is converted offline with ``mechcore replay convert``
+into the battle YAML of the same basename under ``replay/battle``, replacing
 what is there. Both directories' ``SHA256SUMS`` are rewritten afterwards. A
 replay the converter refuses is reported and makes the run fail, so a corpus
 that no longer converts cannot pass unnoticed.
@@ -43,8 +43,8 @@ def parse_arguments(root: Path) -> argparse.Namespace:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--mechcore", type=Path, default=root / "target/release/mechcore")
-    parser.add_argument("--grbr-dir", type=Path, default=root / "tests/grbr")
-    parser.add_argument("--battle-dir", type=Path, default=root / "tests/battle")
+    parser.add_argument("--grbr-dir", type=Path, default=root / "replay/grbr")
+    parser.add_argument("--battle-dir", type=Path, default=root / "replay/battle")
     return parser.parse_args()
 
 

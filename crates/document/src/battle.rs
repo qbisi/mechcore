@@ -1443,7 +1443,7 @@ mod tests {
     #[test]
     fn every_tracked_segment_folds_without_changing_its_content() {
         let mut folded = 0;
-        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
+        for entry in std::fs::read_dir("../../replay/grbr").unwrap() {
             let path = entry.unwrap().path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;

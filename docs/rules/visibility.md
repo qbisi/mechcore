@@ -16,7 +16,7 @@ it carries both players' round snapshots whole. One of those snapshots holds
 what no interface shows an opponent: the other player's supply, the units it
 has unlocked, its officers and its research.
 
-`tests/grbr/2259_20260823--67294111_[你是蓬莱花仙]VS[crower].grbr` has `Seat` 1,
+`replay/grbr/2259_20260823--67294111_[你是蓬莱花仙]VS[crower].grbr` has `Seat` 1,
 so it was recorded by the player who held seat 1, and its round 3 snapshot
 gives seat 0's `shop.unlockedUnits` as `[9, 24, 30, 1]`, with that player's
 `officers` and `supply` beside them. Eleven of the tracked replays were

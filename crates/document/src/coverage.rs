@@ -489,7 +489,7 @@ mod tests {
 
     fn tracked() -> Vec<(String, Stated)> {
         let mut out = Vec::new();
-        for entry in std::fs::read_dir("../../tests/battle").expect("tracked battles") {
+        for entry in std::fs::read_dir("../../replay/battle").expect("tracked battles") {
             let path = entry.unwrap().path();
             if path.extension().is_none_or(|extension| extension != "yaml") {
                 continue;

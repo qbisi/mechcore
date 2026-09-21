@@ -30,7 +30,7 @@ Four top-level keys, all others rejected:
 game: launch        # optional: launch | attach; omitted means offline
 level: 1            # optional: 0..4, needs a game; higher takes it from lower
 vars:               # optional
-  grbr: tests/grbr/example.grbr
+  grbr: replay/grbr/example.grbr
   out: work/research/example
 steps:              # required, at least one
   - game.record_replay_round:
@@ -386,7 +386,7 @@ itself carries, and require the two recordings to agree:
 game: launch
 
 vars:
-  grbr: tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
+  grbr: replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
   out: work/research/tuff-replay-vs-training
 
 steps:
@@ -411,7 +411,7 @@ steps:
 
 `tests/regression/mcfr-regressions.yaml` stays a data table. `tests/regression/simulate.mcscript`
 reads it for the offline simulator regression, which CI runs, and
-`crates/simulation/tests/battle.rs` reads it for the content-layer fields the
+`crates/simulation/replay/battle.rs` reads it for the content-layer fields the
 physics hash leaves out. Re-recording is one more reader of that same table,
 not a copy of it:
 

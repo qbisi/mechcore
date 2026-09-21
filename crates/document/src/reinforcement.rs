@@ -684,7 +684,7 @@ mod tests {
     }
 
     fn corpus() -> Vec<(Stated, crate::record::BattleRecord)> {
-        std::fs::read_dir("../../tests/grbr")
+        std::fs::read_dir("../../replay/grbr")
             .unwrap()
             .map(|entry| entry.unwrap().path())
             .filter(|path| path.extension().is_some_and(|ext| ext == "grbr"))
@@ -704,7 +704,7 @@ mod tests {
 
     fn sample() -> Stated {
         let bytes = std::fs::read(
-            "../../tests/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml",
+            "../../replay/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml",
         )
         .unwrap();
         crate::opening::stated(&bytes).unwrap().unwrap()

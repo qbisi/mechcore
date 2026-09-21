@@ -164,7 +164,7 @@ mod tests {
     /// A layout captured live pins the projection, composed with the round's
     /// deployment.
     ///
-    /// `tests/layouts/tuff-replay-round-7.yaml` was captured at the end of
+    /// `replay/layout/tuff-replay-round-7.yaml` was captured at the end of
     /// round 7's deployment, so it is `project(step*(state, actions))` rather
     /// than `project(state)`: the round's decisions, stepped in order from the
     /// position it opened with, and every formation handed out landed where the
@@ -176,7 +176,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let battle = battle_from_grbr(
             &std::fs::read(
-                "../../tests/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr",
+                "../../replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr",
             )
             .unwrap(),
         )
@@ -211,7 +211,7 @@ mod tests {
         };
         let projected = project(&deployed, turn.round, battle.map_id, battle.seed).unwrap();
 
-        let bytes = std::fs::read("../../tests/layouts/tuff-replay-round-7.yaml").unwrap();
+        let bytes = std::fs::read("../../replay/layout/tuff-replay-round-7.yaml").unwrap();
         let captured = crate::layout::parse_yaml(&bytes).unwrap();
         assert_eq!(
             crate::layout::canonical_yaml(projected).unwrap(),
@@ -232,7 +232,7 @@ mod tests {
     fn every_deployed_position_projects_onto_a_layout_that_compiles() {
         let economy = Economy::embedded().unwrap();
         let mut projected = 0;
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn every_recorded_position_projects_onto_a_layout_that_compiles() {
         let mut projected = 0;
-        for entry in std::fs::read_dir("../../tests/grbr").expect("tracked replay directory") {
+        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
             let path = entry.expect("directory entry").path();
             if path.extension().is_none_or(|extension| extension != "grbr") {
                 continue;

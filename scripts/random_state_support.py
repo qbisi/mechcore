@@ -5,7 +5,7 @@ Two streams are recorded. This script shows that the player stream is its seed
 and that the match stream is the seed advanced by a match-dependent number of
 draws.
 
-`tests/grbr/README.md` explains which replays are usable and why the downloaded
+`replay/grbr/README.md` explains which replays are usable and why the downloaded
 ones are not.
 
     python3 scripts/random_state_support.py

@@ -1,15 +1,20 @@
-# Replay scripts
+# Replays
 
-Scripts that drive the game through native replays rather than through a
-layout. They are a workflow of their own, beside the tests and not part of
-them: nothing here is run by CI beyond being parsed, because every one needs
-the game.
+Native replays and what is converted from them, kept together because each
+one is a function of the one before it:
 
-| Script | What it does |
-| --- | --- |
-| `record-standard-1v1.mcscript` | watch live standard 1v1 matches unattended and keep each as a replay |
+| Directory | What it holds | How it is made |
+| --- | --- | --- |
+| [`grbr/`](grbr/README.md) | the tracked native replays, byte for byte as the game wrote them | copied from the Steam installation, never rewritten |
+| [`battle/`](battle/README.md) | one battle document per replay | `mechcore replay convert`, over all of them by `scripts/export-replay-corpus.py` |
+| `layout/` | the position one round of a battle opens its fight from | `mechcore doc project <battle> --round <n>` |
 
-The replays it keeps are what [`../tests/grbr/`](../tests/grbr/README.md) is
-copied from. `mechcore doc verify` checks the battle documents converted from
-those replays; that is a different process from this one, and
-`scripts/verify-battles.py` runs it.
+Nothing here is a test of its own. CI requires `battle/` to be exactly what
+the converter writes from `grbr/`, and `scripts/verify-battles.py` runs
+`mechcore doc verify` over every battle; that is a different process from the
+tests under [`../tests/`](../tests/README.md). Layouts built by hand, rather
+than converted, are in [`../layouts/`](../layouts/README.md).
+
+`record-standard-1v1.mcscript` is how new replays are made: it watches live
+standard 1v1 matches unattended and keeps each one. It needs the game, so CI
+only parses it.
