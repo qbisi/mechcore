@@ -116,6 +116,43 @@ def check_readme_naming(fail):
         fail(f"{path.relative_to(REPO)}: readmes are spelled README.md")
 
 
+def check_repeated_paragraphs(paths, fail):
+    """Refuse a document that says the same paragraph twice.
+
+    A document is prose written once. The same paragraph appearing again is a
+    paste gone wrong, or a script's replacement that matched more than it
+    meant to: an empty search string replaced into every gap of a file once
+    turned a 101-line readme into 55,000 lines of its own paragraphs, and the
+    link check had nothing to say about it. Short lines and fenced code are
+    left alone, because a table row or a snippet can honestly repeat.
+    """
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        seen = set()
+        fenced = False
+        paragraph = []
+        blocks = []
+        for line in text.splitlines() + [""]:
+            if line.startswith("```"):
+                fenced = not fenced
+                paragraph = []
+                continue
+            if fenced:
+                continue
+            if line.strip():
+                paragraph.append(line.strip())
+            elif paragraph:
+                blocks.append(" ".join(paragraph))
+                paragraph = []
+        for block in blocks:
+            if len(block) < 80 or block.startswith("|"):
+                continue
+            if block in seen:
+                fail(f"{path}: a paragraph appears twice: {block[:60]}...")
+                break
+            seen.add(block)
+
+
 def check_spec_classification(paths, fail):
     classified = DOCUMENT_FORMAT | INTERFACE_CONTRACT | ALGORITHM_CONTRACT
     present = {str(p) for p in paths
@@ -158,6 +195,7 @@ def main():
     check_readme_naming(problems.append)
     check_spec_classification(paths, problems.append)
     check_spec_structure(problems.append)
+    check_repeated_paragraphs(paths, problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
