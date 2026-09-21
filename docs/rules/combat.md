@@ -230,7 +230,7 @@ name, so "the attack target in reach" is what the recordings and the shape of
 `IAttacker` — `IsAttackTargetInAttackRange` beside `GetLockTarget` — say, not a
 method body read. A Marksman's weapon has no pose in a recording, so its aim
 angle is not observed, only that its shot reaches the construction. Every
-reading is the build's; `crates/simulation/src/kernel.rs` implements the split
+reading is the build's; `crates/simulation/src/fight/mech.rs` implements the split
 as `lock_target` and `Actor::attack_target`.
 
 ## Normal target scoring and pre-battle acquisition

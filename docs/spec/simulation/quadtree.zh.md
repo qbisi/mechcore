@@ -4,7 +4,7 @@
 
 本文说明 `crates/simulation/src/rvo.rs::NativeQuadtree` 的当前实现。它复现 sampled-RVO
 的 agent 邻居索引，服务于 [RVO 移动避让](rvo.md)，不是
-`crates/simulation/src/kernel.rs` 中用于锁敌的目标四叉树。
+`crates/simulation/src/fight/search.rs` 中用于锁敌的目标四叉树。
 
 这棵树不仅用于加速查询。叶容量、链表插入顺序、分裂时的重排、分支访问顺序以及
 Q32.32 比较规则都会影响等距候选和最终 20 邻居，因此属于战斗确定性算法的一部分。

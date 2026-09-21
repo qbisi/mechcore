@@ -7,7 +7,7 @@
 `RVOControllerFixed` 的战斗移动行为，而不是提供一套通用 RVO 库。
 
 实现位于 `crates/simulation/src/rvo.rs`，战斗循环的接入点位于
-`crates/simulation/src/kernel.rs::step_rvo`。邻居搜索使用的原生式四叉树单独见
+`crates/simulation/src/fight/motion.rs::step_rvo`。邻居搜索使用的原生式四叉树单独见
 [四叉树实现](quadtree.md)。
 
 ## 1. 当前边界
@@ -26,7 +26,7 @@
 RVO 的私有双缓冲、邻居列表和 VO 列表不是 Layout 或 MCFR 的输入；Simulator
 从可公开还原的单位、建筑和移动状态重新计算它们。
 
-本模块只处理 agent-agent 避让。目标选择使用 `kernel.rs` 中另一棵目标四叉树，两者的数据
+本模块只处理 agent-agent 避让。目标选择使用 `fight/search.rs` 中另一棵目标四叉树，两者的数据
 结构、容量和遍历规则不同，不应混用。
 
 ## 2. 坐标与数值

@@ -84,8 +84,9 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 ## 一、先定架构，否则并行不起来
 
-现在 `kernel.rs` 是 8500 行，`Simulation` 一个 impl 就 3200 行，单位的数值直接从
-`UnitConfig` 读（186 处）。这种形状下每加一个字段都要动内核，两个人没法同时干活。
+原来的 `kernel.rs` 长到近一万行，`Simulation` 一个 impl 就三千多行，单位的数值直接从
+`UnitConfig` 读（186 处）。它现在已按游戏的结构拆成 `crates/simulation/src/fight/`
+下的文件（见 architecture.md 的"代码在哪"），数据和技能状态机的拆分见下文的"统一索敌更新"。这种形状下每加一个字段都要动内核，两个人没法同时干活。
 架构要先改，改的依据不是审美，是**游戏自己的结构**：
 [architecture.md](docs/spec/simulation/architecture.md) 把它读了出来——35 个
 `FightModule`、共享描述 + `DataSet` 覆盖层 + `BuffManager` 聚合的三层数据、以及带缓存

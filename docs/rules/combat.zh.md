@@ -170,7 +170,7 @@ raw 单位。`tests/regression/crawlers-vs-marksman.yaml` 就是这场仗。
 出名字的槽位，所以"攻击目标在射程内"是录像和 `IAttacker` 的形状——
 `IsAttackTargetInAttackRange` 和 `GetLockTarget` 并列——告诉我们的，不是读出来的方法
 体。射手的武器在录像里没有姿态，看不到它的枪口角度，只看得到弹丸打到了工事。以上读数
-都是 build 的；`crates/simulation/src/kernel.rs` 用 `lock_target` 和
+都是 build 的；`crates/simulation/src/fight/mech.rs` 用 `lock_target` 和
 `Actor::attack_target` 实现这一拆分。
 
 ## 普通目标评分与战前索敌
