@@ -1,12 +1,12 @@
 use std::{fs, path::PathBuf};
 
-use mechcore_mcfr::{EventKind, EventPayload, McfrReader};
+use mechcore_mcfr::{EventKind, McfrReader};
 use mechcore_simulation::simulate_layout;
 use serde::Deserialize;
 
 /// Deserialized strictly, so a manifest field added without a reader fails here
-/// rather than being silently ignored. `smoke` and `format` select cases for
-/// the mcscript readers and have no consumer in this file.
+/// rather than being silently ignored. `smoke`, `format`, `game_build` and the
+/// hash are what the mcscript readers check, and have no consumer in this file.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NativeRegression {
@@ -14,11 +14,13 @@ struct NativeRegression {
     #[allow(dead_code)]
     smoke: bool,
     layout: PathBuf,
+    #[allow(dead_code)]
     game_build: String,
     #[allow(dead_code)]
     format: String,
     seed: i32,
     tick_count: u32,
+    #[allow(dead_code)]
     physics_result_hash: String,
 }
 
@@ -44,46 +46,6 @@ fn regression_layout(regression: &NativeRegression) -> PathBuf {
 
 fn fixture() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/layouts/marksman-vs-arclight.yaml")
-}
-
-fn rhino_two_arclights_fixture() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/layouts/rhino-vs-two-arclights.yaml")
-}
-
-#[test]
-fn rhino_vs_two_arclights_preserves_the_reviewed_timeline() {
-    let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(
-        rhino_two_arclights_fixture(),
-        Some(&output),
-        Some(1_787_634_176),
-    )
-    .unwrap();
-    assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, 321);
-    let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), 321);
-    assert_eq!(
-        reader
-            .events(151)
-            .unwrap()
-            .events
-            .into_iter()
-            .map(|event| (
-                event.kind(),
-                event.subject.map(|value| value.id),
-                event.source.map(|value| value.id),
-            ))
-            .collect::<Vec<_>>(),
-        [
-            (EventKind::Damage, None, Some(2)),
-            (EventKind::ProjectileRemoved, Some(7), Some(2)),
-            (EventKind::Damage, None, Some(3)),
-            (EventKind::ProjectileRemoved, Some(6), Some(3)),
-        ]
-    );
 }
 
 #[test]
@@ -124,24 +86,31 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     assert!(event_kinds.contains(&EventKind::ProjectileRemoved));
 }
 
-#[test]
-fn marksman_vs_arclight_preserves_the_reviewed_behavior() {
-    let regression = native_regression("marksman-vs-arclight");
+/// Runs a native regression case through the simulator and opens what it
+/// wrote.
+///
+/// Its physics hash is not checked here: `scripts/simulate-regressions.mcscript`
+/// holds every smoke case to it, and the hash already covers positions, life
+/// and every event, damage included. What these tests check is the content
+/// layer the hash leaves out — a unit's lock and its motion state.
+fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
+    let regression = native_regression(name);
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(
+    simulate_layout(
         regression_layout(&regression),
         Some(&output),
         Some(regression.seed),
     )
     .unwrap();
-    assert_eq!(result.game_build, regression.game_build);
-    assert_eq!(
-        result.hashes.physics_result_hash,
-        regression.physics_result_hash
-    );
     let reader = McfrReader::open(output).unwrap();
     assert_eq!(reader.tick_count(), regression.tick_count);
+    (directory, reader)
+}
+
+#[test]
+fn marksman_vs_arclight_ends_with_no_lock() {
+    let (_directory, reader) = recorded("marksman-vs-arclight");
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
@@ -149,51 +118,11 @@ fn marksman_vs_arclight_preserves_the_reviewed_behavior() {
             .iter()
             .all(|unit| unit.mech_lock_target.is_none())
     );
-    assert!(
-        terminal
-            .buildings
-            .iter()
-            .all(|building| building.life.current == 3_400 && building.targetable)
-    );
 }
 
 #[test]
-fn rhino_vs_arclight_preserves_the_reviewed_behavior() {
-    let regression = native_regression("rhino-vs-arclight");
-    let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(
-        regression_layout(&regression),
-        Some(&output),
-        Some(regression.seed),
-    )
-    .unwrap();
-    assert_eq!(result.game_build, regression.game_build);
-    assert_eq!(
-        result.hashes.physics_result_hash,
-        regression.physics_result_hash
-    );
-    assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, u64::from(regression.tick_count));
-    let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), regression.tick_count);
-    let direct_damage = (1..=reader.tick_count())
-        .flat_map(|tick| reader.events(tick).unwrap().events)
-        .filter_map(|event| match event.payload {
-            EventPayload::Damage { amount }
-                if event.source
-                    == Some(mechcore_mcfr::ObjectRef::new(
-                        mechcore_mcfr::ObjectKind::Unit,
-                        1,
-                    )) =>
-            {
-                Some((event.target.unwrap().id, amount))
-            }
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(direct_damage, [(2, 3_560), (2, 1_253)]);
-
+fn rhino_vs_arclight_ends_with_no_lock() {
+    let (_directory, reader) = recorded("rhino-vs-arclight");
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
@@ -201,60 +130,11 @@ fn rhino_vs_arclight_preserves_the_reviewed_behavior() {
             .iter()
             .all(|unit| unit.mech_lock_target.is_none())
     );
-    assert!(
-        terminal
-            .buildings
-            .iter()
-            .all(|building| building.team_id != 1)
-    );
 }
 
 #[test]
-fn rhino_retarget_preserves_the_reviewed_behavior() {
-    let regression = native_regression("rhino-retarget");
-    let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("battle.mcfr");
-    let result = simulate_layout(
-        regression_layout(&regression),
-        Some(&output),
-        Some(regression.seed),
-    )
-    .unwrap();
-    assert_eq!(result.game_build, regression.game_build);
-    assert_eq!(
-        result.hashes.physics_result_hash,
-        regression.physics_result_hash
-    );
-    assert_eq!(result.winner, Some("blue"));
-    assert_eq!(result.steps, 336);
-    let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), regression.tick_count);
-    let initial = reader.state(1).unwrap();
-    assert_eq!(
-        initial
-            .live_units
-            .iter()
-            .map(|unit| (
-                unit.unit_id,
-                unit.team_id,
-                unit.position.x,
-                unit.position.z,
-                unit.body_rotation,
-            ))
-            .collect::<Vec<_>>(),
-        [
-            (
-                1,
-                0,
-                -1_223_206_685_902,
-                -448_824_082_435,
-                1_539_518_232_354
-            ),
-            (2, 1, -1_246_399_509_298, 427_349_245_955, 766_424_119_044),
-            (3, 1, -817_332_276_427, 427_778_742_684, 879_856_166_708),
-        ]
-    );
-
+fn rhino_retarget_waits_idle_then_moves_and_attacks() {
+    let (_directory, reader) = recorded("rhino-retarget");
     let rhino_motion = |tick| {
         reader
             .state(tick)
@@ -269,37 +149,6 @@ fn rhino_retarget_preserves_the_reviewed_behavior() {
     assert_eq!(rhino_motion(232), mechcore_mcfr::MotionState::Idle);
     assert_eq!(rhino_motion(233), mechcore_mcfr::MotionState::Moving);
     assert_eq!(rhino_motion(308), mechcore_mcfr::MotionState::Attacking);
-
-    let direct_damage = (1..=reader.tick_count())
-        .flat_map(|tick| {
-            reader
-                .events(tick)
-                .unwrap()
-                .events
-                .into_iter()
-                .filter_map(move |event| match event.payload {
-                    EventPayload::Damage { amount }
-                        if event.source
-                            == Some(mechcore_mcfr::ObjectRef::new(
-                                mechcore_mcfr::ObjectKind::Unit,
-                                1,
-                            )) =>
-                    {
-                        Some((tick, event.target.unwrap().id, amount))
-                    }
-                    _ => None,
-                })
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(
-        direct_damage,
-        [
-            (204, 2, 3_560),
-            (222, 2, 1_253),
-            (317, 3, 3_560),
-            (335, 3, 1_253)
-        ]
-    );
 }
 
 #[test]

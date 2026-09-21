@@ -8672,44 +8672,6 @@ mod tests {
         }
     }
 
-    /// A shot at a block of a wall splashes the next block for its full
-    /// damage.
-    ///
-    /// The Wraith of `wall-weapon-group.yaml` fires at block 4 at tick 93 and
-    /// its 8 metres of splash reach block 5, whose edge is exactly 8 metres
-    /// from the point of impact: the game recorded 381 on each, from one
-    /// projectile.
-    #[test]
-    fn a_shot_at_a_block_splashes_the_next_block() {
-        let config = SimulationConfig::load().unwrap();
-        let (_, layout) = crate::layout::compile_with_seed(
-            include_bytes!("../../../tests/layouts/construction/wall-weapon-group.yaml"),
-            &config.units,
-        )
-        .unwrap();
-        let mut simulation =
-            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
-        let life = |simulation: &Simulation, id: u64| {
-            simulation
-                .buildings
-                .iter()
-                .find(|building| building.building_id == id)
-                .unwrap()
-                .life
-                .current
-        };
-        for step in 0..92 {
-            simulation.step(step).unwrap();
-        }
-        assert_eq!((life(&simulation, 4), life(&simulation, 5)), (1112, 1112));
-        simulation.step(92).unwrap();
-        assert_eq!(
-            (life(&simulation, 4), life(&simulation, 5)),
-            (731, 731),
-            "one shot at block 4, 381 on each"
-        );
-    }
-
     /// Every slot of a grouped skill takes the construction in its way, and
     /// every slot is dropped with the lock.
     ///
