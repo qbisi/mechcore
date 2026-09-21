@@ -636,8 +636,42 @@ async fn perform(
                 fields.get("right").ok_or("fight.compare needs right")?,
                 "fight.compare right",
             )?;
-            let detailed = optional_flag(fields.get("verbose"), "compare verbose")?;
-            let (_, report) = fight::compare(&left, &right, detailed.unwrap_or(false))?;
+            if let Some(key) = fields
+                .keys()
+                .find(|key| !matches!(key.as_str(), "left" | "right" | "fields" | "tick"))
+            {
+                return Err(format!(
+                    "fight.compare accepts only left, right, fields and tick, got {key}"
+                ));
+            }
+            // A selection is a list of field groups, or one group by itself.
+            let selection = match fields
+                .get("fields")
+                .map(|value| scope.resolve(value))
+                .transpose()?
+            {
+                None => crate::difference::Selection::default(),
+                Some(Value::String(group)) => crate::difference::Selection::of([group]),
+                Some(Value::Array(groups)) => crate::difference::Selection::of(
+                    groups
+                        .iter()
+                        .map(|group| {
+                            group.as_str().map(str::to_owned).ok_or_else(|| {
+                                format!("fight.compare fields names groups, got {group}")
+                            })
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                ),
+                Some(other) => {
+                    return Err(format!(
+                        "fight.compare fields is a group or a list of groups, got {other}"
+                    ));
+                }
+            };
+            let tick = optional_u64(fields.get("tick"), "fight.compare tick")?
+                .map(|tick| u32::try_from(tick).map_err(|_| "fight.compare tick is too large"))
+                .transpose()?;
+            let (_, report) = fight::compare(&left, &right, &selection, tick)?;
             Ok(report)
         }
         "fight.run" => simulate(arguments, scope),

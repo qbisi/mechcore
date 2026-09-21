@@ -92,7 +92,7 @@ than redefining them.
 | Operation | Needs a game | Notes |
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
-| `fight.compare` | no | `left`, `right`, optional `verbose`; the verdict, and the divergent tick states only with `verbose` |
+| `fight.compare` | no | `left`, `right`, optional `fields` (a group or a list of groups) and `tick`; the same report as `mechcore fight compare` |
 | `fight.stats` | no | `recording`, optional `tick`; what was written onto each formation, per channel |
 | `fight.outcome` | no | `recording`; what the recorded fight decided |
 | `fight.run` | no | `layout`, optional `seed`, `output`; same report as `mechcore fight run` |
@@ -134,11 +134,23 @@ carries one is rejected. RVO scope selects 1–8 unique positive MCFR unit IDs a
 64 ticks of update starts; delayed publications can appear after `end_tick`.
 This instrumentation is separate from MCFR and does not participate in its hash.
 
-`fight.compare` returns the verdict, the two recording summaries, and the first
-divergent tick. It omits the divergent tick states unless `verbose: true`,
-because those are whole world snapshots and a script that only wanted to know
-whether two recordings match should not carry megabytes of units through its
-log. `mechcore fight compare` always prints them.
+`fight.compare` returns the report `mechcore fight compare` prints: the physics
+verdict, the field groups that differ with the ticks they differ on, and one
+tick explained. `fields` names the groups a step is about, and makes
+`fields_equal` their verdict, so a script can hold a unit's lock or motion
+state to a recording where the physics hash cannot:
+
+```yaml
+- fight.compare:
+    left: $out/game.mcfr
+    right: $out/simulated.mcfr
+    fields: [units.mech_lock_target, units.motion_state, units.weapon_aims]
+  expect:
+    fields_equal: true
+```
+
+A group that differs is reached by its dotted path, as
+`fields.units.motion_state.first_divergence`.
 
 `fight.outcome` and `fight.stats` read a recording for the two halves a
 capture is taken for: what the fight decided, and what was written onto its

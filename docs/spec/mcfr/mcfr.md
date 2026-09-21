@@ -895,7 +895,9 @@ content_result_hash  = H_content-result-0.6.0(
 `mechcore fight compare` and `mechcore fight verify` decide `equal` and the first
 divergence from the physics layer, and return `content_equal` separately. That
 is how the format gains observation without losing regression identity, and
-without hiding a genuine content difference inside one format.
+without hiding a genuine content difference inside one format. `fight compare`
+also says where two recordings differ field by field, which a hash cannot:
+[cli.md](../mechcore/cli.md#fight) defines its field groups.
 
 ## Physical encoding
 

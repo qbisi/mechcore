@@ -722,7 +722,7 @@ content_result_hash  = H_content-result-0.6.0(
 )
 ```
 
-`mechcore fight compare` 与 `mechcore fight verify` 以物理层决定 `equal` 和首个分歧，同时单独返回 `content_equal`。这允许格式增加观测能力后保持物理回归身份，又不会掩盖同格式中的完整内容差异。
+`mechcore fight compare` 与 `mechcore fight verify` 以物理层决定 `equal` 和首个分歧，同时单独返回 `content_equal`。这允许格式增加观测能力后保持物理回归身份，又不会掩盖同格式中的完整内容差异。`fight compare` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#fight)。
 
 # 附录 D — 物理编码约定
 

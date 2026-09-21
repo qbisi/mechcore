@@ -454,6 +454,26 @@ the simulation result: the terminal structure of the
 fight, its hashes and its profiling. `fight compare` and `fight verify` answer
 the verdict and the divergence, and exit 1 when the verdict is no.
 
+`fight compare` answers more than whether two recordings agree. The physics
+verdict and its first divergent tick come from the stored tick hashes, as
+`equal` and `first_divergence`. Then every tick both recordings hold is
+compared **field by field**: each object is flattened into its leaves, and a
+leaf's field group is its path with the object and any list position removed,
+so `unit 2`'s `weapon_aims[0].attack_target` counts under
+`units.weapon_aims.attack_target`. An object only one side holds differs in
+`<collection>.present`, and a tick's event list in `events`. `fields` holds
+every group that differs, nested by its dotted path, with the first and last
+tick it differs on and how many; `fields_equal` says none does.
+
+`at` explains one tick: the first divergence of the selected groups, or the
+tick `--tick <n>` names. It lists each differing leaf with both sides' values,
+each side's events on that tick and the one before, and every object a
+difference names as each side has it then — its life, or the tick it died or
+was destroyed at. `--fields <group>,...` restricts all of this to the named
+groups and everything under them, and makes their agreement the verdict, so
+`--fields units.motion_state` exits 0 on recordings whose physics differs
+elsewhere. `--format text` prints the same report for a person.
+
 `fight outcome` reads a recording for [the five fields a fight
 decides](#the-fight): which formations came out of it, under the indices the
 document knows them by, and what remains of the collections a fight thins out.
