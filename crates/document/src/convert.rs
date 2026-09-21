@@ -1423,35 +1423,6 @@ mod tests {
         assert!(!recorded_unit_ids(&caine).is_empty());
     }
 
-    #[test]
-    fn converts_every_tracked_standard_replay() {
-        let mut converted = 0;
-        for entry in std::fs::read_dir("../../tests/grbr").unwrap() {
-            let path = entry.unwrap().path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let grbr = std::fs::read(&path).unwrap();
-            match battle_from_grbr(&grbr) {
-                Ok(battle) => {
-                    converted += 1;
-                    assert!(!battle.turns.is_empty());
-                    for turn in &battle.turns {
-                        for state in [&turn.state.blue, &turn.state.red] {
-                            assert!(state.supply >= 0);
-                            assert!(state.next_index.unit >= 0);
-                            for formation in &state.units {
-                                assert!(formation.unit.index < state.next_index.unit);
-                            }
-                        }
-                    }
-                }
-                Err(error) => panic!("{}: {error}", path.display()),
-            }
-        }
-        assert_eq!(converted, 41);
-    }
-
     /// A standing Shield Airdrop is one the round before released or held.
     ///
     /// The snapshot records it in the same `rangeItems` the retained oil

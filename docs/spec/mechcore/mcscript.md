@@ -409,9 +409,11 @@ steps:
 
 ## Regression re-recording
 
-`tests/mcfr-regressions.yaml` stays a data table, read by `crates/simulation/tests/battle.rs`
-for the offline simulator regression. A script is a second reader of that same
-table, not a copy of it:
+`tests/mcfr-regressions.yaml` stays a data table. `scripts/simulate-regressions.mcscript`
+reads it for the offline simulator regression, which CI runs, and
+`crates/simulation/tests/battle.rs` reads it for the content-layer fields the
+physics hash leaves out. Re-recording is one more reader of that same table,
+not a copy of it:
 
 ```yaml
 game: launch

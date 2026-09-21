@@ -16,6 +16,9 @@
 # Delete the `where` line to cover every case in the manifest instead; that is
 # far longer, because the manifest holds 81 cases against 15 smoke ones.
 #
+# The last step is not from the manifest: it is a fight the game never
+# recorded, pinned as the simulator plays it, and it says so where it stands.
+#
 # A case that no longer matches stops the run at that case and names the field,
 # which is the drift check. Re-recording after an intended change is the other
 # script's job; updating the table stays a deliberate, reviewable edit.
@@ -34,3 +37,17 @@ steps:
           seed_source: external
           steps: ${case.tick_count}
           hashes.physics_result_hash: ${case.physics_result_hash}
+
+  # One fight the game never recorded, pinned as the simulator plays it. When
+  # sampled RVO movement was modelled, its 321 ticks were reviewed by hand —
+  # blue's Rhino beats both Arclights, and at tick 151 both Arclights' shots
+  # land in one tick — and this holds the simulator to that reviewed run. The
+  # hash is the simulator's own, not the game's, so a change that moves it has
+  # to say why the new run is the right one.
+  - fight.run:
+      layout: tests/layouts/rhino-vs-two-arclights.yaml
+      seed: 1787634176
+    expect:
+      steps: 321
+      winner: blue
+      hashes.physics_result_hash: ac6f52a73d26eb913eb3e0d263c16a70e643dad228df66fa82dab633a545e918

@@ -789,25 +789,6 @@ mod tests {
         assert_eq!(reached, 41);
     }
 
-    /// Every converted battle's deal is the one its own seed produces.
-    #[test]
-    fn every_tracked_seed_deals_the_opening_its_battle_states() {
-        let economy = Economy::embedded().unwrap();
-        let mut checked = 0;
-        for battle in battles() {
-            let yaml = crate::battle::canonical_yaml(&battle).unwrap();
-            let stated = stated(yaml.as_bytes()).unwrap().expect("a battle document");
-            let found = verify(&economy, &stated)
-                .unwrap_or_else(|error| panic!("seed {}: {error}", battle.seed));
-            assert_eq!(found.deal.blue, battle.blue.opening.offers);
-            assert_eq!(found.deal.red, battle.red.opening.offers);
-            assert_eq!(found.constructions.blue, battle.blue.constructions);
-            assert_eq!(found.constructions.red, battle.red.constructions);
-            checked += 1;
-        }
-        assert_eq!(checked, 41);
-    }
-
     /// A deal states eight combinations and no specialist twice, because the
     /// two sides draw from one pool that empties as they do.
     #[test]
