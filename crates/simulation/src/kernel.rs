@@ -883,7 +883,14 @@ impl Actor {
             derived: DerivedStats {
                 move_speed: space_to_q32(self.stats.move_speed()),
                 attack_range: space_to_q32(self.stats.attack_range()),
-                attack_damage: i32::try_from(self.stats.attack_damage()).unwrap_or(i32::MAX),
+                // A beam's damage is its ramp's first step, whatever step it
+                // is on: the Steel Balls of `wall-laser.yaml` read 2, which
+                // is 55 at its first multiplier, on every tick of their fight.
+                attack_damage: i32::try_from(match &self.rules.attack.path {
+                    AttackPath::Laser { .. } => self.rules.attack.laser_damage(0),
+                    _ => self.stats.attack_damage(),
+                })
+                .unwrap_or(i32::MAX),
                 // The recording counts an interval in logic ticks, which is
                 // the unit the build's own integer uses. The build's number
                 // also runs a few ticks under the description for some units
@@ -1041,7 +1048,7 @@ fn initialize_actors(
 fn initialize_buildings(
     training_ground: &TrainingGroundConfig,
     constructions: &[ConstructionBuilding],
-) -> Result<(Vec<BuildingState>, BTreeSet<u64>)> {
+) -> Result<InitialBuildings> {
     let mut raw = training_ground
         .buildings
         .iter()
@@ -1054,6 +1061,7 @@ fn initialize_buildings(
             life: building.life,
             collision_enabled: building.collision_enabled,
             searchable: true,
+            collider_priority: None,
         })
         .collect::<Vec<_>>();
     raw.extend(constructions.iter().map(|building| RawBuilding {
@@ -1069,6 +1077,7 @@ fn initialize_buildings(
         // it.
         collision_enabled: true,
         searchable: building.searchable,
+        collider_priority: Some(building.collider_priority),
     }));
 
     let building_key = |building: &RawBuilding| {
@@ -1095,6 +1104,14 @@ fn initialize_buildings(
         .filter(|building| !building.searchable)
         .map(|building| normalized_ids[&building_key(building)])
         .collect::<BTreeSet<_>>();
+    let colliders = raw
+        .iter()
+        .filter_map(|building| {
+            building
+                .collider_priority
+                .map(|priority| (normalized_ids[&building_key(building)], priority))
+        })
+        .collect::<BTreeMap<_, _>>();
     let states = raw
         .iter()
         .map(|building| {
@@ -1118,7 +1135,20 @@ fn initialize_buildings(
             })
         })
         .collect::<Result<Vec<_>>>()?;
-    Ok((states, unsearchable))
+    Ok(InitialBuildings {
+        states,
+        unsearchable,
+        colliders,
+    })
+}
+
+/// Every building a fight starts with, and what a unit may do about each.
+struct InitialBuildings {
+    states: Vec<BuildingState>,
+    /// The ones a unit looking for a target may not find.
+    unsearchable: BTreeSet<u64>,
+    /// Each construction's RVO collider priority.
+    colliders: BTreeMap<u64, i32>,
 }
 
 /// One building before it is given an identity, from either source.
@@ -1132,18 +1162,18 @@ struct RawBuilding {
     life: i64,
     collision_enabled: bool,
     searchable: bool,
+    /// A construction's `pathfinding_collider_priority`; none for a tower.
+    collider_priority: Option<i32>,
 }
 
-/// Whether a building takes part in RVO, which is not the same as whether its
-/// data says collision is enabled.
+/// Whether a building takes part in RVO as a tower, which is not the same as
+/// whether its data says collision is enabled.
 ///
-/// The map's towers push units around. A construction does not: measured from
-/// both sides, a Crawler ends up 0.567 metres from a wall block's centre on
-/// the side that placed it and 0.711 on the other, against a block radius of
-/// 4 and a Crawler inner radius of 1.5. `docs/rules/constructions.md` carries
-/// the measurement and `tests/construction/wall.mcscript` is the
-/// recording. Every construction is `BuildingType.Special` and only the map's
-/// own two towers are anything else, so the type is what separates them.
+/// The map's towers push every unit around. A construction takes part too,
+/// but on its own collider layer and only for the other side, which
+/// [`Simulation::construction_colliders`] carries: every construction is
+/// `BuildingType.Special` and only the map's own two towers are anything
+/// else, so the type is what separates them here.
 const fn rvo_collides(building: &BuildingState) -> bool {
     building.collision_enabled && building.building_type_id != CONSTRUCTION_BUILDING_TYPE
 }
@@ -1423,6 +1453,16 @@ struct Simulation {
     /// Buildings a projectile destroyed this tick, held until every projectile
     /// has resolved so their events follow all of the tick's shots.
     fallen_buildings: Vec<Event>,
+    /// The RVO collider layer of every construction, by building.
+    ///
+    /// A construction is an obstacle only to the other side: the wall's own
+    /// description says it sinks into the ground for a friendly unit, and a
+    /// Crawler of the side that placed it walks through a block. To the other
+    /// side it is an immovable agent on its `pathfinding_collider_priority`
+    /// layer with its own box for a radius — a Steel Ball of `wall-laser.yaml`
+    /// overlapping block 3 is pushed off it as that agent pushes it, tick for
+    /// tick, and every other wall fight is unchanged by it.
+    construction_colliders: BTreeMap<u64, i32>,
 }
 
 impl Simulation {
@@ -1497,8 +1537,11 @@ impl Simulation {
                     native_time_units_to_steps(actor.stats.attack_interval()).max(1);
             }
         }
-        let (buildings, unsearchable) =
-            initialize_buildings(training_ground, &layout.constructions)?;
+        let InitialBuildings {
+            states: buildings,
+            unsearchable,
+            colliders: construction_colliders,
+        } = initialize_buildings(training_ground, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
         Ok(Self {
             actors,
@@ -1512,6 +1555,7 @@ impl Simulation {
             terminal_drain_pending: false,
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
+            construction_colliders: construction_colliders.clone(),
         })
     }
 
@@ -3885,15 +3929,24 @@ impl Simulation {
         let (tower_layer, tower_collides_with) =
             immovable_rvo_collision_masks(CORE_TOWER_RVO_COLLIDER_PRIORITY);
         for building in &self.buildings {
-            if !building_alive(building) || !rvo_collides(building) {
+            let construction = self
+                .construction_colliders
+                .get(&building.building_id)
+                .copied();
+            if !building_alive(building) || !(rvo_collides(building) || construction.is_some()) {
                 continue;
             }
+            let (layer, collides_with) = construction.map_or(
+                (tower_layer, tower_collides_with),
+                immovable_rvo_collision_masks,
+            );
             let radius_q32 = building.bounds_width / 2;
             agents.push(RvoAgentInput {
                 key: RvoAgentKey::Building(building.building_id),
                 main_layer: 1,
-                layer: tower_layer,
-                collides_with: tower_collides_with,
+                layer,
+                collides_with,
+                passable_by_own_group: construction.is_some(),
                 group: i32::try_from(building.team_id).unwrap_or(i32::MAX),
                 locked: true,
                 tree_position: if first_tree {
@@ -3932,6 +3985,7 @@ impl Simulation {
                 layer,
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
+                passable_by_own_group: false,
                 locked: false,
                 tree_position: if first_tree {
                     FixedVec2::ZERO
@@ -5983,7 +6037,11 @@ mod tests {
         seed: i32,
     ) -> Simulation {
         let actors = initialize_actors(layout, &config.units, seed).unwrap();
-        let (buildings, unsearchable) = initialize_buildings(&config.training_ground, &[]).unwrap();
+        let InitialBuildings {
+            states: buildings,
+            unsearchable,
+            colliders: construction_colliders,
+        } = initialize_buildings(&config.training_ground, &[]).unwrap();
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
         Simulation {
             actors,
@@ -5997,6 +6055,7 @@ mod tests {
             terminal_drain_pending: false,
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
+            construction_colliders: construction_colliders.clone(),
         }
     }
 
@@ -6210,8 +6269,11 @@ mod tests {
         );
         let make_simulation = || {
             let actors = actors.clone();
-            let (buildings, unsearchable) =
-                initialize_buildings(&config.training_ground, &[]).unwrap();
+            let InitialBuildings {
+                states: buildings,
+                unsearchable,
+                colliders: construction_colliders,
+            } = initialize_buildings(&config.training_ground, &[]).unwrap();
             let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
             Simulation {
                 actors,
@@ -6225,6 +6287,7 @@ mod tests {
                 terminal_drain_pending: false,
                 late_building_events_pending: false,
                 fallen_buildings: Vec::new(),
+                construction_colliders: construction_colliders.clone(),
             }
         };
         let mut simulation = make_simulation();
@@ -6363,7 +6426,11 @@ mod tests {
         }));
         let layout = CompiledLayout::of_units(1, placements);
         let actors = initialize_actors(&layout, &config.units, 7).unwrap();
-        let (buildings, unsearchable) = initialize_buildings(&config.training_ground, &[]).unwrap();
+        let InitialBuildings {
+            states: buildings,
+            unsearchable,
+            colliders: construction_colliders,
+        } = initialize_buildings(&config.training_ground, &[]).unwrap();
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
         let simulation = Simulation {
             actors,
@@ -6377,6 +6444,7 @@ mod tests {
             terminal_drain_pending: false,
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
+            construction_colliders: construction_colliders.clone(),
         };
         assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
     }

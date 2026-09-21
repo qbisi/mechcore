@@ -6,7 +6,8 @@
 # Every wall measured before this was taken by projectiles. A blow and a beam
 # reach a block by other paths — no flight, no splash for a beam, a ramp of
 # damage that restarts — so each is recorded against the same wall and read
-# back against the simulator, which reproduces both.
+# back against the simulator, which reproduces both on every tick, in physics
+# and in content.
 #
 #   wall-rhino.yaml   a Rhino charging a Marksman behind the middle block
 #   wall-laser.yaml   four Steel Balls against the same Marksman
@@ -73,10 +74,12 @@ steps:
   # Marksman when block 3 came within the line, and it read idle with no lock
   # for a tick before turning on the block.
   #
-  # The simulator agrees on every tick up to 167. At 168 that same Steel Ball,
-  # overlapping block 3, is pushed differently: whether a block stands in the
-  # way of its movement, where it does not of a Crawler's, is the next question
-  # and not this one.
+  # And a block stands in the way of the other side's movement. That same Steel
+  # Ball, overlapping block 3 from tick 167, is pushed off it: to the side that
+  # did not place the wall, each block is an immovable obstacle on the wall's
+  # own collider layer, where to the side that did it is not there at all.
+  #
+  # A beam's damage reads as its ramp's first step on every tick, 2 and not 55.
   - game.apply_layout:
       layout: $laser
       seed: $seed
@@ -101,10 +104,10 @@ steps:
       layout: tests/construction/wall-laser.yaml
       seed: $seed
       output: ${out}/simulated-laser.mcfr
+  # Every field of every tick, the content layer included.
   - fight.compare:
       left: ${out}/laser.mcfr
       right: ${out}/simulated-laser.mcfr
-      fields: [units.position, units.mech_lock_target, units.motion_state, units.weapon_aims.attack_target, events]
     expect:
-      first_divergence: 168
-      fields.units.position.x.first_divergence: 169
+      equal: true
+      content_equal: true

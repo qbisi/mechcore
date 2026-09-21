@@ -71,14 +71,25 @@ the opening's own constructions is not established.** Until it is, every
 construction this build can put on a board is one its opening dealt, and the
 spacing is a measurement of a wall rather than a formula.
 
-## A Defensive Wall is a target and not an obstacle
+## A Defensive Wall is an obstacle only to the other side
 
-A block's box is not a collider. Measured from both sides, with the same unit
-and the same geometry: a Crawler comes within **0.567 metres** of a block's
-centre when its own side placed the wall, and within **0.711 metres** when the
-other side did. A Crawler carries 1.5 metres of inner radius against a block's
-4, so an obstacle would have held it at 5.5 and it was inside the block
-instead. Units walk over a wall.
+**To the side that placed it, a wall is not there.** A Crawler of that side
+comes within **0.567 metres** of a block's centre, against the 5.5 an obstacle
+would have held it at, and walks on. The wall's own description says it sinks
+into the ground for a friendly unit, and that is what the recording shows.
+
+**To the other side, each block is an immovable obstacle.** It stands on the
+collider layer of the wall's `pathfinding_collider_priority`, 5, with its own
+4-metre box for a radius, and a unit of the other team avoids it the way it
+avoids an opponent. A Steel Ball of `wall-laser.yaml` overlapping block 3 is
+pushed off it on exactly the ticks and at exactly the velocities that makes
+it, and treating the block as no obstacle, or as one to both sides, or with
+the 7-metre `path_radius`, each fails somewhere in the six wall fights.
+Opponent avoidance looks 0.01 seconds ahead, so it holds a unit off a block
+and does not hold back a crowd: a Crawler of the other side still reached
+**0.711 metres** of a block's centre with 23 others behind it. That is the one
+reading this does not reproduce, because that fight parts company at tick 8
+over how Crawlers form up, before any Crawler reaches the wall.
 
 What differs between the two sides is targeting, not collision. The side that
 did not place it **stops and attacks it**: twenty-four Crawlers take four of
@@ -88,16 +99,15 @@ one life, so a wall is destroyed a block at a time and an attacker that
 overkills one block does not carry the excess to the next — a Marksman's 2329
 against a block's 1112 is recorded as 1112 of damage.
 
-The wall's own description says it sinks into the ground for a friendly unit.
-Nothing a recording holds shows that happening: `available`, `targetable` and
-`collision_enabled` read true for every block at every tick of both fights, and
+The sinking is not in the building's data: `available`, `targetable` and
+`collision_enabled` read true for every block at every tick, and
 `collision_enabled` is `BuildingData.EnableCollision`, a property of the data
-rather than a state. Whatever the sinking is, it is not what lets a unit
-through, because the other side's units go through as well.
+rather than a state. It is in who avoids the block.
 
-**The scope is a Crawler.** Whether a unit large enough not to fit between two
-blocks is held by them has not been measured, and neither has any construction
-other than the wall.
+**The scope is two units.** A Crawler of the side that placed the wall and a
+Steel Ball of the other side are what was measured moving against a block;
+a unit too large for the gaps between blocks, and every construction other
+than the wall, have not been.
 
 **A block that falls ends the attack on it, and the lock with it.** Once the
 attack on a block is over, the unit reads idle for a tick with an empty lock,

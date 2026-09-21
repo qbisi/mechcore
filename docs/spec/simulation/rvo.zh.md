@@ -15,7 +15,8 @@
 当前求解器接收两类 agent：
 
 - 所有存活单位；
-- 所有存活且启用碰撞的建筑。建筑作为锁定、不可移动的地面 agent 参与邻居集合。
+- 所有存活且启用碰撞的建筑。建筑作为锁定、不可移动的地面 agent 参与邻居集合。工事只
+  对另一方是这样：它对自己一方沉下去，自己一方的单位从不把它当邻居。
 
 无阵营 `FightCrystal` 是否参与战斗取决于地图，不能一概视为试验场额外对象并删除。
 原生录像/试验场通过 `layout.map_id` 选择同一地图并保留地图对象：build 2259 的
@@ -113,7 +114,9 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 
 对 priority `p`，可移动 agent 使用偶数位 `2p-2`，并接受自己的 layer 及所有更高位。
 不可移动建筑使用奇数位 `2p-1` 且自身 `collides_with=0`。当前碰撞建筑固定使用 priority
-10、`size=M`、内外半径均为建筑宽度的一半、`locked=true`。
+10、`size=M`、内外半径均为建筑宽度的一半、`locked=true`。工事一样，只是 priority 用
+自己那一行的 `pathfinding_collider_priority`（防御墙是 5）而不是 10，并标记
+`passable_by_own_group`。
 
 筛选是有方向的：只有查询方满足
 `query.collides_with & candidate.layer != 0`，candidate 才成为邻居。建筑自身不会避让，
@@ -125,7 +128,8 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 
 1. 排除自身 key；
 2. 排除不同 `main_layer`；
-3. 排除未被查询方 collision mask 接受的 layer；
+3. 排除未被查询方 collision mask 接受的 layer；标了 `passable_by_own_group` 的候选
+   （工事）对同组的查询方也排除；
 4. 要求当前坐标距离平方严格小于查询范围平方；
 5. 按距离升序插入并截断到 20 个。
 

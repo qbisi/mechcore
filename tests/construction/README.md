@@ -23,17 +23,17 @@ released it.
 | `wall-line-width.yaml` | whether that width is the attacker's | it is not: Fang, Marksman and Farseer share it |
 | `wall-weapon-group.yaml` | an air unit with four weapon slots | every slot takes the wall, the lock follows none, a shot splashes the next block |
 | `wall-rhino.yaml` | a blow against a shot | the same rule, one hit a block, the swing held on a fallen block |
-| `wall-laser.yaml` | a beam against a shot, and the line's width at the centimetre | the same rule; the line is **11.5** metres; asked while an attack is prepared |
+| `wall-laser.yaml` | a beam against a shot, the line's width at the centimetre, a block in the way of a unit's movement | the same rule; the line is **11.5** metres; asked while an attack is prepared; a block is an obstacle to the other side |
 
 `shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`
 and `attacks.mcscript` record them and carry every number as an `expect`, so a
 fixture and the measurement that reads it are one file to rerun.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
 simulator to the physics hash the game produced for `wall-aside.yaml`,
-`wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`
-and `wall-rhino.yaml`, the last two over all 242 and 189 of their ticks.
-`wall-laser.yaml` is not pinned: the simulator agrees with the game up to tick
-167, and `attacks.mcscript` asserts that the first divergence is at 168.
+`wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
+`wall-rhino.yaml` and `wall-laser.yaml`, the last three over all 242, 189 and
+243 of their ticks. The last two agree with the game in content as well, which
+`attacks.mcscript` checks.
 
 A physics hash does not cover a unit's lock, its weapons' targets or its motion
 state, which are content-layer fields, so a matching hash does not say they
@@ -92,11 +92,12 @@ Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
 
-**Whether a block stands in the way of a Steel Ball's movement.** At tick 168
-of `wall-laser.yaml` a Steel Ball overlapping block 3 is pushed differently by
-the game and by the simulator, which lets it overlap. A Crawler was measured
-passing through a block, so a wall is no obstacle to it; a Steel Ball avoids
-at a higher priority, and whether that changes the answer is the next reading.
+**How the other side's Crawlers get inside a block.** A block is an obstacle
+to the side that did not place it, and one of that side's Crawlers still reached
+0.711 metres of a block's centre in `wall-block.yaml`, with 23 others crowding
+behind. Opponent avoidance looks only 0.01 seconds ahead, which may be all
+there is to it, but that fight parts company at tick 8 over how Crawlers form
+up, so it cannot say.
 
 **How long a unit stays idle once its block falls.** That it goes idle, drops
 its lock and keeps the fallen block in its weapon is reproduced. How long it

@@ -163,6 +163,10 @@ pub(crate) struct AgentInput {
     /// collider-priority layer and all higher-priority layers.
     pub(crate) collides_with: u32,
     pub(crate) group: i32,
+    /// Whether an agent of the same group passes through this one rather than
+    /// avoiding it. A construction sinks for its own side, so only the other
+    /// side ever takes it for a neighbour.
+    pub(crate) passable_by_own_group: bool,
     /// Native sampled-agent lock. Immovable core towers set this bit, which
     /// makes a movable neighbour take the full avoidance responsibility.
     pub(crate) locked: bool,
@@ -474,6 +478,7 @@ fn insert_neighbour(
     if candidate.key == agent.key
         || candidate.main_layer != agent.main_layer
         || agent.collides_with & candidate.layer == 0
+        || (candidate.passable_by_own_group && candidate.group == agent.group)
     {
         return range_sq;
     }
@@ -1038,6 +1043,7 @@ mod tests {
             layer,
             collides_with,
             group,
+            passable_by_own_group: false,
             locked,
             tree_position: position,
             position,
@@ -1113,6 +1119,7 @@ mod tests {
             layer: 1_024,
             collides_with: 2_147_482_624,
             group: 1,
+            passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
                 x: 670_862_199_496,
@@ -1148,6 +1155,7 @@ mod tests {
             layer: 16_384,
             collides_with: 2_147_467_264,
             group: 1,
+            passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
                 x: 913_100_625_018,
@@ -1200,6 +1208,7 @@ mod tests {
             layer: 1_024,
             collides_with: 2_147_482_624,
             group: 1,
+            passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
                 x: 673_358_686_856,
@@ -1235,6 +1244,7 @@ mod tests {
             layer: 16_384,
             collides_with: 2_147_467_264,
             group: 1,
+            passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
                 x: 917_439_655_179,
@@ -1325,5 +1335,48 @@ mod tests {
                 speed: 30_064_771_072,
             }
         );
+    }
+
+    /// A construction is a neighbour to the other side's units and to no unit
+    /// of its own: a Defensive Wall sinks for its own side.
+    #[test]
+    fn a_construction_is_passed_over_by_its_own_group_only() {
+        let wall = |group| AgentInput {
+            passable_by_own_group: true,
+            locked: true,
+            ..observed_agent(
+                AgentKey::Building(3),
+                FixedVec2 { x: Q32_ONE, y: 0 },
+                4 * Q32_ONE,
+                4 * Q32_ONE,
+                0,
+                1 << 9,
+                0,
+                group,
+                true,
+                AgentSizeType::M,
+            )
+        };
+        let unit = |group| {
+            observed_agent(
+                AgentKey::Unit(1),
+                FixedVec2::ZERO,
+                3 * Q32_ONE,
+                6 * Q32_ONE,
+                Q32_ONE,
+                1 << 8,
+                0x7fff_ff00,
+                group,
+                false,
+                AgentSizeType::M,
+            )
+        };
+        let found = |agent: &AgentInput, candidate: AgentInput| {
+            let mut neighbours = Vec::new();
+            insert_neighbour(agent, &[candidate], 0, i64::MAX, &mut neighbours);
+            neighbours.len()
+        };
+        assert_eq!(found(&unit(1), wall(0)), 1, "the other side avoids it");
+        assert_eq!(found(&unit(0), wall(0)), 0, "its own side walks through");
     }
 }
