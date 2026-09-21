@@ -17,7 +17,10 @@ A script that needs no game is run by CI; one that needs the game is only
 parsed there. `regressions.mcscript` in a topic directory, and
 `regression/simulate.mcscript`, are the offline ones: they hold the simulator
 to the physics hash the game recorded. Recordings never enter the repository;
-what does is what reproduces them.
+what does is what reproduces them. The recordings a research question is
+answered against are published as an oracle release by `scripts/oracle.py`,
+which is not the repository either; [`.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md)
+says how one is used.
 
 Two kinds of fixture live outside `tests/` because no topic owns them. The
 tracked native replays, and everything converted from them, are in

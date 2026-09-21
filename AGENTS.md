@@ -70,92 +70,26 @@ git config core.hooksPath .githooks
 带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、
 来自本仓库的分支、不是草稿、且该 commit 上的其它检查也全绿时，它直接合并
 并删除分支。GPT 与 Claude 的提交可以混合；任何一条提交没有上述署名，就留
-给人来合并。
+给人来合并。认领了 issue 的 PR（分支名以 `research/` 开头，或正文带
+`Closes #n`）还要等主 agent 打上 `accepted` 标签才合并，见下一节。
 
-# 提交规范
+# 研究管线
 
-提交信息用英文写，仓库现有日志是英文。
+模拟器的机制研究按 `.github/CONTRIBUTING.md` 的 Research 一节并行推进：
+一个问题一条 issue。持有游戏的那个会话（维护 `plan.md` 的主 agent，即
+keeper）先把问题收成一个数、读反编译、把 fixture 和录制脚本提交到 master、
+开 issue，再录像并用 `scripts/oracle.py publish <n>` 发成本仓库的 release
+`oracle/issue-<n>`。认领的 agent 从 `research/<n>-<slug>` 分支开草稿 PR
+（正文首行 `Closes #n`，草稿即认领），用 `scripts/oracle.py fetch <n>` 取回
+录像，离线拟合、实现、钉住、写规则，`scripts/check-scripts.sh` 全过后转正式；
+keeper 读过、跑过之后打 `accepted`，automerge 才合并，合并后 release 删除。
 
-## 智能体署名
+证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`（云端
+通过 GitHub 读），录像语料在公开的 `mechcore-replay`（`scripts/replay.py sync`
+按 `replay/REPLAY_REV` 取回），每个问题的录像和 sidecar 在它自己的 release。
+仓库里固定下来的只有 `tests/<topic>/` 的布阵、脚本和它钉住的哈希。
 
-智能体或模型创建的每一条提交，都必须在提交信息末尾用 `Co-Authored-By`
-署上自己的真实模型名称；知道具体型号时写明型号，不冒用其它模型的署名。
-GPT（包括通过 Codex 工作的 GPT）使用以 `GPT` 开头的模型名称，Claude 使用
-以 `Claude` 开头的模型名称，例如：
-
-```text
-Co-Authored-By: GPT-6 <noreply@openai.com>
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-```
-
-只添加实际参与该提交的模型署名；其它模型同样如实署名，但不因此获得自动
-合并资格。修改或压缩提交时也必须保留真实的贡献者署名。
-
-## 标题
-
-形如 `type(scope): 一句小写的话，说这次提交换来了什么`。写读者因此得到了
-什么，不写你动过哪些文件。不超过 72 字符，结尾不加句号。
-
-| 不要 | 要 |
-| --- | --- |
-| `Update replay script paths` | `fix(adapter): let a side order its own towers` |
-| `Add issue directory` | `docs(issue): give findings a holding pen between discovery and the plan` |
-| `Refactor ledger code` | `feat(battle): close the supply ledger` |
-
-左边那些 diff 自己会说，不需要你再说一遍。
-
-## 正文的组成
-
-正文唯一不可替代的用处，是记住 diff 里看不见的东西。半年后有人 `git blame`
-到某一行，他看得到代码，看不到你当时知道的事。按顺序写三部分。
-
-**一、之前是什么样、现在是什么样。** 一段，有数字就给数字。
-
-> The ledger closed 314 of 531 decidable round transitions and left 19
-> unpriced. It now closes all 550, and none is left unpriced.
-
-**二、每个发现一段，段首第一句要能单独成立。** 例如 `A position does not name
-a tower.`、`Releasing a contraption is a purchase.`。读者只扫首句，也能知道这
-次提交推翻了哪些原有认识。这部分必须交代：
-
-- 旧做法错在哪，以及是什么证据推翻的：读到的反汇编、实机读数、语料统计；
-- 干活过程中撞坏了什么、怎么修的，尤其是只有真跑一次才会暴露的；
-- 哪些数字是从游戏数据里读出来的，哪些是量出来的。
-
-**三、验证。** 跑了什么、证明了什么、证据留在哪个目录。"对得上的 tick 数"
-"逐字节一致的重新生成"是证明，"测试通过"不是。
-
-没验证的写明没验证，量出来而不是读出来的写明出处不明，只做了一半的写明另一
-半没做。提交信息里的每句话以后都会被当成事实引用，包括被你自己引用。
-
-不要罗列改动文件清单，也不要写"改进了""优化了""重构了代码结构"这类不带内容
-的话：这两样 diff 都已经说过，而且说得比你准。
-
-正文按 72 字符折行，与标题之间空一行。
-
-## 拆分判据
-
-**一次提交是让标题成立所需的最小改动集合。** 拿掉其中任何一部分，标题就不再
-成立或变成夸大；能拿掉而标题照样成立的部分，属于另一次提交。
-
-标题写不出来就是拆分信号。需要用逗号罗列、需要 "and also"、需要 "various"，
-那不是标题的问题，是这次提交的问题。
-
-**一起被发现不是理由，一起被引起才是。** `fix(adapter): let a side order its
-own towers, and find its hidden officers` 用 and 连了两个 bug，因为两个都由同
-一次 layout 重构引入、同一次实机运行暴露。只是碰巧在同一个下午撞见的两件事，
-分开提交。
-
-**机械改动单独一次，除非它自己引出了修复。** 搬迁、重命名、批量改路径这类
-零语义的大 diff，混进去会让真正的改动没法审。`docs: split into rules and
-spec` 改了 40 个文件，全是搬迁与重新归类，没有一行新规则；写下那份规范的提
-交紧跟在它后面，单独一次。反过来，把脚本搬进 `scripts/` 时修掉搬迁自己弄坏
-的两处路径，属于同一次，因为不搬就不会坏。
-
-**不要按层拆。** `docs(action): define the action space` 一次改了 4 个 crate
-源文件和 2 份 spec，因为 spec 是代码要满足的契约，拆开之后任一半都不自洽。
-`feat(battle): close the supply ledger` 同样横跨 config、crate、docs 六个文件。
-文件数、行数、目录、"代码/文档/配置"都不是拆分依据。
-
-**每次提交都要能独立编译、独立通过测试。** 拆分点不能落在"改了函数没改调用
-方""加了行为没加断言"的位置。这条也排除了把测试单独拆成一次提交的做法。
+**游戏只有一个进程，只有 keeper 持有它。** 认领方永远不跑带 `game:` 的
+脚本，`mechcore run <script> --check` 会说一份脚本要不要游戏。要新录像，
+就把布阵和录制脚本（连预期值）提交到分支上，在 PR 上说明它区分什么并打
+`capture` 标签，等 keeper 录完发到同一个 release。
