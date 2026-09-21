@@ -487,6 +487,15 @@ evidence; formal MCFR still records the complete battle. Omitting `rvo_scope`
 retains the existing full instrumentation profile. Invalid scope/output is
 rejected before replay loading. No Simulator closure is implied.
 
+The `target_refs` profiles record, per unit and tick, the mech's lock and the
+main skill's `lockTarget` and `attackTarget`. Beside them, `skill_state` names
+the class of the skill's current `SkillStateController` state
+(`SkillIdleState`, `SkillPrepareState`, `SkillAttackState`, `SkillCoolingState`,
+…), `skill_attack_phase` says which `SkillAttackController` phase is current —
+`before`, `attacking`, `after`, or null between blows — and `skill_is_idle`
+reads `FightSkillBase.IsIdle`. All three are plain field reads at the snapshot
+boundary; they are null for a skill that is not a `FightSkill`.
+
 The Adapter requires `main_menu` and passes the requested round unchanged to
 the native `PlayReplayCommand.Execute(IReplay, startRound)` argument. Replay
 `Match.get_RoundCount()` must read back the same value before capture is armed.
