@@ -14,6 +14,11 @@
 # Only the physics hash is pinned. The content hash of this recording and of
 # the same fight without a wall both differ from the simulator's, so the gap is
 # not the wall's and pinning it here would pin somebody else's bug.
+#
+# That leaves a unit's lock, its weapons' attack targets and its motion state
+# unpinned: they are content-layer fields. A fight whose physics matches can
+# still disagree in them, and `line-of-fire` does for one tick after its block
+# falls. `plan.md` carries that.
 
 steps:
   # A Defensive Wall, 256 metres from either unit, changes nothing about the
@@ -40,3 +45,14 @@ steps:
       steps: 20
       winner: blue
       hashes.physics_result_hash: b67ee482c84b78665455f585b37b8fd33aecf84024f74366d4b908ee3fbbecd8
+
+  # The same question four times at once, which is what bracketed the width,
+  # and the fight where a tick that lands two shots reports the fallen block
+  # after both of them.
+  - fight.run:
+      layout: tests/layouts/construction/wall-line-tolerance.yaml
+      seed: 4242
+    expect:
+      steps: 19
+      winner: red
+      hashes.physics_result_hash: dc9a77c75eab511539a7b0556bd9f0efcf495aa484e026157e1e19ddc7a46099
