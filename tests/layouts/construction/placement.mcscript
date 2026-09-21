@@ -1,0 +1,68 @@
+# Does placing a construction change the fight around it?
+#
+#   mechcore run tests/layouts/construction/placement.mcscript --check   parse without the game
+#   mechcore run tests/layouts/construction/placement.mcscript           record
+#
+# `shape.mcscript` measured what a construction becomes and `wall.mcscript`
+# measured what a wall does. This is the control that lets the simulator place
+# one: the same fight recorded twice, once with a Defensive Wall in blue's slot
+# and once without, with everything else held.
+#
+# Both units stand at world x = 140 and the nearest block is at `(-116, -55)`,
+# 256 metres away against reaches of 140 and 95. So the two recordings have to
+# hold the same fight and differ only in their buildings, and the simulator has
+# to reproduce the one with the wall exactly — which
+# `regressions.mcscript` asserts offline, against the physics hash below.
+#
+# **A release is not free.** The wall is at `(-140, -55)` because the opening
+# this seed deals already stands there, so the executor retains it. The same
+# layout at seed 1787720817 is refused — `ConstructionManager` holds no element
+# at the index after the action is performed — and so is a wall at
+# `(-140, -105)` or `(-260, -295)`. What a release needs beyond the opening's
+# own constructions is not established, which is why this fixture sits where it
+# does rather than out of the way.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/construction-placement
+  seed: 4242
+
+steps:
+  - let:
+      aside: read_yaml(tests/layouts/construction/wall-aside.yaml)
+
+  - game.apply_layout:
+      layout: $aside
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/aside.mcfr
+    expect:
+      operation.tick_count: 91
+      # The hash `regressions.mcscript` holds the simulator to.
+      operation.hashes.physics_result_hash: 4523d7309ed89aa0fd1fb43a067f4d914af4d655b8da94b43cec9ac8878f0927
+  - fight.buildings:
+      recording: ${out}/aside.mcfr
+    expect:
+      # Nine buildings, numbered `(team, type, x, z)` as the capture numbers
+      # them: blue's two towers, then its five blocks, then red's two.
+      sides.blue.towers.0.kind: energy_tower
+      sides.blue.towers.1.kind: research_center
+      sides.blue.constructions.0.name: defensive_wall
+      sides.blue.constructions.0.standing: 5
+      sides.blue.constructions.0.parts.0.id: 3
+      sides.blue.constructions.0.parts.4.id: 7
+      sides.blue.constructions.0.parts.0.position.x: -704374636544
+      sides.blue.constructions.0.parts.4.position.x: -498216206336
+      sides.red.towers.0.id: 8
+      sides.red.towers.1.id: 9
+  # Nothing reached it: five blocks at full life when the fight ends.
+  - fight.buildings:
+      recording: ${out}/aside.mcfr
+      tick: 91
+    expect:
+      sides.blue.constructions.0.standing: 5
+      sides.blue.constructions.0.parts.0.life.current: 1112
+      sides.blue.constructions.0.parts.4.life.current: 1112

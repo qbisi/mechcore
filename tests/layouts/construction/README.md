@@ -17,10 +17,13 @@ released it.
 | `shape.yaml` (red) | the layout's constructions against the opening's | two towers, no construction |
 | `wall-passage.yaml` | a wall against the side that placed it | crosses it, all five at full life |
 | `wall-block.yaml` | a wall against the other side | stops and attacks, four down |
+| `wall-aside.yaml` | a wall against a fight it cannot reach | the same fight, five more buildings |
 
-`shape.mcscript` and `wall.mcscript` record them and carry every number as an
-`expect`, so a fixture and the measurement that reads it are one file to
-rerun.
+`shape.mcscript`, `wall.mcscript` and `placement.mcscript` record them and
+carry every number as an `expect`, so a fixture and the measurement that reads
+it are one file to rerun. `regressions.mcscript` needs no game and is what CI
+runs: it holds the simulator to the physics hash the game produced for
+`wall-aside.yaml`.
 
 The two wall fixtures are the same unit and the same geometry asked of both
 sides, which is the only way the wall's own description — that it sinks into
@@ -44,12 +47,17 @@ footprint 60 wide.
 ## What is not measured here
 
 **A construction with more than one row.** The Magnetic Barrier is the only one
-the build holds, and this build cannot place it: a layout compiles it, but the
-release is refused by the game — `ConstructionElement` is created and the
-action performed, and `ConstructionManager` then holds no element at that
-index. So the row of five is the whole of what the geometry rests on, and
-`constructions.md` states the generalisation as open rather than as a formula
-fitted to one wall.
+the build holds, and nothing here has placed one: the release is refused, with
+`ConstructionManager` holding no element at the index after the action is
+performed. The refusal is not about the barrier — a Defensive Wall released
+anywhere but where the seed's own opening already stands answers the same — so
+what a release needs is open, and so is the geometry of anything with a second
+row.
+
+**A construction anywhere but where the opening put it.** Every fixture here
+places what the seed's opening deals, at the position it deals it, because that
+is the only release this build has got to work. `placement.mcscript` records
+the three positions that were refused.
 
 **What a construction does on its own.** A turret carries a `skill_id` and
 2748 or 82 of damage, and a Magnetic Barrier slows what comes near it. Neither
@@ -60,3 +68,7 @@ and be shot, which is what the two wall fixtures establish.
 Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
+
+**What makes a unit attack a wall.** A wall is not searched for, and the
+Crawlers in `wall-block.yaml` attack it anyway. `constructions.md` says what is
+known; the fixture that separates the mechanism does not exist yet.
