@@ -11,7 +11,7 @@ says what was measured:
 | [`interval/`](interval/README.md) | how an attack interval is staggered |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | `skill-order/` | whether the release order of two battle skills changes the fight |
-| `regression/` | the native regression table, its layouts, and the two scripts that read it |
+| `regression/` | the native regression table, its layouts, and the three scripts that read it: offline, re-recorded, and re-recorded with each unit's skill state |
 
 A script that needs no game is run by CI; one that needs the game is only
 parsed there. `regressions.mcscript` in a topic directory, and

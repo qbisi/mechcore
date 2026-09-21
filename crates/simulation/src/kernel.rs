@@ -523,16 +523,10 @@ struct Actor {
     /// The last step of the cooling that follows a shot, and the target the
     /// skill quick-switched to if its own died during it.
     ///
-    /// A Marksman whose shot kills its target reads idle with no lock until
-    /// its cooling is over, its weapon already on the unit the selector
-    /// answers the tick after the kill; one tick after the cooling ends the
-    /// weapon clears, and the lock is searched the tick after that. Both
-    /// Marksmen that were recorded killing with enemies left — in
-    /// `crawlers-vs-marksman.yaml` and `wall-passage.yaml` — do exactly this.
-    cooling_until_step: Option<u64>,
+    /// What the weapons name through a cooling, with no lock: what the
+    /// finished attack last fired at.
     cooling_candidate: Option<FightActorRef>,
-    /// Whether this actor is being held through its cooling, which only a
-    /// target dying during it starts.
+    /// The step a cooling began, while the skill cools.
     cooling_hold: Option<u64>,
     lock_is_terminal_handoff: bool,
     fight_skill_search_target_time: i32,
@@ -642,7 +636,6 @@ impl Actor {
             motion_attack_hold_fire: false,
             lock_target: None,
             in_the_way: None,
-            cooling_until_step: None,
             cooling_candidate: None,
             cooling_hold: None,
             lock_is_terminal_handoff: false,
@@ -2231,11 +2224,14 @@ impl Simulation {
     /// changes what it fires at. What it fires at must then be in the attack
     /// area.
     ///
-    /// Where the weapons fire at the lock and still do, the rest of the check
-    /// is answered by the quick-switch, stale-target and cooling paths of
-    /// `step_actor_with_target_order`, which predate this mirror; only a
-    /// change of what the weapons fire at, or a lock dead behind something
-    /// else, is decided here.
+    /// A dead lock is always searched for here: the Marksman whose Crawler
+    /// dies is switched onto the next one, and cools when that one is out of
+    /// reach. A live lock the weapons still fire at is not yet held to the
+    /// attack area here; the quick-switch and stale-target paths of
+    /// `step_actor_with_target_order` still answer that, because what
+    /// `SearchLockTarget` has to offer a lock that left the area depends on
+    /// whether a search was prepared for it, which this mirror does not
+    /// carry yet.
     fn check_attackable(
         &mut self,
         actor_id: u64,
@@ -2246,9 +2242,6 @@ impl Simulation {
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
             self.search_attack_target(actor_id);
         } else {
-            if before == lock {
-                return Ok(true);
-            }
             if !self.search_lock_target(actor_id, target_search_order)? {
                 return Ok(false);
             }
@@ -2261,7 +2254,10 @@ impl Simulation {
         if after == before && lock == self.actors[&actor_id].lock_target {
             return Ok(true);
         }
-        Ok(after.is_some_and(|target| self.target_in_attack_area(actor_id, target)))
+        let Some(target) = after else {
+            return Ok(false);
+        };
+        Ok(self.target_in_attack_area(actor_id, target))
     }
 
     /// Whether `SkillAttackState` asks `CheckAttackable` on this update.
@@ -2274,6 +2270,7 @@ impl Simulation {
     fn between_blows(&self, actor_id: u64, step: u64) -> bool {
         let actor = &self.actors[&actor_id];
         let waiting = actor.pending.is_none()
+            && actor.projectile_pending_releases.is_empty()
             && actor
                 .backswing_finish_step
                 .is_none_or(|finish| finish < step);
@@ -2313,20 +2310,54 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let fired_at = actor.attack_target();
+        // `MotionIdleState.Enter` publishes the stop once; a unit whose
+        // motion is idle already keeps the point it stopped at.
+        let entered_idle = actor.motion != MotionState::Idle;
         actor.motion = MotionState::Idle;
         actor.drop_lock();
+        actor.laser_attack_count = 0;
+        actor.retarget_after_own_direct_kill = false;
         actor.fight_skill_phase = FightSkillPhase::Idle;
-        actor.fight_skill_search_target_time = 0;
+
         actor.backswing_finish_step = None;
         actor.pending = None;
-        actor.next_target_x_q32 = actor.x_q32;
-        actor.next_target_z_q32 = actor.z_q32;
+        if entered_idle {
+            actor.next_target_x_q32 = actor.x_q32;
+            actor.next_target_z_q32 = actor.z_q32;
+        }
         actor.next_speed_q32 = 0;
         actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
         if cooling_steps > 0 {
             actor.cooling_hold = Some(step);
             actor.cooling_candidate = fired_at;
         }
+    }
+
+    /// What `SearchLockTarget` answers in the middle of an update.
+    ///
+    /// The selector reads the positions the tick's query snapshot holds,
+    /// unless the lock it replaces died during this very tick, when it reads
+    /// where every candidate stands now; and a candidate that has itself
+    /// just died is searched past with live positions.
+    fn select_lock_replacement(
+        &self,
+        actor_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<Option<FightActorRef>> {
+        let died_this_tick = self.actors[&actor_id]
+            .mechanical_attack_target()
+            .and_then(|target| self.fight_actor(target))
+            .is_some_and(|target| target.query_alive && !target.alive);
+        let selected =
+            self.select_normal_target_with_order(actor_id, target_search_order, died_this_tick)?;
+        if !died_this_tick
+            && selected
+                .and_then(|candidate| self.fight_actor(candidate))
+                .is_some_and(|target| target.query_alive && !target.alive)
+        {
+            return self.select_normal_target_with_order(actor_id, target_search_order, true);
+        }
+        Ok(selected)
     }
 
     /// `SearchLockTarget` followed by `SearchAttackTarget`, as the checker
@@ -2336,7 +2367,7 @@ impl Simulation {
         actor_id: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let selected = self.select_normal_target_with_order(actor_id, target_search_order, true)?;
+        let selected = self.select_lock_replacement(actor_id, target_search_order)?;
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -2346,7 +2377,6 @@ impl Simulation {
             return Ok(false);
         };
         actor.lock_target = Some(selected);
-        actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.search_attack_target(actor_id);
         Ok(true)
     }
@@ -2459,6 +2489,7 @@ impl Simulation {
         self.select_normal_unit_target_with_order(actor_id, &target_search_order, false)
     }
 
+    #[cfg(test)]
     fn select_normal_unit_target_with_order(
         &self,
         actor_id: u64,
@@ -2824,50 +2855,24 @@ impl Simulation {
         Ok(())
     }
 
-    /// Holds a unit whose shot's target has died idle and without a lock
-    /// until its cooling is over, with its weapon quick-switched to the
-    /// selector's answer. Answers whether it did.
+    /// `SkillCoolingState`: holds a unit whose attack has finished idle and
+    /// without a lock for its cooling time, its weapon on what it last fired
+    /// at, then clears the weapon and lets the idle skill search. Answers
+    /// whether it held. Only `finish_attack` starts a cooling.
     ///
-    /// The weapon holds the candidate for the cooling's length, counted from
-    /// the step after the target died; it clears the step after that, and the
-    /// lock is searched the step after that. A Marksman's cooling is 0.2
-    /// seconds, four steps: idle five, locked on the sixth.
+    /// A Marksman's cooling is 0.2 seconds, four steps: its skill reads
+    /// cooling for four ticks and idle, emptied, for one more, and prepares
+    /// on the next — after a kill whose replacement is out of reach
+    /// (`crawlers-vs-marksman.yaml`) as after a fallen block
+    /// (`wall-line-width.yaml`).
     fn hold_through_cooling(
         &mut self,
         actor_id: u64,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let actor = &self.actors[&actor_id];
-        let started = if let Some(started) = actor.cooling_hold {
-            started
-        } else {
-            {
-                // Only a target that dies while the attack that fired at it is
-                // still running starts a hold: one that dies later, at the
-                // end of a longer flight, is replaced at once, as quick
-                // switching does.
-                let Some(until) = actor.cooling_until_step else {
-                    return Ok(false);
-                };
-                let target_dead = actor
-                    .mechanical_attack_target()
-                    .and_then(|target| self.fight_actor(target))
-                    .is_some_and(|target| !(target.alive && target.targetable));
-                // Seen on the step after the death.
-                if !target_dead || step > until.saturating_add(1) {
-                    return Ok(false);
-                }
-                // A replacement the quick switch can attack at once is
-                // taken at once; only one it cannot starts the hold.
-                let candidate =
-                    self.select_normal_target_with_order(actor_id, target_search_order, true)?;
-                if candidate.is_none_or(|candidate| self.target_in_attack_area(actor_id, candidate))
-                {
-                    return Ok(false);
-                }
-                step
-            }
+        let Some(started) = self.actors[&actor_id].cooling_hold else {
+            return Ok(false);
         };
         let cooling_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.cooling_time_units());
@@ -2877,7 +2882,6 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.cooling_hold = None;
-            actor.cooling_until_step = None;
             actor.cooling_candidate = None;
             return Ok(false);
         }
@@ -3166,11 +3170,23 @@ impl Simulation {
         }
         // `SkillAttackState.Update` asks `CheckAttackable` between two blows,
         // and a failed check finishes the attack.
-        if self.between_blows(actor_id, step)
-            && !self.attack_state_check_attackable(actor_id, target_search_order)?
-        {
-            self.finish_attack(actor_id, step);
-            return Ok(());
+        if self.between_blows(actor_id, step) {
+            if !self.attack_state_check_attackable(actor_id, target_search_order)? {
+                self.finish_attack(actor_id, step);
+                return Ok(());
+            }
+            // The blow being wound up is performed on the skill's attack
+            // target, which the check may just have changed.
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            if actor.group_skill_targets.is_empty()
+                && let Some(target) = actor.attack_target()
+                && let Some(pending) = actor.pending.as_mut()
+            {
+                pending.target = target;
+            }
         }
         if matches!(
             self.actors[&actor_id].lock_target,
@@ -3476,7 +3492,6 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .fight_skill_phase = FightSkillPhase::Attack;
         }
-        self.quick_switch_bodyless_pending_target(actor_id, step, target_search_order)?;
         let bodyful_quick_switch_target = {
             let actor = &self.actors[&actor_id];
             (actor.rules.has_body
@@ -3894,8 +3909,12 @@ impl Simulation {
                 }
                 let clear_hold_after_motion = actor.motion_attack_hold_fire && in_attack_angle;
                 let mut entered_skill_phase = false;
-                if !entered_attack
-                    && !actor.motion_attack_hold_fire
+                // `SkillIdleState.TryStartAttack` enters the attack or prepare
+                // state on the tick the unit comes into its attack area,
+                // which is the tick its motion starts attacking; the state
+                // is not updated until the tick after, where the first
+                // blow's wait begins.
+                if !actor.motion_attack_hold_fire
                     && in_attack_angle
                     && actor.pending.is_none()
                     && actor.backswing_finish_step.is_none()
@@ -3903,14 +3922,15 @@ impl Simulation {
                 {
                     let prepare_steps =
                         native_time_units_to_steps(actor.rules.attack.prepare_time_units());
+                    let from = if entered_attack { step + 1 } else { step };
                     actor.fight_skill_phase = if prepare_steps == 0 {
                         FightSkillPhase::Attack
                     } else {
                         FightSkillPhase::Prepare {
-                            finish_step: step.saturating_add(prepare_steps),
+                            finish_step: from.saturating_add(prepare_steps),
                         }
                     };
-                    entered_skill_phase = prepare_steps > 0;
+                    entered_skill_phase = prepare_steps > 0 || entered_attack;
                 }
                 if (!entered_attack || actor.rules.attack.quick_switch_target)
                     && !actor.motion_attack_hold_fire
@@ -4318,60 +4338,6 @@ impl Simulation {
         }
     }
 
-    fn quick_switch_bodyless_pending_target(
-        &mut self,
-        actor_id: u64,
-        step: u64,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
-    ) -> Result<()> {
-        let Some(dead_target_id) = self.actors[&actor_id]
-            .pending
-            .and_then(|pending| pending.target.unit_id())
-            .filter(|&target_id| !self.actors[&target_id].alive())
-        else {
-            return Ok(());
-        };
-        let actor = &self.actors[&actor_id];
-        if actor.rules.has_body || !actor.rules.attack.quick_switch_target {
-            return Ok(());
-        }
-        let target_died_during_tick = self.actors[&dead_target_id].target_query_alive;
-        let mut selected = self
-            .select_normal_unit_target_with_order(
-                actor_id,
-                target_search_order,
-                target_died_during_tick,
-            )
-            .map_err(|error| Error::new(format!("logic step {step} actor {actor_id}: {error}")))?;
-        if !target_died_during_tick
-            && selected
-                .and_then(|target_id| self.actors.get(&target_id))
-                .is_some_and(|target| target.target_query_alive && !target.alive())
-        {
-            selected = self
-                .select_normal_unit_target_with_order(actor_id, target_search_order, true)
-                .map_err(|error| {
-                    Error::new(format!("logic step {step} actor {actor_id}: {error}"))
-                })?;
-        }
-        let Some(selected) = selected.filter(|&target_id| {
-            self.bodyless_target_in_attack_area(actor_id, FightActorRef::Unit(target_id))
-        }) else {
-            return Ok(());
-        };
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        actor.lock_target = Some(FightActorRef::Unit(selected));
-        actor
-            .pending
-            .as_mut()
-            .expect("pending attack identity is stable")
-            .target = FightActorRef::Unit(selected);
-        Ok(())
-    }
-
     fn bodyless_target_in_attack_area(&self, actor_id: u64, target: FightActorRef) -> bool {
         self.bodyless_target_in_attack_range(actor_id, target)
             && self.bodyless_target_in_attack_angle(actor_id, target)
@@ -4527,28 +4493,6 @@ impl Simulation {
         step: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            // A cooling of nothing holds nothing: the Stormcaller's is 0,
-            // and its regressions, the game's, never hold.
-            if actor.rules.has_body
-                && actor.rules.attack.quick_switch_target
-                && actor.rules.attack.weapons.mode == WeaponMode::Normal
-                && actor.rules.attack.cooling_time_units() > 0
-            {
-                // The attack is still running for its attack point after the
-                // release; a target that dies in that time is held for.
-                let attack_point_steps =
-                    native_time_units_to_steps(actor.rules.attack.attack_point_time_units());
-                actor.cooling_until_step =
-                    Some(step.saturating_add(attack_point_steps.saturating_sub(1)));
-                actor.cooling_hold = None;
-                actor.cooling_candidate = None;
-            }
-        }
         let target_view = self
             .fight_actor(target)
             .ok_or_else(|| Error::new("projectile target is absent"))?;
@@ -7818,7 +7762,7 @@ mod tests {
     }
 
     #[test]
-    fn bodyless_quick_switch_retargets_a_pending_attack_in_attack_area() {
+    fn a_quick_switch_before_a_blow_takes_the_next_unit_in_its_attack_area() {
         let config = SimulationConfig::load().unwrap();
         let layout = CompiledLayout::of_units(
             1,

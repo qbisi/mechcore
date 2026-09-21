@@ -294,11 +294,11 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 `SkillStateController` 状态和 `SkillAttackController` 阶段的采集里读出来的（`target_refs_v1`
 instrumentation profile），和 `tests/construction/` 下的录像一起。
 
-**镜像还没接管的部分。** 武器打的就是锁定、而且一直如此时，`Check` 剩下的部分——锁定死了、锁定离开
-攻击区域——仍由 `step_actor_with_target_order` 里快速切换、失效目标和冷却那几条路径回答；它们是在
-这个镜像之前对着录像写的，在所有被跟踪的战斗上与它一致。`check_attackable` 只决定武器目标的变化，
-以及锁定死在别的东西后面的情况。用检查器替换那几条路径、用游戏的控制器替换攻击状态的各阶段，是下
-一步。
+**镜像还没接管的部分。** 内核经过的技能状态，现在在整个回归清单上与游戏的采集有 99% 的单位-tick 一致；
+剩下的是单位朝向还在修正时进入攻击的那一 tick。`check_attackable` 对每个死掉的锁定都会重新搜，冷却只由
+`finish_attack` 开始。活着的锁定离开攻击区域，仍由 `step_actor_with_target_order` 里快速切换和失效目标
+那两条路径回答：那里 `SearchLockTarget` 返回的是 `PreCalculate` 准备的选择器任务，而攻击状态只在锁定死了
+或为空时才准备它，内核还没有承载这个任务。
 
 ## 镜像，以及现在哪些是空的
 

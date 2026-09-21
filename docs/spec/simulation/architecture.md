@@ -346,14 +346,16 @@ in were read from a capture of each unit's `SkillStateController` state and
 `SkillAttackController` phase (the `target_refs_v1` instrumentation profile),
 beside the recordings under `tests/construction/`.
 
-**What the mirror does not carry yet.** Where the weapons fire at the lock and
-go on doing so, the rest of `Check` — a lock that died, a lock that left the
-attack area — is still answered by the quick-switch, stale-target and cooling
-paths of `step_actor_with_target_order`, which were written against recordings
-before this mirror existed and agree with it on every tracked fight.
-`check_attackable` decides only a change of what the weapons fire at, and a
-lock dead behind something else. Replacing those paths with the checker, and
-the attack state's phases with the build's controllers, is the next step.
+**What the mirror does not carry yet.** The skill states the kernel passes
+through now match a capture of the game's on 99% of unit-ticks across the
+regression manifest; what is left is the tick a unit enters its attack while
+its facing is still being corrected. `check_attackable` searches for every
+dead lock, and a cooling starts only from `finish_attack`. A live lock that
+leaves the attack area is still answered by the quick-switch and stale-target
+paths of `step_actor_with_target_order`: what `SearchLockTarget` returns
+there is the selector job `PreCalculate` prepared, which the attack state
+prepares only for a dead or missing lock, and the kernel does not yet carry
+that job.
 
 ## The mirror, and what is dummy
 
