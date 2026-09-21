@@ -7,9 +7,9 @@
 # and the seed alone. The recording itself lives under `work/`, which is not
 # tracked; what is tracked is what it decided.
 #
-# `placement.mcscript` is the other half. It launches the game, records the
-# same layout and the same fight without the wall, and asserts that the two
-# recordings differ in their buildings and in nothing else.
+# `placement.mcscript` and `line-of-fire.mcscript` are the other half. They
+# launch the game, record the same layouts, and assert the same numbers against
+# the recording rather than against the simulator.
 #
 # Only the physics hash is pinned. The content hash of this recording and of
 # the same fight without a wall both differ from the simulator's, so the gap is
@@ -27,3 +27,16 @@ steps:
       winner: red
       teams.1.remaining_life: 155
       hashes.physics_result_hash: 4523d7309ed89aa0fd1fb43a067f4d914af4d655b8da94b43cec9ac8878f0927
+
+  # A wall in the way. One Marksman shoots past the wall at the unit behind
+  # it, and the block it destroys is neither the nearest block nor the one its
+  # line passes closest to — it is the nearest of the blocks the line reaches.
+  # `docs/rules/constructions.md` measured that and this holds the simulator
+  # to it: 20 ticks, block 6 down, everything else standing.
+  - fight.run:
+      layout: tests/layouts/construction/wall-line-of-fire.yaml
+      seed: 4242
+    expect:
+      steps: 20
+      winner: blue
+      hashes.physics_result_hash: b67ee482c84b78665455f585b37b8fd33aecf84024f74366d4b908ee3fbbecd8
