@@ -7,6 +7,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<bool> {
         let pending = self.actors[&actor_id]
+            .skill
             .pending
             .ok_or_else(|| Error::new("attack release has no pending action"))?;
         let release_attackable_invalid = self.bodyless_attackable_invalid(actor_id, pending.target);
@@ -19,8 +20,8 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.pending = None;
-            actor.fight_skill_phase = FightSkillPhase::Idle;
+            actor.skill.pending = None;
+            actor.skill.phase = FightSkillPhase::Idle;
             return Ok(true);
         }
         let backswing_steps =
@@ -29,10 +30,10 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        owner.pending = None;
-        owner.backswing_finish_step =
+        owner.skill.pending = None;
+        owner.skill.backswing_finish_step =
             (backswing_steps > 0).then(|| pending.step.saturating_add(backswing_steps));
-        owner.fight_skill_phase = if owner.backswing_finish_step.is_none()
+        owner.skill.phase = if owner.skill.backswing_finish_step.is_none()
             && !owner.rules.attack.quick_switch_target
             && !matches!(owner.rules.attack.path, AttackPath::Laser { .. })
         {
@@ -58,6 +59,7 @@ impl Simulation {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
+                    .skill
                     .retarget_after_own_direct_kill = true;
             }
             return Ok(false);
@@ -81,8 +83,8 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                actor.motion = MotionState::Idle;
-                actor.retarget_after_own_direct_kill = true;
+                actor.motion.state = MotionState::Idle;
+                actor.skill.retarget_after_own_direct_kill = true;
             }
             return Ok(false);
         }
@@ -131,8 +133,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        actor.projectile_burst_finished_same_tick_dead = false;
-        actor.projectile_pending_releases.extend(releases);
+        actor.skill.projectile_burst_finished_same_tick_dead = false;
+        actor.skill.projectile_pending_releases.extend(releases);
         self.release_pending_projectile(actor_id, first, events)
     }
 

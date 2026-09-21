@@ -1,5 +1,38 @@
 use super::*;
 
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct RvoProfile {
+    pub(in crate::fight) outer_radius_q32: i64,
+    pub(in crate::fight) inner_radius_q32: i64,
+    pub(in crate::fight) size: AgentSizeType,
+    pub(in crate::fight) collider_priority: i32,
+    pub(in crate::fight) priority_q32: i64,
+}
+
+/// `MotionController`: what the body does — its state, where it has been
+/// asked to go and how fast, and what the RVO solver made of that.
+
+#[derive(Debug, Clone)]
+pub(in crate::fight) struct Motion {
+    pub(in crate::fight) rvo_tree_x_q32: i64,
+    pub(in crate::fight) rvo_tree_z_q32: i64,
+    pub(in crate::fight) current_velocity_x_q32: i64,
+    pub(in crate::fight) current_velocity_z_q32: i64,
+    pub(in crate::fight) next_target_x_q32: i64,
+    pub(in crate::fight) next_target_z_q32: i64,
+    pub(in crate::fight) next_speed_q32: i64,
+    pub(in crate::fight) next_max_speed_q32: i64,
+    pub(in crate::fight) solver_target_x_q32: i64,
+    pub(in crate::fight) solver_target_z_q32: i64,
+    pub(in crate::fight) solver_speed_q32: i64,
+    pub(in crate::fight) published_target_x_q32: i64,
+    pub(in crate::fight) published_target_z_q32: i64,
+    pub(in crate::fight) published_speed_q32: i64,
+    pub(in crate::fight) rvo_stopped_snap_since_boundary: bool,
+    pub(in crate::fight) state: MotionState,
+    pub(in crate::fight) attack_hold_fire: bool,
+}
+
 pub(in crate::fight) fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
     let profile = rules.rvo;
     RvoProfile {
@@ -155,22 +188,29 @@ impl Simulation {
             if !actor.alive() {
                 return;
             }
-            let maximum_delta_q32 = q32_mul(actor.published_speed_q32, NATIVE_LOGIC_DELTA_Q32);
+            let maximum_delta_q32 =
+                q32_mul(actor.motion.published_speed_q32, NATIVE_LOGIC_DELTA_Q32);
             let (movement_x_q32, movement_z_q32) = clamp_magnitude_q32_raw(
-                actor.published_target_x_q32.saturating_sub(actor.x_q32),
-                actor.published_target_z_q32.saturating_sub(actor.z_q32),
+                actor
+                    .motion
+                    .published_target_x_q32
+                    .saturating_sub(actor.x_q32),
+                actor
+                    .motion
+                    .published_target_z_q32
+                    .saturating_sub(actor.z_q32),
                 maximum_delta_q32,
             );
             actor.x_q32 = actor.x_q32.saturating_add(movement_x_q32);
             actor.z_q32 = actor.z_q32.saturating_add(movement_z_q32);
-            if actor.motion != MotionState::Moving
-                && actor.published_speed_q32 == 0
+            if actor.motion.state != MotionState::Moving
+                && actor.motion.published_speed_q32 == 0
                 && (movement_x_q32 != 0 || movement_z_q32 != 0)
             {
-                actor.rvo_stopped_snap_since_boundary = true;
+                actor.motion.rvo_stopped_snap_since_boundary = true;
             }
-            if actor.motion == MotionState::Moving && !rvo_boundary_due {
-                actor.rvo_stopped_snap_since_boundary = false;
+            if actor.motion.state == MotionState::Moving && !rvo_boundary_due {
+                actor.motion.rvo_stopped_snap_since_boundary = false;
             }
             actor.x = q32_to_space_rounded(actor.x_q32);
             actor.z = q32_to_space_rounded(actor.z_q32);
@@ -204,23 +244,31 @@ impl Simulation {
         self.rvo_counter = 0;
         let first_tree = self.rvo_first_tree_pending;
         for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
-            if actor.rvo_stopped_snap_since_boundary
-                && actor.motion == MotionState::Moving
-                && actor.next_speed_q32 > 0
-                && actor.solver_speed_q32 == 0
+            if actor.motion.rvo_stopped_snap_since_boundary
+                && actor.motion.state == MotionState::Moving
+                && actor.motion.next_speed_q32 > 0
+                && actor.motion.solver_speed_q32 == 0
             {
-                actor.solver_target_x_q32 = actor.x_q32;
-                actor.solver_target_z_q32 = actor.z_q32;
+                actor.motion.solver_target_x_q32 = actor.x_q32;
+                actor.motion.solver_target_z_q32 = actor.z_q32;
             }
-            actor.published_target_x_q32 = actor.solver_target_x_q32;
-            actor.published_target_z_q32 = actor.solver_target_z_q32;
-            actor.published_speed_q32 = actor.solver_speed_q32;
-            (actor.current_velocity_x_q32, actor.current_velocity_z_q32) =
-                normalized_velocity_q32_raw(
-                    actor.published_target_x_q32.saturating_sub(actor.x_q32),
-                    actor.published_target_z_q32.saturating_sub(actor.z_q32),
-                    actor.published_speed_q32,
-                );
+            actor.motion.published_target_x_q32 = actor.motion.solver_target_x_q32;
+            actor.motion.published_target_z_q32 = actor.motion.solver_target_z_q32;
+            actor.motion.published_speed_q32 = actor.motion.solver_speed_q32;
+            (
+                actor.motion.current_velocity_x_q32,
+                actor.motion.current_velocity_z_q32,
+            ) = normalized_velocity_q32_raw(
+                actor
+                    .motion
+                    .published_target_x_q32
+                    .saturating_sub(actor.x_q32),
+                actor
+                    .motion
+                    .published_target_z_q32
+                    .saturating_sub(actor.z_q32),
+                actor.motion.published_speed_q32,
+            );
         }
 
         let mut agents = Vec::new();
@@ -269,11 +317,14 @@ impl Simulation {
             let profile = rvo_profile(&actor.rules);
             let (layer, collides_with) = movable_rvo_collision_masks(profile.collider_priority);
             let target_delta = FixedVec2 {
-                x: actor.next_target_x_q32.saturating_sub(actor.x_q32),
-                y: actor.next_target_z_q32.saturating_sub(actor.z_q32),
+                x: actor.motion.next_target_x_q32.saturating_sub(actor.x_q32),
+                y: actor.motion.next_target_z_q32.saturating_sub(actor.z_q32),
             };
-            let (desired_x, desired_z) =
-                normalized_velocity_q32_raw(target_delta.x, target_delta.y, actor.next_speed_q32);
+            let (desired_x, desired_z) = normalized_velocity_q32_raw(
+                target_delta.x,
+                target_delta.y,
+                actor.motion.next_speed_q32,
+            );
             agents.push(RvoAgentInput {
                 key: RvoAgentKey::Unit(actor_id),
                 main_layer: match actor.rules.domain {
@@ -288,21 +339,21 @@ impl Simulation {
                 tree_position: if first_tree {
                     FixedVec2::ZERO
                 } else {
-                    rvo_position(actor.rvo_tree_x_q32, actor.rvo_tree_z_q32)
+                    rvo_position(actor.motion.rvo_tree_x_q32, actor.motion.rvo_tree_z_q32)
                 },
                 position: rvo_position(actor.x_q32, actor.z_q32),
                 current_velocity: FixedVec2 {
-                    x: actor.current_velocity_x_q32,
-                    y: actor.current_velocity_z_q32,
+                    x: actor.motion.current_velocity_x_q32,
+                    y: actor.motion.current_velocity_z_q32,
                 },
                 desired_velocity: FixedVec2 {
                     x: desired_x,
                     y: desired_z,
                 },
                 desired_target_delta: target_delta,
-                desired_speed: actor.next_speed_q32,
-                max_speed: actor.next_max_speed_q32,
-                published_calculated_speed: actor.published_speed_q32,
+                desired_speed: actor.motion.next_speed_q32,
+                max_speed: actor.motion.next_max_speed_q32,
+                published_calculated_speed: actor.motion.published_speed_q32,
                 radius_outer: profile.outer_radius_q32,
                 radius_inner: profile.inner_radius_q32,
                 size: profile.size,
@@ -317,12 +368,12 @@ impl Simulation {
             let solution = solutions
                 .get(&RvoAgentKey::Unit(actor_id))
                 .expect("every live actor has an RVO solution");
-            actor.solver_target_x_q32 = actor.x_q32.saturating_add(solution.target_delta.x);
-            actor.solver_target_z_q32 = actor.z_q32.saturating_add(solution.target_delta.y);
-            actor.solver_speed_q32 = solution.speed;
-            actor.rvo_tree_x_q32 = actor.x_q32;
-            actor.rvo_tree_z_q32 = actor.z_q32;
-            actor.rvo_stopped_snap_since_boundary = false;
+            actor.motion.solver_target_x_q32 = actor.x_q32.saturating_add(solution.target_delta.x);
+            actor.motion.solver_target_z_q32 = actor.z_q32.saturating_add(solution.target_delta.y);
+            actor.motion.solver_speed_q32 = solution.speed;
+            actor.motion.rvo_tree_x_q32 = actor.x_q32;
+            actor.motion.rvo_tree_z_q32 = actor.z_q32;
+            actor.motion.rvo_stopped_snap_since_boundary = false;
         }
     }
 }

@@ -4,6 +4,171 @@ mod perform;
 
 use super::*;
 
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct PendingRelease {
+    pub(in crate::fight) step: u64,
+    pub(in crate::fight) target: FightActorRef,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct PendingProjectileRelease {
+    pub(in crate::fight) step: u64,
+    pub(in crate::fight) target_kind: ObjectKind,
+    pub(in crate::fight) target: u64,
+    pub(in crate::fight) target_x_q32: i64,
+    pub(in crate::fight) target_z_q32: i64,
+    pub(in crate::fight) weapon_index: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum FightSkillPhase {
+    Idle,
+    Prepare { finish_step: u64 },
+    Attack,
+}
+
+/// `FightSkill`: the lock and what the weapons fire at, the state the skill
+/// is in, and the attack it is making.
+
+#[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the flags are pieces of the skill's state the kernel still carries apart; the attack state's own enum replaces them"
+)]
+pub(in crate::fight) struct Skill {
+    pub(in crate::fight) weapon_rotations_q32: Vec<i64>,
+    pub(in crate::fight) next_attack_step: u64,
+    /// The interval this cycle was scheduled with, in logic ticks: the
+    /// description plus the stagger drawn for it. The build keeps the same
+    /// thing in `FightSkill.attackInterval` and answers it from
+    /// `GetCurrentAttackInterval`, and a recording carries it so the two can
+    /// be compared. Before a unit's first attack it is the description with
+    /// the draw its deployment took.
+    pub(in crate::fight) current_attack_interval: u64,
+    /// What the mech's body is directed at: the target its search found, which
+    /// it moves toward and which a unit with a body keeps facing while it
+    /// attacks. A recording carries it as `mech_lock_target`.
+    ///
+    /// It is not always what the weapons fire at: [`Actor::attack_target`] is,
+    /// and the two part company when an enemy construction stands in the line
+    /// of fire.
+    pub(in crate::fight) lock_target: Option<FightActorRef>,
+    /// The enemy construction in the line of fire, and the lock it was found
+    /// for.
+    ///
+    /// `FightSkill.SearchAttackTarget` asks `WallConstructionTargetChecker`
+    /// wherever the skill asks what to fire at, and hands the block to the
+    /// weapons while the mech keeps its lock. The pairing is what keeps this honest: once
+    /// `lock_target` is anything but the lock it was found for, the block no
+    /// longer answers, without anyone having to clear it.
+    pub(in crate::fight) in_the_way: Option<(u64, FightActorRef)>,
+    /// The last step of the cooling that follows a shot, and the target the
+    /// skill quick-switched to if its own died during it.
+    ///
+    /// What the weapons name through a cooling, with no lock: what the
+    /// finished attack last fired at.
+    pub(in crate::fight) cooling_candidate: Option<FightActorRef>,
+    /// The step a cooling began, while the skill cools.
+    pub(in crate::fight) cooling_hold: Option<u64>,
+    pub(in crate::fight) lock_is_terminal_handoff: bool,
+    pub(in crate::fight) search_target_time: i32,
+    pub(in crate::fight) searched_this_tick: bool,
+    pub(in crate::fight) phase: FightSkillPhase,
+    pub(in crate::fight) group_skill_targets: Vec<Option<u64>>,
+    /// The enemy construction in each grouped slot's line of fire, with the
+    /// unit that slot was allocated.
+    ///
+    /// The same pairing as [`Actor::in_the_way`], slot by slot: a Wraith's four
+    /// slots each take the block standing between it and the unit they were
+    /// given, and a slot given another unit no longer answers with it.
+    pub(in crate::fight) group_in_the_way: Vec<Option<(u64, u64)>>,
+    pub(in crate::fight) group_skill_next_attack_steps: Vec<u64>,
+    pub(in crate::fight) group_skill_prepare_ready_steps: Vec<u64>,
+    pub(in crate::fight) group_pending_releases: Vec<(usize, PendingRelease)>,
+    pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
+    pub(in crate::fight) projectile_burst_finished: bool,
+    pub(in crate::fight) projectile_burst_finished_same_tick_dead: bool,
+    pub(in crate::fight) laser_attack_count: usize,
+    pub(in crate::fight) retarget_after_own_direct_kill: bool,
+    pub(in crate::fight) pending: Option<PendingRelease>,
+    pub(in crate::fight) backswing_finish_step: Option<u64>,
+}
+
+impl Skill {
+    /// What this actor's weapons fire at: the construction in the way if one
+    /// stands there for the current lock, and the lock itself otherwise.
+    ///
+    /// Range, attack angle, release and the question of whether the target
+    /// is still alive are all asked of this. Where to move and where a body
+    /// faces are asked of `lock_target`.
+    pub(in crate::fight) fn attack_target(&self) -> Option<FightActorRef> {
+        match self.in_the_way {
+            Some((building, found_for)) if self.lock_target == Some(found_for) => {
+                Some(FightActorRef::Building(building))
+            }
+            _ => self.lock_target,
+        }
+    }
+
+    /// Drops the mech's target, and every grouped slot with it.
+    ///
+    /// A group whose mech holds no target holds no slots: every time a Wraith
+    /// was recorded losing its lock — to a block it was shooting falling, and
+    /// to the last enemy dying — all four slots read empty the same tick, and
+    /// the children were allocated again only once the core was attacking,
+    /// the usual eight ticks later. Nothing changes for a unit without a
+    /// group, whose slot lists are empty.
+    pub(in crate::fight) fn drop_lock(&mut self) {
+        self.lock_target = None;
+        self.group_skill_targets.fill(None);
+        self.group_in_the_way.fill(None);
+        self.group_skill_next_attack_steps.fill(0);
+        self.group_skill_prepare_ready_steps.fill(0);
+        self.group_pending_releases.clear();
+    }
+
+    /// What one grouped slot fires at: the construction in its way if one
+    /// stands there for the unit it was allocated, and that unit otherwise.
+    pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
+        let unit = self.group_skill_targets.get(slot).copied().flatten()?;
+        match self.group_in_the_way.get(slot).copied().flatten() {
+            Some((building, found_for)) if found_for == unit => {
+                Some(FightActorRef::Building(building))
+            }
+            _ => Some(FightActorRef::Unit(unit)),
+        }
+    }
+
+    /// What a grouped skill's core fires at, or the weapons' target when the
+    /// group has none.
+    pub(in crate::fight) fn mechanical_attack_target(&self) -> Option<FightActorRef> {
+        self.group_attack_target(0)
+            .or_else(|| {
+                (0..self.group_skill_targets.len())
+                    .rev()
+                    .find_map(|slot| self.group_attack_target(slot))
+            })
+            .or(self.attack_target())
+    }
+
+    pub(in crate::fight) fn mechanical_lock_target(&self) -> Option<FightActorRef> {
+        self.group_skill_targets
+            .first()
+            .copied()
+            .flatten()
+            .or_else(|| {
+                self.group_skill_targets
+                    .iter()
+                    .rev()
+                    .flatten()
+                    .copied()
+                    .next()
+            })
+            .map(FightActorRef::Unit)
+            .or(self.lock_target)
+    }
+}
+
 impl Simulation {
     /// `SkillCoolingState`: holds a unit whose attack has finished idle and
     /// without a lock for its cooling time, its weapon on what it last fired
@@ -21,7 +186,7 @@ impl Simulation {
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let Some(started) = self.actors[&actor_id].cooling_hold else {
+        let Some(started) = self.actors[&actor_id].skill.cooling_hold else {
             return Ok(false);
         };
         let cooling_steps =
@@ -31,12 +196,12 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.cooling_hold = None;
-            actor.cooling_candidate = None;
+            actor.skill.cooling_hold = None;
+            actor.skill.cooling_candidate = None;
             return Ok(false);
         }
         let candidate = if step < started.saturating_add(cooling_steps) {
-            match self.actors[&actor_id].cooling_candidate {
+            match self.actors[&actor_id].skill.cooling_candidate {
                 Some(candidate) => Some(candidate),
                 None => {
                     self.select_normal_target_with_order(actor_id, target_search_order, true)?
@@ -49,19 +214,23 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        actor.lock_target = None;
-        actor.cooling_candidate = candidate;
-        actor.cooling_hold = Some(started);
-        actor.motion = MotionState::Idle;
-        actor.fight_skill_phase = FightSkillPhase::Idle;
-        actor.fight_skill_search_target_time = 0;
-        actor.next_target_x_q32 = actor.x_q32;
-        actor.next_target_z_q32 = actor.z_q32;
-        actor.next_speed_q32 = 0;
-        actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+        actor.skill.lock_target = None;
+        actor.skill.cooling_candidate = candidate;
+        actor.skill.cooling_hold = Some(started);
+        actor.motion.state = MotionState::Idle;
+        actor.skill.phase = FightSkillPhase::Idle;
+        actor.skill.search_target_time = 0;
+        actor.motion.next_target_x_q32 = actor.x_q32;
+        actor.motion.next_target_z_q32 = actor.z_q32;
+        actor.motion.next_speed_q32 = 0;
+        actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
         Ok(true)
     }
 
+    #[allow(
+        clippy::too_many_lines,
+        reason = "the search timer's update, to be split with the attack state"
+    )]
     pub(in crate::fight) fn update_fight_skill_target_search(
         &mut self,
         actor_id: u64,
@@ -75,6 +244,7 @@ impl Simulation {
         // longer alive.
         let actor = &self.actors[&actor_id];
         let target = actor
+            .skill
             .mechanical_attack_target()
             .and_then(|target| self.fight_actor(target));
         let target_alive = target.is_some_and(|target| target.alive && target.targetable);
@@ -82,38 +252,42 @@ impl Simulation {
             target.is_some_and(|target| target.query_alive && !target.alive);
         if !target_alive
             && actor
+                .skill
                 .backswing_finish_step
                 .is_some_and(|finish_step| finish_step >= step)
         {
             let quick_switch_interval_due =
-                actor.rules.attack.quick_switch_target && step > actor.next_attack_step;
+                actor.rules.attack.quick_switch_target && step > actor.skill.next_attack_step;
             if !quick_switch_interval_due {
                 return Ok(());
             }
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
+                .skill
                 .backswing_finish_step = None;
         }
         let actor = &self.actors[&actor_id];
-        if (matches!(actor.fight_skill_phase, FightSkillPhase::Prepare { .. })
-            || actor.fight_skill_phase == FightSkillPhase::Attack)
+        if (matches!(actor.skill.phase, FightSkillPhase::Prepare { .. })
+            || actor.skill.phase == FightSkillPhase::Attack)
             && (!actor.rules.attack.quick_switch_target || target_alive)
         {
             return Ok(());
         }
-        if target_alive && self.actors[&actor_id].fight_skill_search_target_time > 0 {
+        if target_alive && self.actors[&actor_id].skill.search_target_time > 0 {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .fight_skill_search_target_time -= 1;
+                .skill
+                .search_target_time -= 1;
             return Ok(());
         }
 
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .fight_skill_searched_this_tick = true;
+            .skill
+            .searched_this_tick = true;
 
         let mut selected_candidate = self
             .select_normal_target_with_order(actor_id, target_search_order, target_died_during_tick)
@@ -134,34 +308,35 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.lock_target = Some(FightActorRef::Building(building_id));
-            actor.lock_is_terminal_handoff = false;
-            actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.retarget_after_own_direct_kill = false;
-            actor.laser_attack_count = 0;
+            actor.skill.lock_target = Some(FightActorRef::Building(building_id));
+            actor.skill.lock_is_terminal_handoff = false;
+            actor.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.skill.retarget_after_own_direct_kill = false;
+            actor.skill.laser_attack_count = 0;
             return Ok(());
         }
         let selected = selected_candidate;
         let actor = &self.actors[&actor_id];
         let quick_idle_retains_attackable_target = actor.rules.attack.quick_switch_target
-            && actor.fight_skill_phase == FightSkillPhase::Idle
-            && step >= actor.next_attack_step
+            && actor.skill.phase == FightSkillPhase::Idle
+            && step >= actor.skill.next_attack_step
             && actor
+                .skill
                 .attack_target()
                 .is_some_and(|target_id| self.target_in_attack_area(actor_id, target_id));
         let selected = if target_alive
             && (!actor.rules.attack.quick_switch_target || quick_idle_retains_attackable_target)
-            && actor.motion == MotionState::Attacking
-            && !actor.motion_attack_hold_fire
-            && actor.pending.is_none()
-            && actor.backswing_finish_step.is_none()
-            && selected != actor.lock_target
+            && actor.motion.state == MotionState::Attacking
+            && !actor.motion.attack_hold_fire
+            && actor.skill.pending.is_none()
+            && actor.skill.backswing_finish_step.is_none()
+            && selected != actor.skill.lock_target
         {
             // An attacking unit keeps the lock it has. What its weapons fire
             // at is asked again below, so a construction still in the way is
             // handed back to them rather than written into the lock.
-            actor.lock_target
+            actor.skill.lock_target
         } else {
             selected
         };
@@ -169,13 +344,13 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        actor.lock_is_terminal_handoff = false;
-        if actor.attack_target() != selected {
-            actor.laser_attack_count = 0;
+        actor.skill.lock_is_terminal_handoff = false;
+        if actor.skill.attack_target() != selected {
+            actor.skill.laser_attack_count = 0;
         }
-        actor.lock_target = selected;
-        actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
-        actor.retarget_after_own_direct_kill = false;
+        actor.skill.lock_target = selected;
+        actor.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        actor.skill.retarget_after_own_direct_kill = false;
         self.search_attack_target(actor_id);
         Ok(())
     }
@@ -188,22 +363,22 @@ impl Simulation {
         allow_phase_override: bool,
     ) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        let Some(FightActorRef::Unit(target_id)) = actor.attack_target() else {
+        let Some(FightActorRef::Unit(target_id)) = actor.skill.attack_target() else {
             return Ok(false);
         };
         let target = FightActorRef::Unit(target_id);
-        let in_attacking_phase = actor.fight_skill_phase == FightSkillPhase::Attack
-            || (actor.fight_skill_phase == FightSkillPhase::Idle
-                && actor.motion == MotionState::Attacking
+        let in_attacking_phase = actor.skill.phase == FightSkillPhase::Attack
+            || (actor.skill.phase == FightSkillPhase::Idle
+                && actor.motion.state == MotionState::Attacking
                 && !self.bodyless_target_in_attack_range(actor_id, target));
         if (!allow_phase_override && !in_attacking_phase)
             || !actor.rules.has_body
             || !actor.rules.attack.quick_switch_target
             || actor.rules.attack.weapons.mode != WeaponMode::Normal
-            || !actor.projectile_pending_releases.is_empty()
+            || !actor.skill.projectile_pending_releases.is_empty()
             || (!allow_phase_override
                 && !self.fight_actor_is_alive(target)
-                && actor.motion != MotionState::Attacking)
+                && actor.motion.state != MotionState::Attacking)
             || self.target_in_attack_area(actor_id, target)
         {
             return Ok(false);
@@ -243,31 +418,31 @@ impl Simulation {
         let entered_idle = match selected {
             Some(FightActorRef::Unit(target_id)) => {
                 let target = FightActorRef::Unit(target_id);
-                if actor.attack_target() != Some(target) {
-                    actor.laser_attack_count = 0;
+                if actor.skill.attack_target() != Some(target) {
+                    actor.skill.laser_attack_count = 0;
                 }
-                actor.lock_target = Some(target);
+                actor.skill.lock_target = Some(target);
                 false
             }
             Some(FightActorRef::Building(building_id)) => {
-                actor.lock_target = Some(FightActorRef::Building(building_id));
-                actor.lock_is_terminal_handoff = false;
+                actor.skill.lock_target = Some(FightActorRef::Building(building_id));
+                actor.skill.lock_is_terminal_handoff = false;
                 false
             }
             None => {
-                actor.drop_lock();
-                actor.motion = MotionState::Idle;
-                actor.fight_skill_phase = FightSkillPhase::Idle;
-                actor.pending = None;
-                actor.next_target_x_q32 = actor.x_q32;
-                actor.next_target_z_q32 = actor.z_q32;
-                actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.skill.drop_lock();
+                actor.motion.state = MotionState::Idle;
+                actor.skill.phase = FightSkillPhase::Idle;
+                actor.skill.pending = None;
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 true
             }
         };
-        actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
-        actor.retarget_after_own_direct_kill = false;
+        actor.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        actor.skill.retarget_after_own_direct_kill = false;
         // A quick switch asks the line of fire like any other search: the
         // Arclight whose splash killed its lock takes the next Crawler and,
         // the same tick, the block standing between them.
@@ -298,6 +473,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let backswing_just_finished = self.actors[&actor_id]
+            .skill
             .backswing_finish_step
             .is_some_and(|finish_step| finish_step < step);
         if !self.actors[&actor_id].alive() {
@@ -316,7 +492,7 @@ impl Simulation {
         // cleared. The check decides the attack target again on the way,
         // which is where a block coming into the line of fire is met.
         if matches!(
-            self.actors[&actor_id].fight_skill_phase,
+            self.actors[&actor_id].skill.phase,
             FightSkillPhase::Prepare { .. }
         ) && !self.check_attackable(actor_id, target_search_order)?
         {
@@ -336,17 +512,17 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            if actor.group_skill_targets.is_empty()
-                && let Some(target) = actor.attack_target()
-                && let Some(pending) = actor.pending.as_mut()
+            if actor.skill.group_skill_targets.is_empty()
+                && let Some(target) = actor.skill.attack_target()
+                && let Some(pending) = actor.skill.pending.as_mut()
             {
                 pending.target = target;
             }
         }
         if matches!(
-            self.actors[&actor_id].lock_target,
+            self.actors[&actor_id].skill.lock_target,
             Some(FightActorRef::Building(_))
-        ) && self.actors[&actor_id].lock_is_terminal_handoff
+        ) && self.actors[&actor_id].skill.lock_is_terminal_handoff
         {
             // The native terminal handoff exposes the defeated team's first
             // core building for one tick. The following update consumes the
@@ -357,27 +533,28 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.lock_is_terminal_handoff = false;
-            actor.fight_skill_phase = FightSkillPhase::Idle;
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.lock_is_terminal_handoff = false;
+            actor.skill.phase = FightSkillPhase::Idle;
             if clear_velocity {
-                actor.current_velocity_x_q32 = 0;
-                actor.current_velocity_z_q32 = 0;
+                actor.motion.current_velocity_x_q32 = 0;
+                actor.motion.current_velocity_z_q32 = 0;
             }
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         self.update_group_skill_targets(actor_id, step, target_search_order)?;
         self.refresh_group_walls(actor_id);
         let completed_laser_kill = {
             let actor = &self.actors[&actor_id];
-            actor.retarget_after_own_direct_kill
+            actor.skill.retarget_after_own_direct_kill
                 && matches!(actor.rules.attack.path, AttackPath::Laser { .. })
                 && actor
+                    .skill
                     .attack_target()
                     .is_some_and(|target| !self.fight_actor_is_alive(target))
         };
@@ -386,23 +563,24 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.laser_attack_count = 0;
-            actor.retarget_after_own_direct_kill = false;
+            actor.skill.drop_lock();
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.skill.laser_attack_count = 0;
+            actor.skill.retarget_after_own_direct_kill = false;
             return Ok(());
         }
         let stale_attack_target = {
             let actor = &self.actors[&actor_id];
-            if actor.motion == MotionState::Attacking
-                && !actor.motion_attack_hold_fire
-                && actor.pending.is_none()
-                && actor.backswing_finish_step.is_none()
+            if actor.motion.state == MotionState::Attacking
+                && !actor.motion.attack_hold_fire
+                && actor.skill.pending.is_none()
+                && actor.skill.backswing_finish_step.is_none()
                 && actor
+                    .skill
                     .attack_target()
                     .is_some_and(|target| !self.fight_actor_is_alive(target))
             {
-                actor.attack_target()
+                actor.skill.attack_target()
             } else {
                 None
             }
@@ -413,24 +591,24 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         let bodyless_skill_starts_before_idle_search = {
             let actor = &self.actors[&actor_id];
-            actor.motion == MotionState::Attacking
-                && actor.fight_skill_phase == FightSkillPhase::Idle
+            actor.motion.state == MotionState::Attacking
+                && actor.skill.phase == FightSkillPhase::Idle
                 && !actor.rules.has_body
-                && !actor.motion_attack_hold_fire
-                && actor.pending.is_none()
-                && actor.backswing_finish_step.is_none()
-                && actor.attack_target().is_some_and(|target_id| {
+                && !actor.motion.attack_hold_fire
+                && actor.skill.pending.is_none()
+                && actor.skill.backswing_finish_step.is_none()
+                && actor.skill.attack_target().is_some_and(|target_id| {
                     self.bodyless_target_in_attack_area(actor_id, target_id)
                 })
         };
@@ -440,7 +618,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             let prepare_steps = native_time_units_to_steps(actor.rules.attack.prepare_time_units());
-            actor.fight_skill_phase = if prepare_steps == 0 {
+            actor.skill.phase = if prepare_steps == 0 {
                 FightSkillPhase::Attack
             } else {
                 FightSkillPhase::Prepare {
@@ -452,16 +630,19 @@ impl Simulation {
             let actor = &self.actors[&actor_id];
             actor.rules.attack.quick_switch_target
                 && actor
+                    .skill
                     .backswing_finish_step
                     .is_some_and(|finish_step| finish_step >= step)
-                && step > actor.next_attack_step
+                && step > actor.skill.next_attack_step
         };
         let quick_switch_dead_backswing_due = quick_switch_backswing_due
             && self.actors[&actor_id]
+                .skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         let dead_backswing_just_finished = backswing_just_finished
             && self.actors[&actor_id]
+                .skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         let deferred_projectile_burst_finish = {
@@ -469,14 +650,17 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            std::mem::replace(&mut actor.projectile_burst_finished, false)
+            std::mem::replace(&mut actor.skill.projectile_burst_finished, false)
         };
         let deferred_same_tick_dead_burst_finish = {
             let actor = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            std::mem::replace(&mut actor.projectile_burst_finished_same_tick_dead, false)
+            std::mem::replace(
+                &mut actor.skill.projectile_burst_finished_same_tick_dead,
+                false,
+            )
         };
         if deferred_same_tick_dead_burst_finish
             && self.quick_switch_active_target_outside_attack_area(
@@ -490,6 +674,7 @@ impl Simulation {
         }
         let deferred_target_outside_attack_area = deferred_projectile_burst_finish
             && self.actors[&actor_id]
+                .skill
                 .attack_target()
                 .is_none_or(|target_id| !self.target_in_attack_area(actor_id, target_id));
         if deferred_target_outside_attack_area
@@ -504,6 +689,7 @@ impl Simulation {
         }
         let force_burst_finish_target_search = deferred_projectile_burst_finish
             && self.actors[&actor_id]
+                .skill
                 .attack_target()
                 .is_none_or(|target_id| !self.target_in_attack_area(actor_id, target_id));
         if force_burst_finish_target_search {
@@ -511,13 +697,14 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.fight_skill_search_target_time = 0;
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.skill.search_target_time = 0;
         }
         let active_projectile_burst_lost_target = {
             let actor = &self.actors[&actor_id];
-            !actor.projectile_pending_releases.is_empty()
+            !actor.skill.projectile_pending_releases.is_empty()
                 && actor
+                    .skill
                     .attack_target()
                     .is_some_and(|target| !self.fight_actor_is_alive(target))
         };
@@ -532,14 +719,14 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                actor.motion = MotionState::Idle;
-                actor.projectile_pending_releases.clear();
-                actor.projectile_burst_finished = false;
-                actor.projectile_burst_finished_same_tick_dead = false;
-                actor.next_target_x_q32 = actor.x_q32;
-                actor.next_target_z_q32 = actor.z_q32;
-                actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.state = MotionState::Idle;
+                actor.skill.projectile_pending_releases.clear();
+                actor.skill.projectile_burst_finished = false;
+                actor.skill.projectile_burst_finished_same_tick_dead = false;
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 return Ok(());
             }
             let due = {
@@ -547,13 +734,13 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                actor.motion = MotionState::Idle;
-                actor.next_target_x_q32 = actor.x_q32;
-                actor.next_target_z_q32 = actor.z_q32;
-                actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.state = MotionState::Idle;
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 let mut due = Vec::new();
-                actor.projectile_pending_releases.retain(|pending| {
+                actor.skill.projectile_pending_releases.retain(|pending| {
                     if pending.step <= step {
                         due.push(*pending);
                         false
@@ -561,9 +748,9 @@ impl Simulation {
                         true
                     }
                 });
-                if !due.is_empty() && actor.projectile_pending_releases.is_empty() {
-                    actor.projectile_burst_finished = true;
-                    actor.projectile_burst_finished_same_tick_dead = true;
+                if !due.is_empty() && actor.skill.projectile_pending_releases.is_empty() {
+                    actor.skill.projectile_burst_finished = true;
+                    actor.skill.projectile_burst_finished_same_tick_dead = true;
                 }
                 due
             };
@@ -582,7 +769,7 @@ impl Simulation {
         }
         // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
         // update the skill is idle with a lock.
-        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Idle {
+        if self.actors[&actor_id].skill.phase == FightSkillPhase::Idle {
             self.search_attack_target(actor_id);
         }
         self.update_fight_skill_target_search(actor_id, step, target_search_order)?;
@@ -590,13 +777,14 @@ impl Simulation {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
+                .skill
                 .backswing_finish_step = None;
         }
         let stale_replacement = if stale_attack_target.is_some()
             || quick_switch_dead_backswing_due
             || dead_backswing_just_finished
         {
-            self.actors[&actor_id].attack_target()
+            self.actors[&actor_id].skill.attack_target()
         } else {
             None
         };
@@ -611,18 +799,18 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            let entered_idle = actor.motion != MotionState::Idle;
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.backswing_finish_step = None;
-            actor.retarget_after_own_direct_kill = false;
+            let entered_idle = actor.motion.state != MotionState::Idle;
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.skill.backswing_finish_step = None;
+            actor.skill.retarget_after_own_direct_kill = false;
             if entered_idle {
-                actor.next_target_x_q32 = actor.x_q32;
-                actor.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
             }
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         if backswing_just_finished {
@@ -630,29 +818,30 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.backswing_finish_step = None;
-            actor.fight_skill_phase = if actor.rules.attack.quick_switch_target {
+            actor.skill.backswing_finish_step = None;
+            actor.skill.phase = if actor.rules.attack.quick_switch_target {
                 FightSkillPhase::Attack
             } else {
                 FightSkillPhase::Idle
             };
         }
         let prepare_finished = matches!(
-            self.actors[&actor_id].fight_skill_phase,
+            self.actors[&actor_id].skill.phase,
             FightSkillPhase::Prepare { finish_step } if finish_step <= step
         );
         if prepare_finished {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .fight_skill_phase = FightSkillPhase::Attack;
+                .skill
+                .phase = FightSkillPhase::Attack;
         }
         let bodyful_quick_switch_target = {
             let actor = &self.actors[&actor_id];
             (actor.rules.has_body
                 && actor.rules.attack.quick_switch_target
-                && actor.pending.is_some())
-            .then_some(actor.attack_target())
+                && actor.skill.pending.is_some())
+            .then_some(actor.skill.attack_target())
             .flatten()
             .filter(|&target_id| self.target_in_attack_area(actor_id, target_id))
         };
@@ -660,12 +849,14 @@ impl Simulation {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
+                .skill
                 .pending
                 .as_mut()
                 .expect("pending attack identity is stable")
                 .target = target_id;
         }
         let active_attack_rejected = self.actors[&actor_id]
+            .skill
             .pending
             .is_some_and(|pending| self.bodyless_attackable_invalid(actor_id, pending.target));
         if active_attack_rejected {
@@ -676,17 +867,18 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.pending = None;
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.pending = None;
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         let released_this_step = self.actors[&actor_id]
+            .skill
             .pending
             .is_some_and(|pending| pending.step <= step);
         let attack_point_rejected = if released_this_step {
@@ -694,7 +886,7 @@ impl Simulation {
         } else {
             false
         };
-        if released_this_step && self.actors[&actor_id].motion != MotionState::Attacking {
+        if released_this_step && self.actors[&actor_id].motion.state != MotionState::Attacking {
             return Ok(());
         }
         let projectile_releases = {
@@ -703,7 +895,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             let mut due = Vec::new();
-            actor.projectile_pending_releases.retain(|pending| {
+            actor.skill.projectile_pending_releases.retain(|pending| {
                 if pending.step <= step {
                     due.push(*pending);
                     false
@@ -711,10 +903,11 @@ impl Simulation {
                     true
                 }
             });
-            let burst_finished = !due.is_empty() && actor.projectile_pending_releases.is_empty();
+            let burst_finished =
+                !due.is_empty() && actor.skill.projectile_pending_releases.is_empty();
             if burst_finished {
-                actor.projectile_burst_finished = true;
-                actor.projectile_burst_finished_same_tick_dead = false;
+                actor.skill.projectile_burst_finished = true;
+                actor.skill.projectile_burst_finished_same_tick_dead = false;
             }
             due
         };
@@ -724,17 +917,18 @@ impl Simulation {
         let group_core_target = {
             let actor = &self.actors[&actor_id];
             (actor.rules.attack.weapons.mode == WeaponMode::Group
-                && actor.motion == MotionState::Attacking
-                && !actor.motion_attack_hold_fire
-                && actor.pending.is_none()
-                && actor.backswing_finish_step.is_none()
-                && actor.fight_skill_phase == FightSkillPhase::Attack
+                && actor.motion.state == MotionState::Attacking
+                && !actor.motion.attack_hold_fire
+                && actor.skill.pending.is_none()
+                && actor.skill.backswing_finish_step.is_none()
+                && actor.skill.phase == FightSkillPhase::Attack
                 && actor
+                    .skill
                     .group_skill_prepare_ready_steps
                     .first()
                     .is_none_or(|ready_step| *ready_step <= step)
-                && step >= actor.next_attack_step)
-                .then(|| actor.mechanical_attack_target())
+                && step >= actor.skill.next_attack_step)
+                .then(|| actor.skill.mechanical_attack_target())
                 .flatten()
         };
         if let Some(target_id) = group_core_target
@@ -745,8 +939,8 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.next_attack_step = next_attack_step;
-            actor.pending = Some(PendingRelease {
+            actor.skill.next_attack_step = next_attack_step;
+            actor.skill.pending = Some(PendingRelease {
                 step,
                 target: target_id,
             });
@@ -759,6 +953,7 @@ impl Simulation {
                 .expect("actor identity is stable");
             let mut due = Vec::new();
             actor
+                .skill
                 .group_pending_releases
                 .retain(|&(skill_index, pending)| {
                     if pending.step <= step {
@@ -768,13 +963,13 @@ impl Simulation {
                         true
                     }
                 });
-            for skill_index in 1..actor.group_skill_targets.len() {
-                let next_attack_step = actor.group_skill_next_attack_steps[skill_index];
-                let prepare_ready_step = actor.group_skill_prepare_ready_steps[skill_index];
+            for skill_index in 1..actor.skill.group_skill_targets.len() {
+                let next_attack_step = actor.skill.group_skill_next_attack_steps[skill_index];
+                let prepare_ready_step = actor.skill.group_skill_prepare_ready_steps[skill_index];
                 if next_attack_step > 0
                     && next_attack_step <= step
                     && prepare_ready_step <= step
-                    && let Some(target) = actor.group_attack_target(skill_index)
+                    && let Some(target) = actor.skill.group_attack_target(skill_index)
                 {
                     due.push((skill_index, PendingRelease { step, target }));
                 }
@@ -786,11 +981,12 @@ impl Simulation {
             for (skill_index, pending) in &mut due {
                 if pending.target.unit_id()
                     == actor
+                        .skill
                         .group_skill_targets
                         .get(*skill_index)
                         .copied()
                         .flatten()
-                    && let Some(target) = actor.group_attack_target(*skill_index)
+                    && let Some(target) = actor.skill.group_attack_target(*skill_index)
                 {
                     pending.target = target;
                 }
@@ -844,10 +1040,10 @@ impl Simulation {
                 FightActorRef::Unit(_) => {}
             }
         }
-        let lock_target = self.actors[&actor_id].mechanical_attack_target();
+        let lock_target = self.actors[&actor_id].skill.mechanical_attack_target();
         if let Some(target) = lock_target {
             let target_alive = self.fight_actor_is_alive(target);
-            if !target_alive && self.actors[&actor_id].backswing_finish_step.is_some() {
+            if !target_alive && self.actors[&actor_id].skill.backswing_finish_step.is_some() {
                 // Build 2259 enters idle but retains the dead target through
                 // the remaining backswing even when an ally dealt the kill.
                 // MotionIdleState.Enter publishes StopMove once; its Update
@@ -862,7 +1058,7 @@ impl Simulation {
                 // swing, as they did while it stood.
                 // A tower the match's end tears down is not turned to.
                 let holds_a_wall = matches!(target, FightActorRef::Building(building)
-                    if self.actors[&actor_id].in_the_way.is_some_and(|(wall, _)| wall == building));
+                    if self.actors[&actor_id].skill.in_the_way.is_some_and(|(wall, _)| wall == building));
                 let held_rotation = self
                     .fight_actor(target)
                     .filter(|_| holds_a_wall)
@@ -882,6 +1078,7 @@ impl Simulation {
                     if actor.rules.has_body {
                         actor.aim_rotation = degrees_q32_to_mdeg(
                             actor
+                                .skill
                                 .weapon_rotations_q32
                                 .first()
                                 .copied()
@@ -893,16 +1090,16 @@ impl Simulation {
                         actor.rotate_weapons_towards(rotation);
                     }
                 }
-                let entered_idle = actor.motion != MotionState::Idle && !holds_a_block;
+                let entered_idle = actor.motion.state != MotionState::Idle && !holds_a_block;
                 if !holds_a_block {
-                    actor.motion = MotionState::Idle;
+                    actor.motion.state = MotionState::Idle;
                 }
                 if entered_idle {
-                    actor.next_target_x_q32 = actor.x_q32;
-                    actor.next_target_z_q32 = actor.z_q32;
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
                 }
-                actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 return Ok(());
             }
             if !target_alive && backswing_just_finished {
@@ -910,36 +1107,37 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                let entered_idle = actor.motion != MotionState::Idle;
-                actor.drop_lock();
-                actor.retarget_after_own_direct_kill = false;
-                actor.motion = MotionState::Idle;
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.skill.drop_lock();
+                actor.skill.retarget_after_own_direct_kill = false;
+                actor.motion.state = MotionState::Idle;
                 if entered_idle {
-                    actor.next_target_x_q32 = actor.x_q32;
-                    actor.next_target_z_q32 = actor.z_q32;
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
                 }
-                actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 return Ok(());
             }
             if !target_alive {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
+                    .skill
                     .drop_lock();
             }
         }
-        let target = self.actors[&actor_id].mechanical_attack_target();
+        let target = self.actors[&actor_id].skill.mechanical_attack_target();
         let Some(target) = target else {
             let actor = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.motion = MotionState::Idle;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.state = MotionState::Idle;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         };
         let target_view = self.fight_actor(target).expect("target identity is stable");
@@ -951,6 +1149,7 @@ impl Simulation {
         // the unit behind it, and only stops because the construction is in
         // reach. The two coincide in every fight without one.
         let (body_x_q32, body_z_q32, body_radius) = self.actors[&actor_id]
+            .skill
             .mechanical_lock_target()
             .and_then(|lock| self.fight_actor(lock))
             .map_or((target_x_q32, target_z_q32, target_radius), |view| {
@@ -973,12 +1172,14 @@ impl Simulation {
             .saturating_sub(space_to_q32(target_radius))
             .max(0);
         if actor.rules.attack.weapons.mode == WeaponMode::Group
-            && actor.motion == MotionState::Attacking
+            && actor.motion.state == MotionState::Attacking
             && actor
+                .skill
                 .group_skill_targets
                 .first()
                 .is_some_and(Option::is_none)
             && actor
+                .skill
                 .group_skill_targets
                 .iter()
                 .skip(1)
@@ -992,16 +1193,16 @@ impl Simulation {
             && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
         {
             let (entered_attack, release_now, clear_hold_after_motion) = {
-                let entered_attack = actor.motion != MotionState::Attacking;
-                actor.motion = MotionState::Attacking;
+                let entered_attack = actor.motion.state != MotionState::Attacking;
+                actor.motion.state = MotionState::Attacking;
                 // RVOControllerFixed.StopMove refreshes the target point on
                 // every MotionAttackState update. It submits zero desired
                 // speed while retaining the unit's configured maximum speed,
                 // so neighbouring agents can still push a stopped attacker.
-                actor.next_target_x_q32 = actor.x_q32;
-                actor.next_target_z_q32 = actor.z_q32;
-                actor.next_speed_q32 = 0;
-                actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                 let in_attack_angle = if actor.rules.has_body {
                     actor.weapons_in_attack_angle(target_rotation_q32)
                 } else {
@@ -1018,13 +1219,13 @@ impl Simulation {
                     && !actor.rules.has_body
                     && !in_attack_angle;
                 if completed_attack_reentry_rejected {
-                    actor.motion = MotionState::Idle;
-                    actor.drop_lock();
-                    actor.fight_skill_phase = FightSkillPhase::Idle;
-                    actor.next_target_x_q32 = actor.x_q32;
-                    actor.next_target_z_q32 = actor.z_q32;
-                    actor.next_speed_q32 = 0;
-                    actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                    actor.motion.state = MotionState::Idle;
+                    actor.skill.drop_lock();
+                    actor.skill.phase = FightSkillPhase::Idle;
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                    actor.motion.next_speed_q32 = 0;
+                    actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                     return Ok(());
                 }
                 if entered_attack {
@@ -1032,7 +1233,7 @@ impl Simulation {
                     // FightSkill while the root transform is outside the
                     // attack cone. MotionController clears this hold only
                     // after it has observed and corrected the facing.
-                    actor.motion_attack_hold_fire = !actor.rules.has_body
+                    actor.motion.attack_hold_fire = !actor.rules.has_body
                         && !in_attack_angle
                         && matches!(
                             actor.rules.attack.path,
@@ -1043,42 +1244,42 @@ impl Simulation {
                 }
                 let invalid_attack_angle_barrier = !actor.rules.has_body
                     && !entered_attack
-                    && !actor.motion_attack_hold_fire
+                    && !actor.motion.attack_hold_fire
                     && !in_attack_angle
-                    && actor.pending.is_none()
-                    && actor.backswing_finish_step.is_none();
+                    && actor.skill.pending.is_none()
+                    && actor.skill.backswing_finish_step.is_none();
                 if invalid_attack_angle_barrier {
                     // MotionAttackState returns to Idle when an active bodyless
                     // skill loses its root-transform attack angle. The new
                     // Idle state is entered synchronously but is not updated
                     // recursively, so target reacquisition waits one tick and
                     // this transition tick preserves the old body facing.
-                    actor.motion = MotionState::Idle;
-                    actor.drop_lock();
-                    actor.fight_skill_phase = FightSkillPhase::Idle;
-                    actor.next_target_x_q32 = actor.x_q32;
-                    actor.next_target_z_q32 = actor.z_q32;
-                    actor.next_speed_q32 = 0;
-                    actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                    actor.motion.state = MotionState::Idle;
+                    actor.skill.drop_lock();
+                    actor.skill.phase = FightSkillPhase::Idle;
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                    actor.motion.next_speed_q32 = 0;
+                    actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
                     return Ok(());
                 }
-                let clear_hold_after_motion = actor.motion_attack_hold_fire && in_attack_angle;
+                let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
                 let mut entered_skill_phase = false;
                 // `SkillIdleState.TryStartAttack` enters the attack or prepare
                 // state on the tick the unit comes into its attack area,
                 // which is the tick its motion starts attacking; the state
                 // is not updated until the tick after, where the first
                 // blow's wait begins.
-                if !actor.motion_attack_hold_fire
+                if !actor.motion.attack_hold_fire
                     && in_attack_angle
-                    && actor.pending.is_none()
-                    && actor.backswing_finish_step.is_none()
-                    && actor.fight_skill_phase == FightSkillPhase::Idle
+                    && actor.skill.pending.is_none()
+                    && actor.skill.backswing_finish_step.is_none()
+                    && actor.skill.phase == FightSkillPhase::Idle
                 {
                     let prepare_steps =
                         native_time_units_to_steps(actor.rules.attack.prepare_time_units());
                     let from = if entered_attack { step + 1 } else { step };
-                    actor.fight_skill_phase = if prepare_steps == 0 {
+                    actor.skill.phase = if prepare_steps == 0 {
                         FightSkillPhase::Attack
                     } else {
                         FightSkillPhase::Prepare {
@@ -1088,13 +1289,13 @@ impl Simulation {
                     entered_skill_phase = prepare_steps > 0 || entered_attack;
                 }
                 if (!entered_attack || actor.rules.attack.quick_switch_target)
-                    && !actor.motion_attack_hold_fire
+                    && !actor.motion.attack_hold_fire
                     && in_attack_angle
-                    && actor.pending.is_none()
-                    && actor.backswing_finish_step.is_none()
-                    && actor.fight_skill_phase == FightSkillPhase::Attack
+                    && actor.skill.pending.is_none()
+                    && actor.skill.backswing_finish_step.is_none()
+                    && actor.skill.phase == FightSkillPhase::Attack
                     && !entered_skill_phase
-                    && step >= actor.next_attack_step
+                    && step >= actor.skill.next_attack_step
                 {
                     let interval_steps = native_time_units_to_steps(actor.stats.attack_interval());
                     let offset_steps =
@@ -1114,25 +1315,28 @@ impl Simulation {
                         .saturating_add(sample)
                         .max(1)
                         .cast_unsigned();
-                    actor.next_attack_step = step.saturating_add(sampled);
-                    actor.current_attack_interval = sampled;
+                    actor.skill.next_attack_step = step.saturating_add(sampled);
+                    actor.skill.current_attack_interval = sampled;
                     let attack_point_steps =
                         native_time_units_to_steps(actor.rules.attack.attack_point_time_units());
-                    actor.pending = Some(PendingRelease {
+                    actor.skill.pending = Some(PendingRelease {
                         step: step.saturating_add(attack_point_steps),
                         target,
                     });
                 }
                 (
                     entered_attack,
-                    actor.pending.is_some_and(|pending| pending.step == step),
+                    actor
+                        .skill
+                        .pending
+                        .is_some_and(|pending| pending.step == step),
                     clear_hold_after_motion,
                 )
             };
             if release_now {
                 let _attack_point_rejected = self.release(actor_id, events)?;
             }
-            if self.actors[&actor_id].motion != MotionState::Attacking {
+            if self.actors[&actor_id].motion.state != MotionState::Attacking {
                 // FightSkill runs before MotionController. A laser own-kill
                 // exits MotionAttackState during the skill update, so the
                 // killed target is retained for the snapshot but cannot drive
@@ -1154,6 +1358,7 @@ impl Simulation {
             if actor.rules.has_body {
                 actor.aim_rotation = degrees_q32_to_mdeg(
                     actor
+                        .skill
                         .weapon_rotations_q32
                         .first()
                         .copied()
@@ -1169,21 +1374,23 @@ impl Simulation {
                 // FightMech runs SkillManager before MotionController. The
                 // current skill update therefore remains held; clearing here
                 // makes the attack eligible on the following logic tick.
-                actor.motion_attack_hold_fire = false;
+                actor.motion.attack_hold_fire = false;
             }
             if actor.rules.has_body
-                && (actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0)
+                && (actor.motion.current_velocity_x_q32 != 0
+                    || actor.motion.current_velocity_z_q32 != 0)
             {
                 actor.rotate_body_towards(direction_degrees_q32_raw(
-                    actor.current_velocity_x_q32,
-                    actor.current_velocity_z_q32,
+                    actor.motion.current_velocity_x_q32,
+                    actor.motion.current_velocity_z_q32,
                 ));
             }
             return Ok(());
         }
         if actor.rules.attack.weapons.mode == WeaponMode::Group
-            && actor.motion == MotionState::Attacking
+            && actor.motion.state == MotionState::Attacking
             && actor
+                .skill
                 .group_skill_targets
                 .iter()
                 .skip(1)
@@ -1197,45 +1404,45 @@ impl Simulation {
             actor.aim_rotation = actor.body_rotation;
             return Ok(());
         }
-        if actor.motion == MotionState::Attacking
+        if actor.motion.state == MotionState::Attacking
             && !actor.rules.has_body
-            && !actor.motion_attack_hold_fire
-            && actor.pending.is_none()
-            && actor.backswing_finish_step.is_none()
+            && !actor.motion.attack_hold_fire
+            && actor.skill.pending.is_none()
+            && actor.skill.backswing_finish_step.is_none()
             && (matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
-                || actor.fight_skill_phase == FightSkillPhase::Attack)
+                || actor.skill.phase == FightSkillPhase::Attack)
         {
             // FightSkill updates before MotionController. An active bodyless
             // attack rejects an out-of-range retained target and enters
             // SkillIdleState before MotionAttackState can fall through to
             // movement. Both state machines expose one targetless Idle tick.
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.motion_attack_hold_fire = false;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.motion.attack_hold_fire = false;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         if attack_point_rejected
             && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
             && !actor.rules.has_body
-            && actor.motion == MotionState::Attacking
-            && actor.pending.is_none()
-            && actor.backswing_finish_step.is_none()
+            && actor.motion.state == MotionState::Attacking
+            && actor.skill.pending.is_none()
+            && actor.skill.backswing_finish_step.is_none()
         {
             // MotionAttackState leaves through Idle when its current attack
             // target is no longer in range. Idle target acquisition runs on
             // the following update rather than recursively entering Moving.
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         if backswing_just_finished
@@ -1247,17 +1454,17 @@ impl Simulation {
             // area, Finish synchronously enters SkillIdleState; SimpleFSM does
             // not update the new state recursively, so MotionController sees
             // one targetless Idle tick before reacquisition on the next tick.
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.state = MotionState::Idle;
+            actor.skill.drop_lock();
+            actor.skill.phase = FightSkillPhase::Idle;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
-        let entered_move_from_idle = actor.motion == MotionState::Idle;
-        let entered_move = actor.motion != MotionState::Moving;
+        let entered_move_from_idle = actor.motion.state == MotionState::Idle;
+        let entered_move = actor.motion.state != MotionState::Moving;
         let entered_move_below_min_range =
             entered_move && edge_distance_q32 < space_to_q32(actor.rules.attack.min_range());
         if !entered_move_from_idle && !entered_move_below_min_range {
@@ -1267,6 +1474,7 @@ impl Simulation {
             if actor.rules.has_body {
                 actor.aim_rotation = degrees_q32_to_mdeg(
                     actor
+                        .skill
                         .weapon_rotations_q32
                         .first()
                         .copied()
@@ -1274,8 +1482,8 @@ impl Simulation {
                 );
             }
         }
-        actor.motion = MotionState::Moving;
-        actor.motion_attack_hold_fire = false;
+        actor.motion.state = MotionState::Moving;
+        actor.motion.attack_hold_fire = false;
         if entered_move {
             return Ok(());
         }
@@ -1288,24 +1496,24 @@ impl Simulation {
             body_radius,
             actor.stats.attack_range(),
         );
-        actor.next_target_x_q32 = move_target_x_q32;
-        actor.next_target_z_q32 = move_target_z_q32;
-        if actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0 {
+        actor.motion.next_target_x_q32 = move_target_x_q32;
+        actor.motion.next_target_z_q32 = move_target_z_q32;
+        if actor.motion.current_velocity_x_q32 != 0 || actor.motion.current_velocity_z_q32 != 0 {
             // MotionMoveState.MoveUpdate runs NormalRotate before Move;
             // CalculateMoveSpeed therefore observes this tick's new facing.
             actor.rotate_body_towards(direction_degrees_q32_raw(
-                actor.current_velocity_x_q32,
-                actor.current_velocity_z_q32,
+                actor.motion.current_velocity_x_q32,
+                actor.motion.current_velocity_z_q32,
             ));
         }
-        actor.next_speed_q32 = turn_limited_move_speed_q32(
+        actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
             space_to_q32(actor.stats.move_speed()),
             actor.rules.rotate_speed_mdeg_per_second(),
             actor.body_rotation_q32,
-            actor.current_velocity_x_q32,
-            actor.current_velocity_z_q32,
+            actor.motion.current_velocity_x_q32,
+            actor.motion.current_velocity_z_q32,
         );
-        actor.next_max_speed_q32 = actor.next_speed_q32;
+        actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
         if !actor.rules.has_body {
             actor.aim_rotation = actor.body_rotation;
         }
@@ -1425,7 +1633,7 @@ impl Simulation {
             .max(1)
             .cast_unsigned();
         if let Some(actor) = self.actors.get_mut(&actor_id) {
-            actor.current_attack_interval = sampled;
+            actor.skill.current_attack_interval = sampled;
         }
         Ok(step.saturating_add(sampled))
     }

@@ -1,5 +1,27 @@
 use super::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) struct TargetActorRect {
+    pub(in crate::fight) min_x: i64,
+    pub(in crate::fight) min_z: i64,
+    pub(in crate::fight) max_x: i64,
+    pub(in crate::fight) max_z: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::fight) struct TargetActorQuadtreeNode {
+    pub(in crate::fight) rect: TargetActorRect,
+    pub(in crate::fight) depth: u8,
+    pub(in crate::fight) elements: Vec<FightActorRef>,
+    pub(in crate::fight) children: Option<Box<[TargetActorQuadtreeNode; 4]>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::fight) struct TargetActorQuadtree {
+    pub(in crate::fight) root: TargetActorQuadtreeNode,
+    pub(in crate::fight) ranges: BTreeMap<FightActorRef, TargetActorRect>,
+}
+
 impl TargetActorRect {
     pub(in crate::fight) fn around(x_q32: i64, z_q32: i64, radius: i64) -> Self {
         let radius_q32 = space_to_q32(radius.max(0));
@@ -394,6 +416,7 @@ impl Simulation {
             actor.target_query_source_rotation_q32 =
                 if actor.rules.has_body || actor.rules.attack.weapons.mode == WeaponMode::Group {
                     actor
+                        .skill
                         .weapon_rotations_q32
                         .first()
                         .copied()
@@ -402,7 +425,7 @@ impl Simulation {
                     actor.body_rotation_q32
                 };
             actor.target_query_alive = actor.alive();
-            actor.fight_skill_searched_this_tick = false;
+            actor.skill.searched_this_tick = false;
         }
     }
 
