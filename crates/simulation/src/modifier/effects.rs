@@ -3,7 +3,7 @@
 //! `OfficerData`, `TechnologyData`, `EquipmentData` and `EnergyTowerSkillData`
 //! all implement that interface, so one field means the same thing whichever
 //! of them wrote it. This is where a field becomes a correction, and both
-//! [`crate::officers`] and [`crate::technologies`] read their own table and
+//! [`super::officers`] and [`super::technologies`] read their own table and
 //! hand the numbers here.
 //!
 //! A field that corrects one of the numbers [`crate::data::Stats`] derives

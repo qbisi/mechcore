@@ -65,7 +65,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 292 个回合的 `constructions` 已经满足了。
 
 `Modifier` 还排在第二，因为它认领的另外三个字段（科技、装备、等级）还欠各自的效果表。
-军官那一份已经装上：`crates/simulation/src/officers.rs` 把 79 行里的 **47** 行应用到目标
+军官那一份已经装上：`crates/simulation/src/modifier/officers.rs` 把 79 行里的 **47** 行应用到目标
 单位上，其余指名拒绝。合成规则三条子句全部对着游戏量过：
 
 ```text
@@ -101,7 +101,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 别人的主循环。模拟器照搬：**35 个模块全部在场**，没实现的是空模块，认领自己的 layout
 字段然后拒绝。
 
-闭包因此由登记表生成，不再是 `layout.rs` 里一串手写的拒绝：一份 layout 能编译，当且
+闭包因此由登记表生成，不再是 `layout/mod.rs` 里一串手写的拒绝：一份 layout 能编译，当且
 仅当它带的每个字段都被一个已实现的模块认领。加机制＝填一个模块，永远不动驱动它的
 循环，`fight run`、`match` 和覆盖率报告拿到的也是同一句话。
 
@@ -267,7 +267,7 @@ architecture.md 的 Unresolved 里。
 条），二是同一个数上可能同时出现 value 和 rate——那正是合成公式里唯一还只靠类结构、没被
 测量过的顺序。
 
-科技通道也接上了：`crates/simulation/src/technologies.rs` 把 137 行里的 **125** 行应用到
+科技通道也接上了：`crates/simulation/src/modifier/technologies.rs` 把 137 行里的 **125** 行应用到
 对应单位上（43 行落在内核打得动的 11 个单位），其余 12 行指名拒绝——7 行修的数这个模拟器
 不推导，5 行随等级增长而哪一级读哪一条还没确立。
 

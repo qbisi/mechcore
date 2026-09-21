@@ -84,7 +84,7 @@
 
 ## 这个 build 应用哪些
 
-`crates/simulation/src/technologies.rs` 把一行变成落在它所属单位上的修正，和军官一样打上
+`crates/simulation/src/modifier/technologies.rs` 把一行变成落在它所属单位上的修正，和军官一样打上
 `Modifier` 标签。137 行里应用了 **125** 行（其中 43 行落在内核打得动的 11 个单位上），
 其余 12 行会指名拒绝持有它的那一方：
 

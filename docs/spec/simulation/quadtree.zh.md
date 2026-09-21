@@ -2,7 +2,7 @@
 
 [English](quadtree.md)
 
-本文说明 `crates/simulation/src/rvo.rs::NativeQuadtree` 的当前实现。它复现 sampled-RVO
+本文说明 `crates/simulation/src/fight/rvo.rs::NativeQuadtree` 的当前实现。它复现 sampled-RVO
 的 agent 邻居索引，服务于 [RVO 移动避让](rvo.md)，不是
 `crates/simulation/src/fight/search.rs` 中用于锁敌的目标四叉树。
 

@@ -27,7 +27,7 @@ the redraw.
 | `stagger-mustang-then-marksman.yaml` | a draw per member against a draw per formation | Marksman **72**, where per formation would be 55 |
 
 **Each one is predicted before it is read.** `GRRandom` is implemented in
-`crates/simulation/src/random.rs` and its first draws are pinned by a test
+`crates/simulation/src/fight/random.rs` and its first draws are pinned by a test
 there, so every number above is recomputed offline from the seed and compared
 with what the game stored. A fixture whose reading cannot be recomputed that
 way does not belong here.

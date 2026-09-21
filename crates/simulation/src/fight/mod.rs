@@ -24,14 +24,11 @@ use serde::Serialize;
 
 use crate::{
     Error, Result,
-    constructions::ConstructionBuilding,
-    layout::{CompiledLayout, Placement},
-    random::GrRandom,
+    layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
         AttackPath, AttackTargets, RvoSize, SimulationConfig, TrainingGroundConfig, UnitConfig,
         UnitConfigs, UnitDomain, WeaponMode,
     },
-    rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2},
 };
 
 mod damage;
@@ -40,7 +37,9 @@ mod math;
 mod mech;
 mod motion;
 mod projectile;
+mod random;
 mod run;
+mod rvo;
 mod search;
 mod skill;
 #[cfg(test)]
@@ -51,8 +50,10 @@ use deploy::*;
 pub(crate) use math::*;
 use motion::*;
 use projectile::*;
+use random::GrRandom;
 pub(crate) use run::*;
 pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
+use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
 use skill::{FightSkillPhase, Skill};
 

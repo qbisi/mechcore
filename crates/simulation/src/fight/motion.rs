@@ -142,7 +142,7 @@ pub(in crate::fight) fn native_auto_move_target_point(
         // charging one, the game sends the ones whose exact distance is
         // longer to the computed point and the rest to the Marksman itself.
         let squared_distance = q32_mul(delta_x, delta_x).saturating_add(q32_mul(delta_z, delta_z));
-        if crate::rvo::fpoint_less_than(q32_mul(target_distance, target_distance), squared_distance)
+        if super::rvo::fpoint_less_than(q32_mul(target_distance, target_distance), squared_distance)
         {
             target_distance
         } else {
@@ -162,7 +162,7 @@ pub(in crate::fight) fn native_auto_move_target_point(
 pub(in crate::fight) fn clamp_magnitude_q32_raw(dx: i64, dz: i64, maximum: i64) -> (i64, i64) {
     let squared_magnitude = q32_mul(dx, dx).saturating_add(q32_mul(dz, dz));
     let squared_maximum = q32_mul(maximum, maximum);
-    if !crate::rvo::fpoint_less_than(squared_maximum, squared_magnitude) {
+    if !super::rvo::fpoint_less_than(squared_maximum, squared_magnitude) {
         return (dx, dz);
     }
     let magnitude = fpcs_sqrt_fastest(squared_magnitude);
@@ -362,7 +362,7 @@ impl Simulation {
         }
 
         let inverse_delta_time = q32_div(Q32_ONE, NATIVE_LOGIC_DELTA_Q32.saturating_mul(4));
-        let solutions = crate::rvo::solve_agents(&agents, inverse_delta_time);
+        let solutions = super::rvo::solve_agents(&agents, inverse_delta_time);
         self.rvo_first_tree_pending = false;
         for (&actor_id, actor) in self.actors.iter_mut().filter(|(_, actor)| actor.alive()) {
             let solution = solutions

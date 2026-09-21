@@ -61,7 +61,7 @@ pub(in crate::fight) fn rotate_towards_q32_unwrapped(
     let current = current.rem_euclid(full);
     let target = target.rem_euclid(full);
     let mut delta = (target - current).rem_euclid(full);
-    if crate::rvo::fpoint_less_than(half, delta) {
+    if super::rvo::fpoint_less_than(half, delta) {
         delta -= full;
     }
     current + delta.clamp(-maximum, maximum)

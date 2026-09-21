@@ -62,7 +62,7 @@ read *above* its description as well as below.
 Three Marksmen in a round-one fight are the reading: their offset is twelve
 ticks, and `GRRandom(4444)` answers `−7, +3, −6` for its first three draws in
 that range, which is exactly `55, 65, 56` against a description of 62.
-`crates/simulation/src/random.rs` pins those three numbers in a test.
+`crates/simulation/src/fight/random.rs` pins those three numbers in a test.
 
 **Every member draws, in the order the recording numbers them.** The stream
 walks the deployment by ascending world `z`, then `x` — the order

@@ -99,7 +99,7 @@ table would refuse the rows above.
 
 ## What this build applies
 
-`crates/simulation/src/technologies.rs` turns a row into corrections on the
+`crates/simulation/src/modifier/technologies.rs` turns a row into corrections on the
 unit its row names, tagged `Modifier` like an officer's. Of the 137 rows,
 **125** are applied — 43 of them on the eleven units the kernel fights — and
 the other 12 refuse the side that holds them:

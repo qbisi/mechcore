@@ -83,8 +83,14 @@
 | `skill/check.rs` | `SearchAttackTarget`、`SkillAttackableChecker`、`WallConstructionTargetChecker`、`SkillAttackState.Finish` |
 | `skill/perform.rs` | 攻击执行器：一击、一发、一串连发 |
 | `skill/group.rs` | 成组技能的各个位 |
+| `rvo.rs` | `RVOSimulatorFixed`，运动提交给它的采样 RVO；见 [rvo.zh.md](rvo.zh.md) |
+| `random.rs` | `GRRandom`，攻击间隔抖动取数的随机流 |
 | `math.rs` | 游戏的定点数运算 |
 | `run.rs` | 跑一份布阵、和录像比较 |
+
+战斗之外，crate 里放的是搭起一场战斗的东西。`layout/` 把布阵编译成部署，`layout/constructions.rs` 算出
+工事释放的建筑。`modifier/` 就是 `Modifier` 这一步：开战前写到单位身上的军官和科技。`data.rs` 是它们和
+战斗共同读取的数据层，`rules.rs` 是单位描述，`module.rs` 是哪个模块认领哪个布阵字段的登记表。
 
 ## 模块
 
