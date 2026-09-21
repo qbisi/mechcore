@@ -42,6 +42,18 @@ Adapter before running the CLI. Cargo tracks the Adapter's source and transitive
 dependencies; the CLI build script atomically copies the resulting dylib beside
 the executable. No runtime Cargo invocation or absolute build path is needed.
 The workspace defaults to the CLI; use `--workspace` for workspace-wide checks.
+
+Packaging the Adapter is the CLI's default `adapter` feature, and the only part
+of the workspace that needs macOS. Everything that needs no game — the
+simulator, the readers, an offline `.mcscript` — builds anywhere without it:
+
+```sh
+cargo build -p mechcore --release --no-default-features
+cargo test --workspace --exclude mechcore-adapter --no-default-features
+```
+
+Such a binary refuses `game: launch` with `launch_failed`, naming the missing
+feature.
 Release build dependencies explicitly use optimization level 3 and one codegen
 unit because Cargo otherwise builds build-time artifacts without optimization.
 Cargo keeps build dependencies on its unwind panic strategy; the CLI retains

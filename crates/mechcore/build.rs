@@ -2,6 +2,11 @@ use std::{env, fs, io, path::PathBuf};
 
 fn main() -> io::Result<()> {
     println!("cargo::rerun-if-changed=build.rs");
+    // Without the `adapter` feature there is nothing to package: the binary
+    // runs everything that needs no game, and says so when asked to launch one.
+    if env::var_os("CARGO_FEATURE_ADAPTER").is_none() {
+        return Ok(());
+    }
     let artifact = PathBuf::from(
         env::var_os("CARGO_CDYLIB_FILE_MECHCORE_ADAPTER_mechcore_adapter")
             .expect("Cargo must supply the mechcore-adapter cdylib artifact"),

@@ -6,6 +6,7 @@
 
 use crate::adapter::{Client, ConnectError};
 use mechcore_protocol::MAX_LEVEL;
+#[cfg(target_os = "macos")]
 use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -13,6 +14,7 @@ use std::time::Duration;
 use tokio::process::{Child, Command};
 
 /// `PROC_ALL_PIDS` from `sys/proc_info.h`; not re-exported by the `libc` crate.
+#[cfg(target_os = "macos")]
 const PROC_ALL_PIDS: u32 = 1;
 const GREETING_DEADLINE: Duration = Duration::from_secs(3);
 const LAUNCH_TIMEOUT: Duration = Duration::from_secs(60);
@@ -334,9 +336,17 @@ fn adapter_dylib() -> Result<PathBuf, Box<Failure>> {
     })?;
     let dylib = directory.join(ADAPTER_DYLIB);
     if !dylib.is_file() {
+        let built_without = if cfg!(feature = "adapter") {
+            ""
+        } else {
+            " (this mechcore was built without the `adapter` feature)"
+        };
         return Err(Box::new(Failure::new(
             "launch_failed",
-            format!("no Adapter beside the executable: {}", dylib.display()),
+            format!(
+                "no Adapter beside the executable: {}{built_without}",
+                dylib.display()
+            ),
         )));
     }
     Ok(dylib)
@@ -378,6 +388,16 @@ fn game_executable() -> Result<PathBuf, Box<Failure>> {
 }
 
 /// Every running process whose executable is the Mechabellum binary.
+///
+/// The game this drives is the macOS build, so on any other platform there is
+/// no such process to find.
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn game_processes() -> Vec<GameProcess> {
+    Vec::new()
+}
+
+/// Every running process whose executable is the Mechabellum binary.
+#[cfg(target_os = "macos")]
 pub(crate) fn game_processes() -> Vec<GameProcess> {
     let mut processes = Vec::new();
     for pid in all_pids() {
@@ -391,6 +411,7 @@ pub(crate) fn game_processes() -> Vec<GameProcess> {
     processes
 }
 
+#[cfg(target_os = "macos")]
 fn all_pids() -> Vec<u32> {
     // SAFETY: a null buffer asks only for the required byte count.
     let bytes = unsafe { libc::proc_listpids(PROC_ALL_PIDS, 0, std::ptr::null_mut(), 0) };
@@ -420,6 +441,7 @@ fn all_pids() -> Vec<u32> {
         .collect()
 }
 
+#[cfg(target_os = "macos")]
 fn process_path(pid: u32) -> Option<PathBuf> {
     let pid = libc::c_int::try_from(pid).ok()?;
     let mut buffer = vec![0u8; libc::PROC_PIDPATHINFO_MAXSIZE as usize];
@@ -439,6 +461,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(target_os = "macos")]
     fn process_enumeration_finds_this_process() {
         // The enumeration itself must work even when no game is running; our
         // own pid proves the libproc path resolves.
