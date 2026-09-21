@@ -1,0 +1,40 @@
+# Which state is each unit's skill in, tick by tick, across the manifest?
+#
+#   mechcore run tests/regression/skill-state.mcscript --check   parse without the game
+#   mechcore run tests/regression/skill-state.mcscript           record
+#
+# Re-records every case of tests/regression/mcfr-regressions.yaml with the
+# `target_refs_v1` instrumentation, whose sidecar holds, per unit and tick,
+# the main skill's `SkillStateController` state, its `SkillAttackController`
+# phase, and its lock and attack target. It is the oracle the simulator's
+# attack state is held to while it is being made a mirror of the build's:
+# a recording shows where a unit goes and whom it hits, the sidecar shows the
+# state that decided it. Across the manifest the kernel's states match it on
+# 99% of unit-ticks; `docs/spec/simulation/architecture.md` says what is left.
+#
+# Every case, not only the smoke tier: a state that differs on one fight is
+# the point. The sidecar is research evidence and is not hashed.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/regression/skill-state
+
+steps:
+  - let:
+      cases: read_yaml(tests/regression/mcfr-regressions.yaml)
+
+  - foreach: {case: $cases}
+    steps:
+      - let:
+          layout: read_yaml(${case.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: ${case.seed}
+      - game.record_battle:
+          output: ${out}/${case.name}.mcfr
+          instrumentation:
+            output: ${out}/${case.name}.h5
+            profile: target_refs_v1
