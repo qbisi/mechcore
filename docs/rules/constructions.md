@@ -99,8 +99,18 @@ through, because the other side's units go through as well.
 blocks is held by them has not been measured, and neither has any construction
 other than the wall.
 
-A unit attacks a wall without ever searching for one, and the next section
-says how.
+**A wall is never a target a unit looks for.** Across the ten recordings under
+`tests/layouts/construction/`, 931 ticks of which have a wall standing, a
+construction is a unit's lock target **zero** times and its attack target 1482
+times. A tower is a lock target 6013 times, from the first tick, so the
+exclusion belongs to the wall and not to buildings — which is what the wall's
+own `enable_search_target: false` says. A unit attacks a wall without ever
+searching for one, and the next section says how.
+
+What is **not** measured is the other side of that field. A turret's row
+answers `enable_search_target: true`, and no recording has put a unit where it
+could target an enemy turret, so that a turret *can* be locked is read from the
+table rather than seen.
 
 ## A wall is attacked because it is in the way
 
