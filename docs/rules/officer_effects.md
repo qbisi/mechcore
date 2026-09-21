@@ -71,7 +71,7 @@ bracket; impairments each contribute their own factor. Two of `0.11` leave
 A rate multiplies the description once, and two enhancements on one number sum
 before they do.
 
-`tests/layouts/modifier/composition.mcscript` measured it against the game. One
+`tests/modifier/composition.mcscript` measured it against the game. One
 Marksman shoots one Rhino, twice, and the Rhino outlives the fight in all three
 recordings, so the reading is the life it has left of 19297:
 
@@ -102,7 +102,7 @@ pipeline's.
 
 ### Impairments compound
 
-`tests/layouts/modifier/impairment.mcscript` asked the same question of the other
+`tests/modifier/impairment.mcscript` asked the same question of the other
 sign, where the answer is different. Cost Control Specialist is `−0.11` on
 damage and life over every unit, and a side may hold it twice:
 
@@ -127,7 +127,7 @@ guess.
 
 ### A value is added in the number's own unit
 
-`tests/layouts/modifier/value.mcscript` closed the last clause. Extended Range
+`tests/modifier/value.mcscript` closed the last clause. Extended Range
 Arclight is `+20` of range and `−0.2` of damage, so one recording carries a
 value and an impairment at once. An Arclight reaches 95 metres; with the
 officer it opens fire twenty metres earlier and every tick after that moves.
@@ -153,7 +153,7 @@ two officers' rates as one. Which is why this table's rule is
 
 The order in the formula was the build's class structure rather than a
 measurement until a recording carried an attack interval.
-`tests/layouts/modifier/interval-order.mcscript` measured it on the
+`tests/modifier/interval-order.mcscript` measured it on the
 Sledgehammer, the one unit that can hold both corrections on one number:
 Mechanical Rage is `-1` second of value and Armour Piercing Bullets is `+0.3`
 of rate.
@@ -194,7 +194,7 @@ the smallest. `FightMech`'s constructor builds
 `DataIntGroup(0x80000000, 0x7FFFFFFF, 0)`, so a unit's integers sum and the
 clamp never binds.
 
-`tests/layouts/modifier/speed.mcscript` put that to the game. Advanced Power
+`tests/modifier/speed.mcscript` put that to the game. Advanced Power
 System and Speed Specialist are `+3` of movement each, over every unit, and
 they went on the Rhino that walks 105 metres to reach the Marksman — a walk
 that is the whole clock of the fight:
@@ -235,7 +235,7 @@ skill modifier set holds `damage_rate`, `attack_range_rate` and
 move-speed fields.
 
 Both readings are measured. The damage capture above found `+0.3` in the
-Marksman's skill channel. A second capture, `tests/layouts/modifier/officer-life-rate.yaml`,
+Marksman's skill channel. A second capture, `tests/modifier/officer-life-rate.yaml`,
 put Advanced Defensive Tactics' `life_rate` on a Rhino: the game stored it in
 the **unit** channel, gave the Rhino 25086 of its 19297, and left it 20428 after
 two hits — all three numbers predicted by the simulator before the recording

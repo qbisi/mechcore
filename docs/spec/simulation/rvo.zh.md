@@ -229,7 +229,7 @@ point    += normalize(gradient) * step
 
 - `rvo.rs` 单元测试固定 build 2259 的同组 pair 解和 VO 构造 raw 值；
 - kernel 测试覆盖建筑碰撞、Q32.32 距离边界、树的粗可达范围和停止移动的边界行为；
-- `tests/mcfr-regressions.yaml` 的 native smoke 样本比较稳定物理投影的逐 tick
+- `tests/regression/mcfr-regressions.yaml` 的 native smoke 样本比较稳定物理投影的逐 tick
   `physics_result_hash`，包括
   Steel Ball 对战样本。
 

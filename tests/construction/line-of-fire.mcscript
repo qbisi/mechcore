@@ -1,7 +1,7 @@
 # What makes a unit attack a wall?
 #
-#   mechcore run tests/layouts/construction/line-of-fire.mcscript --check   parse without the game
-#   mechcore run tests/layouts/construction/line-of-fire.mcscript           record
+#   mechcore run tests/construction/line-of-fire.mcscript --check   parse without the game
+#   mechcore run tests/construction/line-of-fire.mcscript           record
 #
 # `wall.mcscript` left this open. A Defensive Wall is not something a unit
 # searches for — its row answers `IsEnableSearchTarget` with false and the
@@ -35,10 +35,10 @@ vars:
 
 steps:
   - let:
-      line: read_yaml(tests/layouts/construction/wall-line-of-fire.yaml)
-      tolerance: read_yaml(tests/layouts/construction/wall-line-tolerance.yaml)
-      width: read_yaml(tests/layouts/construction/wall-line-width.yaml)
-      group: read_yaml(tests/layouts/construction/wall-weapon-group.yaml)
+      line: read_yaml(tests/construction/wall-line-of-fire.yaml)
+      tolerance: read_yaml(tests/construction/wall-line-tolerance.yaml)
+      width: read_yaml(tests/construction/wall-line-width.yaml)
+      group: read_yaml(tests/construction/wall-weapon-group.yaml)
 
   # Nearest against on-the-line. Blue's five blocks are ids 3 to 7, left to
   # right. Red's Marksman stands above block 3 and shoots past the far end of

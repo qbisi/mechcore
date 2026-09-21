@@ -71,7 +71,7 @@ and hands each **member** one draw in that member's own offset. A member whose
 offset is zero takes nothing from the stream.
 
 Two fixtures separate that from the alternatives.
-`tests/layouts/interval/stagger-singles.yaml` puts four single-member units in
+`tests/interval/stagger-singles.yaml` puts four single-member units in
 four rows, declared in the opposite order to the one the stream takes them in,
 and all four readings come out of the seed in `z` order:
 `62−7, 18+5, 62−6, 32+0`. `stagger-mustang-then-marksman.yaml` puts a twelve
@@ -100,7 +100,7 @@ that kind, and they are what a measurement of an interval correction should be
 built on. Where a measurement must use a unit that does draw — the
 Sledgehammer is the only one that can hold an interval value and an interval
 rate at once — the stagger has to be cancelled rather than avoided, which is
-what `tests/layouts/modifier/interval-order.mcscript` does with three
+what `tests/modifier/interval-order.mcscript` does with three
 calibration fixtures.
 
 **A disabled technology takes its correction with it, and the current interval
@@ -108,7 +108,7 @@ says so.** A Rhino carrying Mechanical Rage, an `attack_interval_value` of
 `−0.3` seconds, reads 12 ticks of its description's 18. At the tick an
 Electromagnetic Shot lands its `IsTechnologyDisabled` turns true and the same
 reading turns 18: the correction is not there while the technology is off.
-`tests/layouts/modifier/disable.mcscript` records it, and the Rhino is the
+`tests/modifier/disable.mcscript` records it, and the Rhino is the
 target for two reasons found the hard way — it survives the hit, where a
 Stormcaller and a Marksman were shot at first and never read anything, and its
 offset is zero, so nothing else rides on the number.

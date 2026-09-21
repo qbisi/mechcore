@@ -1,7 +1,7 @@
 # Does switching a technology off take its correction away?
 #
-#   mechcore run tests/layouts/modifier/disable.mcscript --check   parse without the game
-#   mechcore run tests/layouts/modifier/disable.mcscript           record
+#   mechcore run tests/modifier/disable.mcscript --check   parse without the game
+#   mechcore run tests/modifier/disable.mcscript           record
 #
 # Every other fixture here measures a correction that is in force for the whole
 # fight. This one measures a correction leaving: Electromagnetic Shot disables
@@ -23,7 +23,7 @@ vars:
 
 steps:
   - let:
-      disabled: read_yaml(tests/layouts/modifier/technology-disabled.yaml)
+      disabled: read_yaml(tests/modifier/technology-disabled.yaml)
 
   - game.apply_layout:
       layout: $disabled

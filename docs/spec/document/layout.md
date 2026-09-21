@@ -1004,10 +1004,10 @@ question alone. The consequence for the schema is that this array's order is
 the release order, and that acquisition order is not layout state: a skill slot
 or acquisition index would record something no outcome depends on.
 
-`skill-order-orbital-first.yaml` and `skill-order-lightning-first.yaml` hold
+`tests/skill-order/orbital-first.yaml` and `lightning-first.yaml` beside it hold
 the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover.
-`scripts/skill-release-order.mcscript` records three battles from them. Under
+`tests/skill-order/release-order.mcscript` records three battles from them. Under
 build `1.11.1.3.2259` and seed `20260907`, the same order recorded twice gave
 byte-identical hashes at 415 ticks, while the swapped order diverged at tick 63
 and ended at 416. They are not in the regression manifest, because its offline

@@ -1,7 +1,7 @@
 # What does a list of plain integers do with two entries?
 #
-#   mechcore run tests/layouts/modifier/speed.mcscript --check   parse without the game
-#   mechcore run tests/layouts/modifier/speed.mcscript           record
+#   mechcore run tests/modifier/speed.mcscript --check   parse without the game
+#   mechcore run tests/modifier/speed.mcscript           record
 #
 # The other three captures here measured the two `FPoint` lists. This one is
 # about the third: `DataSet.intDatas`, where a `speed_value` lands because the
@@ -39,8 +39,8 @@ vars:
 
 steps:
   - let:
-      once: read_yaml(tests/layouts/modifier/officer-speed-once.yaml)
-      twice: read_yaml(tests/layouts/modifier/officer-speed-twice.yaml)
+      once: read_yaml(tests/modifier/officer-speed-once.yaml)
+      twice: read_yaml(tests/modifier/officer-speed-twice.yaml)
 
   - game.apply_layout:
       layout: $once

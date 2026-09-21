@@ -2,7 +2,7 @@
 
 Every layout here exists to measure **the random stagger on a unit's first
 attack interval**, and nothing else. The rule they measure is
-[`combat.md`](../../../docs/rules/combat.md#the-current-interval-carries-a-per-cycle-stagger)'s:
+[`combat.md`](../../docs/rules/combat.md#the-current-interval-carries-a-per-cycle-stagger)'s:
 
 ```text
 stored interval = description + GRRandom(round + team) × 4444).next_in_range(offset)

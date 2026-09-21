@@ -1,7 +1,7 @@
 # Does placing a construction change the fight around it?
 #
-#   mechcore run tests/layouts/construction/placement.mcscript --check   parse without the game
-#   mechcore run tests/layouts/construction/placement.mcscript           record
+#   mechcore run tests/construction/placement.mcscript --check   parse without the game
+#   mechcore run tests/construction/placement.mcscript           record
 #
 # `shape.mcscript` measured what a construction becomes and `wall.mcscript`
 # measured what a wall does. This is the control that lets the simulator place
@@ -32,7 +32,7 @@ vars:
 
 steps:
   - let:
-      aside: read_yaml(tests/layouts/construction/wall-aside.yaml)
+      aside: read_yaml(tests/construction/wall-aside.yaml)
 
   - game.apply_layout:
       layout: $aside

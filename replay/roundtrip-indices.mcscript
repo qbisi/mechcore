@@ -1,8 +1,8 @@
 # Round-trip the round that carries every indexed collection at once: the replay
 # and the Training Ground must record the same fight.
 #
-#   mechcore run scripts/replay-roundtrip-indices.mcscript --check   validate offline
-#   mechcore run scripts/replay-roundtrip-indices.mcscript --force   record
+#   mechcore run replay/roundtrip-indices.mcscript --check   validate offline
+#   mechcore run replay/roundtrip-indices.mcscript --force   record
 #
 # Round 2 is nearly bare, so a difference there is a defect in the basics.
 #

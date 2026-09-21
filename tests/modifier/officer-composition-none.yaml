@@ -1,7 +1,7 @@
 kind: layout
 round: 1
 
-# The control of `scripts/officer-composition.mcscript`: one Marksman shooting
+# The control of `composition.mcscript`: one Marksman shooting
 # one Rhino, and no officer on either side. The Rhino's life at the end is the
 # measurement, because a Marksman that hits it n times for d leaves
 # `19297 - n * d`, so a change in d moves it.

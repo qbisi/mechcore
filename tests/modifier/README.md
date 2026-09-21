@@ -2,7 +2,7 @@
 
 Every layout here exists to measure **how a correction composes with the
 description it corrects**, and nothing else. The rule they are measuring
-against is [`officer_effects.md`](../../../docs/rules/officer_effects.md)'s and
+against is [`officer_effects.md`](../../docs/rules/officer_effects.md)'s and
 `crates/simulation/src/data.rs`'s:
 
 ```text
@@ -95,7 +95,7 @@ computed. `regressions.mcscript` is the other side of the same table, and it
 is what CI runs: the simulator has to reproduce each recording tick for tick
 from the layout and the seed alone, on a machine that has no game at all.
 
-These fixtures are deliberately **not** in `tests/mcfr-regressions.yaml`. The
+These fixtures are deliberately **not** in `tests/regression/mcfr-regressions.yaml`. The
 table that holds them lives here, beside them and beside the scripts that
 produced them, so that a fixture, its measurement and its regression are one
 thing to read and one thing to move.

@@ -96,7 +96,7 @@ jobs:
 
       # An mcscript is a tracked, runnable claim, so every one of them has to
       # parse. The ones that need no game are also run: that is how the
-      # measurements under `tests/layouts/modifier/` are checked here, against
+      # measurements under `tests/modifier/` are checked here, against
       # the simulator, while the scripts that recorded them stay a thing only a
       # machine with the game can do.
       - name: Every script parses, and the offline ones pass

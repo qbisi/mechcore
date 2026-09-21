@@ -21,9 +21,9 @@ then refused by the game, as
 [constructions.md](../../docs/rules/constructions.md#where-the-objects-stand)
 records.
 
-`construction/` is the directory that measures what a construction becomes;
-this one is where a construction appears inside a fixture built for something
-else.
+[`../construction/`](../construction/README.md) is the directory that
+measures what a construction becomes; this one is where a construction appears
+inside a fixture built for something else.
 
 `interceptor-battle.yaml` places one `30 x 30` interceptor and one `50 x 20`
 Stormcaller per side. It is the live regression sample for native placement,

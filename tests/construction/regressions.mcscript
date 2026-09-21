@@ -1,6 +1,6 @@
 # The wall fixture, replayed through the simulator.
 #
-#   mechcore run tests/layouts/construction/regressions.mcscript
+#   mechcore run tests/construction/regressions.mcscript
 #
 # This needs no game, which is why CI runs it: the hash below is what the game
 # recorded, and the simulator has to reproduce it tick for tick from the layout
@@ -25,7 +25,7 @@ steps:
   # fight and everything about what is standing in it. The hash covers both:
   # it is the game's, and it holds the five blocks as well as the two units.
   - fight.run:
-      layout: tests/layouts/construction/wall-aside.yaml
+      layout: tests/construction/wall-aside.yaml
       seed: 4242
     expect:
       steps: 91
@@ -39,7 +39,7 @@ steps:
   # `docs/rules/constructions.md` measured that and this holds the simulator
   # to it: 20 ticks, block 6 down, everything else standing.
   - fight.run:
-      layout: tests/layouts/construction/wall-line-of-fire.yaml
+      layout: tests/construction/wall-line-of-fire.yaml
       seed: 4242
     expect:
       steps: 20
@@ -50,7 +50,7 @@ steps:
   # and the fight where a tick that lands two shots reports the fallen block
   # after both of them.
   - fight.run:
-      layout: tests/layouts/construction/wall-line-tolerance.yaml
+      layout: tests/construction/wall-line-tolerance.yaml
       seed: 4242
     expect:
       steps: 19
@@ -63,7 +63,7 @@ steps:
   # with the lock when a block falls, and the Wraith turns back to the
   # Marksman once the blocks in its way are gone. 242 ticks, the game's hash.
   - fight.run:
-      layout: tests/layouts/construction/wall-weapon-group.yaml
+      layout: tests/construction/wall-weapon-group.yaml
       seed: 4242
     expect:
       steps: 242

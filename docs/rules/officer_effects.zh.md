@@ -62,7 +62,7 @@ build 的 132 名军官里，79 名带有修正。
 
 比率对描述**乘一次**，同一个数上的两条增强**先相加再乘**。
 
-`tests/layouts/modifier/composition.mcscript` 对着游戏把它测了出来。一个长弓打一个犀牛，打两
+`tests/modifier/composition.mcscript` 对着游戏把它测了出来。一个长弓打一个犀牛，打两
 下，三份录制里犀牛都活到最后，所以读数就是它在 19297 里还剩多少：
 
 | 蓝方军官 | 犀牛剩余生命 | 每击伤害 |
@@ -87,7 +87,7 @@ build 的 132 名军官里，79 名带有修正。
 
 ### 削弱相乘
 
-`tests/layouts/modifier/impairment.mcscript` 对另一个符号问了同一个问题，答案不一样。成本控制
+`tests/modifier/impairment.mcscript` 对另一个符号问了同一个问题，答案不一样。成本控制
 专家对所有单位的伤害和生命都是 `−0.11`，而且一方可以持有两份：
 
 | 红方军官 | 犀牛满血 | 挨两下后剩 |
@@ -106,7 +106,7 @@ build 的 132 名军官里，79 名带有修正。
 
 ### 一个 value 按本单位相加
 
-`tests/layouts/modifier/value.mcscript` 关掉了最后一条子句。增程弧光是射程 `+20`、伤害 `−0.2`，
+`tests/modifier/value.mcscript` 关掉了最后一条子句。增程弧光是射程 `+20`、伤害 `−0.2`，
 所以一份录像里同时带着一个 value 和一条削弱。弧光的射程是 95 米，带上军官后提前二十米开火，
 之后每一 tick 都跟着变。
 
@@ -125,7 +125,7 @@ build 的 132 名军官里，79 名带有修正。
 ### value 先于 rate
 
 公式里的那个顺序，在录像开始携带攻击间隔之前，一直只是 build 的类结构而不是一次测量。
-`tests/layouts/modifier/interval-order.mcscript` 在铁锤身上把它量掉了——铁锤是唯一能在同一
+`tests/modifier/interval-order.mcscript` 在铁锤身上把它量掉了——铁锤是唯一能在同一
 个数上同时持有两种修正的单位：机械狂暴是 `-1` 秒的 value，穿甲弹是 `+0.3` 的 rate。
 
 | 铁锤持有 | 间隔读数 |
@@ -159,7 +159,7 @@ rate 先    ((83 + 7) × 1.3 − 20) − 7 = 90
 的。`FightMech` 的构造函数建的是 `DataIntGroup(0x80000000, 0x7FFFFFFF, 0)`——单位的整数
 求和，钳制范围是整个 `Int32`，永远不生效。
 
-`tests/layouts/modifier/speed.mcscript` 把这条拿去问了游戏。先进动力系统和速度专家各是
+`tests/modifier/speed.mcscript` 把这条拿去问了游戏。先进动力系统和速度专家各是
 全体 `+3` 移速，都放在那只要走 105 米才够得着长弓的犀牛身上——那段路就是这场仗的全部时钟：
 
 | 红方军官 | 犀牛速度 | 战斗结束于 |
@@ -190,7 +190,7 @@ rate 先    ((83 + 7) × 1.3 − 20) − 7 = 90
 `attack_interval_rate`，单位修饰符集合里有 `life_rate` 和速度那几项。
 
 两条通道都测过了。上面那次伤害捕获在长弓的技能通道里读到 `+0.3`。第二次捕获
-`tests/layouts/modifier/officer-life-rate.yaml` 把先进防御战术的 `life_rate` 放在犀牛身上：游戏
+`tests/modifier/officer-life-rate.yaml` 把先进防御战术的 `life_rate` 放在犀牛身上：游戏
 把它存进**单位**通道，犀牛的 19297 变成 25086，挨两下之后剩 20428——这三个数都是模拟器
 在录制存在之前先算出来的，整场战斗的哈希也一模一样。
 
