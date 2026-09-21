@@ -162,3 +162,31 @@ steps:
       sides.blue.constructions.0.standing: 2
       sides.blue.constructions.0.parts.0.id: 6
       sides.blue.constructions.0.parts.1.id: 7
+
+  # What each unit is directed at, against the simulator. The physics hash
+  # pins where everything is and what it hit, and not a unit's lock, its
+  # weapons' target or its motion state, so those three are compared here,
+  # field by field, on every tick of the three fights the simulator can run.
+  # The width layout carries a Farseer, which it cannot.
+  #
+  # They agree on every tick, including the one after a block falls: the
+  # unit that felled it reads idle, with no lock, and with its weapon still on
+  # the fallen block, and takes its next target only from there.
+  - let:
+      simulated:
+        - {name: line-of-fire, layout: tests/construction/wall-line-of-fire.yaml}
+        - {name: line-tolerance, layout: tests/construction/wall-line-tolerance.yaml}
+        - {name: weapon-group, layout: tests/construction/wall-weapon-group.yaml}
+  - foreach: {case: $simulated}
+    steps:
+      - fight.run:
+          layout: ${case.layout}
+          seed: $seed
+          output: ${out}/simulated-${case.name}.mcfr
+      - fight.compare:
+          left: ${out}/${case.name}.mcfr
+          right: ${out}/simulated-${case.name}.mcfr
+          fields: [units.mech_lock_target, units.motion_state, units.weapon_aims.attack_target]
+        expect:
+          equal: true
+          fields_equal: true

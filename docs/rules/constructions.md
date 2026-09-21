@@ -99,10 +99,17 @@ through, because the other side's units go through as well.
 blocks is held by them has not been measured, and neither has any construction
 other than the wall.
 
-**What a unit does once the block it was shooting falls is not established.**
-The tick after, its lock reads empty while its weapon still points at the block
-that is gone, and it does not go back to the unit behind the wall. Whether that
-lasts until the next search or ends sooner has not been separated.
+**A block that falls ends the attack on it, and the lock with it.** The tick
+after a unit fells the block it was shooting, it reads idle, with an empty lock
+and its weapon still naming the fallen block — not the next block in its line,
+and not the unit behind the wall — and it takes a new target only from there.
+Every recording under `tests/construction/` shows it, for a Marksman, for four
+Marksmen at once, and for a Fortress's two weapons; a group of weapons is the
+exception, and drops every slot with the lock instead (below). How long the
+unit stays idle is not settled: a tick where the fight ends or it is killed
+first, four ticks for a Marksman in `wall-line-width.yaml` and ten for the
+Fortress, in fights the simulator cannot run, so what decides the length has
+not been separated from the search timer.
 
 **A wall is never a target a unit looks for.** Across the ten recordings under
 `tests/construction/`, 931 ticks of which have a wall standing, a

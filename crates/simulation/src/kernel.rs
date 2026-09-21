@@ -501,6 +501,14 @@ struct Actor {
     /// `lock_target` is anything but the lock it was found for, the block no
     /// longer answers, without anyone having to clear it.
     in_the_way: Option<(u64, FightActorRef)>,
+    /// The construction whose fall ended this actor's attack, which its
+    /// weapon still names until a new target is taken.
+    ///
+    /// The game reads a unit whose block has just fallen as idle, with no
+    /// lock, and with its weapon still aimed at the block: for one tick where
+    /// the next target is in reach at once, for as long as it takes otherwise.
+    /// Only the snapshot reads this; nothing aims or fires at a fallen block.
+    fallen_attack_target: Option<u64>,
     lock_is_terminal_handoff: bool,
     fight_skill_search_target_time: i32,
     fight_skill_searched_this_tick: bool,
@@ -609,6 +617,7 @@ impl Actor {
             motion_attack_hold_fire: false,
             lock_target: None,
             in_the_way: None,
+            fallen_attack_target: None,
             lock_is_terminal_handoff: false,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
@@ -659,6 +668,7 @@ impl Actor {
     /// group, whose slot lists are empty.
     fn drop_lock(&mut self) {
         self.lock_target = None;
+        self.fallen_attack_target = None;
         self.group_skill_targets.fill(None);
         self.group_in_the_way.fill(None);
         self.group_skill_next_attack_steps.fill(0);
@@ -711,6 +721,7 @@ impl Actor {
         self.motion = MotionState::Idle;
         self.pending = None;
         self.lock_target = None;
+        self.fallen_attack_target = None;
         self.lock_is_terminal_handoff = false;
         self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.fight_skill_phase = FightSkillPhase::Idle;
@@ -803,7 +814,11 @@ impl Actor {
                             .flatten()
                     })
                 } else {
-                    self.attack_target()
+                    self.attack_target().or_else(|| {
+                        self.fallen_attack_target
+                            .filter(|_| self.lock_target.is_none())
+                            .map(FightActorRef::Building)
+                    })
                 };
                 WeaponAimState {
                     skill_slot: if group_mode {
@@ -2765,6 +2780,40 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.exit_fight_on_death();
+            return Ok(());
+        }
+        // A block that falls ends the attack on it, and the lock with it. The
+        // tick after, the game reads the unit idle and without a lock, its
+        // weapon still naming the block, and it looks for a target only from
+        // there — so the next block is not engaged on the tick the last one
+        // fell. A group drops its slots instead, which `drop_lock` does and
+        // the Wraith was recorded doing, with no weapon left naming anything.
+        let fallen = {
+            let actor = &self.actors[&actor_id];
+            match actor.attack_target() {
+                Some(FightActorRef::Building(building))
+                    if actor.group_skill_targets.is_empty()
+                        && actor.in_the_way.is_some_and(|(wall, _)| wall == building)
+                        && !self.fight_actor_is_alive(FightActorRef::Building(building)) =>
+                {
+                    Some(building)
+                }
+                _ => None,
+            }
+        };
+        if let Some(building) = fallen {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.motion = MotionState::Idle;
+            actor.drop_lock();
+            actor.fallen_attack_target = Some(building);
+            actor.fight_skill_phase = FightSkillPhase::Idle;
+            actor.next_target_x_q32 = actor.x_q32;
+            actor.next_target_z_q32 = actor.z_q32;
+            actor.next_speed_q32 = 0;
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Ok(());
         }
         // A skill looks for its attack target every tick it is idle —
@@ -8728,6 +8777,56 @@ mod tests {
             slots,
             vec![building(4), None, None, None],
             "the core has block 4; the children wait to be allocated again"
+        );
+    }
+
+    /// A block that falls ends the attack on it and the lock with it, and the
+    /// weapon keeps naming the block until a new target is taken.
+    ///
+    /// Red's Marksman of `wall-line-of-fire.yaml` fells block 6 on tick 18.
+    /// The game reads it on tick 19 as idle, with no lock, and with its weapon
+    /// still on block 6 — not on block 7, the next one in its line, and not on
+    /// the Marksman behind the wall. `tests/construction/line-of-fire.mcscript`
+    /// recorded it; the physics hash cannot see any of the three fields.
+    #[test]
+    fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/construction/wall-line-of-fire.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        let state = |simulation: &Simulation| {
+            simulation
+                .actors
+                .values()
+                .find(|actor| actor.placement.team == 1)
+                .unwrap()
+                .snapshot()
+        };
+        for step in 0..18 {
+            simulation.step(step).unwrap();
+        }
+        let shooting = state(&simulation);
+        assert_eq!(shooting.motion_state, MotionState::Attacking);
+        assert_eq!(
+            shooting.weapon_aims[0].attack_target,
+            Some(ObjectRef::new(ObjectKind::Building, 6))
+        );
+
+        simulation.step(18).unwrap();
+        let fallen = state(&simulation);
+        assert_eq!(fallen.motion_state, MotionState::Idle);
+        assert_eq!(
+            fallen.mech_lock_target, None,
+            "the lock falls with the block"
+        );
+        assert_eq!(
+            fallen.weapon_aims[0].attack_target,
+            Some(ObjectRef::new(ObjectKind::Building, 6)),
+            "the weapon still names the block it felled"
         );
     }
 
