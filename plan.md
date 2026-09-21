@@ -186,6 +186,10 @@ architecture.md 的 Unresolved 里。
   攻击范围里时，会在冷却期间空闲、武器先对着选择器的答案，冷却后下一 tick 清空武器、再
   下一 tick 才锁定。`crawlers-vs-marksman` 和 `wall-passage` 因此内容层也全等。至此所有
   能跑的录像内容层只剩 `derived.current_attack_interval`（攻击间隔的逐周期错开）。
+- ~~**`derived.current_attack_interval`。**~~ 做了：武器组读核心位的间隔（不是最后一个
+  抽样的子位）；没有敌人剩下的单位从最后一个敌人死后的下一 tick（或最后一 tick）起读不带
+  错开的合成间隔。至此**模拟器能跑的 25 份录像物理和内容逐 tick 全等**；8 场墙战斗在
+  `regressions.mcscript` 里连内容哈希一起钉住。
 - ~~**`wall-passage` 第 44 tick。**~~ 做了：原生 sidecar 显示，爬虫穿自己的墙时 20 个
   邻居里有 3 块墙、速度障碍只有 17 个——自己的墙照样占邻居名额，只在生成速度障碍时跳
   过。改完 `wall-passage` 341 tick 物理全对，进了 `regressions.mcscript`（内容层只在

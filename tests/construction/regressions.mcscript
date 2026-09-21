@@ -11,14 +11,11 @@
 # launch the game, record the same layouts, and assert the same numbers against
 # the recording rather than against the simulator.
 #
-# Only the physics hash is pinned. The content hash of this recording and of
-# the same fight without a wall both differ from the simulator's, so the gap is
-# not the wall's and pinning it here would pin somebody else's bug.
-#
-# That leaves a unit's lock, its weapons' attack targets and its motion state
-# unpinned: they are content-layer fields. A fight whose physics matches can
-# still disagree in them, and `line-of-fire` does for one tick after its block
-# falls. `plan.md` carries that.
+# Both hash layers are pinned, and both are the game's. The physics hash holds
+# where everything is and what it hit; the content hash holds everything else a
+# recording carries — a unit's lock, its weapons' targets, its motion state and
+# the numbers derived for it — so a fight whose physics still matches but whose
+# units are directed at something else fails here too.
 
 steps:
   # A Defensive Wall, 256 metres from either unit, changes nothing about the
@@ -32,6 +29,7 @@ steps:
       winner: red
       teams.1.remaining_life: 155
       hashes.physics_result_hash: 4523d7309ed89aa0fd1fb43a067f4d914af4d655b8da94b43cec9ac8878f0927
+      hashes.content_result_hash: b72c1106879bd4c574991bd0347b965b5d540ada7c943ad5dcf96d08a5413aa7
 
   # A wall in the way. One Marksman shoots past the wall at the unit behind
   # it, and the block it destroys is neither the nearest block nor the one its
@@ -45,6 +43,7 @@ steps:
       steps: 20
       winner: blue
       hashes.physics_result_hash: b67ee482c84b78665455f585b37b8fd33aecf84024f74366d4b908ee3fbbecd8
+      hashes.content_result_hash: 333055f39699733161f04f7e4711dc68a47f4c0ede0f3a3dcbedf1eb99a6098f
 
   # The same question four times at once, which is what bracketed the width,
   # and the fight where a tick that lands two shots reports the fallen block
@@ -56,6 +55,7 @@ steps:
       steps: 19
       winner: red
       hashes.physics_result_hash: dc9a77c75eab511539a7b0556bd9f0efcf495aa484e026157e1e19ddc7a46099
+      hashes.content_result_hash: 3ccefd54721612f7c31336ec8673e2c6b6cbd2e7e47535936f7b02862a279cd5
 
   # A flying unit with four weapon slots against a wall, from its approach to
   # the end: the core and then every slot take the block in the way, a shot at
@@ -69,6 +69,7 @@ steps:
       steps: 242
       winner: red
       hashes.physics_result_hash: 71bdc736cefec8f464e50775dfacff94f24cb2540109223c270a40f3968e19bf
+      hashes.content_result_hash: aeec79ba1c8db0006897981fbdd32b398f818a9aaed109cbd7b67f20aa8a7239
 
   # A blow, and not a shot. The Rhino takes the block in its line one hit at a
   # time, stays on each until its swing is over, reads idle for a tick, and
@@ -81,6 +82,7 @@ steps:
       steps: 189
       winner: red
       hashes.physics_result_hash: 44ae3c4c81b15563f6a7b924591385baf12813c27714d4d23cb7a2ebe25cdf1f
+      hashes.content_result_hash: 70e976ec3367fec2f6183dbf181086fcacd1e0d7348a761eb639b4b96a80b815
 
   # A beam, and a block in the way of a unit's movement. Four Steel Balls take
   # three blocks with the beam's ramp, and one of them, overlapping block 3, is
@@ -94,6 +96,7 @@ steps:
       steps: 243
       winner: red
       hashes.physics_result_hash: 6cfed0b5e5bff3304b97e87d582d3b7043f95d72a34670267d9b73b5f28ad43b
+      hashes.content_result_hash: 9b84885e238a31bd675911e4667eab90e31f3fed4cdc8c80d1ce6ac9b6945ab6
 
   # The side that placed the wall, crossing it. Twenty-four Crawlers walk
   # through their own blocks, which still take places among their twenty
@@ -104,6 +107,7 @@ steps:
     expect:
       steps: 341
       hashes.physics_result_hash: 742ab9964980d2df6bca04e90546f5e54f3ea91e317158e639e3923875ec552c
+      hashes.content_result_hash: e74ef9a00f918e8560a73c09b42eb12298bdd32d4db78dfa731cba96804bfd9b
 
   # The other side, stopped by the wall and taking it down. Twenty-four
   # Crawlers pushed along the wall as they strike it change blocks between
@@ -116,3 +120,4 @@ steps:
     expect:
       steps: 209
       hashes.physics_result_hash: cdff39d42765941071c7eb9ce26900d05c0486020e7b96c387b6c7d8abe9a800
+      hashes.content_result_hash: 13768c9b5347ba61f0088819c835ee5675278f30436b85a9585255ae462c08fd
