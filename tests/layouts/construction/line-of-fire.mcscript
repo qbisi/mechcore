@@ -1,0 +1,122 @@
+# What makes a unit attack a wall?
+#
+#   mechcore run tests/layouts/construction/line-of-fire.mcscript --check   parse without the game
+#   mechcore run tests/layouts/construction/line-of-fire.mcscript           record
+#
+# `wall.mcscript` left this open. A Defensive Wall is not something a unit
+# searches for — its row answers `IsEnableSearchTarget` with false and the
+# Crawlers opposite one lock onto the unit behind it at tick one — and they
+# attack it all the same.
+#
+# A recording says what they are doing: a unit's **lock target** stays the unit
+# behind the wall while its **attack target** becomes a block. The build has a
+# `WallConstructionTargetChecker`, called from `FightSkill.SearchAttackTarget`,
+# which takes the enemy team's constructions, drops the ones out of range,
+# sorts them by distance and returns the first whose `CircleRange` overlaps a
+# `LineRange` from the attacker to its target. So the shape is: **the nearest
+# enemy wall that the line of fire passes through**.
+#
+# The three layouts here measure what "passes through" means. `wall-block.yaml`
+# cannot: its Crawlers charge straight at the unit behind the wall, so the
+# nearest wall and the wall on the line are always the same wall, and "attack
+# the nearest wall within twelve metres" fits it exactly as well.
+#
+# Each reading is the block that ends up destroyed, because that is what a
+# reader answers; the attack target itself is in the recording and no verb
+# reports it.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/construction-line
+  seed: 4242
+
+steps:
+  - let:
+      line: read_yaml(tests/layouts/construction/wall-line-of-fire.yaml)
+      tolerance: read_yaml(tests/layouts/construction/wall-line-tolerance.yaml)
+      width: read_yaml(tests/layouts/construction/wall-line-width.yaml)
+
+  # Nearest against on-the-line. Blue's five blocks are ids 3 to 7, left to
+  # right. Red's Marksman stands above block 3 and shoots past the far end of
+  # the wall, so the nearest block is 3 — 75 metres away and 39 off the line —
+  # and the block the line passes through is 7, 92 metres away and 0.12 off.
+  #
+  # It destroys **6**: 86 metres away and 9.9 off the line. So it is neither
+  # the nearest wall nor the one closest to the line. It is the nearest of the
+  # walls the line reaches, which is what `SortByDistance` and the first
+  # overlap answer.
+  - game.apply_layout:
+      layout: $line
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/line-of-fire.mcfr
+    expect:
+      operation.tick_count: 20
+  - fight.buildings:
+      recording: ${out}/line-of-fire.mcfr
+      tick: 20
+    expect:
+      sides.blue.constructions.0.standing: 4
+      sides.blue.constructions.0.parts.0.id: 3
+      sides.blue.constructions.0.parts.1.id: 4
+      sides.blue.constructions.0.parts.2.id: 5
+      sides.blue.constructions.0.parts.3.id: 7
+
+  # How far off the line a block may be. Four Marksmen, each where a different
+  # width answers a different block:
+  #
+  #   world x   answer under 9.0   10.4   12   13.1   15.7
+  #   -140      none               7      7    7      7
+  #   -200      6                  6      5    5      5
+  #   -160      7                  7      7    6      6
+  #   -120      none               none   none none   7
+  #
+  # Blocks 5 and 7 come down and 3, 4 and 6 stand, so the width is at least
+  # 10.41 and under 12.59 metres. Nothing here scales with the Marksman.
+  - game.apply_layout:
+      layout: $tolerance
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/line-tolerance.mcfr
+    expect:
+      operation.tick_count: 19
+  - fight.buildings:
+      recording: ${out}/line-tolerance.mcfr
+      tick: 19
+    expect:
+      sides.blue.constructions.0.standing: 3
+      sides.blue.constructions.0.parts.0.id: 3
+      sides.blue.constructions.0.parts.1.id: 4
+      sides.blue.constructions.0.parts.2.id: 6
+
+  # Whether the width is the unit's. A Marksman carries 8 metres of collision
+  # radius, a Fang 2 and a Farseer 11, and `attacker + block` would give them
+  # 12, 6 and 15. It does not: the Fang's members reach blocks 10.0 and 10.7
+  # off the line, which 6 would have excluded, and the Farseer attacks nothing
+  # at all, where 15 would have taken block 7 at 13.13.
+  #
+  # The Marksman is the control and destroys block 5 again. The Fang's members
+  # take block 7 to 167 and block 6 to 986, 63 a hit.
+  - game.apply_layout:
+      layout: $width
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/line-width.mcfr
+    expect:
+      operation.tick_count: 41
+  - fight.buildings:
+      recording: ${out}/line-width.mcfr
+      tick: 41
+    expect:
+      sides.blue.constructions.0.standing: 4
+      sides.blue.constructions.0.parts.0.id: 3
+      sides.blue.constructions.0.parts.0.life.current: 1112
+      sides.blue.constructions.0.parts.1.id: 4
+      sides.blue.constructions.0.parts.1.life.current: 1112
+      sides.blue.constructions.0.parts.2.id: 6
+      sides.blue.constructions.0.parts.2.life.current: 986
+      sides.blue.constructions.0.parts.3.id: 7
+      sides.blue.constructions.0.parts.3.life.current: 167

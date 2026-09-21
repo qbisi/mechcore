@@ -18,12 +18,20 @@ released it.
 | `wall-passage.yaml` | a wall against the side that placed it | crosses it, all five at full life |
 | `wall-block.yaml` | a wall against the other side | stops and attacks, four down |
 | `wall-aside.yaml` | a wall against a fight it cannot reach | the same fight, five more buildings |
+| `wall-line-of-fire.yaml` | the nearest wall against the wall in the way | the one in the way, **block 6** |
+| `wall-line-tolerance.yaml` | how far off the line a block may be | between **10.41** and **12.59** metres |
+| `wall-line-width.yaml` | whether that width is the attacker's | it is not: Fang, Marksman and Farseer share it |
 
-`shape.mcscript`, `wall.mcscript` and `placement.mcscript` record them and
-carry every number as an `expect`, so a fixture and the measurement that reads
-it are one file to rerun. `regressions.mcscript` needs no game and is what CI
-runs: it holds the simulator to the physics hash the game produced for
-`wall-aside.yaml`.
+`shape.mcscript`, `wall.mcscript`, `placement.mcscript` and
+`line-of-fire.mcscript` record them and carry every number as an `expect`, so a
+fixture and the measurement that reads it are one file to rerun.
+`regressions.mcscript` needs no game and is what CI runs: it holds the
+simulator to the physics hash the game produced for `wall-aside.yaml`.
+
+The three `wall-line-*` layouts are read by which block ends up destroyed,
+because that is what a reader answers. The decision itself — a unit whose lock
+target stays a unit while its attack target becomes a block — is in the
+recording, and no verb reports it.
 
 The two wall fixtures are the same unit and the same geometry asked of both
 sides, which is the only way the wall's own description — that it sinks into
@@ -69,6 +77,8 @@ Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
 
-**What makes a unit attack a wall.** A wall is not searched for, and the
-Crawlers in `wall-block.yaml` attack it anyway. `constructions.md` says what is
-known; the fixture that separates the mechanism does not exist yet.
+**What a unit does once the wall between it and its target is gone.** Every
+layout here is read at the first tick or at the end. The late phase of
+`wall-block.yaml`, where blocks are falling and aims go stale, is where the
+measured rule's residuals are, and nothing here separates a stale aim from a
+new decision.

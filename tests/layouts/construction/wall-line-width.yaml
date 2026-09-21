@@ -1,0 +1,52 @@
+kind: layout
+round: 1
+
+# Is the line of fire as wide as the unit firing it?
+#
+# `wall-line-tolerance.yaml` brackets the width between 10.41 and 12.59 metres
+# for a Marksman, and a Marksman carries 8 metres of collision radius against a
+# block's 4. So `attacker + block` and a constant both sit in that bracket, and
+# a Marksman cannot tell them apart.
+#
+# Three different units can. Against the same wall and the same target:
+#
+#   unit        radius   attacker+block says   a constant 12 says
+#   Marksman    8        block 5               block 5
+#   Fang        2        nothing               block 7
+#   Farseer     11       block 7               nothing
+#
+# The Fang and the Farseer disagree with the constant in opposite directions,
+# so whichever answer comes back, one of the two rules is out. The Marksman is
+# the control: it is the reading `wall-line-tolerance.yaml` already took, and
+# it has to come back the same.
+#
+# A Fang is a formation rather than one unit, so its members stand across
+# `x = -170 … -120` and each asks the question from its own line. A Fang only
+# reaches 75 metres, so the wall has to be close to it: the members near
+# `x = -145` are the ones that can see a block at all, and the rest answer
+# nothing under either rule.
+#
+# Blue's wall is the one this seed's opening already stands, because a release
+# anywhere else is refused.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -90, y: -90}
+
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 200, y: -20}
+    - name: fang
+      index: 1
+      position: {x: 145, y: -20}
+    - name: farseer
+      index: 2
+      position: {x: 135, y: -45}
