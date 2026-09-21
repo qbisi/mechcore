@@ -2,7 +2,12 @@
 // `similar_names` flags on every coordinate pair.
 #![allow(clippy::similar_names)]
 
-use std::{cmp::Ordering, collections::BTreeMap, path::Path, time::Instant};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+    time::Instant,
+};
 
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
@@ -14,6 +19,7 @@ use serde::Serialize;
 
 use crate::{
     Error, Result,
+    constructions::ConstructionBuilding,
     layout::{CompiledLayout, Placement},
     random::GrRandom,
     rules::{
@@ -918,58 +924,135 @@ fn initialize_actors(
     Ok(actors)
 }
 
-fn initialize_buildings(training_ground: &TrainingGroundConfig) -> Result<Vec<BuildingState>> {
-    let building_key = |building: &crate::rules::BuildingConfig| {
+/// Every building the fight starts with: the map's own, and the ones this
+/// layout's constructions place.
+///
+/// Identity is the capture's: a building's id is its place in `(team, type,
+/// x, z)` order over both sources together, one-based, which is how a
+/// recording numbers them and therefore the only numbering the two backends
+/// can be compared under.
+fn initialize_buildings(
+    training_ground: &TrainingGroundConfig,
+    constructions: &[ConstructionBuilding],
+) -> Result<(Vec<BuildingState>, BTreeSet<u64>)> {
+    let mut raw = training_ground
+        .buildings
+        .iter()
+        .map(|building| RawBuilding {
+            team_id: building.team_id,
+            building_type_id: building.building_type_id,
+            x: building.x(),
+            z: building.z(),
+            radius: building.radius(),
+            life: building.life,
+            collision_enabled: building.collision_enabled,
+            searchable: true,
+        })
+        .collect::<Vec<_>>();
+    raw.extend(constructions.iter().map(|building| RawBuilding {
+        team_id: building.team,
+        building_type_id: building.building_type_id,
+        x: building.x,
+        z: building.z,
+        radius: building.radius,
+        life: i64::from(building.life),
+        // `BuildingData.EnableCollision` as the capture reads it, which is
+        // true for a construction as it is for a tower. Whether the object is
+        // an obstacle is a different question, and [`rvo_collides`] answers
+        // it.
+        collision_enabled: true,
+        searchable: building.searchable,
+    }));
+
+    let building_key = |building: &RawBuilding| {
         (
             building.team_id,
             building.building_type_id,
-            building.x(),
-            building.z(),
+            building.x,
+            building.z,
         )
     };
-    let mut ordered = training_ground.buildings.iter().collect::<Vec<_>>();
+    let mut ordered = raw.iter().collect::<Vec<_>>();
     ordered.sort_by_key(|building| building_key(building));
     let mut normalized_ids = BTreeMap::new();
     for (index, building) in ordered.into_iter().enumerate() {
         let id = u64::try_from(index)
-            .map_err(|_| Error::new("training-ground building index overflow"))?
+            .map_err(|_| Error::new("building index overflow"))?
             .saturating_add(1);
         if normalized_ids.insert(building_key(building), id).is_some() {
-            return Err(Error::new(
-                "training-ground buildings contain duplicate identity keys",
-            ));
+            return Err(Error::new("two buildings stand in the same place"));
         }
     }
-    training_ground
-        .buildings
+    let unsearchable = raw
+        .iter()
+        .filter(|building| !building.searchable)
+        .map(|building| normalized_ids[&building_key(building)])
+        .collect::<BTreeSet<_>>();
+    let states = raw
         .iter()
         .map(|building| {
             let building_id = normalized_ids[&building_key(building)];
-            let radius = building.radius();
             Ok(BuildingState {
                 building_id,
                 team_id: building.team_id,
                 building_type_id: building.building_type_id,
-                position: point(building.x(), building.z()),
-                bounds_width: space_to_q32(radius.saturating_mul(2)),
-                bounds_height: space_to_q32(radius.saturating_mul(2)),
+                position: point(building.x, building.z),
+                bounds_width: space_to_q32(building.radius.saturating_mul(2)),
+                bounds_height: space_to_q32(building.radius.saturating_mul(2)),
                 life: GaugeI32 {
                     current: i32::try_from(building.life)
-                        .map_err(|_| Error::new("training-ground building life exceeds i32"))?,
+                        .map_err(|_| Error::new("building life exceeds i32"))?,
                     maximum: i32::try_from(building.life)
-                        .map_err(|_| Error::new("training-ground building life exceeds i32"))?,
+                        .map_err(|_| Error::new("building life exceeds i32"))?,
                 },
                 available: true,
                 targetable: building.life > 0,
                 collision_enabled: building.collision_enabled,
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    Ok((states, unsearchable))
 }
 
+/// One building before it is given an identity, from either source.
+#[derive(Debug, Clone, Copy)]
+struct RawBuilding {
+    team_id: u32,
+    building_type_id: u32,
+    x: i64,
+    z: i64,
+    radius: i64,
+    life: i64,
+    collision_enabled: bool,
+    searchable: bool,
+}
+
+/// Whether a building takes part in RVO, which is not the same as whether its
+/// data says collision is enabled.
+///
+/// The map's towers push units around. A construction does not: measured from
+/// both sides, a Crawler ends up 0.567 metres from a wall block's centre on
+/// the side that placed it and 0.711 on the other, against a block radius of
+/// 4 and a Crawler inner radius of 1.5. `docs/rules/constructions.md` carries
+/// the measurement and `tests/layouts/construction/wall.mcscript` is the
+/// recording. Every construction is `BuildingType.Special` and only the map's
+/// own two towers are anything else, so the type is what separates them.
+const fn rvo_collides(building: &BuildingState) -> bool {
+    building.collision_enabled && building.building_type_id != CONSTRUCTION_BUILDING_TYPE
+}
+
+/// `GameRiver.BuildingType.Special`.
+const CONSTRUCTION_BUILDING_TYPE: u32 = 3;
+
+/// The trees a unit looks for a target in.
+///
+/// A building nobody searches for is left out of them rather than scored and
+/// rejected: a Defensive Wall answers `IsEnableSearchTarget` with false, and
+/// the game's Crawlers lock onto the unit behind one at tick one.
 fn initialize_target_quadtrees(
     actors: &BTreeMap<u64, Actor>,
     buildings: &[BuildingState],
+    unsearchable: &BTreeSet<u64>,
 ) -> BTreeMap<u32, TargetActorQuadtree> {
     let teams = actors
         .values()
@@ -986,6 +1069,9 @@ fn initialize_target_quadtrees(
             .collect::<Vec<_>>();
         team_buildings.sort_by_key(|building| building.building_id);
         for building in team_buildings {
+            if unsearchable.contains(&building.building_id) {
+                continue;
+            }
             tree.insert(
                 FightActorRef::Building(building.building_id),
                 building.position.x,
@@ -1224,8 +1310,9 @@ impl Simulation {
                     native_time_units_to_steps(actor.stats.attack_interval()).max(1);
             }
         }
-        let buildings = initialize_buildings(training_ground)?;
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+        let (buildings, unsearchable) =
+            initialize_buildings(training_ground, &layout.constructions)?;
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
         Ok(Self {
             actors,
             team_random,
@@ -1247,29 +1334,40 @@ impl Simulation {
         // ordinal to the main FightSkill search controller before selecting
         // its initial target.
         let count_per_time = actor_ids.len().div_ceil(10).max(1);
+        // The selector answers whatever stands nearest, and a building is an
+        // answer: a Defensive Wall in front of a deployment is what the other
+        // side presearches, which is what it does in the game.
+        let target_search_order = self.target_search_order();
         let selections = actor_ids
             .iter()
-            .map(|&actor_id| Ok((actor_id, self.select_normal_unit_target(actor_id)?)))
+            .map(|&actor_id| {
+                Ok((
+                    actor_id,
+                    self.select_normal_target_with_order(actor_id, &target_search_order, false)?,
+                ))
+            })
             .collect::<Result<Vec<_>>>()?;
-        for (ordinal, (actor_id, target_id)) in selections.into_iter().enumerate() {
+        for (ordinal, (actor_id, target)) in selections.into_iter().enumerate() {
             self.actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable")
                 .fight_skill_search_target_time = i32::try_from(ordinal / count_per_time)
                 .expect("presearch batch ordinal is at most nine");
-            let Some(target_id) = target_id else {
+            let Some(target) = target else {
                 continue;
             };
-            let target = &self.actors[&target_id];
+            let view = self
+                .fight_actor(target)
+                .ok_or_else(|| Error::new("presearch chose a target that is not on the board"))?;
             let target_rotation_q32 = direction_degrees_q32_raw(
-                target.x_q32.saturating_sub(self.actors[&actor_id].x_q32),
-                target.z_q32.saturating_sub(self.actors[&actor_id].z_q32),
+                view.x_q32.saturating_sub(self.actors[&actor_id].x_q32),
+                view.z_q32.saturating_sub(self.actors[&actor_id].z_q32),
             );
             let actor = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable");
-            actor.lock_target = Some(FightActorRef::Unit(target_id));
+            actor.lock_target = Some(target);
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
@@ -1787,6 +1885,9 @@ impl Simulation {
         best.map(|(building_id, _)| building_id)
     }
 
+    /// The selector, restricted to units. A test asks for one; the fight
+    /// itself takes whatever stands nearest, buildings included.
+    #[cfg(test)]
     fn select_normal_unit_target(&self, actor_id: u64) -> Result<Option<u64>> {
         let target_search_order = self.target_search_order();
         self.select_normal_unit_target_with_order(actor_id, &target_search_order, false)
@@ -3328,7 +3429,7 @@ impl Simulation {
         let (tower_layer, tower_collides_with) =
             immovable_rvo_collision_masks(CORE_TOWER_RVO_COLLIDER_PRIORITY);
         for building in &self.buildings {
-            if !building_alive(building) || !building.collision_enabled {
+            if !building_alive(building) || !rvo_collides(building) {
                 continue;
             }
             let radius_q32 = building.bounds_width / 2;
@@ -5340,8 +5441,8 @@ mod tests {
         seed: i32,
     ) -> Simulation {
         let actors = initialize_actors(layout, &config.units, seed).unwrap();
-        let buildings = initialize_buildings(&config.training_ground).unwrap();
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+        let (buildings, unsearchable) = initialize_buildings(&config.training_ground, &[]).unwrap();
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
         Simulation {
             actors,
             team_random: BTreeMap::new(),
@@ -5474,14 +5575,14 @@ mod tests {
 
     #[test]
     fn initial_identity_uses_seeded_snapshot_coordinates_not_layout_centers() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, -20, -100),
                 test_placement(0, 1, 20, -100),
                 test_placement(1, 0, 0, 100),
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let actors = initialize_actors(&layout, &config.units, 1_787_591_883).unwrap();
         let first = &actors[&1];
@@ -5500,9 +5601,9 @@ mod tests {
     #[test]
     #[allow(clippy::too_many_lines)]
     fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 0,
@@ -5540,7 +5641,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let actors = initialize_actors(&layout, &config.units, 1_787_601_811).unwrap();
         let actual = actors
@@ -5566,8 +5667,9 @@ mod tests {
         );
         let make_simulation = || {
             let actors = actors.clone();
-            let buildings = initialize_buildings(&config.training_ground).unwrap();
-            let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+            let (buildings, unsearchable) =
+                initialize_buildings(&config.training_ground, &[]).unwrap();
+            let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
             Simulation {
                 actors,
                 team_random: BTreeMap::new(),
@@ -5715,13 +5817,10 @@ mod tests {
             rotated: false,
             corrections: Vec::new(),
         }));
-        let layout = CompiledLayout {
-            round: 1,
-            placements,
-        };
+        let layout = CompiledLayout::of_units(1, placements);
         let actors = initialize_actors(&layout, &config.units, 7).unwrap();
-        let buildings = initialize_buildings(&config.training_ground).unwrap();
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+        let (buildings, unsearchable) = initialize_buildings(&config.training_ground, &[]).unwrap();
+        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings, &unsearchable);
         let simulation = Simulation {
             actors,
             team_random: BTreeMap::new(),
@@ -5740,10 +5839,10 @@ mod tests {
     #[test]
     fn normal_selector_refuses_a_building_best_candidate() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         set_actor_position(source, 0, 0);
@@ -5765,16 +5864,16 @@ mod tests {
     #[test]
     fn fight_skill_adopts_a_selected_building_and_enters_moving() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "steel_ball".to_owned(),
                     ..test_placement(0, 0, 0, 0)
                 },
                 test_placement(1, 0, 0, 200),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 200_000);
@@ -5840,14 +5939,14 @@ mod tests {
     #[test]
     fn normal_selector_keeps_the_first_native_quadtree_candidate_on_equal_score() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, -20, 100),
                 test_placement(1, 1, 20, 100),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         set_actor_position(source, 0, 0);
@@ -5860,14 +5959,14 @@ mod tests {
     #[test]
     fn normal_selector_scores_the_start_of_tick_snapshot() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 100),
                 test_placement(1, 1, 20, 100),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
@@ -5887,14 +5986,14 @@ mod tests {
     #[test]
     fn fight_skill_selector_scores_the_weapon_rotation_instead_of_the_root_body() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, -8, 94),
                 test_placement(1, 1, 3, 96),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 298, -64_312);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), -8_193, 29_690);
@@ -5921,9 +6020,9 @@ mod tests {
     #[test]
     fn grouped_bodyless_selector_scores_the_first_weapon_rotation() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "wraith".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -5931,7 +6030,7 @@ mod tests {
                 test_placement(1, 0, -8, 94),
                 test_placement(1, 1, 3, 96),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 298, -64_312);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), -8_193, 29_690);
@@ -5948,9 +6047,9 @@ mod tests {
     #[test]
     fn grouped_child_search_scores_the_owner_root_rotation() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "wraith".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -5958,7 +6057,7 @@ mod tests {
                 test_placement(1, 0, -8, 94),
                 test_placement(1, 1, 3, 96),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 298, -64_312);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), -8_193, 29_690);
@@ -5979,14 +6078,14 @@ mod tests {
     #[test]
     fn has_body_attack_replacement_outside_range_exits_through_one_idle_tick() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 200),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation.actors.get_mut(&2).unwrap().life = 0;
         let source = simulation.actors.get_mut(&1).unwrap();
@@ -6009,9 +6108,9 @@ mod tests {
     #[test]
     fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "stormcaller".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -6019,7 +6118,7 @@ mod tests {
                 test_placement(1, 0, 0, 60),
                 test_placement(1, 1, 0, 100),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         for building in &mut simulation.buildings {
             building.targetable = false;
@@ -6110,14 +6209,14 @@ mod tests {
     #[test]
     fn has_body_attack_replacement_outside_weapon_angle_exits_through_idle() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 50),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation.actors.get_mut(&2).unwrap().life = 0;
         let source = simulation.actors.get_mut(&1).unwrap();
@@ -6135,10 +6234,10 @@ mod tests {
     #[test]
     fn entering_attack_defers_weapon_tracking_until_the_next_tick() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 50, 0)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 50, 0)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let initial_rotation = mdeg_to_degrees_q32(168_143);
         let source = simulation.actors.get_mut(&1).unwrap();
@@ -6165,15 +6264,15 @@ mod tests {
     #[test]
     fn same_tick_target_death_scores_live_candidate_positions() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 40),
                 test_placement(1, 2, 0, 60),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
@@ -6214,10 +6313,10 @@ mod tests {
     #[test]
     fn completed_bodyless_melee_attack_uses_one_idle_tick_before_reapproach() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -6240,10 +6339,10 @@ mod tests {
     #[test]
     fn completed_bodyless_melee_attack_uses_idle_before_an_out_of_angle_reentry() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 5)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 5)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 5_000);
@@ -6267,15 +6366,15 @@ mod tests {
     #[test]
     fn allied_kill_during_backswing_retains_the_dead_target_until_finish() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(0, 1, 0, 10),
                 test_placement(1, 0, 0, 100),
                 test_placement(1, 1, 0, 110),
             ],
-        };
+        );
         for type_name in ["crawler", "wasp"] {
             let mut simulation = raw_test_simulation(&layout, &config, 7);
             let source = simulation.actors.get_mut(&1).unwrap();
@@ -6326,10 +6425,10 @@ mod tests {
     #[test]
     fn final_same_tick_allied_kill_retains_the_dead_backswing_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("crawler").unwrap().clone());
@@ -6354,14 +6453,14 @@ mod tests {
     #[test]
     fn later_final_enemy_death_does_not_clear_an_own_kill_backswing_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 100),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("crawler").unwrap().clone());
@@ -6387,14 +6486,14 @@ mod tests {
     #[test]
     fn bodyless_attack_defers_a_dead_target_replacement_outside_attack_area() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 100),
             ],
-        };
+        );
         for type_name in ["crawler", "fang"] {
             let mut simulation = raw_test_simulation(&layout, &config, 7);
             let source = simulation.actors.get_mut(&1).unwrap();
@@ -6424,14 +6523,14 @@ mod tests {
     #[test]
     fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, -50),
                 test_placement(1, 1, 0, -40),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("fang").unwrap().clone());
@@ -6454,10 +6553,10 @@ mod tests {
     #[test]
     fn bodyless_projectile_idle_entry_holds_for_turning() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, -20, 50)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, -20, 50)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("fang").unwrap().clone());
@@ -6475,14 +6574,14 @@ mod tests {
     #[test]
     fn bodyless_quick_switch_replaces_a_dead_target_immediately_in_range() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 40),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation.team_random.insert(0, GrRandom::new(7));
         let source = simulation.actors.get_mut(&1).unwrap();
@@ -6514,14 +6613,14 @@ mod tests {
     #[test]
     fn bodyless_non_quick_switch_defers_an_in_range_dead_target_replacement() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 2),
                 test_placement(1, 1, 0, 4),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("crawler").unwrap().clone());
@@ -6540,10 +6639,10 @@ mod tests {
     #[test]
     fn bodyless_melee_attack_motion_exits_through_idle_when_target_leaves_range() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -6565,10 +6664,10 @@ mod tests {
     #[test]
     fn bodyless_projectile_attack_motion_exits_through_idle_when_target_leaves_range() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -6592,10 +6691,10 @@ mod tests {
     #[test]
     fn bodyless_melee_retains_target_while_motion_attack_is_held() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -6617,10 +6716,10 @@ mod tests {
     #[test]
     fn rejected_bodyless_melee_active_attack_reopens_idle_search_before_release() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -6649,14 +6748,14 @@ mod tests {
     #[test]
     fn bodyless_attack_cancels_a_pending_attack_when_an_ally_kills_its_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 100),
                 test_placement(1, 1, 20, 100),
             ],
-        };
+        );
         for type_name in ["crawler", "fang"] {
             let mut simulation = raw_test_simulation(&layout, &config, 7);
             let source = simulation.actors.get_mut(&1).unwrap();
@@ -6696,10 +6795,10 @@ mod tests {
     #[test]
     fn laser_own_kill_retains_then_clears_the_dead_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("steel_ball").unwrap().clone());
@@ -6737,10 +6836,10 @@ mod tests {
     #[test]
     fn laser_own_kill_skips_the_same_tick_bodyless_rotation() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 20)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("steel_ball").unwrap().clone());
@@ -6766,14 +6865,14 @@ mod tests {
     #[test]
     fn bodyless_quick_switch_retargets_a_pending_attack_in_attack_area() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 0, 40),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get("fang").unwrap().clone());
@@ -6797,9 +6896,9 @@ mod tests {
     #[test]
     fn direct_splash_emits_one_damage_event_per_actual_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -6807,7 +6906,7 @@ mod tests {
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 1, 20),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 1_000, 20_000);
@@ -6839,16 +6938,16 @@ mod tests {
     #[test]
     fn direct_kill_emits_damage_before_death_with_raw_target_position() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(0, 0, 0, 0)
                 },
                 test_placement(1, 0, 0, 20),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let target = simulation.actors.get_mut(&2).unwrap();
         target.life = 1;
@@ -6876,14 +6975,14 @@ mod tests {
     #[test]
     fn zero_radius_direct_attack_does_not_damage_an_overlapping_secondary_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 test_placement(1, 0, 0, 20),
                 test_placement(1, 1, 1, 20),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation
             .actors
@@ -6908,16 +7007,16 @@ mod tests {
     #[test]
     fn direct_splash_refuses_a_building_before_unit_damage() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(0, 0, 0, 0)
                 },
                 test_placement(1, 0, 0, 20),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         let building = simulation
@@ -6938,9 +7037,9 @@ mod tests {
     #[test]
     fn projectile_splash_emits_one_damage_event_per_actual_target() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 Placement {
                     type_name: "rhino".to_owned(),
@@ -6951,7 +7050,7 @@ mod tests {
                     ..test_placement(1, 1, 1, 20)
                 },
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 1_000, 20_000);
@@ -7011,9 +7110,9 @@ mod tests {
     #[test]
     fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "wraith".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -7027,7 +7126,7 @@ mod tests {
                     ..test_placement(1, 1, 0, 20)
                 },
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 0, 20_000);
@@ -7067,10 +7166,10 @@ mod tests {
     #[test]
     fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         simulation.actors.get_mut(&1).unwrap().life = 0;
         simulation.projectiles.push(Projectile {
@@ -7112,16 +7211,16 @@ mod tests {
     #[test]
     fn projectile_splash_refuses_a_secondary_building_before_damage() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 test_placement(0, 0, 0, 0),
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(1, 0, 0, 20)
                 },
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         let building = simulation
@@ -7166,16 +7265,16 @@ mod tests {
     #[test]
     fn rvo_solves_a_collision_building_inside_the_influence_bound() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(0, 0, 0, 0)
                 },
                 test_placement(1, 0, 0, 100),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -7198,9 +7297,9 @@ mod tests {
     #[test]
     fn rvo_q32_boundary_uses_raw_distance_not_snapshot_rounding() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -7208,7 +7307,7 @@ mod tests {
                 test_placement(1, 0, 0, 100),
                 test_placement(1, 1, 1, 68),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position_q32(
             simulation.actors.get_mut(&1).unwrap(),
@@ -7256,9 +7355,9 @@ mod tests {
     #[test]
     fn rvo_allows_a_coarse_tree_hit_outside_candidate_relative_travel() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "rhino".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -7266,7 +7365,7 @@ mod tests {
                 test_placement(1, 0, 0, 100),
                 test_placement(1, 1, 75, 0),
             ],
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
@@ -7281,9 +7380,9 @@ mod tests {
     #[test]
     fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 0,
@@ -7321,7 +7420,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let mut simulation = Simulation::new(
             &layout,
             &config.units,
@@ -7485,9 +7584,9 @@ mod tests {
     #[test]
     fn multi_member_identity_is_assigned_after_generation_and_shared_by_formation() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![Placement {
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![Placement {
                 team: 0,
                 unit_id: 0,
                 formation_id: 0,
@@ -7499,7 +7598,7 @@ mod tests {
                 rotated: false,
                 corrections: Vec::new(),
             }],
-        };
+        );
         let actors = initialize_actors(&layout, &config.units, 1_787_601_811).unwrap();
         assert_eq!(actors.len(), 24);
         assert!(
@@ -7536,9 +7635,9 @@ mod tests {
     #[test]
     fn grouped_skills_prime_one_attack_interval_sample_per_child() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "wraith".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -7548,7 +7647,7 @@ mod tests {
                     ..test_placement(1, 0, 0, 100)
                 },
             ],
-        };
+        );
         let mut simulation =
             Simulation::new(&layout, &config.units, &config.training_ground, 7).unwrap();
 
@@ -7561,9 +7660,9 @@ mod tests {
     #[test]
     fn grouped_core_replacement_swaps_or_shares_existing_child_targets() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     type_name: "wraith".to_owned(),
                     ..test_placement(0, 0, 0, 0)
@@ -7573,7 +7672,7 @@ mod tests {
                 test_placement(1, 2, 0, 50),
                 test_placement(1, 3, 0, 80),
             ],
-        };
+        );
         let mut swap = raw_test_simulation(&layout, &config, 7);
         let source = swap.actors.get_mut(&1).unwrap();
         source.motion = MotionState::Attacking;
@@ -7618,15 +7717,15 @@ mod tests {
     #[test]
     fn grouped_core_search_assigns_the_core_before_children() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: std::iter::once(Placement {
+        let layout = CompiledLayout::of_units(
+            1,
+            std::iter::once(Placement {
                 type_name: "wraith".to_owned(),
                 ..test_placement(0, 0, 0, 0)
             })
             .chain((0..6).map(|index| test_placement(1, index, 0, 40 + i64::from(index))))
             .collect(),
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.motion = MotionState::Attacking;
@@ -7655,15 +7754,15 @@ mod tests {
     #[test]
     fn grouped_child_replacements_follow_skill_order() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: std::iter::once(Placement {
+        let layout = CompiledLayout::of_units(
+            1,
+            std::iter::once(Placement {
                 type_name: "wraith".to_owned(),
                 ..test_placement(0, 0, 0, 0)
             })
             .chain((0..6).map(|index| test_placement(1, index, 0, 40 + i64::from(index))))
             .collect(),
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.motion = MotionState::Attacking;
@@ -7696,15 +7795,15 @@ mod tests {
     #[test]
     fn grouped_intervening_attack_rebalances_the_later_missing_child() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: std::iter::once(Placement {
+        let layout = CompiledLayout::of_units(
+            1,
+            std::iter::once(Placement {
                 type_name: "wraith".to_owned(),
                 ..test_placement(0, 0, 0, 0)
             })
             .chain((0..6).map(|index| test_placement(1, index, 0, 40 + i64::from(index))))
             .collect(),
-        };
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.motion = MotionState::Attacking;
@@ -7777,9 +7876,9 @@ mod tests {
 
     #[test]
     fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -7805,7 +7904,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -7914,10 +8013,10 @@ mod tests {
     #[test]
     fn zero_published_speed_still_snaps_a_tolerance_equal_rvo_delta() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let actor = simulation.actors.get_mut(&1).unwrap();
         actor.x_q32 = 1_717_060_204_994;
@@ -7956,10 +8055,10 @@ mod tests {
     #[test]
     fn stopped_snap_reset_expires_on_a_moving_tick_before_the_rvo_boundary() {
         let config = SimulationConfig::load().unwrap();
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
-        };
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 100)],
+        );
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let actor = simulation.actors.get_mut(&1).unwrap();
         actor.motion = MotionState::Moving;
@@ -7976,9 +8075,9 @@ mod tests {
 
     #[test]
     fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8004,7 +8103,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8036,9 +8135,9 @@ mod tests {
 
     #[test]
     fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8064,7 +8163,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8100,9 +8199,9 @@ mod tests {
 
     #[test]
     fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8128,7 +8227,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8233,9 +8332,9 @@ mod tests {
 
     #[test]
     fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_position() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8261,7 +8360,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8311,9 +8410,9 @@ mod tests {
     #[test]
     #[allow(clippy::too_many_lines)]
     fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8339,7 +8438,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8419,9 +8518,9 @@ mod tests {
 
     #[test]
     fn tick_fifteen_aim_uses_raw_q32_positions() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8447,7 +8546,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8482,9 +8581,9 @@ mod tests {
 
     #[test]
     fn projectile_raw_target_cache_preserves_rounding_sequence() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8510,7 +8609,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,
@@ -8553,9 +8652,9 @@ mod tests {
 
     #[test]
     fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
-        let layout = CompiledLayout {
-            round: 1,
-            placements: vec![
+        let layout = CompiledLayout::of_units(
+            1,
+            vec![
                 Placement {
                     team: 0,
                     unit_id: 1,
@@ -8581,7 +8680,7 @@ mod tests {
                     corrections: Vec::new(),
                 },
             ],
-        };
+        );
         let config = SimulationConfig::load().unwrap();
         let mut simulation = Simulation::new(
             &layout,

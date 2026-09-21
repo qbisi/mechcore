@@ -1,0 +1,33 @@
+kind: layout
+round: 1
+
+# A wall that nothing in the fight reaches.
+#
+# One Marksman against one Arclight, the fight `marksman-vs-arclight.yaml`
+# pins, moved to the right-hand side of the board so that blue's Defensive Wall
+# can stand in its own slot on the left. Both units are at world x = 140 and
+# the nearest block of the wall is at `(-116, -55)`, 256 metres away against
+# reaches of 140 and 95, and neither unit moves towards it.
+#
+# So the fight has to come out the same as the one beside it that places no
+# wall, tick for tick. That is what says a construction's objects are placed
+# and then left alone.
+#
+# The wall's position is not free: the game refuses a release anywhere but the
+# map's own construction slots, so `(-140, -55)` is chosen because it is one.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 140, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: -140, y: -50}

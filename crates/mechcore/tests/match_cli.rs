@@ -302,13 +302,15 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(fought["phase"], "fight");
     // The fight is run from the position the round ends in, so what stops it
     // is what the simulator says about that position. Every opening hands its
-    // side an officer and a construction; the officer is applied now, so the
-    // construction is what a real match meets first.
+    // side an officer, a Defensive Wall and a turret. The officer is applied
+    // and so is the wall, so what a real match meets first is now the turret —
+    // and the refusal names the construction rather than the field, because
+    // the field itself is understood.
     let unresolved = fought["unresolved"].as_str().unwrap();
     assert!(
         unresolved.contains(
-            "round 1 is not fought: side blue needs modules this build has not \
-             implemented: constructions (FightConstructionSystem)"
+            "round 1 is not fought: side blue: construction 3 (速射炮) attacks for 82, \
+             and no mechanism here fires a construction's skill"
         ),
         "{unresolved}"
     );

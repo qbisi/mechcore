@@ -17,7 +17,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 | --- | --- | ---: |
 | ~~`officers`~~ | ~~Modifier~~ | **已落地**（曾是 334，100%） |
 | ~~`techs`~~ | ~~Modifier~~ | **已落地**（曾是 256，76%） |
-| `constructions` | FightConstructionSystem | 322 (96%) |
+| ~~`constructions`~~ | ~~FightConstructionSystem~~ | **防御墙已落地**（曾是 322，96%；炮台仍拒绝，30 个回合） |
 | 单位 `level` > 1 | Modifier | 276 (82%) |
 | `battle_skills` | CommanderSkillSystem | 176 (52%) |
 | 单位 `equipment` | Modifier | 167 (50%) |
@@ -42,7 +42,8 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 `tests/layouts/modifier/` 下同时放着 fixture、录制脚本（要游戏）和
 `regressions.mcscript`（不要游戏，CI 跑的就是它）。fixture、它量出来的数、守着它的回归，
 是一起读、一起搬的一件东西。攻击间隔随机流是另一个问题，所以它在
-`tests/layouts/interval/`——**按问题归类，不按工具**。
+`tests/layouts/interval/`，工事在 `tests/layouts/construction/`——**按问题归类，不按
+工具**。
 
 上面那张表和下面这串数都出自
 [`scripts/fight-coverage.py`](scripts/fight-coverage.py)，而且**是问二进制自己要的**：
@@ -50,15 +51,18 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 这样涨：
 
 ```text
-+ FightConstructionSystem        28/334
-+ Modifier                        79/334
-+ CommanderSkillSystem          102/334
-+ InterceptSystem               139/334
-+ BuildingSystem                233/334
-+ SuperDeploymentSystem         325/334
-+ RangeItemSystem               330/334
-+ AdvancedEnergyShieldSystem    334/334
++ Modifier                        49/334
++ CommanderSkillSystem            72/334
++ InterceptSystem               109/334
++ BuildingSystem                203/334
++ SuperDeploymentSystem         295/334
++ RangeItemSystem               300/334
++ AdvancedEnergyShieldSystem    304/334
 ```
+
+天花板从 334 掉到 304，是因为 30 个回合的工事里有炮台，而炮台被指名拒绝——这
+30 个不是哪个模块落地能解的，是 `FightConstructionSystem` 自己欠的那一半。剩下
+292 个回合的 `constructions` 已经满足了。
 
 `Modifier` 还排在第二，因为它认领的另外三个字段（科技、装备、等级）还欠各自的效果表。
 军官那一份已经装上：`crates/simulation/src/officers.rs` 把 79 行里的 **47** 行应用到目标
@@ -137,6 +141,22 @@ architecture.md 的 Unresolved 里。
 顺序是用铁锤的攻击间隔量出来的。还没量的只剩**同一个数被两条通道同时修正时 property
 怎么合**，`resolve` 对它照旧拒绝而不是猜。
 
+## 收在这里的：工事机制研究
+
+防御墙落地了，它带出来的问题收在这儿（`docs/rules/constructions.md` 有全部读数）：
+
+- **什么让单位去打墙。** 墙不是"搜索目标"（`IsEnableSearchTarget` 为 false，
+  正对它部署的爬虫第 1 tick 锁的是墙后面的单位），但它们后来照样打它。build 里
+  有 `WallConstructionTargetChecker`，没读过。**这是模拟器现在唯一会静默错的地
+  方**：墙摆上去了，永远不会被打。
+- **炮台怎么开火。** 两种炮台各带一个 `skill_id` 和 2748／82 的伤害，这里没有任
+  何机制点得着工事的技能。30 个回合卡在这。
+- **释放到底需要什么。** 这个 build 只放得下"开局自带"的那些工事：同一份布阵换
+  个种子、或者把墙挪到 `(-140, -105)`，释放就被拒绝。磁力路障因此也一次都没放
+  成——所以多行工事的几何还是空的。
+- **多行工事的几何。** 墙那一排 12 米是量出来的，`block_width`／`space` 解释不
+  了它，唯一能把公式和"凑上一次读数"分开的磁力路障放不下去。
+
 ## 二、模块并行，按登记表分工
 
 登记表已经把十二个字段分给了七个模块，所以分工就是模块，几条线可以同时走：
@@ -144,7 +164,7 @@ architecture.md 的 Unresolved 里。
 | 模块 | 认领的字段 | 验收面 |
 | --- | --- | --- |
 | **Modifier**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment`、单位 `level` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
-| **FightConstructionSystem** | `constructions` | 录像的 `buildings`（内核已经有塔了） |
+| ~~**FightConstructionSystem**~~ | `constructions` | 防御墙已落地，炮台指名拒绝 |
 | **BuildingSystem** | `energy_tower_skills`、`tower_strengthen_levels` | 录像的 `buildings` |
 | **CommanderSkillSystem** | `battle_skills` | 录像的 `terrains`、`shields` 和释放事件 |
 | **RangeItemSystem** | `terrains` | 录像的 `terrains`，[terrain.md](docs/rules/terrain.md) 已有机制 |
@@ -255,6 +275,10 @@ Unity 对象里，还要各解析一次。
   的派生值，以及科技是否被禁用。
 - **修饰符（`Modifier` 模块）**：军官 61/79、科技 125/137 落地，合成规则四条子句全部
   对着游戏量完。`tests/layouts/modifier/` 十二条离线回归钉住物理和内容两层哈希。
+- **工事（`FightConstructionSystem`）**：一条 `constructions` 落到战斗里是 `count` 个
+  对象——防御墙五块、每块 1112 命、相隔 12 米，都是对着游戏量的。墙摆得对、谁也挡不
+  住，逐 tick 和原生录像对上；炮台会开火，指名拒绝。`fight buildings` 把录像里的
+  building 行匹配回布阵的落点。
 - **MCFR 0.6.0**：录像带上派生值（移速、射程、伤害、当前攻击间隔），两个后端逐周期
   一致；物理层一位没动。
 
@@ -283,9 +307,9 @@ Unity 对象里，还要各解析一次。
 ## 顺序
 
 1. ~~架构三件事~~ 和 ~~修饰符~~ 都做完了。
-2. **回到广度**：按贪心序，下一个模块是 `FightConstructionSystem`——它一个模块就把
-   30 个回合带进闭包（今天是 0 个），是唯一一个"落地即见数"的模块。之后是
-   `CommanderSkillSystem`、`InterceptSystem`、`BuildingSystem`。
+2. **回到广度**：`FightConstructionSystem` 的防御墙那一半做完了，292 个回合的
+   `constructions` 因此满足。按贪心序下一个是 `Modifier` 欠的那三个字段（等级、
+   装备），然后 `CommanderSkillSystem`、`InterceptSystem`、`BuildingSystem`。
 3. 与之并行的是剩下两张效果表（装备、能量塔技能）：同一个
    `ICommonMechDataChangeDataSource` 接口，表的形状已经定了，`Modifier` 接上就是
    改一行 `understood`。

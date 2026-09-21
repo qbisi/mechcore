@@ -1,0 +1,29 @@
+# The wall fixture, replayed through the simulator.
+#
+#   mechcore run tests/layouts/construction/regressions.mcscript
+#
+# This needs no game, which is why CI runs it: the hash below is what the game
+# recorded, and the simulator has to reproduce it tick for tick from the layout
+# and the seed alone. The recording itself lives under `work/`, which is not
+# tracked; what is tracked is what it decided.
+#
+# `placement.mcscript` is the other half. It launches the game, records the
+# same layout and the same fight without the wall, and asserts that the two
+# recordings differ in their buildings and in nothing else.
+#
+# Only the physics hash is pinned. The content hash of this recording and of
+# the same fight without a wall both differ from the simulator's, so the gap is
+# not the wall's and pinning it here would pin somebody else's bug.
+
+steps:
+  # A Defensive Wall, 256 metres from either unit, changes nothing about the
+  # fight and everything about what is standing in it. The hash covers both:
+  # it is the game's, and it holds the five blocks as well as the two units.
+  - fight.run:
+      layout: tests/layouts/construction/wall-aside.yaml
+      seed: 4242
+    expect:
+      steps: 91
+      winner: red
+      teams.1.remaining_life: 155
+      hashes.physics_result_hash: 4523d7309ed89aa0fd1fb43a067f4d914af4d655b8da94b43cec9ac8878f0927

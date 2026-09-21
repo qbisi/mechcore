@@ -12,6 +12,11 @@
 //! and a technology and refuses the equipment beside them, because two of the
 //! four effect tables are extracted. The loop that drives them is never edited
 //! for a mechanism.
+//!
+//! A module that understands a field can still refuse one member of it, and
+//! the refusal then names the thing rather than the field:
+//! `FightConstructionSystem` places a Defensive Wall and refuses a turret,
+//! because a turret attacks and nothing here fires a construction's skill.
 
 use mechcore_document::SidePlan;
 
@@ -196,8 +201,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "FightConstructionSystem",
         claims: &[Field::Constructions],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::Constructions],
+        implemented: true,
     },
     // The only one that is implemented: units, their movement, their targets,
     // their attacks and what those do.
@@ -451,6 +456,7 @@ mod tests {
         let loaded = plan(
             "kind: layout\nround: 1\nblue:\n  officers: [supply_specialist]\n  \
              constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]\n  \
+             battle_skills: [{name: missile_strike, positions: [{x: 0, y: 40}]}]\n  \
              units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 3}]\nred:\n  \
              units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
         );
@@ -461,10 +467,11 @@ mod tests {
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
             [
-                ("constructions", "FightConstructionSystem"),
+                ("battle skills", "CommanderSkillSystem"),
                 ("units above level one", "Modifier"),
             ],
-            "officers are understood; the level beside them is not"
+            "officers and the construction beside them are understood; the \
+             level and the skill are not"
         );
     }
 

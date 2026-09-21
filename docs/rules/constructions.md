@@ -61,11 +61,15 @@ metres of the deployment grid — but the index carries no method bodies and the
 interface slots it dispatches through cannot be named from it.
 
 The one construction that would separate a rule from a fitted number is the
-Magnetic Barrier, the only row whose `real_row_count` is 2. **This build cannot
-place one.** A layout compiles it and the release action is created and
-performed, and `ConstructionManager` then holds no element at that index, so
-the game refuses it somewhere the adapter cannot see. Until that is reachable,
-the spacing is a measurement of a wall and not a formula.
+Magnetic Barrier, the only row whose `real_row_count` is 2, and **nothing has
+placed one**. Its release is refused: the action is created and performed and
+`ConstructionManager` then holds no element at that index. That is not a fact
+about the barrier — the same refusal answers a Defensive Wall released at
+`(-140, -105)` or `(-260, -295)`, and a Defensive Wall at `(-140, -55)` under a
+seed whose opening does not already stand there. **What a release needs beyond
+the opening's own constructions is not established.** Until it is, every
+construction this build can put on a board is one its opening dealt, and the
+spacing is a measurement of a wall rather than a formula.
 
 ## A Defensive Wall is a target and not an obstacle
 
@@ -94,6 +98,14 @@ through, because the other side's units go through as well.
 **The scope is a Crawler.** Whether a unit large enough not to fit between two
 blocks is held by them has not been measured, and neither has any construction
 other than the wall.
+
+**What makes a unit attack a wall is not established.** A wall is not something
+a unit searches for — its row answers `IsEnableSearchTarget` with false, and
+Crawlers deployed opposite one lock onto the unit behind it at tick one, not
+onto the wall. They attack it later all the same, and a Marksman standing
+opposite one destroys a block without ever having searched for it. The build
+carries a `WallConstructionTargetChecker` and what it decides has not been
+read.
 
 ## What the footprint is and what it is not
 
@@ -130,7 +142,7 @@ The map's own buildings are the exception and are named: each side gets one
 
 Everything above is build 2259 and the 1v1 board. It covers what stands when a
 fight begins, and whether a Crawler-sized unit is held by a Defensive Wall. It
-does not cover what a turret's skill is, what a Magnetic Barrier does to what
+does not cover what makes a unit attack a wall, what a turret's skill is, what a Magnetic Barrier does to what
 comes near it, what a unit too large for the gaps between blocks does, what
 destroying a construction pays, or what any of it costs —
 [`economy.yaml`](../../config/economy.yaml) carries the recovery price and

@@ -4,6 +4,7 @@ use mechcore_document::{NativeFormation, SidePlan};
 
 use crate::{
     Error, Result,
+    constructions::{ConstructionBuilding, Constructions},
     data::{Channel, Entry, Stats},
     officers::OfficerEffects,
     rules::{UnitConfig, UnitConfigs},
@@ -33,6 +34,23 @@ pub(crate) struct Placement {
 pub(crate) struct CompiledLayout {
     pub(crate) round: u32,
     pub(crate) placements: Vec<Placement>,
+    /// The buildings this layout's constructions put on the board, both sides
+    /// together. One `constructions` entry answers several of them, and the
+    /// fight sees buildings rather than constructions, so the placement they
+    /// came from is not carried past here.
+    pub(crate) constructions: Vec<ConstructionBuilding>,
+}
+
+impl CompiledLayout {
+    /// A layout of units and nothing else, which is what a kernel test builds.
+    #[cfg(test)]
+    pub(crate) fn of_units(round: u32, placements: Vec<Placement>) -> Self {
+        Self {
+            round,
+            placements,
+            constructions: Vec::new(),
+        }
+    }
 }
 
 pub(crate) fn load(
@@ -104,13 +122,38 @@ pub(crate) fn compile_with_seed(
     let mut placements = compile_side("blue", 0, &plan.blue, units, &loadouts)?;
     placements.extend(compile_side("red", 1, &plan.red, units, &loadouts)?);
 
+    // Both sides' constructions are resolved here rather than in the kernel,
+    // because this is the only place a refusal can still name the side and the
+    // construction it is about.
+    let table = Constructions::load()?;
+    let mut constructions = compile_constructions("blue", 0, &plan.blue, &table)?;
+    constructions.extend(compile_constructions("red", 1, &plan.red, &table)?);
+
     Ok((
         plan.seed,
         CompiledLayout {
             round: u32::try_from(plan.round).expect("validated layout round is positive"),
             placements,
+            constructions,
         },
     ))
+}
+
+fn compile_constructions(
+    name: &str,
+    team: u32,
+    side: &SidePlan,
+    table: &Constructions,
+) -> Result<Vec<ConstructionBuilding>> {
+    let mut built = Vec::new();
+    for placement in &side.constructions {
+        built.extend(
+            table
+                .buildings(team, placement)
+                .map_err(|error| Error::new(format!("side {name}: {error}")))?,
+        );
+    }
+    Ok(built)
 }
 
 fn compile_side(
@@ -340,17 +383,39 @@ red:
         assert!(layout.placements[1].corrections.is_empty());
     }
 
+    /// A Defensive Wall reaches the fight as the five buildings it is, and
+    /// the layout that carries it compiles.
     #[test]
-    fn rejects_constructions_outside_the_baseline_slice() {
+    fn a_wall_reaches_the_fight_as_five_buildings() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]",
         );
+        let layout = compile_default(&value).unwrap();
+        assert_eq!(layout.constructions.len(), 5);
         assert_eq!(
-            compile_default(&value).unwrap_err().to_string(),
-            "side blue needs modules this build has not implemented: \
-             constructions (FightConstructionSystem)"
+            layout
+                .constructions
+                .iter()
+                .map(|building| building.x / 1_000)
+                .collect::<Vec<_>>(),
+            [116, 128, 140, 152, 164]
         );
+    }
+
+    /// A construction this build will not place refuses the side that carries
+    /// it, and the refusal names the construction rather than the field: the
+    /// field is understood and this one member of it is not.
+    #[test]
+    fn a_turret_refuses_the_side_that_placed_it() {
+        let value = LAYOUT.replace(
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: anti_armor_turret, index: 0, position: {x: 140, y: -100}}]",
+        );
+        let refused = compile_default(&value).unwrap_err().to_string();
+        assert!(refused.contains("side blue"), "{refused}");
+        assert!(refused.contains("construction 2"), "{refused}");
+        assert!(refused.contains("attacks for 2748"), "{refused}");
     }
 
     #[test]
