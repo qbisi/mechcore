@@ -1,0 +1,38 @@
+kind: layout
+round: 1
+
+# What does one `constructions` entry become in a fight?
+#
+# Blue carries one of each construction a ranked match deals with; red carries
+# none and is the control, so the two towers every map gives a side are
+# separable from what a layout placed.
+#
+# The positions and the index order are `construction-battle.yaml`'s, which are
+# build-2227 opening group 28 as replay R002 recorded it: positions the game is
+# known to accept, in the order the Training Ground's own opening allocates
+# them, so the wall and the rapid-fire turret are retained and only the
+# anti-armor turret is released.
+#
+# One Marksman a side ends the fight. Neither stands near a construction.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+    - name: rapid_fire_turret
+      index: 1
+      position: {x: 140, y: -100}
+    - name: anti_armor_turret
+      index: 2
+      position: {x: -140, y: -100}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -150}
+
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -150}

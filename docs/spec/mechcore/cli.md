@@ -445,6 +445,7 @@ reaches the game reaches it here, rather than around it.
 | `fight run <layout.yaml>` | simulates one fight from a layout, optionally writing a recording |
 | `fight outcome <recording.mcfr>` | answers what a recorded fight decided |
 | `fight stats <recording.mcfr>` | answers a unit's numbers and the corrections behind them |
+| `fight buildings <recording.mcfr>` | answers what is standing: the map's towers, and what each construction became |
 | `fight compare <left.mcfr> <right.mcfr>` | compares two recordings and names the first tick they differ at |
 | `fight verify <recording.mcfr>...` | simulates each recording's own layout again and compares the result with the recording |
 
@@ -484,6 +485,24 @@ has moved it yet. A mechanism that writes during the fight is read at the tick
 it is expected at. A formation answers whether or not it survives, because the
 side that spends a correction attacking is commonly the side that loses the
 unit carrying it.
+
+`fight buildings` reads the same recording for the objects standing in it, and
+takes the same `--tick <n>`. A side answers its `towers` — the buildings the
+map gives it, which no layout places — and its `constructions`, one entry per
+layout placement in index order.
+
+**A construction is not one object.** `FightConstructionSystem.Create` answers
+a list of them, so a placement owns as many buildings as its description says
+and each of them is its own row with its own life; `parts` is those rows. A
+recording records a building's `BuildingType` and not the construction that
+released it, so the rows are matched back to the layout the recording embeds by
+the one thing the two share, where a thing stands. A building that belongs to
+no single placement is refused rather than assigned. An empty `parts` is a
+reading: every object that placement owned is gone.
+
+Positions, bounds and every other length are the recording's own fixed point,
+`1 << 32` to the metre, as `fight stats` reports a derived number in.
+[constructions.md](../../rules/constructions.md) is what reads them that way.
 
 [mcfr.md](../mcfr/mcfr.md) defines what a recording holds and what makes two of
 them equal.

@@ -1,9 +1,10 @@
 //! The `fight` namespace: one fight, simulated or compared.
 //!
 //! `run` simulates a layout, `outcome` reads what a recorded fight decided,
-//! `stats` reads a unit's numbers and the corrections behind them, `compare`
-//! puts two recordings side by side, and `verify` simulates a recording's own
-//! layout again and compares the result with what the recording holds.
+//! `stats` reads a unit's numbers and the corrections behind them, `buildings`
+//! reads the towers and constructions standing in it, `compare` puts two
+//! recordings side by side, and `verify` simulates a recording's own layout
+//! again and compares the result with what the recording holds.
 
 use std::path::{Path, PathBuf};
 
@@ -20,15 +21,17 @@ use crate::cli::{Args, Failure, Outcome, Verdict};
 /// Returns a usage failure for a verb this namespace does not hold, and
 /// whatever the verb returns otherwise.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
-    let verb = arguments.operand("a verb: run, outcome, stats, compare or verify")?;
+    let verb = arguments.operand("a verb: run, outcome, stats, buildings, compare or verify")?;
     let outcome = match verb.as_str() {
         "run" => simulate(arguments),
         "outcome" => outcome(arguments),
         "stats" => stats(arguments),
+        "buildings" => buildings(arguments),
         "compare" => compare_recordings(arguments),
         "verify" => verify(arguments),
         other => Err(Failure::usage(format!(
-            "fight has no verb {other:?}; it has run, outcome, stats, compare and verify"
+            "fight has no verb {other:?}; it has run, outcome, stats, buildings, compare \
+             and verify"
         ))),
     };
     outcome.map_err(|failure| failure.at(format!("fight.{verb}")))
@@ -63,6 +66,21 @@ fn stats(mut arguments: Args) -> Outcome {
     arguments.finish()?;
     let written = crate::stats::read(&recording, tick)?;
     crate::cli::emit(&written, format)?;
+    Ok(Verdict::Yes)
+}
+
+/// Answers what is standing in a recording at one tick.
+///
+/// A construction is several objects rather than one, and a recording says
+/// what each of them is without saying which construction released it, so this
+/// reads the rows back against the layout the recording embeds.
+fn buildings(mut arguments: Args) -> Outcome {
+    let format = arguments.format()?;
+    let tick = arguments.parsed::<u32>("--tick", "a tick the recording holds")?;
+    let recording = arguments.path("a recording of a fight")?;
+    arguments.finish()?;
+    let standing = crate::buildings::read(&recording, tick)?;
+    crate::cli::emit(&standing, format)?;
     Ok(Verdict::Yes)
 }
 
