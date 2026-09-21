@@ -136,6 +136,13 @@ pub(crate) struct UnitTargetRefsObservation {
     pub(crate) normal_skill_fields_available: bool,
     pub(crate) skill_lock_target: Option<ObjectRef>,
     pub(crate) skill_attack_target: Option<ObjectRef>,
+    /// The main skill's `SkillStateController` state, by class name.
+    pub(crate) skill_state: Option<String>,
+    /// Which of `SkillAttackController`'s phases is current: `before`,
+    /// `attacking` or `after`, while the skill attacks.
+    pub(crate) skill_attack_phase: Option<&'static str>,
+    /// `FightSkillBase.IsIdle`.
+    pub(crate) skill_is_idle: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -579,6 +586,7 @@ struct Metadata {
     fight_skill_class: Option<usize>,
     fight_skill_lock_target: Option<usize>,
     fight_skill_attack_target: Option<usize>,
+    skill_state_fields: Option<SkillStateFields>,
     rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
     selector_score_available: bool,
@@ -1737,6 +1745,29 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let fight_skill_attack_target = fight_skill
             .and_then(|class| api.field(class, "attackTarget").ok())
             .map(|field| field as usize);
+        let skill_state_fields = (|| {
+            let skill = fight_skill?;
+            let skill_base = api
+                .class("GRFight.dll", "GameRiver.Fight", "FightSkillBase")
+                .ok()?;
+            let controller = api
+                .class("GRFight.dll", "GameRiver.Fight", "SkillStateController")
+                .ok()?;
+            let attack = api
+                .class("GRFight.dll", "GameRiver.Fight", "SkillAttackController")
+                .ok()?;
+            let field = |class, name| api.field(class, name).ok().map(|field| field as usize);
+            Some(SkillStateFields {
+                state_controller: field(skill, "stateController")?,
+                state_fsm: field(controller, "fsm")?,
+                attack_controller: field(skill, "attackController")?,
+                current: field(attack, "currentController")?,
+                before: field(attack, "attackWaitBeforeController")?,
+                attacking: field(attack, "attackingController")?,
+                after: field(attack, "attackWaitAfterController")?,
+                is_idle: field(skill_base, "<IsIdle>k__BackingField")?,
+            })
+        })();
         let damage_performer = api
             .class("GRFight.dll", "GameRiver.Fight", "DamagePerformer")
             .map_err(|error| error.to_string())?;
@@ -1827,6 +1858,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             fight_skill_class: fight_skill.map(|class| class as usize),
             fight_skill_lock_target,
             fight_skill_attack_target,
+            skill_state_fields,
             rvo,
             rvo_error,
             selector_score_available,
@@ -4705,6 +4737,22 @@ struct RawTargetRefs {
     normal_skill_fields_available: bool,
     skill_lock_target: usize,
     skill_attack_target: usize,
+    skill_state: Option<String>,
+    skill_attack_phase: Option<&'static str>,
+    skill_is_idle: Option<bool>,
+}
+
+/// The fields that name a skill's state machine state, resolved once.
+#[derive(Clone, Copy, Debug)]
+struct SkillStateFields {
+    state_controller: usize,
+    state_fsm: usize,
+    attack_controller: usize,
+    current: usize,
+    before: usize,
+    attacking: usize,
+    after: usize,
+    is_idle: usize,
 }
 
 struct RawBuilding {
@@ -6340,6 +6388,9 @@ fn snapshot(
                         "FightSkill.attackTarget",
                         capture,
                     )?,
+                    skill_state: refs.skill_state,
+                    skill_attack_phase: refs.skill_attack_phase,
+                    skill_is_idle: refs.skill_is_idle,
                 });
             }
             let target_refs = TargetRefsObservation {
@@ -6890,11 +6941,21 @@ fn read_unit(
             } else {
                 (0, 0)
             };
+            let (skill_state, skill_attack_phase, skill_is_idle) = match metadata.skill_state_fields
+            {
+                Some(fields) if normal_skill_fields_available => {
+                    read_skill_fsm_state(api, main_skill, fields)?
+                }
+                _ => (None, None, None),
+            };
             Some(RawTargetRefs {
                 mech_lock_target,
                 normal_skill_fields_available,
                 skill_lock_target,
                 skill_attack_target,
+                skill_state,
+                skill_attack_phase,
+                skill_is_idle,
             })
         }
         _ => None,
@@ -8225,6 +8286,53 @@ fn drain_selector_score_calls(capture: &mut CaptureState) -> SelectorScoreObserv
         })
         .collect();
     SelectorScoreObservation { score_calculations }
+}
+
+/// The main skill's state machine state, its attack phase, and `IsIdle`.
+type SkillStateReading = (Option<String>, Option<&'static str>, Option<bool>);
+
+fn read_skill_fsm_state(
+    api: Api,
+    skill: *mut Object,
+    fields: SkillStateFields,
+) -> Result<SkillStateReading, String> {
+    let object = |owner: *mut Object, field: usize| {
+        api.field_value::<*mut Object>(owner, field as *mut FieldInfo)
+            .map_err(|error| error.to_string())
+    };
+    let controller = object(skill, fields.state_controller)?;
+    let state = if controller.is_null() {
+        None
+    } else {
+        let fsm = object(controller, fields.state_fsm)?;
+        if fsm.is_null() {
+            None
+        } else {
+            let current = invoke_object(api, fsm, "GetCurrentState")?;
+            (!current.is_null()).then(|| api.object_class_name(current))
+        }
+    };
+    let attack = object(skill, fields.attack_controller)?;
+    let phase = if attack.is_null() {
+        None
+    } else {
+        let current = object(attack, fields.current)?;
+        if current.is_null() {
+            None
+        } else if current == object(attack, fields.before)? {
+            Some("before")
+        } else if current == object(attack, fields.attacking)? {
+            Some("attacking")
+        } else if current == object(attack, fields.after)? {
+            Some("after")
+        } else {
+            Some("other")
+        }
+    };
+    let is_idle = api
+        .field_value::<bool>(skill, fields.is_idle as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    Ok((state, phase, Some(is_idle)))
 }
 
 fn drain_skill_attackable_checker_calls(

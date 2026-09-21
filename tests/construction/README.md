@@ -29,8 +29,13 @@ released it.
 | `wall-laser.yaml` | a beam against a shot, the line's width at the centimetre, a block in the way of a unit's movement | the same rule; the line is **11.5** metres; asked while an attack is prepared; a block is an obstacle to the other side |
 
 `shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`,
-`attacks.mcscript` and `splash.mcscript` record them and carry every number as an `expect`, so a
-fixture and the measurement that reads it are one file to rerun.
+`attacks.mcscript` and `splash.mcscript` record them and carry every number
+as an `expect`, so a fixture and the measurement that reads it are one file to
+rerun. `skill-state.mcscript` records the wall fights once more with the
+`target_refs_v1` instrumentation, whose sidecar says which state each unit's
+skill is in and which attack phase it is in, tick by tick; that, not the
+recording, is where the rules read when a unit meets a block and how an attack
+on one ends.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
 simulator to the physics hash the game produced for `wall-aside.yaml`,
 `wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
@@ -96,8 +101,3 @@ if the blocks were solid.
 **Who a Crawler locks at the end of `wall-passage.yaml`.** Its physics agrees
 with the game on all 341 ticks; its content parts for four ticks from 327, in
 the locks and motion of Crawlers retargeting as the last enemy dies.
-
-**How long a unit stays idle once its block falls.** That it goes idle, drops
-its lock and keeps the fallen block in its weapon is reproduced. How long it
-stays so is not: the two recordings where it lasts more than a tick carry a
-Farseer and a Fortress, which the simulator cannot run.

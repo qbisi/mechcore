@@ -111,24 +111,28 @@ Steel Ball of the other side are what was measured moving against a block;
 a unit too large for the gaps between blocks, and every construction other
 than the wall, have not been.
 
-**A block that falls ends the attack on it, and the lock with it.** Once the
-attack on a block is over, a unit that struck it reads idle for a tick with an empty lock,
-and takes its next target the tick after — the next block in its line, or the
-unit behind the wall once the line is clear. A Marksman's fight is over the
-tick the shot lands; a Rhino's only when its swing is, and until then it reads
-attacking, still on the fallen block. What the idle tick shows as the weapon's
-target depends on the unit: a unit with a body — the Marksman, four Marksmen at
-once, a Fortress's two weapons — still names the fallen block, and a bodyless
-one — the Rhino, the Steel Balls — names nothing. A group of weapons drops
-every slot with the lock instead (below). Two recordings show the idle lasting
-longer, four ticks for a Marksman in `wall-line-width.yaml` and ten for the
-Fortress, in fights the simulator cannot run.
+**A block that falls ends the attack on it, and the lock with it.** This is
+the build's attack state, not something about walls. `SkillAttackState` checks
+its attack target between blows and while the next one winds up, and a dead
+attack target of the building class fails that check outright, where a dead
+unit goes on to the checker and may be switched from. A failed check finishes
+the attack: `FightSkill.StopAttack` clears the lock, the weapons keep naming
+what they fired at, the skill cools for its cooling time, and it then enters
+idle with its targets cleared and searches again. A capture of the skill's own
+state reads each step: the Marksman of `wall-line-of-fire.yaml` is attacking
+while its shot flies and cooling, lockless, on the fallen block the tick after
+it lands; the Rhino of `wall-rhino.yaml` finishes its swing on the fallen
+block, reads idle with nothing named for a tick, and attacks block 4 the next.
+How long the unit shows no lock is its cooling time plus that idle tick: none
+for the Rhino, the Crawlers and the Steel Balls, whose cooling is 0, and four
+ticks for a Marksman's 0.2 seconds — the four `wall-line-width.yaml` read. A
+group of weapons drops every slot with the lock (below).
 
-Only a unit that attacked the block has an attack on it to end. Two Crawlers
-of `wall-block.yaml` closing on block 4, attacking by their motion but not yet
-striking, go straight on to the Marksman behind the wall the tick after
-another Crawler fells it, with no idle tick. And one that struck it keeps
-turning to it through its swing, as it did while the block stood.
+Only a unit whose skill is attacking has an attack to finish. Two Crawlers of
+`wall-block.yaml` closing on block 4, attacking by their motion but with their
+skill still idle, go straight on to the Marksman behind the wall the tick after
+another Crawler fells it: the idle skill asks what to fire at every tick, and
+the answer has changed.
 
 **A wall is never a target a unit looks for.** Across the ten recordings under
 `tests/construction/`, 931 ticks of which have a wall standing, a
@@ -160,25 +164,32 @@ among the enemy's constructions,
   take the nearest of those to the attacker.
 ```
 
-**It is asked every tick the skill is idle**, not when the mech's lock is
-searched. `SkillIdleState.TryPerform` reaches `FightSkill.SearchAttackTarget`,
-which is what calls `WallConstructionTargetChecker`, while the lock search runs
-on its own ten-tick timer. A Wraith closing on a wall engages it the tick the
-wall comes into reach, between two lock searches.
+**It is asked wherever the skill asks what to fire at**, which is one method,
+`FightSkill.SearchAttackTarget`: it takes the lock and hands the weapons a
+shield, else a wall in the way, else the lock itself. `WallConstructionTargetChecker`
+has no other caller. The skill asks it every tick it is idle with a lock —
+not when the mech's lock is searched, which runs on its own ten-tick timer, so
+a Wraith closing on a wall engages it the tick the wall comes into reach — and
+inside `SkillAttackableChecker.Check`, which the skill runs every tick an attack
+is prepared and, while attacking, between blows and while a blow winds up.
+What the check then does with the answer is the same for a block as for a
+unit: what the weapons fire at must be in the attack area, or the attack ends.
 
-**It is asked while an attack is being prepared, too, and what it finds ends
-that attack.** A Steel Ball of `wall-laser.yaml` was preparing a beam on the
-Marksman behind the wall when block 3 came within the line. The tick after, it
-read idle, with no lock and no weapon target; the tick after that, it was on
-block 3 with its lock back on the Marksman. The prepared beam was never
-fired.
-
-**It is asked between blows as well, and a different block ends the attack on
-the old one.** The swing that follows a blow is exempt; the moment it is over,
-and while the next blow winds up, the skill asks again. A Crawler of
+So a block coming into the line ends an attack being prepared: a Steel Ball of
+`wall-laser.yaml`, preparing a beam on the Marksman behind the wall, reads idle
+with no lock and no weapon target the tick block 3 comes within the line, and
+the tick after it is on block 3 with its lock back on the Marksman. A nearer
+block ends an attack between blows the same way: a Crawler of
 `wall-block.yaml`, pushed along the wall while it strikes block 4, finds block
-3 the nearer one in its line when its swing ends, reads idle with no lock for a
-tick, and strikes block 3 after.
+3 nearer in its line the tick after its swing ends — another in the wait before
+its next blow — reads idle with no lock for a tick, and strikes block 3 after.
+A unit that can switch targets quickly and has the new block in its attack
+area goes on without a pause: the Arclight of `wall-splash-line.yaml` turns
+from a block to the Crawler behind it the tick the block leaves its line, and
+onto a block the tick one enters it. And a lock that dies behind a block is
+searched for again at once, the block kept if it stands in the way of the new
+one too: the Arclight of `wall-splash.yaml`, shooting block 5 for a Crawler its
+own splash kills, is on another Crawler and still on block 5 the tick after.
 
 It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. One Marksman settles that: with the nearest block 75

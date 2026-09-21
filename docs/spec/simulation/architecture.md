@@ -317,6 +317,44 @@ back in the order struck and recorded at the end of the tick, after the deaths
 of the step; a unit that died leaves its tree then, keeping the order of the
 rest.
 
+## Attack target
+
+A skill decides what its weapons fire at in one place, and every construction
+rule the fight knows reaches the weapons through it. The build's
+`FightSkill.SearchAttackTarget` takes the lock and hands the weapons a shield,
+else a wall in the way (`WallConstructionTargetChecker`, which has no other
+caller), else the lock itself. It is reached from the idle state every update
+the skill holds a lock, and from `SkillAttackableChecker.Check`, which the
+prepare state runs every update and the attack state runs between blows and
+while a blow winds up. `SkillAttackState.CheckAttackable` rejects a dead
+building attack target before asking the checker, and a failed check finishes
+the attack: `StopAttack` clears the lock, the skill cools, and it enters idle
+with its targets cleared.
+
+| Native | Simulator |
+| --- | --- |
+| `FightSkill.SearchAttackTarget` | `search_attack_target`, the only caller of `wall_in_the_way` |
+| `SkillAttackableChecker.Check` | `check_attackable` |
+| `SkillAttackState.CheckAttackable` | `attack_state_check_attackable`, asked where `between_blows` holds |
+| `SkillAttackState.Finish` | `finish_attack`, into the cooling hold or straight to idle |
+| a failed check in `SkillPrepareState` | `enter_idle_clearing_targets` |
+
+**Nothing here is about walls.** A wall differs from a unit only in being an
+answer `SearchAttackTarget` can give, and in the building test the attack state
+applies to a dead target; both are the build's. The skill states the checks run
+in were read from a capture of each unit's `SkillStateController` state and
+`SkillAttackController` phase (the `target_refs_v1` instrumentation profile),
+beside the recordings under `tests/construction/`.
+
+**What the mirror does not carry yet.** Where the weapons fire at the lock and
+go on doing so, the rest of `Check` — a lock that died, a lock that left the
+attack area — is still answered by the quick-switch, stale-target and cooling
+paths of `step_actor_with_target_order`, which were written against recordings
+before this mirror existed and agree with it on every tracked fight.
+`check_attackable` decides only a change of what the weapons fire at, and a
+lock dead behind something else. Replacing those paths with the checker, and
+the attack state's phases with the build's controllers, is the next step.
+
 ## The mirror, and what is dummy
 
 The simulator carries the same three layers under the same names, and grows by
@@ -329,6 +367,7 @@ filling modules rather than by editing the kernel:
 | `BuffManager` aggregates | the buff channel, summed per actor |
 | `FightProperty` | a derived value read through `stat(...)`, never a direct field read |
 | `IDamageProvider` + `DamagePerformer` | one hit description and one resolution, [above](#damage) |
+| `SearchAttackTarget` + `SkillAttackableChecker` | one answer to what the weapons fire at, [above](#attack-target) |
 | the recording's columns | what each layer is accepted against, per tick |
 
 A module that is not implemented is present, claims its fields, and refuses
