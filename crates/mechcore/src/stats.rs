@@ -61,6 +61,12 @@ struct Sides {
 struct Formation {
     index: i32,
     name: String,
+    /// Whether this formation's technologies are switched off, which is the
+    /// state a correction's absence is explained by rather than a correction
+    /// of its own. Electromagnetic interference sets it for as long as it
+    /// lasts. Absent when they are not.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    technologies_disabled: bool,
     /// The numbers the fight reads, after every correction on them. A
     /// recording older than this build's format answers zeroes, which is why
     /// they are printed rather than skipped: a zero here is a reading, not an
@@ -140,10 +146,11 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
             scene::units_of(&layout, side)
                 .iter()
                 .filter_map(|placement| {
-                    let (derived, modifiers) = held.get(&(side, placement.index))?;
+                    let (derived, disabled, modifiers) = held.get(&(side, placement.index))?;
                     Some(Formation {
                         index: placement.index,
                         name: placement.type_name.clone(),
+                        technologies_disabled: *disabled,
                         derived: *derived,
                         held: modifiers.as_ref().map_or_else(Modifiers::neutral, |held| {
                             Modifiers {
@@ -178,14 +185,22 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
 fn carried(
     formations: &BTreeMap<u64, (Side, i32)>,
     state: &WorldSnapshot,
-) -> BTreeMap<(Side, i32), (DerivedStats, Option<Modifiers>)> {
-    let mut held: BTreeMap<(Side, i32), (DerivedStats, Option<Modifiers>)> = BTreeMap::new();
+) -> BTreeMap<(Side, i32), (DerivedStats, bool, Option<Modifiers>)> {
+    let mut held: BTreeMap<(Side, i32), (DerivedStats, bool, Option<Modifiers>)> = BTreeMap::new();
     for unit in &state.live_units {
         let Some(formation) = formations.get(&unit.formation_id) else {
             continue;
         };
-        held.entry(*formation)
-            .or_insert_with(|| (unit.derived, Modifiers::of(unit)));
+        held.entry(*formation).or_insert_with(|| {
+            (
+                unit.derived,
+                unit.status_mask & TECHNOLOGY_DISABLED != 0,
+                Modifiers::of(unit),
+            )
+        });
     }
     held
 }
+
+/// The bit `status_mask` keeps `FightMech.IsTechnologyDisabled` in.
+const TECHNOLOGY_DISABLED: u64 = 1 << 2;

@@ -103,10 +103,19 @@ rate at once — the stagger has to be cancelled rather than avoided, which is
 what `tests/layouts/modifier/interval-order.mcscript` does with three
 calibration fixtures.
 
+**A disabled technology takes its correction with it, and the current interval
+says so.** A Rhino carrying Mechanical Rage, an `attack_interval_value` of
+`−0.3` seconds, reads 12 ticks of its description's 18. At the tick an
+Electromagnetic Shot lands its `IsTechnologyDisabled` turns true and the same
+reading turns 18: the correction is not there while the technology is off.
+`tests/layouts/modifier/disable.mcscript` records it, and the Rhino is the
+target for two reasons found the hard way — it survives the hit, where a
+Stormcaller and a Marksman were shot at first and never read anything, and its
+offset is zero, so nothing else rides on the number.
+
 **Not covered.** What else consumes from the same stream once the fight is
-running, and what the current interval does while a technology is disabled —
-`combat.md` has no reading of an interval that changes for a reason other than
-the stagger.
+running, and how long a disable lasts: the Raiden in that recording fires
+every 92 ticks and the Rhino is never undisabled before it dies.
 
 This simulator schedules its own stagger — `sample_actor_attack_interval` adds
 a draw from the team stream to the next attack step — and reproduces the
