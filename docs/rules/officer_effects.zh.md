@@ -196,7 +196,7 @@ rate 先    ((83 + 7) × 1.3 − 20) − 7 = 90
 
 ## 这个 build 应用哪些军官
 
-`crates/simulation/src/officers.rs` 把表里的一行变成落在目标单位上的修正，打上 `Modifier`
+`crates/simulation/src/modifier/officers.rs` 把表里的一行变成落在目标单位上的修正，打上 `Modifier`
 标签，所以拿走军官就拿走它写的东西。79 行里应用了 **61** 行：**每个字段都是比率、value
 或普通整数，且落在模拟器推导得出的那几个数上**（伤害、生命、攻击间隔、攻击距离、移动
 速度），并且 `mech_type` 是 0、1 或 10。

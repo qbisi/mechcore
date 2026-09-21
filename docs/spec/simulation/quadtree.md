@@ -5,7 +5,7 @@
 ## Scope
 
 This contract defines the agent neighbour index that sampled RVO queries, as
-`crates/simulation/src/rvo.rs::NativeQuadtree` implements it for build
+`crates/simulation/src/fight/rvo.rs::NativeQuadtree` implements it for build
 `1.11.1.3.2259`. It serves [rvo.md](rvo.md).
 
 It is not the target quadtree in `crates/simulation/src/fight/search.rs`, which

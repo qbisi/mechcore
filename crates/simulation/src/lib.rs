@@ -3,17 +3,12 @@
 //! The first implemented closure slice is a level-one, no-technology Marksman
 //! versus Arclight battle. Unsupported layout mechanisms fail closed.
 
-mod constructions;
 mod data;
-mod effects;
 mod fight;
 mod layout;
+mod modifier;
 mod module;
-mod officers;
-mod random;
 mod rules;
-mod rvo;
-mod technologies;
 
 use std::{
     fmt, fs,

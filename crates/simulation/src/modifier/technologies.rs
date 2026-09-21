@@ -3,7 +3,7 @@
 //! `config/technology_effects.yaml` is the build's own table, extracted by
 //! `scripts/extract-technology-effects.py`, and
 //! `docs/rules/technology_effects.md` states what each field means. The fields
-//! are [`crate::effects`]'s, the same ones an officer writes, because
+//! are [`super::effects`]'s, the same ones an officer writes, because
 //! `TechnologyData` and `OfficerData` answer the same interface.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -23,10 +23,11 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
-    effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
 };
 
-const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../config/technology_effects.yaml");
+use super::effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE};
+
+const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
 
 /// The module that tags every entry a technology writes.
 pub(crate) const SOURCE: &str = "Modifier";

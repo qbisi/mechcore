@@ -2,14 +2,16 @@ use std::{fs, path::Path};
 
 use mechcore_document::{NativeFormation, SidePlan};
 
+mod constructions;
+
 use crate::{
     Error, Result,
-    constructions::{ConstructionBuilding, Constructions},
     data::{Channel, Entry, Stats},
-    officers::OfficerEffects,
+    modifier::{OfficerEffects, TechnologyEffects},
     rules::{UnitConfig, UnitConfigs},
-    technologies::TechnologyEffects,
 };
+pub(crate) use constructions::ConstructionBuilding;
+use constructions::Constructions;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Placement {

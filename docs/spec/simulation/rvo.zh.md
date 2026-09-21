@@ -6,7 +6,7 @@
 `1.11.1.3.2259` 中 `GRPF.RVO.Sampled.Agent`、`RVOAgentFixed` 和
 `RVOControllerFixed` 的战斗移动行为，而不是提供一套通用 RVO 库。
 
-实现位于 `crates/simulation/src/rvo.rs`，战斗循环的接入点位于
+实现位于 `crates/simulation/src/fight/rvo.rs`，战斗循环的接入点位于
 `crates/simulation/src/fight/motion.rs::step_rvo`。邻居搜索使用的原生式四叉树单独见
 [四叉树实现](quadtree.md)。
 

@@ -94,8 +94,17 @@ attack being made). A path through a unit reads as the build's does:
 | `skill/check.rs` | `SearchAttackTarget`, `SkillAttackableChecker`, `WallConstructionTargetChecker`, `SkillAttackState.Finish` |
 | `skill/perform.rs` | the attack performers: a blow, a shot, a burst |
 | `skill/group.rs` | a grouped skill's slots |
+| `rvo.rs` | `RVOSimulatorFixed`, the sampled RVO the motion submits to; [rvo.md](rvo.md) |
+| `random.rs` | `GRRandom`, the stream an attack interval's stagger draws from |
 | `math.rs` | the build's fixed-point arithmetic |
 | `run.rs` | running a layout and comparing it with a recording |
+
+Outside the fight, the crate holds what builds one. `layout/` compiles a
+layout into placements and, in `layout/constructions.rs`, the buildings a
+construction releases. `modifier/` is the `Modifier` step: the officers and
+technologies written onto a unit before it fights. `data.rs` is the data layer
+both of them and the fight read, `rules.rs` the unit descriptions, and
+`module.rs` the registry of which module claims which layout field.
 
 ## Modules
 

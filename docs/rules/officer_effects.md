@@ -243,7 +243,7 @@ existed, and the whole fight hashes identically.
 
 ## What this build applies
 
-`crates/simulation/src/officers.rs` turns a row of the table into corrections
+`crates/simulation/src/modifier/officers.rs` turns a row of the table into corrections
 on the units it reaches, tagged `Modifier` so removing the officer removes
 them. Of the 79 rows, **61** are applied: the ones whose every field is a rate,
 a value or a plain integer on a number the simulator derives — damage, life,

@@ -8,7 +8,7 @@
 # three fixtures that measure what the draw is and who consumes one.
 #
 # Every number below was recomputed from that seed before the game was
-# started. `crates/simulation/src/random.rs` holds the generator and pins its
+# started. `crates/simulation/src/fight/random.rs` holds the generator and pins its
 # first draws in a test, so these expectations are a prediction rather than a
 # transcription.
 #

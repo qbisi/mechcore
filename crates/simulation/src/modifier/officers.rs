@@ -19,10 +19,11 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
-    effects::{self, Fields, KILLS, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
 };
 
-const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../config/officer_effects.yaml");
+use super::effects::{self, Fields, KILLS, PROJECTILE, SPLASH, VALUE_ELSEWHERE};
+
+const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../../config/officer_effects.yaml");
 
 /// The module that tags every entry an officer writes, so that taking the
 /// officer away takes its corrections with it.
@@ -243,7 +244,7 @@ impl Officer {
 /// What a row writes, or why this build will not apply it.
 ///
 /// The fields an officer shares with every other source of corrections are
-/// [`crate::effects`]'s; the ones only an officer carries are refused here,
+/// [`super::effects`]'s; the ones only an officer carries are refused here,
 /// each with what it would take to support it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
     let unsupported = [

@@ -11,7 +11,7 @@ behaviour of the native `GRPF.RVO.Sampled.Agent`, `RVOAgentFixed` and
 `RVOControllerFixed`. It is not a general RVO library, and nothing here should
 be read as the algorithm rather than as this build's version of it.
 
-The implementation is `crates/simulation/src/rvo.rs`, entered from the combat
+The implementation is `crates/simulation/src/fight/rvo.rs`, entered from the combat
 loop at `crates/simulation/src/fight/motion.rs::step_rvo`. The neighbour index it
 queries is [quadtree.md](quadtree.md).
 

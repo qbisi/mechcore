@@ -21,7 +21,7 @@ use serde::Deserialize;
 
 use crate::{Error, Result};
 
-const DEFAULT_CONSTRUCTIONS: &str = include_str!("../../../config/constructions.yaml");
+const DEFAULT_CONSTRUCTIONS: &str = include_str!("../../../../config/constructions.yaml");
 
 /// `GameRiver.BuildingType.Special`, which every construction a recording
 /// holds is. The map's own two towers are `EnergyTower` and `ResearchCenter`.
