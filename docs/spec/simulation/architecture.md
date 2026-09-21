@@ -46,7 +46,7 @@ kind, and the ones that would need the second kind are in
                 ▼                                          ▼
           FightActor                                  side objects
        ├── FightMech    (a unit)                 RangeItem · FightEnergyShield
-       └── FightCrystal (a tower, a building)    Projectile · FightInterceptor
+       └── FightCrystal (a building)             Projectile · FightInterceptor
                 │
                 ├── BuffManager   ── aggregates over active Buffs
                 ├── DataSet       ── per-instance overlay, tagged by IDataModifier
@@ -195,7 +195,7 @@ value composes with a description is not measured
 | --- | --- |
 | `FightActor` | anything with life, a team, bounds, buffs and shields |
 | `FightMech` | a unit; carries skills, motion and a formation |
-| `FightCrystal` | a tower, a building, a construction |
+| `FightCrystal` | a building: a tower (`IsTower`, `BuildingType` `EnergyTower` or `ResearchCenter`), or a construction (`Special`) |
 | `FightTeam` / `FightTeamController` | one side, and what it owns |
 | `IFightGroup` | a formation, the unit of group behaviour |
 | `FightSkill` | one skill channel of an owner, over shared `ISkillData` |
@@ -388,7 +388,8 @@ manifest are the oracle: each unit's skill state and attack phase per tick
 skill's lock and attack target on either side of it (the
 `skill_attackable_checker_v1` profile). The kernel's states now match the game's
 on every comparable unit-tick but three, and `check_attackable` answers the
-game's own calls identically on 148,466 of 148,595. What that took, beyond the
+game's own calls identically on 149,695 of 149,829, every other one a grouped
+skill's slot. What that took, beyond the
 checker itself:
 
 - the checker runs between blows, through the wait before a blow, and on the

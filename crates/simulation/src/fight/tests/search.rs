@@ -388,3 +388,34 @@ fn same_tick_target_death_scores_live_candidate_positions() {
         Some(unit_target(4))
     );
 }
+
+#[test]
+fn the_selector_answers_a_tower_once_no_enemy_unit_is_left() {
+    // `SkillAttackableChecker.Check` on the tick the last enemy unit falls
+    // searches again and is answered with one of that team's towers.
+    let config = SimulationConfig::load().unwrap();
+    let layout = CompiledLayout::of_units(
+        1,
+        vec![test_placement(0, 0, 0, 0), test_placement(1, 0, 0, 60)],
+    );
+    let mut simulation = raw_test_simulation(&layout, &config, 7);
+    simulation.actors.get_mut(&2).unwrap().life = 0;
+    simulation.refresh_target_query_snapshot();
+    let target_search_order = simulation.target_search_order();
+    let selected = simulation
+        .select_normal_target_with_order(1, &target_search_order, true)
+        .unwrap();
+    let Some(FightActorRef::Building(building_id)) = selected else {
+        panic!("expected a tower, got {selected:?}");
+    };
+    let building = simulation
+        .buildings
+        .iter()
+        .find(|building| building.building_id == building_id)
+        .unwrap();
+    assert_eq!(building.team_id, 1);
+    assert!(
+        matches!(building.building_type_id, 1 | 2),
+        "EnergyTower or ResearchCenter"
+    );
+}

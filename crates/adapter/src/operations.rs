@@ -2418,15 +2418,15 @@ fn apply_energy_tower_skills(runtime: &Runtime, desired: &[i32]) -> Result<Value
 fn validate_fixed_tower_positions(runtime: &Runtime) -> Result<(), OperationError> {
     let mut positions = Vec::with_capacity(TOWER_COUNT);
     for kind in FIXED_TOWER_KINDS {
-        let index = resolve_core_tower(runtime, kind)?;
+        let index = resolve_tower(runtime, kind)?;
         let position = usize::try_from(index).map_err(|_| {
             OperationError::InvalidState(format!(
-                "core tower kind {kind} sits at building-manager position {index}"
+                "tower kind {kind} sits at building-manager position {index}"
             ))
         })?;
         if position >= TOWER_COUNT || positions.contains(&position) {
             return Err(OperationError::InvalidState(format!(
-                "core tower kind {kind} sits at building-manager position {position}, and a side \
+                "tower kind {kind} sits at building-manager position {position}, and a side \
                  keys {TOWER_COUNT} tower levels"
             )));
         }
@@ -2498,7 +2498,7 @@ fn require_energy_tower_skill(
     }
 }
 
-fn resolve_core_tower(runtime: &Runtime, expected_kind: i32) -> Result<i32, OperationError> {
+fn resolve_tower(runtime: &Runtime, expected_kind: i32) -> Result<i32, OperationError> {
     let current = require_training_deploying(runtime)?;
     let controller = player_controller(runtime, current)?;
     let manager = runtime
@@ -2517,7 +2517,7 @@ fn resolve_core_tower(runtime: &Runtime, expected_kind: i32) -> Result<i32, Oper
         }
         if resolved.is_some() {
             return Err(OperationError::InvalidState(format!(
-                "multiple core towers have building kind {expected_kind}"
+                "multiple towers have building kind {expected_kind}"
             )));
         }
         let index = runtime.api.invoke_value::<i32>(
@@ -2533,13 +2533,13 @@ fn resolve_core_tower(runtime: &Runtime, expected_kind: i32) -> Result<i32, Oper
         )?;
         if index < 0 || readback != building {
             return Err(OperationError::InvalidState(format!(
-                "core tower kind {expected_kind} has no stable manager index"
+                "tower kind {expected_kind} has no stable manager index"
             )));
         }
         resolved = Some(index);
     }
     resolved.ok_or_else(|| {
-        OperationError::InvalidState(format!("core tower kind {expected_kind} is unavailable"))
+        OperationError::InvalidState(format!("tower kind {expected_kind} is unavailable"))
     })
 }
 

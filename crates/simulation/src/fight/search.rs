@@ -507,16 +507,6 @@ impl Simulation {
             .actors
             .get(&actor_id)
             .ok_or_else(|| Error::new("target selector source actor is absent"))?;
-        let alive_enemy_count = self
-            .actors
-            .values()
-            .filter(|candidate| {
-                candidate.placement.team != source.placement.team && candidate.alive()
-            })
-            .count();
-        if alive_enemy_count == 0 {
-            return Ok(None);
-        }
         let mut best: Option<(FightActorRef, i64)> = None;
         let mut consider = |candidate, score| match best {
             None => {

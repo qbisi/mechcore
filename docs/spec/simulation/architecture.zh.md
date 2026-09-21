@@ -40,7 +40,7 @@
                 ▼                                          ▼
           FightActor                                   旁路对象
        ├── FightMech    （一个单位）            RangeItem · FightEnergyShield
-       └── FightCrystal （塔、建筑）            Projectile · FightInterceptor
+       └── FightCrystal （建筑）                Projectile · FightInterceptor
                 │
                 ├── BuffManager   ── 对生效中的 Buff 做聚合
                 ├── DataSet       ── 每实例的覆盖层，每笔改动带 IDataModifier
@@ -170,7 +170,7 @@ value composes with a description is not measured
 | --- | --- |
 | `FightActor` | 一切有生命、有阵营、有边界、能挂 buff 和护盾的东西 |
 | `FightMech` | 一个单位；带技能、运动和编队 |
-| `FightCrystal` | 塔、建筑、构筑物 |
+| `FightCrystal` | 建筑：塔（`IsTower`，`BuildingType` 为 `EnergyTower` 或 `ResearchCenter`）或构筑物（`Special`） |
 | `FightTeam` / `FightTeamController` | 一方，以及它拥有的东西 |
 | `IFightGroup` | 一个编队，群体行为的单位 |
 | `FightSkill` | 拥有者的一条技能通道，盖在共享的 `ISkillData` 上 |
@@ -327,7 +327,7 @@ instrumentation profile），和 `tests/construction/` 下的录像一起。
 **怎么对齐到游戏的。** 两份整个回归清单的采集是对照：每个单位逐 tick 的技能状态和攻击阶段
 （`tests/regression/skill-state.mcscript`），以及每一次 `Check` 调用前后技能的锁定和攻击目标
 （`skill_attackable_checker_v1` profile）。内核的状态现在在所有可比的单位-tick 上只有 3 处与游戏不同，
-`check_attackable` 对游戏自己的 148,595 次调用有 148,466 次给出相同回答。除检查器本身外，还需要：
+`check_attackable` 对游戏自己的 149,829 次调用有 149,695 次给出相同回答，其余都是成组技能的槽位。除检查器本身外，还需要：
 
 - 检查在两下之间、出手前的等待、以及出手那次更新（出手之前）运行；
 - 后摇在下一下到来时结束：描述里的后摇被截到攻击间隔，Wasp 就是这样；

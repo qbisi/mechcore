@@ -97,7 +97,7 @@ const TARGET_QUADTREE_HALF_HEIGHT_Q32: i64 = 350 * Q32_ONE;
 
 const RVO_SIMULATOR_ORIGIN_OFFSET_Q32: i64 = 400 * Q32_ONE;
 
-const CORE_TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
+const TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
 
 const SEARCH_TARGET_RESET_TICKS: i32 = 10;
 
@@ -645,7 +645,7 @@ impl Simulation {
                 self.terminal_drain_pending = true;
             }
         }
-        // Native build 2259 tears down the defeated core buildings through the
+        // Native build 2259 tears down the defeated towers through the
         // direct-attack finish path. Projectile drain reaches the same round
         // result without mutating buildings (observed in Fang mirror battles).
         let direct_attack_winner = !fight_was_finished
@@ -691,7 +691,7 @@ impl Simulation {
             // a later team, the native finish callback is queued only after
             // that defeated team's module observes its empty actor set. Its
             // attacker therefore exposes the dead laser target for one tick
-            // while the callback tears down that team's core buildings.
+            // while the callback tears down that team's towers.
             for building in self.buildings.iter_mut().filter(|building| {
                 building_alive(building)
                     && team_alive_counts

@@ -50,8 +50,8 @@ impl Simulation {
     /// What that second search can answer depends on the skill. A skill that
     /// switches quickly takes the selector's answer; one that does not gets
     /// back the lock it has while that lock lives, and fails. Checked against
-    /// every `Check` call of the 82 manifest fights, 148,466 of 148,595 (the
-    /// rest are a grouped skill's slots and the last enemy's towers): a
+    /// every `Check` call of the 82 manifest fights, 149,695 of 149,829 (the
+    /// rest are a grouped skill's slots): a
     /// Crawler whose lock walks out of reach keeps it and ends its attack; a
     /// Stormcaller whose lock does takes the next target in reach.
     ///
