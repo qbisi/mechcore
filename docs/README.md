@@ -168,7 +168,7 @@ the repository root, and make it pass before a document change lands:
 python3 scripts/check-docs.py
 ```
 
-It checks four things.
+It checks five things.
 
 - **Every relative link resolves**, the `#anchor` half included. A renamed
   section silently breaks every link into it, which is the failure most likely
@@ -179,6 +179,10 @@ It checks four things.
   because nobody remembered it existed.
 - **Every converted spec opens with `Scope` and closes with `Unresolved`**, and
   carries no section titled `Status` or beginning `Current`.
+- **No document says the same paragraph twice.** A repeated paragraph is a paste
+  gone wrong or a scripted replacement that matched more than it meant to, and
+  the link check cannot see either: one such replacement once grew a 101-line
+  readme to 55,000 lines. Table rows, short lines and fenced code may repeat.
 
 The checker also holds the list of specs that predate this convention, and that
 list is the only record of which ones are left. It fails in both directions: a
