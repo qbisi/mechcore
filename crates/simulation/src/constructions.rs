@@ -58,6 +58,9 @@ pub(crate) struct ConstructionBuilding {
     /// one shows every Crawler locked onto the unit behind the wall at tick
     /// one rather than onto the wall.
     pub(crate) searchable: bool,
+    /// The row's `pathfinding_collider_priority`: the RVO layer the other
+    /// side avoids it on.
+    pub(crate) collider_priority: i32,
 }
 
 /// Space units to the metre, as `crates/simulation/src/rules.rs` quantizes a
@@ -221,6 +224,7 @@ impl Constructions {
                 radius: fixed_to_space(row.radius),
                 life: row.max_life,
                 searchable: row.enable_search_target,
+                collider_priority: row.pathfinding_collider_priority,
             })
             .collect())
     }

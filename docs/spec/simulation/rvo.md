@@ -21,7 +21,9 @@ structures, capacities and traversal rules. The two must not be mixed.
 
 The solver takes two kinds of agent: every live unit, and every live building
 with collision enabled. A building participates as a locked, immovable ground
-agent that never avoids anything but that neighbours must avoid.
+agent that never avoids anything but that neighbours must avoid. A
+construction is one only to the other side: it sinks for its own, whose units
+never take it for a neighbour.
 
 RVO's private double buffers, neighbour lists and VO lists are inputs to
 nothing. They appear in no layout and no recording, and a simulator recomputes
@@ -138,12 +140,15 @@ For priority `p`, a movable agent uses the even bit `2p-2` and accepts its own
 layer and every higher bit. An immovable building uses the odd bit `2p-1` and
 sets its own `collides_with` to 0. A colliding building uses priority 10,
 `size=M`, inner and outer radius both half the building's width, and
-`locked=true`.
+`locked=true`. A construction does the same on its row's
+`pathfinding_collider_priority` instead of 10 — 5 for a Defensive Wall — and
+is marked `passable_by_own_group`.
 
 The filter is directional: a candidate becomes a neighbour only when
 `query.collides_with & candidate.layer != 0`. A building therefore avoids
 nothing itself, while a unit's query can still be matched by a high-priority
-building layer.
+building layer. A candidate marked `passable_by_own_group` is also passed over
+by a query of its own group, which is how a wall lets its own side through.
 
 ## Neighbour selection
 

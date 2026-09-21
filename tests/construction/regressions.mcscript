@@ -81,3 +81,16 @@ steps:
       steps: 189
       winner: red
       hashes.physics_result_hash: 44ae3c4c81b15563f6a7b924591385baf12813c27714d4d23cb7a2ebe25cdf1f
+
+  # A beam, and a block in the way of a unit's movement. Four Steel Balls take
+  # three blocks with the beam's ramp, and one of them, overlapping block 3, is
+  # pushed off it: to the other side a block is an immovable obstacle on the
+  # wall's own collider layer. 243 ticks, the game's hash, and its content hash
+  # agrees too, which `attacks.mcscript` checks against the game.
+  - fight.run:
+      layout: tests/construction/wall-laser.yaml
+      seed: 4242
+    expect:
+      steps: 243
+      winner: red
+      hashes.physics_result_hash: 6cfed0b5e5bff3304b97e87d582d3b7043f95d72a34670267d9b73b5f28ad43b
