@@ -362,8 +362,11 @@ reader who takes any one of them for another misreads the fight.
 | `motion_state` | whether the body is travelling, holding to attack, idle or stopped | the mech's motion state machine |
 
 **`mech_lock_target` is the body's target.** It is what the mech's own search
-found: the unit moves toward it while `moving`, and a unit with a body keeps
-its body facing it while `attacking`. It is not a statement about what is being
+found, or for a grouped skill the target it most recently allocated to one of
+its slots: the unit moves toward it while `moving`, and a unit with a body keeps
+its body facing it while `attacking`. A slot is allocated a target and then
+fires at whatever stands in the way of it, so an object in the line of fire is
+never what the lock reports. It is not a statement about what is being
 shot at, and it is null when the mech holds no target.
 
 **`attack_target` is the weapon's target.** It is what the owning skill fires
