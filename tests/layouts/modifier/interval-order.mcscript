@@ -55,7 +55,7 @@ steps:
   - fight.stats:
       recording: ${out}/base.mcfr
     expect:
-      sides.blue.0.derived.attack_interval: 83
+      sides.blue.0.derived.current_attack_interval: 83
       sides.blue.0.derived.attack_damage: 608
 
   - game.apply_layout:
@@ -67,7 +67,7 @@ steps:
       recording: ${out}/value.mcfr
     expect:
       # One second of value is twenty ticks, whatever the zero is.
-      sides.blue.0.derived.attack_interval: 63
+      sides.blue.0.derived.current_attack_interval: 63
       sides.blue.0.derived.attack_damage: 608
 
   - game.apply_layout:
@@ -79,7 +79,7 @@ steps:
       recording: ${out}/rate.mcfr
     expect:
       # (83 + 7) x 1.3 - 7, which is what locates the zero at seven ticks.
-      sides.blue.0.derived.attack_interval: 110
+      sides.blue.0.derived.current_attack_interval: 110
       # 608 x 3.5, the rate on the other number this technology carries.
       sides.blue.0.derived.attack_damage: 2128
 
@@ -93,7 +93,7 @@ steps:
     expect:
       # The measurement. 84 is the value applied first; a rate applied first
       # would read 90.
-      sides.blue.0.derived.attack_interval: 84
+      sides.blue.0.derived.current_attack_interval: 84
       sides.blue.0.derived.attack_damage: 2128
       # Both technologies' corrections, as the build stored them.
       sides.blue.0.skill.0.modifiers.attack_interval_value: -4294967296

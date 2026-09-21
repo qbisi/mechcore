@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.5.0";
+pub const MCFR_FORMAT: &str = "0.6.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v1";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.5.0";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.6.0";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 3;
 
@@ -587,12 +587,15 @@ pub struct DerivedStats {
     pub attack_range: i64,
     /// `DamageProperty.GetDamage()`, which the build keeps as a plain integer.
     pub attack_damage: i32,
-    /// `FightSkill.GetCurrentAttackInterval()`, the interval in whole time
-    /// units. The build keeps it as an integer beside the `FPoint` seconds
-    /// its property answers — `RefreshAttackInterval` divides the property by
-    /// the step and truncates — so this is the one form both sides can hold
-    /// without deciding whose rounding is authoritative.
-    pub attack_interval: i32,
+    /// `FightSkill.GetCurrentAttackInterval()`: the interval **this cycle**
+    /// was scheduled with, in whole logic ticks.
+    ///
+    /// It is not the description's interval and not a constant. Every cycle
+    /// draws a stagger from the team's random stream and this carries the
+    /// result, so one unit reads a different number from one cycle to the
+    /// next and two units of a kind read different numbers at the same tick.
+    /// `docs/rules/combat.md` measures the draw.
+    pub current_attack_interval: i32,
 }
 
 /// Compares initial units in format 0.3.0 identity order.

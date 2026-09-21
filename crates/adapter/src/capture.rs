@@ -6925,7 +6925,7 @@ fn read_unit(
         move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
         attack_range: skill_derived.range,
         attack_damage: skill_derived.damage,
-        attack_interval: skill_derived.interval,
+        current_attack_interval: skill_derived.interval,
     };
     let formation = api
         .invoke(unit, "GetMechTeam", &mut [])

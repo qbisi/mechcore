@@ -179,7 +179,7 @@ it**, which is what the formula says and what nothing had shown.
 
 Note what the measurement did not need: what the build's integer counts from.
 It is the interval plus a stagger drawn per unit, which
-[`combat.md`](combat.md#the-stored-interval-carries-a-per-unit-stagger)
+[`combat.md`](combat.md#the-current-interval-carries-a-per-cycle-stagger)
 measures — and a stagger that is the same in all four recordings cancels in
 the line the first three pin. An unresolved zero costs the experiment
 nothing.

@@ -69,7 +69,7 @@ fn feed(hasher: &mut blake3::Hasher, bytes: &[u8]) {
 }
 
 pub(crate) fn content_tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("content-tick-0.5.0");
+    let mut hasher = CanonicalHasher::new("content-tick-0.6.0");
     hasher.update(&tick.to_le_bytes());
     hasher.update(state);
     hasher.update(events);
@@ -81,7 +81,7 @@ pub(crate) fn physics_result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH
 }
 
 pub(crate) fn content_result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
-    result_hash("content-result-0.5.0", tick_hashes)
+    result_hash("content-result-0.6.0", tick_hashes)
 }
 
 fn result_hash(domain: &str, tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {

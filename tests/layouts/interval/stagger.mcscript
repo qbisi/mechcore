@@ -48,15 +48,15 @@ steps:
       recording: ${out}/singles.mcfr
     expect:
       # z = -200, the first draw: 62 - 7
-      sides.blue.3.derived.attack_interval: 55
+      sides.blue.3.derived.current_attack_interval: 55
       # z = -150, the second: 18 + 5
-      sides.blue.2.derived.attack_interval: 23
+      sides.blue.2.derived.current_attack_interval: 23
       # z = -100, the third: 62 - 6
-      sides.blue.1.derived.attack_interval: 56
+      sides.blue.1.derived.current_attack_interval: 56
       # z = -55, the fourth: 32 + 0
-      sides.blue.0.derived.attack_interval: 32
+      sides.blue.0.derived.current_attack_interval: 32
       # Red's own stream, and an offset of zero draws nothing.
-      sides.red.0.derived.attack_interval: 18
+      sides.red.0.derived.current_attack_interval: 18
 
   # One type, one row, and a draw that comes out positive.
   - game.apply_layout:
@@ -67,9 +67,18 @@ steps:
   - fight.stats:
       recording: ${out}/three-marksmen.mcfr
     expect:
-      sides.blue.0.derived.attack_interval: 55
-      sides.blue.1.derived.attack_interval: 65
-      sides.blue.2.derived.attack_interval: 56
+      sides.blue.0.derived.current_attack_interval: 55
+      sides.blue.1.derived.current_attack_interval: 65
+      sides.blue.2.derived.current_attack_interval: 56
+  # The same three once their first shot has gone: every cycle draws again, so
+  # the number is the cycle's and not the fight's.
+  - fight.stats:
+      recording: ${out}/three-marksmen.mcfr
+      tick: 100
+    expect:
+      sides.blue.0.derived.current_attack_interval: 72
+      sides.blue.1.derived.current_attack_interval: 57
+      sides.blue.2.derived.current_attack_interval: 64
 
   # Twelve members in front of one Marksman. A draw per member puts the
   # Marksman thirteenth and answers 72; a draw per formation puts it second
@@ -82,5 +91,5 @@ steps:
   - fight.stats:
       recording: ${out}/mustang-then-marksman.mcfr
     expect:
-      sides.blue.0.derived.attack_interval: 7
-      sides.blue.1.derived.attack_interval: 72
+      sides.blue.0.derived.current_attack_interval: 7
+      sides.blue.1.derived.current_attack_interval: 72
