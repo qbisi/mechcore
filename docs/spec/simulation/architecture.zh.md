@@ -244,6 +244,33 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 "我填的表算出的数和游戏当时存的数一样吗"是一个问题，"这个数合成出的伤害对不对"是
 另一个问题。
 
+## 伤害
+
+战斗里每一种造成伤害的方式，都是交给同一个执行者的一个提供者。build 的
+`IDamageProvider` 描述一次命中——`GetDamage`、`GetSplashRange`、`GetMainTarget`、
+`GetMaxTargetCount`、`GetEffectTargetType` 等——实现它的有技能、弹丸、指挥官技能、
+击杀爆炸、地雷、支援单位和工事。`DamagePerformer` 结算其中任何一个：
+`PrepareRangeTargets` 决定打到谁，`PerformSingleEffect`／`PerformRangeEffect` 扣血。
+它打的对象是 `FightActor`，所以单位和建筑走的是同一段代码。
+
+模拟器照这个分法镜像：
+
+| 原生 | 模拟器 |
+| --- | --- |
+| `IDamageProvider` | `DamageHit`：来源、伤害量、瞄准的对象、是否无论远近都打中它、溅射中心和半径、能打到的域 |
+| `DamagePerformer.PrepareRangeTargets` | `damage_targets`，唯一决定一次命中落到谁身上的地方 |
+| 单个目标的生命变化 | `strike`，唯一扣血的地方，单位和建筑都走它 |
+| `PerformRangeEffect` | `perform_damage`，按顺序打每个目标，对每个掉了血的记一条 `damage` |
+
+**一种造成伤害的方式是一个提供者，而不是又一份结算。** 直接攻击、弹丸落地、激光都各
+自描述自己这一下，然后交出去；激光没有范围，只取单个目标那一步。它们之间唯一的差别是
+在哪里记录后续——弹丸先记自己被移除，再记它造成的死亡——所以死亡和倒塌交还给调用方，
+不由执行者记录。
+
+**执行者还没决定的，就在一个地方拒绝。** 瞄准单位的一次命中，溅射若会波及建筑，不管
+是谁打出来的，都在 `damage_targets` 里拒绝，因为它打到哪些建筑、打多少，是这份契约没
+有携带的测量。
+
 ## 镜像，以及现在哪些是空的
 
 模拟器用同样的名字带同样的三层，靠把模块填满来生长，而不是靠改内核：
@@ -254,6 +281,7 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 | 盖在共享描述上的 `DataSet` | 两层覆盖，每 actor 一层、每技能一层，每条目带写它的机制 |
 | `BuffManager` 聚合 | buff 通道，按 actor 加总 |
 | `FightProperty` | 经 `stat(...)` 读到的派生值，永远不直读字段 |
+| `IDamageProvider` + `DamagePerformer` | 一种命中描述、一处结算，见上面"伤害"一节 |
 | 录像的各列 | 每一层各自逐 tick 对齐的验收面 |
 
 没实现的模块照样在场、照样认领字段、然后拒绝。语料里有多少回合的 layout 能编译，就是

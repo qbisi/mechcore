@@ -23,8 +23,8 @@ use crate::{
     layout::{CompiledLayout, Placement},
     random::GrRandom,
     rules::{
-        AttackPath, RvoSize, SimulationConfig, TrainingGroundConfig, UnitConfig, UnitConfigs,
-        UnitDomain, WeaponMode,
+        AttackPath, AttackTargets, RvoSize, SimulationConfig, TrainingGroundConfig, UnitConfig,
+        UnitConfigs, UnitDomain, WeaponMode,
     },
     rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2},
 };
@@ -1184,6 +1184,83 @@ fn initialize_target_quadtrees(
         trees.insert(team, tree);
     }
     trees
+}
+
+/// One hit, as the fight's damage pipeline reads it.
+///
+/// This is the build's `IDamageProvider` reduced to what this simulator uses:
+/// who dealt it, how much, what it was aimed at, where its splash is measured
+/// from and how far it reaches, and which domains it can touch. A direct
+/// strike, a projectile arriving and a laser are all described as one, and
+/// [`Simulation::damage_targets`] and [`Simulation::strike`] resolve every one
+/// of them, which is the build's arrangement: `DamagePerformer` resolves the
+/// damage of any provider — skills, projectiles, commander skills, mines,
+/// explosions — against `FightActor`s, and a unit and a building are both.
+#[derive(Debug, Clone, Copy)]
+struct DamageHit {
+    source: ObjectRef,
+    /// The team the hit is recorded under.
+    source_team: u32,
+    /// The team whose enemies it strikes: the attacker's own at the moment of
+    /// impact, which a projectile reads from its owner rather than from the
+    /// team it was released under.
+    team: u32,
+    amount: i64,
+    /// What the attack was aimed at.
+    aimed: FightActorRef,
+    /// Whether the aimed-at object is struck wherever it stands, rather than
+    /// only if the splash reaches it. A direct strike always is; a projectile
+    /// is when it locks its target.
+    hits_aimed: bool,
+    /// Where the splash is measured from, in space units.
+    center: (i64, i64),
+    splash_radius: i64,
+    reach: Reach,
+}
+
+/// Which units a hit can touch.
+#[derive(Debug, Clone, Copy)]
+enum Reach {
+    /// The attacker's own `targets`: ground, air or both.
+    Targets(AttackTargets),
+    /// One domain only. `FightProjectile.Init` narrows a dual-domain skill to
+    /// the actual target's domain, and `IDamageProvider.GetTargetType`
+    /// preserves that choice for range damage.
+    Domain(UnitDomain),
+}
+
+impl Reach {
+    const fn touches(self, domain: UnitDomain) -> bool {
+        match (self, domain) {
+            (Self::Targets(targets), UnitDomain::Ground) => targets.ground,
+            (Self::Targets(targets), UnitDomain::Air) => targets.air,
+            (Self::Domain(UnitDomain::Ground), UnitDomain::Ground)
+            | (Self::Domain(UnitDomain::Air), UnitDomain::Air) => true,
+            (Self::Domain(_), _) => false,
+        }
+    }
+}
+
+/// What one target took from a hit.
+#[derive(Debug, Clone, Copy)]
+struct Stroke {
+    /// The life it actually lost, which is what a `damage` event records.
+    actual: i64,
+    /// Where a unit died, when this stroke killed it.
+    death: Option<QVec3>,
+    /// Where a building fell, when this stroke destroyed it.
+    fallen: Option<QVec3>,
+}
+
+/// What a performed hit left for its caller to record.
+///
+/// Deaths and fallen buildings are handed back rather than recorded here
+/// because each way of dealing damage records them in its own place in the
+/// tick's events: a projectile records its own removal first.
+#[derive(Debug, Default)]
+struct Struck {
+    deaths: Vec<(u64, QVec3)>,
+    fallen: Vec<(u64, QVec3)>,
 }
 
 #[derive(Debug, Clone)]
@@ -4348,94 +4425,175 @@ impl Simulation {
         Ok(step.saturating_add(sampled))
     }
 
-    fn direct_effect(
-        &mut self,
-        actor_id: u64,
-        target_id: u64,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
-        let attacker = &self.actors[&actor_id];
-        let damage = attacker.stats.attack_damage();
-        let attacker_team = attacker.placement.team;
-        let attacker_ref = attacker.object_ref();
-        let splash_radius = attacker.rules.attack.splash_radius();
-        let target_domain = attacker.rules.attack.targets;
-        let center_x = self.actors[&target_id].x;
-        let center_z = self.actors[&target_id].z;
-        let target_ids = self
+    /// Every object one hit strikes, in the order it strikes them.
+    ///
+    /// The build's `DamagePerformer.PrepareRangeTargets`: what the hit was
+    /// aimed at, if it strikes that wherever it stands, and every enemy its
+    /// splash reaches. It is the one place this simulator decides who a hit
+    /// lands on, which is why what it does not yet decide is refused here and
+    /// nowhere else.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a hit whose splash would reach a building while it is aimed at
+    /// a unit: which buildings a splash takes, and for how much, has not been
+    /// measured.
+    fn damage_targets(&self, hit: &DamageHit) -> Result<Vec<FightActorRef>> {
+        let (center_x, center_z) = hit.center;
+        if let FightActorRef::Building(building_id) = hit.aimed {
+            // A shot at a building strikes that building and nothing else. A
+            // splash from it reaches the next block of a wall in the game, and
+            // that is not modelled: it strikes nothing it was not aimed at.
+            let building = self
+                .buildings
+                .iter()
+                .find(|building| building.building_id == building_id)
+                .ok_or_else(|| Error::new("damage target building is absent"))?;
+            let reached = magnitude(
+                building_x(building).saturating_sub(center_x),
+                building_z(building).saturating_sub(center_z),
+            ) <= building_radius(building).saturating_add(hit.splash_radius);
+            return Ok(if reached { vec![hit.aimed] } else { Vec::new() });
+        }
+        let units = self
             .target_search_order()
             .into_values()
             .flatten()
-            .filter_map(|candidate_ref| {
-                let FightActorRef::Unit(candidate_id) = candidate_ref else {
-                    return None;
+            .filter(|candidate_ref| {
+                let FightActorRef::Unit(candidate_id) = *candidate_ref else {
+                    return false;
                 };
                 let candidate = &self.actors[&candidate_id];
-                let dx = candidate.x.saturating_sub(center_x);
-                let dz = candidate.z.saturating_sub(center_z);
-                let edge_distance =
-                    magnitude(dx, dz).saturating_sub(candidate.rules.collision_radius());
-                (candidate.alive()
-                    && candidate.placement.team != attacker_team
-                    && match candidate.rules.domain {
-                        UnitDomain::Ground => target_domain.ground,
-                        UnitDomain::Air => target_domain.air,
-                    }
-                    && (candidate_id == target_id
-                        || (splash_radius > 0 && edge_distance <= splash_radius)))
-                    .then_some(candidate_id)
+                candidate.alive()
+                    && candidate.placement.team != hit.team
+                    && hit.reach.touches(candidate.rules.domain)
+                    && ((hit.hits_aimed && *candidate_ref == hit.aimed)
+                        || (hit.splash_radius > 0
+                            && magnitude(
+                                candidate.x.saturating_sub(center_x),
+                                candidate.z.saturating_sub(center_z),
+                            )
+                            .saturating_sub(candidate.rules.collision_radius())
+                                <= hit.splash_radius))
             })
             .collect::<Vec<_>>();
-        if splash_radius > 0
+        if hit.splash_radius > 0
+            && hit.reach.touches(UnitDomain::Ground)
             && self.buildings.iter().any(|building| {
                 building_alive(building)
                     && building.targetable
-                    && building.team_id != attacker_team
-                    && target_domain.ground
+                    && building.team_id != hit.team
                     && magnitude(
                         building_x(building).saturating_sub(center_x),
                         building_z(building).saturating_sub(center_z),
                     )
                     .saturating_sub(building_radius(building))
-                        <= splash_radius
+                        <= hit.splash_radius
             })
         {
-            return Err(Error::new("direct splash against a building is not closed"));
+            return Err(Error::new("splash against a building is not closed"));
         }
-        let mut deaths = Vec::new();
-        for affected_id in target_ids {
-            let target = self
-                .actors
-                .get_mut(&affected_id)
-                .ok_or_else(|| Error::new("direct attack target is absent"))?;
-            let previous_life = target.life;
-            target.life = target.life.saturating_sub(damage).max(0);
-            let actual_damage = previous_life - target.life;
-            if actual_damage > 0 {
-                target.last_damage_source = Some((attacker_ref, attacker_team));
+        Ok(units)
+    }
+
+    /// Takes one hit's damage off one target, unit or building alike.
+    ///
+    /// The one place this simulator takes life away. A unit remembers who hurt
+    /// it and leaves the fight when it dies; a building stops being a target
+    /// when it falls.
+    fn strike(
+        &mut self,
+        target: FightActorRef,
+        source: ObjectRef,
+        source_team: u32,
+        amount: i64,
+    ) -> Result<Stroke> {
+        match target {
+            FightActorRef::Unit(unit_id) => {
+                let unit = self
+                    .actors
+                    .get_mut(&unit_id)
+                    .ok_or_else(|| Error::new("damage target unit is absent"))?;
+                let previous_life = unit.life;
+                unit.life = unit.life.saturating_sub(amount).max(0);
+                let actual = previous_life - unit.life;
+                if actual > 0 {
+                    unit.last_damage_source = Some((source, source_team));
+                }
+                let death = (unit.life == 0).then(|| {
+                    let position = QVec3 {
+                        x: unit.x_q32,
+                        y: space_to_q32(unit_height(unit.rules.domain)),
+                        z: unit.z_q32,
+                    };
+                    unit.exit_fight_on_death();
+                    position
+                });
+                Ok(Stroke {
+                    actual,
+                    death,
+                    fallen: None,
+                })
+            }
+            FightActorRef::Building(building_id) => {
+                let building = self
+                    .buildings
+                    .iter_mut()
+                    .find(|building| building.building_id == building_id)
+                    .ok_or_else(|| Error::new("damage target building is absent"))?;
+                let damage =
+                    i32::try_from(amount).map_err(|_| Error::new("building damage exceeds i32"))?;
+                let previous_life = building.life.current;
+                building.life.current = building.life.current.saturating_sub(damage).max(0);
+                let destroyed = previous_life > 0 && building.life.current == 0;
+                if destroyed {
+                    building.targetable = false;
+                }
+                Ok(Stroke {
+                    actual: i64::from(previous_life - building.life.current),
+                    death: None,
+                    fallen: destroyed.then_some(building.position),
+                })
+            }
+        }
+    }
+
+    /// Resolves one hit against everything it strikes.
+    ///
+    /// `damage` is recorded here, once per object that lost life, in the order
+    /// the objects were struck. Deaths and fallen buildings are handed back:
+    /// each way of dealing damage records them where it records them.
+    fn perform_damage(&mut self, hit: DamageHit, events: &mut Vec<Event>) -> Result<Struck> {
+        let mut struck = Struck::default();
+        for target in self.damage_targets(&hit)? {
+            let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
+            if stroke.actual > 0 {
                 events.push(event(
                     None,
-                    Some(attacker_ref),
-                    Some(attacker_team),
-                    Some(ObjectRef::new(ObjectKind::Unit, affected_id)),
+                    Some(hit.source),
+                    Some(hit.source_team),
+                    Some(target.object_ref()),
                     EventPayload::Damage {
-                        amount: i32::try_from(actual_damage)
-                            .map_err(|_| Error::new("direct damage exceeds i32"))?,
+                        amount: i32::try_from(stroke.actual)
+                            .map_err(|_| Error::new("damage exceeds i32"))?,
                     },
                 ));
             }
-            if target.life == 0 {
-                deaths.push((
-                    affected_id,
-                    QVec3 {
-                        x: target.x_q32,
-                        y: space_to_q32(unit_height(target.rules.domain)),
-                        z: target.z_q32,
-                    },
-                ));
-                target.exit_fight_on_death();
+            let id = match target {
+                FightActorRef::Unit(id) | FightActorRef::Building(id) => id,
+            };
+            if let Some(position) = stroke.death {
+                struck.deaths.push((id, position));
+            }
+            if let Some(position) = stroke.fallen {
+                struck.fallen.push((id, position));
             }
         }
+        Ok(struck)
+    }
+
+    /// Records the units a hit killed, each credited to whoever last hurt it.
+    fn record_deaths(&self, deaths: Vec<(u64, QVec3)>, events: &mut Vec<Event>) {
         for (dead_id, position) in deaths {
             let (source, source_team_id) = self.actors[&dead_id]
                 .last_damage_source
@@ -4450,6 +4608,29 @@ impl Simulation {
                 EventPayload::UnitDied { position },
             ));
         }
+    }
+
+    fn direct_effect(
+        &mut self,
+        actor_id: u64,
+        target_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let attacker = &self.actors[&actor_id];
+        let aimed = &self.actors[&target_id];
+        let hit = DamageHit {
+            source: attacker.object_ref(),
+            source_team: attacker.placement.team,
+            team: attacker.placement.team,
+            amount: attacker.stats.attack_damage(),
+            aimed: FightActorRef::Unit(target_id),
+            hits_aimed: true,
+            center: (aimed.x, aimed.z),
+            splash_radius: attacker.rules.attack.splash_radius(),
+            reach: Reach::Targets(attacker.rules.attack.targets),
+        };
+        let struck = self.perform_damage(hit, events)?;
+        self.record_deaths(struck.deaths, events);
         Ok(())
     }
 
@@ -4474,30 +4655,22 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .laser_attack_count += 1;
-        let target = self
-            .actors
-            .get_mut(&target_id)
-            .ok_or_else(|| Error::new("laser attack target is absent"))?;
-        let previous_life = target.life;
-        target.life = target.life.saturating_sub(damage).max(0);
-        let actual_damage = previous_life - target.life;
-        if actual_damage > 0 {
-            target.last_damage_source = Some((attacker_ref, attacker_team));
-        }
-        if target.life == 0 {
-            target.exit_fight_on_death();
+        // A laser strikes one target and has no splash, so it takes the
+        // stroke without the range step. It records the death first and its
+        // damage after, and records damage even when none was dealt.
+        let stroke = self.strike(
+            FightActorRef::Unit(target_id),
+            attacker_ref,
+            attacker_team,
+            damage,
+        )?;
+        if let Some(position) = stroke.death {
             events.push(event(
                 Some(ObjectRef::new(ObjectKind::Unit, target_id)),
                 Some(attacker_ref),
                 Some(attacker_team),
                 None,
-                EventPayload::UnitDied {
-                    position: QVec3 {
-                        x: target.x_q32,
-                        y: space_to_q32(unit_height(target.rules.domain)),
-                        z: target.z_q32,
-                    },
-                },
+                EventPayload::UnitDied { position },
             ));
         }
         events.push(event(
@@ -4506,7 +4679,7 @@ impl Simulation {
             Some(attacker_team),
             Some(ObjectRef::new(ObjectKind::Unit, target_id)),
             EventPayload::Damage {
-                amount: i32::try_from(actual_damage)
+                amount: i32::try_from(stroke.actual)
                     .map_err(|_| Error::new("laser damage exceeds i32"))?,
             },
         ));
@@ -4585,169 +4758,40 @@ impl Simulation {
             .actors
             .get(&projectile.owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
-        let splash_radius = owner.rules.attack.splash_radius();
-        let owner_team = owner.placement.team;
-        if projectile.target_kind == ObjectKind::Building {
-            let projectile_ref = projectile.object_ref();
-            let owner_ref = ObjectRef::new(ObjectKind::Unit, projectile.owner);
-            let target_ref = ObjectRef::new(ObjectKind::Building, projectile.target);
-            let building = self
-                .buildings
-                .iter_mut()
-                .find(|building| building.building_id == projectile.target)
-                .ok_or_else(|| Error::new("projectile building target is absent"))?;
-            let previous_life = building.life.current;
-            let hit_building = magnitude(
-                building_x(building).saturating_sub(projectile.x),
-                building_z(building).saturating_sub(projectile.z),
-            ) <= building_radius(building).saturating_add(splash_radius);
-            if hit_building {
-                let damage = i32::try_from(projectile.damage)
-                    .map_err(|_| Error::new("projectile building damage exceeds i32"))?;
-                building.life.current = building.life.current.saturating_sub(damage).max(0);
-            }
-            let actual_damage = previous_life - building.life.current;
-            let destroyed = previous_life > 0 && building.life.current == 0;
-            if destroyed {
-                building.targetable = false;
-            }
-            let destroyed_at = building.position;
-            if actual_damage > 0 {
-                events.push(event(
-                    None,
-                    Some(owner_ref),
-                    Some(projectile.team),
-                    Some(target_ref),
-                    EventPayload::Damage {
-                        amount: actual_damage,
-                    },
-                ));
-            }
-            events.push(event(
-                Some(projectile_ref),
-                Some(owner_ref),
-                Some(projectile.team),
-                Some(target_ref),
-                EventPayload::ProjectileRemoved {
-                    position: QVec3 {
-                        x: projectile.x_q32,
-                        y: projectile.y_q32,
-                        z: projectile.z_q32,
-                    },
-                    intercepted: false,
-                    absorbed_by: None,
-                },
-            ));
-            // A building falls after every shot the tick resolves has been
-            // recorded, not after its own: a tick that lands two reads
-            // `damage`, `projectile_removed`, `projectile_removed`,
-            // `building_destroyed`. `step_projectiles` emits these last.
-            if destroyed {
-                self.fallen_buildings.push(event(
-                    Some(target_ref),
-                    None,
-                    None,
-                    None,
-                    EventPayload::BuildingDestroyed {
-                        position: destroyed_at,
-                    },
-                ));
-            }
-            return Ok(());
-        }
-        // FightProjectile.Init narrows a dual-domain skill to the actual
-        // target's domain and IDamageProvider.GetTargetType preserves that
-        // choice for range damage.
-        let projectile_target_domain = self
-            .actors
-            .get(&projectile.target)
-            .ok_or_else(|| Error::new("projectile target is absent"))?
-            .rules
-            .domain;
-        if splash_radius > 0 {
-            let secondary_building = projectile_target_domain == UnitDomain::Ground
-                && self.buildings.iter().any(|building| {
-                    building_alive(building)
-                        && building.targetable
-                        && building.team_id != owner_team
-                        && magnitude(
-                            building_x(building).saturating_sub(projectile.x),
-                            building_z(building).saturating_sub(projectile.z),
-                        )
-                        .saturating_sub(building_radius(building))
-                            <= splash_radius
-                });
-            if secondary_building {
-                return Err(Error::new(
-                    "projectile splash against a building is not closed",
-                ));
-            }
-        }
-        let projectile_ref = projectile.object_ref();
-        let owner_ref = ObjectRef::new(ObjectKind::Unit, projectile.owner);
-        let target_ref = ObjectRef::new(ObjectKind::Unit, projectile.target);
-        let target_ids = self
-            .target_search_order()
-            .into_values()
-            .flatten()
-            .filter_map(|candidate_ref| {
-                let FightActorRef::Unit(candidate_id) = candidate_ref else {
-                    return None;
-                };
-                let candidate = &self.actors[&candidate_id];
-                (candidate.alive()
-                    && candidate.placement.team != owner_team
-                    && candidate.rules.domain == projectile_target_domain
-                    && ((projectile.lock_target && candidate_id == projectile.target)
-                        || (splash_radius > 0
-                            && magnitude(
-                                candidate.x.saturating_sub(projectile.x),
-                                candidate.z.saturating_sub(projectile.z),
-                            )
-                            .saturating_sub(candidate.rules.collision_radius())
-                                <= splash_radius)))
-                    .then_some(candidate_id)
-            })
-            .collect::<Vec<_>>();
-        let mut deaths = Vec::new();
-        for target_id in target_ids {
-            let target = self
+        let (aimed, reach) = if projectile.target_kind == ObjectKind::Building {
+            (
+                FightActorRef::Building(projectile.target),
+                Reach::Targets(owner.rules.attack.targets),
+            )
+        } else {
+            let target_domain = self
                 .actors
-                .get_mut(&target_id)
-                .ok_or_else(|| Error::new("projectile target is absent"))?;
-            let previous_life = target.life;
-            target.life = target.life.saturating_sub(projectile.damage).max(0);
-            let actual_damage = previous_life - target.life;
-            if actual_damage > 0 {
-                target.last_damage_source = Some((owner_ref, projectile.team));
-                events.push(event(
-                    None,
-                    Some(owner_ref),
-                    Some(projectile.team),
-                    Some(ObjectRef::new(ObjectKind::Unit, target_id)),
-                    EventPayload::Damage {
-                        amount: i32::try_from(actual_damage)
-                            .map_err(|_| Error::new("projectile damage exceeds i32"))?,
-                    },
-                ));
-            }
-            if target.life == 0 {
-                deaths.push((
-                    target_id,
-                    QVec3 {
-                        x: target.x_q32,
-                        y: space_to_q32(unit_height(target.rules.domain)),
-                        z: target.z_q32,
-                    },
-                ));
-                target.exit_fight_on_death();
-            }
-        }
+                .get(&projectile.target)
+                .ok_or_else(|| Error::new("projectile target is absent"))?
+                .rules
+                .domain;
+            (
+                FightActorRef::Unit(projectile.target),
+                Reach::Domain(target_domain),
+            )
+        };
+        let hit = DamageHit {
+            source: ObjectRef::new(ObjectKind::Unit, projectile.owner),
+            source_team: projectile.team,
+            team: owner.placement.team,
+            amount: projectile.damage,
+            aimed,
+            hits_aimed: projectile.lock_target,
+            center: (projectile.x, projectile.z),
+            splash_radius: owner.rules.attack.splash_radius(),
+            reach,
+        };
+        let struck = self.perform_damage(hit, events)?;
         events.push(event(
-            Some(projectile_ref),
-            Some(owner_ref),
+            Some(projectile.object_ref()),
+            Some(hit.source),
             Some(projectile.team),
-            Some(target_ref),
+            Some(aimed.object_ref()),
             EventPayload::ProjectileRemoved {
                 position: QVec3 {
                     x: projectile.x_q32,
@@ -4758,18 +4802,18 @@ impl Simulation {
                 absorbed_by: None,
             },
         ));
-        for (target_id, position) in deaths {
-            let (source, source_team_id) = self.actors[&target_id]
-                .last_damage_source
-                .map_or((None, None), |(source, team_id)| {
-                    (Some(source), Some(team_id))
-                });
-            events.push(event(
-                Some(ObjectRef::new(ObjectKind::Unit, target_id)),
-                source,
-                source_team_id,
+        self.record_deaths(struck.deaths, events);
+        // A building falls after every shot the tick resolves has been
+        // recorded, not after its own: a tick that lands two reads `damage`,
+        // `projectile_removed`, `projectile_removed`, `building_destroyed`.
+        // `step_projectiles` emits these last.
+        for (building_id, position) in struck.fallen {
+            self.fallen_buildings.push(event(
+                Some(ObjectRef::new(ObjectKind::Building, building_id)),
                 None,
-                EventPayload::UnitDied { position },
+                None,
+                None,
+                EventPayload::BuildingDestroyed { position },
             ));
         }
         Ok(())
@@ -7342,7 +7386,7 @@ mod tests {
             .direct_effect(1, 2, &mut Vec::new())
             .unwrap_err()
             .to_string();
-        assert!(error.contains("direct splash against a building"));
+        assert!(error.contains("splash against a building is not closed"));
         assert_eq!(simulation.actors[&2].life, previous_life);
     }
 
@@ -7570,7 +7614,7 @@ mod tests {
             .impact(&projectile, &mut Vec::new())
             .unwrap_err()
             .to_string();
-        assert!(error.contains("projectile splash against a building"));
+        assert!(error.contains("splash against a building is not closed"));
         assert_eq!(simulation.actors[&2].life, previous_life);
     }
 

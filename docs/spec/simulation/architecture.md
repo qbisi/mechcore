@@ -281,6 +281,38 @@ checked before its arithmetic is known**: whether the table it fills produces
 the number the game stored is one question, and whether the composition turns
 that number into the right damage is another.
 
+## Damage
+
+Every way a fight deals damage is one provider handed to one performer. The
+build's `IDamageProvider` describes a hit — `GetDamage`, `GetSplashRange`,
+`GetMainTarget`, `GetMaxTargetCount`, `GetEffectTargetType` and the rest — and
+is implemented by skills, projectiles, commander skills, kill explosions,
+mines, support units and constructions. `DamagePerformer` resolves any of them:
+`PrepareRangeTargets` decides who is struck, and `PerformSingleEffect` /
+`PerformRangeEffect` take the life. What it strikes is a `FightActor`, so a
+unit and a building are struck by the same code.
+
+The simulator mirrors that split:
+
+| Native | Simulator |
+| --- | --- |
+| `IDamageProvider` | `DamageHit`: source, amount, what it was aimed at, whether that is struck wherever it stands, splash centre and radius, the domains it reaches |
+| `DamagePerformer.PrepareRangeTargets` | `damage_targets`, the one place that decides who a hit lands on |
+| a single target's life change | `strike`, the one place life is taken, from a unit or a building |
+| `PerformRangeEffect` | `perform_damage`, which strikes every target in order and records `damage` for each that lost life |
+
+**A way of dealing damage is a provider, never a new resolution.** A direct
+strike, a projectile arriving and a laser each describe their hit and hand it
+over; a laser, having no range, takes the stroke without the range step. What
+differs between them is only where they record what follows — a projectile
+records its own removal before the deaths it caused — so deaths and fallen
+buildings are handed back to the caller rather than recorded by the performer.
+
+**What the performer does not yet decide, it refuses in one place.** A splash
+that would reach a building from a hit aimed at a unit is refused in
+`damage_targets`, whatever dealt it, because which buildings it takes and for
+how much is a measurement this contract does not carry.
+
 ## The mirror, and what is dummy
 
 The simulator carries the same three layers under the same names, and grows by
@@ -292,6 +324,7 @@ filling modules rather than by editing the kernel:
 | `DataSet` over a shared description | the two overlays, per actor and per skill, each entry tagged with the mechanism that wrote it |
 | `BuffManager` aggregates | the buff channel, summed per actor |
 | `FightProperty` | a derived value read through `stat(...)`, never a direct field read |
+| `IDamageProvider` + `DamagePerformer` | one hit description and one resolution, [above](#damage) |
 | the recording's columns | what each layer is accepted against, per tick |
 
 A module that is not implemented is present, claims its fields, and refuses
