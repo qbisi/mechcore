@@ -407,9 +407,13 @@ all of it.
 
 **What the mirror does not carry yet.** A grouped skill's core is a
 `GroupedSkillAttackBehaviour` rather than a `FightSkill`; the capture holds no
-state for it, and it keeps the prepare timing it was calibrated with. Which
-branch of the build makes a skill that cannot switch quickly keep a live lock
-out of reach, rather than search again, is measured but not read.
+state for it, and it keeps the prepare timing it was calibrated with. A skill
+that cannot switch quickly keeps a live lock out of reach. That is measured,
+and the path is read: the build reads the quick-switch flag only in the
+research branch of `Check`, and a live lock sends `CheckWhenLoseTarget` to the
+synchronous search (`PerformNormalSkillSearch` with no prepared job), which
+answers the lock. Why the selector's score favours it there is not read. The
+mirror states the measured rule in place of that score.
 
 ## The mirror, and what is dummy
 
