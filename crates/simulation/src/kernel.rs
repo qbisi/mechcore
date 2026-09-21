@@ -484,17 +484,22 @@ struct Actor {
     /// the draw its deployment took.
     current_attack_interval: u64,
     motion_attack_hold_fire: bool,
-    lock_target: Option<FightActorRef>,
-    /// The wall standing between this actor and what its skill searched for,
-    /// with the target it searched for.
+    /// What the mech's body is directed at: the target its search found, which
+    /// it moves toward and which a unit with a body keeps facing while it
+    /// attacks. A recording carries it as `mech_lock_target`.
     ///
-    /// A recording keeps the two apart and so does the build: the mech's lock
-    /// stays the unit behind the wall while the weapon points at the block in
-    /// the way. `lock_target` is the block, because everything a fight does
-    /// with a target — range, motion, firing, damage — it does with the block;
-    /// this remembers what the lock would otherwise be, and only for as long
-    /// as `lock_target` is still that block. Any other assignment to
-    /// `lock_target` retires it without anyone having to clear it.
+    /// It is not always what the weapons fire at: [`Actor::attack_target`] is,
+    /// and the two part company when an enemy construction stands in the line
+    /// of fire.
+    lock_target: Option<FightActorRef>,
+    /// The enemy construction in the line of fire, and the lock it was found
+    /// for.
+    ///
+    /// `FightSkill.SearchAttackTarget` asks `WallConstructionTargetChecker`
+    /// every tick the skill is idle and hands the block to the weapons while
+    /// the mech keeps its lock. The pairing is what keeps this honest: once
+    /// `lock_target` is anything but the lock it was found for, the block no
+    /// longer answers, without anyone having to clear it.
     in_the_way: Option<(u64, FightActorRef)>,
     lock_is_terminal_handoff: bool,
     fight_skill_search_target_time: i32,
@@ -621,17 +626,38 @@ impl Actor {
         self.life > 0
     }
 
-    /// What the mech is locked onto, which is not always what its weapon
-    /// points at: a wall in the way takes the weapon and leaves the lock.
-    fn mech_lock_target(&self) -> Option<FightActorRef> {
+    /// What this actor's weapons fire at: the construction in the way if one
+    /// stands there for the current lock, and the lock itself otherwise.
+    ///
+    /// Range, attack angle, release and the question of whether the target
+    /// is still alive are all asked of this. Where to move and where a body
+    /// faces are asked of `lock_target`.
+    fn attack_target(&self) -> Option<FightActorRef> {
         match self.in_the_way {
-            Some((building, behind))
-                if self.lock_target == Some(FightActorRef::Building(building)) =>
-            {
-                Some(behind)
+            Some((building, found_for)) if self.lock_target == Some(found_for) => {
+                Some(FightActorRef::Building(building))
             }
             _ => self.lock_target,
         }
+    }
+
+    /// What a grouped skill's core fires at, or the weapons' target when the
+    /// group has none.
+    fn mechanical_attack_target(&self) -> Option<FightActorRef> {
+        self.group_skill_targets
+            .first()
+            .copied()
+            .flatten()
+            .or_else(|| {
+                self.group_skill_targets
+                    .iter()
+                    .rev()
+                    .flatten()
+                    .copied()
+                    .next()
+            })
+            .map(FightActorRef::Unit)
+            .or(self.attack_target())
     }
 
     fn mechanical_lock_target(&self) -> Option<FightActorRef> {
@@ -745,9 +771,13 @@ impl Actor {
                         .copied()
                         .flatten()
                         .map(FightActorRef::Unit)
-                        .or_else(|| (weapon_index == 0).then_some(self.lock_target).flatten())
+                        .or_else(|| {
+                            (weapon_index == 0)
+                                .then_some(self.attack_target())
+                                .flatten()
+                        })
                 } else {
-                    self.lock_target
+                    self.attack_target()
                 };
                 WeaponAimState {
                     skill_slot: if group_mode {
@@ -779,7 +809,7 @@ impl Actor {
                 z: self.current_velocity_z_q32,
             },
             motion_state: self.motion,
-            mech_lock_target: self.mech_lock_target().map(FightActorRef::object_ref),
+            mech_lock_target: self.lock_target.map(FightActorRef::object_ref),
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
@@ -1475,7 +1505,7 @@ impl Simulation {
             .actors
             .values()
             .filter_map(|actor| {
-                matches!(actor.lock_target, Some(FightActorRef::Building(_)))
+                matches!(actor.attack_target(), Some(FightActorRef::Building(_)))
                     .then_some(actor.placement.team)
             })
             .collect::<std::collections::BTreeSet<_>>();
@@ -1632,21 +1662,21 @@ impl Simulation {
                     && actor.fight_skill_phase == FightSkillPhase::Idle
                     && !actor.motion_attack_hold_fire
                     && actor.fight_skill_searched_this_tick
-                    && actor.lock_target.is_none();
+                    && actor.attack_target().is_none();
                 let moving_bodyful_projectile = motion_at_start == MotionState::Moving
                     && actor.rules.has_body
                     && matches!(actor.rules.attack.path, AttackPath::Projectile { .. })
                     && actor.fight_skill_searched_this_tick
-                    && actor.lock_target.is_none();
+                    && actor.attack_target().is_none();
                 let ineligible = if natural_finish_handoff {
                     !moving_direct
-                        && (actor.lock_target.is_some()
+                        && (actor.attack_target().is_some()
                             || actor.retarget_after_own_direct_kill
                             || !actor.fight_skill_searched_this_tick)
                 } else {
                     (!moving_direct && !moving_bodyful_projectile)
                         || actor
-                            .lock_target
+                            .attack_target()
                             .is_some_and(|target| self.fight_actor_is_alive(target))
                 };
                 if ineligible {
@@ -1924,28 +1954,27 @@ impl Simulation {
         best.map(|(building_id, _)| building_id)
     }
 
-    /// Points this actor's weapon at the wall in its way, if one is.
+    /// Asks again which construction, if any, stands in this actor's line of
+    /// fire, and hands it to the weapons.
     ///
-    /// `FightSkill.SearchAttackTarget` asks `WallConstructionTargetChecker`
-    /// after it has a target, so this is called wherever a search settles.
-    /// The lock it found is remembered and the block takes its place; nothing
-    /// happens when no enemy construction stands in the line, which is every
-    /// fight that places none.
+    /// The lock is left alone. `FightSkill.SearchAttackTarget` asks
+    /// `WallConstructionTargetChecker` wherever a search settles and every
+    /// tick the skill is idle, and a block that is no longer in the way stops
+    /// being the attack target the next time it is asked. Nothing changes in a
+    /// fight that places no enemy construction.
     fn engage_wall_in_the_way(&mut self, actor_id: u64) {
-        let Some(target @ FightActorRef::Unit(_)) = self.actors[&actor_id].lock_target else {
+        let found = match self.actors[&actor_id].lock_target {
             // A search that already chose a building is not redirected: the
             // measurement is a wall taking the place of a unit.
-            return;
+            Some(target @ FightActorRef::Unit(_)) => self
+                .wall_in_the_way(actor_id, target)
+                .map(|building| (building, target)),
+            _ => None,
         };
-        let Some(building) = self.wall_in_the_way(actor_id, target) else {
-            return;
-        };
-        let actor = self
-            .actors
+        self.actors
             .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        actor.in_the_way = Some((building, target));
-        actor.lock_target = Some(FightActorRef::Building(building));
+            .expect("actor identity is stable")
+            .in_the_way = found;
     }
 
     /// Which enemy construction stands between this actor and its target.
@@ -2234,7 +2263,7 @@ impl Simulation {
             })
             .collect::<Vec<_>>();
         let current_target = actor
-            .mechanical_lock_target()
+            .mechanical_attack_target()
             .and_then(FightActorRef::unit_id);
         let prepare_steps = native_time_units_to_steps(actor.rules.attack.prepare_time_units());
         let allow_same_target = actor
@@ -2380,7 +2409,7 @@ impl Simulation {
         // longer alive.
         let actor = &self.actors[&actor_id];
         let target = actor
-            .mechanical_lock_target()
+            .mechanical_attack_target()
             .and_then(|target| self.fight_actor(target));
         let target_alive = target.is_some_and(|target| target.alive && target.targetable);
         let target_died_during_tick =
@@ -2453,7 +2482,7 @@ impl Simulation {
             && actor.fight_skill_phase == FightSkillPhase::Idle
             && step >= actor.next_attack_step
             && actor
-                .lock_target
+                .attack_target()
                 .is_some_and(|target_id| self.target_in_attack_area(actor_id, target_id));
         let selected = if target_alive
             && (!actor.rules.attack.quick_switch_target || quick_idle_retains_attackable_target)
@@ -2463,6 +2492,9 @@ impl Simulation {
             && actor.backswing_finish_step.is_none()
             && selected != actor.lock_target
         {
+            // An attacking unit keeps the lock it has. What its weapons fire
+            // at is asked again below, so a construction still in the way is
+            // handed back to them rather than written into the lock.
             actor.lock_target
         } else {
             selected
@@ -2472,7 +2504,7 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         actor.lock_is_terminal_handoff = false;
-        if actor.lock_target != selected {
+        if actor.attack_target() != selected {
             actor.laser_attack_count = 0;
         }
         actor.lock_target = selected;
@@ -2490,7 +2522,7 @@ impl Simulation {
         allow_phase_override: bool,
     ) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        let Some(FightActorRef::Unit(target_id)) = actor.lock_target else {
+        let Some(FightActorRef::Unit(target_id)) = actor.attack_target() else {
             return Ok(false);
         };
         let target = FightActorRef::Unit(target_id);
@@ -2545,7 +2577,7 @@ impl Simulation {
         let entered_idle = match selected {
             Some(FightActorRef::Unit(target_id)) => {
                 let target = FightActorRef::Unit(target_id);
-                if actor.lock_target != Some(target) {
+                if actor.attack_target() != Some(target) {
                     actor.laser_attack_count = 0;
                 }
                 actor.lock_target = Some(target);
@@ -2641,7 +2673,7 @@ impl Simulation {
             actor.retarget_after_own_direct_kill
                 && matches!(actor.rules.attack.path, AttackPath::Laser { .. })
                 && actor
-                    .lock_target
+                    .attack_target()
                     .is_some_and(|target| !self.fight_actor_is_alive(target))
         };
         if completed_laser_kill {
@@ -2662,10 +2694,10 @@ impl Simulation {
                 && actor.pending.is_none()
                 && actor.backswing_finish_step.is_none()
                 && actor
-                    .lock_target
+                    .attack_target()
                     .is_some_and(|target| !self.fight_actor_is_alive(target))
             {
-                actor.lock_target
+                actor.attack_target()
             } else {
                 None
             }
@@ -2693,7 +2725,7 @@ impl Simulation {
                 && !actor.motion_attack_hold_fire
                 && actor.pending.is_none()
                 && actor.backswing_finish_step.is_none()
-                && actor.lock_target.is_some_and(|target_id| {
+                && actor.attack_target().is_some_and(|target_id| {
                     self.bodyless_target_in_attack_area(actor_id, target_id)
                 })
         };
@@ -2721,11 +2753,11 @@ impl Simulation {
         };
         let quick_switch_dead_backswing_due = quick_switch_backswing_due
             && self.actors[&actor_id]
-                .lock_target
+                .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         let dead_backswing_just_finished = backswing_just_finished
             && self.actors[&actor_id]
-                .lock_target
+                .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         let deferred_projectile_burst_finish = {
             let actor = self
@@ -2753,7 +2785,7 @@ impl Simulation {
         }
         let deferred_target_outside_attack_area = deferred_projectile_burst_finish
             && self.actors[&actor_id]
-                .lock_target
+                .attack_target()
                 .is_none_or(|target_id| !self.target_in_attack_area(actor_id, target_id));
         if deferred_target_outside_attack_area
             && self.quick_switch_active_target_outside_attack_area(
@@ -2767,7 +2799,7 @@ impl Simulation {
         }
         let force_burst_finish_target_search = deferred_projectile_burst_finish
             && self.actors[&actor_id]
-                .lock_target
+                .attack_target()
                 .is_none_or(|target_id| !self.target_in_attack_area(actor_id, target_id));
         if force_burst_finish_target_search {
             let actor = self
@@ -2781,7 +2813,7 @@ impl Simulation {
             let actor = &self.actors[&actor_id];
             !actor.projectile_pending_releases.is_empty()
                 && actor
-                    .lock_target
+                    .attack_target()
                     .is_some_and(|target| !self.fight_actor_is_alive(target))
         };
         if active_projectile_burst_lost_target {
@@ -2854,7 +2886,7 @@ impl Simulation {
             || quick_switch_dead_backswing_due
             || dead_backswing_just_finished
         {
-            self.actors[&actor_id].lock_target
+            self.actors[&actor_id].attack_target()
         } else {
             None
         };
@@ -2911,7 +2943,7 @@ impl Simulation {
             (actor.rules.has_body
                 && actor.rules.attack.quick_switch_target
                 && actor.pending.is_some())
-            .then_some(actor.lock_target)
+            .then_some(actor.attack_target())
             .flatten()
             .filter(|&target_id| self.target_in_attack_area(actor_id, target_id))
         };
@@ -2993,7 +3025,7 @@ impl Simulation {
                     .first()
                     .is_none_or(|ready_step| *ready_step <= step)
                 && step >= actor.next_attack_step)
-                .then(|| actor.mechanical_lock_target())
+                .then(|| actor.mechanical_attack_target())
                 .flatten()
         };
         if let Some(target_id) = group_core_target
@@ -3055,7 +3087,7 @@ impl Simulation {
                 self.release_projectile(actor_id, target_id, skill_index, skill_index, events)?;
             }
         }
-        let lock_target = self.actors[&actor_id].mechanical_lock_target();
+        let lock_target = self.actors[&actor_id].mechanical_attack_target();
         if let Some(target) = lock_target {
             let target_alive = self.fight_actor_is_alive(target);
             if !target_alive && self.actors[&actor_id].backswing_finish_step.is_some() {
@@ -3102,7 +3134,7 @@ impl Simulation {
                     .lock_target = None;
             }
         }
-        let target = self.actors[&actor_id].mechanical_lock_target();
+        let target = self.actors[&actor_id].mechanical_attack_target();
         let Some(target) = target else {
             let actor = self
                 .actors
@@ -3119,6 +3151,16 @@ impl Simulation {
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
         let target_radius = target_view.radius;
+        // Where the body goes when it moves is the lock's, not the weapons':
+        // a unit held by a construction in its line of fire still advances on
+        // the unit behind it, and only stops because the construction is in
+        // reach. The two coincide in every fight without one.
+        let (body_x_q32, body_z_q32, body_radius) = self.actors[&actor_id]
+            .mechanical_lock_target()
+            .and_then(|lock| self.fight_actor(lock))
+            .map_or((target_x_q32, target_z_q32, target_radius), |view| {
+                (view.x_q32, view.z_q32, view.radius)
+            });
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -3441,9 +3483,9 @@ impl Simulation {
             actor.x_q32,
             actor.z_q32,
             actor.rules.collision_radius(),
-            target_x_q32,
-            target_z_q32,
-            target_radius,
+            body_x_q32,
+            body_z_q32,
+            body_radius,
             actor.stats.attack_range(),
         );
         actor.next_target_x_q32 = move_target_x_q32;
@@ -8430,6 +8472,60 @@ mod tests {
                 assert_ne!(arclight.body_rotation, initial.body_rotation);
             }
         }
+    }
+
+    /// The body and the weapons have separate targets, and a recording reports
+    /// both.
+    ///
+    /// Red's Marksman locks onto the Marksman behind blue's wall and shoots
+    /// block 6, which stands in its line of fire: `docs/rules/combat.md`
+    /// measured the lock staying on the unit while the weapon holds the block,
+    /// and `tests/layouts/construction/line-of-fire.mcscript` recorded this
+    /// exact fight. The physics hash cannot see either field, which is why
+    /// this pins them here.
+    #[test]
+    fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/layouts/construction/wall-line-of-fire.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        for step in 0..2 {
+            simulation.step(step).unwrap();
+        }
+        let marksman = simulation
+            .actors
+            .values()
+            .find(|actor| actor.placement.team == 1)
+            .unwrap();
+        let behind_the_wall = simulation
+            .actors
+            .values()
+            .find(|actor| actor.placement.team == 0)
+            .unwrap()
+            .placement
+            .unit_id;
+        let state = marksman.snapshot();
+
+        assert_eq!(
+            state.mech_lock_target,
+            Some(ObjectRef::new(ObjectKind::Unit, behind_the_wall)),
+            "the body keeps the unit it searched for"
+        );
+        assert_eq!(
+            state.weapon_aims[0].attack_target,
+            Some(ObjectRef::new(ObjectKind::Building, 6)),
+            "the weapon holds the block in the way"
+        );
+        assert_eq!(state.motion_state, MotionState::Attacking);
+        assert_eq!(
+            marksman.lock_target,
+            Some(FightActorRef::Unit(behind_the_wall)),
+            "the lock is never overwritten by the block"
+        );
     }
 
     #[test]

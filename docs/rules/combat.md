@@ -139,6 +139,51 @@ build applies.
 **Not covered.** `Normalize -> Angle -> RawAcos` over all directions, and
 boundary rounding.
 
+## The body follows the lock, the weapons follow the attack target
+
+A unit has two targets and the build keeps them apart: the mech's lock
+(`FightMech.lockTarget`, recorded as `mech_lock_target`) and each skill's attack
+target (`GetAttackTarget()`, recorded per weapon channel in `weapon_aims`).
+[mcfr.md](../spec/mcfr/mcfr.md#what-a-unit-is-directed-at) defines the fields;
+this is what they were measured to do. They coincide in an ordinary fight and
+part company when an enemy construction stands in the line of fire, which is
+where every reading below was taken.
+
+**The body travels toward the lock.** While `moving`, the angle between a
+unit's velocity and the direction to its lock has a median under one degree for
+every unit type read: Marksman 0.7° with all 77 samples inside 5°, Wraith 0.0°
+over 108, Crawler 0.8° over 9814, Fang 0.8° over 215. The Crawlers and Fangs
+that stray further are formations being pushed by their neighbours.
+
+**Whether it travels is the attack target's.** `attacking` is entered when an
+attack target is in reach, whatever the lock is: across the wall recordings,
+1429 unit-ticks are `attacking` a construction with the lock out of reach and
+the construction in it. `MotionAttackState.Enter` calls
+`RVOControllerFixed.StopMove`, and only `MotionMoveState` calls
+`MotionController.Move`, so no state both travels and fires. A single unit
+`attacking` moves exactly 0 metres a tick, whether its attack target is a unit
+or a construction. A velocity already published carries on until the next RVO
+publish: a Wraith entering attack travelled five more ticks at its full 0.5
+metres before stopping.
+
+**A body faces the lock; a unit without one faces its attack target.** Attacking
+a construction, a Marksman — `has_body: true` — keeps its body on the unit
+behind it: 0.0° off the lock and 6.6° off the block it is shooting, nearer the
+lock on 95 of 95 ticks. `MotionAttackState.AttackRotate` asks
+`FightMech.IsHaveBody` before `RotateBodyTo`, and a unit with a body turns only
+its weapons in attack. The units without a body — Fang, Crawler, Wraith — turn
+the root toward the attack target: nearer it on 311 of 328, 850 of 1034 and 52
+of 54 decidable ticks.
+
+**Not covered.** The reading of which interface slot `MotionMoveState.Update`
+asks before it enters attack: the dispatch goes through slots the index does not
+name, so "the attack target in reach" is what the recordings and the shape of
+`IAttacker` — `IsAttackTargetInAttackRange` beside `GetLockTarget` — say, not a
+method body read. A Marksman's weapon has no pose in a recording, so its aim
+angle is not observed, only that its shot reaches the construction. Every
+reading is the build's; `crates/simulation/src/kernel.rs` implements the split
+as `lock_target` and `Actor::attack_target`.
+
 ## Normal target scoring and pre-battle acquisition
 
 Among currently visible, fully rotated, unsplit-quadtree ordinary ground targets
