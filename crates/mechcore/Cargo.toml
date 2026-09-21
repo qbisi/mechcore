@@ -5,6 +5,14 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+# The Adapter is the macOS `cdylib` the game loads, and `mechcore` packages it
+# beside its own executable so `game: launch` can inject it. Everything else —
+# the simulator, the readers, `mcscript` without a game — needs none of it, so
+# a build without this feature is how the CLI builds on any other platform.
+[features]
+default = ["adapter"]
+adapter = ["dep:mechcore-adapter"]
+
 [dependencies]
 libc = "0.2"
 mechcore-document = { path = "../document", features = ["convert"] }
@@ -19,7 +27,7 @@ tempfile = "3"
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
 
 [build-dependencies]
-mechcore-adapter = { path = "../adapter", artifact = "cdylib", target = "target" }
+mechcore-adapter = { path = "../adapter", artifact = "cdylib", target = "target", optional = true }
 tempfile = "3"
 
 [dev-dependencies]

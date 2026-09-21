@@ -31,12 +31,24 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 # CI 与自动合并
 
-`.github/workflows/ci.yml` 在 macOS 上跑六件事：fixture 哈希、
-`cargo fmt --all -- --check`、`cargo clippy -D warnings`、
-`cargo test --workspace --all-features`、重新生成 `tests/battle` 并要求结果没有
-差异，以及把每一份被跟踪的 `.mcscript` 过一遍 `--check`、并**实际运行其中不需要
-游戏的那些**。倒数第二条意味着改了转换器就必须在同一次提交里重新生成语料；最后一条
-意味着一份离线脚本里的断言和一份测试同等有效，`tests/layouts/modifier/regressions.mcscript`
+`.github/workflows/ci.yml` 分三个并行的 job，各答一个问题：
+
+- `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
+  `cargo clippy -D warnings`、`cargo test`，都是
+  `--workspace --exclude mechcore-adapter --no-default-features`。
+- `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——fixture 哈希、
+  重新生成 `tests/battle` 并要求结果没有差异、把每一份被跟踪的 `.mcscript` 过一遍
+  `--check` 并**实际运行其中不需要游戏的那些**、`scripts/verify-battles.py`。
+- `adapter`（macOS）：只查别处查不了的——Adapter 自己的 clippy 和测试、默认
+  feature 下 `mechcore` 把 dylib 打包到可执行文件旁边、以及找游戏进程的那段 macOS
+  代码。
+
+Adapter 是 `mechcore` 的默认 feature `adapter`；只有它需要 macOS，关掉它
+（`--no-default-features`）整个 CLI 在任何平台都能构建和测试。所以新代码若只在
+macOS 上成立，要用 `cfg(target_os = "macos")` 隔开，不然 Linux 上的 job 会失败。
+
+`scripts` 里重新生成语料那条意味着改了转换器就必须在同一次提交里重新生成语料；跑离线
+脚本那条意味着一份离线脚本里的断言和一份测试同等有效，`tests/layouts/modifier/regressions.mcscript`
 就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
 
 一份 `.mcscript` 要么需要游戏、要么不需要，`run --check` 的 `game` 字段就是答案：
