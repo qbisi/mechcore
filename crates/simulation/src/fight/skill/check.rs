@@ -44,16 +44,17 @@ impl Simulation {
     /// A live lock is kept and `SearchAttackTarget` asked again; a dead one
     /// is searched for, and a skill that cannot switch quickly fails if that
     /// changes what it fires at. What it fires at must then be in the attack
-    /// area.
+    /// area. One out of range is searched for again (`CheckWhenLoseTarget`),
+    /// and the check passes if the answer is in the area.
     ///
-    /// A dead lock is always searched for here: the Marksman whose Crawler
-    /// dies is switched onto the next one, and cools when that one is out of
-    /// reach. A live lock the weapons still fire at is not yet held to the
-    /// attack area here; the quick-switch and stale-target paths of
-    /// `step_actor_with_target_order` still answer that, because what
-    /// `SearchLockTarget` has to offer a lock that left the area depends on
-    /// whether a search was prepared for it, which this mirror does not
-    /// carry yet.
+    /// What that second search can answer depends on the skill. A skill that
+    /// switches quickly takes the selector's answer; one that does not gets
+    /// back the lock it has while that lock lives, and fails. Checked against
+    /// every `Check` call of the 82 manifest fights, 148,466 of 148,595 (the
+    /// rest are a grouped skill's slots and the last enemy's towers): a
+    /// Crawler whose lock walks out of reach keeps it and ends its attack; a
+    /// Stormcaller whose lock does takes the next target in reach. Which
+    /// branch of the build decides it is not read yet.
     pub(in crate::fight) fn check_attackable(
         &mut self,
         actor_id: u64,
@@ -72,23 +73,40 @@ impl Simulation {
                 return Ok(false);
             }
         }
-        let after = self.actors[&actor_id].skill.attack_target();
-        if after == before && lock == self.actors[&actor_id].skill.lock_target {
-            return Ok(true);
-        }
-        let Some(target) = after else {
+        let Some(target) = self.actors[&actor_id].skill.attack_target() else {
             return Ok(false);
         };
-        Ok(self.target_in_attack_area(actor_id, target))
+        if self.target_in_attack_area(actor_id, target) {
+            return Ok(true);
+        }
+        if self.bodyless_target_in_attack_range(actor_id, target) {
+            return Ok(false);
+        }
+        let actor = &self.actors[&actor_id];
+        if !actor.rules.attack.quick_switch_target
+            && actor
+                .skill
+                .lock_target
+                .is_some_and(|lock| self.fight_actor_is_alive(lock))
+        {
+            return Ok(false);
+        }
+        if !self.search_lock_target(actor_id, target_search_order)? {
+            return Ok(false);
+        }
+        Ok(self.actors[&actor_id]
+            .skill
+            .attack_target()
+            .is_some_and(|target| self.target_in_attack_area(actor_id, target)))
     }
 
     /// Whether `SkillAttackState` asks `CheckAttackable` on this update.
     ///
-    /// It asks while no attack phase is running between two blows, and
-    /// during the wait before a blow; not during the blow or its backswing.
-    /// The capture of `wall-block.yaml` reads it: one Crawler's check fails on
-    /// the update after its backswing ends, and another's during the wait
-    /// before its next blow, each when a nearer block has come into its line.
+    /// It asks while no attack phase runs between two blows, through the wait
+    /// before a blow, and on the update the blow lands, before it is
+    /// performed; not through a burst after its first shot, nor during the
+    /// backswing. Every `Check` call the game made across the 82 manifest
+    /// fights falls on one of these updates.
     pub(in crate::fight) fn between_blows(&self, actor_id: u64, step: u64) -> bool {
         let actor = &self.actors[&actor_id];
         let waiting = actor.skill.pending().is_none()
@@ -97,11 +115,11 @@ impl Simulation {
                 .skill
                 .backswing_finish_step()
                 .is_none_or(|finish| finish < step);
-        let before = actor
+        let winding_up = actor
             .skill
             .pending()
-            .is_some_and(|pending| step < pending.step);
-        actor.skill.phase() == FightSkillPhase::Attack && (waiting || before)
+            .is_some_and(|pending| step <= pending.step);
+        actor.skill.phase() == FightSkillPhase::Attack && (waiting || winding_up)
     }
 
     /// `SkillAttackState.CheckAttackable`: an attack on a building that has

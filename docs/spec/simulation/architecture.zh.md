@@ -324,11 +324,23 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 `SkillStateController` 状态和 `SkillAttackController` 阶段的采集里读出来的（`target_refs_v1`
 instrumentation profile），和 `tests/construction/` 下的录像一起。
 
-**镜像还没接管的部分。** 内核经过的技能状态，现在在整个回归清单上与游戏的采集有 99% 的单位-tick 一致；
-剩下的是单位朝向还在修正时进入攻击的那一 tick。`check_attackable` 对每个死掉的锁定都会重新搜，冷却只由
-`finish_attack` 开始。活着的锁定离开攻击区域，仍由 `step_actor_with_target_order` 里快速切换和失效目标
-那两条路径回答：那里 `SearchLockTarget` 返回的是 `PreCalculate` 准备的选择器任务，而攻击状态只在锁定死了
-或为空时才准备它，内核还没有承载这个任务。
+**怎么对齐到游戏的。** 两份整个回归清单的采集是对照：每个单位逐 tick 的技能状态和攻击阶段
+（`tests/regression/skill-state.mcscript`），以及每一次 `Check` 调用前后技能的锁定和攻击目标
+（`skill_attackable_checker_v1` profile）。内核的状态现在在所有可比的单位-tick 上只有 3 处与游戏不同，
+`check_attackable` 对游戏自己的 148,595 次调用有 148,466 次给出相同回答。除检查器本身外，还需要：
+
+- 检查在两下之间、出手前的等待、以及出手那次更新（出手之前）运行；
+- 后摇在下一下到来时结束：描述里的后摇被截到攻击间隔，Wasp 就是这样；
+- 所有单位的攻击状态都会延续到后摇之后；
+- 刚进入的状态当 tick 不更新：单位进入射程的那个 tick 技能就进入准备或攻击状态，即使朝向还在修正；
+  准备结束后，第一下要等到下一个 tick。
+
+有了这些，原来回答"锁定死了或走远了"的失效目标、快速切换出界、失效替换三条路径都删了，全部由检查器
+回答。
+
+**镜像还没接管的部分。** 成组技能的核心是 `GroupedSkillAttackBehaviour` 而不是 `FightSkill`，采集里
+没有它的状态，它仍用原先校准过的准备时序。不能快速切换的技能为什么对走出射程的活锁定不重新搜，而是
+保留它，这一点是量出来的，还没有在反编译里读到对应分支。
 
 ## 镜像，以及现在哪些是空的
 
