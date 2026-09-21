@@ -94,3 +94,27 @@ steps:
     expect:
       sides.red.survivors.0.name: crawler
       sides.red.survivors.0.alive: 20
+
+  # Both fights against the simulator, every field of every tick. The side
+  # that placed the wall walks through it — the wall is among each Crawler's
+  # neighbours and yields it no obstacle — and the side that did not is held
+  # by it and takes it down, changing blocks between blows.
+  - fight.run:
+      layout: tests/construction/wall-passage.yaml
+      seed: $seed
+      output: ${out}/simulated-passage.mcfr
+  - fight.compare:
+      left: ${out}/passage.mcfr
+      right: ${out}/simulated-passage.mcfr
+    expect:
+      equal: true
+  - fight.run:
+      layout: tests/construction/wall-block.yaml
+      seed: $seed
+      output: ${out}/simulated-block.mcfr
+  - fight.compare:
+      left: ${out}/block.mcfr
+      right: ${out}/simulated-block.mcfr
+    expect:
+      equal: true
+      content_equal: true

@@ -112,7 +112,7 @@ a unit too large for the gaps between blocks, and every construction other
 than the wall, have not been.
 
 **A block that falls ends the attack on it, and the lock with it.** Once the
-attack on a block is over, the unit reads idle for a tick with an empty lock,
+attack on a block is over, a unit that struck it reads idle for a tick with an empty lock,
 and takes its next target the tick after — the next block in its line, or the
 unit behind the wall once the line is clear. A Marksman's fight is over the
 tick the shot lands; a Rhino's only when its swing is, and until then it reads
@@ -123,6 +123,12 @@ one — the Rhino, the Steel Balls — names nothing. A group of weapons drops
 every slot with the lock instead (below). Two recordings show the idle lasting
 longer, four ticks for a Marksman in `wall-line-width.yaml` and ten for the
 Fortress, in fights the simulator cannot run.
+
+Only a unit that attacked the block has an attack on it to end. Two Crawlers
+of `wall-block.yaml` closing on block 4, attacking by their motion but not yet
+striking, go straight on to the Marksman behind the wall the tick after
+another Crawler fells it, with no idle tick. And one that struck it keeps
+turning to it through its swing, as it did while the block stood.
 
 **A wall is never a target a unit looks for.** Across the ten recordings under
 `tests/construction/`, 931 ticks of which have a wall standing, a
@@ -167,6 +173,13 @@ read idle, with no lock and no weapon target; the tick after that, it was on
 block 3 with its lock back on the Marksman. The prepared beam was never
 fired.
 
+**It is asked between blows as well, and a different block ends the attack on
+the old one.** The swing that follows a blow is exempt; the moment it is over,
+and while the next blow winds up, the skill asks again. A Crawler of
+`wall-block.yaml`, pushed along the wall while it strikes block 4, finds block
+3 the nearer one in its line when its swing ends, reads idle with no lock for a
+tick, and strikes block 3 after.
+
 It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. One Marksman settles that: with the nearest block 75
 metres away and 39 off the line, and a block dead on the line 92 metres away
@@ -185,7 +198,9 @@ metres and stops considering a wall beyond 12, its range plus its radius of 2
 plus the block's 4; a Wraith reaches 60 and attacks a block 73.8 metres off,
 inside its 60 + 11 + 4. A constant allowance fits the Crawler and not the
 Wraith, and an earlier version of this document said "range + 7" because only
-the Crawler had been asked.
+the Crawler had been asked. The distance is the build's fast fixed-point
+magnitude, which reads a little short: a Crawler whose centre is 12.00023
+metres from a block's engages it.
 
 The width is a bracket rather than a reading, from 94 decisions across six unit
 types — Crawler, Marksman, Fang, Farseer, Wraith and Fortress — taken at the
@@ -210,8 +225,10 @@ Marksman behind the wall takes the block in its line, one hit each, the damage
 event capped at the life the block had — 1112 against its 3560 — and its 6
 metres of splash reach no neighbour, whose edge is 8 away. Four Steel Balls
 take three blocks with the beam's ramp, 2, 3, 8, 17 and on, each on the block
-in its own line, the last hit capped at what is left. A blow's block falls as
-it lands, `damage` then `building_destroyed`, and so does a beam's.
+in its own line, the last hit capped at what is left. A block falls after
+every hit its tick resolves, a blow's as a shot's: the Crawlers of
+`wall-block.yaml` read three more blows between the one that fells block 5
+and `building_destroyed`. A beam's falls straight after its damage.
 
 **Every weapon of a group takes a wall, the lock follows none of them, and an
 air unit's shot is taken too.** A Wraith flies and carries four weapon slots.

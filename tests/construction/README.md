@@ -31,9 +31,10 @@ fixture and the measurement that reads it are one file to rerun.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
 simulator to the physics hash the game produced for `wall-aside.yaml`,
 `wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
-`wall-rhino.yaml` and `wall-laser.yaml`, the last three over all 242, 189 and
-243 of their ticks. The last two agree with the game in content as well, which
-`attacks.mcscript` checks.
+`wall-rhino.yaml`, `wall-laser.yaml`, `wall-passage.yaml` and `wall-block.yaml`
+— every wall fight here the simulator can run, each over every one of its
+ticks. `wall-rhino.yaml`, `wall-laser.yaml` and `wall-block.yaml` agree with the
+game in content as well.
 
 A physics hash does not cover a unit's lock, its weapons' targets or its motion
 state, which are content-layer fields, so a matching hash does not say they
@@ -91,11 +92,6 @@ and be shot, which is what the two wall fixtures establish.
 Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
-
-**A Crawler attacking a block, from tick 96 of `wall-block.yaml`.** The
-simulator agrees with that fight's physics to tick 95 and its positions to 120,
-which includes the Crawler pressed 0.711 metres from a block's centre. At 96 a
-Crawler the game reads idle and lockless keeps attacking in the simulator.
 
 **Who a Crawler locks at the end of `wall-passage.yaml`.** Its physics agrees
 with the game on all 341 ticks; its content parts for four ticks from 327, in

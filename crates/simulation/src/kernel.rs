@@ -511,6 +511,14 @@ struct Actor {
     /// the next target is in reach at once, for as long as it takes otherwise.
     /// Only the snapshot reads this; nothing aims or fires at a fallen block.
     fallen_attack_target: Option<u64>,
+    /// The construction this actor has launched an attack at since it last
+    /// took a lock.
+    ///
+    /// Only a unit that attacked a block has an attack on it to end when it
+    /// falls. Two Crawlers of `wall-block.yaml` closing on block 4 without yet
+    /// striking it go straight on to the Marksman behind the wall when a third
+    /// fells it, with no idle tick, where the one that felled it idles for one.
+    attacked_wall: Option<u64>,
     lock_is_terminal_handoff: bool,
     fight_skill_search_target_time: i32,
     fight_skill_searched_this_tick: bool,
@@ -620,6 +628,7 @@ impl Actor {
             lock_target: None,
             in_the_way: None,
             fallen_attack_target: None,
+            attacked_wall: None,
             lock_is_terminal_handoff: false,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
@@ -671,6 +680,7 @@ impl Actor {
     fn drop_lock(&mut self) {
         self.lock_target = None;
         self.fallen_attack_target = None;
+        self.attacked_wall = None;
         self.group_skill_targets.fill(None);
         self.group_in_the_way.fill(None);
         self.group_skill_next_attack_steps.fill(0);
@@ -724,6 +734,7 @@ impl Actor {
         self.pending = None;
         self.lock_target = None;
         self.fallen_attack_target = None;
+        self.attacked_wall = None;
         self.lock_is_terminal_handoff = false;
         self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.fight_skill_phase = FightSkillPhase::Idle;
@@ -2200,7 +2211,7 @@ impl Simulation {
             {
                 continue;
             }
-            let distance = magnitude(
+            let distance = native_q32_magnitude(
                 building.position.x.saturating_sub(actor.x_q32),
                 building.position.z.saturating_sub(actor.z_q32),
             );
@@ -2839,6 +2850,7 @@ impl Simulation {
             match actor.attack_target() {
                 Some(FightActorRef::Building(building))
                     if actor.group_skill_targets.is_empty()
+                        && actor.attacked_wall == Some(building)
                         && actor.pending.is_none()
                         && actor
                             .backswing_finish_step
@@ -2881,17 +2893,35 @@ impl Simulation {
         // weapon target, and the tick after it is on the block. So the check
         // is asked while preparing too, and a block it finds is not fired at
         // until the unit has looked again.
+        //
+        // The same holds between two blows on a block, once the swing is over
+        // and before the next begins: the skill is idle for that moment and
+        // asks again, and a different block now nearer in the line ends the
+        // attack on the old one. A Crawler of `wall-block.yaml`, pushed along
+        // the wall while it strikes block 4, reads idle with no lock on the
+        // tick its swing ends and is on block 3 the tick after.
         let interrupted = {
             let actor = &self.actors[&actor_id];
+            let between_blows = actor.fight_skill_phase != FightSkillPhase::Idle
+                && actor
+                    .backswing_finish_step
+                    .is_none_or(|finish| finish < step);
             match actor.lock_target {
-                Some(target @ FightActorRef::Unit(_))
+                Some(target @ FightActorRef::Unit(_)) if actor.group_skill_targets.is_empty() => {
+                    let held = actor
+                        .in_the_way
+                        .filter(|(_, found_for)| *found_for == target)
+                        .map(|(wall, _)| wall);
                     if matches!(actor.fight_skill_phase, FightSkillPhase::Prepare { .. })
-                        && actor.group_skill_targets.is_empty()
-                        && actor
-                            .in_the_way
-                            .is_none_or(|(_, found_for)| found_for != target) =>
-                {
-                    self.wall_in_the_way(actor_id, target).is_some()
+                        && held.is_none()
+                    {
+                        self.wall_in_the_way(actor_id, target).is_some()
+                    } else if between_blows && let Some(held) = held {
+                        self.wall_in_the_way(actor_id, target)
+                            .is_some_and(|wall| wall != held)
+                    } else {
+                        false
+                    }
                 }
                 _ => false,
             }
@@ -2905,6 +2935,8 @@ impl Simulation {
             actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.fight_skill_search_target_time = 0;
+            actor.backswing_finish_step = None;
+            actor.pending = None;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
@@ -3322,6 +3354,9 @@ impl Simulation {
                 step,
                 target: target_id,
             });
+            if let FightActorRef::Building(building) = target_id {
+                actor.attacked_wall = Some(building);
+            }
             let _attack_point_rejected = self.release(actor_id, events)?;
         }
         let group_releases = {
@@ -3429,10 +3464,42 @@ impl Simulation {
                 // `wall-rhino.yaml` reads attacking, still on the block, until
                 // its swing is over, and only then goes idle.
                 let holds_a_block = matches!(target, FightActorRef::Building(_));
+                // And keeps turning to it: the Crawlers of `wall-block.yaml`
+                // that fell block 5 face it a little more each tick of their
+                // swing, as they did while it stood.
+                // A tower the match's end tears down is not turned to.
+                let holds_a_wall = matches!(target, FightActorRef::Building(building)
+                    if self.actors[&actor_id].in_the_way.is_some_and(|(wall, _)| wall == building));
+                let held_rotation = self
+                    .fight_actor(target)
+                    .filter(|_| holds_a_wall)
+                    .map(|view| {
+                        let actor = &self.actors[&actor_id];
+                        direction_degrees_q32_raw(
+                            view.x_q32.saturating_sub(actor.x_q32),
+                            view.z_q32.saturating_sub(actor.z_q32),
+                        )
+                    });
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
+                if let Some(rotation) = held_rotation {
+                    actor.rotate_weapons_towards(rotation);
+                    if actor.rules.has_body {
+                        actor.aim_rotation = degrees_q32_to_mdeg(
+                            actor
+                                .weapon_rotations_q32
+                                .first()
+                                .copied()
+                                .unwrap_or(actor.body_rotation_q32),
+                        );
+                    } else {
+                        actor.rotate_body_towards(rotation);
+                        actor.aim_rotation = actor.body_rotation;
+                        actor.rotate_weapons_towards(rotation);
+                    }
+                }
                 let entered_idle = actor.motion != MotionState::Idle && !holds_a_block;
                 if !holds_a_block {
                     actor.motion = MotionState::Idle;
@@ -3657,6 +3724,9 @@ impl Simulation {
                         step: step.saturating_add(attack_point_steps),
                         target,
                     });
+                    if let FightActorRef::Building(building) = target {
+                        actor.attacked_wall = Some(building);
+                    }
                 }
                 (
                     entered_attack,
@@ -4854,11 +4924,11 @@ impl Simulation {
         };
         let struck = self.perform_damage(hit, events)?;
         self.record_deaths(struck.deaths, events);
-        // A blow has no flight to wait for, so a block it fells falls as it
-        // lands: the Rhino of `wall-rhino.yaml` reads `damage` and then
-        // `building_destroyed` on the same tick, with nothing between.
+        // A block a blow fells falls after every hit the tick resolves, as a
+        // shot's does: the Crawlers of `wall-block.yaml` read three more blows
+        // between the one that fells block 5 and `building_destroyed`.
         for (building_id, position) in struck.fallen {
-            events.push(event(
+            self.fallen_buildings.push(event(
                 Some(ObjectRef::new(ObjectKind::Building, building_id)),
                 None,
                 None,
@@ -9050,6 +9120,51 @@ mod tests {
             turned.weapon_aims[0].attack_target,
             Some(ObjectRef::new(ObjectKind::Building, 3))
         );
+    }
+
+    /// Crawlers against a wall change blocks between blows, and only one that
+    /// struck a block idles when it falls.
+    ///
+    /// In `wall-block.yaml`, Crawler 2 is pushed along the wall while it strikes
+    /// block 4: when its swing is over on tick 96, block 3 is the nearer one in
+    /// its line, and it reads idle with no lock before turning on block 3 at
+    /// 97. Crawlers 7 and 23 are closing on block 4 without having struck it
+    /// when another fells it at 118, and they go straight on to the Marksman
+    /// at 119. `tests/construction/wall.mcscript` recorded the fight.
+    #[test]
+    fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/construction/wall-block.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        let read = |simulation: &Simulation, id: u64| simulation.actors[&id].snapshot();
+        for step in 0..96 {
+            simulation.step(step).unwrap();
+        }
+        let switching = read(&simulation, 2);
+        assert_eq!(switching.motion_state, MotionState::Idle);
+        assert_eq!(switching.mech_lock_target, None);
+        simulation.step(96).unwrap();
+        assert_eq!(
+            read(&simulation, 2).weapon_aims[0].attack_target,
+            Some(ObjectRef::new(ObjectKind::Building, 3))
+        );
+        for step in 97..119 {
+            simulation.step(step).unwrap();
+        }
+        for id in [7, 23] {
+            let going_on = read(&simulation, id);
+            assert_eq!(going_on.motion_state, MotionState::Moving, "Crawler {id}");
+            assert_eq!(
+                going_on.mech_lock_target,
+                Some(ObjectRef::new(ObjectKind::Unit, 1)),
+                "Crawler {id}"
+            );
+        }
     }
 
     /// The body and the weapons have separate targets, and a recording reports
