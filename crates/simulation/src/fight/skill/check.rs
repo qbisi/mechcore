@@ -53,8 +53,17 @@ impl Simulation {
     /// every `Check` call of the 82 manifest fights, 148,466 of 148,595 (the
     /// rest are a grouped skill's slots and the last enemy's towers): a
     /// Crawler whose lock walks out of reach keeps it and ends its attack; a
-    /// Stormcaller whose lock does takes the next target in reach. Which
-    /// branch of the build decides it is not read yet.
+    /// Stormcaller whose lock does takes the next target in reach.
+    ///
+    /// It is not a quick-switch branch. The build reads that flag
+    /// (`ISkillData` slot 24) in one place, the research branch above. The
+    /// second search is `SkillSearchTargetController.PerformNormalSkillSearch`,
+    /// which finds no prepared job for a live lock, because only a null or
+    /// dead lock prepares one. So it runs the synchronous search: the selector
+    /// over the enemies within max(reach, 400 m), then 200 m and 300 m wider,
+    /// then all of them. That search answers the kept lock. Why it does is
+    /// not read: our selector, fed the snapshot or live positions in place of
+    /// the rule, keeps 73 or 71 of the 106 pinned fights.
     pub(in crate::fight) fn check_attackable(
         &mut self,
         actor_id: u64,
