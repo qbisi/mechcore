@@ -179,10 +179,16 @@ than a measurement.
 air unit's shot is taken too.** A Wraith flies and carries four weapon slots.
 Once it is attacking, all four point at the block in its way while its lock
 stays on the Marksman behind the wall — so whatever a group's weapons tell the
-mech's lock, a wall in the way is not part of it. Its slots answer for
-themselves: later in the same fight they hit two different blocks in the same
-tick. A Fortress, whose weapons are grouped too, does the same with the block
-in its line.
+mech's lock, a wall in the way is not part of it. The core takes the block
+first and the other three follow eight ticks later, when the group allocates
+its children, which is the same delay the group shows against units. A Fortress
+does the same with the block in its line.
+
+**A shot at a block splashes the next one.** The Wraith's 8 metres of splash
+reach the neighbouring block, whose edge is exactly 8 metres from the one it
+aims at: one projectile removed at block 4 reads `damage` 381 on block 4 and
+381 on block 5. An earlier version of this document took that for two slots
+firing at two blocks; every slot was on block 4.
 
 **A block falls after the shot that felled it is recorded.** The three events
 one hit produces arrive in the order `damage`, `projectile_removed`,

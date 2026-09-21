@@ -506,6 +506,13 @@ struct Actor {
     fight_skill_searched_this_tick: bool,
     fight_skill_phase: FightSkillPhase,
     group_skill_targets: Vec<Option<u64>>,
+    /// The enemy construction in each grouped slot's line of fire, with the
+    /// unit that slot was allocated.
+    ///
+    /// The same pairing as [`Actor::in_the_way`], slot by slot: a Wraith's four
+    /// slots each take the block standing between it and the unit they were
+    /// given, and a slot given another unit no longer answers with it.
+    group_in_the_way: Vec<Option<(u64, u64)>>,
     group_skill_next_attack_steps: Vec<u64>,
     group_skill_prepare_ready_steps: Vec<u64>,
     group_pending_releases: Vec<(usize, PendingRelease)>,
@@ -609,6 +616,7 @@ impl Actor {
             fight_skill_searched_this_tick: false,
             fight_skill_phase: FightSkillPhase::Idle,
             group_skill_targets: vec![None; group_skill_count],
+            group_in_the_way: vec![None; group_skill_count],
             group_skill_next_attack_steps: vec![0; group_skill_count],
             group_skill_prepare_ready_steps: vec![0; group_skill_count],
             group_pending_releases: Vec::new(),
@@ -641,22 +649,44 @@ impl Actor {
         }
     }
 
+    /// Drops the mech's target, and every grouped slot with it.
+    ///
+    /// A group whose mech holds no target holds no slots: every time a Wraith
+    /// was recorded losing its lock — to a block it was shooting falling, and
+    /// to the last enemy dying — all four slots read empty the same tick, and
+    /// the children were allocated again only once the core was attacking,
+    /// the usual eight ticks later. Nothing changes for a unit without a
+    /// group, whose slot lists are empty.
+    fn drop_lock(&mut self) {
+        self.lock_target = None;
+        self.group_skill_targets.fill(None);
+        self.group_in_the_way.fill(None);
+        self.group_skill_next_attack_steps.fill(0);
+        self.group_skill_prepare_ready_steps.fill(0);
+        self.group_pending_releases.clear();
+    }
+
+    /// What one grouped slot fires at: the construction in its way if one
+    /// stands there for the unit it was allocated, and that unit otherwise.
+    fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
+        let unit = self.group_skill_targets.get(slot).copied().flatten()?;
+        match self.group_in_the_way.get(slot).copied().flatten() {
+            Some((building, found_for)) if found_for == unit => {
+                Some(FightActorRef::Building(building))
+            }
+            _ => Some(FightActorRef::Unit(unit)),
+        }
+    }
+
     /// What a grouped skill's core fires at, or the weapons' target when the
     /// group has none.
     fn mechanical_attack_target(&self) -> Option<FightActorRef> {
-        self.group_skill_targets
-            .first()
-            .copied()
-            .flatten()
+        self.group_attack_target(0)
             .or_else(|| {
-                self.group_skill_targets
-                    .iter()
+                (0..self.group_skill_targets.len())
                     .rev()
-                    .flatten()
-                    .copied()
-                    .next()
+                    .find_map(|slot| self.group_attack_target(slot))
             })
-            .map(FightActorRef::Unit)
             .or(self.attack_target())
     }
 
@@ -685,6 +715,7 @@ impl Actor {
         self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.fight_skill_phase = FightSkillPhase::Idle;
         self.group_skill_targets.fill(None);
+        self.group_in_the_way.fill(None);
         self.group_skill_next_attack_steps.fill(0);
         self.group_skill_prepare_ready_steps.fill(0);
         self.group_pending_releases.clear();
@@ -766,16 +797,11 @@ impl Actor {
             .map(|weapon_index| {
                 let group_mode = self.rules.attack.weapons.mode == WeaponMode::Group;
                 let attack_target = if group_mode {
-                    self.group_skill_targets
-                        .get(weapon_index)
-                        .copied()
-                        .flatten()
-                        .map(FightActorRef::Unit)
-                        .or_else(|| {
-                            (weapon_index == 0)
-                                .then_some(self.attack_target())
-                                .flatten()
-                        })
+                    self.group_attack_target(weapon_index).or_else(|| {
+                        (weapon_index == 0)
+                            .then_some(self.attack_target())
+                            .flatten()
+                    })
                 } else {
                     self.attack_target()
                 };
@@ -1837,7 +1863,7 @@ impl Simulation {
         if stop_fight {
             for actor in self.actors.values_mut() {
                 actor.motion = MotionState::Idle;
-                actor.lock_target = None;
+                actor.drop_lock();
                 actor.lock_is_terminal_handoff = false;
                 actor.fight_skill_phase = FightSkillPhase::Idle;
                 if ready_to_finish {
@@ -1975,6 +2001,36 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .in_the_way = found;
+        self.refresh_group_walls(actor_id);
+    }
+
+    /// Asks each grouped slot which construction stands between the actor and
+    /// the unit that slot was allocated.
+    ///
+    /// Every slot of a Wraith takes the block its core took, eight ticks later,
+    /// when the group allocates its children. With one enemy unit the slots'
+    /// lines are the core's, so whether several blocks in reach would be
+    /// shared out among the slots is not something any recording has shown;
+    /// the build's `CheckWallConstructionForGroupedSkill` keeps a list of walls
+    /// already checked, which suggests it might, and nothing here assumes so.
+    fn refresh_group_walls(&mut self, actor_id: u64) {
+        let slots = self.actors[&actor_id].group_skill_targets.clone();
+        if slots.is_empty() {
+            return;
+        }
+        let found = slots
+            .iter()
+            .map(|slot| {
+                slot.and_then(|unit| {
+                    self.wall_in_the_way(actor_id, FightActorRef::Unit(unit))
+                        .map(|building| (building, unit))
+                })
+            })
+            .collect::<Vec<_>>();
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .group_in_the_way = found;
     }
 
     /// Which enemy construction stands between this actor and its target.
@@ -2262,8 +2318,11 @@ impl Simulation {
                     <= space_to_q32(actor.stats.attack_range())
             })
             .collect::<Vec<_>>();
+        // Slots hold the units they were allocated; a construction in a slot's
+        // way is asked for afterwards. So the core is seeded with the unit the
+        // mech is locked on, never with the block its weapons are firing at.
         let current_target = actor
-            .mechanical_attack_target()
+            .mechanical_lock_target()
             .and_then(FightActorRef::unit_id);
         let prepare_steps = native_time_units_to_steps(actor.rules.attack.prepare_time_units());
         let allow_same_target = actor
@@ -2589,7 +2648,7 @@ impl Simulation {
                 false
             }
             None => {
-                actor.lock_target = None;
+                actor.drop_lock();
                 actor.motion = MotionState::Idle;
                 actor.fight_skill_phase = FightSkillPhase::Idle;
                 actor.pending = None;
@@ -2654,7 +2713,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.lock_is_terminal_handoff = false;
             actor.fight_skill_phase = FightSkillPhase::Idle;
             if clear_velocity {
@@ -2668,6 +2727,7 @@ impl Simulation {
             return Ok(());
         }
         self.update_group_skill_targets(actor_id, step, target_search_order)?;
+        self.refresh_group_walls(actor_id);
         let completed_laser_kill = {
             let actor = &self.actors[&actor_id];
             actor.retarget_after_own_direct_kill
@@ -2681,7 +2741,7 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.laser_attack_count = 0;
             actor.retarget_after_own_direct_kill = false;
@@ -2709,7 +2769,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
@@ -2903,7 +2963,7 @@ impl Simulation {
                 .expect("actor identity is stable");
             let entered_idle = actor.motion != MotionState::Idle;
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.backswing_finish_step = None;
             actor.retarget_after_own_direct_kill = false;
@@ -2968,7 +3028,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.pending = None;
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.next_target_x_q32 = actor.x_q32;
@@ -3065,26 +3125,74 @@ impl Simulation {
                 if next_attack_step > 0
                     && next_attack_step <= step
                     && prepare_ready_step <= step
-                    && let Some(target) = actor.group_skill_targets[skill_index]
+                    && let Some(target) = actor.group_attack_target(skill_index)
                 {
-                    due.push((
-                        skill_index,
-                        PendingRelease {
-                            step,
-                            target: FightActorRef::Unit(target),
-                        },
-                    ));
+                    due.push((skill_index, PendingRelease { step, target }));
+                }
+            }
+            // A release queued when its slot was allocated names the unit it
+            // was allocated. It fires at what that slot fires at now, which is
+            // a construction in its way if one has been found since: the slot
+            // still holds the same unit, and only what it shoots has changed.
+            for (skill_index, pending) in &mut due {
+                if pending.target.unit_id()
+                    == actor
+                        .group_skill_targets
+                        .get(*skill_index)
+                        .copied()
+                        .flatten()
+                    && let Some(target) = actor.group_attack_target(*skill_index)
+                {
+                    pending.target = target;
                 }
             }
             due.sort_by_key(|&(skill_index, _)| skill_index);
             due
         };
         for (skill_index, pending) in group_releases {
-            if let Some(target_id) = pending.target.unit_id()
-                && self.actors.get(&target_id).is_some_and(Actor::alive)
-            {
-                self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
-                self.release_projectile(actor_id, target_id, skill_index, skill_index, events)?;
+            match pending.target {
+                FightActorRef::Unit(target_id)
+                    if self.actors.get(&target_id).is_some_and(Actor::alive) =>
+                {
+                    self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
+                    self.release_projectile(actor_id, target_id, skill_index, skill_index, events)?;
+                }
+                // A slot whose line of fire a construction stands in fires at
+                // the construction, as the core does.
+                FightActorRef::Building(building_id) => {
+                    let Some((x_q32, z_q32, radius)) = self
+                        .buildings
+                        .iter()
+                        .find(|building| {
+                            building.building_id == building_id && building_alive(building)
+                        })
+                        .map(|building| {
+                            (
+                                building.position.x,
+                                building.position.z,
+                                building_radius(building),
+                            )
+                        })
+                    else {
+                        continue;
+                    };
+                    self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
+                    self.release_projectile_to(
+                        actor_id,
+                        ObjectKind::Building,
+                        building_id,
+                        q32_to_space_rounded(x_q32),
+                        0,
+                        q32_to_space_rounded(z_q32),
+                        x_q32,
+                        z_q32,
+                        radius,
+                        skill_index,
+                        skill_index,
+                        events,
+                    )?;
+                }
+                FightActorRef::Unit(_) => {}
             }
         }
         let lock_target = self.actors[&actor_id].mechanical_attack_target();
@@ -3116,7 +3224,7 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
                 let entered_idle = actor.motion != MotionState::Idle;
-                actor.lock_target = None;
+                actor.drop_lock();
                 actor.retarget_after_own_direct_kill = false;
                 actor.motion = MotionState::Idle;
                 if entered_idle {
@@ -3131,7 +3239,7 @@ impl Simulation {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
-                    .lock_target = None;
+                    .drop_lock();
             }
         }
         let target = self.actors[&actor_id].mechanical_attack_target();
@@ -3224,7 +3332,7 @@ impl Simulation {
                     && !in_attack_angle;
                 if completed_attack_reentry_rejected {
                     actor.motion = MotionState::Idle;
-                    actor.lock_target = None;
+                    actor.drop_lock();
                     actor.fight_skill_phase = FightSkillPhase::Idle;
                     actor.next_target_x_q32 = actor.x_q32;
                     actor.next_target_z_q32 = actor.z_q32;
@@ -3259,7 +3367,7 @@ impl Simulation {
                     // recursively, so target reacquisition waits one tick and
                     // this transition tick preserves the old body facing.
                     actor.motion = MotionState::Idle;
-                    actor.lock_target = None;
+                    actor.drop_lock();
                     actor.fight_skill_phase = FightSkillPhase::Idle;
                     actor.next_target_x_q32 = actor.x_q32;
                     actor.next_target_z_q32 = actor.z_q32;
@@ -3410,7 +3518,7 @@ impl Simulation {
             // SkillIdleState before MotionAttackState can fall through to
             // movement. Both state machines expose one targetless Idle tick.
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.motion_attack_hold_fire = false;
             actor.next_target_x_q32 = actor.x_q32;
@@ -3430,7 +3538,7 @@ impl Simulation {
             // target is no longer in range. Idle target acquisition runs on
             // the following update rather than recursively entering Moving.
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
@@ -3448,7 +3556,7 @@ impl Simulation {
             // not update the new state recursively, so MotionController sees
             // one targetless Idle tick before reacquisition on the next tick.
             actor.motion = MotionState::Idle;
-            actor.lock_target = None;
+            actor.drop_lock();
             actor.fight_skill_phase = FightSkillPhase::Idle;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
@@ -8472,6 +8580,65 @@ mod tests {
                 assert_ne!(arclight.body_rotation, initial.body_rotation);
             }
         }
+    }
+
+    /// Every slot of a grouped skill takes the construction in its way, and
+    /// every slot is dropped with the lock.
+    ///
+    /// The Wraith of `tests/layouts/construction/wall-weapon-group.yaml` was
+    /// recorded doing all of it: its core engages block 3 at tick 32 and the
+    /// other three slots follow eight ticks later, while the lock stays on the
+    /// Marksman; block 3 falls at tick 59 and all four slots read empty at
+    /// tick 60; the core engages block 4 at tick 74 and the children are
+    /// allocated again eight ticks after that, not at once.
+    #[test]
+    fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/layouts/construction/wall-weapon-group.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        let slots_at = |simulation: &mut Simulation, tick: u64, done: &mut u64| {
+            while *done < tick {
+                simulation.step(*done).unwrap();
+                *done += 1;
+            }
+            let wraith = simulation
+                .actors
+                .values()
+                .find(|actor| actor.placement.team == 1)
+                .unwrap()
+                .snapshot();
+            (
+                wraith.mech_lock_target,
+                wraith
+                    .weapon_aims
+                    .iter()
+                    .map(|aim| aim.attack_target)
+                    .collect::<Vec<_>>(),
+            )
+        };
+        let building = |id| Some(ObjectRef::new(ObjectKind::Building, id));
+        let marksman = Some(ObjectRef::new(ObjectKind::Unit, 1));
+        let mut done = 0;
+
+        let (lock, slots) = slots_at(&mut simulation, 41, &mut done);
+        assert_eq!(lock, marksman, "the lock stays on the unit behind the wall");
+        assert_eq!(slots, vec![building(3); 4], "all four slots on block 3");
+
+        let (lock, slots) = slots_at(&mut simulation, 60, &mut done);
+        assert_eq!(lock, None, "block 3 has fallen and the lock is dropped");
+        assert_eq!(slots, vec![None; 4], "and every slot with it");
+
+        let (_, slots) = slots_at(&mut simulation, 78, &mut done);
+        assert_eq!(
+            slots,
+            vec![building(4), None, None, None],
+            "the core has block 4; the children wait to be allocated again"
+        );
     }
 
     /// The body and the weapons have separate targets, and a recording reports

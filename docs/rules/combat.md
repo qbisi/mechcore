@@ -175,6 +175,16 @@ its weapons in attack. The units without a body — Fang, Crawler, Wraith — tu
 the root toward the attack target: nearer it on 311 of 328, 850 of 1034 and 52
 of 54 decidable ticks.
 
+**A grouped skill's lock is its latest allocation, and a construction is never
+allocated.** A Wraith's lock follows the unit most recently allocated to one of
+its four slots. A construction in a slot's way replaces what that slot fires
+at, not what it was allocated, so all four slots can be firing at a block while
+the lock reads the Marksman behind it — which is how "the lock follows the
+group's last attack target" and "a wall never reaches the lock" are both true.
+The slots are dropped with the lock: the tick a block the Wraith was shooting
+fell, and the tick its last enemy died, all four read empty, and the children
+were allocated again only eight ticks after the core was next attacking.
+
 **Not covered.** The reading of which interface slot `MotionMoveState.Update`
 asks before it enters attack: the dispatch goes through slots the index does not
 name, so "the attack target in reach" is what the recordings and the shape of

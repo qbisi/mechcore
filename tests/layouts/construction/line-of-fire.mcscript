@@ -129,9 +129,11 @@ steps:
   # It does, they do, and it does not. The Wraith closes from 86 metres and
   # engages block 3 at tick 32 from 73.8 metres — beyond `range + 7` and within
   # `range + radius + block`, 60 + 11 + 4 — and by tick 40 all four slots
-  # point at block 3 while its lock stays on the Marksman behind the wall.
-  # Later its slots split: at ticks 93 and 101 it hits blocks 4 and 5 in the
-  # same tick, so each slot answers for itself rather than copying the first.
+  # point at block 3 while its lock stays on the Marksman behind the wall —
+  # eight ticks after the core, when the group allocates its children. At
+  # ticks 93 and 101 blocks 4 and 5 lose life in the same tick from one
+  # projectile: the Wraith's 8 metres of splash reach the next block, and
+  # every slot is on block 4.
   #
   # The readings are the blocks that fall and when: 3 by tick 60 from
   # 381 + 381 + 350, then 4 and 5 together at tick 101, and 6 and 7 stand.

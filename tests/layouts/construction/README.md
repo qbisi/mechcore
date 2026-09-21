@@ -4,10 +4,12 @@ wall; the simulator re-engages at once. The physics layer does not see it inside
 these fights, which end within a tick or two, and the content layer that does is
 not compared by any regression — `plan.md` says how it was found.
 
-**A group's other weapon slots, in the simulator.** The simulator allocates them
-among units only, so `wall-weapon-group.yaml` parts company at tick 40, when the
-game points all four at the wall. It is measured and not reproduced, which is
-why it is in `line-of-fire.mcscript` and not in `regressions.mcscript`.
+**Splash on a block, in the simulator.** A shot at a block splashes the next one
+— the Wraith's 8 metres reach the neighbouring block's edge exactly — and the
+simulator damages only the block it aims at, without refusing. So
+`wall-weapon-group.yaml` reproduces 92 of its 242 ticks and parts company at the
+first splash, which is why it is measured in `line-of-fire.mcscript` and not
+pinned in `regressions.mcscript`.
 
 #**What a unit does once the block it was shooting falls, in the simulator.** The
 game idles for a tick with an empty lock and then returns to the unit behind the
