@@ -144,7 +144,6 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        actor.skill.projectile_burst_finished_same_tick_dead = false;
         actor.skill.projectile_pending_releases.extend(releases);
         self.release_pending_projectile(actor_id, first, events)
     }

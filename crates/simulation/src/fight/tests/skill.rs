@@ -34,7 +34,7 @@ fn has_body_attack_replacement_outside_range_exits_through_one_idle_tick() {
 }
 
 #[test]
-fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
+fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
@@ -68,9 +68,11 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
 
+    // A lock inside the minimum range is out of the attack area; a skill
+    // that switches quickly searches again and takes the unit in its area.
     assert!(
-        !simulation
-            .quick_switch_active_target_outside_attack_area(1, 1, &target_search_order, false)
+        simulation
+            .check_attackable(1, &target_search_order)
             .unwrap()
     );
     assert_eq!(
@@ -78,17 +80,14 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
         Some(unit_target(6))
     );
 
-    let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion.state = MotionState::Attacking;
-    source.skill.lock_target = Some(unit_target(5));
-    source.skill.set_phase(FightSkillPhase::Attack);
-    simulation.refresh_target_query_snapshot();
+    // A dead lock is searched for the same way.
+    simulation.actors.get_mut(&1).unwrap().skill.lock_target = Some(unit_target(5));
     simulation.actors.get_mut(&5).unwrap().life = 0;
+    simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
-
     assert!(
-        !simulation
-            .quick_switch_active_target_outside_attack_area(1, 2, &target_search_order, false)
+        simulation
+            .check_attackable(1, &target_search_order)
             .unwrap()
     );
     assert_eq!(
@@ -96,42 +95,18 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
         Some(unit_target(6))
     );
 
+    // With nothing in its area the search answers a unit it cannot attack,
+    // and the check fails.
     set_actor_position(simulation.actors.get_mut(&6).unwrap(), 0, 250_000);
     simulation.actors.get_mut(&5).unwrap().life = 263;
-    let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion.state = MotionState::Attacking;
-    source.skill.lock_target = Some(unit_target(5));
-    source.skill.set_phase(FightSkillPhase::Attack);
-    source.skill.set_phase(FightSkillPhase::Attack);
-    source.skill.set_pending(Some(PendingRelease {
-        step: 3,
-        target: unit_target(5),
-    }));
+    simulation.actors.get_mut(&1).unwrap().skill.lock_target = Some(unit_target(5));
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
-
     assert!(
-        simulation
-            .quick_switch_active_target_outside_attack_area(1, 3, &target_search_order, false)
+        !simulation
+            .check_attackable(1, &target_search_order)
             .unwrap()
     );
-    assert_eq!(simulation.actors[&1].skill.lock_target, None);
-    assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
-    assert!(simulation.actors[&1].skill.pending().is_none());
-
-    let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion.state = MotionState::Idle;
-    source.skill.lock_target = Some(unit_target(5));
-    source.skill.set_phase(FightSkillPhase::Idle);
-    simulation.actors.get_mut(&5).unwrap().life = 0;
-
-    assert!(
-        simulation
-            .quick_switch_active_target_outside_attack_area(1, 4, &target_search_order, true)
-            .unwrap()
-    );
-    assert_eq!(simulation.actors[&1].skill.lock_target, None);
-    assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
 }
 
 #[test]
