@@ -6,7 +6,7 @@
 mod constructions;
 mod data;
 mod effects;
-mod kernel;
+mod fight;
 mod layout;
 mod module;
 mod officers;
@@ -22,7 +22,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub use kernel::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
+pub use fight::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -110,7 +110,7 @@ fn run_loaded(
         (None, Some(seed)) => (seed, "layout"),
         (None, None) => (generate()?, "generated"),
     };
-    kernel::run(&layout, config, seed, source, output_path, &replay_layout)
+    fight::run(&layout, config, seed, source, output_path, &replay_layout)
 }
 
 /// Simulates the layout embedded in an MCFR and compares canonical ticks
@@ -131,7 +131,7 @@ pub fn compare_recording(recording: &mechcore_mcfr::McfrReader) -> Result<Simula
     let seed = seed.ok_or_else(|| {
         Error::new("embedded layout has no seed, so the recording cannot be reproduced")
     })?;
-    kernel::compare(&layout, &config, seed, recording)
+    fight::compare(&layout, &config, seed, recording)
 }
 
 fn generate_seed(layout_path: &Path) -> Result<i32> {

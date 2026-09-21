@@ -8,7 +8,7 @@ This contract defines the agent neighbour index that sampled RVO queries, as
 `crates/simulation/src/rvo.rs::NativeQuadtree` implements it for build
 `1.11.1.3.2259`. It serves [rvo.md](rvo.md).
 
-It is not the target quadtree in `crates/simulation/src/kernel.rs`, which
+It is not the target quadtree in `crates/simulation/src/fight/search.rs`, which
 selects attack targets. The two have different data structures, capacities and
 traversal rules, and mixing them up produces plausible wrong answers rather
 than errors.

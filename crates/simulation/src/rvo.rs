@@ -11,7 +11,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::kernel::{
+use crate::fight::{
     Q32_ONE, fpcs_acos_fastest, fpcs_atan2_fastest, fpcs_cos_fastest, fpcs_sin_fastest,
     fpcs_sqrt_fastest,
 };

@@ -62,6 +62,27 @@
 - **没有人直接读数值。** `FightProperty` 把共享描述和这些覆盖层合成出结果、缓存起来，
   由变更事件置脏。
 
+## 代码在哪
+
+`crates/simulation/src/fight/` 就是战斗，按每部分镜像游戏里的什么拆开。文件里放代码；它操作的数据
+目前仍声明在 `fight/mod.rs`，把每个对象的字段挪到拥有它的文件，是下一步。
+
+| 文件 | 对应 |
+| --- | --- |
+| `mod.rs` | 各对象，以及 `FightCoreSystem` 的一步推进：`step` |
+| `deploy.rs` | 部署：编队、初始单位和建筑、预搜索 |
+| `mech.rs` | `FightMech`：位置、朝向、生命及其快照 |
+| `search.rs` | 目标四叉树和目标选择器 |
+| `motion.rs` | `MotionController` 和 RVO 提交 |
+| `damage.rs` | `DamagePerformer`，见下文"伤害" |
+| `projectile.rs` | `ProjectileSystem` |
+| `skill/mod.rs` | `FightSkill` 的更新、搜索计时器、攻击区域检查 |
+| `skill/check.rs` | `SearchAttackTarget`、`SkillAttackableChecker`、`WallConstructionTargetChecker`、`SkillAttackState.Finish` |
+| `skill/perform.rs` | 攻击执行器：一击、一发、一串连发 |
+| `skill/group.rs` | 成组技能的各个位 |
+| `math.rs` | 游戏的定点数运算 |
+| `run.rs` | 跑一份布阵、和录像比较 |
+
 ## 模块
 
 `FightModule` 是每个系统的基类，`IModuleManager.GetModules()` 持有它们。生命周期就是

@@ -12,11 +12,11 @@ behaviour of the native `GRPF.RVO.Sampled.Agent`, `RVOAgentFixed` and
 be read as the algorithm rather than as this build's version of it.
 
 The implementation is `crates/simulation/src/rvo.rs`, entered from the combat
-loop at `crates/simulation/src/kernel.rs::step_rvo`. The neighbour index it
+loop at `crates/simulation/src/fight/motion.rs::step_rvo`. The neighbour index it
 queries is [quadtree.md](quadtree.md).
 
 This module is agent-agent avoidance and nothing else. Target selection uses a
-different quadtree in `crates/simulation/src/kernel.rs`, with different data
+different quadtree in `crates/simulation/src/fight/search.rs`, with different data
 structures, capacities and traversal rules. The two must not be mixed.
 
 The solver takes two kinds of agent: every live unit, and every live building

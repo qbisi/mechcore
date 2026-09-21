@@ -70,6 +70,29 @@ Three sentences carry it:
   description with those overlays, caches the result, and is invalidated by
   change events.
 
+## Where the code lives
+
+`crates/simulation/src/fight/` is the fight, split by what each part mirrors in
+the build. A file holds the code; the data it works on is still declared in
+`fight/mod.rs`, and moving each object's fields to the file that owns it is
+the next step.
+
+| File | Mirrors |
+| --- | --- |
+| `mod.rs` | the objects, and `FightCoreSystem`'s advance: `step` |
+| `deploy.rs` | deployment: formations, the initial actors and buildings, the presearch |
+| `mech.rs` | `FightMech`: position, facing, life, and its snapshot |
+| `search.rs` | the target quadtrees and the target selector |
+| `motion.rs` | `MotionController` and the RVO submission |
+| `damage.rs` | `DamagePerformer`, [below](#damage) |
+| `projectile.rs` | `ProjectileSystem` |
+| `skill/mod.rs` | `FightSkill`'s update, its search timer, the attack-area checkers |
+| `skill/check.rs` | `SearchAttackTarget`, `SkillAttackableChecker`, `WallConstructionTargetChecker`, `SkillAttackState.Finish` |
+| `skill/perform.rs` | the attack performers: a blow, a shot, a burst |
+| `skill/group.rs` | a grouped skill's slots |
+| `math.rs` | the build's fixed-point arithmetic |
+| `run.rs` | running a layout and comparing it with a recording |
+
 ## Modules
 
 `FightModule` is the base of every system, and `IModuleManager.GetModules()`
