@@ -515,27 +515,11 @@ struct Actor {
     /// for.
     ///
     /// `FightSkill.SearchAttackTarget` asks `WallConstructionTargetChecker`
-    /// every tick the skill is idle and hands the block to the weapons while
-    /// the mech keeps its lock. The pairing is what keeps this honest: once
+    /// wherever the skill asks what to fire at, and hands the block to the
+    /// weapons while the mech keeps its lock. The pairing is what keeps this honest: once
     /// `lock_target` is anything but the lock it was found for, the block no
     /// longer answers, without anyone having to clear it.
     in_the_way: Option<(u64, FightActorRef)>,
-    /// The construction whose fall ended this actor's attack, which its
-    /// weapon still names until a new target is taken.
-    ///
-    /// The game reads a unit whose block has just fallen as idle, with no
-    /// lock, and with its weapon still aimed at the block: for one tick where
-    /// the next target is in reach at once, for as long as it takes otherwise.
-    /// Only the snapshot reads this; nothing aims or fires at a fallen block.
-    fallen_attack_target: Option<u64>,
-    /// The construction this actor has launched an attack at since it last
-    /// took a lock.
-    ///
-    /// Only a unit that attacked a block has an attack on it to end when it
-    /// falls. Two Crawlers of `wall-block.yaml` closing on block 4 without yet
-    /// striking it go straight on to the Marksman behind the wall when a third
-    /// fells it, with no idle tick, where the one that felled it idles for one.
-    attacked_wall: Option<u64>,
     /// The last step of the cooling that follows a shot, and the target the
     /// skill quick-switched to if its own died during it.
     ///
@@ -658,8 +642,6 @@ impl Actor {
             motion_attack_hold_fire: false,
             lock_target: None,
             in_the_way: None,
-            fallen_attack_target: None,
-            attacked_wall: None,
             cooling_until_step: None,
             cooling_candidate: None,
             cooling_hold: None,
@@ -713,8 +695,6 @@ impl Actor {
     /// group, whose slot lists are empty.
     fn drop_lock(&mut self) {
         self.lock_target = None;
-        self.fallen_attack_target = None;
-        self.attacked_wall = None;
         self.group_skill_targets.fill(None);
         self.group_in_the_way.fill(None);
         self.group_skill_next_attack_steps.fill(0);
@@ -767,8 +747,6 @@ impl Actor {
         self.motion = MotionState::Idle;
         self.pending = None;
         self.lock_target = None;
-        self.fallen_attack_target = None;
-        self.attacked_wall = None;
         self.lock_is_terminal_handoff = false;
         self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.fight_skill_phase = FightSkillPhase::Idle;
@@ -862,12 +840,8 @@ impl Actor {
                     })
                 } else {
                     self.attack_target().or_else(|| {
-                        self.fallen_attack_target
+                        self.cooling_candidate
                             .filter(|_| self.lock_target.is_none())
-                            .map(FightActorRef::Building)
-                            .or(self
-                                .cooling_candidate
-                                .filter(|_| self.lock_target.is_none()))
                     })
                 };
                 WeaponAimState {
@@ -1656,7 +1630,7 @@ impl Simulation {
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
-            self.engage_wall_in_the_way(actor_id);
+            self.search_attack_target(actor_id);
         }
         Ok(())
     }
@@ -2087,6 +2061,9 @@ impl Simulation {
             for actor in self.actors.values_mut() {
                 actor.motion = MotionState::Idle;
                 actor.drop_lock();
+                // `FightSkill.ExitFight` ends a cooling as well.
+                actor.cooling_hold = None;
+                actor.cooling_candidate = None;
                 actor.lock_is_terminal_handoff = false;
                 actor.fight_skill_phase = FightSkillPhase::Idle;
                 if ready_to_finish {
@@ -2230,7 +2207,7 @@ impl Simulation {
     /// tick the skill is idle, and a block that is no longer in the way stops
     /// being the attack target the next time it is asked. Nothing changes in a
     /// fight that places no enemy construction.
-    fn engage_wall_in_the_way(&mut self, actor_id: u64) {
+    fn search_attack_target(&mut self, actor_id: u64) {
         let found = match self.actors[&actor_id].lock_target {
             // A search that already chose a building is not redirected: the
             // measurement is a wall taking the place of a unit.
@@ -2244,6 +2221,154 @@ impl Simulation {
             .expect("actor identity is stable")
             .in_the_way = found;
         self.refresh_group_walls(actor_id);
+    }
+
+    /// `SkillAttackableChecker.Check`: whether the skill can go on with its
+    /// attack, deciding its lock and what it fires at again on the way.
+    ///
+    /// A live lock is kept and `SearchAttackTarget` asked again; a dead one
+    /// is searched for, and a skill that cannot switch quickly fails if that
+    /// changes what it fires at. What it fires at must then be in the attack
+    /// area.
+    ///
+    /// Where the weapons fire at the lock and still do, the rest of the check
+    /// is answered by the quick-switch, stale-target and cooling paths of
+    /// `step_actor_with_target_order`, which predate this mirror; only a
+    /// change of what the weapons fire at, or a lock dead behind something
+    /// else, is decided here.
+    fn check_attackable(
+        &mut self,
+        actor_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
+        let lock = self.actors[&actor_id].lock_target;
+        let before = self.actors[&actor_id].attack_target();
+        if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
+            self.search_attack_target(actor_id);
+        } else {
+            if before == lock {
+                return Ok(true);
+            }
+            if !self.search_lock_target(actor_id, target_search_order)? {
+                return Ok(false);
+            }
+            let actor = &self.actors[&actor_id];
+            if !actor.rules.attack.quick_switch_target && actor.attack_target() != before {
+                return Ok(false);
+            }
+        }
+        let after = self.actors[&actor_id].attack_target();
+        if after == before && lock == self.actors[&actor_id].lock_target {
+            return Ok(true);
+        }
+        Ok(after.is_some_and(|target| self.target_in_attack_area(actor_id, target)))
+    }
+
+    /// Whether `SkillAttackState` asks `CheckAttackable` on this update.
+    ///
+    /// It asks while no attack phase is running between two blows, and
+    /// during the wait before a blow; not during the blow or its backswing.
+    /// The capture of `wall-block.yaml` reads it: one Crawler's check fails on
+    /// the update after its backswing ends, and another's during the wait
+    /// before its next blow, each when a nearer block has come into its line.
+    fn between_blows(&self, actor_id: u64, step: u64) -> bool {
+        let actor = &self.actors[&actor_id];
+        let waiting = actor.pending.is_none()
+            && actor
+                .backswing_finish_step
+                .is_none_or(|finish| finish < step);
+        let before = actor.pending.is_some_and(|pending| step < pending.step);
+        actor.fight_skill_phase == FightSkillPhase::Attack && (waiting || before)
+    }
+
+    /// `SkillAttackState.CheckAttackable`: an attack on a building that has
+    /// fallen is over; otherwise `FightSkill.CheckAttackable(true)`.
+    ///
+    /// The building test is the build's own. The state rejects a dead attack
+    /// target of the building class before asking the checker, where a dead
+    /// unit goes on to the checker and may be switched from: the Marksman of
+    /// `crawlers-vs-marksman.yaml` stays attacking onto the next Crawler, and
+    /// the one of `wall-line-of-fire.yaml` finishes when its block falls.
+    fn attack_state_check_attackable(
+        &mut self,
+        actor_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
+        if let Some(target @ FightActorRef::Building(_)) = self.actors[&actor_id].attack_target()
+            && !self.fight_actor_is_alive(target)
+        {
+            return Ok(false);
+        }
+        self.check_attackable(actor_id, target_search_order)
+    }
+
+    /// `SkillAttackState.Finish`: `StopAttack` drops the lock, the weapons
+    /// keeping what they fired at; the skill then cools for its cooling time
+    /// and enters `SkillIdleState` with its targets cleared.
+    fn finish_attack(&mut self, actor_id: u64, step: u64) {
+        let cooling_steps =
+            native_time_units_to_steps(self.actors[&actor_id].rules.attack.cooling_time_units());
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let fired_at = actor.attack_target();
+        actor.motion = MotionState::Idle;
+        actor.drop_lock();
+        actor.fight_skill_phase = FightSkillPhase::Idle;
+        actor.fight_skill_search_target_time = 0;
+        actor.backswing_finish_step = None;
+        actor.pending = None;
+        actor.next_target_x_q32 = actor.x_q32;
+        actor.next_target_z_q32 = actor.z_q32;
+        actor.next_speed_q32 = 0;
+        actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+        if cooling_steps > 0 {
+            actor.cooling_hold = Some(step);
+            actor.cooling_candidate = fired_at;
+        }
+    }
+
+    /// `SearchLockTarget` followed by `SearchAttackTarget`, as the checker
+    /// runs them; no lock found clears the targets.
+    fn search_lock_target(
+        &mut self,
+        actor_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
+        let selected = self.select_normal_target_with_order(actor_id, target_search_order, true)?;
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let Some(selected) = selected else {
+            actor.drop_lock();
+            return Ok(false);
+        };
+        actor.lock_target = Some(selected);
+        actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
+        self.search_attack_target(actor_id);
+        Ok(true)
+    }
+
+    /// Enters `SkillIdleState` with `needClearTarget`, as a failed check does:
+    /// the lock and the attack target are cleared, and the next update
+    /// searches.
+    fn enter_idle_clearing_targets(&mut self, actor_id: u64) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.motion = MotionState::Idle;
+        actor.drop_lock();
+        actor.fight_skill_phase = FightSkillPhase::Idle;
+        actor.fight_skill_search_target_time = 0;
+        actor.backswing_finish_step = None;
+        actor.pending = None;
+        actor.next_target_x_q32 = actor.x_q32;
+        actor.next_target_z_q32 = actor.z_q32;
+        actor.next_speed_q32 = 0;
+        actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
     }
 
     /// Asks each grouped slot which construction stands between the actor and
@@ -2897,7 +3022,7 @@ impl Simulation {
         actor.lock_target = selected;
         actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
         actor.retarget_after_own_direct_kill = false;
-        self.engage_wall_in_the_way(actor_id);
+        self.search_attack_target(actor_id);
         Ok(())
     }
 
@@ -2993,7 +3118,7 @@ impl Simulation {
         // Arclight whose splash killed its lock takes the next Crawler and,
         // the same tick, the block standing between them.
         if !entered_idle {
-            self.engage_wall_in_the_way(actor_id);
+            self.search_attack_target(actor_id);
         }
         Ok(entered_idle)
     }
@@ -3027,166 +3152,25 @@ impl Simulation {
         if self.hold_through_cooling(actor_id, step, target_search_order)? {
             return Ok(());
         }
-        // A block that falls ends the attack on it, and the lock with it. The
-        // tick after, the game reads the unit idle and without a lock, its
-        // weapon still naming the block, and it looks for a target only from
-        // there — so the next block is not engaged on the tick the last one
-        // fell. A group drops its slots instead, which `drop_lock` does and
-        // the Wraith was recorded doing, with no weapon left naming anything.
-        let fallen = {
-            let actor = &self.actors[&actor_id];
-            let lock_alive = actor
-                .lock_target
-                .is_some_and(|lock| self.fight_actor_is_alive(lock));
-            match actor.attack_target() {
-                Some(FightActorRef::Building(building))
-                    if actor.group_skill_targets.is_empty()
-                        && actor.attacked_wall == Some(building)
-                        && actor.pending.is_none()
-                        && actor
-                            .backswing_finish_step
-                            .is_none_or(|finish| finish < step)
-                        && actor.in_the_way.is_some_and(|(wall, _)| wall == building)
-                        && !self.fight_actor_is_alive(FightActorRef::Building(building)) =>
-                {
-                    Some((building, lock_alive))
-                }
-                _ => None,
-            }
-        };
-        if let Some((building, lock_alive)) = fallen {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            // Only a unit with a body is read still aiming at the block: the
-            // Marksman is, the Rhino and the Steel Balls read no weapon
-            // target at all on the same tick.
-            // and only while the unit it was shooting the block for is alive:
-            // the Arclight of `wall-splash.yaml`, whose splash kills its lock
-            // with the block, reads no weapon target at all.
-            actor.fallen_attack_target = (actor.rules.has_body && lock_alive).then_some(building);
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            // And it looks again on the very next tick, whatever its search
-            // timer says: the Rhino takes the next block, or the unit behind a
-            // wall it has broken through, one tick after going idle each time.
-            actor.fight_skill_search_target_time = 0;
-            actor.backswing_finish_step = None;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
-            return Ok(());
-        }
-        // A unit attacking a block in the way of a lock that has died looks
-        // for a new lock at once, and keeps the block if it stands in the way
-        // of that one too. The Arclight of `wall-splash.yaml`, shooting block 5
-        // for the Crawler behind it, kills that Crawler with its own splash;
-        // the tick after, it is locked on another Crawler and still on block 5.
-        let orphaned = {
-            let actor = &self.actors[&actor_id];
-            matches!(
-                (actor.lock_target, actor.in_the_way),
-                (Some(lock @ FightActorRef::Unit(_)), Some((wall, found_for)))
-                    if found_for == lock
-                        && actor.group_skill_targets.is_empty()
-                        && !self.fight_actor_is_alive(lock)
-                        && self.fight_actor_is_alive(FightActorRef::Building(wall))
-            )
-        };
-        if orphaned {
-            let selected =
-                self.select_normal_target_with_order(actor_id, target_search_order, true)?;
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.lock_target = selected;
-            actor.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
-            self.engage_wall_in_the_way(actor_id);
-        }
-        // A block that comes into the way while an attack on a unit is being
-        // prepared ends that attack. The Steel Ball of `wall-laser.yaml`
-        // prepares a beam on the Marksman behind the wall for six ticks; on the
-        // tick block 3 comes within the line it reads idle, with no lock and no
-        // weapon target, and the tick after it is on the block. So the check
-        // is asked while preparing too, and a block it finds is not fired at
-        // until the unit has looked again.
-        //
-        // The same holds between two blows on a block, once the swing is over
-        // and before the next begins: the skill is idle for that moment and
-        // asks again, and a different block now nearer in the line ends the
-        // attack on the old one. A Crawler of `wall-block.yaml`, pushed along
-        // the wall while it strikes block 4, reads idle with no lock on the
-        // tick its swing ends and is on block 3 the tick after.
-        let interrupted = {
-            let actor = &self.actors[&actor_id];
-            let between_blows = actor.fight_skill_phase != FightSkillPhase::Idle
-                && !actor.rules.attack.quick_switch_target
-                && actor
-                    .backswing_finish_step
-                    .is_none_or(|finish| finish < step);
-            match actor.lock_target {
-                Some(target @ FightActorRef::Unit(_)) if actor.group_skill_targets.is_empty() => {
-                    let held = actor
-                        .in_the_way
-                        .filter(|(_, found_for)| *found_for == target)
-                        .map(|(wall, _)| wall);
-                    if matches!(actor.fight_skill_phase, FightSkillPhase::Prepare { .. })
-                        && held.is_none()
-                    {
-                        self.wall_in_the_way(actor_id, target).is_some()
-                    } else if between_blows && let Some(held) = held {
-                        self.wall_in_the_way(actor_id, target)
-                            .is_some_and(|wall| wall != held)
-                    } else {
-                        false
-                    }
-                }
-                _ => false,
-            }
-        };
-        if interrupted {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.motion = MotionState::Idle;
-            actor.drop_lock();
-            actor.fight_skill_phase = FightSkillPhase::Idle;
-            actor.fight_skill_search_target_time = 0;
-            actor.backswing_finish_step = None;
-            actor.pending = None;
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
-            actor.next_speed_q32 = 0;
-            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
-            return Ok(());
-        }
-        // A skill looks for its attack target every tick it is idle —
-        // `SkillIdleState.TryPerform` reaches `SearchAttackTarget`, which asks
-        // `WallConstructionTargetChecker` — while the mech's lock is searched
-        // on its own ten-tick timer. So a wall that comes into reach between
-        // two lock searches is engaged the tick it does.
-        // A unit that switches targets quickly is idle between its shots for
-        // this purpose too, and changes blocks — or leaves one, or takes one —
-        // without an idle tick: the Arclight of `wall-splash-line.yaml` turns
-        // from a block to the Crawler behind it the tick the block leaves its
-        // line, and onto a block the tick one enters it.
-        let quick_between_shots = {
-            let actor = &self.actors[&actor_id];
-            actor.rules.attack.quick_switch_target
-                && actor.rules.attack.weapons.mode == WeaponMode::Normal
-                && actor.pending.is_none()
-                && actor
-                    .backswing_finish_step
-                    .is_none_or(|finish| finish < step)
-        };
-        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Idle || quick_between_shots
+        // `SkillPrepareState.Update` asks `SkillAttackableChecker.Check` on
+        // every update; a failed check leaves the skill idle with its targets
+        // cleared. The check decides the attack target again on the way,
+        // which is where a block coming into the line of fire is met.
+        if matches!(
+            self.actors[&actor_id].fight_skill_phase,
+            FightSkillPhase::Prepare { .. }
+        ) && !self.check_attackable(actor_id, target_search_order)?
         {
-            self.engage_wall_in_the_way(actor_id);
+            self.enter_idle_clearing_targets(actor_id);
+            return Ok(());
+        }
+        // `SkillAttackState.Update` asks `CheckAttackable` between two blows,
+        // and a failed check finishes the attack.
+        if self.between_blows(actor_id, step)
+            && !self.attack_state_check_attackable(actor_id, target_search_order)?
+        {
+            self.finish_attack(actor_id, step);
+            return Ok(());
         }
         if matches!(
             self.actors[&actor_id].lock_target,
@@ -3425,6 +3409,11 @@ impl Simulation {
         )? {
             return Ok(());
         }
+        // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
+        // update the skill is idle with a lock.
+        if self.actors[&actor_id].fight_skill_phase == FightSkillPhase::Idle {
+            self.search_attack_target(actor_id);
+        }
         self.update_fight_skill_target_search(actor_id, step, target_search_order)?;
         if quick_switch_backswing_due && !quick_switch_dead_backswing_due {
             self.actors
@@ -3591,9 +3580,6 @@ impl Simulation {
                 step,
                 target: target_id,
             });
-            if let FightActorRef::Building(building) = target_id {
-                actor.attacked_wall = Some(building);
-            }
             let _attack_point_rejected = self.release(actor_id, events)?;
         }
         let group_releases = {
@@ -3961,9 +3947,6 @@ impl Simulation {
                         step: step.saturating_add(attack_point_steps),
                         target,
                     });
-                    if let FightActorRef::Building(building) = target {
-                        actor.attacked_wall = Some(building);
-                    }
                 }
                 (
                     entered_attack,

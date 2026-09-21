@@ -272,6 +272,34 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 这一下瞄的是什么。一次打击造成的死亡和倒塌按被打的先后交回，在这一 tick 末尾、本步的
 死亡之后记录；死掉的单位这时离开目标树，其余的顺序不变。
 
+## 攻击目标
+
+技能决定武器打什么只在一个地方，战斗里所有关于工事的规则都经它到达武器。游戏的
+`FightSkill.SearchAttackTarget` 拿着锁定，把护盾、否则挡在线上的墙（`WallConstructionTargetChecker`，
+没有别的调用者）、否则锁定本身交给武器。空闲状态在有锁定的每次更新都调它；
+`SkillAttackableChecker.Check` 也调它——准备状态每次更新都跑这个检查，攻击状态在两下之间和蓄力期间
+跑。`SkillAttackState.CheckAttackable` 在交给检查器之前先拒绝已死亡的建筑攻击目标；检查失败就结束
+攻击：`StopAttack` 清掉锁定，技能冷却，然后带着"清空目标"进入空闲。
+
+| 原生 | 模拟器 |
+| --- | --- |
+| `FightSkill.SearchAttackTarget` | `search_attack_target`，`wall_in_the_way` 唯一的调用者 |
+| `SkillAttackableChecker.Check` | `check_attackable` |
+| `SkillAttackState.CheckAttackable` | `attack_state_check_attackable`，在 `between_blows` 成立时问 |
+| `SkillAttackState.Finish` | `finish_attack`，进入冷却保持或直接空闲 |
+| `SkillPrepareState` 里检查失败 | `enter_idle_clearing_targets` |
+
+**这里没有一处是关于墙的。** 墙和单位的差别只在于它是 `SearchAttackTarget` 可能给出的一个答案，以及
+攻击状态对已死亡目标做的那个建筑类判断；两者都是游戏自己的。检查在哪些技能状态里跑，是从每个单位
+`SkillStateController` 状态和 `SkillAttackController` 阶段的采集里读出来的（`target_refs_v1`
+instrumentation profile），和 `tests/construction/` 下的录像一起。
+
+**镜像还没接管的部分。** 武器打的就是锁定、而且一直如此时，`Check` 剩下的部分——锁定死了、锁定离开
+攻击区域——仍由 `step_actor_with_target_order` 里快速切换、失效目标和冷却那几条路径回答；它们是在
+这个镜像之前对着录像写的，在所有被跟踪的战斗上与它一致。`check_attackable` 只决定武器目标的变化，
+以及锁定死在别的东西后面的情况。用检查器替换那几条路径、用游戏的控制器替换攻击状态的各阶段，是下
+一步。
+
 ## 镜像，以及现在哪些是空的
 
 模拟器用同样的名字带同样的三层，靠把模块填满来生长，而不是靠改内核：
@@ -283,6 +311,7 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 | `BuffManager` 聚合 | buff 通道，按 actor 加总 |
 | `FightProperty` | 经 `stat(...)` 读到的派生值，永远不直读字段 |
 | `IDamageProvider` + `DamagePerformer` | 一种命中描述、一处结算，见上面"伤害"一节 |
+| `SearchAttackTarget` + `SkillAttackableChecker` | 武器打什么只有一个答案，见上面"攻击目标"一节 |
 | 录像的各列 | 每一层各自逐 tick 对齐的验收面 |
 
 没实现的模块照样在场、照样认领字段、然后拒绝。语料里有多少回合的 layout 能编译，就是

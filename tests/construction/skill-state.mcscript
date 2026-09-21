@@ -1,0 +1,70 @@
+# In which skill state does a unit meet a wall?
+#
+#   mechcore run tests/construction/skill-state.mcscript --check   parse without the game
+#   mechcore run tests/construction/skill-state.mcscript           record
+#
+# A recording says what a unit's weapons fire at, not which state its skill is
+# in when it decides. This records the wall fights again with the
+# `target_refs_v1` instrumentation profile, whose sidecar holds, per unit and
+# tick, the main skill's `SkillStateController` state (`SkillIdleState`,
+# `SkillPrepareState`, `SkillAttackState`, `SkillCoolingState`), its
+# `SkillAttackController` phase (`before`, `attacking`, `after`, or none
+# between blows), and its lock and attack target. That is what
+# `docs/rules/constructions.md` reads for where a block is met and how an
+# attack on one ends:
+#
+#   line-of-fire  the Marksman cools, lockless, on block 6 the tick after it falls
+#   rhino         the Rhino finishes its swing on block 5, idles a tick, takes block 4
+#   laser         a Steel Ball's prepared beam ends the tick block 3 enters its line
+#   block         Crawlers end an attack between blows, or in the wait before one,
+#                 when a nearer block comes into their line
+#   splash        the Arclight re-locks behind block 5 the tick its lock dies
+#   marksman      a dead unit is switched from and the attack goes on; the kill
+#                 with no replacement in reach cools like a fallen block
+#
+# The recordings are the same fights the regressions pin, and are compared with
+# the simulator afterwards. The sidecar is research evidence and is not hashed.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/construction/skill-state
+  seed: 4242
+
+steps:
+  - let:
+      fights:
+        - {name: line-of-fire, layout: tests/construction/wall-line-of-fire.yaml}
+        - {name: line-tolerance, layout: tests/construction/wall-line-tolerance.yaml}
+        - {name: rhino, layout: tests/construction/wall-rhino.yaml}
+        - {name: laser, layout: tests/construction/wall-laser.yaml}
+        - {name: block, layout: tests/construction/wall-block.yaml}
+        - {name: splash, layout: tests/construction/wall-splash.yaml}
+        - {name: splash-line, layout: tests/construction/wall-splash-line.yaml}
+        - {name: splash-behind, layout: tests/construction/wall-splash-behind.yaml}
+        - {name: marksman, layout: tests/regression/crawlers-vs-marksman.yaml}
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(${fight.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${fight.name}.mcfr
+          instrumentation:
+            output: ${out}/${fight.name}.h5
+            profile: target_refs_v1
+      - fight.run:
+          layout: ${fight.layout}
+          seed: $seed
+          output: ${out}/simulated-${fight.name}.mcfr
+      - fight.compare:
+          left: ${out}/${fight.name}.mcfr
+          right: ${out}/simulated-${fight.name}.mcfr
+        expect:
+          equal: true
+          content_equal: true

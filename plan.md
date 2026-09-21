@@ -210,6 +210,15 @@ architecture.md 的 Unresolved 里。
   建筑（墙进了目标树，选目标时跳过不可搜索的建筑）；死亡和倒塌都放到 tick 末尾按被打
   先后记录，死掉的单位离开目标树。三个 `wall-splash*.yaml` 物理和内容全对，进了
   `regressions.mcscript`。
+- ~~**打墙走通用的索敌更新（第 1 步）。**~~ 做了：墙只在 `search_attack_target`
+  （`FightSkill.SearchAttackTarget`）里出现；准备期间每 tick、攻击期间两下之间和蓄力期间跑
+  `check_attackable`（`SkillAttackableChecker.Check`），失败走 `finish_attack`
+  （`SkillAttackState.Finish`：清锁定、冷却、清空进空闲）。原来墙块倒下、锁定死在墙后、
+  准备/两下之间被打断、快速切换射击间隙重检这四条墙专用分支全删了。依据是反编译加上新的
+  技能状态采集（`skill-state.mcscript`）。82 个回归用例和 11 场墙战斗物理、内容全对。
+- **统一索敌更新（第 2 步）。** 武器打的就是锁定时，`Check` 剩下的部分（锁定死了、离开攻击
+  区域）还由快速切换、失效目标、冷却保持那几条旧路径回答；要换成同一个检查器，攻击状态的
+  各阶段换成游戏的控制器（`before`／`attacking`／`after`）。
 - **炮台怎么开火。** 两种炮台各带一个 `skill_id` 和 2748／82 的伤害，这里没有任
   何机制点得着工事的技能。30 个回合卡在这。
 - **释放到底需要什么。** 这个 build 只放得下"开局自带"的那些工事：同一份布阵换
