@@ -1,10 +1,12 @@
-//! Which recorded formation is which formation of the document.
+//! Which recorded thing is which placement of the document.
 //!
 //! A recording numbers its formations by where their members stand rather than
-//! by the order a layout declares them, so nothing a reader wants to say about
-//! a recording can be written back into a document until the two are matched.
-//! Both readers of a recording need that and neither of them is about it,
-//! which is why it lives here.
+//! by the order a layout declares them, and it records a building without
+//! saying which construction released it, so nothing a reader wants to say
+//! about a recording can be written back into a document until the two are
+//! matched. Every reader of a recording needs that and none of them is about
+//! it, which is why it lives here, matching by the one thing a recording and a
+//! layout share: where a thing stands.
 
 use std::collections::BTreeMap;
 
@@ -114,7 +116,7 @@ fn type_name(unit_type: u32) -> Result<&'static str, Failure> {
 /// A layout states each side's board in its own frame, and red's is the same
 /// board turned around, which is the transform the simulator applies when it
 /// builds the scene.
-const fn world(position: Position, side: Side) -> (i64, i64) {
+pub(crate) const fn world(position: Position, side: Side) -> (i64, i64) {
     let (x, z) = (position.x as i64, position.y as i64);
     match side {
         Side::Blue => (x, z),
@@ -135,7 +137,7 @@ fn centre(members: &[&LiveUnitState]) -> (i64, i64) {
 }
 
 /// Squared distance, which orders as the distance does and needs no root.
-const fn distance(left: (i64, i64), right: (i64, i64)) -> i64 {
+pub(crate) const fn distance(left: (i64, i64), right: (i64, i64)) -> i64 {
     let (x, z) = (left.0 - right.0, left.1 - right.1);
     x * x + z * z
 }

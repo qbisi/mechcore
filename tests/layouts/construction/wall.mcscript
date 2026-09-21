@@ -1,0 +1,96 @@
+# Does a Defensive Wall stop anything?
+#
+#   mechcore run tests/layouts/construction/wall.mcscript --check   parse without the game
+#   mechcore run tests/layouts/construction/wall.mcscript           record
+#
+# `shape.mcscript` settled what a wall is: five objects 12 metres apart, 1112
+# of life and an 8 metre box each. What that does not say is whether the box is
+# an obstacle. The simulator's buildings are immovable RVO colliders, and a
+# wall that is one would push units around; a wall that is not is only a target
+# standing in the open.
+#
+# The wall's own description says it sinks into the ground for a friendly unit,
+# which would make it an obstacle for one side and not the other. So both sides
+# are asked, with the same unit and the same geometry:
+#
+#   wall-passage.yaml   blue's own Crawlers cross blue's wall
+#   wall-block.yaml     red's Crawlers meet blue's wall on the way in
+#
+# Each Crawler is 1.5 metres of inner radius against a block's 4, and the gaps
+# between blocks are 4 metres wide, so a wall that collides would leave a
+# Crawler either threading a gap or stopped — and in neither case closer to a
+# block's centre than 5.5 metres.
+#
+# **Both recordings put a Crawler inside a block**: 0.567 metres from a centre
+# at tick 55 of the passage, 0.711 at tick 96 of the block. Neither is
+# assertable here, because nothing this reader answers is a distance between
+# two objects; what is asserted instead is everything that follows from it, and
+# `docs/rules/constructions.md` carries the two numbers with the recordings
+# they came from.
+#
+# What separates the two fights is targeting and not collision. Red's Crawlers
+# stop and attack the wall — four blocks down, the fifth at 401 of 1112 — while
+# blue's cross their own and leave all five at full life. That is the reading
+# the simulator has to reproduce, and the tick-exact check is
+# `fight verify` once `FightConstructionSystem` places one.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/construction-wall
+  seed: 4242
+
+steps:
+  - let:
+      passage: read_yaml(tests/layouts/construction/wall-passage.yaml)
+      block: read_yaml(tests/layouts/construction/wall-block.yaml)
+
+  # The side that placed it. Twenty-four Crawlers cross the line the wall
+  # stands on and not one block loses a point of life.
+  - game.apply_layout:
+      layout: $passage
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/passage.mcfr
+    expect:
+      operation.tick_count: 341
+  - fight.buildings:
+      recording: ${out}/passage.mcfr
+      tick: 341
+    expect:
+      sides.blue.constructions.0.standing: 5
+      sides.blue.constructions.0.parts.0.life.current: 1112
+      sides.blue.constructions.0.parts.1.life.current: 1112
+      sides.blue.constructions.0.parts.2.life.current: 1112
+      sides.blue.constructions.0.parts.3.life.current: 1112
+      sides.blue.constructions.0.parts.4.life.current: 1112
+  - fight.outcome:
+      recording: ${out}/passage.mcfr
+    expect:
+      # They got through and killed what was on the other side.
+      sides.blue.survivors.0.name: crawler
+      sides.blue.survivors.0.alive: 19
+
+  # The other side. The same unit against the same wall, and now it is a
+  # target: four blocks destroyed and the fifth at 401.
+  - game.apply_layout:
+      layout: $block
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/block.mcfr
+    expect:
+      operation.tick_count: 209
+  - fight.buildings:
+      recording: ${out}/block.mcfr
+      tick: 209
+    expect:
+      sides.blue.constructions.0.standing: 1
+      sides.blue.constructions.0.parts.0.life.current: 401
+      sides.blue.constructions.0.parts.0.life.maximum: 1112
+  - fight.outcome:
+      recording: ${out}/block.mcfr
+    expect:
+      sides.red.survivors.0.name: crawler
+      sides.red.survivors.0.alive: 20

@@ -1,0 +1,36 @@
+kind: layout
+round: 1
+
+# Does a Defensive Wall block the side that placed it?
+#
+# The wall's own description says it sinks into the ground when a friendly unit
+# comes near, which would make it a collider that is not always a collider —
+# and the simulator's buildings are immovable colliders that always are. This
+# puts one Crawler directly behind blue's wall with nothing else in its way, so
+# whatever the wall does to a friendly unit is the only thing that can happen.
+#
+# The Crawler starts at `(-145, -100)` and the wall spans `z = -55`, so it
+# reaches the wall on its way north and nothing else is near either of them.
+#
+# Red's Marksman ends the fight and is placed where it cannot reach the wall:
+# from world `(0, 100)` the nearest block is 193 metres away and a Marksman
+# reaches 140, so whatever happens to the wall is the Crawler's doing. A
+# Marksman standing opposite the wall instead destroys a block outright — one
+# shot of 2329 against a block's 1112 — which is what the first attempt at
+# this fixture measured and is a different question.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -145, y: -100}
+
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 0, y: -100}

@@ -1,0 +1,28 @@
+kind: layout
+round: 1
+
+# Does a Defensive Wall stop the other side?
+#
+# `wall-passage.yaml` asks the same question of the side that placed it. This
+# is the other half: red's Crawlers start at world `(-145, 20)` and blue's
+# Marksman stands at world `(-140, -100)`, directly behind the middle block of
+# blue's wall, so the shortest path between them runs through the wall and a
+# Crawler that goes around it went around it on purpose.
+#
+# Nothing else is within reach of either.
+
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -140, y: -100}
+
+red:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: 145, y: -20}

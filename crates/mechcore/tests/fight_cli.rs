@@ -311,3 +311,63 @@ fn stats_read_a_tick_and_answer_both_halves() {
         String::from_utf8_lossy(&refused.stderr)
     );
 }
+
+/// What is standing in a fight, which is neither what it decided nor a unit's
+/// numbers.
+///
+/// A simulated layout carries no construction yet — `FightConstructionSystem`
+/// is unimplemented and the closure refuses one — so what this reads is the
+/// other half of the answer: the two towers a map gives each side, named by
+/// the build's own `BuildingType`, and an empty construction list beside them.
+/// What a construction becomes is measured against the game by
+/// `tests/layouts/construction/shape.mcscript`.
+#[test]
+fn buildings_read_the_towers_a_map_gives_each_side() {
+    let directory = tempfile::tempdir().unwrap();
+    let recording = directory.path().join("fight.mcfr");
+    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/layouts/marksman-vs-arclight.yaml");
+    let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "run"])
+        .arg(&layout)
+        .arg("--output")
+        .arg(&recording)
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+
+    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["fight", "buildings"])
+        .arg(&recording)
+        .output()
+        .unwrap();
+    assert!(read.status.success());
+    let standing: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
+    assert_eq!(standing["schema"], "mechcore.fight-buildings.v1");
+    assert_eq!(standing["tick"], 1, "the first tick is the default");
+    for side in ["blue", "red"] {
+        let towers = standing["sides"][side]["towers"].as_array().unwrap();
+        assert_eq!(towers.len(), 2, "{side}: {standing}");
+        let kinds: Vec<&str> = towers
+            .iter()
+            .map(|tower| tower["kind"].as_str().unwrap())
+            .collect();
+        assert_eq!(kinds, ["energy_tower", "research_center"], "{side}");
+        // 3400 of life and a 20 m box, which `config/training_ground.yaml`
+        // states and the capture confirmed.
+        assert_eq!(towers[0]["life"]["maximum"], 3400, "{side}");
+        assert_eq!(towers[0]["bounds"]["width"], 20_i64 << 32, "{side}");
+        assert_eq!(
+            standing["sides"][side]["constructions"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0,
+            "{side} places none: {standing}"
+        );
+    }
+}

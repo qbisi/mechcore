@@ -1,0 +1,267 @@
+schema: mechcore.constructions
+game_build: 1.11.1.3.2259
+
+# What a construction is, read out of `ConfigDataContainer.constructionDatas`.
+# `docs/rules/constructions.md` states what each field means and which of
+# them this build has measured against the game.
+#
+# **Every number here is one child's.** A construction is built as `count`
+# `FightConstruction` objects and a recording holds each of them as its own
+# building, so `max_life` is one block's life and a Defensive Wall's five
+# blocks hold 5560 between them.
+#
+# `layout_name` is present on the four a layout can place. The rest are the
+# build's own rows, carried because leaving them out would make the table
+# look like the whole of what the build holds.
+#
+# A fixed-point field is an FPoint Q32.32 raw integer; `radius` is half the
+# bounding box a recording reports.
+
+constructions:
+  - id: 1
+    name: 防御墙
+    layout_name: defensive_wall
+    count: 5
+    max_life: 1112
+    damage: 0
+    durability: -1
+    block_width: 15
+    space: 2
+    grid_column_count: 6
+    grid_row_count: 1
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3001001
+    exp: 6
+    sell_supply: 50
+    pathfinding_collider_priority: 5
+    default_actor_visibility: 0
+    radius: 17179869184  # 4 m
+    path_radius: 30064771072  # 7 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: false
+    can_be_bought: false
+    can_be_sold: true
+    can_be_effected_by_tower_buff: false
+    enable_search_target: false
+    quick_search_target: false
+  - id: 2
+    name: 反装甲炮
+    layout_name: anti_armor_turret
+    count: 1
+    max_life: 5028
+    damage: 2748
+    durability: -1
+    block_width: 0
+    space: 0
+    grid_column_count: 2
+    grid_row_count: 2
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3002001
+    exp: 60
+    sell_supply: 100
+    pathfinding_collider_priority: 9
+    default_actor_visibility: 0
+    radius: 51539607552  # 12 m
+    path_radius: 51539607552  # 12 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: false
+    can_be_bought: false
+    can_be_sold: true
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: false
+  - id: 3
+    name: 速射炮
+    layout_name: rapid_fire_turret
+    count: 1
+    max_life: 3650
+    damage: 82
+    durability: -1
+    block_width: 0
+    space: 0
+    grid_column_count: 2
+    grid_row_count: 2
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3003001
+    exp: 60
+    sell_supply: 100
+    pathfinding_collider_priority: 9
+    default_actor_visibility: 0
+    radius: 51539607552  # 12 m
+    path_radius: 51539607552  # 12 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: false
+    can_be_bought: false
+    can_be_sold: true
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: false
+  - id: 4
+    name: 磁力路障
+    layout_name: magnetic_barrier
+    count: 10
+    max_life: 300
+    damage: 0
+    durability: -1
+    block_width: 0
+    space: 1
+    grid_column_count: 5
+    grid_row_count: 1
+    real_row_count: 2
+    rotate_speed: 120
+    skill_id: 3004001
+    exp: 3
+    sell_supply: 50
+    pathfinding_collider_priority: 1
+    default_actor_visibility: 3
+    radius: 17179869184  # 4 m
+    path_radius: 30064771072  # 7 m
+    attack_angle: 1546188226560
+    special_damage_reduce_rate: 0
+    has_durability: false
+    can_be_bought: false
+    can_be_sold: true
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: true
+  - id: 5
+    name: 防御墙
+    count: 5
+    max_life: 1668
+    damage: 0
+    durability: 1
+    block_width: 15
+    space: 2
+    grid_column_count: 6
+    grid_row_count: 1
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3003501
+    exp: 6
+    sell_supply: 0
+    pathfinding_collider_priority: 5
+    default_actor_visibility: 0
+    radius: 17179869184  # 4 m
+    path_radius: 30064771072  # 7 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: true
+    can_be_bought: false
+    can_be_sold: true
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: false
+  - id: 6
+    name: 防御墙
+    count: 5
+    max_life: 1446
+    damage: 0
+    durability: 2
+    block_width: 15
+    space: 2
+    grid_column_count: 6
+    grid_row_count: 1
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3003901
+    exp: 6
+    sell_supply: 0
+    pathfinding_collider_priority: 5
+    default_actor_visibility: 0
+    radius: 17179869184  # 4 m
+    path_radius: 30064771072  # 7 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: true
+    can_be_bought: false
+    can_be_sold: true
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: false
+  - id: 7
+    name: 反装甲炮
+    count: 1
+    max_life: 5028
+    damage: 2748
+    durability: 1
+    block_width: 0
+    space: 0
+    grid_column_count: 4
+    grid_row_count: 4
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3002001
+    exp: 60
+    sell_supply: 50
+    pathfinding_collider_priority: 9
+    default_actor_visibility: 0
+    radius: 21474836480  # 5 m
+    path_radius: 21474836480  # 5 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: true
+    can_be_bought: true
+    can_be_sold: false
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: false
+  - id: 8
+    name: 速射炮
+    count: 1
+    max_life: 3650
+    damage: 82
+    durability: 1
+    block_width: 0
+    space: 0
+    grid_column_count: 4
+    grid_row_count: 4
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3003001
+    exp: 60
+    sell_supply: 50
+    pathfinding_collider_priority: 9
+    default_actor_visibility: 0
+    radius: 21474836480  # 5 m
+    path_radius: 21474836480  # 5 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: true
+    can_be_bought: true
+    can_be_sold: false
+    can_be_effected_by_tower_buff: true
+    enable_search_target: true
+    quick_search_target: false
+  - id: 9
+    name: 防御墙
+    count: 5
+    max_life: 1446
+    damage: 0
+    durability: 2
+    block_width: 15
+    space: 2
+    grid_column_count: 6
+    grid_row_count: 1
+    real_row_count: 1
+    rotate_speed: 120
+    skill_id: 3001001
+    exp: 6
+    sell_supply: 50
+    pathfinding_collider_priority: 5
+    default_actor_visibility: 0
+    radius: 17179869184  # 4 m
+    path_radius: 30064771072  # 7 m
+    attack_angle: 85899345920
+    special_damage_reduce_rate: 0
+    has_durability: true
+    can_be_bought: true
+    can_be_sold: false
+    can_be_effected_by_tower_buff: false
+    enable_search_target: false
+    quick_search_target: false

@@ -1,0 +1,112 @@
+# What does one `constructions` entry become in a fight?
+#
+#   mechcore run tests/layouts/construction/shape.mcscript --check   parse without the game
+#   mechcore run tests/layouts/construction/shape.mcscript           record
+#
+# A layout places a construction at one position, and the simulator has to know
+# what stands there afterwards. `FightConstructionSystem.Create` answers an
+# `IReadOnlyList<FightConstruction>` and `GroupConstructionManager` builds each
+# of them through `FightController.CreateFightConstruction`, so the answer is
+# plural — but the index carries no method bodies, so how many and where is a
+# measurement.
+#
+# `config/constructions.yaml` is the half that could be read. It says a
+# Defensive Wall carries `count: 5` and each turret `count: 1`, with a
+# `max_life` of 1112, 5028 and 3650 and a `radius` of 4, 12 and 12 metres.
+# **Those five numbers and the three radii were predicted from that table
+# before this was recorded**, on the reading that `count` is the number of
+# objects, `max_life` is one object's and the bounding box is twice the radius.
+#
+# What the table could not answer is where the five blocks of a wall stand. The
+# fields that look like they should — `block_width: 15` and `space: 2` — span
+# `5 * 15 + 4 * 2 = 83` metres across a footprint 60 wide, so at least one of
+# them is not what its name suggests. The positions below are therefore
+# measured and not predicted, and `docs/rules/constructions.md` says what that
+# leaves open.
+#
+# Red places nothing and is the control: the Training Ground's own opening
+# carries a wall and a rapid-fire turret, so a red side that reads back two
+# towers and no construction is what says the reconciliation removed them
+# rather than leaving them under the measurement.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/construction-shape
+  seed: 4242
+
+steps:
+  - let:
+      shape: read_yaml(tests/layouts/construction/shape.yaml)
+
+  - game.apply_layout:
+      layout: $shape
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/shape.mcfr
+    expect:
+      operation.tick_count: 210
+
+  - fight.buildings:
+      recording: ${out}/shape.mcfr
+    expect:
+      # The map's own two, which no layout places and which the control reads
+      # back as well. 3400 of life and a 20 m box, at `(-140, -170)`.
+      sides.blue.towers.0.kind: energy_tower
+      sides.blue.towers.0.life.maximum: 3400
+      sides.blue.towers.0.bounds.width: 85899345920
+      sides.blue.towers.0.position.x: -601295421440
+      sides.blue.towers.0.position.z: -730144440320
+      sides.blue.towers.1.kind: research_center
+
+      # One placement, five objects. Predicted: five, 1112 each, an 8 m box.
+      sides.blue.constructions.0.name: defensive_wall
+      sides.blue.constructions.0.standing: 5
+      sides.blue.constructions.0.parts.0.life.maximum: 1112
+      sides.blue.constructions.0.parts.0.bounds.width: 34359738368
+      sides.blue.constructions.0.parts.0.bounds.height: 34359738368
+      # Measured: one row on the placement's own z, 12 metres apart, the middle
+      # block on the placement itself. `(-164, -152, -140, -128, -116)` against
+      # a placement at `(-140, -55)`, which spans 48 of the 60 the footprint
+      # reserves.
+      sides.blue.constructions.0.parts.0.position.x: -704374636544
+      sides.blue.constructions.0.parts.1.position.x: -652835028992
+      sides.blue.constructions.0.parts.2.position.x: -601295421440
+      sides.blue.constructions.0.parts.3.position.x: -549755813888
+      sides.blue.constructions.0.parts.4.position.x: -498216206336
+      sides.blue.constructions.0.parts.0.position.z: -236223201280
+      sides.blue.constructions.0.parts.4.position.z: -236223201280
+
+      # One placement, one object, standing exactly where it was placed. The
+      # two turrets differ in life and in nothing else the recording holds.
+      sides.blue.constructions.1.name: rapid_fire_turret
+      sides.blue.constructions.1.standing: 1
+      sides.blue.constructions.1.parts.0.life.maximum: 3650
+      sides.blue.constructions.1.parts.0.bounds.width: 103079215104
+      sides.blue.constructions.1.parts.0.position.x: 601295421440
+      sides.blue.constructions.1.parts.0.position.z: -429496729600
+      sides.blue.constructions.2.name: anti_armor_turret
+      sides.blue.constructions.2.standing: 1
+      sides.blue.constructions.2.parts.0.life.maximum: 5028
+      sides.blue.constructions.2.parts.0.bounds.width: 103079215104
+      sides.blue.constructions.2.parts.0.position.x: -601295421440
+      sides.blue.constructions.2.parts.0.position.z: -429496729600
+
+      # The control. Red gets the same two towers and nothing else, so nothing
+      # above is the opening's rather than the layout's.
+      sides.red.towers.0.kind: energy_tower
+      sides.red.towers.1.kind: research_center
+      sides.red.towers.0.life.maximum: 3400
+
+  # Every object is a target of its own: each carries its own life, and the
+  # wall's five are destroyed one at a time. Nothing reaches them in this
+  # fight, so the last tick reads what the first did.
+  - fight.buildings:
+      recording: ${out}/shape.mcfr
+      tick: 210
+    expect:
+      sides.blue.constructions.0.standing: 5
+      sides.blue.constructions.0.parts.0.life.current: 1112
+      sides.blue.constructions.2.parts.0.life.current: 5028

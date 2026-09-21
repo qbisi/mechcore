@@ -1,5 +1,6 @@
 mod acquire;
 mod adapter;
+mod buildings;
 mod cli;
 mod doc;
 mod fight;
@@ -30,6 +31,7 @@ fn usage(program: &str) {
     eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
     eprintln!("       {program} fight outcome <recording.mcfr>");
     eprintln!("       {program} fight stats <recording.mcfr> [--tick <n>]");
+    eprintln!("       {program} fight buildings <recording.mcfr> [--tick <n>]");
     eprintln!("       {program} fight compare <left.mcfr> <right.mcfr>");
     eprintln!("       {program} fight verify <recording.mcfr>...");
     eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");

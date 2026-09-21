@@ -42,6 +42,7 @@ const OFFLINE: &[&str] = &[
     "let",
     "fight.compare",
     "fight.stats",
+    "fight.buildings",
     "fight.outcome",
     "fight.run",
 ];
@@ -654,6 +655,28 @@ async fn perform(
             let outcome =
                 crate::outcome::read(&recording).map_err(|failure| failure.reason().to_owned())?;
             serde_json::to_value(&outcome).map_err(|error| error.to_string())
+        }
+        "fight.buildings" => {
+            let fields = arguments.as_object();
+            let recording = scope.path(
+                fields
+                    .and_then(|fields| fields.get("recording"))
+                    .ok_or("fight.buildings takes a recording")?,
+                "fight.buildings recording",
+            )?;
+            let tick = match fields.and_then(|fields| fields.get("tick")) {
+                None => None,
+                Some(value) => Some(
+                    scope
+                        .resolve(value)?
+                        .as_u64()
+                        .and_then(|tick| u32::try_from(tick).ok())
+                        .ok_or("fight.buildings tick must be a tick the recording holds")?,
+                ),
+            };
+            let standing = crate::buildings::read(&recording, tick)
+                .map_err(|failure| failure.reason().to_owned())?;
+            serde_json::to_value(&standing).map_err(|error| error.to_string())
         }
         "fight.stats" => {
             let fields = arguments.as_object();
