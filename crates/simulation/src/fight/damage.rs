@@ -1,5 +1,72 @@
 use super::*;
 
+/// One hit, as the fight's damage pipeline reads it.
+///
+/// This is the build's `IDamageProvider` reduced to what this simulator uses:
+/// who dealt it, how much, what it was aimed at, where its splash is measured
+/// from and how far it reaches, and which domains it can touch. A direct
+/// strike, a projectile arriving and a laser are all described as one, and
+/// [`Simulation::damage_targets`] and [`Simulation::strike`] resolve every one
+/// of them, which is the build's arrangement: `DamagePerformer` resolves the
+/// damage of any provider — skills, projectiles, commander skills, mines,
+/// explosions — against `FightActor`s, and a unit and a building are both.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct DamageHit {
+    pub(in crate::fight) source: ObjectRef,
+    /// The team the hit is recorded under.
+    pub(in crate::fight) source_team: u32,
+    /// The team whose enemies it strikes: the attacker's own at the moment of
+    /// impact, which a projectile reads from its owner rather than from the
+    /// team it was released under.
+    pub(in crate::fight) team: u32,
+    pub(in crate::fight) amount: i64,
+    /// What the attack was aimed at.
+    pub(in crate::fight) aimed: FightActorRef,
+    /// Whether the aimed-at object is struck wherever it stands, rather than
+    /// only if the splash reaches it. A direct strike always is; a projectile
+    /// is when it locks its target.
+    pub(in crate::fight) hits_aimed: bool,
+    /// Where the splash is measured from, in space units.
+    pub(in crate::fight) center: (i64, i64),
+    pub(in crate::fight) splash_radius: i64,
+    pub(in crate::fight) reach: Reach,
+}
+
+/// Which units a hit can touch.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) enum Reach {
+    /// The attacker's own `targets`: ground, air or both.
+    Targets(AttackTargets),
+    /// One domain only. `FightProjectile.Init` narrows a dual-domain skill to
+    /// the actual target's domain, and `IDamageProvider.GetTargetType`
+    /// preserves that choice for range damage.
+    Domain(UnitDomain),
+}
+
+/// What one target took from a hit.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct Stroke {
+    /// The life it actually lost, which is what a `damage` event records.
+    pub(in crate::fight) actual: i64,
+    /// Where a unit died, when this stroke killed it.
+    pub(in crate::fight) death: Option<QVec3>,
+    /// Where a building fell, when this stroke destroyed it.
+    pub(in crate::fight) fallen: Option<QVec3>,
+}
+
+/// What a performed hit left for its caller to record.
+///
+/// Deaths and fallen buildings are handed back rather than recorded here
+/// because each way of dealing damage records them in its own place in the
+/// tick's events: a projectile records its own removal first.
+#[derive(Debug, Default)]
+pub(in crate::fight) struct Struck {
+    pub(in crate::fight) deaths: Vec<(u64, QVec3)>,
+    pub(in crate::fight) fallen: Vec<(u64, QVec3)>,
+    /// Every death and fall together, in the order the hit struck them.
+    pub(in crate::fight) ends: Vec<(FightActorRef, QVec3)>,
+}
+
 impl Reach {
     pub(in crate::fight) const fn touches(self, domain: UnitDomain) -> bool {
         match (self, domain) {
@@ -314,7 +381,7 @@ impl Simulation {
                 attacker
                     .rules
                     .attack
-                    .laser_damage(attacker.laser_attack_count),
+                    .laser_damage(attacker.skill.laser_attack_count),
                 attacker.object_ref(),
                 attacker.placement.team,
             )
@@ -322,6 +389,7 @@ impl Simulation {
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
+            .skill
             .laser_attack_count += 1;
         // A laser strikes one target and has no splash, so it takes the
         // stroke without the range step. A unit it kills is recorded dead

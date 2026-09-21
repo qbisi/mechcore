@@ -101,10 +101,10 @@ fn grouped_core_replacement_swaps_or_shares_existing_child_targets() {
     );
     let mut swap = raw_test_simulation(&layout, &config, 7);
     let source = swap.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.lock_target = None;
-    source.group_skill_targets = vec![None, Some(2), Some(3), Some(4)];
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.lock_target = None;
+    source.skill.group_skill_targets = vec![None, Some(2), Some(3), Some(4)];
     swap.refresh_target_query_snapshot();
     let order = swap.target_search_order();
 
@@ -112,19 +112,19 @@ fn grouped_core_replacement_swaps_or_shares_existing_child_targets() {
 
     let source = &swap.actors[&1];
     assert_eq!(
-        source.group_skill_targets,
+        source.skill.group_skill_targets,
         [Some(2), Some(5), Some(3), Some(4)]
     );
-    assert_eq!(source.lock_target, Some(unit_target(5)));
-    assert_eq!(source.group_skill_prepare_ready_steps, [19, 19, 0, 0]);
+    assert_eq!(source.skill.lock_target, Some(unit_target(5)));
+    assert_eq!(source.skill.group_skill_prepare_ready_steps, [19, 19, 0, 0]);
 
     let mut shared = raw_test_simulation(&layout, &config, 7);
     let source = shared.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.lock_target = Some(unit_target(5));
-    source.group_skill_targets = vec![Some(5), Some(2), Some(3), Some(4)];
-    source.group_skill_next_attack_steps = vec![0, 0, 0, 11];
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.group_skill_targets = vec![Some(5), Some(2), Some(3), Some(4)];
+    source.skill.group_skill_next_attack_steps = vec![0, 0, 0, 11];
     shared.actors.get_mut(&5).unwrap().life = 0;
     shared.refresh_target_query_snapshot();
     let order = shared.target_search_order();
@@ -133,11 +133,11 @@ fn grouped_core_replacement_swaps_or_shares_existing_child_targets() {
 
     let source = &shared.actors[&1];
     assert_eq!(
-        source.group_skill_targets,
+        source.skill.group_skill_targets,
         [Some(2), Some(2), Some(3), Some(4)]
     );
-    assert_eq!(source.lock_target, Some(unit_target(2)));
-    assert_eq!(source.group_skill_prepare_ready_steps, [0, 0, 0, 0]);
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
+    assert_eq!(source.skill.group_skill_prepare_ready_steps, [0, 0, 0, 0]);
 }
 
 #[test]
@@ -154,10 +154,10 @@ fn grouped_core_search_assigns_the_core_before_children() {
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.lock_target = Some(unit_target(5));
-    source.group_skill_targets = vec![Some(5), Some(2), Some(3), Some(4)];
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.group_skill_targets = vec![Some(5), Some(2), Some(3), Some(4)];
     simulation.actors.get_mut(&4).unwrap().life = 0;
     simulation.actors.get_mut(&5).unwrap().life = 0;
     simulation.refresh_target_query_snapshot();
@@ -168,12 +168,15 @@ fn grouped_core_search_assigns_the_core_before_children() {
         .unwrap();
 
     let source = &simulation.actors[&1];
-    assert!(source.group_skill_targets[0].is_some());
-    assert!(source.group_skill_targets[3].is_some());
-    assert_ne!(source.group_skill_targets[0], source.group_skill_targets[3]);
+    assert!(source.skill.group_skill_targets[0].is_some());
+    assert!(source.skill.group_skill_targets[3].is_some());
+    assert_ne!(
+        source.skill.group_skill_targets[0],
+        source.skill.group_skill_targets[3]
+    );
     assert_eq!(
-        source.lock_target,
-        source.group_skill_targets[3].map(FightActorRef::Unit)
+        source.skill.lock_target,
+        source.skill.group_skill_targets[3].map(FightActorRef::Unit)
     );
 }
 
@@ -191,11 +194,11 @@ fn grouped_child_replacements_follow_skill_order() {
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.lock_target = Some(unit_target(5));
-    source.group_skill_targets = vec![Some(2), Some(3), Some(4), Some(5)];
-    source.group_skill_next_attack_steps = vec![0, 0, 10, 0];
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.group_skill_targets = vec![Some(2), Some(3), Some(4), Some(5)];
+    source.skill.group_skill_next_attack_steps = vec![0, 0, 10, 0];
     simulation.actors.get_mut(&4).unwrap().life = 0;
     simulation.actors.get_mut(&5).unwrap().life = 0;
     simulation.refresh_target_query_snapshot();
@@ -213,9 +216,9 @@ fn grouped_child_replacements_follow_skill_order() {
         .unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.group_skill_targets[2], Some(replacements[0]));
-    assert_eq!(source.group_skill_targets[3], Some(replacements[1]));
-    assert_eq!(source.lock_target, Some(unit_target(replacements[1])));
+    assert_eq!(source.skill.group_skill_targets[2], Some(replacements[0]));
+    assert_eq!(source.skill.group_skill_targets[3], Some(replacements[1]));
+    assert_eq!(source.skill.lock_target, Some(unit_target(replacements[1])));
 }
 
 #[test]
@@ -232,11 +235,11 @@ fn grouped_intervening_attack_rebalances_the_later_missing_child() {
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.lock_target = Some(unit_target(5));
-    source.group_skill_targets = vec![Some(2), Some(3), Some(4), Some(5)];
-    source.group_skill_next_attack_steps = vec![0, 248, 228, 229];
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.group_skill_targets = vec![Some(2), Some(3), Some(4), Some(5)];
+    source.skill.group_skill_next_attack_steps = vec![0, 248, 228, 229];
     simulation.actors.get_mut(&3).unwrap().life = 0;
     simulation.actors.get_mut(&5).unwrap().life = 0;
     simulation.refresh_target_query_snapshot();
@@ -254,9 +257,9 @@ fn grouped_intervening_attack_rebalances_the_later_missing_child() {
         .unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.group_skill_targets[3], Some(replacements[0]));
-    assert_eq!(source.group_skill_targets[1], Some(replacements[1]));
-    assert_eq!(source.lock_target, Some(unit_target(replacements[0])));
+    assert_eq!(source.skill.group_skill_targets[3], Some(replacements[0]));
+    assert_eq!(source.skill.group_skill_targets[1], Some(replacements[1]));
+    assert_eq!(source.skill.lock_target, Some(unit_target(replacements[0])));
 }
 
 /// Every slot of a grouped skill takes the construction in its way, and

@@ -14,19 +14,22 @@ fn has_body_attack_replacement_outside_range_exits_through_one_idle_tick() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     simulation.actors.get_mut(&2).unwrap().life = 0;
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.lock_target = Some(unit_target(2));
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.motion.state = MotionState::Attacking;
+    source.skill.lock_target = Some(unit_target(2));
+    source.skill.phase = FightSkillPhase::Attack;
     source.set_weapon_rotation(mdeg_to_degrees_q32(4_924));
     source.aim_rotation = 4_924;
 
     simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
-    assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
-    assert_eq!(simulation.actors[&1].lock_target, None);
+    assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
+    assert_eq!(simulation.actors[&1].skill.lock_target, None);
 
     simulation.step_actor(1, 2, &mut Vec::new()).unwrap();
-    assert_eq!(simulation.actors[&1].motion, MotionState::Moving);
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(3)));
+    assert_eq!(simulation.actors[&1].motion.state, MotionState::Moving);
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
     assert_eq!(simulation.actors[&1].aim_rotation, 4_924);
 }
 
@@ -59,9 +62,9 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
     set_actor_position(simulation.actors.get_mut(&5).unwrap(), 0, 60_000);
     set_actor_position(simulation.actors.get_mut(&6).unwrap(), 0, 100_000);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.lock_target = Some(unit_target(5));
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.motion.state = MotionState::Attacking;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.phase = FightSkillPhase::Attack;
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
 
@@ -70,12 +73,15 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
             .quick_switch_active_target_outside_attack_area(1, 1, &target_search_order, false)
             .unwrap()
     );
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(6)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(6))
+    );
 
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.lock_target = Some(unit_target(5));
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.motion.state = MotionState::Attacking;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.phase = FightSkillPhase::Attack;
     simulation.refresh_target_query_snapshot();
     simulation.actors.get_mut(&5).unwrap().life = 0;
     let target_search_order = simulation.target_search_order();
@@ -85,15 +91,18 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
             .quick_switch_active_target_outside_attack_area(1, 2, &target_search_order, false)
             .unwrap()
     );
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(6)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(6))
+    );
 
     set_actor_position(simulation.actors.get_mut(&6).unwrap(), 0, 250_000);
     simulation.actors.get_mut(&5).unwrap().life = 263;
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.lock_target = Some(unit_target(5));
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.pending = Some(PendingRelease {
+    source.motion.state = MotionState::Attacking;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.pending = Some(PendingRelease {
         step: 3,
         target: unit_target(5),
     });
@@ -105,14 +114,14 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
             .quick_switch_active_target_outside_attack_area(1, 3, &target_search_order, false)
             .unwrap()
     );
-    assert_eq!(simulation.actors[&1].lock_target, None);
-    assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
-    assert!(simulation.actors[&1].pending.is_none());
+    assert_eq!(simulation.actors[&1].skill.lock_target, None);
+    assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
+    assert!(simulation.actors[&1].skill.pending.is_none());
 
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Idle;
-    source.lock_target = Some(unit_target(5));
-    source.fight_skill_phase = FightSkillPhase::Idle;
+    source.motion.state = MotionState::Idle;
+    source.skill.lock_target = Some(unit_target(5));
+    source.skill.phase = FightSkillPhase::Idle;
     simulation.actors.get_mut(&5).unwrap().life = 0;
 
     assert!(
@@ -120,8 +129,8 @@ fn normal_quick_switch_only_adopts_an_immediately_attackable_target() {
             .quick_switch_active_target_outside_attack_area(1, 4, &target_search_order, true)
             .unwrap()
     );
-    assert_eq!(simulation.actors[&1].lock_target, None);
-    assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
+    assert_eq!(simulation.actors[&1].skill.lock_target, None);
+    assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
 }
 
 #[test]
@@ -138,15 +147,15 @@ fn has_body_attack_replacement_outside_weapon_angle_exits_through_idle() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     simulation.actors.get_mut(&2).unwrap().life = 0;
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.motion = MotionState::Attacking;
-    source.lock_target = Some(unit_target(2));
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.motion.state = MotionState::Attacking;
+    source.skill.lock_target = Some(unit_target(2));
+    source.skill.phase = FightSkillPhase::Attack;
     source.set_weapon_rotation(mdeg_to_degrees_q32(90_000));
 
     simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
 
-    assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
-    assert_eq!(simulation.actors[&1].lock_target, None);
+    assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
+    assert_eq!(simulation.actors[&1].skill.lock_target, None);
 }
 
 #[test]
@@ -159,21 +168,21 @@ fn entering_attack_defers_weapon_tracking_until_the_next_tick() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let initial_rotation = mdeg_to_degrees_q32(168_143);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.lock_target = Some(unit_target(2));
+    source.skill.lock_target = Some(unit_target(2));
     source.set_weapon_rotation(initial_rotation);
     source.aim_rotation = 168_143;
 
     simulation.step_actor(1, 1, &mut Vec::new()).unwrap();
-    assert_eq!(simulation.actors[&1].motion, MotionState::Attacking);
+    assert_eq!(simulation.actors[&1].motion.state, MotionState::Attacking);
     assert_eq!(
-        simulation.actors[&1].weapon_rotations_q32[0],
+        simulation.actors[&1].skill.weapon_rotations_q32[0],
         initial_rotation
     );
     assert_eq!(simulation.actors[&1].aim_rotation, 168_143);
 
     simulation.step_actor(1, 2, &mut Vec::new()).unwrap();
     assert_ne!(
-        simulation.actors[&1].weapon_rotations_q32[0],
+        simulation.actors[&1].skill.weapon_rotations_q32[0],
         initial_rotation
     );
     assert_ne!(simulation.actors[&1].aim_rotation, 168_143);
@@ -191,18 +200,24 @@ fn completed_bodyless_melee_attack_uses_one_idle_tick_before_reapproach() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Moving;
-    source.backswing_finish_step = Some(10);
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Moving;
+    source.skill.backswing_finish_step = Some(10);
     source.set_body_rotation(mdeg_to_degrees_q32(123_000));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, None);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, None);
     assert_eq!(source.body_rotation, 123_000);
-    assert_eq!((source.next_target_x_q32, source.next_target_z_q32), (0, 0));
+    assert_eq!(
+        (
+            source.motion.next_target_x_q32,
+            source.motion.next_target_z_q32
+        ),
+        (0, 0)
+    );
 }
 
 #[test]
@@ -217,19 +232,25 @@ fn completed_bodyless_melee_attack_uses_idle_before_an_out_of_angle_reentry() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 5_000);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Moving;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.backswing_finish_step = Some(10);
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Moving;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.backswing_finish_step = Some(10);
     source.set_body_rotation(mdeg_to_degrees_q32(90_000));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, None);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, None);
     assert_eq!(source.body_rotation, 90_000);
-    assert_eq!((source.next_target_x_q32, source.next_target_z_q32), (0, 0));
+    assert_eq!(
+        (
+            source.motion.next_target_x_q32,
+            source.motion.next_target_z_q32
+        ),
+        (0, 0)
+    );
 }
 
 #[test]
@@ -248,31 +269,45 @@ fn allied_kill_during_backswing_retains_the_dead_target_until_finish() {
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get(type_name).unwrap().clone());
-        source.lock_target = Some(unit_target(3));
-        source.motion = MotionState::Attacking;
-        source.fight_skill_phase = FightSkillPhase::Attack;
-        source.backswing_finish_step = Some(10);
-        source.next_attack_step = 20;
+        source.skill.lock_target = Some(unit_target(3));
+        source.motion.state = MotionState::Attacking;
+        source.skill.phase = FightSkillPhase::Attack;
+        source.skill.backswing_finish_step = Some(10);
+        source.skill.next_attack_step = 20;
         simulation.actors.get_mut(&3).unwrap().life = 0;
 
         simulation.step_actor(1, 8, &mut Vec::new()).unwrap();
         let stop_target = {
             let source = &simulation.actors[&1];
-            assert_eq!(source.motion, MotionState::Idle, "{type_name}");
-            assert_eq!(source.lock_target, Some(unit_target(3)), "{type_name}");
-            assert_eq!(source.backswing_finish_step, Some(10), "{type_name}");
-            (source.next_target_x_q32, source.next_target_z_q32)
+            assert_eq!(source.motion.state, MotionState::Idle, "{type_name}");
+            assert_eq!(
+                source.skill.lock_target,
+                Some(unit_target(3)),
+                "{type_name}"
+            );
+            assert_eq!(source.skill.backswing_finish_step, Some(10), "{type_name}");
+            (
+                source.motion.next_target_x_q32,
+                source.motion.next_target_z_q32,
+            )
         };
         simulation.actors.get_mut(&1).unwrap().x_q32 += Q32_ONE;
 
         for step in 9..=10 {
             simulation.step_actor(1, step, &mut Vec::new()).unwrap();
             let source = &simulation.actors[&1];
-            assert_eq!(source.motion, MotionState::Idle, "{type_name}");
-            assert_eq!(source.lock_target, Some(unit_target(3)), "{type_name}");
-            assert_eq!(source.backswing_finish_step, Some(10), "{type_name}");
+            assert_eq!(source.motion.state, MotionState::Idle, "{type_name}");
             assert_eq!(
-                (source.next_target_x_q32, source.next_target_z_q32),
+                source.skill.lock_target,
+                Some(unit_target(3)),
+                "{type_name}"
+            );
+            assert_eq!(source.skill.backswing_finish_step, Some(10), "{type_name}");
+            assert_eq!(
+                (
+                    source.motion.next_target_x_q32,
+                    source.motion.next_target_z_q32
+                ),
                 stop_target,
                 "{type_name}"
             );
@@ -280,11 +315,14 @@ fn allied_kill_during_backswing_retains_the_dead_target_until_finish() {
 
         simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
         let source = &simulation.actors[&1];
-        assert_eq!(source.motion, MotionState::Idle, "{type_name}");
-        assert_eq!(source.lock_target, None, "{type_name}");
-        assert_eq!(source.backswing_finish_step, None, "{type_name}");
+        assert_eq!(source.motion.state, MotionState::Idle, "{type_name}");
+        assert_eq!(source.skill.lock_target, None, "{type_name}");
+        assert_eq!(source.skill.backswing_finish_step, None, "{type_name}");
         assert_eq!(
-            (source.next_target_x_q32, source.next_target_z_q32),
+            (
+                source.motion.next_target_x_q32,
+                source.motion.next_target_z_q32
+            ),
             stop_target,
             "{type_name}"
         );
@@ -301,10 +339,10 @@ fn final_same_tick_allied_kill_retains_the_dead_backswing_target() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.backswing_finish_step = Some(20);
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.backswing_finish_step = Some(20);
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
     simulation.actors.get_mut(&2).unwrap().life = 0;
@@ -314,9 +352,9 @@ fn final_same_tick_allied_kill_retains_the_dead_backswing_target() {
         .unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, Some(unit_target(2)));
-    assert_eq!(source.backswing_finish_step, Some(20));
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
+    assert_eq!(source.skill.backswing_finish_step, Some(20));
 }
 
 #[test]
@@ -333,23 +371,26 @@ fn later_final_enemy_death_does_not_clear_an_own_kill_backswing_target() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Idle;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.retarget_after_own_direct_kill = true;
-    source.backswing_finish_step = Some(20);
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Idle;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.retarget_after_own_direct_kill = true;
+    source.skill.backswing_finish_step = Some(20);
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(2)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(2))
+    );
 
     simulation.actors.get_mut(&3).unwrap().life = 0;
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, Some(unit_target(2)));
-    assert_eq!(source.backswing_finish_step, Some(20));
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
+    assert_eq!(source.skill.backswing_finish_step, Some(20));
 }
 
 #[test]
@@ -367,22 +408,22 @@ fn bodyless_attack_defers_a_dead_target_replacement_outside_attack_area() {
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get(type_name).unwrap().clone());
-        source.lock_target = Some(unit_target(2));
-        source.motion = MotionState::Attacking;
-        source.fight_skill_phase = FightSkillPhase::Idle;
-        source.motion_attack_hold_fire = false;
-        source.next_attack_step = 20;
+        source.skill.lock_target = Some(unit_target(2));
+        source.motion.state = MotionState::Attacking;
+        source.skill.phase = FightSkillPhase::Idle;
+        source.motion.attack_hold_fire = false;
+        source.skill.next_attack_step = 20;
         simulation.actors.get_mut(&2).unwrap().life = 0;
 
         simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
         let source = &simulation.actors[&1];
-        assert_eq!(source.motion, MotionState::Idle, "{type_name}");
-        assert_eq!(source.lock_target, None, "{type_name}");
-        assert_eq!(source.next_attack_step, 20, "{type_name}");
+        assert_eq!(source.motion.state, MotionState::Idle, "{type_name}");
+        assert_eq!(source.skill.lock_target, None, "{type_name}");
+        assert_eq!(source.skill.next_attack_step, 20, "{type_name}");
 
         simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
         assert_eq!(
-            simulation.actors[&1].lock_target,
+            simulation.actors[&1].skill.lock_target,
             Some(unit_target(3)),
             "{type_name}"
         );
@@ -403,10 +444,10 @@ fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("fang").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Idle;
-    source.next_attack_step = 20;
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Idle;
+    source.skill.next_attack_step = 20;
     simulation.actors.get_mut(&2).unwrap().life = 0;
     assert!(simulation.bodyless_target_in_attack_range(1, unit_target(3)));
     assert!(!simulation.bodyless_target_in_attack_angle(1, unit_target(3)));
@@ -414,9 +455,9 @@ fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.lock_target, None);
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.next_attack_step, 20);
+    assert_eq!(source.skill.lock_target, None);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.next_attack_step, 20);
 }
 
 #[test]
@@ -429,15 +470,15 @@ fn bodyless_projectile_idle_entry_holds_for_turning() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("fang").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Idle;
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Idle;
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Attacking);
-    assert!(source.motion_attack_hold_fire);
-    assert_eq!(source.fight_skill_phase, FightSkillPhase::Idle);
+    assert_eq!(source.motion.state, MotionState::Attacking);
+    assert!(source.motion.attack_hold_fire);
+    assert_eq!(source.skill.phase, FightSkillPhase::Idle);
 }
 
 #[test]
@@ -455,23 +496,29 @@ fn bodyless_quick_switch_replaces_a_dead_target_immediately_in_range() {
     simulation.team_random.insert(0, GrRandom::new(7));
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("wasp").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.next_attack_step = 10;
-    source.backswing_finish_step = Some(20);
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.next_attack_step = 10;
+    source.skill.backswing_finish_step = Some(20);
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
 
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(2)));
-    assert_eq!(simulation.actors[&1].backswing_finish_step, Some(20));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(2))
+    );
+    assert_eq!(simulation.actors[&1].skill.backswing_finish_step, Some(20));
 
     let mut events = Vec::new();
     simulation.step_actor(1, 11, &mut events).unwrap();
 
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(3)));
-    assert_eq!(simulation.actors[&1].backswing_finish_step, Some(41));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
+    assert_eq!(simulation.actors[&1].skill.backswing_finish_step, Some(41));
     assert!(
         events
             .iter()
@@ -493,16 +540,19 @@ fn bodyless_non_quick_switch_defers_an_in_range_dead_target_replacement() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Idle;
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Idle;
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
-    assert_eq!(simulation.actors[&1].lock_target, None);
+    assert_eq!(simulation.actors[&1].skill.lock_target, None);
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(3)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
 }
 
 #[test]
@@ -517,17 +567,23 @@ fn bodyless_melee_attack_motion_exits_through_idle_when_target_leaves_range() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
     source.set_body_rotation(mdeg_to_degrees_q32(123_000));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, None);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, None);
     assert_eq!(source.body_rotation, 123_000);
-    assert_eq!((source.next_target_x_q32, source.next_target_z_q32), (0, 0));
+    assert_eq!(
+        (
+            source.motion.next_target_x_q32,
+            source.motion.next_target_z_q32
+        ),
+        (0, 0)
+    );
 }
 
 #[test]
@@ -542,19 +598,25 @@ fn bodyless_projectile_attack_motion_exits_through_idle_when_target_leaves_range
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("fang").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
     source.set_body_rotation(mdeg_to_degrees_q32(123_000));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, None);
-    assert_eq!(source.fight_skill_phase, FightSkillPhase::Idle);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, None);
+    assert_eq!(source.skill.phase, FightSkillPhase::Idle);
     assert_eq!(source.body_rotation, 123_000);
-    assert_eq!((source.next_target_x_q32, source.next_target_z_q32), (0, 0));
+    assert_eq!(
+        (
+            source.motion.next_target_x_q32,
+            source.motion.next_target_z_q32
+        ),
+        (0, 0)
+    );
 }
 
 #[test]
@@ -569,16 +631,16 @@ fn bodyless_melee_retains_target_while_motion_attack_is_held() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.motion_attack_hold_fire = true;
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.motion.attack_hold_fire = true;
     source.set_body_rotation(mdeg_to_degrees_q32(123_000));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Moving);
-    assert_eq!(source.lock_target, Some(unit_target(2)));
+    assert_eq!(source.motion.state, MotionState::Moving);
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
     assert_eq!(source.body_rotation, 123_000);
 }
 
@@ -594,24 +656,24 @@ fn rejected_bodyless_melee_active_attack_reopens_idle_search_before_release() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("crawler").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.pending = Some(PendingRelease {
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.pending = Some(PendingRelease {
         step: 12,
         target: unit_target(2),
     });
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.skill.phase = FightSkillPhase::Attack;
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, None);
-    assert_eq!(source.fight_skill_phase, FightSkillPhase::Idle);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, None);
+    assert_eq!(source.skill.phase, FightSkillPhase::Idle);
 
     simulation.step_actor(1, 12, &mut Vec::new()).unwrap();
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Moving);
-    assert_eq!(source.lock_target, Some(unit_target(2)));
+    assert_eq!(source.motion.state, MotionState::Moving);
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
 }
 
 #[test]
@@ -629,31 +691,27 @@ fn bodyless_attack_cancels_a_pending_attack_when_an_ally_kills_its_target() {
         let mut simulation = raw_test_simulation(&layout, &config, 7);
         let source = simulation.actors.get_mut(&1).unwrap();
         source.describe(config.units.get(type_name).unwrap().clone());
-        source.lock_target = Some(unit_target(2));
-        source.motion = MotionState::Attacking;
-        source.pending = Some(PendingRelease {
+        source.skill.lock_target = Some(unit_target(2));
+        source.motion.state = MotionState::Attacking;
+        source.skill.pending = Some(PendingRelease {
             step: 12,
             target: unit_target(2),
         });
-        source.fight_skill_phase = FightSkillPhase::Attack;
+        source.skill.phase = FightSkillPhase::Attack;
         simulation.actors.get_mut(&2).unwrap().life = 0;
 
         let mut events = Vec::new();
         simulation.step_actor(1, 11, &mut events).unwrap();
         let source = &simulation.actors[&1];
-        assert_eq!(source.motion, MotionState::Idle, "{type_name}");
-        assert_eq!(source.lock_target, None, "{type_name}");
-        assert_eq!(
-            source.fight_skill_phase,
-            FightSkillPhase::Idle,
-            "{type_name}"
-        );
-        assert!(source.pending.is_none(), "{type_name}");
+        assert_eq!(source.motion.state, MotionState::Idle, "{type_name}");
+        assert_eq!(source.skill.lock_target, None, "{type_name}");
+        assert_eq!(source.skill.phase, FightSkillPhase::Idle, "{type_name}");
+        assert!(source.skill.pending.is_none(), "{type_name}");
         assert!(events.is_empty(), "{type_name}");
 
         simulation.step_actor(1, 12, &mut events).unwrap();
         assert_eq!(
-            simulation.actors[&1].lock_target,
+            simulation.actors[&1].skill.lock_target,
             Some(unit_target(3)),
             "{type_name}"
         );
@@ -671,10 +729,10 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("steel_ball").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.pending = Some(PendingRelease {
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.pending = Some(PendingRelease {
         step: 10,
         target: unit_target(2),
     });
@@ -684,10 +742,10 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     simulation.release(1, &mut events).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, Some(unit_target(2)));
-    assert!(source.retarget_after_own_direct_kill);
-    assert_eq!(source.laser_attack_count, 1);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
+    assert!(source.skill.retarget_after_own_direct_kill);
+    assert_eq!(source.skill.laser_attack_count, 1);
     assert!(matches!(events[0].payload, EventPayload::UnitDied { .. }));
     assert!(matches!(
         events[1].payload,
@@ -696,10 +754,10 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
-    assert_eq!(source.lock_target, None);
-    assert!(!source.retarget_after_own_direct_kill);
-    assert_eq!(source.laser_attack_count, 0);
+    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.skill.lock_target, None);
+    assert!(!source.skill.retarget_after_own_direct_kill);
+    assert_eq!(source.skill.laser_attack_count, 0);
 }
 
 #[test]
@@ -712,10 +770,10 @@ fn laser_own_kill_skips_the_same_tick_bodyless_rotation() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("steel_ball").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.fight_skill_phase = FightSkillPhase::Attack;
-    source.pending = Some(PendingRelease {
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.phase = FightSkillPhase::Attack;
+    source.skill.pending = Some(PendingRelease {
         step: 10,
         target: unit_target(2),
     });
@@ -726,9 +784,9 @@ fn laser_own_kill_skips_the_same_tick_bodyless_rotation() {
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Idle);
+    assert_eq!(source.motion.state, MotionState::Idle);
     assert_eq!(source.body_rotation, 0);
-    assert_eq!(source.lock_target, Some(unit_target(2)));
+    assert_eq!(source.skill.lock_target, Some(unit_target(2)));
 }
 
 #[test]
@@ -745,21 +803,21 @@ fn a_quick_switch_before_a_blow_takes_the_next_unit_in_its_attack_area() {
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let source = simulation.actors.get_mut(&1).unwrap();
     source.describe(config.units.get("fang").unwrap().clone());
-    source.lock_target = Some(unit_target(2));
-    source.motion = MotionState::Attacking;
-    source.pending = Some(PendingRelease {
+    source.skill.lock_target = Some(unit_target(2));
+    source.motion.state = MotionState::Attacking;
+    source.skill.pending = Some(PendingRelease {
         step: 12,
         target: unit_target(2),
     });
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.skill.phase = FightSkillPhase::Attack;
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Attacking);
-    assert_eq!(source.lock_target, Some(unit_target(3)));
-    assert_eq!(source.pending.unwrap().target, unit_target(3));
+    assert_eq!(source.motion.state, MotionState::Attacking);
+    assert_eq!(source.skill.lock_target, Some(unit_target(3)));
+    assert_eq!(source.skill.pending.unwrap().target, unit_target(3));
 }
 
 #[test]
@@ -817,24 +875,33 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
         simulation.step(output_tick - 1).unwrap();
         match output_tick {
             223 => {
-                assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(3)));
-                assert!(simulation.actors[&1].retarget_after_own_direct_kill);
-                assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
+                assert_eq!(
+                    simulation.actors[&1].skill.lock_target,
+                    Some(unit_target(3))
+                );
+                assert!(simulation.actors[&1].skill.retarget_after_own_direct_kill);
+                assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
             }
             224..=232 => {
-                assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(3)));
-                assert!(simulation.actors[&1].retarget_after_own_direct_kill);
+                assert_eq!(
+                    simulation.actors[&1].skill.lock_target,
+                    Some(unit_target(3))
+                );
+                assert!(simulation.actors[&1].skill.retarget_after_own_direct_kill);
             }
             233 => {
-                assert_eq!(simulation.actors[&1].lock_target, None);
-                assert!(!simulation.actors[&1].retarget_after_own_direct_kill);
-                assert_eq!(simulation.actors[&1].motion, MotionState::Idle);
+                assert_eq!(simulation.actors[&1].skill.lock_target, None);
+                assert!(!simulation.actors[&1].skill.retarget_after_own_direct_kill);
+                assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
             }
             234 => {
                 // The exact native assignment point is not observable. This only
                 // locks the simulator-private state needed to reproduce S/E tick 234.
-                assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(2)));
-                assert_eq!(simulation.actors[&1].motion, MotionState::Moving);
+                assert_eq!(
+                    simulation.actors[&1].skill.lock_target,
+                    Some(unit_target(2))
+                );
+                assert_eq!(simulation.actors[&1].motion.state, MotionState::Moving);
             }
             _ => {}
         }
@@ -862,9 +929,9 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
         0,
     );
     let target = 0;
-    actor.weapon_rotations_q32 = vec![0, 41_i64 << 32];
+    actor.skill.weapon_rotations_q32 = vec![0, 41_i64 << 32];
     assert!(!actor.weapons_in_attack_angle(target));
-    actor.weapon_rotations_q32[1] = 40_i64 << 32;
+    actor.skill.weapon_rotations_q32[1] = 40_i64 << 32;
     assert!(actor.weapons_in_attack_angle(target));
 }
 
@@ -913,10 +980,10 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
         let output_tick = step + 1;
         let rhino = &simulation.actors[&1];
         match output_tick {
-            216 | 225 => assert_eq!(rhino.backswing_finish_step, Some(224)),
+            216 | 225 => assert_eq!(rhino.skill.backswing_finish_step, Some(224)),
             226 => {
-                assert_eq!(rhino.backswing_finish_step, None);
-                assert_eq!(rhino.pending.unwrap().step, 233);
+                assert_eq!(rhino.skill.backswing_finish_step, None);
+                assert_eq!(rhino.skill.pending.unwrap().step, 233);
             }
             _ => {}
         }

@@ -64,8 +64,11 @@
 
 ## 代码在哪
 
-`crates/simulation/src/fight/` 就是战斗，按每部分镜像游戏里的什么拆开。文件里放代码；它操作的数据
-目前仍声明在 `fight/mod.rs`，把每个对象的字段挪到拥有它的文件，是下一步。
+`crates/simulation/src/fight/` 就是战斗，按每部分镜像游戏里的什么拆开，每个文件声明它拥有的数据。一个
+单位是 `mod.rs` 里的 `Actor`——机甲本身：布置、位置、朝向、生命——它持有一个 `Motion`（`motion.rs`，
+即 `MotionController`：运动状态、被要求去哪、RVO 求解的结果）和一个 `Skill`（`skill/mod.rs`，即
+`FightSkill`：锁定和武器打的对象、技能状态、正在进行的攻击）。经过单位的路径和游戏的读法一致：
+`actor.skill.lock_target`、`actor.motion.state`。
 
 | 文件 | 对应 |
 | --- | --- |

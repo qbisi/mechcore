@@ -1,5 +1,31 @@
 use super::*;
 
+#[derive(Debug, Clone)]
+pub(in crate::fight) struct Projectile {
+    pub(in crate::fight) id: u64,
+    pub(in crate::fight) team: u32,
+    pub(in crate::fight) owner: u64,
+    pub(in crate::fight) target_kind: ObjectKind,
+    pub(in crate::fight) target: u64,
+    pub(in crate::fight) x: i64,
+    pub(in crate::fight) y: i64,
+    pub(in crate::fight) z: i64,
+    pub(in crate::fight) x_q32: i64,
+    pub(in crate::fight) y_q32: i64,
+    pub(in crate::fight) z_q32: i64,
+    pub(in crate::fight) cached_target_x: i64,
+    pub(in crate::fight) cached_target_y: i64,
+    pub(in crate::fight) cached_target_z: i64,
+    pub(in crate::fight) cached_target_x_q32: i64,
+    pub(in crate::fight) cached_target_y_q32: i64,
+    pub(in crate::fight) cached_target_z_q32: i64,
+    pub(in crate::fight) cached_target_radius: i64,
+    pub(in crate::fight) speed: i64,
+    pub(in crate::fight) damage: i64,
+    pub(in crate::fight) life: i64,
+    pub(in crate::fight) lock_target: bool,
+}
+
 impl Projectile {
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {
         ObjectRef::new(ObjectKind::Projectile, self.id)

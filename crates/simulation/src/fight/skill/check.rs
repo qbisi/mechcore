@@ -22,7 +22,7 @@ impl Simulation {
     /// being the attack target the next time it is asked. Nothing changes in a
     /// fight that places no enemy construction.
     pub(in crate::fight) fn search_attack_target(&mut self, actor_id: u64) {
-        let found = match self.actors[&actor_id].lock_target {
+        let found = match self.actors[&actor_id].skill.lock_target {
             // A search that already chose a building is not redirected: the
             // measurement is a wall taking the place of a unit.
             Some(target @ FightActorRef::Unit(_)) => self
@@ -33,6 +33,7 @@ impl Simulation {
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
+            .skill
             .in_the_way = found;
         self.refresh_group_walls(actor_id);
     }
@@ -58,8 +59,8 @@ impl Simulation {
         actor_id: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let lock = self.actors[&actor_id].lock_target;
-        let before = self.actors[&actor_id].attack_target();
+        let lock = self.actors[&actor_id].skill.lock_target;
+        let before = self.actors[&actor_id].skill.attack_target();
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
             self.search_attack_target(actor_id);
         } else {
@@ -67,12 +68,12 @@ impl Simulation {
                 return Ok(false);
             }
             let actor = &self.actors[&actor_id];
-            if !actor.rules.attack.quick_switch_target && actor.attack_target() != before {
+            if !actor.rules.attack.quick_switch_target && actor.skill.attack_target() != before {
                 return Ok(false);
             }
         }
-        let after = self.actors[&actor_id].attack_target();
-        if after == before && lock == self.actors[&actor_id].lock_target {
+        let after = self.actors[&actor_id].skill.attack_target();
+        if after == before && lock == self.actors[&actor_id].skill.lock_target {
             return Ok(true);
         }
         let Some(target) = after else {
@@ -90,13 +91,17 @@ impl Simulation {
     /// before its next blow, each when a nearer block has come into its line.
     pub(in crate::fight) fn between_blows(&self, actor_id: u64, step: u64) -> bool {
         let actor = &self.actors[&actor_id];
-        let waiting = actor.pending.is_none()
-            && actor.projectile_pending_releases.is_empty()
+        let waiting = actor.skill.pending.is_none()
+            && actor.skill.projectile_pending_releases.is_empty()
             && actor
+                .skill
                 .backswing_finish_step
                 .is_none_or(|finish| finish < step);
-        let before = actor.pending.is_some_and(|pending| step < pending.step);
-        actor.fight_skill_phase == FightSkillPhase::Attack && (waiting || before)
+        let before = actor
+            .skill
+            .pending
+            .is_some_and(|pending| step < pending.step);
+        actor.skill.phase == FightSkillPhase::Attack && (waiting || before)
     }
 
     /// `SkillAttackState.CheckAttackable`: an attack on a building that has
@@ -112,7 +117,8 @@ impl Simulation {
         actor_id: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        if let Some(target @ FightActorRef::Building(_)) = self.actors[&actor_id].attack_target()
+        if let Some(target @ FightActorRef::Building(_)) =
+            self.actors[&actor_id].skill.attack_target()
             && !self.fight_actor_is_alive(target)
         {
             return Ok(false);
@@ -130,27 +136,27 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let fired_at = actor.attack_target();
+        let fired_at = actor.skill.attack_target();
         // `MotionIdleState.Enter` publishes the stop once; a unit whose
         // motion is idle already keeps the point it stopped at.
-        let entered_idle = actor.motion != MotionState::Idle;
-        actor.motion = MotionState::Idle;
-        actor.drop_lock();
-        actor.laser_attack_count = 0;
-        actor.retarget_after_own_direct_kill = false;
-        actor.fight_skill_phase = FightSkillPhase::Idle;
+        let entered_idle = actor.motion.state != MotionState::Idle;
+        actor.motion.state = MotionState::Idle;
+        actor.skill.drop_lock();
+        actor.skill.laser_attack_count = 0;
+        actor.skill.retarget_after_own_direct_kill = false;
+        actor.skill.phase = FightSkillPhase::Idle;
 
-        actor.backswing_finish_step = None;
-        actor.pending = None;
+        actor.skill.backswing_finish_step = None;
+        actor.skill.pending = None;
         if entered_idle {
-            actor.next_target_x_q32 = actor.x_q32;
-            actor.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
         }
-        actor.next_speed_q32 = 0;
-        actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+        actor.motion.next_speed_q32 = 0;
+        actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
         if cooling_steps > 0 {
-            actor.cooling_hold = Some(step);
-            actor.cooling_candidate = fired_at;
+            actor.skill.cooling_hold = Some(step);
+            actor.skill.cooling_candidate = fired_at;
         }
     }
 
@@ -166,6 +172,7 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         let died_this_tick = self.actors[&actor_id]
+            .skill
             .mechanical_attack_target()
             .and_then(|target| self.fight_actor(target))
             .is_some_and(|target| target.query_alive && !target.alive);
@@ -194,10 +201,10 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let Some(selected) = selected else {
-            actor.drop_lock();
+            actor.skill.drop_lock();
             return Ok(false);
         };
-        actor.lock_target = Some(selected);
+        actor.skill.lock_target = Some(selected);
         self.search_attack_target(actor_id);
         Ok(true)
     }
@@ -210,16 +217,16 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        actor.motion = MotionState::Idle;
-        actor.drop_lock();
-        actor.fight_skill_phase = FightSkillPhase::Idle;
-        actor.fight_skill_search_target_time = 0;
-        actor.backswing_finish_step = None;
-        actor.pending = None;
-        actor.next_target_x_q32 = actor.x_q32;
-        actor.next_target_z_q32 = actor.z_q32;
-        actor.next_speed_q32 = 0;
-        actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+        actor.motion.state = MotionState::Idle;
+        actor.skill.drop_lock();
+        actor.skill.phase = FightSkillPhase::Idle;
+        actor.skill.search_target_time = 0;
+        actor.skill.backswing_finish_step = None;
+        actor.skill.pending = None;
+        actor.motion.next_target_x_q32 = actor.x_q32;
+        actor.motion.next_target_z_q32 = actor.z_q32;
+        actor.motion.next_speed_q32 = 0;
+        actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
     }
 
     /// Which enemy construction stands between this actor and its target.

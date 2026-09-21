@@ -54,56 +54,60 @@ impl Actor {
             target_query_z_q32: z_q32,
             target_query_source_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             target_query_alive: true,
-            rvo_tree_x_q32: x_q32,
-            rvo_tree_z_q32: z_q32,
             body_rotation: placement.rotation,
             body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             aim_rotation: placement.rotation,
-            weapon_rotations_q32,
             placement,
             rules,
             stats,
-            current_velocity_x_q32: 0,
-            current_velocity_z_q32: 0,
-            next_target_x_q32: x_q32,
-            next_target_z_q32: z_q32,
-            next_speed_q32: 0,
-            next_max_speed_q32: max_speed_q32,
-            solver_target_x_q32: x_q32,
-            solver_target_z_q32: z_q32,
-            solver_speed_q32: 0,
-            published_target_x_q32: x_q32,
-            published_target_z_q32: z_q32,
-            published_speed_q32: 0,
-            rvo_stopped_snap_since_boundary: false,
             life: max_life,
             last_damage_source: None,
-            motion: MotionState::Idle,
-            next_attack_step: 0,
-            current_attack_interval: 0,
-            motion_attack_hold_fire: false,
-            lock_target: None,
-            in_the_way: None,
-            cooling_candidate: None,
-            cooling_hold: None,
-            lock_is_terminal_handoff: false,
-            // FightSkill owns a second SearchTargetController. FightPrepareState
-            // replaces this constructor value with the presearch batch ordinal.
-            fight_skill_search_target_time: SEARCH_TARGET_RESET_TICKS,
-            fight_skill_searched_this_tick: false,
-            fight_skill_phase: FightSkillPhase::Idle,
-            group_skill_targets: vec![None; group_skill_count],
-            group_in_the_way: vec![None; group_skill_count],
-            group_skill_next_attack_steps: vec![0; group_skill_count],
-            group_skill_prepare_ready_steps: vec![0; group_skill_count],
-            group_pending_releases: Vec::new(),
-            projectile_pending_releases: Vec::new(),
-            projectile_burst_finished: false,
-            projectile_burst_finished_same_tick_dead: false,
-            laser_attack_count: 0,
-            retarget_after_own_direct_kill: false,
-            pending: None,
-            backswing_finish_step: None,
+            motion: Motion {
+                rvo_tree_x_q32: x_q32,
+                rvo_tree_z_q32: z_q32,
+                current_velocity_x_q32: 0,
+                current_velocity_z_q32: 0,
+                next_target_x_q32: x_q32,
+                next_target_z_q32: z_q32,
+                next_speed_q32: 0,
+                next_max_speed_q32: max_speed_q32,
+                solver_target_x_q32: x_q32,
+                solver_target_z_q32: z_q32,
+                solver_speed_q32: 0,
+                published_target_x_q32: x_q32,
+                published_target_z_q32: z_q32,
+                published_speed_q32: 0,
+                rvo_stopped_snap_since_boundary: false,
+                state: MotionState::Idle,
+                attack_hold_fire: false,
+            },
+            skill: Skill {
+                weapon_rotations_q32,
+                next_attack_step: 0,
+                current_attack_interval: 0,
+                lock_target: None,
+                in_the_way: None,
+                cooling_candidate: None,
+                cooling_hold: None,
+                lock_is_terminal_handoff: false,
+                // FightSkill owns a second SearchTargetController. FightPrepareState
+                // replaces this constructor value with the presearch batch ordinal.
+                search_target_time: SEARCH_TARGET_RESET_TICKS,
+                searched_this_tick: false,
+                phase: FightSkillPhase::Idle,
+                group_skill_targets: vec![None; group_skill_count],
+                group_in_the_way: vec![None; group_skill_count],
+                group_skill_next_attack_steps: vec![0; group_skill_count],
+                group_skill_prepare_ready_steps: vec![0; group_skill_count],
+                group_pending_releases: Vec::new(),
+                projectile_pending_releases: Vec::new(),
+                projectile_burst_finished: false,
+                projectile_burst_finished_same_tick_dead: false,
+                laser_attack_count: 0,
+                retarget_after_own_direct_kill: false,
+                pending: None,
+                backswing_finish_step: None,
+            },
         }
     }
 
@@ -111,108 +115,35 @@ impl Actor {
         self.life > 0
     }
 
-    /// What this actor's weapons fire at: the construction in the way if one
-    /// stands there for the current lock, and the lock itself otherwise.
-    ///
-    /// Range, attack angle, release and the question of whether the target
-    /// is still alive are all asked of this. Where to move and where a body
-    /// faces are asked of `lock_target`.
-    pub(in crate::fight) fn attack_target(&self) -> Option<FightActorRef> {
-        match self.in_the_way {
-            Some((building, found_for)) if self.lock_target == Some(found_for) => {
-                Some(FightActorRef::Building(building))
-            }
-            _ => self.lock_target,
-        }
-    }
-
-    /// Drops the mech's target, and every grouped slot with it.
-    ///
-    /// A group whose mech holds no target holds no slots: every time a Wraith
-    /// was recorded losing its lock — to a block it was shooting falling, and
-    /// to the last enemy dying — all four slots read empty the same tick, and
-    /// the children were allocated again only once the core was attacking,
-    /// the usual eight ticks later. Nothing changes for a unit without a
-    /// group, whose slot lists are empty.
-    pub(in crate::fight) fn drop_lock(&mut self) {
-        self.lock_target = None;
-        self.group_skill_targets.fill(None);
-        self.group_in_the_way.fill(None);
-        self.group_skill_next_attack_steps.fill(0);
-        self.group_skill_prepare_ready_steps.fill(0);
-        self.group_pending_releases.clear();
-    }
-
-    /// What one grouped slot fires at: the construction in its way if one
-    /// stands there for the unit it was allocated, and that unit otherwise.
-    pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
-        let unit = self.group_skill_targets.get(slot).copied().flatten()?;
-        match self.group_in_the_way.get(slot).copied().flatten() {
-            Some((building, found_for)) if found_for == unit => {
-                Some(FightActorRef::Building(building))
-            }
-            _ => Some(FightActorRef::Unit(unit)),
-        }
-    }
-
-    /// What a grouped skill's core fires at, or the weapons' target when the
-    /// group has none.
-    pub(in crate::fight) fn mechanical_attack_target(&self) -> Option<FightActorRef> {
-        self.group_attack_target(0)
-            .or_else(|| {
-                (0..self.group_skill_targets.len())
-                    .rev()
-                    .find_map(|slot| self.group_attack_target(slot))
-            })
-            .or(self.attack_target())
-    }
-
-    pub(in crate::fight) fn mechanical_lock_target(&self) -> Option<FightActorRef> {
-        self.group_skill_targets
-            .first()
-            .copied()
-            .flatten()
-            .or_else(|| {
-                self.group_skill_targets
-                    .iter()
-                    .rev()
-                    .flatten()
-                    .copied()
-                    .next()
-            })
-            .map(FightActorRef::Unit)
-            .or(self.lock_target)
-    }
-
     pub(in crate::fight) fn exit_fight_on_death(&mut self) {
-        self.motion = MotionState::Idle;
-        self.pending = None;
-        self.lock_target = None;
-        self.lock_is_terminal_handoff = false;
-        self.fight_skill_search_target_time = SEARCH_TARGET_RESET_TICKS;
-        self.fight_skill_phase = FightSkillPhase::Idle;
-        self.group_skill_targets.fill(None);
-        self.group_in_the_way.fill(None);
-        self.group_skill_next_attack_steps.fill(0);
-        self.group_skill_prepare_ready_steps.fill(0);
-        self.group_pending_releases.clear();
-        self.projectile_pending_releases.clear();
-        self.projectile_burst_finished = false;
-        self.projectile_burst_finished_same_tick_dead = false;
-        self.laser_attack_count = 0;
-        self.retarget_after_own_direct_kill = false;
-        self.motion_attack_hold_fire = false;
-        self.current_velocity_x_q32 = 0;
-        self.current_velocity_z_q32 = 0;
-        self.next_target_x_q32 = self.x_q32;
-        self.next_target_z_q32 = self.z_q32;
-        self.next_speed_q32 = 0;
-        self.solver_target_x_q32 = self.x_q32;
-        self.solver_target_z_q32 = self.z_q32;
-        self.solver_speed_q32 = 0;
-        self.published_target_x_q32 = self.x_q32;
-        self.published_target_z_q32 = self.z_q32;
-        self.published_speed_q32 = 0;
+        self.motion.state = MotionState::Idle;
+        self.skill.pending = None;
+        self.skill.lock_target = None;
+        self.skill.lock_is_terminal_handoff = false;
+        self.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        self.skill.phase = FightSkillPhase::Idle;
+        self.skill.group_skill_targets.fill(None);
+        self.skill.group_in_the_way.fill(None);
+        self.skill.group_skill_next_attack_steps.fill(0);
+        self.skill.group_skill_prepare_ready_steps.fill(0);
+        self.skill.group_pending_releases.clear();
+        self.skill.projectile_pending_releases.clear();
+        self.skill.projectile_burst_finished = false;
+        self.skill.projectile_burst_finished_same_tick_dead = false;
+        self.skill.laser_attack_count = 0;
+        self.skill.retarget_after_own_direct_kill = false;
+        self.motion.attack_hold_fire = false;
+        self.motion.current_velocity_x_q32 = 0;
+        self.motion.current_velocity_z_q32 = 0;
+        self.motion.next_target_x_q32 = self.x_q32;
+        self.motion.next_target_z_q32 = self.z_q32;
+        self.motion.next_speed_q32 = 0;
+        self.motion.solver_target_x_q32 = self.x_q32;
+        self.motion.solver_target_z_q32 = self.z_q32;
+        self.motion.solver_speed_q32 = 0;
+        self.motion.published_target_x_q32 = self.x_q32;
+        self.motion.published_target_z_q32 = self.z_q32;
+        self.motion.published_speed_q32 = 0;
     }
 
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {
@@ -220,7 +151,7 @@ impl Actor {
     }
 
     pub(in crate::fight) fn set_weapon_rotation(&mut self, rotation_q32: i64) {
-        self.weapon_rotations_q32.fill(rotation_q32);
+        self.skill.weapon_rotations_q32.fill(rotation_q32);
     }
 
     pub(in crate::fight) fn set_body_rotation(&mut self, rotation_q32: i64) {
@@ -249,15 +180,16 @@ impl Actor {
             mdeg_to_degrees_q32(self.rules.rotate_speed_mdeg_per_second()),
             NATIVE_LOGIC_DELTA_Q32,
         );
-        for rotation in &mut self.weapon_rotations_q32 {
+        for rotation in &mut self.skill.weapon_rotations_q32 {
             *rotation = rotate_towards_q32(*rotation, target_q32, maximum);
         }
     }
 
     pub(in crate::fight) fn weapons_in_attack_angle(&self, target_q32: i64) -> bool {
         let half_angle_q32 = mdeg_to_degrees_q32(self.rules.attack.attack_half_angle_mdeg());
-        !self.weapon_rotations_q32.is_empty()
+        !self.skill.weapon_rotations_q32.is_empty()
             && self
+                .skill
                 .weapon_rotations_q32
                 .iter()
                 .all(|rotation| rotation_distance_q32(*rotation, target_q32) <= half_angle_q32)
@@ -270,19 +202,20 @@ impl Actor {
             y: space_to_q32(height),
             z: self.z_q32,
         };
-        let weapon_aims = (0..self.weapon_rotations_q32.len())
+        let weapon_aims = (0..self.skill.weapon_rotations_q32.len())
             .map(|weapon_index| {
                 let group_mode = self.rules.attack.weapons.mode == WeaponMode::Group;
                 let attack_target = if group_mode {
-                    self.group_attack_target(weapon_index).or_else(|| {
+                    self.skill.group_attack_target(weapon_index).or_else(|| {
                         (weapon_index == 0)
-                            .then_some(self.attack_target())
+                            .then_some(self.skill.attack_target())
                             .flatten()
                     })
                 } else {
-                    self.attack_target().or_else(|| {
-                        self.cooling_candidate
-                            .filter(|_| self.lock_target.is_none())
+                    self.skill.attack_target().or_else(|| {
+                        self.skill
+                            .cooling_candidate
+                            .filter(|_| self.skill.lock_target.is_none())
                     })
                 };
                 WeaponAimState {
@@ -310,12 +243,12 @@ impl Actor {
             position,
             body_rotation: self.body_rotation_q32,
             velocity: QVec3 {
-                x: self.current_velocity_x_q32,
+                x: self.motion.current_velocity_x_q32,
                 y: 0,
-                z: self.current_velocity_z_q32,
+                z: self.motion.current_velocity_z_q32,
             },
-            motion_state: self.motion,
-            mech_lock_target: self.lock_target.map(FightActorRef::object_ref),
+            motion_state: self.motion.state,
+            mech_lock_target: self.skill.lock_target.map(FightActorRef::object_ref),
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
@@ -359,7 +292,7 @@ impl Actor {
                 // cycle in progress was scheduled with, stagger included, the
                 // core's for a group, and the composed interval once no enemy
                 // is left. `docs/rules/combat.md` says how each was read.
-                current_attack_interval: i32::try_from(self.current_attack_interval)
+                current_attack_interval: i32::try_from(self.skill.current_attack_interval)
                     .unwrap_or(i32::MAX),
             },
         }

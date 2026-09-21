@@ -119,11 +119,14 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     let mut simulation = make_simulation();
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(3));
     simulation.initialize_presearch_targets().unwrap();
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(3)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
     assert_eq!(simulation.actors[&1].body_rotation, 358_219);
-    assert_eq!(simulation.actors[&1].fight_skill_search_target_time, 0);
-    assert_eq!(simulation.actors[&2].fight_skill_search_target_time, 1);
-    assert_eq!(simulation.actors[&3].fight_skill_search_target_time, 2);
+    assert_eq!(simulation.actors[&1].skill.search_target_time, 0);
+    assert_eq!(simulation.actors[&2].skill.search_target_time, 1);
+    assert_eq!(simulation.actors[&3].skill.search_target_time, 2);
 
     let mut fight_skill = make_simulation();
     fight_skill.initialize_presearch_targets().unwrap();
@@ -133,20 +136,26 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     current.x_q32 = space_to_q32(current.x);
     current.z_q32 = space_to_q32(current.z);
     let source = fight_skill.actors.get_mut(&1).unwrap();
-    source.fight_skill_search_target_time = 1;
+    source.skill.search_target_time = 1;
     fight_skill.refresh_target_query_snapshot();
     let target_search_order = fight_skill.target_search_order();
     fight_skill
         .update_fight_skill_target_search(1, 0, &target_search_order)
         .unwrap();
-    assert_eq!(fight_skill.actors[&1].lock_target, Some(unit_target(3)));
-    assert_eq!(fight_skill.actors[&1].fight_skill_search_target_time, 0);
+    assert_eq!(
+        fight_skill.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
+    assert_eq!(fight_skill.actors[&1].skill.search_target_time, 0);
     fight_skill
         .update_fight_skill_target_search(1, 1, &target_search_order)
         .unwrap();
-    assert_eq!(fight_skill.actors[&1].lock_target, Some(unit_target(2)));
     assert_eq!(
-        fight_skill.actors[&1].fight_skill_search_target_time,
+        fight_skill.actors[&1].skill.lock_target,
+        Some(unit_target(2))
+    );
+    assert_eq!(
+        fight_skill.actors[&1].skill.search_target_time,
         SEARCH_TARGET_RESET_TICKS
     );
 
@@ -158,16 +167,16 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     current.x_q32 = space_to_q32(current.x);
     current.z_q32 = space_to_q32(current.z);
     let source = hold_fire.actors.get_mut(&1).unwrap();
-    source.fight_skill_search_target_time = 0;
-    source.motion_attack_hold_fire = true;
+    source.skill.search_target_time = 0;
+    source.motion.attack_hold_fire = true;
     hold_fire.refresh_target_query_snapshot();
     let target_search_order = hold_fire.target_search_order();
     hold_fire
         .update_fight_skill_target_search(1, 0, &target_search_order)
         .unwrap();
-    assert_eq!(hold_fire.actors[&1].lock_target, Some(unit_target(2)));
+    assert_eq!(hold_fire.actors[&1].skill.lock_target, Some(unit_target(2)));
     assert_eq!(
-        hold_fire.actors[&1].fight_skill_search_target_time,
+        hold_fire.actors[&1].skill.search_target_time,
         SEARCH_TARGET_RESET_TICKS
     );
 
@@ -179,15 +188,18 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     current.x_q32 = space_to_q32(current.x);
     current.z_q32 = space_to_q32(current.z);
     let source = attack_state.actors.get_mut(&1).unwrap();
-    source.fight_skill_search_target_time = 0;
-    source.fight_skill_phase = FightSkillPhase::Attack;
+    source.skill.search_target_time = 0;
+    source.skill.phase = FightSkillPhase::Attack;
     attack_state.refresh_target_query_snapshot();
     let target_search_order = attack_state.target_search_order();
     attack_state
         .update_fight_skill_target_search(1, 0, &target_search_order)
         .unwrap();
-    assert_eq!(attack_state.actors[&1].lock_target, Some(unit_target(3)));
-    assert_eq!(attack_state.actors[&1].fight_skill_search_target_time, 0);
+    assert_eq!(
+        attack_state.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
+    assert_eq!(attack_state.actors[&1].skill.search_target_time, 0);
 
     let mut prepare_state = make_simulation();
     prepare_state.initialize_presearch_targets().unwrap();
@@ -197,9 +209,9 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     current.x_q32 = space_to_q32(current.x);
     current.z_q32 = space_to_q32(current.z);
     let source = prepare_state.actors.get_mut(&1).unwrap();
-    source.fight_skill_search_target_time = 0;
-    source.fight_skill_phase = FightSkillPhase::Prepare { finish_step: 20 };
-    source.pending = Some(PendingRelease {
+    source.skill.search_target_time = 0;
+    source.skill.phase = FightSkillPhase::Prepare { finish_step: 20 };
+    source.skill.pending = Some(PendingRelease {
         step: 20,
         target: unit_target(3),
     });
@@ -208,8 +220,11 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     prepare_state
         .update_fight_skill_target_search(1, 0, &target_search_order)
         .unwrap();
-    assert_eq!(prepare_state.actors[&1].lock_target, Some(unit_target(3)));
-    assert_eq!(prepare_state.actors[&1].fight_skill_search_target_time, 0);
+    assert_eq!(
+        prepare_state.actors[&1].skill.lock_target,
+        Some(unit_target(3))
+    );
+    assert_eq!(prepare_state.actors[&1].skill.search_target_time, 0);
 
     let mut dead_target = make_simulation();
     dead_target.initialize_presearch_targets().unwrap();
@@ -217,10 +232,14 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
         .actors
         .get_mut(&1)
         .unwrap()
-        .fight_skill_search_target_time = 10;
+        .skill
+        .search_target_time = 10;
     dead_target.actors.get_mut(&3).unwrap().life = 0;
     dead_target.step_actor(1, 0, &mut Vec::new()).unwrap();
-    assert_eq!(dead_target.actors[&1].lock_target, Some(unit_target(2)));
+    assert_eq!(
+        dead_target.actors[&1].skill.lock_target,
+        Some(unit_target(2))
+    );
 }
 
 #[test]

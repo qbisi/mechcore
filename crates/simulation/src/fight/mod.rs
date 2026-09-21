@@ -46,11 +46,15 @@ mod skill;
 #[cfg(test)]
 mod tests;
 
+use damage::*;
 use deploy::*;
 pub(crate) use math::*;
 use motion::*;
+use projectile::*;
 pub(crate) use run::*;
+pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 use search::*;
+use skill::{FightSkillPhase, Skill};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 
@@ -95,38 +99,6 @@ const RVO_SIMULATOR_ORIGIN_OFFSET_Q32: i64 = 400 * Q32_ONE;
 const CORE_TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
 
 const SEARCH_TARGET_RESET_TICKS: i32 = 10;
-
-#[derive(Debug, Clone, Copy)]
-struct RvoProfile {
-    outer_radius_q32: i64,
-    inner_radius_q32: i64,
-    size: AgentSizeType,
-    collider_priority: i32,
-    priority_q32: i64,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PendingRelease {
-    step: u64,
-    target: FightActorRef,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PendingProjectileRelease {
-    step: u64,
-    target_kind: ObjectKind,
-    target: u64,
-    target_x_q32: i64,
-    target_z_q32: i64,
-    weapon_index: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum FightSkillPhase {
-    Idle,
-    Prepare { finish_step: u64 },
-    Attack,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum FightActorRef {
@@ -174,28 +146,6 @@ struct FightActorView {
     domain: UnitDomain,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TargetActorRect {
-    min_x: i64,
-    min_z: i64,
-    max_x: i64,
-    max_z: i64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct TargetActorQuadtreeNode {
-    rect: TargetActorRect,
-    depth: u8,
-    elements: Vec<FightActorRef>,
-    children: Option<Box<[TargetActorQuadtreeNode; 4]>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct TargetActorQuadtree {
-    root: TargetActorQuadtreeNode,
-    ranges: BTreeMap<FightActorRef, TargetActorRect>,
-}
-
 #[derive(Debug, Clone)]
 #[allow(
     clippy::struct_excessive_bools,
@@ -216,272 +166,17 @@ struct Actor {
     target_query_z_q32: i64,
     target_query_source_rotation_q32: i64,
     target_query_alive: bool,
-    rvo_tree_x_q32: i64,
-    rvo_tree_z_q32: i64,
-    current_velocity_x_q32: i64,
-    current_velocity_z_q32: i64,
-    next_target_x_q32: i64,
-    next_target_z_q32: i64,
-    next_speed_q32: i64,
-    next_max_speed_q32: i64,
-    solver_target_x_q32: i64,
-    solver_target_z_q32: i64,
-    solver_speed_q32: i64,
-    published_target_x_q32: i64,
-    published_target_z_q32: i64,
-    published_speed_q32: i64,
-    rvo_stopped_snap_since_boundary: bool,
     body_rotation: i64,
     body_rotation_q32: i64,
     aim_rotation: i64,
-    weapon_rotations_q32: Vec<i64>,
     life: i64,
     last_damage_source: Option<(ObjectRef, u32)>,
-    motion: MotionState,
-    next_attack_step: u64,
-    /// The interval this cycle was scheduled with, in logic ticks: the
-    /// description plus the stagger drawn for it. The build keeps the same
-    /// thing in `FightSkill.attackInterval` and answers it from
-    /// `GetCurrentAttackInterval`, and a recording carries it so the two can
-    /// be compared. Before a unit's first attack it is the description with
-    /// the draw its deployment took.
-    current_attack_interval: u64,
-    motion_attack_hold_fire: bool,
-    /// What the mech's body is directed at: the target its search found, which
-    /// it moves toward and which a unit with a body keeps facing while it
-    /// attacks. A recording carries it as `mech_lock_target`.
-    ///
-    /// It is not always what the weapons fire at: [`Actor::attack_target`] is,
-    /// and the two part company when an enemy construction stands in the line
-    /// of fire.
-    lock_target: Option<FightActorRef>,
-    /// The enemy construction in the line of fire, and the lock it was found
-    /// for.
-    ///
-    /// `FightSkill.SearchAttackTarget` asks `WallConstructionTargetChecker`
-    /// wherever the skill asks what to fire at, and hands the block to the
-    /// weapons while the mech keeps its lock. The pairing is what keeps this honest: once
-    /// `lock_target` is anything but the lock it was found for, the block no
-    /// longer answers, without anyone having to clear it.
-    in_the_way: Option<(u64, FightActorRef)>,
-    /// The last step of the cooling that follows a shot, and the target the
-    /// skill quick-switched to if its own died during it.
-    ///
-    /// What the weapons name through a cooling, with no lock: what the
-    /// finished attack last fired at.
-    cooling_candidate: Option<FightActorRef>,
-    /// The step a cooling began, while the skill cools.
-    cooling_hold: Option<u64>,
-    lock_is_terminal_handoff: bool,
-    fight_skill_search_target_time: i32,
-    fight_skill_searched_this_tick: bool,
-    fight_skill_phase: FightSkillPhase,
-    group_skill_targets: Vec<Option<u64>>,
-    /// The enemy construction in each grouped slot's line of fire, with the
-    /// unit that slot was allocated.
-    ///
-    /// The same pairing as [`Actor::in_the_way`], slot by slot: a Wraith's four
-    /// slots each take the block standing between it and the unit they were
-    /// given, and a slot given another unit no longer answers with it.
-    group_in_the_way: Vec<Option<(u64, u64)>>,
-    group_skill_next_attack_steps: Vec<u64>,
-    group_skill_prepare_ready_steps: Vec<u64>,
-    group_pending_releases: Vec<(usize, PendingRelease)>,
-    projectile_pending_releases: Vec<PendingProjectileRelease>,
-    projectile_burst_finished: bool,
-    projectile_burst_finished_same_tick_dead: bool,
-    laser_attack_count: usize,
-    retarget_after_own_direct_kill: bool,
-    pending: Option<PendingRelease>,
-    backswing_finish_step: Option<u64>,
-}
-
-/// Every building a fight starts with, and what a unit may do about each.
-struct InitialBuildings {
-    states: Vec<BuildingState>,
-    /// The ones a unit looking for a target may not find.
-    unsearchable: BTreeSet<u64>,
-    /// Each construction's RVO collider priority.
-    colliders: BTreeMap<u64, i32>,
-}
-
-/// One building before it is given an identity, from either source.
-#[derive(Debug, Clone, Copy)]
-struct RawBuilding {
-    team_id: u32,
-    building_type_id: u32,
-    x: i64,
-    z: i64,
-    radius: i64,
-    life: i64,
-    collision_enabled: bool,
-    searchable: bool,
-    /// A construction's `pathfinding_collider_priority`; none for a tower.
-    collider_priority: Option<i32>,
+    pub(in crate::fight) motion: Motion,
+    pub(in crate::fight) skill: Skill,
 }
 
 /// `GameRiver.BuildingType.Special`.
 const CONSTRUCTION_BUILDING_TYPE: u32 = 3;
-
-/// One hit, as the fight's damage pipeline reads it.
-///
-/// This is the build's `IDamageProvider` reduced to what this simulator uses:
-/// who dealt it, how much, what it was aimed at, where its splash is measured
-/// from and how far it reaches, and which domains it can touch. A direct
-/// strike, a projectile arriving and a laser are all described as one, and
-/// [`Simulation::damage_targets`] and [`Simulation::strike`] resolve every one
-/// of them, which is the build's arrangement: `DamagePerformer` resolves the
-/// damage of any provider — skills, projectiles, commander skills, mines,
-/// explosions — against `FightActor`s, and a unit and a building are both.
-#[derive(Debug, Clone, Copy)]
-struct DamageHit {
-    source: ObjectRef,
-    /// The team the hit is recorded under.
-    source_team: u32,
-    /// The team whose enemies it strikes: the attacker's own at the moment of
-    /// impact, which a projectile reads from its owner rather than from the
-    /// team it was released under.
-    team: u32,
-    amount: i64,
-    /// What the attack was aimed at.
-    aimed: FightActorRef,
-    /// Whether the aimed-at object is struck wherever it stands, rather than
-    /// only if the splash reaches it. A direct strike always is; a projectile
-    /// is when it locks its target.
-    hits_aimed: bool,
-    /// Where the splash is measured from, in space units.
-    center: (i64, i64),
-    splash_radius: i64,
-    reach: Reach,
-}
-
-/// Which units a hit can touch.
-#[derive(Debug, Clone, Copy)]
-enum Reach {
-    /// The attacker's own `targets`: ground, air or both.
-    Targets(AttackTargets),
-    /// One domain only. `FightProjectile.Init` narrows a dual-domain skill to
-    /// the actual target's domain, and `IDamageProvider.GetTargetType`
-    /// preserves that choice for range damage.
-    Domain(UnitDomain),
-}
-
-/// What one target took from a hit.
-#[derive(Debug, Clone, Copy)]
-struct Stroke {
-    /// The life it actually lost, which is what a `damage` event records.
-    actual: i64,
-    /// Where a unit died, when this stroke killed it.
-    death: Option<QVec3>,
-    /// Where a building fell, when this stroke destroyed it.
-    fallen: Option<QVec3>,
-}
-
-/// What a performed hit left for its caller to record.
-///
-/// Deaths and fallen buildings are handed back rather than recorded here
-/// because each way of dealing damage records them in its own place in the
-/// tick's events: a projectile records its own removal first.
-#[derive(Debug, Default)]
-struct Struck {
-    deaths: Vec<(u64, QVec3)>,
-    fallen: Vec<(u64, QVec3)>,
-    /// Every death and fall together, in the order the hit struck them.
-    ends: Vec<(FightActorRef, QVec3)>,
-}
-
-#[derive(Debug, Clone)]
-struct Projectile {
-    id: u64,
-    team: u32,
-    owner: u64,
-    target_kind: ObjectKind,
-    target: u64,
-    x: i64,
-    y: i64,
-    z: i64,
-    x_q32: i64,
-    y_q32: i64,
-    z_q32: i64,
-    cached_target_x: i64,
-    cached_target_y: i64,
-    cached_target_z: i64,
-    cached_target_x_q32: i64,
-    cached_target_y_q32: i64,
-    cached_target_z_q32: i64,
-    cached_target_radius: i64,
-    speed: i64,
-    damage: i64,
-    life: i64,
-    lock_target: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TeamResult {
-    pub team: &'static str,
-    pub unit: String,
-    pub alive: bool,
-    pub remaining_life: i64,
-    pub max_life: i64,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct SimulationResult {
-    pub schema: &'static str,
-    pub game_build: String,
-    pub seed: i32,
-    pub seed_source: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output: Option<String>,
-    pub end_reason: &'static str,
-    pub steps: u64,
-    pub simulated_duration_milliseconds: u64,
-    pub winner: Option<&'static str>,
-    pub draw: bool,
-    pub teams: Vec<TeamResult>,
-    pub hashes: Hashes,
-    pub profiling: SimulationProfile,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct SimulationProfile {
-    pub generation_duration_milliseconds: f64,
-    pub simulation_to_real_time_rate: f64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub file_size_bytes: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub member_sizes_bytes: Option<BTreeMap<String, u64>>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct SimulationComparison {
-    pub schema: &'static str,
-    pub game_build: String,
-    pub seed: i32,
-    pub equal: bool,
-    pub content_equal: bool,
-    pub recording: TimelineSummary,
-    pub simulation: TimelineSummary,
-    pub first_divergence: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub divergent_tick: Option<DivergentTick>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TimelineSummary {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub physics_result_hash: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_result_hash: Option<String>,
-    pub tick_count: u32,
-    pub complete: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct DivergentTick {
-    pub recording: Option<TickSlice>,
-    pub simulation: Option<TickSlice>,
-}
 
 struct Simulation {
     actors: BTreeMap<u64, Actor>,
@@ -573,9 +268,9 @@ impl Simulation {
                     let sample =
                         random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
                     if index == 0 {
-                        actor.current_attack_interval = i64::try_from(native_time_units_to_steps(
-                            actor.stats.attack_interval(),
-                        ))
+                        actor.skill.current_attack_interval = i64::try_from(
+                            native_time_units_to_steps(actor.stats.attack_interval()),
+                        )
                         .unwrap_or(i64::MAX)
                         .saturating_add(i64::from(sample))
                         .max(1)
@@ -583,7 +278,7 @@ impl Simulation {
                     }
                 }
             } else {
-                actor.current_attack_interval =
+                actor.skill.current_attack_interval =
                     native_time_units_to_steps(actor.stats.attack_interval()).max(1);
             }
         }
@@ -647,7 +342,7 @@ impl Simulation {
         for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
             let team = actor.placement.team;
             if alive_teams.iter().all(|&other| other == team) {
-                actor.current_attack_interval =
+                actor.skill.current_attack_interval =
                     native_time_units_to_steps(actor.stats.attack_interval());
             }
         }
@@ -673,14 +368,17 @@ impl Simulation {
         let actor_motion_at_start = self
             .actors
             .iter()
-            .map(|(&actor_id, actor)| (actor_id, actor.motion))
+            .map(|(&actor_id, actor)| (actor_id, actor.motion.state))
             .collect::<BTreeMap<_, _>>();
         let teams_with_building_target_at_start = self
             .actors
             .values()
             .filter_map(|actor| {
-                matches!(actor.attack_target(), Some(FightActorRef::Building(_)))
-                    .then_some(actor.placement.team)
+                matches!(
+                    actor.skill.attack_target(),
+                    Some(FightActorRef::Building(_))
+                )
+                .then_some(actor.placement.team)
             })
             .collect::<std::collections::BTreeSet<_>>();
         self.refresh_target_query_snapshot();
@@ -790,6 +488,7 @@ impl Simulation {
                 ));
                 actor.aim_rotation = degrees_q32_to_mdeg(
                     actor
+                        .skill
                         .weapon_rotations_q32
                         .first()
                         .copied()
@@ -830,26 +529,28 @@ impl Simulation {
                 let moving_direct = motion_at_start == MotionState::Moving
                     && matches!(actor.rules.attack.path, AttackPath::Direct { .. })
                     && team_has_bodyful_projectile
-                    && (actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0)
-                    && actor.pending.is_none()
-                    && actor.backswing_finish_step.is_none()
-                    && actor.fight_skill_phase == FightSkillPhase::Idle
-                    && !actor.motion_attack_hold_fire
-                    && actor.fight_skill_searched_this_tick
-                    && actor.attack_target().is_none();
+                    && (actor.motion.current_velocity_x_q32 != 0
+                        || actor.motion.current_velocity_z_q32 != 0)
+                    && actor.skill.pending.is_none()
+                    && actor.skill.backswing_finish_step.is_none()
+                    && actor.skill.phase == FightSkillPhase::Idle
+                    && !actor.motion.attack_hold_fire
+                    && actor.skill.searched_this_tick
+                    && actor.skill.attack_target().is_none();
                 let moving_bodyful_projectile = motion_at_start == MotionState::Moving
                     && actor.rules.has_body
                     && matches!(actor.rules.attack.path, AttackPath::Projectile { .. })
-                    && actor.fight_skill_searched_this_tick
-                    && actor.attack_target().is_none();
+                    && actor.skill.searched_this_tick
+                    && actor.skill.attack_target().is_none();
                 let ineligible = if natural_finish_handoff {
                     !moving_direct
-                        && (actor.attack_target().is_some()
-                            || actor.retarget_after_own_direct_kill
-                            || !actor.fight_skill_searched_this_tick)
+                        && (actor.skill.attack_target().is_some()
+                            || actor.skill.retarget_after_own_direct_kill
+                            || !actor.skill.searched_this_tick)
                 } else {
                     (!moving_direct && !moving_bodyful_projectile)
                         || actor
+                            .skill
                             .attack_target()
                             .is_some_and(|target| self.fight_actor_is_alive(target))
                 };
@@ -874,19 +575,22 @@ impl Simulation {
                     .expect("actor identity is stable");
                 if natural_finish_handoff {
                     if motion_at_start == MotionState::Moving
-                        && (actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0)
+                        && (actor.motion.current_velocity_x_q32 != 0
+                            || actor.motion.current_velocity_z_q32 != 0)
                     {
                         actor.rotate_body_towards(direction_degrees_q32_raw(
-                            actor.current_velocity_x_q32,
-                            actor.current_velocity_z_q32,
+                            actor.motion.current_velocity_x_q32,
+                            actor.motion.current_velocity_z_q32,
                         ));
                         actor.aim_rotation = actor.body_rotation;
                     }
                 } else {
-                    if actor.current_velocity_x_q32 != 0 || actor.current_velocity_z_q32 != 0 {
+                    if actor.motion.current_velocity_x_q32 != 0
+                        || actor.motion.current_velocity_z_q32 != 0
+                    {
                         actor.rotate_body_towards(direction_degrees_q32_raw(
-                            actor.current_velocity_x_q32,
-                            actor.current_velocity_z_q32,
+                            actor.motion.current_velocity_x_q32,
+                            actor.motion.current_velocity_z_q32,
                         ));
                     }
                     if moving_direct {
@@ -898,6 +602,7 @@ impl Simulation {
                         ));
                         actor.aim_rotation = degrees_q32_to_mdeg(
                             actor
+                                .skill
                                 .weapon_rotations_q32
                                 .first()
                                 .copied()
@@ -905,13 +610,13 @@ impl Simulation {
                         );
                     }
                 }
-                actor.lock_target = Some(FightActorRef::Building(building_id));
-                actor.lock_is_terminal_handoff = true;
-                actor.motion = MotionState::Moving;
+                actor.skill.lock_target = Some(FightActorRef::Building(building_id));
+                actor.skill.lock_is_terminal_handoff = true;
+                actor.motion.state = MotionState::Moving;
                 if natural_finish_handoff {
-                    actor.next_target_x_q32 = target_x_q32;
-                    actor.next_target_z_q32 = target_z_q32;
-                    actor.next_speed_q32 = space_to_q32(actor.stats.move_speed());
+                    actor.motion.next_target_x_q32 = target_x_q32;
+                    actor.motion.next_target_z_q32 = target_z_q32;
+                    actor.motion.next_speed_q32 = space_to_q32(actor.stats.move_speed());
                 } else {
                     let (move_target_x_q32, move_target_z_q32) = native_auto_move_target_point(
                         actor.x_q32,
@@ -922,17 +627,17 @@ impl Simulation {
                         target_radius,
                         actor.stats.attack_range(),
                     );
-                    actor.next_target_x_q32 = move_target_x_q32;
-                    actor.next_target_z_q32 = move_target_z_q32;
-                    actor.next_speed_q32 = turn_limited_move_speed_q32(
+                    actor.motion.next_target_x_q32 = move_target_x_q32;
+                    actor.motion.next_target_z_q32 = move_target_z_q32;
+                    actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
                         space_to_q32(actor.stats.move_speed()),
                         actor.rules.rotate_speed_mdeg_per_second(),
                         actor.body_rotation_q32,
-                        actor.current_velocity_x_q32,
-                        actor.current_velocity_z_q32,
+                        actor.motion.current_velocity_x_q32,
+                        actor.motion.current_velocity_z_q32,
                     );
                 }
-                actor.next_max_speed_q32 = actor.next_speed_q32;
+                actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
                 queued_direct_own_kill_handoff |= natural_finish_handoff && moving_direct;
             }
             if queued_direct_own_kill_handoff {
@@ -1010,16 +715,16 @@ impl Simulation {
         let stop_fight = ready_to_finish || winner_was_decided;
         if stop_fight {
             for actor in self.actors.values_mut() {
-                actor.motion = MotionState::Idle;
-                actor.drop_lock();
+                actor.motion.state = MotionState::Idle;
+                actor.skill.drop_lock();
                 // `FightSkill.ExitFight` ends a cooling as well.
-                actor.cooling_hold = None;
-                actor.cooling_candidate = None;
-                actor.lock_is_terminal_handoff = false;
-                actor.fight_skill_phase = FightSkillPhase::Idle;
+                actor.skill.cooling_hold = None;
+                actor.skill.cooling_candidate = None;
+                actor.skill.lock_is_terminal_handoff = false;
+                actor.skill.phase = FightSkillPhase::Idle;
                 if ready_to_finish {
-                    actor.current_velocity_x_q32 = 0;
-                    actor.current_velocity_z_q32 = 0;
+                    actor.motion.current_velocity_x_q32 = 0;
+                    actor.motion.current_velocity_z_q32 = 0;
                 }
             }
         }
@@ -1143,15 +848,6 @@ impl Simulation {
     fn ready_to_finish(&self) -> bool {
         self.naturally_finished() && !self.terminal_drain_pending
     }
-}
-
-struct Execution {
-    simulation: Simulation,
-    writer: McfrWriter,
-    steps: u64,
-    end_reason: &'static str,
-    first_divergence: Option<u32>,
-    divergent_tick: Option<DivergentTick>,
 }
 
 fn team_name(team: u32) -> &'static str {

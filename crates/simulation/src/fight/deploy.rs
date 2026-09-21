@@ -1,5 +1,29 @@
 use super::*;
 
+/// Every building a fight starts with, and what a unit may do about each.
+pub(in crate::fight) struct InitialBuildings {
+    pub(in crate::fight) states: Vec<BuildingState>,
+    /// The ones a unit looking for a target may not find.
+    pub(in crate::fight) unsearchable: BTreeSet<u64>,
+    /// Each construction's RVO collider priority.
+    pub(in crate::fight) colliders: BTreeMap<u64, i32>,
+}
+
+/// One building before it is given an identity, from either source.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct RawBuilding {
+    pub(in crate::fight) team_id: u32,
+    pub(in crate::fight) building_type_id: u32,
+    pub(in crate::fight) x: i64,
+    pub(in crate::fight) z: i64,
+    pub(in crate::fight) radius: i64,
+    pub(in crate::fight) life: i64,
+    pub(in crate::fight) collision_enabled: bool,
+    pub(in crate::fight) searchable: bool,
+    /// A construction's `pathfinding_collider_priority`; none for a tower.
+    pub(in crate::fight) collider_priority: Option<i32>,
+}
+
 pub(in crate::fight) fn generate_formation_positions(
     placement: &Placement,
     rules: &UnitConfig,
@@ -275,7 +299,8 @@ impl Simulation {
             self.actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable")
-                .fight_skill_search_target_time = i32::try_from(ordinal / count_per_time)
+                .skill
+                .search_target_time = i32::try_from(ordinal / count_per_time)
                 .expect("presearch batch ordinal is at most nine");
             let Some(target) = target else {
                 continue;
@@ -291,7 +316,7 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable");
-            actor.lock_target = Some(target);
+            actor.skill.lock_target = Some(target);
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);

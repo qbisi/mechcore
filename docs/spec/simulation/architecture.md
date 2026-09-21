@@ -73,9 +73,13 @@ Three sentences carry it:
 ## Where the code lives
 
 `crates/simulation/src/fight/` is the fight, split by what each part mirrors in
-the build. A file holds the code; the data it works on is still declared in
-`fight/mod.rs`, and moving each object's fields to the file that owns it is
-the next step.
+the build, and each file declares the data it owns. A unit is `Actor` in
+`mod.rs` — the mech: its placement, position, facing and life — holding a
+`Motion` (`motion.rs`, the `MotionController`: its state, where it was asked to
+go, and what the RVO solver made of that) and a `Skill` (`skill/mod.rs`, the
+`FightSkill`: the lock and what the weapons fire at, the skill's state, the
+attack being made). A path through a unit reads as the build's does:
+`actor.skill.lock_target`, `actor.motion.state`.
 
 | File | Mirrors |
 | --- | --- |

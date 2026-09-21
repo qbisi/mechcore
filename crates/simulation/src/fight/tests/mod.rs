@@ -7,6 +7,7 @@ mod search;
 mod skill;
 mod walls;
 
+use super::skill::PendingRelease;
 use super::*;
 
 pub(super) fn unit_target(id: u64) -> FightActorRef {
@@ -78,12 +79,12 @@ pub(super) fn set_actor_position_q32(actor: &mut Actor, x_q32: i64, z_q32: i64) 
     actor.target_query_z_q32 = z_q32;
     actor.x = q32_to_space_rounded(x_q32);
     actor.z = q32_to_space_rounded(z_q32);
-    actor.next_target_x_q32 = actor.x_q32;
-    actor.next_target_z_q32 = actor.z_q32;
-    actor.solver_target_x_q32 = actor.x_q32;
-    actor.solver_target_z_q32 = actor.z_q32;
-    actor.published_target_x_q32 = actor.x_q32;
-    actor.published_target_z_q32 = actor.z_q32;
+    actor.motion.next_target_x_q32 = actor.x_q32;
+    actor.motion.next_target_z_q32 = actor.z_q32;
+    actor.motion.solver_target_x_q32 = actor.x_q32;
+    actor.motion.solver_target_z_q32 = actor.z_q32;
+    actor.motion.published_target_x_q32 = actor.x_q32;
+    actor.motion.published_target_z_q32 = actor.z_q32;
 }
 
 pub(super) fn micrometers_to_q32(value: i64) -> i64 {

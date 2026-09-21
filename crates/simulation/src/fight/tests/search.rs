@@ -195,9 +195,9 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 200_000);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.lock_target = None;
-    source.fight_skill_search_target_time = 0;
-    source.motion = MotionState::Idle;
+    source.skill.lock_target = None;
+    source.skill.search_target_time = 0;
+    source.motion.state = MotionState::Idle;
     let building = simulation
         .buildings
         .iter_mut()
@@ -209,12 +209,12 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     simulation.step_actor(1, 0, &mut Vec::new()).unwrap();
 
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion, MotionState::Moving);
+    assert_eq!(source.motion.state, MotionState::Moving);
     assert_eq!(
-        source.lock_target,
+        source.skill.lock_target,
         Some(FightActorRef::Building(building_id))
     );
-    assert!(!source.lock_is_terminal_handoff);
+    assert!(!source.skill.lock_is_terminal_handoff);
     assert_eq!(
         source.snapshot().mech_lock_target,
         Some(ObjectRef::new(ObjectKind::Building, building_id))
@@ -241,14 +241,14 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     for step in 1..=10 {
         simulation.step_actor(1, step, &mut Vec::new()).unwrap();
         assert_eq!(
-            simulation.actors[&1].lock_target,
+            simulation.actors[&1].skill.lock_target,
             Some(FightActorRef::Building(building_id))
         );
     }
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     assert_eq!(
-        simulation.actors[&1].lock_target,
+        simulation.actors[&1].skill.lock_target,
         Some(FightActorRef::Building(other_building_id))
     );
 }
@@ -352,8 +352,8 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     set_actor_position(simulation.actors.get_mut(&3).unwrap(), 0, 40_000);
     set_actor_position(simulation.actors.get_mut(&4).unwrap(), 0, 60_000);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.lock_target = Some(unit_target(2));
-    source.fight_skill_search_target_time = 10;
+    source.skill.lock_target = Some(unit_target(2));
+    source.skill.search_target_time = 10;
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
 
@@ -364,7 +364,10 @@ fn same_tick_target_death_scores_live_candidate_positions() {
         .update_fight_skill_target_search(1, 1, &target_search_order)
         .unwrap();
 
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(4)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(4))
+    );
 
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
@@ -380,5 +383,8 @@ fn same_tick_target_death_scores_live_candidate_positions() {
         .update_fight_skill_target_search(1, 1, &target_search_order)
         .unwrap();
 
-    assert_eq!(simulation.actors[&1].lock_target, Some(unit_target(4)));
+    assert_eq!(
+        simulation.actors[&1].skill.lock_target,
+        Some(unit_target(4))
+    );
 }

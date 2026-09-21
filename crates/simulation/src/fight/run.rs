@@ -1,5 +1,81 @@
 use super::*;
 
+#[derive(Debug, Clone, Serialize)]
+pub struct TeamResult {
+    pub team: &'static str,
+    pub unit: String,
+    pub alive: bool,
+    pub remaining_life: i64,
+    pub max_life: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulationResult {
+    pub schema: &'static str,
+    pub game_build: String,
+    pub seed: i32,
+    pub seed_source: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
+    pub end_reason: &'static str,
+    pub steps: u64,
+    pub simulated_duration_milliseconds: u64,
+    pub winner: Option<&'static str>,
+    pub draw: bool,
+    pub teams: Vec<TeamResult>,
+    pub hashes: Hashes,
+    pub profiling: SimulationProfile,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulationProfile {
+    pub generation_duration_milliseconds: f64,
+    pub simulation_to_real_time_rate: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_size_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_sizes_bytes: Option<BTreeMap<String, u64>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulationComparison {
+    pub schema: &'static str,
+    pub game_build: String,
+    pub seed: i32,
+    pub equal: bool,
+    pub content_equal: bool,
+    pub recording: TimelineSummary,
+    pub simulation: TimelineSummary,
+    pub first_divergence: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub divergent_tick: Option<DivergentTick>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TimelineSummary {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub physics_result_hash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_result_hash: Option<String>,
+    pub tick_count: u32,
+    pub complete: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DivergentTick {
+    pub recording: Option<TickSlice>,
+    pub simulation: Option<TickSlice>,
+}
+
+pub(in crate::fight) struct Execution {
+    pub(in crate::fight) simulation: Simulation,
+    pub(in crate::fight) writer: McfrWriter,
+    pub(in crate::fight) steps: u64,
+    pub(in crate::fight) end_reason: &'static str,
+    pub(in crate::fight) first_divergence: Option<u32>,
+    pub(in crate::fight) divergent_tick: Option<DivergentTick>,
+}
+
 pub(crate) fn run(
     layout: &CompiledLayout,
     config: &SimulationConfig,
