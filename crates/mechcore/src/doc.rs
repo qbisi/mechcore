@@ -232,8 +232,16 @@ fn verify_battle(
             Err(error) => Err(error.as_str()),
         },
     );
+    // Every round, projected from where it opens and from where it deploys,
+    // has to be a layout the compiler takes: a battle is what fights are run
+    // from, so a round that cannot become one is not a battle this build reads.
+    let projected = checked
+        .as_ref()
+        .ok()
+        .map(|(_, deal)| mechcore_document::project::every_round(&economy, stated, deal));
     let error = match &checked {
         Err(error) => Some(error.clone()),
+        Ok(_) if matches!(projected, Some(Err(_))) => projected.clone().and_then(Result::err),
         Ok(_) if !coverage.complete() => Some(format!(
             "transitions are not fully predicted: {} leaves unequal, {} unimplemented",
             coverage.total.unequal, coverage.total.unimplemented
@@ -254,6 +262,7 @@ fn verify_battle(
             "prediction": found.map(|(opening, _)| opening),
             "reinforcement_rounds": found.map(|(_, checked)| checked.rounds.len()),
             "reinforcement_offers_checked": found.map(|(_, checked)| checked.offers_checked),
+            "projected_layouts": projected.and_then(Result::ok),
             "reinforcements": found.map(|(_, checked)| &checked.rounds),
             "coverage": coverage,
         }),

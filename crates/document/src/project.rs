@@ -34,6 +34,52 @@ pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layo
     })
 }
 
+/// Projects every round of a battle both ways and compiles each layout.
+///
+/// A round is projected from the position it opens with, and from the
+/// position its decisions deploy onto, which is the layout `doc project`
+/// writes and a fight is run over. The opening puts every formation the round
+/// inherited through the layout rules; the deployment puts what the round
+/// itself did through them, releases included, which no opening carries.
+/// Answers how many layouts compiled.
+///
+/// # Errors
+///
+/// Names the round and the projection that does not project, does not
+/// deploy, or does not compile.
+pub fn every_round(
+    economy: &crate::economy::Economy,
+    stated: &crate::opening::Stated,
+    deal: &crate::reinforcement::Verified,
+) -> Result<usize, String> {
+    let compiled = |state: &State, round: i32, which: &str| {
+        project(state, round, stated.map_id, stated.seed)
+            .and_then(crate::compile_layout)
+            .map_err(|error| format!("round {round}'s {which} position: {error}"))
+    };
+    let mut layouts = 0;
+    for turn in &stated.turns {
+        compiled(&turn.state, turn.round, "opening")?;
+        let declined = deal
+            .rounds
+            .iter()
+            .find(|dealt| dealt.round == turn.round)
+            .map(|dealt| dealt.declined);
+        let deployed = |state, actions, red| {
+            crate::transition::deployed(economy, state, actions, red, declined)
+                .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))
+        };
+        let state = State {
+            reinforce_offers: turn.state.reinforce_offers.clone(),
+            blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
+            red: deployed(&turn.state.red, &turn.actions.red, true)?,
+        };
+        compiled(&state, turn.round, "deployed")?;
+        layouts += 2;
+    }
+    Ok(layouts)
+}
+
 /// Projects one side of a position.
 ///
 /// # Errors
@@ -151,16 +197,9 @@ fn project_releases(
 #[cfg(all(test, feature = "convert"))]
 mod tests {
     use super::project;
-    use crate::compile::compile_layout;
     use crate::convert::battle_from_grbr;
     use crate::economy::Economy;
 
-    /// Every position a tracked replay holds must project onto a legal layout.
-    ///
-    /// This is the widest check the projection has without a deployment
-    /// executor: it resolves every unit, construction and contraption type,
-    /// and puts every position through the footprint, region and collision
-    /// rules `docs/spec/document/layout.md` states.
     /// A layout captured live pins the projection, composed with the round's
     /// deployment.
     ///
@@ -219,88 +258,33 @@ mod tests {
         );
     }
 
-    /// Every round of the tracked set projects from the position its
-    /// decisions reached, which is the layout `doc project` writes and a
-    /// fight is run over.
+    /// A round that cannot become a layout fails the battle, and says which.
     ///
-    /// The sibling test below projects each round's opening position, which no
-    /// release ever reaches: a state segment that carried one would be refused
-    /// as a position a round opens with. This one runs the round first, so it
-    /// is the only check that puts what a deployment did through the layout
-    /// rules.
+    /// Every tracked round projects both ways, which `doc verify` checks over
+    /// the whole corpus. Here one formation of `[TUFF]`'s round 3 opening is
+    /// moved off the board, and the check names that round and that position.
     #[test]
-    fn every_deployed_position_projects_onto_a_layout_that_compiles() {
+    fn a_round_that_does_not_compile_is_named() {
         let economy = Economy::embedded().unwrap();
-        let mut projected = 0;
-        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            let pool = crate::opening::predict(&economy, battle.seed, battle.map_id)
-                .unwrap()
-                .initialization
-                .unit_round_pool;
-            for turn in &battle.turns {
-                let declined =
-                    crate::reinforcement::decline_supply(&economy, pool, turn.round).unwrap();
-                let deployed = |state, actions, red| {
-                    crate::transition::deployed(&economy, state, actions, red, Some(declined))
-                        .unwrap_or_else(|unsettled| {
-                            panic!("{} round {}: {unsettled}", path.display(), turn.round)
-                        })
-                };
-                let state = crate::battle::State {
-                    reinforce_offers: turn.state.reinforce_offers.clone(),
-                    blue: deployed(&turn.state.blue, &turn.actions.blue, false),
-                    red: deployed(&turn.state.red, &turn.actions.red, true),
-                };
-                let layout = project(&state, turn.round, battle.map_id, battle.seed)
-                    .unwrap_or_else(|error| {
-                        panic!("{} round {}: {error}", path.display(), turn.round)
-                    });
-                compile_layout(layout).unwrap_or_else(|error| {
-                    panic!(
-                        "{} round {} does not compile: {error}",
-                        path.display(),
-                        turn.round
-                    )
-                });
-                projected += 1;
-            }
-        }
-        assert_eq!(projected, 334);
-    }
+        let bytes = std::fs::read(
+            "../../replay/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml",
+        )
+        .unwrap();
+        let mut stated = crate::opening::stated(&bytes).unwrap().unwrap();
+        let opening = crate::opening::verify(&economy, &stated).unwrap();
+        let deal = crate::reinforcement::verify(&economy, &stated, &opening).unwrap();
+        assert_eq!(
+            super::every_round(&economy, &stated, &deal),
+            Ok(stated.turns.len() * 2)
+        );
 
-    #[test]
-    fn every_recorded_position_projects_onto_a_layout_that_compiles() {
-        let mut projected = 0;
-        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            for turn in &battle.turns {
-                let layout = project(&turn.state, turn.round, battle.map_id, battle.seed)
-                    .unwrap_or_else(|error| {
-                        panic!("{} round {}: {error}", path.display(), turn.round)
-                    });
-                compile_layout(layout).unwrap_or_else(|error| {
-                    panic!(
-                        "{} round {} does not compile: {error}",
-                        path.display(),
-                        turn.round
-                    )
-                });
-                projected += 1;
-            }
-        }
-        assert_eq!(projected, 334);
+        let turn = stated
+            .turns
+            .iter_mut()
+            .find(|turn| turn.round == 3)
+            .unwrap();
+        turn.state.blue.units[0].unit.position.x = 10_000;
+        let error = super::every_round(&economy, &stated, &deal).unwrap_err();
+        assert!(error.starts_with("round 3's opening position"), "{error}");
     }
 }

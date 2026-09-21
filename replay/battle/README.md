@@ -53,8 +53,9 @@ reinforcement initialization draws and independent map stream directly, without
 searching stream positions.
 It also advances that stream through all 293 reinforcement rounds and checks
 1,172 ordered card IDs, using round states and prior choices as inputs. The
-regression test compares every incoming stream state and each available next
-snapshot against the native replay. Missing offers, reordered ordinary or unit
+conversion compared every incoming stream state and each available next
+snapshot against the native replay, and refuses a replay whose stream misses
+one. Missing offers, reordered ordinary or unit
 cards, invalid choices and discontinuous rounds must fail.
 These deal checks do not verify combat or authenticate the player's choice
 without the source replay.
@@ -74,6 +75,8 @@ cargo build --release -p mechcore
 python3 scripts/verify-battles.py
 ```
 
-CI runs it after regenerating this directory. The counts by field group are
-also pinned by `crates/document/src/coverage.rs`, so a change in what the
-transition predicts fails the tests.
+CI runs it after regenerating this directory. It also requires every round of
+every document to project onto a layout that compiles, both where the round
+opens and where its decisions deploy. The counts it prints describe this
+corpus and are not pinned anywhere: a replay added or replaced moves them, and
+only an unequal or unimplemented leaf, or a round that does not compile, fails.

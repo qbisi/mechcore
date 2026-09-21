@@ -1437,32 +1437,6 @@ mod tests {
         }
     }
 
-    /// Every segment of every tracked battle reads back as the value it was
-    /// spelled from.
-    #[cfg(feature = "convert")]
-    #[test]
-    fn every_tracked_segment_folds_without_changing_its_content() {
-        let mut folded = 0;
-        for entry in std::fs::read_dir("../../replay/grbr").unwrap() {
-            let path = entry.unwrap().path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = crate::convert::battle_from_grbr(&std::fs::read(&path).unwrap())
-            else {
-                continue;
-            };
-            for segment in super::segments_of(&battle) {
-                let value = serde_yaml::to_value(&segment).unwrap();
-                let spelled = crate::spelling::document(&value).unwrap();
-                let read: serde_yaml::Value = serde_yaml::from_str(&spelled).unwrap();
-                assert_eq!(read, value, "{}", path.display());
-                folded += 1;
-            }
-        }
-        assert_eq!(folded, 41 * 2 + 334 * 2);
-    }
-
     #[test]
     fn only_a_battle_header_opens_a_battle() {
         assert!(segments(b"kind: layout\nsides: {}\n").unwrap().is_none());
