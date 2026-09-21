@@ -164,8 +164,8 @@ pub(crate) struct AgentInput {
     pub(crate) collides_with: u32,
     pub(crate) group: i32,
     /// Whether an agent of the same group passes through this one rather than
-    /// avoiding it. A construction sinks for its own side, so only the other
-    /// side ever takes it for a neighbour.
+    /// avoiding it. A construction sinks for its own side: it is still among
+    /// that side's neighbours, and yields them no velocity obstacle.
     pub(crate) passable_by_own_group: bool,
     /// Native sampled-agent lock. Immovable core towers set this bit, which
     /// makes a movable neighbour take the full avoidance responsibility.
@@ -478,7 +478,6 @@ fn insert_neighbour(
     if candidate.key == agent.key
         || candidate.main_layer != agent.main_layer
         || agent.collides_with & candidate.layer == 0
-        || (candidate.passable_by_own_group && candidate.group == agent.group)
     {
         return range_sq;
     }
@@ -667,8 +666,13 @@ pub(crate) fn solve_agents(
         .iter()
         .map(|agent| {
             let neighbours = nearest_neighbours(agent, inputs);
+            // A construction of the agent's own group is still one of its
+            // neighbours — it takes one of the twenty places, as the native
+            // sidecar shows for a Crawler crossing its own wall — and yields
+            // no velocity obstacle: twenty neighbours, seventeen obstacles.
             let obstacles = neighbours
                 .into_iter()
+                .filter(|other| !(other.passable_by_own_group && other.group == agent.group))
                 .map(|other| neighbour_obstacle(agent, other, inverse_delta_time))
                 .collect::<Vec<_>>();
             (agent.key, solve_agent(agent, &obstacles))
@@ -1337,16 +1341,19 @@ mod tests {
         );
     }
 
-    /// A construction is a neighbour to the other side's units and to no unit
-    /// of its own: a Defensive Wall sinks for its own side.
+    /// A construction is a neighbour to both sides and an obstacle only to the
+    /// other: a Defensive Wall sinks for its own side, which still counts it
+    /// among a unit's twenty neighbours and builds no velocity obstacle from it.
     #[test]
-    fn a_construction_is_passed_over_by_its_own_group_only() {
+    fn a_construction_is_an_obstacle_to_the_other_group_only() {
         let wall = |group| AgentInput {
             passable_by_own_group: true,
-            locked: true,
             ..observed_agent(
                 AgentKey::Building(3),
-                FixedVec2 { x: Q32_ONE, y: 0 },
+                FixedVec2 {
+                    x: 5 * Q32_ONE,
+                    y: 0,
+                },
                 4 * Q32_ONE,
                 4 * Q32_ONE,
                 0,
@@ -1357,13 +1364,21 @@ mod tests {
                 AgentSizeType::M,
             )
         };
-        let unit = |group| {
-            observed_agent(
+        let unit = |group| AgentInput {
+            desired_velocity: FixedVec2 {
+                x: 4 * Q32_ONE,
+                y: 0,
+            },
+            desired_target_delta: FixedVec2 {
+                x: 20 * Q32_ONE,
+                y: 0,
+            },
+            ..observed_agent(
                 AgentKey::Unit(1),
                 FixedVec2::ZERO,
                 3 * Q32_ONE,
                 6 * Q32_ONE,
-                Q32_ONE,
+                4 * Q32_ONE,
                 1 << 8,
                 0x7fff_ff00,
                 group,
@@ -1376,7 +1391,20 @@ mod tests {
             insert_neighbour(agent, &[candidate], 0, i64::MAX, &mut neighbours);
             neighbours.len()
         };
-        assert_eq!(found(&unit(1), wall(0)), 1, "the other side avoids it");
-        assert_eq!(found(&unit(0), wall(0)), 0, "its own side walks through");
+        assert_eq!(found(&unit(1), wall(0)), 1, "the other side counts it");
+        assert_eq!(found(&unit(0), wall(0)), 1, "and so does its own");
+
+        let solved = |inputs: &[AgentInput]| solve_agents(inputs, Q32_ONE * 5)[&AgentKey::Unit(1)];
+        let alone = solved(&[unit(0)]);
+        assert_eq!(
+            solved(&[unit(0), wall(0)]),
+            alone,
+            "its own side walks through it"
+        );
+        assert_ne!(
+            solved(&[unit(1), wall(0)]),
+            alone,
+            "the other side avoids it"
+        );
     }
 }

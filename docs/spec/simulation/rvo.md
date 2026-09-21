@@ -23,7 +23,7 @@ The solver takes two kinds of agent: every live unit, and every live building
 with collision enabled. A building participates as a locked, immovable ground
 agent that never avoids anything but that neighbours must avoid. A
 construction is one only to the other side: it sinks for its own, whose units
-never take it for a neighbour.
+still count it among their neighbours and build no velocity obstacle from it.
 
 RVO's private double buffers, neighbour lists and VO lists are inputs to
 nothing. They appear in no layout and no recording, and a simulator recomputes
@@ -147,8 +147,12 @@ is marked `passable_by_own_group`.
 The filter is directional: a candidate becomes a neighbour only when
 `query.collides_with & candidate.layer != 0`. A building therefore avoids
 nothing itself, while a unit's query can still be matched by a high-priority
-building layer. A candidate marked `passable_by_own_group` is also passed over
-by a query of its own group, which is how a wall lets its own side through.
+building layer. A candidate marked `passable_by_own_group` is still selected by
+a query of its own group, and takes one of the twenty places; it is dropped
+only when velocity obstacles are built, which is how a wall lets its own side
+through. The native sidecar shows it: a Crawler crossing its own wall lists
+three of the wall's blocks among twenty neighbours and builds seventeen
+obstacles.
 
 ## Neighbour selection
 

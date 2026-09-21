@@ -73,9 +73,12 @@ spacing is a measurement of a wall rather than a formula.
 
 ## A Defensive Wall is an obstacle only to the other side
 
-**To the side that placed it, a wall is not there.** A Crawler of that side
-comes within **0.567 metres** of a block's centre, against the 5.5 an obstacle
-would have held it at, and walks on. The wall's own description says it sinks
+**To the side that placed it, a wall is not there to avoid.** A Crawler of
+that side comes within **0.567 metres** of a block's centre, against the 5.5 an
+obstacle would have held it at, and walks on. The block is not gone from its
+avoidance, though: it still takes one of the twenty neighbours a unit
+considers, crowding out a unit it would otherwise have avoided, and only then
+is dropped. The wall's own description says it sinks
 into the ground for a friendly unit, and that is what the recording shows.
 
 **To the other side, each block is an immovable obstacle.** It stands on the
