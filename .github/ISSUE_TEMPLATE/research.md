@@ -20,7 +20,8 @@ form:
   game.
 
 Claim it by opening a draft pull request from a branch research/<n>-<slug>
-whose body starts with `Closes #<n>`. The draft is the claim.
+whose body ends with `Closes #<n>` before its Co-Authored-By trailer. The
+draft is the claim.
 -->
 
 **Question.** <One number or one decision, and the hypotheses that differ in it.>

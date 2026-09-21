@@ -67,12 +67,19 @@ git config core.hooksPath .githooks
 用仓库级设置，是因为全局 `core.hooksPath`（Nix 或 home-manager 常设）会盖过
 `.git/hooks`。
 
-`.github/workflows/automerge.yml` 在 ci 通过后运行。当一个 PR 的每一条提交都
-带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、
-来自本仓库的分支、不是草稿、且该 commit 上的其它检查也全绿时，它直接合并
-并删除分支。GPT 与 Claude 的提交可以混合；任何一条提交没有上述署名，就留
-给人来合并。认领了 issue 的 PR（分支名以 `research/` 开头，或正文带
+`.github/workflows/automerge.yml` 在 ci 通过后运行。当一个 PR 的每一条提交和它的
+正文都带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、
+来自本仓库的分支、不是草稿、且该 commit 上的其它检查也全绿时，它以 **squash**
+合并并删除分支。GPT 与 Claude 的提交可以混合；任何一条提交或正文没有上述署名，
+就留给人来合并。认领了 issue 的 PR（分支名以 `research/` 开头，或正文带
 `Closes #n`）还要等主 agent 打上 `accepted` 标签才合并，见下一节。
+
+**主线上一个 PR 就是一个 commit。** 仓库只允许 squash 合并：落到 master 的
+commit 标题是 PR 标题加 `(#N)`，正文是 PR 正文，和 openai/codex 一样。所以下面
+"提交规范"约束的对象是 PR：PR 标题按标题规则写，PR 正文按正文规则写，落款是
+正文的最后一段。分支上的提交是工作记录，会被压掉，但每一条仍要带落款，因为
+automerge 逐条检查。不要在别的 PR 的分支上再开 PR：父 PR 压成一个 commit 后子
+分支的提交对不上，要 `git rebase --onto origin/master <父分支>` 才能合。
 
 # 研究管线
 
@@ -81,7 +88,7 @@ git config core.hooksPath .githooks
 keeper）先把问题收成一个数、读反编译、把 fixture 和录制脚本提交到 master、
 开 issue，再录像并用 `scripts/oracle.py publish <n>` 发成本仓库的 release
 `oracle/issue-<n>`。认领的 agent 从 `research/<n>-<slug>` 分支开草稿 PR
-（正文首行 `Closes #n`，草稿即认领），用 `scripts/oracle.py fetch <n>` 取回
+（正文末尾 `Closes #n`，草稿即认领），用 `scripts/oracle.py fetch <n>` 取回
 录像，离线拟合、实现、钉住、写规则，`scripts/check-scripts.sh` 全过后转正式；
 keeper 读过、跑过之后打 `accepted`，automerge 才合并，合并后 release 删除。
 
@@ -97,12 +104,14 @@ keeper 读过、跑过之后打 `accepted`，automerge 才合并，合并后 rel
 
 # 提交规范
 
-提交信息用英文写，仓库现有日志是英文。
+这里的"提交"指落到主线的那个 commit，也就是一个 PR：标题是 PR 标题，正文是
+PR 正文。提交信息用英文写，仓库现有日志是英文。
 
 ## 智能体署名
 
-智能体或模型创建的每一条提交，都必须在提交信息末尾用 `Co-Authored-By`
-署上自己的真实模型名称；知道具体型号时写明型号，不冒用其它模型的署名。
+智能体或模型创建的每一条提交，以及它开的 PR 的正文，都必须在末尾用
+`Co-Authored-By` 署上自己的真实模型名称；知道具体型号时写明型号，不冒用其它
+模型的署名。落款是正文的最后一段，后面不再有别的行，git 才把它认成 trailer。
 GPT（包括通过 Codex 工作的 GPT）使用以 `GPT` 开头的模型名称，Claude 使用
 以 `Claude` 开头的模型名称，例如：
 
@@ -158,7 +167,8 @@ a tower.`、`Releasing a contraption is a purchase.`。读者只扫首句，也�
 
 ## 拆分判据
 
-**一次提交是让标题成立所需的最小改动集合。** 拿掉其中任何一部分，标题就不再
+**一个 PR 是让标题成立所需的最小改动集合。** 分支上怎么分提交无所谓，压掉之后
+只剩标题和正文；下面说的"一次提交"都读作"一个 PR"。 拿掉其中任何一部分，标题就不再
 成立或变成夸大；能拿掉而标题照样成立的部分，属于另一次提交。
 
 标题写不出来就是拆分信号。需要用逗号罗列、需要 "and also"、需要 "various"，
@@ -180,5 +190,5 @@ spec` 改了 40 个文件，全是搬迁与重新归类，没有一行新规则�
 `feat(battle): close the supply ledger` 同样横跨 config、crate、docs 六个文件。
 文件数、行数、目录、"代码/文档/配置"都不是拆分依据。
 
-**每次提交都要能独立编译、独立通过测试。** 拆分点不能落在"改了函数没改调用
-方""加了行为没加断言"的位置。这条也排除了把测试单独拆成一次提交的做法。
+**每个 PR 都要能独立编译、独立通过测试。** 拆分点不能落在"改了函数没改调用
+方""加了行为没加断言"的位置。这条也排除了把测试单独拆成一个 PR 的做法。

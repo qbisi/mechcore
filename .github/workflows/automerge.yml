@@ -89,6 +89,12 @@ jobs:
             echo "#$number carries a commit without a GPT or Claude co-author"
             exit 0
           fi
+          # The squash lands the body as master's commit message, so the body
+          # needs the trailer too.
+          if ! jq -e '.body // "" | test("(^|\\n)Co-Authored-By:[ \\t]+(GPT|Claude)([- \\t\\r\\n]|$)"; "i")' <<<"$pull" >/dev/null; then
+            echo "#$number has a body without a GPT or Claude co-author"
+            exit 0
+          fi
 
           # ci is green by the trigger, and this is every other check on the
           # same commit: docs, and whatever is added later without touching
@@ -110,5 +116,7 @@ jobs:
             exit 0
           fi
 
-          gh pr merge "$number" --repo "$REPOSITORY" --merge --delete-branch \
+          # One pull request is one commit on master, titled by the pull
+          # request and carrying its body; the repository allows nothing else.
+          gh pr merge "$number" --repo "$REPOSITORY" --squash --delete-branch \
             --match-head-commit "$HEAD_SHA"

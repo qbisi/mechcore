@@ -124,9 +124,10 @@ exits are how a finding becomes citable: an issue that matters enough to
 reference from `plan.md`, a spec or a rules document has, by that fact, already
 earned its promotion.
 
-A commit message may name an issue, and a commit that lands exit 5 closes it
-with a `Closes #N` trailer after the body. A commit records a moment; it does
-not promise the moment is still open.
+A commit message may name an issue, and the pull request that lands exit 5
+closes it with a `Closes #N` line at the end of its body, before the
+`Co-Authored-By` trailer. A commit records a moment; it does not promise the
+moment is still open.
 
 ## Research
 
@@ -197,8 +198,9 @@ is the keeper's own and is not published.
 ### Claiming
 
 A claimant claims by opening a **draft** pull request from a branch named
-`research/<n>-<slug>`, based on master, whose body begins `Closes #<n>` and
-says which agent is working it and where. The draft is the claim: an issue
+`research/<n>-<slug>`, based on master, whose body says which agent is
+working it and where, and ends with `Closes #<n>` before its `Co-Authored-By`
+trailer. The body is the commit master will hold, so it is written as one. The draft is the claim: an issue
 with a draft already open is taken, and a second claimant yields to the first.
 Assignment is not used, because every agent here acts through one account.
 
