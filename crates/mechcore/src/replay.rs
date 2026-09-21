@@ -62,13 +62,13 @@ fn convert(mut arguments: Args) -> Outcome {
 
     let grbr = fs::read(&source)
         .map_err(|error| Failure::failed(format!("cannot read {}: {error}", source.display())))?;
-    let battle = mechcore_document::convert::battle_from_grbr(&grbr).map_err(Failure::refused)?;
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
-    let yaml = mechcore_document::battle::canonical_yaml(&battle).map_err(Failure::failed)?;
     // The document is measured as it was written, the way `verify` reads it.
-    let stated = mechcore_document::opening::stated(yaml.as_bytes())
-        .map_err(Failure::failed)?
-        .ok_or_else(|| Failure::failed("the converted document does not read back as a battle"))?;
+    let mechcore_document::convert::Converted {
+        battle,
+        yaml,
+        stated,
+    } = mechcore_document::convert::document(&economy, &grbr).map_err(Failure::refused)?;
     let deal = mechcore_document::opening::verify(&economy, &stated)
         .and_then(|opening| mechcore_document::reinforcement::verify(&economy, &stated, &opening));
     let coverage = mechcore_document::coverage::measure(

@@ -372,6 +372,11 @@ field.
 | `terrains` | Which remain |
 | `airdrop_shields` | Which remain |
 
+The fight decides which of these survive, not what they may be. A fight
+destroys shields and never places one, so an `airdrop_shields` leaf holding a
+shield the round neither opened with nor released is `unequal`, predicted as
+the most that could stand.
+
 A leaf outside those fields is `unimplemented` when no rule produces it, even
 where the unchanged value happens to agree; which fields those are changes as
 rules are added, and the report names them. `reinforce_offers` is dealt from
@@ -401,6 +406,13 @@ round and side in `transitions`, where `side: match` holds `reinforce_offers`.
 recorded values, and `untargeted_round` names a last round whose decisions have
 no state after them, which is not a transition. A battle verifies only when no
 leaf is `unequal` or `unimplemented`.
+
+A battle is what fights are run from, so it also verifies only when every
+round becomes a layout: the position a round opens with, and the position its
+decisions deploy onto, which is what `doc project` writes, are each projected
+and put through the layout compiler. The report's `projected_layouts` counts
+the layouts that compiled, two per round, and a round that does not project,
+deploy or compile fails the battle with its round and which position it was.
 
 ### Cross-round invariants
 
@@ -476,6 +488,16 @@ stands for anything but one team choice per side is refused, and so is a missing
 or malformed random state, or a choice that disagrees with the rebuilt deal. A
 replay that holds the opening alone is refused too: a battle is deployment
 rounds, and one with none is not a document this format has a use for.
+
+Two refusals rest on what only the replay holds. The written document has to
+read back as exactly the battle converted into it, every state field and
+action operand included. And the random stream the header's seed starts has to
+land on every state the replay recorded: the match seed on round 0's, and each
+round's reinforcement deal on the state that round recorded before it and the
+state the next round recorded after it. Those states are not written into the
+document, so once it is written nothing else can compare them. A deal the rules
+cannot reproduce at all is reported rather than refused, and `doc verify`
+fails the document for it.
 
 ### A converted battle ends on its last round's decisions
 

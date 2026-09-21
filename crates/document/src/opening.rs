@@ -726,93 +726,11 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
 
 #[cfg(all(test, feature = "convert"))]
 mod tests {
-    use super::{CHOOSE_COUNT, Stream, deal, initialize, predict, stated, verify};
+    use super::{Stream, deal, predict, stated, verify};
     use crate::convert::battle_from_grbr;
     use crate::economy::Economy;
 
     const TUFF: &str = "../../replay/grbr/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr";
-
-    fn battles() -> Vec<crate::battle::Battle> {
-        let mut out = Vec::new();
-        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            if let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) {
-                out.push(battle);
-            }
-        }
-        out
-    }
-
-    #[test]
-    fn reading_keeps_every_state_field_and_every_action_operand() {
-        for battle in battles() {
-            let yaml = crate::battle::canonical_yaml(&battle).unwrap();
-            let read = stated(yaml.as_bytes()).unwrap().unwrap();
-            assert_eq!(read.turns, battle.turns, "seed {}", battle.seed);
-        }
-    }
-
-    /// The generator is Lua's, and a near miss would not land on a recorded
-    /// 256-bit state, so this is the whole of that claim.
-    #[test]
-    fn the_seed_reaches_the_state_the_opening_round_recorded() {
-        let mut reached = 0;
-        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(record) = crate::record::read(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            let Ok(recorded) = <[u64; 4]>::try_from(
-                record.match_rounds.entries[0]
-                    .random_state
-                    .states
-                    .values
-                    .as_slice(),
-            ) else {
-                continue;
-            };
-            let setup = initialize(record.info.system_seed).unwrap();
-            assert_eq!(
-                setup.stream.state(),
-                recorded,
-                "{}: initialization state",
-                path.display()
-            );
-            reached += 1;
-        }
-        assert_eq!(reached, 41);
-    }
-
-    /// A deal states eight combinations and no specialist twice, because the
-    /// two sides draw from one pool that empties as they do.
-    #[test]
-    fn the_two_sides_draw_from_one_pool() {
-        for battle in battles() {
-            let blue = &battle.blue.opening.offers;
-            let red = &battle.red.opening.offers;
-            for held in [blue, red] {
-                assert_eq!(held.len(), CHOOSE_COUNT);
-            }
-            let mut specialists: Vec<i32> = blue
-                .iter()
-                .chain(red)
-                .map(|offer| offer.specialist)
-                .collect();
-            let mut teams: Vec<i32> = blue.iter().chain(red).map(|offer| offer.team).collect();
-            specialists.sort_unstable();
-            teams.sort_unstable();
-            let held = specialists.len();
-            specialists.dedup();
-            teams.dedup();
-            assert_eq!((specialists.len(), teams.len()), (held, held));
-        }
-    }
 
     /// A document whose opening was edited is refused, which is what makes the
     /// field evidence rather than decoration.

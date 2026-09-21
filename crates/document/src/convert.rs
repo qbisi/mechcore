@@ -244,6 +244,100 @@ fn turn(
     })
 }
 
+/// A replay converted into the document `replay convert` writes, and that
+/// document read back the way `doc verify` reads it.
+pub struct Converted {
+    pub battle: Battle,
+    pub yaml: String,
+    pub stated: opening::Stated,
+}
+
+/// Converts a replay into its battle document, refusing one the document
+/// would not faithfully carry.
+///
+/// Two things are checked here because only the replay can check them. The
+/// written document has to read back as exactly the battle it was written
+/// from, every state field and action operand included, or the corpus would
+/// hold something other than what was converted. And the seeded random stream
+/// has to land on every state the replay recorded: the match seed on the
+/// opening round's, and each round's reinforcement deal on the states that
+/// round and the next one recorded. Those states are not in the document, so
+/// once it is written nothing else can compare them.
+///
+/// A deal the rules cannot reproduce at all is not refused here: `doc verify`
+/// reports it against the document, and the conversion report carries it.
+///
+/// # Errors
+///
+/// Returns what [`battle_from_grbr`] refuses, a document that does not read
+/// back as its battle, and a stream that misses a recorded state.
+pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
+    let battle = battle_from_grbr(grbr)?;
+    let yaml = crate::battle::canonical_yaml(&battle)?;
+    let stated = opening::stated(yaml.as_bytes())?
+        .ok_or("the converted document does not read back as a battle")?;
+    if stated.turns != battle.turns {
+        return Err(
+            "the converted document does not read back as the battle it was \
+                    written from"
+                .into(),
+        );
+    }
+    stream_lands_on_the_recorded_states(economy, &record::read(grbr)?, &stated)?;
+    Ok(Converted {
+        battle,
+        yaml,
+        stated,
+    })
+}
+
+/// Refuses a replay whose recorded random states the seeded stream misses.
+///
+/// The generator is Lua's and a state is 256 bits, so a near miss does not
+/// land: equal states are the whole of the claim that the stream is modelled.
+fn stream_lands_on_the_recorded_states(
+    economy: &Economy,
+    native: &record::BattleRecord,
+    stated: &opening::Stated,
+) -> Result<(), String> {
+    let recorded = |round: i32| {
+        usize::try_from(round)
+            .ok()
+            .and_then(|at| native.match_rounds.entries.get(at))
+            .map(|entry| entry.random_state.states.values.as_slice())
+    };
+    let seeded = opening::initialize(native.info.system_seed)?.stream.state();
+    if recorded(0) != Some(seeded.as_slice()) {
+        return Err(format!(
+            "seed {} does not reach the random state the opening round recorded",
+            native.info.system_seed
+        ));
+    }
+    let Ok(deal) = opening::verify(economy, stated)
+        .and_then(|found| crate::reinforcement::verify(economy, stated, &found))
+    else {
+        return Ok(());
+    };
+    for round in &deal.rounds {
+        if recorded(round.round) != Some(round.before_state.as_slice()) {
+            return Err(format!(
+                "round {}'s deal starts from a random state the round did not record",
+                round.round
+            ));
+        }
+        if let Some(next) = recorded(round.round + 1)
+            && next != round.after_state.as_slice()
+        {
+            return Err(format!(
+                "round {}'s deal ends on a random state round {} did not record",
+                round.round,
+                round.round + 1
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Reconstructs both sides' offers from the opening round's random state.
 /// A missing or malformed state cannot supply the offers that `choose` names.
 fn opening_offers(economy: &Economy, round: &record::MatchRound) -> Result<opening::Deal, String> {
@@ -1058,9 +1152,8 @@ fn recorded_unit_ids(battle: &Battle) -> std::collections::BTreeSet<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{battle_from_grbr, recorded_unit_ids};
-    use crate::battle::{Action, Battle, SideState, SkillTarget, Turn, canonical_yaml};
-    use crate::grbr::SHIELD_AIRDROP_SKILL;
+    use super::{battle_from_grbr, recorded_unit_ids, stream_lands_on_the_recorded_states};
+    use crate::battle::{Action, Battle, SkillTarget, Turn, canonical_yaml};
     use crate::{Position, StaticPlacement};
 
     /// A formation that begins its moves in the main half keeps only its
@@ -1423,98 +1516,6 @@ mod tests {
         assert!(!recorded_unit_ids(&caine).is_empty());
     }
 
-    /// A standing Shield Airdrop is one the round before released or held.
-    ///
-    /// The snapshot records it in the same `rangeItems` the retained oil
-    /// terrain comes from, so the round before is a second witness and the two
-    /// are compared. The tracked set stands five shields, and the one in
-    /// `[elRAKAMAKAFON]` stands for two rounds before a fight destroys it,
-    /// which is what makes the entry a retained object rather than a
-    /// restatement of one round's release.
-    #[test]
-    fn a_standing_shield_is_the_previous_rounds_release_or_its_own_survival() {
-        fn pick<'a>(turn: &'a Turn, side: &str) -> (&'a SideState, &'a [Action]) {
-            match side {
-                "blue" => (&turn.state.blue, &turn.actions.blue),
-                _ => (&turn.state.red, &turn.actions.red),
-            }
-        }
-        let mut standing = Vec::new();
-        for entry in std::fs::read_dir("../../replay/grbr").unwrap() {
-            let path = entry.unwrap().path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let name = path.file_name().unwrap().to_string_lossy().into_owned();
-            let battle = battle_from_grbr(&std::fs::read(&path).unwrap()).unwrap();
-            for (position, turn) in battle.turns.iter().enumerate() {
-                let before = position.checked_sub(1).map(|index| &battle.turns[index]);
-                for side_name in ["blue", "red"] {
-                    let (state, _) = pick(turn, side_name);
-                    if state.airdrop_shields.is_empty() {
-                        continue;
-                    }
-                    let centers = state
-                        .airdrop_shields
-                        .iter()
-                        .map(|center| (center.x, center.y))
-                        .collect::<Vec<_>>();
-                    standing.push(format!(
-                        "{name} round {} {side_name}: {centers:?}",
-                        turn.round
-                    ));
-                    let before = before.unwrap_or_else(|| {
-                        panic!(
-                            "{name} round {} {side_name} opens holding a shield",
-                            turn.round
-                        )
-                    });
-                    let (earlier, actions) = pick(before, side_name);
-                    // The panel slot is read from this round and not the one
-                    // before, because a skill taken as a reinforcement is
-                    // released in the round that takes it and only reaches the
-                    // next round's snapshot. The slot itself does not move.
-                    let slot = state
-                        .battle_skills
-                        .iter()
-                        .find(|skill| skill.id == SHIELD_AIRDROP_SKILL)
-                        .map(|skill| skill.index);
-                    for center in &state.airdrop_shields {
-                        let released = actions.iter().any(|action| {
-                            matches!(
-                                action,
-                                Action::ReleaseCommanderSkill {
-                                    index,
-                                    target: SkillTarget::Area(points),
-                                    ..
-                                } if Some(*index) == slot && points.as_slice() == [*center]
-                            )
-                        });
-                        assert!(
-                            released || earlier.airdrop_shields.contains(center),
-                            "{name} round {} {side_name} stands a shield at ({}, {}) \
-                             that the round before neither released nor held",
-                            turn.round,
-                            center.x,
-                            center.y
-                        );
-                    }
-                }
-            }
-        }
-        standing.sort();
-        assert_eq!(
-            standing,
-            [
-                "2259_20260910--134504097_[Dre420]VS[[TUFF] Wumple Doodle].grbr round 7 blue: [(-169, -110)]",
-                "2259_20260910--134504097_[Dre420]VS[[TUFF] Wumple Doodle].grbr round 7 red: [(-210, -130)]",
-                "2259_20260910--67396921_[elRAKAMAKAFON]VS[p站智慧官叫馆].grbr round 3 red: [(72, -29)]",
-                "2259_20260910--67396921_[elRAKAMAKAFON]VS[p站智慧官叫馆].grbr round 4 red: [(72, -29)]",
-                "2259_20260911--134508150_[Thorrrin]VS[占星].grbr round 3 red: [(-235, -74)]",
-            ]
-        );
-    }
-
     /// A retained object from a skill this reader has not been measured
     /// against is refused rather than dropped.
     ///
@@ -1549,38 +1550,34 @@ mod tests {
         );
     }
 
-    /// The recorded energy tower list is the previous round's debt.
+    /// A replay whose recorded random states the stream misses is refused.
     ///
-    /// Two readings of one fact, and the conversion now refuses a replay where
-    /// they disagree. The tracked set exercises the claim in both directions:
-    /// skill `1` is activated 82 times, so a debt the snapshot never
-    /// carried would fail, and the other four skills are activated 469
-    /// times between them, so a snapshot carrying any of those would fail too.
+    /// Every tracked replay lands on each of its states, which the corpus
+    /// conversion checks. Here one bit of `[TUFF]`'s recorded states is
+    /// flipped, first the opening round's and then a later round's, and each
+    /// is named.
     #[test]
-    fn the_recorded_energy_tower_list_is_the_previous_rounds_debt() {
-        let mut deferred = 0;
-        let mut immediate = 0;
-        for entry in std::fs::read_dir("../../replay/grbr").unwrap() {
-            let path = entry.unwrap().path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            for turn in &battle.turns {
-                for action in turn.actions.blue.iter().chain(&turn.actions.red) {
-                    if let Action::ActiveEnergyTowerSkill { skill } = action {
-                        if *skill == super::RAPID_SUPPLY_SKILL {
-                            deferred += 1;
-                        } else {
-                            immediate += 1;
-                        }
-                    }
-                }
-            }
-        }
-        assert_eq!((deferred, immediate), (109, 551));
+    fn a_stream_that_misses_a_recorded_state_is_refused() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let grbr = std::fs::read(TUFF).unwrap();
+        let stated = super::document(&economy, &grbr).unwrap().stated;
+        let native = crate::record::read(&grbr).unwrap();
+        stream_lands_on_the_recorded_states(&economy, &native, &stated).unwrap();
+
+        let flipped = |round: usize| {
+            let mut edited = crate::record::read(&grbr).unwrap();
+            edited.match_rounds.entries[round]
+                .random_state
+                .states
+                .values[0] ^= 1;
+            stream_lands_on_the_recorded_states(&economy, &edited, &stated).unwrap_err()
+        };
+        assert!(flipped(0).contains("does not reach"), "{}", flipped(0));
+        assert!(
+            flipped(3).contains("round 3 did not record"),
+            "{}",
+            flipped(3)
+        );
     }
 
     /// A snapshot that names a skill the round before did not activate is

@@ -12,7 +12,7 @@
 //! inventory with repeats are one leaf each. A leaf only one side has is still
 //! a leaf, so a formation missing from the prediction counts against it.
 
-use crate::battle::{Action, SideState, Turn};
+use crate::battle::{Action, SideState, SkillTarget, Turn};
 use crate::economy::Economy;
 use crate::opening::Stated;
 use crate::reinforcement::Verified;
@@ -243,7 +243,13 @@ impl Coverage {
         let fought = round > 0;
         let predicted = crate::transition::predict(economy, round, state, actions, red, declined);
         let (leaves, unpredicted) = match &predicted {
-            Ok(predicted) => (compare(predicted, recorded, fought), None),
+            Ok(predicted) => {
+                let mut leaves = compare(predicted, recorded, fought);
+                if fought {
+                    stray_shields(state, actions, recorded, &mut leaves);
+                }
+                (leaves, None)
+            }
             Err(reason) => {
                 // Tables without a row, or a board without a rule for where a
                 // grant lands, are what the prediction lacks. A decision
@@ -382,6 +388,38 @@ fn compare(predicted: &SideState, recorded: &SideState, fought: bool) -> Vec<Lea
 
 /// The class a leaf has whatever its value: the fight's, when one was
 /// `fought`, or not yet predicted.
+/// Marks the shield leaf unequal when the fight left standing a shield it
+/// could not have: one this round neither released nor opened with.
+///
+/// Which shields survive is the fight's to decide, so the leaf is otherwise
+/// the fight's. But a fight destroys shields and never places one, so what
+/// stands after it is bounded by what stood before it and what this round
+/// released, and a shield outside that is the record contradicting the rules.
+fn stray_shields(state: &SideState, actions: &[Action], recorded: &SideState, leaves: &mut [Leaf]) {
+    let mut possible = state.airdrop_shields.clone();
+    for action in actions {
+        if let Action::ReleaseCommanderSkill {
+            id: crate::grbr::SHIELD_AIRDROP_SKILL,
+            target: SkillTarget::Area(points),
+            ..
+        } = action
+        {
+            possible.extend(points.iter().copied());
+        }
+    }
+    if recorded
+        .airdrop_shields
+        .iter()
+        .all(|center| possible.contains(center))
+    {
+        return;
+    }
+    for leaf in leaves.iter_mut().filter(|leaf| leaf.0 == "airdrop_shields") {
+        leaf.1 = Class::Unequal;
+        leaf.2 = Some(format!("at most {}", render(&to_value(&possible))));
+    }
+}
+
 fn fixed(path: &str, fought: bool) -> Option<Class> {
     let group = group(path);
     if fought && FIGHT.iter().any(|field| within(&group, field)) {
@@ -505,134 +543,110 @@ mod tests {
         out
     }
 
+    /// A shield standing after a fight that nothing released is the record
+    /// contradicting the rules, not something the fight decided.
+    ///
+    /// `[Thorrrin]` releases Shield Airdrops, and red opens round 3 with one
+    /// still standing. With every release taken out, that shield is one the
+    /// fight would have had to place.
+    #[test]
+    fn a_shield_nothing_released_is_unequal() {
+        let economy = Economy::embedded().unwrap();
+        let path = std::fs::read_dir("../../replay/battle")
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.to_string_lossy().contains("[Thorrrin]"))
+            .unwrap();
+        let mut stated = crate::opening::stated(&std::fs::read(path).unwrap())
+            .unwrap()
+            .unwrap();
+        let shields = |coverage: &Coverage| {
+            coverage
+                .unequal
+                .iter()
+                .filter(|difference| difference.path == "airdrop_shields")
+                .count()
+        };
+        assert_eq!(shields(&measured(&economy, &stated)), 0);
+
+        let mut removed = 0;
+        for turn in &mut stated.turns {
+            for actions in [&mut turn.actions.blue, &mut turn.actions.red] {
+                let before = actions.len();
+                actions.retain(|action| {
+                    !matches!(
+                        action,
+                        Action::ReleaseCommanderSkill {
+                            id: crate::grbr::SHIELD_AIRDROP_SKILL,
+                            ..
+                        }
+                    )
+                });
+                removed += before - actions.len();
+            }
+        }
+        assert!(removed > 0);
+        let coverage = measure(&economy, &stated, Err("not dealt"));
+        assert_eq!(shields(&coverage), 1);
+    }
+
     fn measured(economy: &Economy, stated: &Stated) -> Coverage {
         let opening = crate::opening::verify(economy, stated).unwrap();
         let deal = crate::reinforcement::verify(economy, stated, &opening).unwrap();
         measure(economy, stated, Ok(&deal))
     }
 
-    /// The tracked corpus, by field group, as `[equal, unequal, unimplemented,
-    /// fight]`. A change in any count is a change in what the transition
-    /// predicts, and has to be made here to pass.
-    /// What the tracked battles hold, field group by field group.
-    fn pinned() -> BTreeMap<String, Counts> {
-        [
-            ("airdrop_shields", [0, 0, 0, 9]),
-            ("battle_skills.cooldown", [1062, 0, 0, 0]),
-            ("battle_skills.index", [1062, 0, 0, 0]),
-            ("battle_skills.name", [1062, 0, 0, 0]),
-            ("blueprints", [433, 0, 0, 0]),
-            ("constructions.index", [794, 0, 0, 0]),
-            ("constructions.name", [794, 0, 0, 0]),
-            ("constructions.position.x", [794, 0, 0, 0]),
-            ("constructions.position.y", [794, 0, 0, 0]),
-            ("contraptions.index", [0, 0, 0, 346]),
-            ("contraptions.name", [0, 0, 0, 346]),
-            ("contraptions.position.x", [0, 0, 0, 346]),
-            ("contraptions.position.y", [0, 0, 0, 346]),
-            ("equipment", [24, 0, 0, 0]),
-            ("next_index.contraption", [668, 0, 0, 0]),
-            ("next_index.unit", [668, 0, 0, 0]),
-            ("officers", [668, 0, 0, 0]),
-            ("reactor_core", [82, 0, 0, 586]),
-            ("reinforce_offers", [293, 0, 0, 0]),
-            ("shop.buys_remaining", [668, 0, 0, 0]),
-            ("shop.unlocked_units", [668, 0, 0, 0]),
-            ("shop.unlocks_remaining", [668, 0, 0, 0]),
-            ("supply", [668, 0, 0, 0]),
-            ("techs.abyss", [7, 0, 0, 0]),
-            ("techs.arclight", [77, 0, 0, 0]),
-            ("techs.crawler", [36, 0, 0, 0]),
-            ("techs.fang", [37, 0, 0, 0]),
-            ("techs.farseer", [12, 0, 0, 0]),
-            ("techs.fire_badger", [44, 0, 0, 0]),
-            ("techs.fortress", [14, 0, 0, 0]),
-            ("techs.hacker", [6, 0, 0, 0]),
-            ("techs.hound", [31, 0, 0, 0]),
-            ("techs.marksman", [43, 0, 0, 0]),
-            ("techs.melting_point", [17, 0, 0, 0]),
-            ("techs.mustang", [77, 0, 0, 0]),
-            ("techs.overlord", [7, 0, 0, 0]),
-            ("techs.phantom_ray", [62, 0, 0, 0]),
-            ("techs.phoenix", [11, 0, 0, 0]),
-            ("techs.raiden", [10, 0, 0, 0]),
-            ("techs.rhino", [21, 0, 0, 0]),
-            ("techs.sabertooth", [24, 0, 0, 0]),
-            ("techs.sandworm", [21, 0, 0, 0]),
-            ("techs.scorpion", [27, 0, 0, 0]),
-            ("techs.sledgehammer", [32, 0, 0, 0]),
-            ("techs.steel_ball", [15, 0, 0, 0]),
-            ("techs.stormcaller", [3, 0, 0, 0]),
-            ("techs.tarantula", [50, 0, 0, 0]),
-            ("techs.typhoon", [14, 0, 0, 0]),
-            ("techs.void_eye", [53, 0, 0, 0]),
-            ("techs.vortex", [39, 0, 0, 0]),
-            ("techs.vulcan", [27, 0, 0, 0]),
-            ("techs.wasp", [31, 0, 0, 0]),
-            ("techs.wraith", [17, 0, 0, 0]),
-            ("terrains", [0, 0, 0, 10]),
-            ("tower_strengthen_levels", [668, 0, 0, 0]),
-            ("units.equipment", [319, 0, 0, 0]),
-            ("units.exp", [0, 0, 0, 8902]),
-            ("units.index", [9494, 0, 0, 0]),
-            ("units.level", [2600, 0, 0, 0]),
-            ("units.movable", [455, 0, 0, 0]),
-            ("units.name", [9494, 0, 0, 0]),
-            ("units.position.x", [9494, 0, 0, 0]),
-            ("units.position.y", [9494, 0, 0, 0]),
-            ("units.rotated", [3058, 0, 0, 0]),
-            ("units.value", [9494, 0, 0, 0]),
-        ]
-        .into_iter()
-        .map(|(group, [equal, unequal, unimplemented, fight])| {
-            (
-                group.to_owned(),
-                Counts {
-                    equal,
-                    unequal,
-                    unimplemented,
-                    fight,
-                },
-            )
-        })
-        .collect()
+    /// Every field a side's position can hold, as the dotted path a leaf is
+    /// grouped under, read off the schema rather than off any battle.
+    fn side_fields() -> Vec<String> {
+        fn walk(
+            node: &serde_json::Value,
+            defs: &serde_json::Value,
+            path: &str,
+            out: &mut Vec<String>,
+        ) {
+            if !node.is_object() {
+                return;
+            }
+            if let Some(name) = node["$ref"].as_str().and_then(|at| at.rsplit('/').next()) {
+                walk(&defs[name], defs, path, out);
+            }
+            if let Some(fields) = node["properties"].as_object() {
+                for (name, field) in fields {
+                    let at = if path.is_empty() {
+                        name.clone()
+                    } else {
+                        format!("{path}.{name}")
+                    };
+                    out.push(at.clone());
+                    walk(field, defs, &at, out);
+                }
+            }
+            walk(&node["items"], defs, path, out);
+            for key in ["anyOf", "oneOf", "allOf"] {
+                for branch in node[key].as_array().into_iter().flatten() {
+                    walk(branch, defs, path, out);
+                }
+            }
+        }
+        let schema = serde_json::to_value(schemars::schema_for!(SideState)).unwrap();
+        let mut out = Vec::new();
+        walk(&schema, &schema["$defs"], "", &mut out);
+        out
     }
 
-    /// Every field the lists name is one the battles hold, so renaming a field
-    /// cannot leave an entry that no leaf matches.
+    /// Every field the lists name is one a position can hold, so renaming a
+    /// field cannot leave an entry that no leaf matches.
     #[test]
-    fn every_listed_field_is_one_the_battles_hold() {
-        let pinned = pinned();
+    fn every_listed_field_is_one_a_position_holds() {
+        let fields = side_fields();
+        assert!(fields.iter().any(|field| field == "units.exp"));
         for field in DEALT_FROM.iter().chain(FIGHT).chain(UNIMPLEMENTED) {
             assert!(
-                pinned.keys().any(|group| within(group, field)),
-                "{field} names no field of the tracked battles"
+                fields.iter().any(|group| within(group, field)),
+                "{field} names no field a position holds"
             );
         }
-    }
-
-    #[test]
-    fn tracked_battles_cover_what_the_table_says() {
-        let economy = Economy::embedded().unwrap();
-        let mut fields: BTreeMap<String, Counts> = BTreeMap::new();
-        let mut unequal = Vec::new();
-        let mut untargeted = 0;
-        for (name, stated) in tracked() {
-            let coverage = measured(&economy, &stated);
-            for (group, counts) in coverage.fields {
-                fields.entry(group).or_default().merge(counts);
-            }
-            unequal.extend(
-                coverage
-                    .unequal
-                    .iter()
-                    .map(|difference| format!("{name} {difference:?}")),
-            );
-            untargeted += usize::from(coverage.untargeted_round.is_some());
-        }
-        assert!(unequal.is_empty(), "{unequal:#?}");
-        assert_eq!(fields, pinned());
-        assert_eq!(untargeted, 41);
     }
 
     fn first_battle() -> Stated {

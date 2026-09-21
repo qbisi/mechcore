@@ -683,25 +683,6 @@ mod tests {
         assert!(decline_supply(&economy, 0, 2).is_err());
     }
 
-    fn corpus() -> Vec<(Stated, crate::record::BattleRecord)> {
-        std::fs::read_dir("../../replay/grbr")
-            .unwrap()
-            .map(|entry| entry.unwrap().path())
-            .filter(|path| path.extension().is_some_and(|ext| ext == "grbr"))
-            .map(|path| {
-                let bytes = std::fs::read(path).unwrap();
-                let battle = crate::convert::battle_from_grbr(&bytes).unwrap();
-                let document = crate::battle::canonical_yaml(&battle).unwrap();
-                (
-                    crate::opening::stated(document.as_bytes())
-                        .unwrap()
-                        .unwrap(),
-                    crate::record::read(&bytes).unwrap(),
-                )
-            })
-            .collect()
-    }
-
     fn sample() -> Stated {
         let bytes = std::fs::read(
             "../../replay/battle/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].yaml",
@@ -734,46 +715,6 @@ mod tests {
         // The first round is dealt nothing, and every later one a full hand.
         assert_eq!(dealt, full.turns.len() - 1);
         assert!(dealt > 5, "the sample is long enough to cover a unit round");
-    }
-
-    #[test]
-    fn every_offer_and_stream_boundary_matches_the_native_replays() {
-        let economy = Economy::embedded().unwrap();
-        let mut matches = 0;
-        let mut rounds = 0;
-        let mut offers = 0;
-        for (stated, native) in corpus() {
-            let opening = crate::opening::verify(&economy, &stated).unwrap();
-            let checked = verify(&economy, &stated, &opening)
-                .unwrap_or_else(|error| panic!("seed {}: {error}", stated.seed));
-            for round in &checked.rounds {
-                let snapshot = &native.match_rounds.entries[usize::try_from(round.round).unwrap()];
-                assert_eq!(
-                    round.before_state.as_slice(),
-                    snapshot.random_state.states.values,
-                    "seed {} round {} before state",
-                    stated.seed,
-                    round.round
-                );
-                if let Some(next) = native
-                    .match_rounds
-                    .entries
-                    .get(usize::try_from(round.round + 1).unwrap())
-                {
-                    assert_eq!(
-                        round.after_state.as_slice(),
-                        next.random_state.states.values,
-                        "seed {} round {} after state",
-                        stated.seed,
-                        round.round
-                    );
-                }
-            }
-            rounds += checked.rounds.len();
-            offers += checked.offers_checked;
-            matches += 1;
-        }
-        assert_eq!((matches, rounds, offers), (41, 293, 1172));
     }
 
     #[test]

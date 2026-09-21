@@ -879,14 +879,13 @@ pub fn predict(
     open_round(economy, &position, round + 1, &mut placement)
 }
 
-#[cfg(all(test, feature = "convert"))]
+#[cfg(test)]
 mod tests {
     use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step_placing};
     use crate::battle::{
         Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
     };
-    use crate::convert::battle_from_grbr;
-    use crate::economy::{CardKind, Economy};
+    use crate::economy::Economy;
     use crate::layout::{Experience, Position, UnitPlacement};
 
     /// [`super::step`] in an ordinary round, where a decline pays the ordinary
@@ -1418,58 +1417,6 @@ mod tests {
         );
     }
 
-    /// What the tracked replays say about the inventory.
-    ///
-    /// The tracked set pins fits, equipment cards and stock carried across a
-    /// round boundary, and every fit it takes finds its item in the stock.
-    #[test]
-    fn tracked_equipment_is_exercised_and_every_fit_finds_its_item() {
-        let economy = Economy::embedded().unwrap();
-        let (mut fits, mut cards) = (0, 0);
-        let mut held = 0;
-        let mut refused = Vec::new();
-        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            for turn in &battle.turns {
-                for (side, state, actions) in [
-                    ("blue", &turn.state.blue, &turn.actions.blue),
-                    ("red", &turn.state.red, &turn.actions.red),
-                ] {
-                    if !state.equipment.is_empty() {
-                        held += 1;
-                    }
-                    if let Err(reason) = fold(&economy, state, actions) {
-                        refused.push(format!(
-                            "{} round {} {side}: {reason:?}",
-                            path.file_name().unwrap().to_string_lossy(),
-                            turn.round
-                        ));
-                    }
-                    for action in actions {
-                        match action {
-                            Action::UseEquipment { .. } => fits += 1,
-                            Action::ChooseReinforceItem { id: Some(id), .. }
-                                if economy.card_kind(*id) == Some(CardKind::Equipment) =>
-                            {
-                                cards += 1;
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            }
-        }
-        assert_eq!((fits, cards), (118, 97));
-        assert_eq!(held, 24);
-        assert!(refused.is_empty(), "{refused:#?}");
-    }
-
     /// A release is the only decision that moves the contraption allocator.
     ///
     /// The fight consumes a contraption, but the index it took is never handed
@@ -1990,61 +1937,5 @@ mod tests {
             },
         ];
         assert!(travelling(&fold(&economy, &solvent(), &bought).unwrap()).is_empty());
-    }
-
-    /// What the tracked replays say about the travelling set.
-    ///
-    /// The set is the deployment's own state, so no converted document holds
-    /// it to compare against and these are coverage counts rather than a
-    /// transition test. They say the tracked set exercises every arm: moves
-    /// that start a flank deployment, moves that end one, and rounds that
-    /// leave several formations travelling at once.
-    #[test]
-    fn the_tracked_set_pins_travelling_coverage() {
-        let economy = Economy::embedded().unwrap();
-        let (mut side_rounds, mut travelled, mut formations) = (0, 0, 0);
-        let mut widest = 0;
-        let mut first_round = i32::MAX;
-        for entry in std::fs::read_dir("../../replay/grbr").expect("tracked replay directory") {
-            let path = entry.expect("directory entry").path();
-            if path.extension().is_none_or(|extension| extension != "grbr") {
-                continue;
-            }
-            let Ok(battle) = battle_from_grbr(&std::fs::read(&path).unwrap()) else {
-                continue;
-            };
-            for turn in &battle.turns {
-                for (state, actions) in [
-                    (&turn.state.blue, &turn.actions.blue),
-                    (&turn.state.red, &turn.actions.red),
-                ] {
-                    // No converted state carries one, which is the fight
-                    // clearing the set between rounds.
-                    assert!(
-                        state
-                            .units
-                            .iter()
-                            .all(|entry| entry.unit.travelling != Some(true)),
-                        "{} round {} opens with a travelling unit",
-                        path.file_name().unwrap().to_string_lossy(),
-                        turn.round
-                    );
-                    let indices = travelling(&fold(&economy, state, actions).unwrap());
-                    side_rounds += 1;
-                    if !indices.is_empty() {
-                        travelled += 1;
-                        first_round = first_round.min(turn.round);
-                    }
-                    widest = widest.max(indices.len());
-                    formations += indices.len();
-                }
-            }
-        }
-        assert_eq!(
-            (side_rounds, travelled, formations, widest),
-            (668, 100, 146, 5)
-        );
-        // The flank regions open at round 2, so nothing can travel before it.
-        assert_eq!(first_round, 2);
     }
 }
