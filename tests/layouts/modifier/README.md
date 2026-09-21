@@ -60,6 +60,8 @@ Normal selector takes the Rhino rather than a building.
 | `officer-speed-once.yaml` | a plain integer, in `DataSet.intDatas` | ends at tick 104 |
 | `officer-speed-twice.yaml` | **two integers sum, rather than the larger winning** | ends at tick 92 |
 | `technology-range.yaml` | a technology and an officer on one number | 155 m of the description's 95 |
+| `technology-interval-clean.yaml` | three corrections at once, on a unit with no stagger | interval 12, range 140, speed 11 |
+| `technology-disabled.yaml` | **a correction leaving**: the technology is switched off | 12 before the shot, 18 after |
 | `technology-interval-base.yaml` | the Sledgehammer alone: the line's intercept | interval reads 83 |
 | `technology-interval-value.yaml` | one second of value | 63 |
 | `technology-interval-rate.yaml` | one rate of `+0.3` | 110 |
@@ -83,6 +85,7 @@ the end.
 | `speed.mcscript` | yes | records the two movement fixtures |
 | `technology.mcscript` | yes | records the technology fixture |
 | `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
+| `disable.mcscript` | yes | records the Raiden shooting the Rhino |
 | `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts both hash layers |
 
 The three recording scripts are this directory's experiments: each one writes
@@ -96,6 +99,20 @@ These fixtures are deliberately **not** in `tests/mcfr-regressions.yaml`. The
 table that holds them lives here, beside them and beside the scripts that
 produced them, so that a fixture, its measurement and its regression are one
 thing to read and one thing to move.
+
+## A correction can leave
+
+`technology-disabled.yaml` is the only fixture here that measures a correction
+**stopping**. Electromagnetic Shot disables the technologies of the unit it
+hits, and at the tick it lands the Rhino's `technologies_disabled` turns true
+and its current attack interval goes from 12 back to the description's 18 — one
+tick, both readings, together.
+
+Two things about that fixture are load-bearing and were found the hard way. The
+target has to **survive** the hit: a Stormcaller and a Marksman were tried
+first and the shot never reached either, so the flag never turned and the
+recording said nothing. And the target's `interval_offset` has to be **zero**,
+or the stagger rides on the same number and there is nothing clean to read.
 
 ## Reading a clause directly
 

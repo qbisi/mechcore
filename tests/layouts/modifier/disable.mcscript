@@ -1,0 +1,58 @@
+# Does switching a technology off take its correction away?
+#
+#   mechcore run tests/layouts/modifier/disable.mcscript --check   parse without the game
+#   mechcore run tests/layouts/modifier/disable.mcscript           record
+#
+# Every other fixture here measures a correction that is in force for the whole
+# fight. This one measures a correction leaving: Electromagnetic Shot disables
+# the technologies of the unit it hits, and the Rhino it hits carries an
+# `attack_interval_value` of `-0.3` seconds.
+#
+# The Rhino reads cleanly because its `interval_offset` is zero — no stagger
+# rides on its current interval — and it survives the hit because it has 19297
+# of life. Both matter: a Stormcaller and a Marksman were tried first and the
+# shot never reached either.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: work/research/technology-disabled
+  seed: 4242
+
+steps:
+  - let:
+      disabled: read_yaml(tests/layouts/modifier/technology-disabled.yaml)
+
+  - game.apply_layout:
+      layout: $disabled
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/disabled.mcfr
+
+  # Before the shot: the technology is in force and the interval is the
+  # description's 18 ticks less its 0.3 seconds.
+  - fight.stats:
+      recording: ${out}/disabled.mcfr
+      tick: 33
+    expect:
+      sides.red.0.derived.current_attack_interval: 12
+
+  # The tick the shot lands. The flag and the number move together: the
+  # correction is gone and the interval is the description's again.
+  - fight.stats:
+      recording: ${out}/disabled.mcfr
+      tick: 34
+    expect:
+      sides.red.0.technologies_disabled: true
+      sides.red.0.derived.current_attack_interval: 18
+
+  # It does not come back. The Raiden fires every 92 ticks, so the Rhino is
+  # disabled again before the effect can lapse.
+  - fight.stats:
+      recording: ${out}/disabled.mcfr
+      tick: 280
+    expect:
+      sides.red.0.technologies_disabled: true
+      sides.red.0.derived.current_attack_interval: 18

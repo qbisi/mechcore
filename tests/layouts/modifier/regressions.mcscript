@@ -136,3 +136,15 @@ steps:
       hashes.physics_result_hash: 63871702be6cd5cb0dc6041a1b6d2a0572a06b45f676d5c9112790409d7ec282
       hashes.content_result_hash: 7dcfdb69f3545c72be035520ee7e1ce3279c33cd0add5f576b648d7f63f88142
 
+  # A technology's three corrections at once, on a unit that draws no stagger:
+  # a rate on the interval, a value on the range and a plain integer on the
+  # speed. The Stormcaller's `interval_offset` is zero, so the interval reads
+  # the composed number exactly.
+  - fight.run:
+      layout: tests/layouts/modifier/technology-interval-clean.yaml
+      seed: 4242
+    expect:
+      steps: 274
+      hashes.physics_result_hash: 0e45dcb5ad8bfe32a00840464eb8bd5856496355e56774a79a4979065d0a144d
+      hashes.content_result_hash: b073bc3b6cd02a0606ce4d21379935701c0dc665ada63db0b8bb0d85a0f88b4f
+

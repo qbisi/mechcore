@@ -474,7 +474,9 @@ reads them that way.
 
 Every formation answers, whether or not it carries a correction: a unit with
 nothing written onto it still has numbers, and that is what a control is read
-for.
+for. A formation whose technologies are switched off says so with
+`technologies_disabled`, which is the state a correction's absence is
+explained by rather than a correction of its own.
 
 `--tick <n>` picks the tick to read; the default is the first, where a
 correction applied as the fight is built has landed and nothing the fight does

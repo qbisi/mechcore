@@ -1,0 +1,33 @@
+kind: layout
+round: 1
+
+# An interval correction read with nothing else in it.
+#
+# A Stormcaller's `interval_offset` is zero, so it draws no stagger and its
+# current interval is the composed interval exactly — the one kind of unit an
+# interval correction can be read off directly, as
+# `docs/rules/combat.md` explains.
+#
+# Launcher Overload carries three corrections at once, on three different
+# numbers:
+#
+#   attack_interval_rate  -0.5   132 ticks -> 66
+#   attack_range_value    -40    180 m     -> 140
+#   speed_value            +5    6 m/s     -> 11
+#
+# So one reading at one tick answers a rate, a value and a plain integer
+# together, each on the number it belongs to.
+
+blue:
+  techs:
+    stormcaller: [launcher_overload]
+  units:
+    - name: stormcaller
+      index: 0
+      position: {x: 5, y: -100}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}

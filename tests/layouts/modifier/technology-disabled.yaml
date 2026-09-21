@@ -1,0 +1,33 @@
+kind: layout
+round: 1
+
+# What happens to a correction when the thing that wrote it is switched off.
+#
+# A Rhino researches Mechanical Rage, an `attack_interval_value` of `-0.3`
+# seconds, so its interval reads 12 ticks of the description's 18. A Raiden
+# opposite it researches Electromagnetic Shot, which disables the technologies
+# of whatever it hits.
+#
+# The Rhino is the target because it has to survive the hit and read cleanly:
+# 19297 of life, and an `interval_offset` of zero so no stagger rides on the
+# number. A Stormcaller and a Marksman were tried first and answered nothing —
+# the shot never reached them.
+#
+# The Raiden is not a unit this simulator's kernel fights, so this fixture is
+# recorded and read rather than simulated.
+
+blue:
+  techs:
+    raiden: [electromagnetic_shot]
+  units:
+    - name: raiden
+      index: 0
+      position: {x: 0, y: -110}
+
+red:
+  techs:
+    rhino: [mechanical_rage]
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -55}
