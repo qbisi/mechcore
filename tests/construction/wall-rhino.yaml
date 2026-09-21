@@ -1,0 +1,20 @@
+kind: layout
+round: 1
+
+# A Rhino charging a Marksman who stands behind the middle block. The Rhino
+# attacks in melee, so this is how a direct attack takes a wall.
+blue:
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: -140, y: -55}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -140, y: -100}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 145, y: -25}

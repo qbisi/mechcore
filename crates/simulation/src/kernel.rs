@@ -55,11 +55,13 @@ const SEARCH_TARGET_RESET_TICKS: i32 = 10;
 /// the shot, in space units.
 ///
 /// `docs/rules/constructions.md` carries the measurement: 94 decisions over
-/// six unit types leave it in `[10.8, 11.8]` metres, and 11 is what a wall's
-/// own `path_radius` of 7 and `radius` of 4 would give, which is a reading of
-/// the table rather than a measurement of the build. It is not the attacker's:
-/// a Fang of radius 2, a Marksman of 8 and a Wraith of 11 use the same one.
-const WALL_IN_THE_WAY_WIDTH: i64 = 11_000;
+/// six unit types leave it in `[10.8, 11.8]` metres, and a Steel Ball of
+/// `wall-laser.yaml`, closing on block 3 a few centimetres a tick, narrows it
+/// to `[11.447, 11.507)` — it passes the block by at 11.507 for nine ticks and
+/// takes it the tick after 11.447. 11.5 is the value inside that. It is not
+/// the attacker's: a Fang of radius 2, a Marksman of 8, a Steel Ball of 6 and
+/// a Wraith of 11 use the same one.
+const WALL_IN_THE_WAY_WIDTH: i64 = 11_500;
 
 #[derive(Debug, Clone, Copy)]
 struct RvoProfile {
@@ -2793,6 +2795,10 @@ impl Simulation {
             match actor.attack_target() {
                 Some(FightActorRef::Building(building))
                     if actor.group_skill_targets.is_empty()
+                        && actor.pending.is_none()
+                        && actor
+                            .backswing_finish_step
+                            .is_none_or(|finish| finish < step)
                         && actor.in_the_way.is_some_and(|(wall, _)| wall == building)
                         && !self.fight_actor_is_alive(FightActorRef::Building(building)) =>
                 {
@@ -2808,8 +2814,53 @@ impl Simulation {
                 .expect("actor identity is stable");
             actor.motion = MotionState::Idle;
             actor.drop_lock();
-            actor.fallen_attack_target = Some(building);
+            // Only a unit with a body is read still aiming at the block: the
+            // Marksman is, the Rhino and the Steel Balls read no weapon
+            // target at all on the same tick.
+            actor.fallen_attack_target = actor.rules.has_body.then_some(building);
             actor.fight_skill_phase = FightSkillPhase::Idle;
+            // And it looks again on the very next tick, whatever its search
+            // timer says: the Rhino takes the next block, or the unit behind a
+            // wall it has broken through, one tick after going idle each time.
+            actor.fight_skill_search_target_time = 0;
+            actor.backswing_finish_step = None;
+            actor.next_target_x_q32 = actor.x_q32;
+            actor.next_target_z_q32 = actor.z_q32;
+            actor.next_speed_q32 = 0;
+            actor.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            return Ok(());
+        }
+        // A block that comes into the way while an attack on a unit is being
+        // prepared ends that attack. The Steel Ball of `wall-laser.yaml`
+        // prepares a beam on the Marksman behind the wall for six ticks; on the
+        // tick block 3 comes within the line it reads idle, with no lock and no
+        // weapon target, and the tick after it is on the block. So the check
+        // is asked while preparing too, and a block it finds is not fired at
+        // until the unit has looked again.
+        let interrupted = {
+            let actor = &self.actors[&actor_id];
+            match actor.lock_target {
+                Some(target @ FightActorRef::Unit(_))
+                    if matches!(actor.fight_skill_phase, FightSkillPhase::Prepare { .. })
+                        && actor.group_skill_targets.is_empty()
+                        && actor
+                            .in_the_way
+                            .is_none_or(|(_, found_for)| found_for != target) =>
+                {
+                    self.wall_in_the_way(actor_id, target).is_some()
+                }
+                _ => false,
+            }
+        };
+        if interrupted {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.motion = MotionState::Idle;
+            actor.drop_lock();
+            actor.fight_skill_phase = FightSkillPhase::Idle;
+            actor.fight_skill_search_target_time = 0;
             actor.next_target_x_q32 = actor.x_q32;
             actor.next_target_z_q32 = actor.z_q32;
             actor.next_speed_q32 = 0;
@@ -3330,12 +3381,18 @@ impl Simulation {
                 // MotionIdleState.Enter publishes StopMove once; its Update
                 // does not refresh that target on every remaining backswing
                 // tick.
+                // A felled block is held differently: the Rhino of
+                // `wall-rhino.yaml` reads attacking, still on the block, until
+                // its swing is over, and only then goes idle.
+                let holds_a_block = matches!(target, FightActorRef::Building(_));
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                let entered_idle = actor.motion != MotionState::Idle;
-                actor.motion = MotionState::Idle;
+                let entered_idle = actor.motion != MotionState::Idle && !holds_a_block;
+                if !holds_a_block {
+                    actor.motion = MotionState::Idle;
+                }
                 if entered_idle {
                     actor.next_target_x_q32 = actor.x_q32;
                     actor.next_target_z_q32 = actor.z_q32;
@@ -4073,13 +4130,17 @@ impl Simulation {
             self.actors[&actor_id].rules.attack.path,
             AttackPath::Direct { .. }
         ) {
-            let target_id = pending
-                .target
-                .unit_id()
-                .ok_or_else(|| Error::new("direct building attacks are not closed"))?;
-            let target_was_alive = self.actors[&target_id].alive();
-            self.direct_effect(actor_id, target_id, events)?;
-            if target_was_alive && !self.actors[&target_id].alive() {
+            let target = pending.target;
+            let target_was_alive = self.fight_actor_is_alive(target);
+            self.direct_effect(actor_id, target, events)?;
+            // A block felled by a blow is left to the backswing and then to
+            // the fallen-block rule: the Rhino of `wall-rhino.yaml` stays on
+            // the block it felled until its swing is over, where a unit it
+            // kills hands it straight to the retarget.
+            if target_was_alive
+                && !self.fight_actor_is_alive(target)
+                && matches!(target, FightActorRef::Unit(_))
+            {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
@@ -4091,13 +4152,17 @@ impl Simulation {
             self.actors[&actor_id].rules.attack.path,
             AttackPath::Laser { .. }
         ) {
-            let target_id = pending
-                .target
-                .unit_id()
-                .ok_or_else(|| Error::new("laser building attacks are not closed"))?;
-            let target_was_alive = self.actors[&target_id].alive();
-            self.laser_effect(actor_id, target_id, events)?;
-            if target_was_alive && !self.actors[&target_id].alive() {
+            let target = pending.target;
+            let target_was_alive = self.fight_actor_is_alive(target);
+            self.laser_effect(actor_id, target, events)?;
+            // A block the beam fells is left to the fallen-block rule on the
+            // next tick, as a blow's is: the Steel Ball of `wall-laser.yaml`
+            // that fells block 4 reads attacking on that tick, idle on the
+            // next.
+            if target_was_alive
+                && !self.fight_actor_is_alive(target)
+                && matches!(target, FightActorRef::Unit(_))
+            {
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
@@ -4706,31 +4771,54 @@ impl Simulation {
     fn direct_effect(
         &mut self,
         actor_id: u64,
-        target_id: u64,
+        target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let attacker = &self.actors[&actor_id];
-        let aimed = &self.actors[&target_id];
+        let center = match target {
+            FightActorRef::Unit(target_id) => {
+                let aimed = &self.actors[&target_id];
+                (aimed.x, aimed.z)
+            }
+            FightActorRef::Building(building_id) => self
+                .buildings
+                .iter()
+                .find(|building| building.building_id == building_id)
+                .map(|building| (building_x(building), building_z(building)))
+                .ok_or_else(|| Error::new("direct attack target is absent"))?,
+        };
         let hit = DamageHit {
             source: attacker.object_ref(),
             source_team: attacker.placement.team,
             team: attacker.placement.team,
             amount: attacker.stats.attack_damage(),
-            aimed: FightActorRef::Unit(target_id),
+            aimed: target,
             hits_aimed: true,
-            center: (aimed.x, aimed.z),
+            center,
             splash_radius: attacker.rules.attack.splash_radius(),
             reach: Reach::Targets(attacker.rules.attack.targets),
         };
         let struck = self.perform_damage(hit, events)?;
         self.record_deaths(struck.deaths, events);
+        // A blow has no flight to wait for, so a block it fells falls as it
+        // lands: the Rhino of `wall-rhino.yaml` reads `damage` and then
+        // `building_destroyed` on the same tick, with nothing between.
+        for (building_id, position) in struck.fallen {
+            events.push(event(
+                Some(ObjectRef::new(ObjectKind::Building, building_id)),
+                None,
+                None,
+                None,
+                EventPayload::BuildingDestroyed { position },
+            ));
+        }
         Ok(())
     }
 
     fn laser_effect(
         &mut self,
         actor_id: u64,
-        target_id: u64,
+        target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let (damage, attacker_ref, attacker_team) = {
@@ -4749,17 +4837,14 @@ impl Simulation {
             .expect("actor identity is stable")
             .laser_attack_count += 1;
         // A laser strikes one target and has no splash, so it takes the
-        // stroke without the range step. It records the death first and its
-        // damage after, and records damage even when none was dealt.
-        let stroke = self.strike(
-            FightActorRef::Unit(target_id),
-            attacker_ref,
-            attacker_team,
-            damage,
-        )?;
+        // stroke without the range step. A unit it kills is recorded dead
+        // before the damage, and a block it fells falls after it: the Steel
+        // Balls of `wall-laser.yaml` read `damage` and then
+        // `building_destroyed`. Damage is recorded even when none was dealt.
+        let stroke = self.strike(target, attacker_ref, attacker_team, damage)?;
         if let Some(position) = stroke.death {
             events.push(event(
-                Some(ObjectRef::new(ObjectKind::Unit, target_id)),
+                Some(target.object_ref()),
                 Some(attacker_ref),
                 Some(attacker_team),
                 None,
@@ -4770,12 +4855,21 @@ impl Simulation {
             None,
             Some(attacker_ref),
             Some(attacker_team),
-            Some(ObjectRef::new(ObjectKind::Unit, target_id)),
+            Some(target.object_ref()),
             EventPayload::Damage {
                 amount: i32::try_from(stroke.actual)
                     .map_err(|_| Error::new("laser damage exceeds i32"))?,
             },
         ));
+        if let Some(position) = stroke.fallen {
+            events.push(event(
+                Some(target.object_ref()),
+                None,
+                None,
+                None,
+                EventPayload::BuildingDestroyed { position },
+            ));
+        }
         Ok(())
     }
 
@@ -7362,7 +7456,9 @@ mod tests {
         set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
         set_actor_position(simulation.actors.get_mut(&3).unwrap(), 1_000, 20_000);
         let mut events = Vec::new();
-        simulation.direct_effect(1, 2, &mut events).unwrap();
+        simulation
+            .direct_effect(1, FightActorRef::Unit(2), &mut events)
+            .unwrap();
         assert_eq!(
             [simulation.actors[&2].life, simulation.actors[&3].life],
             [1_253, 1_253]
@@ -7411,7 +7507,9 @@ mod tests {
         };
         let mut events = Vec::new();
 
-        simulation.direct_effect(1, 2, &mut events).unwrap();
+        simulation
+            .direct_effect(1, FightActorRef::Unit(2), &mut events)
+            .unwrap();
 
         assert_eq!(events.len(), 2);
         assert_eq!(events[0].payload, EventPayload::Damage { amount: 1 });
@@ -7446,7 +7544,9 @@ mod tests {
         let secondary_life = simulation.actors[&3].life;
 
         let mut events = Vec::new();
-        simulation.direct_effect(1, 2, &mut events).unwrap();
+        simulation
+            .direct_effect(1, FightActorRef::Unit(2), &mut events)
+            .unwrap();
 
         assert_eq!(simulation.actors[&2].life, primary_life - 79);
         assert_eq!(simulation.actors[&3].life, secondary_life);
@@ -7478,7 +7578,7 @@ mod tests {
         building.position = point(1_000, 20_000);
         let previous_life = simulation.actors[&2].life;
         let error = simulation
-            .direct_effect(1, 2, &mut Vec::new())
+            .direct_effect(1, FightActorRef::Unit(2), &mut Vec::new())
             .unwrap_err()
             .to_string();
         assert!(error.contains("splash against a building is not closed"));
@@ -8827,6 +8927,51 @@ mod tests {
             fallen.weapon_aims[0].attack_target,
             Some(ObjectRef::new(ObjectKind::Building, 6)),
             "the weapon still names the block it felled"
+        );
+    }
+
+    /// A block that comes into the way while an attack on a unit is being
+    /// prepared ends that attack, and the unit looks again before firing.
+    ///
+    /// Steel Ball 4 of `wall-laser.yaml` prepares a beam on the Marksman behind
+    /// the wall from tick 140. Block 3 stands 11.507 metres off its line until
+    /// tick 144 and 11.447 at 145, inside the 11.5 the line is wide: on tick
+    /// 146 the game reads it idle, with no lock and no weapon target, and on
+    /// 147 on block 3 with its lock back on the Marksman.
+    /// `tests/construction/attacks.mcscript` recorded it.
+    #[test]
+    fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
+        let config = SimulationConfig::load().unwrap();
+        let (_, layout) = crate::layout::compile_with_seed(
+            include_bytes!("../../../tests/construction/wall-laser.yaml"),
+            &config.units,
+        )
+        .unwrap();
+        let mut simulation =
+            Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+        for step in 0..145 {
+            simulation.step(step).unwrap();
+        }
+        assert!(matches!(
+            simulation.actors[&4].fight_skill_phase,
+            FightSkillPhase::Prepare { .. }
+        ));
+        simulation.step(145).unwrap();
+        let interrupted = simulation.actors[&4].snapshot();
+        assert_eq!(interrupted.motion_state, MotionState::Idle);
+        assert_eq!(interrupted.mech_lock_target, None);
+        assert_eq!(interrupted.weapon_aims[0].attack_target, None);
+
+        simulation.step(146).unwrap();
+        let turned = simulation.actors[&4].snapshot();
+        assert_eq!(turned.motion_state, MotionState::Attacking);
+        assert_eq!(
+            turned.mech_lock_target,
+            Some(ObjectRef::new(ObjectKind::Unit, 1))
+        );
+        assert_eq!(
+            turned.weapon_aims[0].attack_target,
+            Some(ObjectRef::new(ObjectKind::Building, 3))
         );
     }
 
