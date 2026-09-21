@@ -97,10 +97,9 @@ simulator agrees with that fight's physics to tick 95 and its positions to 120,
 which includes the Crawler pressed 0.711 metres from a block's centre. At 96 a
 Crawler the game reads idle and lockless keeps attacking in the simulator.
 
-**The placing side's Crawlers crossing their own wall, from tick 44 of
-`wall-passage.yaml`.** Their avoidance velocities part there. The wall is no
-neighbour to them in the simulator; whether the game still counts it among a
-Crawler's twenty neighbours and only then ignores it is the next reading.
+**Who a Crawler locks at the end of `wall-passage.yaml`.** Its physics agrees
+with the game on all 341 ticks; its content parts for four ticks from 327, in
+the locks and motion of Crawlers retargeting as the last enemy dies.
 
 **How long a unit stays idle once its block falls.** That it goes idle, drops
 its lock and keeps the fallen block in its weapon is reproduced. How long it

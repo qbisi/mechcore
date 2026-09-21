@@ -94,3 +94,13 @@ steps:
       steps: 243
       winner: red
       hashes.physics_result_hash: 6cfed0b5e5bff3304b97e87d582d3b7043f95d72a34670267d9b73b5f28ad43b
+
+  # The side that placed the wall, crossing it. Twenty-four Crawlers walk
+  # through their own blocks, which still take places among their twenty
+  # neighbours and yield them no obstacle. 341 ticks, the game's hash.
+  - fight.run:
+      layout: tests/construction/wall-passage.yaml
+      seed: 4242
+    expect:
+      steps: 341
+      hashes.physics_result_hash: 742ab9964980d2df6bca04e90546f5e54f3ea91e317158e639e3923875ec552c
