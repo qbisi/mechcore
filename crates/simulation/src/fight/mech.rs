@@ -87,14 +87,12 @@ impl Actor {
                 current_attack_interval: 0,
                 lock_target: None,
                 in_the_way: None,
-                cooling_candidate: None,
-                cooling_hold: None,
                 lock_is_terminal_handoff: false,
                 // FightSkill owns a second SearchTargetController. FightPrepareState
                 // replaces this constructor value with the presearch batch ordinal.
                 search_target_time: SEARCH_TARGET_RESET_TICKS,
                 searched_this_tick: false,
-                phase: FightSkillPhase::Idle,
+                state: SkillState::Idle { ready_step: None },
                 group_skill_targets: vec![None; group_skill_count],
                 group_in_the_way: vec![None; group_skill_count],
                 group_skill_next_attack_steps: vec![0; group_skill_count],
@@ -105,8 +103,6 @@ impl Actor {
                 projectile_burst_finished_same_tick_dead: false,
                 laser_attack_count: 0,
                 retarget_after_own_direct_kill: false,
-                pending: None,
-                backswing_finish_step: None,
             },
         }
     }
@@ -117,11 +113,11 @@ impl Actor {
 
     pub(in crate::fight) fn exit_fight_on_death(&mut self) {
         self.motion.state = MotionState::Idle;
-        self.skill.pending = None;
+        self.skill.set_pending(None);
         self.skill.lock_target = None;
         self.skill.lock_is_terminal_handoff = false;
         self.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        self.skill.phase = FightSkillPhase::Idle;
+        self.skill.set_phase(FightSkillPhase::Idle);
         self.skill.group_skill_targets.fill(None);
         self.skill.group_in_the_way.fill(None);
         self.skill.group_skill_next_attack_steps.fill(0);
@@ -214,7 +210,8 @@ impl Actor {
                 } else {
                     self.skill.attack_target().or_else(|| {
                         self.skill
-                            .cooling_candidate
+                            .cooling()
+                            .and_then(|(_, candidate)| candidate)
                             .filter(|_| self.skill.lock_target.is_none())
                     })
                 };

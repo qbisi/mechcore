@@ -130,7 +130,7 @@ fn zero_published_speed_still_snaps_a_tolerance_equal_rvo_delta() {
     actor.motion.published_target_z_q32 = 1_696_431_622_651;
     actor.motion.published_speed_q32 = 0;
     actor.skill.lock_target = Some(unit_target(2));
-    actor.skill.backswing_finish_step = Some(10);
+    actor.skill.set_backswing_finish_step(Some(10));
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor_rvo_position(1);
@@ -494,7 +494,7 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
                 );
                 assert_eq!(arclight.motion.next_speed_q32, 0);
                 assert_eq!(arclight.body_rotation, tick_121_body_rotation.unwrap());
-                assert!(arclight.skill.pending.is_none());
+                assert!(arclight.skill.pending().is_none());
             }
             123..=127 => {
                 let expected_z = 60_800 - i64::try_from(tick - 122).unwrap() * 350;

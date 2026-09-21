@@ -123,9 +123,9 @@ impl Simulation {
             .iter()
             .flatten()
             .any(|target_id| !self.actors.get(target_id).is_some_and(Actor::alive));
-        let core_has_entered_attack = actor.skill.phase == FightSkillPhase::Attack
+        let core_has_entered_attack = actor.skill.phase() == FightSkillPhase::Attack
             || matches!(
-                actor.skill.phase,
+                actor.skill.phase(),
                 FightSkillPhase::Prepare { finish_step }
                     if finish_step <= step.saturating_add(1)
             );

@@ -55,7 +55,7 @@ pub(crate) use run::*;
 pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
-use skill::{FightSkillPhase, Skill};
+use skill::{FightSkillPhase, Skill, SkillState};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 
@@ -532,9 +532,9 @@ impl Simulation {
                     && team_has_bodyful_projectile
                     && (actor.motion.current_velocity_x_q32 != 0
                         || actor.motion.current_velocity_z_q32 != 0)
-                    && actor.skill.pending.is_none()
-                    && actor.skill.backswing_finish_step.is_none()
-                    && actor.skill.phase == FightSkillPhase::Idle
+                    && actor.skill.pending().is_none()
+                    && actor.skill.backswing_finish_step().is_none()
+                    && actor.skill.phase() == FightSkillPhase::Idle
                     && !actor.motion.attack_hold_fire
                     && actor.skill.searched_this_tick
                     && actor.skill.attack_target().is_none();
@@ -719,10 +719,9 @@ impl Simulation {
                 actor.motion.state = MotionState::Idle;
                 actor.skill.drop_lock();
                 // `FightSkill.ExitFight` ends a cooling as well.
-                actor.skill.cooling_hold = None;
-                actor.skill.cooling_candidate = None;
+                actor.skill.set_cooling(None);
                 actor.skill.lock_is_terminal_handoff = false;
-                actor.skill.phase = FightSkillPhase::Idle;
+                actor.skill.set_phase(FightSkillPhase::Idle);
                 if ready_to_finish {
                     actor.motion.current_velocity_x_q32 = 0;
                     actor.motion.current_velocity_z_q32 = 0;
