@@ -1,6 +1,9 @@
 mod check;
+mod construction;
 mod group;
 mod perform;
+
+pub(in crate::fight) use perform::Launch;
 
 use super::*;
 
@@ -41,6 +44,9 @@ pub(in crate::fight) enum SkillState {
         started: u64,
         candidate: Option<FightActorRef>,
     },
+    /// `SkillReloadingState`: a skill that fires from a magazine and has
+    /// emptied it, until the step its reload is over.
+    Reloading { finish_step: u64 },
 }
 
 /// Where `SkillAttackController` is in a blow.
@@ -126,10 +132,70 @@ pub(in crate::fight) struct Skill {
 }
 
 impl Skill {
+    /// A skill entering the fight: idle, no lock, nothing scheduled.
+    pub(in crate::fight) fn new(weapon_rotations_q32: Vec<i64>, group_skill_count: usize) -> Self {
+        Self {
+            weapon_rotations_q32,
+            next_attack_step: 0,
+            current_attack_interval: 0,
+            lock_target: None,
+            in_the_way: None,
+            lock_is_terminal_handoff: false,
+            // FightSkill owns a second SearchTargetController. FightPrepareState
+            // replaces this constructor value with the presearch batch ordinal.
+            search_target_time: SEARCH_TARGET_RESET_TICKS,
+            searched_this_tick: false,
+            state: SkillState::Idle { ready_step: None },
+            group_skill_targets: vec![None; group_skill_count],
+            group_in_the_way: vec![None; group_skill_count],
+            group_skill_next_attack_steps: vec![0; group_skill_count],
+            group_skill_prepare_ready_steps: vec![0; group_skill_count],
+            group_pending_releases: Vec::new(),
+            projectile_pending_releases: Vec::new(),
+            laser_attack_count: 0,
+            retarget_after_own_direct_kill: false,
+        }
+    }
+
+    /// `SkillAttackState.TryPerformAttack` once the interval is up: draws the
+    /// next interval from the team's stream, schedules the next attack after
+    /// it, and winds up a blow that lands after the attack point.
+    ///
+    /// The draw is taken only when the skill has a random offset, so a skill
+    /// without one leaves the stream to the next owner.
+    pub(in crate::fight) fn schedule_blow(
+        &mut self,
+        random: &mut GrRandom,
+        step: u64,
+        interval_steps: u64,
+        offset_steps: u64,
+        attack_point_steps: u64,
+        target: FightActorRef,
+    ) {
+        let sample = if offset_steps == 0 {
+            0
+        } else {
+            i64::from(random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)))
+        };
+        let sampled = i64::try_from(interval_steps)
+            .unwrap_or(i64::MAX)
+            .saturating_add(sample)
+            .max(1)
+            .cast_unsigned();
+        self.next_attack_step = step.saturating_add(sampled);
+        self.current_attack_interval = sampled;
+        self.set_pending(Some(PendingRelease {
+            step: step.saturating_add(attack_point_steps),
+            target,
+        }));
+    }
+
     /// The coarse phase: idle (a cooling reads idle), preparing, attacking.
     pub(in crate::fight) const fn phase(&self) -> FightSkillPhase {
         match self.state {
-            SkillState::Idle { .. } | SkillState::Cooling { .. } => FightSkillPhase::Idle,
+            SkillState::Idle { .. } | SkillState::Cooling { .. } | SkillState::Reloading { .. } => {
+                FightSkillPhase::Idle
+            }
             SkillState::Prepare { finish_step } => FightSkillPhase::Prepare { finish_step },
             SkillState::Attack(_) => FightSkillPhase::Attack,
         }
@@ -689,29 +755,20 @@ impl Simulation {
             let interval_steps = native_time_units_to_steps(actor.stats.attack_interval());
             let offset_steps =
                 native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
-            let sample = if offset_steps == 0 {
-                0
-            } else {
-                i64::from(
-                    self.team_random
-                        .get_mut(&actor.placement.team)
-                        .expect("every actor team owns one attack random stream")
-                        .next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)),
-                )
-            };
-            let sampled = i64::try_from(interval_steps)
-                .unwrap_or(i64::MAX)
-                .saturating_add(sample)
-                .max(1)
-                .cast_unsigned();
-            actor.skill.next_attack_step = step.saturating_add(sampled);
-            actor.skill.current_attack_interval = sampled;
             let attack_point_steps =
                 native_time_units_to_steps(actor.rules.attack.attack_point_time_units());
-            actor.skill.set_pending(Some(PendingRelease {
-                step: step.saturating_add(attack_point_steps),
+            let random = self
+                .team_random
+                .get_mut(&actor.placement.team)
+                .expect("every actor team owns one attack random stream");
+            actor.skill.schedule_blow(
+                random,
+                step,
+                interval_steps,
+                offset_steps,
+                attack_point_steps,
                 target,
-            }));
+            );
         }
     }
 

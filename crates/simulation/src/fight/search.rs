@@ -642,3 +642,106 @@ impl Simulation {
         Ok(selected)
     }
 }
+
+impl Simulation {
+    /// Whether a construction reaches a target, edge to edge.
+    pub(in crate::fight) fn construction_reaches_target(
+        &self,
+        building_id: u64,
+        target: FightActorRef,
+    ) -> bool {
+        let construction = &self.constructions[&building_id];
+        self.fight_actor(target).is_some_and(|view| {
+            view.alive
+                && view.targetable
+                && construction_reaches(construction, view.x_q32, view.z_q32, view.radius)
+        })
+    }
+
+    /// Whether a construction's weapon points within its attack angle of a
+    /// target: `SkillAttackAngleChecker.IsAttackTargetInAttackAngle`.
+    pub(in crate::fight) fn construction_faces_target(
+        &self,
+        building_id: u64,
+        target: FightActorRef,
+    ) -> bool {
+        let construction = &self.constructions[&building_id];
+        let Some(view) = self.fight_actor(target) else {
+            return false;
+        };
+        let bearing_q32 = direction_degrees_q32_raw(
+            view.x_q32.saturating_sub(construction.x_q32),
+            view.z_q32.saturating_sub(construction.z_q32),
+        );
+        let half_angle_q32 = mdeg_to_degrees_q32(construction.attack.attack_half_angle_mdeg());
+        construction
+            .skill
+            .weapon_rotations_q32
+            .iter()
+            .all(|rotation| rotation_distance_q32(*rotation, bearing_q32) <= half_angle_q32)
+    }
+
+    /// `MainSkillSearchTargetController` for a construction's skill: the
+    /// selector a unit's skill uses, scored from where the weapon points,
+    /// over the other side's candidates in the order the target trees hold
+    /// them, measured at the tick's start.
+    pub(in crate::fight) fn select_construction_target(
+        &self,
+        building_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Option<FightActorRef> {
+        let construction = &self.constructions[&building_id];
+        if !construction.searches {
+            return None;
+        }
+        let mut best: Option<(FightActorRef, i64)> = None;
+        for (&team, candidates) in target_search_order {
+            if team == construction.team {
+                continue;
+            }
+            for &candidate in candidates {
+                let Some(target) = self.fight_actor(candidate) else {
+                    continue;
+                };
+                if target.team != team
+                    || !target.query_alive
+                    || !target.targetable
+                    || matches!(candidate, FightActorRef::Building(id)
+                        if self.unsearchable_buildings.contains(&id))
+                    || !construction.attack.accepts(target.domain)
+                {
+                    continue;
+                }
+                let Some(score) = normal_visible_full_rotation_target_score_q32(
+                    construction.x_q32,
+                    construction.z_q32,
+                    construction.radius,
+                    construction.skill.weapon_rotations_q32[0],
+                    target.query_x_q32,
+                    target.query_z_q32,
+                    target.radius,
+                    construction.attack.min_range(),
+                    construction.attack.range(),
+                ) else {
+                    continue;
+                };
+                if best.is_none_or(|(_, lowest)| score < lowest) {
+                    best = Some((candidate, score));
+                }
+            }
+        }
+        best.map(|(candidate, _)| candidate)
+    }
+}
+
+fn construction_reaches(construction: &Construction, x_q32: i64, z_q32: i64, radius: i64) -> bool {
+    let distance_q32 = native_q32_magnitude(
+        x_q32.saturating_sub(construction.x_q32),
+        z_q32.saturating_sub(construction.z_q32),
+    )
+    .saturating_sub(space_to_q32(construction.radius))
+    .saturating_sub(space_to_q32(radius))
+    .max(0);
+    distance_q32 >= space_to_q32(construction.attack.min_range())
+        && distance_q32 <= space_to_q32(construction.attack.range())
+}

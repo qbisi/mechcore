@@ -149,6 +149,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         fallen_buildings: Vec::new(),
         construction_colliders: construction_colliders.clone(),
         unsearchable_buildings: unsearchable.clone(),
+        constructions: BTreeMap::new(),
     };
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
 }

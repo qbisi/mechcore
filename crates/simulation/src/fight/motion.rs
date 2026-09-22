@@ -516,8 +516,15 @@ impl Simulation {
                 // tick.
                 // A felled block is held differently: the Rhino of
                 // `wall-rhino.yaml` reads attacking, still on the block, until
-                // its swing is over, and only then goes idle.
-                let holds_a_block = matches!(target, FightActorRef::Building(_));
+                // its swing is over, and only then goes idle. That is a block
+                // in the way of another lock; a building that was the lock
+                // itself is held as a unit is — the Crawlers whose swing the
+                // Anti-Armor Turret of `anti-armor-head-on.yaml` fell in read
+                // idle on the tick it fell, still on it, until their swing is
+                // over.
+                let holds_a_block = matches!(target, FightActorRef::Building(_))
+                    && (self.actors[&actor_id].skill.lock_target != Some(target)
+                        || self.actors[&actor_id].skill.lock_is_terminal_handoff);
                 // And keeps turning to it: the Crawlers of `wall-block.yaml`
                 // that fell block 5 face it a little more each tick of their
                 // swing, as they did while it stood.

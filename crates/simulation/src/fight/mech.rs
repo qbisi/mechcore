@@ -81,27 +81,7 @@ impl Actor {
                 state: MotionState::Idle,
                 attack_hold_fire: false,
             },
-            skill: Skill {
-                weapon_rotations_q32,
-                next_attack_step: 0,
-                current_attack_interval: 0,
-                lock_target: None,
-                in_the_way: None,
-                lock_is_terminal_handoff: false,
-                // FightSkill owns a second SearchTargetController. FightPrepareState
-                // replaces this constructor value with the presearch batch ordinal.
-                search_target_time: SEARCH_TARGET_RESET_TICKS,
-                searched_this_tick: false,
-                state: SkillState::Idle { ready_step: None },
-                group_skill_targets: vec![None; group_skill_count],
-                group_in_the_way: vec![None; group_skill_count],
-                group_skill_next_attack_steps: vec![0; group_skill_count],
-                group_skill_prepare_ready_steps: vec![0; group_skill_count],
-                group_pending_releases: Vec::new(),
-                projectile_pending_releases: Vec::new(),
-                laser_attack_count: 0,
-                retarget_after_own_direct_kill: false,
-            },
+            skill: Skill::new(weapon_rotations_q32, group_skill_count),
         }
     }
 

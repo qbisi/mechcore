@@ -21,9 +21,18 @@ Two checks stand between the export and the table.
 * Every row must carry a positive `count` and `maxLife`, because both are per
   child and a zero would mean the fields are not the ones they are named.
 
-    python3 scripts/extract-constructions.py
+A construction a layout can place that deals damage fires a skill, and its
+`ProjectileSkillData` row is written under `skills` in the shape a unit's
+`attack` has. That row is in `level0` rather than in this export, and
+`scripts/extract-skills.py` reads it, checking itself against the Marksman's
+row first; the construction's own `damage` and `attackAngle` are written as
+its `base_damage` and `attack_half_angle`, which the loader checks back.
+Reading `level0` needs UnityPy, so this runs under the asset environment:
+
+    work/tools/asset-venv/bin/python scripts/extract-constructions.py
 """
 
+import importlib.util
 import json
 import pathlib
 import re
@@ -98,6 +107,109 @@ def rows():
     return container["m_Structure"]["constructionDatas"]
 
 
+def skill_reader():
+    """`scripts/extract-skills.py`, whose file name is not a module name."""
+    spec = importlib.util.spec_from_file_location("extract_skills", ROOT / "scripts/extract-skills.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def skill_rows(entries):
+    """The skill each placeable construction that deals damage fires."""
+    firing = [body for body in entries if "layout_name" in body and body["damage"] != 0]
+    if not firing:
+        return []
+    reader = skill_reader()
+    read = reader.rows()
+    reader.check_marksman(read)
+    every = {row["id"]: row for row in read}
+    skills = {}
+    for body in firing:
+        row = every.get(body["skill_id"])
+        if row is None or row["kind"] != "projectile":
+            raise SystemExit(
+                f"construction {body['id']} ({body['layout_name']}) fires skill "
+                f"{body['skill_id']}, which is not a ProjectileSkillData row"
+            )
+        skills[row["id"]] = attack(row, body)
+    return [skills[id_] for id_ in sorted(skills)]
+
+
+# `GameRiver.Fight.WeaponMode`.
+WEAPON_MODES = {0: "normal", 1: "group", 2: "standalone"}
+
+
+def number(value):
+    """An FPoint as the decimal it was authored as: 0.2999999998 is 0.3."""
+    rounded = round(value, 6)
+    return int(rounded) if rounded == int(rounded) else rounded
+
+
+def attack(row, body):
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "attack": {
+            "base_damage": body["damage"],
+            "min_range": number(row["minAttackRange"]),
+            "range": number(row["attackRange"]),
+            "attack_half_angle": number(body["attack_angle"] / ONE),
+            "targets": {"ground": row["canAttackGround"], "air": row["canAttackAir"]},
+            "lock_target": row["isLockTarget"],
+            "quick_switch_target": row["enableQuickSwitchTarget"],
+            "timing": {
+                "interval": number(row["attackDuration"]),
+                "interval_offset": number(row["attackDurationRandomValue"]),
+                "initial_cooldown": number(row["initialCoolDownTime"]),
+                "prepare": number(row["prepareTime"]),
+                "attack_point": number(row["attackPoint"]),
+                "backswing": number(row["attackBackswing"]),
+                "cooling": number(row["coolingTime"]),
+            },
+            "splash_radius": number(row["splashRange"]),
+            "weapons": {
+                "mode": WEAPON_MODES[row["weaponMode"]],
+                "count": len(row["weapons"]),
+                "per_skill": row["weaponCountPerSkill"],
+            },
+            "path": {
+                "type": "projectile",
+                "count": row["projectileCount"],
+                "release_interval": number(row["projectileDuration"]),
+                "speed": number(row["bulletSpeed"]),
+                "target_offset_radius": number(row["randomTargetRange"]),
+                "evenly_allocate_targets": row["isEvenlyAllocated"],
+                "extra_search_range": number(row["extraSearchRange"]),
+                "pre_flight_height": number(row["preFlyHeight"]),
+                "simulated_motion": row["isSimulateMode"],
+                "interceptible": row["canBeIntercept"],
+                "max_life": (row["maxLife"] or [0])[0],
+            },
+            **(
+                {"magazine": {"capacity": row["loadingCapacity"], "reload": number(row["reloadingTime"])}}
+                if row["isLoadingType"]
+                else {}
+            ),
+        },
+    }
+
+
+def render_mapping(value, indent):
+    """A nested mapping as block YAML, with two small mappings kept inline."""
+    lines = []
+    for key, item in value.items():
+        if isinstance(item, dict) and key in ("targets", "magazine"):
+            inline = ", ".join(f"{k}: {scalar(v)}" for k, v in item.items())
+            lines.append(f"{indent}{key}: {{{inline}}}")
+        elif isinstance(item, dict):
+            lines.append(f"{indent}{key}:")
+            lines.extend(render_mapping(item, indent + "  "))
+        else:
+            lines.append(f"{indent}{key}: {scalar(item)}")
+    return lines
+
+
 def check(row, named):
     """Refuse a row this script has not understood, naming the construction."""
     id_ = row["id"]
@@ -138,7 +250,7 @@ def scalar(value):
     return str(value)
 
 
-def render(entries):
+def render(entries, skills):
     lines = [
         "schema: mechcore.constructions",
         f"game_build: {BUILD}",
@@ -170,6 +282,27 @@ def render(entries):
                 comment = f"  # {value // ONE} m"
             lines.append(f"{prefix}{key}: {scalar(value)}{comment}")
             first = False
+    if skills:
+        lines += [
+            "",
+            "# What a construction's skill does, for the constructions that fire one.",
+            "#",
+            "# Each is the `ProjectileSkillData` row the construction's `skill_id` names,",
+            "# read out of `level0` (the `MechSkillGroupData` object at path 173) by",
+            "# `scripts/extract-skills.py`, in the shape `config/units/*.yaml` gives a",
+            "# unit's `attack`. Two numbers are the construction row's rather than the",
+            "# skill's, and the loader refuses a table where they disagree: `base_damage`",
+            "# is the row's `damage` (a skill row carries none), and `attack_half_angle`",
+            "# is the row's `attack_angle`. `magazine` is the row's `loadingCapacity` and",
+            "# `reloadingTime`; `docs/rules/turrets.md` says what each was measured",
+            "# against.",
+            "skills:",
+        ]
+        for skill in skills:
+            lines.append(f"  - id: {skill['id']}")
+            lines.append(f"    name: {scalar(skill['name'])}")
+            lines.append("    attack:")
+            lines.extend(render_mapping(skill["attack"], "      "))
     return "\n".join(lines) + "\n"
 
 
@@ -182,8 +315,12 @@ def main():
     for row in sorted(rows(), key=lambda row: row["id"]):
         check(row, named)
         entries.append(entry(row, named))
-    OUTPUT.write_text(render(entries), encoding="utf-8")
-    print(f"{OUTPUT}: {len(entries)} constructions, {len(named)} checked against the catalog")
+    skills = skill_rows(entries)
+    OUTPUT.write_text(render(entries, skills), encoding="utf-8")
+    print(
+        f"{OUTPUT}: {len(entries)} constructions, {len(named)} checked against the catalog, "
+        f"{len(skills)} skills"
+    )
     return 0
 
 

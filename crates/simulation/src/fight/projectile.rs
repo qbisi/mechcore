@@ -4,7 +4,8 @@ use super::*;
 pub(in crate::fight) struct Projectile {
     pub(in crate::fight) id: u64,
     pub(in crate::fight) team: u32,
-    pub(in crate::fight) owner: u64,
+    /// Who released it: a unit, or a construction whose skill fires.
+    pub(in crate::fight) owner: FightActorRef,
     pub(in crate::fight) target_kind: ObjectKind,
     pub(in crate::fight) target: u64,
     pub(in crate::fight) x: i64,
@@ -35,7 +36,7 @@ impl Projectile {
         ProjectileState {
             projectile_id: self.id,
             team_id: self.team,
-            owner: Some(ObjectRef::new(ObjectKind::Unit, self.owner)),
+            owner: Some(self.owner.object_ref()),
             position: QVec3 {
                 x: self.x_q32,
                 y: self.y_q32,
@@ -131,10 +132,7 @@ impl Simulation {
         projectile: &Projectile,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let owner = self
-            .actors
-            .get(&projectile.owner)
-            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let (owner_team, splash_radius) = self.attacker(projectile.owner)?;
         let (aimed, reach) = if projectile.target_kind == ObjectKind::Building {
             // A building stands on the ground, and a projectile narrows a
             // dual-domain skill to its target's domain.
@@ -155,14 +153,14 @@ impl Simulation {
             )
         };
         let hit = DamageHit {
-            source: ObjectRef::new(ObjectKind::Unit, projectile.owner),
+            source: projectile.owner.object_ref(),
             source_team: projectile.team,
-            team: owner.placement.team,
+            team: owner_team,
             amount: projectile.damage,
             aimed,
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),
-            splash_radius: owner.rules.attack.splash_radius(),
+            splash_radius,
             reach,
         };
         let struck = self.perform_damage(hit, events)?;

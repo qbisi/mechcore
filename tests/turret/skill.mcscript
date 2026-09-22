@@ -5,10 +5,10 @@
 #
 # A turret is a `FightConstruction`, which updates a `SkillManager` like a
 # unit does and finds its lock target through its own
-# `ConstructionSearchTargetController`. Nothing in the simulator fires one
-# yet, so nothing here runs the simulator: these fights are the oracle a
-# research question is answered against, and the readings are the ticks of
-# the turret's `projectile_released` events and the damage they do.
+# `ConstructionSearchTargetController`. These fights are the oracle
+# `docs/rules/turrets.md` was measured against, read off the ticks of the
+# turret's `projectile_released` events and the damage they do;
+# `regressions.mcscript` holds the simulator to them without the game.
 #
 # Three fights and a control:
 #

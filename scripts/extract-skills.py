@@ -165,11 +165,8 @@ def close(a, b):
     return abs(a - b) < 1e-6
 
 
-def main(argv):
-    if len(argv) < 2:
-        print(__doc__.strip(), file=sys.stderr)
-        return 2
-    every = rows()
+def check_marksman(every):
+    """Refuse a reading whose Marksman row is not the one the unit config holds."""
     marksman = next((row for row in every if row["id"] == MARKSMAN), None)
     if marksman is None or not (
         close(marksman["attackRange"], 140)
@@ -181,6 +178,14 @@ def main(argv):
         and close(marksman["bulletSpeed"], 500)
     ):
         sys.exit("the Marksman's row does not reproduce config/units/marksman.yaml; the field layout moved")
+
+
+def main(argv):
+    if len(argv) < 2:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    every = rows()
+    check_marksman(every)
     wanted = None if argv[1] == "--all" else {int(a) for a in argv[1:]}
     for row in every:
         if wanted is None or row["id"] in wanted:

@@ -1,5 +1,22 @@
 use super::*;
 
+/// Where a projectile leaves from and what it carries: the attacker's side of
+/// `ProjectileSystem.Create`.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct Launch {
+    pub(in crate::fight) owner: FightActorRef,
+    pub(in crate::fight) team: u32,
+    pub(in crate::fight) x: i64,
+    pub(in crate::fight) z: i64,
+    pub(in crate::fight) x_q32: i64,
+    pub(in crate::fight) y: i64,
+    pub(in crate::fight) z_q32: i64,
+    pub(in crate::fight) speed: i64,
+    pub(in crate::fight) damage: i64,
+    pub(in crate::fight) life: i64,
+    pub(in crate::fight) lock_target: bool,
+}
+
 impl Simulation {
     pub(in crate::fight) fn release(
         &mut self,
@@ -371,23 +388,65 @@ impl Simulation {
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
-        let owner = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        let projectile = Projectile {
-            id: projectile_id,
+        let owner = &self.actors[&actor_id];
+        let source = Launch {
+            owner: FightActorRef::Unit(actor_id),
             team: owner.placement.team,
-            owner: actor_id,
-            target_kind,
-            target: target_id,
             x: owner.x,
-            y: unit_height(owner.rules.domain),
             z: owner.z,
             x_q32: owner.x_q32,
-            y_q32: space_to_q32(unit_height(owner.rules.domain)),
+            y: unit_height(owner.rules.domain),
             z_q32: owner.z_q32,
+            speed: owner.rules.attack.projectile_speed(),
+            damage: owner.stats.attack_damage(),
+            life: owner.rules.attack.projectile_life(),
+            lock_target: owner.rules.attack.lock_target,
+        };
+        self.launch_projectile(
+            source,
+            target_kind,
+            target_id,
+            (target_x, target_y, target_z),
+            (target_x_q32, target_z_q32),
+            target_radius,
+            skill_slot,
+            weapon_index,
+            events,
+        )
+    }
+
+    /// Puts a projectile in flight from its source at a target, and records
+    /// its release: `ProjectileSystem.Create` for any `IAttacker`, a unit's
+    /// skill or a construction's.
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the parameters mirror the native projectile release call"
+    )]
+    pub(in crate::fight) fn launch_projectile(
+        &mut self,
+        source: Launch,
+        target_kind: ObjectKind,
+        target_id: u64,
+        (target_x, target_y, target_z): (i64, i64, i64),
+        (target_x_q32, target_z_q32): (i64, i64),
+        target_radius: i64,
+        skill_slot: usize,
+        weapon_index: usize,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
+        let projectile = Projectile {
+            id: projectile_id,
+            team: source.team,
+            owner: source.owner,
+            target_kind,
+            target: target_id,
+            x: source.x,
+            y: source.y,
+            z: source.z,
+            x_q32: source.x_q32,
+            y_q32: space_to_q32(source.y),
+            z_q32: source.z_q32,
             cached_target_x: target_x,
             cached_target_y: target_y,
             cached_target_z: target_z,
@@ -395,16 +454,16 @@ impl Simulation {
             cached_target_y_q32: space_to_q32(target_y),
             cached_target_z_q32: target_z_q32,
             cached_target_radius: target_radius,
-            speed: owner.rules.attack.projectile_speed(),
-            damage: owner.stats.attack_damage(),
-            life: owner.rules.attack.projectile_life(),
-            lock_target: owner.rules.attack.lock_target,
+            speed: source.speed,
+            damage: source.damage,
+            life: source.life,
+            lock_target: source.lock_target,
         };
         let projectile_ref = projectile.object_ref();
         events.push(event(
             Some(projectile_ref),
-            Some(owner.object_ref()),
-            Some(owner.placement.team),
+            Some(source.owner.object_ref()),
+            Some(source.team),
             Some(ObjectRef::new(target_kind, target_id)),
             EventPayload::ProjectileReleased {
                 skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),

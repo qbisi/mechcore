@@ -114,6 +114,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
+            constructions: BTreeMap::new(),
         }
     };
     let mut simulation = make_simulation();

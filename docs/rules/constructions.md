@@ -5,8 +5,8 @@
 This index is pinned to game build 2259. It states what a construction placed
 by a layout becomes in a fight, what numbers it carries, whether it obstructs
 anything, and which of that has been measured against the game rather than only
-read out of it. What a construction *does* on its own — a turret's skill, a
-barrier's slow — is not here.
+read out of it. What a construction *does* on its own is not here: a turret's
+skill is [`turrets.md`](turrets.md)'s, and a barrier's slow is nobody's yet.
 
 The machine-readable table is
 [`config/constructions.yaml`](../../config/constructions.yaml), and
@@ -310,8 +310,8 @@ The map's own buildings are the exception and are named: each side gets one
 
 Everything above is build 2259 and the 1v1 board. It covers what stands when a
 fight begins, whether a Crawler-sized unit is held by a Defensive Wall, and
-which wall a unit shoots when one is in its way. It does not cover what a
-turret's skill is, what a Magnetic Barrier does to what
+which wall a unit shoots when one is in its way. What a turret's skill does is
+[`turrets.md`](turrets.md)'s. It does not cover what a Magnetic Barrier does to what
 comes near it, what a unit too large for the gaps between blocks does, what
 destroying a construction pays, or what any of it costs —
 [`economy.yaml`](../../config/economy.yaml) carries the recovery price and

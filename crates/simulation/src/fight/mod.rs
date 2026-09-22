@@ -26,11 +26,12 @@ use crate::{
     Error, Result,
     layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
-        AttackPath, AttackTargets, RvoSize, SimulationConfig, TrainingGroundConfig, UnitConfig,
-        UnitConfigs, UnitDomain, WeaponMode,
+        AttackConfig, AttackPath, AttackTargets, RvoSize, SimulationConfig, TrainingGroundConfig,
+        UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
     },
 };
 
+mod construction;
 mod damage;
 mod deploy;
 mod math;
@@ -45,6 +46,7 @@ mod skill;
 #[cfg(test)]
 mod tests;
 
+use construction::*;
 use damage::*;
 use deploy::*;
 pub(crate) use math::*;
@@ -55,7 +57,7 @@ pub(crate) use run::*;
 pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
-use skill::{FightSkillPhase, Skill, SkillState};
+use skill::{FightSkillPhase, Launch, Skill};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 
@@ -209,6 +211,8 @@ struct Simulation {
     /// The buildings no unit searches for, which the target trees hold all
     /// the same.
     unsearchable_buildings: BTreeSet<u64>,
+    /// The constructions whose skill fires, by building.
+    constructions: BTreeMap<u64, Construction>,
 }
 
 impl Simulation {
@@ -288,6 +292,37 @@ impl Simulation {
             unsearchable,
             colliders: construction_colliders,
         } = initialize_buildings(training_ground, &layout.constructions)?;
+        let mut constructions = initialize_constructions(&buildings, &layout.constructions)?;
+        // A construction's skill draws its stagger at deployment as a unit's
+        // does, from its side's stream, after every unit's: the Anti-Armor
+        // Turret's shots in `tests/turret/` are 49 48 52 50 50 ticks apart,
+        // which is blue's stream past the Marksman's draw and one more.
+        for construction in constructions.values_mut() {
+            let random = team_random.entry(construction.team).or_insert_with(|| {
+                GrRandom::new(u64::from(
+                    layout
+                        .round
+                        .cast_signed()
+                        .wrapping_add(construction.team.cast_signed())
+                        .wrapping_mul(4_444)
+                        .cast_unsigned(),
+                ))
+            });
+            let interval_steps =
+                native_time_units_to_steps(construction.attack.interval_time_units());
+            let offset_steps =
+                native_time_units_to_steps(construction.attack.interval_offset_time_units());
+            let sample = if offset_steps > 0 {
+                i64::from(random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)))
+            } else {
+                0
+            };
+            construction.skill.current_attack_interval = i64::try_from(interval_steps)
+                .unwrap_or(i64::MAX)
+                .saturating_add(sample)
+                .max(1)
+                .cast_unsigned();
+        }
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         Ok(Self {
             actors,
@@ -303,6 +338,7 @@ impl Simulation {
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
+            constructions,
         })
     }
 
@@ -433,6 +469,16 @@ impl Simulation {
                     &mut events,
                 )?;
                 self.step_actor_rvo_position(actor_id);
+            }
+            let building_ids = self
+                .constructions
+                .iter()
+                .filter_map(|(&building_id, construction)| {
+                    (construction.team == team_id).then_some(building_id)
+                })
+                .collect::<Vec<_>>();
+            for building_id in building_ids {
+                self.step_construction(building_id, step, &target_search_order, &mut events)?;
             }
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
@@ -726,6 +772,10 @@ impl Simulation {
                     actor.motion.current_velocity_x_q32 = 0;
                     actor.motion.current_velocity_z_q32 = 0;
                 }
+            }
+            for construction in self.constructions.values_mut() {
+                construction.skill.drop_lock();
+                construction.skill.set_phase(FightSkillPhase::Idle);
             }
         }
         if !ready_to_finish {

@@ -31,7 +31,10 @@ impl GrRandom {
     fn next_inclusive(&mut self, low: i64, high: i64) -> i64 {
         debug_assert!(low <= high);
         let range = high.wrapping_sub(low).cast_unsigned();
-        let mask = range.next_power_of_two().wrapping_sub(1);
+        // Every bit up to the range's highest: a range that is itself a power
+        // of two keeps its own bit, so a Rapid-Fire Turret's `± 1` draws
+        // `+1` as well as `-1` and `0`.
+        let mask = u64::MAX.checked_shr(range.leading_zeros()).unwrap_or(0);
         loop {
             let projected = self.next_u64() & mask;
             if projected <= range {
@@ -81,5 +84,24 @@ mod tests {
         assert_eq!(drawn, [-7, 3, -6]);
         let stored = drawn.iter().map(|draw| 62 + draw).collect::<Vec<_>>();
         assert_eq!(stored, [55, 65, 56], "what the game stored for each");
+    }
+
+    /// A range that is a power of two, which no unit's stagger is.
+    ///
+    /// The Rapid-Fire Turret's interval is 0.3 seconds with a random 0.1,
+    /// six ticks `± 1`, and the draw spans the three values `-1..=1`, a range
+    /// of two. Its shots in `tests/turret/rapid-fire-head-on.yaml` are 7 6 6
+    /// 6 6 7 6 5 6 ticks apart: the stream after the Marksman's stagger
+    /// (range twelve) and the turret's own (range two). A mask of the range's
+    /// next power of two, less one, would never draw `+1`.
+    #[test]
+    fn a_power_of_two_range_keeps_its_top_value() {
+        let mut random = GrRandom::new(4_444);
+        random.next_in_range(12);
+        random.next_in_range(2);
+        let intervals = (0..9)
+            .map(|_| 6 + random.next_in_range(2))
+            .collect::<Vec<_>>();
+        assert_eq!(intervals, [7, 6, 6, 6, 6, 7, 6, 5, 6]);
     }
 }
