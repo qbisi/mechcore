@@ -4,7 +4,8 @@
 
 本索引锚定游戏 build 2259。它说明布阵里的一条 `constructions` 落到战斗里变成
 了什么、带着哪些数、挡不挡路，以及其中哪些是对着游戏量出来的而不只是从数据里读
-出来的。工事**自己做什么**——炮台的技能、磁力路障的减速——不在这里。
+出来的。工事**自己做什么**不在这里：炮台的技能在 [`turrets.zh.md`](turrets.zh.md)，
+磁力路障的减速还没有人写。
 
 机读表是 [`config/constructions.yaml`](../../config/constructions.yaml)，由
 `scripts/extract-constructions.py` 从 `ConfigDataContainer.constructionDatas`
@@ -230,7 +231,8 @@
 ## 边界
 
 以上全部是 build 2259 和 1v1 棋盘，覆盖的是战斗开始时站着什么，以及爬虫这个尺
-寸的单位会不会被防御墙挡住、有墙挡路时单位打哪一块。它不覆盖炮台的技能是什么、磁力路障对靠近的东西做什
+寸的单位会不会被防御墙挡住、有墙挡路时单位打哪一块。炮台的技能做什么在
+[`turrets.zh.md`](turrets.zh.md)。它不覆盖磁力路障对靠近的东西做什
 么、大到过不了墙缝的单位会怎样、打掉一个工事给多少，也不覆盖价钱——回收价在
 [`economy.yaml`](../../config/economy.yaml) 里，这里没有。
 

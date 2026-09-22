@@ -70,16 +70,25 @@
 `FightSkill`：锁定和武器打的对象、技能状态、正在进行的攻击）。经过单位的路径和游戏的读法一致：
 `actor.skill.lock_target`、`actor.motion.state`。
 
+技能只有一台状态机，不管谁持有它。会开火的建筑（`construction.rs`，即 `FightConstruction`）持有同一个
+`Skill`，`update_skill` 就是两种 owner 共用的 `SkillManager.Update`。单位和建筑的差别只经由
+`attacker.rs` 进入技能，也就是游戏的 `ISkillOwner` 和 `IAttacker`：owner 站在哪、半径和射程、攻击角以
+什么为基准、武器转多快、是否搜索。建筑的 `MotionController` 从不更新，所以它的运动状态始终是空闲。内核
+让单位从运动里开始攻击（`attack_in_range`），建筑则在技能更新之后开始（`attack_in_reach`），调用的是同
+一个 `try_start_attack`。
+
 | 文件 | 对应 |
 | --- | --- |
 | `mod.rs` | 各对象，以及 `FightCoreSystem` 的一步推进：`step` |
 | `deploy.rs` | 部署：编队、初始单位和建筑、预搜索 |
 | `mech.rs` | `FightMech`：位置、朝向、生命及其快照 |
+| `construction.rs` | `FightConstruction`：持有技能的建筑，及其更新 |
+| `attacker.rs` | `ISkillOwner` 和 `IAttacker`：技能从 owner 读到的东西，以及据此只写一次的射程、角度、武器转向和间隔抽样 |
 | `search.rs` | 目标四叉树和目标选择器 |
 | `motion.rs` | `MotionController`：保持死掉的目标、攻击射程内的目标、离开或走近目标；RVO 提交 |
 | `damage.rs` | `DamagePerformer`，见下文"伤害" |
 | `projectile.rs` | `ProjectileSystem` |
-| `skill/mod.rs` | 按命名步骤组织的 `FightSkill` 更新、`SkillState`、搜索计时器、`TryStartAttack`、攻击区域检查 |
+| `skill/mod.rs` | 任何 owner 的 `SkillManager.Update`：按命名步骤组织的 `FightSkill` 更新、含装填的 `SkillState`、搜索计时器、`TryStartAttack` |
 | `skill/check.rs` | `SearchAttackTarget`、`SkillAttackableChecker`、`WallConstructionTargetChecker`、`SkillAttackState.Finish` |
 | `skill/perform.rs` | 攻击执行器：一击、一发、一串连发 |
 | `skill/group.rs` | 成组技能的各个位 |

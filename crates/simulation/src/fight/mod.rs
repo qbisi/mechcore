@@ -26,11 +26,13 @@ use crate::{
     Error, Result,
     layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
-        AttackPath, AttackTargets, RvoSize, SimulationConfig, TrainingGroundConfig, UnitConfig,
-        UnitConfigs, UnitDomain, WeaponMode,
+        AttackConfig, AttackPath, AttackTargets, Magazine, RvoSize, SimulationConfig,
+        TrainingGroundConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
     },
 };
 
+mod attacker;
+mod construction;
 mod damage;
 mod deploy;
 mod math;
@@ -45,6 +47,9 @@ mod skill;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+use attacker::Facing;
+use construction::*;
 use damage::*;
 use deploy::*;
 pub(crate) use math::*;
@@ -55,7 +60,7 @@ pub(crate) use run::*;
 pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
-use skill::{FightSkillPhase, Skill, SkillState};
+use skill::{FightSkillPhase, Launch, Skill, SkillUpdate};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 
@@ -209,6 +214,8 @@ struct Simulation {
     /// The buildings no unit searches for, which the target trees hold all
     /// the same.
     unsearchable_buildings: BTreeSet<u64>,
+    /// The constructions whose skill fires, by building.
+    constructions: BTreeMap<u64, Construction>,
 }
 
 impl Simulation {
@@ -241,57 +248,17 @@ impl Simulation {
                 })?
                 .ensure_current_kernel_support()?;
         }
-        let mut actors = initialize_actors(layout, configs, seed)?;
-        let mut team_random = BTreeMap::new();
-        // Deployment draws one stagger per member, in identity order, and the
-        // build keeps it as that member's first interval. Nothing schedules an
-        // attack yet, so the draw is kept rather than consumed and discarded.
-        for actor in actors.values_mut() {
-            let random = team_random.entry(actor.placement.team).or_insert_with(|| {
-                GrRandom::new(u64::from(
-                    layout
-                        .round
-                        .cast_signed()
-                        .wrapping_add(actor.placement.team.cast_signed())
-                        .wrapping_mul(4_444)
-                        .cast_unsigned(),
-                ))
-            });
-            let offset_steps =
-                native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
-            if offset_steps > 0 {
-                let skill_count = if actor.rules.attack.weapons.mode == WeaponMode::Group {
-                    actor.rules.attack.weapons.count
-                } else {
-                    1
-                };
-                for index in 0..skill_count {
-                    let sample =
-                        random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
-                    if index == 0 {
-                        actor.skill.current_attack_interval = i64::try_from(
-                            native_time_units_to_steps(actor.stats.attack_interval()),
-                        )
-                        .unwrap_or(i64::MAX)
-                        .saturating_add(i64::from(sample))
-                        .max(1)
-                        .cast_unsigned();
-                    }
-                }
-            } else {
-                actor.skill.current_attack_interval =
-                    native_time_units_to_steps(actor.stats.attack_interval()).max(1);
-            }
-        }
+        let actors = initialize_actors(layout, configs, seed)?;
         let InitialBuildings {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
         } = initialize_buildings(training_ground, &layout.constructions)?;
+        let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
-        Ok(Self {
+        let mut simulation = Self {
             actors,
-            team_random,
+            team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             buildings,
             target_quadtrees,
@@ -303,7 +270,10 @@ impl Simulation {
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
-        })
+            constructions,
+        };
+        simulation.deploy_attack_intervals(layout.round)?;
+        Ok(simulation)
     }
 
     fn snapshot(&self) -> WorldSnapshot {
@@ -433,6 +403,16 @@ impl Simulation {
                     &mut events,
                 )?;
                 self.step_actor_rvo_position(actor_id);
+            }
+            let building_ids = self
+                .constructions
+                .iter()
+                .filter_map(|(&building_id, construction)| {
+                    (construction.team == team_id).then_some(building_id)
+                })
+                .collect::<Vec<_>>();
+            for building_id in building_ids {
+                self.step_construction(building_id, step, &target_search_order, &mut events)?;
             }
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
@@ -726,6 +706,10 @@ impl Simulation {
                     actor.motion.current_velocity_x_q32 = 0;
                     actor.motion.current_velocity_z_q32 = 0;
                 }
+            }
+            for construction in self.constructions.values_mut() {
+                construction.skill.drop_lock();
+                construction.skill.set_phase(FightSkillPhase::Idle);
             }
         }
         if !ready_to_finish {

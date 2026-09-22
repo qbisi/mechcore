@@ -31,6 +31,7 @@ impl Actor {
         let stats = crate::data::Stats::corrected(&rules, &placement.corrections)
             .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
+        let magazine = rules.attack.magazine;
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
         let max_speed_q32 = space_to_q32(stats.move_speed());
@@ -81,27 +82,7 @@ impl Actor {
                 state: MotionState::Idle,
                 attack_hold_fire: false,
             },
-            skill: Skill {
-                weapon_rotations_q32,
-                next_attack_step: 0,
-                current_attack_interval: 0,
-                lock_target: None,
-                in_the_way: None,
-                lock_is_terminal_handoff: false,
-                // FightSkill owns a second SearchTargetController. FightPrepareState
-                // replaces this constructor value with the presearch batch ordinal.
-                search_target_time: SEARCH_TARGET_RESET_TICKS,
-                searched_this_tick: false,
-                state: SkillState::Idle { ready_step: None },
-                group_skill_targets: vec![None; group_skill_count],
-                group_in_the_way: vec![None; group_skill_count],
-                group_skill_next_attack_steps: vec![0; group_skill_count],
-                group_skill_prepare_ready_steps: vec![0; group_skill_count],
-                group_pending_releases: Vec::new(),
-                projectile_pending_releases: Vec::new(),
-                laser_attack_count: 0,
-                retarget_after_own_direct_kill: false,
-            },
+            skill: Skill::new(weapon_rotations_q32, group_skill_count, magazine),
         }
     }
 
@@ -138,6 +119,19 @@ impl Actor {
         self.motion.published_speed_q32 = 0;
     }
 
+    /// `MotionIdleState` entered with a stop: the motion reads idle and
+    /// publishes zero speed at its maximum, and, where the stop is published
+    /// anew, the point it stands on as its target.
+    pub(in crate::fight) fn stop_in_place(&mut self, publish_point: bool) {
+        self.motion.state = MotionState::Idle;
+        if publish_point {
+            self.motion.next_target_x_q32 = self.x_q32;
+            self.motion.next_target_z_q32 = self.z_q32;
+        }
+        self.motion.next_speed_q32 = 0;
+        self.motion.next_max_speed_q32 = space_to_q32(self.stats.move_speed());
+    }
+
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {
         ObjectRef::new(ObjectKind::Unit, self.placement.unit_id)
     }
@@ -167,24 +161,17 @@ impl Actor {
         }
     }
 
-    pub(in crate::fight) fn rotate_weapons_towards(&mut self, target_q32: i64) {
-        let maximum = q32_mul(
+    /// `ISkillOwner.GetRotateSpeed`, as one update's turn.
+    pub(in crate::fight) fn turn_q32(&self) -> i64 {
+        q32_mul(
             mdeg_to_degrees_q32(self.rules.rotate_speed_mdeg_per_second()),
             NATIVE_LOGIC_DELTA_Q32,
-        );
-        for rotation in &mut self.skill.weapon_rotations_q32 {
-            *rotation = rotate_towards_q32(*rotation, target_q32, maximum);
-        }
+        )
     }
 
-    pub(in crate::fight) fn weapons_in_attack_angle(&self, target_q32: i64) -> bool {
-        let half_angle_q32 = mdeg_to_degrees_q32(self.rules.attack.attack_half_angle_mdeg());
-        !self.skill.weapon_rotations_q32.is_empty()
-            && self
-                .skill
-                .weapon_rotations_q32
-                .iter()
-                .all(|rotation| rotation_distance_q32(*rotation, target_q32) <= half_angle_q32)
+    pub(in crate::fight) fn rotate_weapons_towards(&mut self, target_q32: i64) {
+        let turn_q32 = self.turn_q32();
+        self.skill.turn_weapons_towards(target_q32, turn_q32);
     }
 
     pub(in crate::fight) fn snapshot(&self) -> LiveUnitState {

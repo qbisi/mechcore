@@ -265,3 +265,88 @@ constructions:
     can_be_effected_by_tower_buff: false
     enable_search_target: false
     quick_search_target: false
+
+# What a construction's skill does, for the constructions that fire one.
+#
+# Each is the `ProjectileSkillData` row the construction's `skill_id` names,
+# read out of `level0` (the `MechSkillGroupData` object at path 173) by
+# `scripts/extract-skills.py`, in the shape `config/units/*.yaml` gives a
+# unit's `attack`. Two numbers are the construction row's rather than the
+# skill's, and the loader refuses a table where they disagree: `base_damage`
+# is the row's `damage` (a skill row carries none), and `attack_half_angle`
+# is the row's `attack_angle`. `magazine` is the row's `loadingCapacity` and
+# `reloadingTime`; `docs/rules/turrets.md` says what each was measured
+# against.
+skills:
+  - id: 3002001
+    name: 加农炮
+    attack:
+      base_damage: 2748
+      min_range: 0
+      range: 125
+      attack_half_angle: 20
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 2.5
+        interval_offset: 0.2
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 5
+      weapons:
+        mode: standalone
+        count: 1
+        per_skill: 1
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0
+        speed: 300
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: false
+        max_life: 0
+      magazine: {capacity: 6, reload: 10}
+  - id: 3003001
+    name: 机枪塔
+    attack:
+      base_damage: 82
+      min_range: 0
+      range: 115
+      attack_half_angle: 20
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 0.3
+        interval_offset: 0.1
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 10
+      weapons:
+        mode: standalone
+        count: 1
+        per_skill: 1
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0
+        speed: 400
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: false
+        max_life: 0
+      magazine: {capacity: 10, reload: 2.5}

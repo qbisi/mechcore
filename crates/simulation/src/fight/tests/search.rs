@@ -149,6 +149,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         fallen_buildings: Vec::new(),
         construction_colliders: construction_colliders.clone(),
         unsearchable_buildings: unsearchable.clone(),
+        constructions: BTreeMap::new(),
     };
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
 }
@@ -361,7 +362,7 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     simulation.actors.get_mut(&3).unwrap().z_q32 = space_to_q32(100_000);
     simulation.actors.get_mut(&4).unwrap().z_q32 = space_to_q32(10_000);
     simulation
-        .update_fight_skill_target_search(1, 1, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
         .unwrap();
 
     assert_eq!(
@@ -380,7 +381,7 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     simulation.actors.get_mut(&3).unwrap().z_q32 = space_to_q32(100_000);
     simulation.actors.get_mut(&4).unwrap().z_q32 = space_to_q32(10_000);
     simulation
-        .update_fight_skill_target_search(1, 1, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
         .unwrap();
 
     assert_eq!(
@@ -403,7 +404,7 @@ fn the_selector_answers_a_tower_once_no_enemy_unit_is_left() {
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
     let selected = simulation
-        .select_normal_target_with_order(1, &target_search_order, true)
+        .select_normal_target_with_order(FightActorRef::Unit(1), &target_search_order, true)
         .unwrap();
     let Some(FightActorRef::Building(building_id)) = selected else {
         panic!("expected a tower, got {selected:?}");

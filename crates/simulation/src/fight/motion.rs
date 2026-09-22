@@ -516,8 +516,15 @@ impl Simulation {
                 // tick.
                 // A felled block is held differently: the Rhino of
                 // `wall-rhino.yaml` reads attacking, still on the block, until
-                // its swing is over, and only then goes idle.
-                let holds_a_block = matches!(target, FightActorRef::Building(_));
+                // its swing is over, and only then goes idle. That is a block
+                // in the way of another lock; a building that was the lock
+                // itself is held as a unit is — the Crawlers whose swing the
+                // Anti-Armor Turret of `anti-armor-head-on.yaml` fell in read
+                // idle on the tick it fell, still on it, until their swing is
+                // over.
+                let holds_a_block = matches!(target, FightActorRef::Building(_))
+                    && (self.actors[&actor_id].skill.lock_target != Some(target)
+                        || self.actors[&actor_id].skill.lock_is_terminal_handoff);
                 // And keeps turning to it: the Crawlers of `wall-block.yaml`
                 // that fell block 5 face it a little more each tick of their
                 // swing, as they did while it stood.
@@ -612,6 +619,13 @@ impl Simulation {
         backswing_just_finished: bool,
         prepare_finished: bool,
     ) -> Result<()> {
+        // `SkillAttackAngleChecker`, against the weapons or, for a unit
+        // without a body, its root: the motion does not turn anything before
+        // the skill asks.
+        let in_attack_angle = self
+            .attacker(FightActorRef::Unit(actor_id))
+            .expect("actor identity is stable")
+            .faces(target_rotation_q32);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -627,16 +641,6 @@ impl Simulation {
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
             actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
-            let in_attack_angle = if actor.rules.has_body {
-                actor.weapons_in_attack_angle(target_rotation_q32)
-            } else {
-                // SkillAttackAngleChecker falls back to the FightMech
-                // transform when a bodyless unit's weapon has no own
-                // transform. Its root rotation is therefore the attack
-                // gate even though FightSkill also updates weapon state.
-                rotation_distance_q32(actor.body_rotation_q32, target_rotation_q32)
-                    <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
-            };
             let completed_attack_reentry_rejected = entered_attack
                 && backswing_just_finished
                 && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
@@ -689,7 +693,7 @@ impl Simulation {
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
             self.try_start_attack(
-                actor_id,
+                FightActorRef::Unit(actor_id),
                 step,
                 target,
                 entered_attack,
@@ -706,7 +710,7 @@ impl Simulation {
             )
         };
         if release_now {
-            let _attack_point_rejected = self.release(actor_id, events)?;
+            let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
         }
         if self.actors[&actor_id].motion.state != MotionState::Attacking {
             // FightSkill runs before MotionController. A laser own-kill

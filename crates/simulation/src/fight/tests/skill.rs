@@ -72,7 +72,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     // that switches quickly searches again and takes the unit in its area.
     assert!(
         simulation
-            .check_attackable(1, &target_search_order)
+            .check_attackable(FightActorRef::Unit(1), &target_search_order)
             .unwrap()
     );
     assert_eq!(
@@ -87,7 +87,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     let target_search_order = simulation.target_search_order();
     assert!(
         simulation
-            .check_attackable(1, &target_search_order)
+            .check_attackable(FightActorRef::Unit(1), &target_search_order)
             .unwrap()
     );
     assert_eq!(
@@ -104,7 +104,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     let target_search_order = simulation.target_search_order();
     assert!(
         !simulation
-            .check_attackable(1, &target_search_order)
+            .check_attackable(FightActorRef::Unit(1), &target_search_order)
             .unwrap()
     );
 }
@@ -433,7 +433,7 @@ fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
     source.skill.set_phase(FightSkillPhase::Idle);
     source.skill.next_attack_step = 20;
     simulation.actors.get_mut(&2).unwrap().life = 0;
-    assert!(simulation.bodyless_target_in_attack_range(1, unit_target(3)));
+    assert!(simulation.target_in_attack_range(FightActorRef::Unit(1), unit_target(3)));
     assert!(!simulation.bodyless_target_in_attack_angle(1, unit_target(3)));
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
@@ -733,7 +733,9 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     simulation.actors.get_mut(&2).unwrap().life = 1;
     let mut events = Vec::new();
 
-    simulation.release(1, &mut events).unwrap();
+    simulation
+        .release(FightActorRef::Unit(1), &mut events)
+        .unwrap();
 
     let source = &simulation.actors[&1];
     assert_eq!(source.motion.state, MotionState::Idle);
@@ -924,9 +926,15 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
     );
     let target = 0;
     actor.skill.weapon_rotations_q32 = vec![0, 41_i64 << 32];
-    assert!(!actor.weapons_in_attack_angle(target));
+    assert!(
+        !Facing::Weapons(&actor.skill.weapon_rotations_q32)
+            .faces(target, actor.rules.attack.attack_half_angle_mdeg())
+    );
     actor.skill.weapon_rotations_q32[1] = 40_i64 << 32;
-    assert!(actor.weapons_in_attack_angle(target));
+    assert!(
+        Facing::Weapons(&actor.skill.weapon_rotations_q32)
+            .faces(target, actor.rules.attack.attack_half_angle_mdeg())
+    );
 }
 
 #[test]

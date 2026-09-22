@@ -149,11 +149,23 @@ fn compile_constructions(
 ) -> Result<Vec<ConstructionBuilding>> {
     let mut built = Vec::new();
     for placement in &side.constructions {
-        built.extend(
-            table
-                .buildings(team, placement)
-                .map_err(|error| Error::new(format!("side {name}: {error}")))?,
-        );
+        let buildings = table
+            .buildings(team, placement)
+            .map_err(|error| Error::new(format!("side {name}: {error}")))?;
+        // Whether an officer or a technology reaches a construction's skill is
+        // not read: the fight would shoot with the row's numbers where the
+        // game may not. A firing construction on a side that carries either is
+        // refused rather than fought without them.
+        if buildings.iter().any(|building| building.skill.is_some())
+            && (!side.techs.officers.is_empty() || !side.techs.units.is_empty())
+        {
+            return Err(Error::new(format!(
+                "side {name}: {:?} fires a skill, and whether the side's officers and \
+                 technologies reach it is not measured",
+                placement.type_name
+            )));
+        }
+        built.extend(buildings);
     }
     Ok(built)
 }
@@ -409,15 +421,36 @@ red:
     /// it, and the refusal names the construction rather than the field: the
     /// field is understood and this one member of it is not.
     #[test]
-    fn a_turret_refuses_the_side_that_placed_it() {
+    fn a_magnetic_barrier_refuses_the_side_that_placed_it() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: anti_armor_turret, index: 0, position: {x: 140, y: -100}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: magnetic_barrier, index: 0, position: {x: -145, y: -55}}]",
         );
         let refused = compile_default(&value).unwrap_err().to_string();
         assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("construction 2"), "{refused}");
-        assert!(refused.contains("attacks for 2748"), "{refused}");
+        assert!(refused.contains("construction 4"), "{refused}");
+        assert!(refused.contains("10 objects over 2 rows"), "{refused}");
+    }
+
+    /// A turret is placed; beside an officer it is refused, because whether
+    /// the officer reaches its skill is not measured.
+    #[test]
+    fn a_turret_beside_an_officer_is_refused() {
+        let turret = LAYOUT.replace(
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}]",
+        );
+        let compiled = compile_default(&turret).unwrap();
+        assert!(
+            compiled.constructions[0].skill.is_some(),
+            "the turret fires"
+        );
+        let with_officer = turret.replace("blue:\n", "blue:\n  officers: [improved_wasp]\n");
+        assert_ne!(with_officer, turret, "the fixture carries an officer");
+        let refused = compile_default(&with_officer).unwrap_err().to_string();
+        assert!(refused.contains("side blue"), "{refused}");
+        assert!(refused.contains("rapid_fire_turret"), "{refused}");
+        assert!(refused.contains("officers and technologies"), "{refused}");
     }
 
     #[test]

@@ -114,6 +114,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
             fallen_buildings: Vec::new(),
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
+            constructions: BTreeMap::new(),
         }
     };
     let mut simulation = make_simulation();
@@ -140,7 +141,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     fight_skill.refresh_target_query_snapshot();
     let target_search_order = fight_skill.target_search_order();
     fight_skill
-        .update_fight_skill_target_search(1, 0, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 0, &target_search_order)
         .unwrap();
     assert_eq!(
         fight_skill.actors[&1].skill.lock_target,
@@ -148,7 +149,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     );
     assert_eq!(fight_skill.actors[&1].skill.search_target_time, 0);
     fight_skill
-        .update_fight_skill_target_search(1, 1, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
         .unwrap();
     assert_eq!(
         fight_skill.actors[&1].skill.lock_target,
@@ -172,7 +173,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     hold_fire.refresh_target_query_snapshot();
     let target_search_order = hold_fire.target_search_order();
     hold_fire
-        .update_fight_skill_target_search(1, 0, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 0, &target_search_order)
         .unwrap();
     assert_eq!(hold_fire.actors[&1].skill.lock_target, Some(unit_target(2)));
     assert_eq!(
@@ -193,7 +194,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     attack_state.refresh_target_query_snapshot();
     let target_search_order = attack_state.target_search_order();
     attack_state
-        .update_fight_skill_target_search(1, 0, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 0, &target_search_order)
         .unwrap();
     assert_eq!(
         attack_state.actors[&1].skill.lock_target,
@@ -216,7 +217,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     prepare_state.refresh_target_query_snapshot();
     let target_search_order = prepare_state.target_search_order();
     prepare_state
-        .update_fight_skill_target_search(1, 0, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 0, &target_search_order)
         .unwrap();
     assert_eq!(
         prepare_state.actors[&1].skill.lock_target,

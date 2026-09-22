@@ -291,7 +291,11 @@ impl Simulation {
             .map(|&actor_id| {
                 Ok((
                     actor_id,
-                    self.select_normal_target_with_order(actor_id, &target_search_order, false)?,
+                    self.select_normal_target_with_order(
+                        FightActorRef::Unit(actor_id),
+                        &target_search_order,
+                        false,
+                    )?,
                 ))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -320,7 +324,7 @@ impl Simulation {
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
-            self.search_attack_target(actor_id);
+            self.search_attack_target(FightActorRef::Unit(actor_id));
         }
         Ok(())
     }

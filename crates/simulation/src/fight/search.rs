@@ -485,7 +485,7 @@ impl Simulation {
         use_live_candidate_positions: bool,
     ) -> Result<Option<u64>> {
         match self.select_normal_target_with_order(
-            actor_id,
+            FightActorRef::Unit(actor_id),
             target_search_order,
             use_live_candidate_positions,
         )? {
@@ -497,16 +497,22 @@ impl Simulation {
         }
     }
 
+    /// `MainSkillSearchTargetController`: the other side's candidates in the
+    /// order the target trees hold them, scored from where the owner stood and
+    /// pointed at the tick's start, the lowest score taken. A unit's skill and
+    /// a construction's ask the same selector.
     pub(in crate::fight) fn select_normal_target_with_order(
         &self,
-        actor_id: u64,
+        owner: FightActorRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         use_live_candidate_positions: bool,
     ) -> Result<Option<FightActorRef>> {
         let source = self
-            .actors
-            .get(&actor_id)
-            .ok_or_else(|| Error::new("target selector source actor is absent"))?;
+            .attacker(owner)
+            .ok_or_else(|| Error::new("target selector source is absent"))?;
+        if !source.searches {
+            return Ok(None);
+        }
         let mut best: Option<(FightActorRef, i64)> = None;
         let mut consider = |candidate, score| match best {
             None => {
@@ -519,7 +525,7 @@ impl Simulation {
         };
 
         for (&team, candidates) in target_search_order {
-            if team == source.placement.team {
+            if team == source.team {
                 continue;
             }
             for &candidate in candidates {
@@ -544,7 +550,7 @@ impl Simulation {
                     || !candidate_targetable
                     || matches!(candidate, FightActorRef::Building(id)
                         if self.unsearchable_buildings.contains(&id))
-                    || !source.rules.attack.accepts(target.domain)
+                    || !source.attack.accepts(target.domain)
                 {
                     continue;
                 }
@@ -554,15 +560,15 @@ impl Simulation {
                     (target.query_x_q32, target.query_z_q32)
                 };
                 if let Some(score) = normal_visible_full_rotation_target_score_q32(
-                    source.target_query_x_q32,
-                    source.target_query_z_q32,
-                    source.rules.collision_radius(),
-                    source.target_query_source_rotation_q32,
+                    source.query_x_q32,
+                    source.query_z_q32,
+                    source.radius,
+                    source.query_rotation_q32,
                     candidate_x_q32,
                     candidate_z_q32,
                     target.radius,
-                    source.rules.attack.min_range(),
-                    source.stats.attack_range(),
+                    source.attack.min_range(),
+                    source.attack_range,
                 ) {
                     consider(candidate, score);
                 }
@@ -592,7 +598,8 @@ impl Simulation {
             .filter_map(|(index, target)| (index != slot).then_some(*target).flatten())
             .collect::<Vec<_>>();
         if held.is_empty() {
-            return self.select_lock_replacement(actor_id, target_search_order);
+            return self
+                .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
         }
         let select = |shared: bool| {
             let mut best: Option<(i64, u64)> = None;
@@ -634,7 +641,7 @@ impl Simulation {
         let selected = select(false);
         if source.rules.attack.weapons.allow_same_target == Some(true)
             && selected.is_none_or(|target| {
-                !self.slot_target_in_attack_range(actor_id, Some(slot), target)
+                !self.slot_target_in_attack_range(FightActorRef::Unit(actor_id), Some(slot), target)
             })
         {
             return Ok(select(true).or(selected));

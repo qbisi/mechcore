@@ -1,61 +1,77 @@
 use super::*;
 
+/// Where a projectile leaves from and what it carries: the attacker's side of
+/// `ProjectileSystem.Create`.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct Launch {
+    pub(in crate::fight) owner: FightActorRef,
+    pub(in crate::fight) team: u32,
+    pub(in crate::fight) x: i64,
+    pub(in crate::fight) z: i64,
+    pub(in crate::fight) x_q32: i64,
+    pub(in crate::fight) y: i64,
+    pub(in crate::fight) z_q32: i64,
+    pub(in crate::fight) speed: i64,
+    pub(in crate::fight) damage: i64,
+    pub(in crate::fight) life: i64,
+    pub(in crate::fight) lock_target: bool,
+}
+
 impl Simulation {
+    /// `SkillAttackState.PerformAttack` at the attack point: the blow wound up
+    /// lands, by the skill's path. Answers whether the attack point rejected
+    /// it.
     pub(in crate::fight) fn release(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<bool> {
-        let pending = self.actors[&actor_id]
-            .skill
+        let pending = self
+            .skill(owner)
             .pending()
             .ok_or_else(|| Error::new("attack release has no pending action"))?;
-        let release_attackable_invalid = self.bodyless_attackable_invalid(actor_id, pending.target);
+        let release_attackable_invalid = self.bodyless_attackable_invalid(owner, pending.target);
         if release_attackable_invalid {
             // SkillAttackState rechecks CheckAttackable and target angle at
             // the attack point. A failed check skips PerformAttack; the skill
             // phase can then finish and MotionAttackState returns to Idle in
             // the same logic update.
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            actor.skill.set_pending(None);
-            actor.skill.set_phase(FightSkillPhase::Idle);
+            let skill = self.skill_mut(owner);
+            skill.set_pending(None);
+            skill.set_phase(FightSkillPhase::Idle);
             return Ok(true);
         }
-        let backswing_steps =
-            native_time_units_to_steps(self.actors[&actor_id].rules.attack.backswing_time_units());
-        let owner = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        owner.skill.set_pending(None);
+        let attack = self
+            .attacker(owner)
+            .expect("skill owner identity is stable")
+            .attack;
+        let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
+        let quick_switch_target = attack.quick_switch_target;
+        let strikes = matches!(attack.path, AttackPath::Direct { .. });
+        let beams = matches!(attack.path, AttackPath::Laser { .. });
+        let skill = self.skill_mut(owner);
+        skill.set_pending(None);
+        skill.fire_round();
         // The backswing is cut short by the next blow: a Wasp's 1.5-second
         // backswing reads 27 ticks, its interval, in the game's own states.
-        let next_attack_step = owner.skill.next_attack_step;
-        owner
-            .skill
-            .set_backswing_finish_step((backswing_steps > 0).then(|| {
-                pending
-                    .step
-                    .saturating_add(backswing_steps)
-                    .min(next_attack_step)
-            }));
-        owner.skill.set_phase(
-            if owner.skill.backswing_finish_step().is_none()
-                && !owner.rules.attack.quick_switch_target
-                && !matches!(owner.rules.attack.path, AttackPath::Laser { .. })
-            {
+        let next_attack_step = skill.next_attack_step;
+        skill.set_backswing_finish_step((backswing_steps > 0).then(|| {
+            pending
+                .step
+                .saturating_add(backswing_steps)
+                .min(next_attack_step)
+        }));
+        skill.set_phase(
+            if skill.backswing_finish_step().is_none() && !quick_switch_target && !beams {
                 FightSkillPhase::Idle
             } else {
                 FightSkillPhase::Attack
             },
         );
-        if matches!(
-            self.actors[&actor_id].rules.attack.path,
-            AttackPath::Direct { .. }
-        ) {
+        if strikes {
+            let actor_id = owner.unit_id().ok_or_else(|| {
+                Error::new("a construction's skill that strikes is not supported")
+            })?;
             let target = pending.target;
             let target_was_alive = self.fight_actor_is_alive(target);
             self.direct_effect(actor_id, target, events)?;
@@ -67,18 +83,14 @@ impl Simulation {
                 && !self.fight_actor_is_alive(target)
                 && matches!(target, FightActorRef::Unit(_))
             {
-                self.actors
-                    .get_mut(&actor_id)
-                    .expect("actor identity is stable")
-                    .skill
-                    .retarget_after_own_direct_kill = true;
+                self.skill_mut(owner).retarget_after_own_direct_kill = true;
             }
             return Ok(false);
         }
-        if matches!(
-            self.actors[&actor_id].rules.attack.path,
-            AttackPath::Laser { .. }
-        ) {
+        if beams {
+            let actor_id = owner
+                .unit_id()
+                .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
             let target = pending.target;
             let target_was_alive = self.fight_actor_is_alive(target);
             self.laser_effect(actor_id, target, events)?;
@@ -99,13 +111,13 @@ impl Simulation {
             }
             return Ok(false);
         }
-        self.start_projectile_burst(actor_id, pending.target, pending.step, events)?;
+        self.start_projectile_burst(owner, pending.target, pending.step, events)?;
         Ok(false)
     }
 
     pub(in crate::fight) fn start_projectile_burst(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         target: FightActorRef,
         step: u64,
         events: &mut Vec<Event>,
@@ -115,16 +127,18 @@ impl Simulation {
             .ok_or_else(|| Error::new("projectile target is absent"))?;
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
-        let owner = &self.actors[&actor_id];
-        let count = usize::try_from(owner.rules.attack.projectile_count())
+        let attack = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .attack;
+        let count = usize::try_from(attack.projectile_count())
             .expect("u32 projectile count fits the supported host");
-        let weapon_count = usize::try_from(owner.rules.attack.weapons.count)
+        let weapon_count = usize::try_from(attack.weapons.count)
             .expect("u32 weapon count fits the supported host");
-        let interval =
-            native_time_units_to_steps(owner.rules.attack.projectile_release_interval_time_units());
-        let radius = owner.rules.attack.projectile_target_offset_radius();
+        let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
+        let radius = attack.projectile_target_offset_radius();
         let offsets =
-            self.projectile_target_offsets(actor_id, target_x_q32, target_z_q32, count, radius)?;
+            self.projectile_target_offsets(owner, target_x_q32, target_z_q32, count, radius)?;
         let mut releases =
             offsets
                 .into_iter()
@@ -140,17 +154,15 @@ impl Simulation {
         let first = releases
             .next()
             .ok_or_else(|| Error::new("projectile burst contains no release"))?;
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
-        actor.skill.projectile_pending_releases.extend(releases);
-        self.release_pending_projectile(actor_id, first, events)
+        self.skill_mut(owner)
+            .projectile_pending_releases
+            .extend(releases);
+        self.release_pending_projectile(owner, first, events)
     }
 
     pub(in crate::fight) fn projectile_target_offsets(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         target_x_q32: i64,
         target_z_q32: i64,
         count: usize,
@@ -159,10 +171,13 @@ impl Simulation {
         if radius == 0 {
             return Ok(vec![(0, 0); count]);
         }
-        let owner = &self.actors[&actor_id];
-        let team = owner.placement.team;
-        let source_x_q32 = owner.x_q32;
-        let source_z_q32 = owner.z_q32;
+        let source = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let team = source.team;
+        let source_x_q32 = source.x_q32;
+        let source_z_q32 = source.z_q32;
+        let weapon_count = source.attack.weapons.count;
         let radius_centimeters = i32::try_from(radius / 10)
             .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
         let random = self
@@ -182,7 +197,7 @@ impl Simulation {
             let (x_q32, z_q32) = clamp_magnitude_q32_raw(x_q32, z_q32, clamp_q32);
             offsets.push((x_q32, z_q32));
         }
-        if self.actors[&actor_id].rules.attack.weapons.count == 2 && offsets.len() >= 2 {
+        if weapon_count == 2 && offsets.len() >= 2 {
             let direction_x = i128::from(target_x_q32.saturating_sub(source_x_q32));
             let direction_z = i128::from(target_z_q32.saturating_sub(source_z_q32));
             offsets.sort_by(|&(left_x, left_z), &(right_x, right_z)| {
@@ -257,7 +272,7 @@ impl Simulation {
 
     pub(in crate::fight) fn release_projectile(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         target_id: u64,
         skill_slot: usize,
         weapon_index: usize,
@@ -267,7 +282,7 @@ impl Simulation {
         let target_x_q32 = target.x_q32;
         let target_z_q32 = target.z_q32;
         self.release_projectile_at(
-            actor_id,
+            owner,
             target_id,
             target_x_q32,
             target_z_q32,
@@ -279,13 +294,13 @@ impl Simulation {
 
     pub(in crate::fight) fn release_pending_projectile(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         pending: PendingProjectileRelease,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         match pending.target_kind {
             ObjectKind::Unit => self.release_projectile_at(
-                actor_id,
+                owner,
                 pending.target,
                 pending.target_x_q32,
                 pending.target_z_q32,
@@ -300,7 +315,7 @@ impl Simulation {
                     .find(|building| building.building_id == pending.target)
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
                 self.release_projectile_to(
-                    actor_id,
+                    owner,
                     ObjectKind::Building,
                     pending.target,
                     q32_to_space_rounded(pending.target_x_q32),
@@ -326,7 +341,7 @@ impl Simulation {
     )]
     pub(in crate::fight) fn release_projectile_at(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         target_id: u64,
         target_x_q32: i64,
         target_z_q32: i64,
@@ -340,7 +355,7 @@ impl Simulation {
         let target_x = q32_to_space_rounded(target_x_q32);
         let target_z = q32_to_space_rounded(target_z_q32);
         self.release_projectile_to(
-            actor_id,
+            owner,
             ObjectKind::Unit,
             target_id,
             target_x,
@@ -358,7 +373,7 @@ impl Simulation {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::fight) fn release_projectile_to(
         &mut self,
-        actor_id: u64,
+        owner: FightActorRef,
         target_kind: ObjectKind,
         target_id: u64,
         target_x: i64,
@@ -371,23 +386,55 @@ impl Simulation {
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let source = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .launch();
+        self.launch_projectile(
+            source,
+            target_kind,
+            target_id,
+            (target_x, target_y, target_z),
+            (target_x_q32, target_z_q32),
+            target_radius,
+            skill_slot,
+            weapon_index,
+            events,
+        )
+    }
+
+    /// Puts a projectile in flight from its source at a target, and records
+    /// its release: `ProjectileSystem.Create` for any `IAttacker`, a unit's
+    /// skill or a construction's.
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "the parameters mirror the native projectile release call"
+    )]
+    pub(in crate::fight) fn launch_projectile(
+        &mut self,
+        source: Launch,
+        target_kind: ObjectKind,
+        target_id: u64,
+        (target_x, target_y, target_z): (i64, i64, i64),
+        (target_x_q32, target_z_q32): (i64, i64),
+        target_radius: i64,
+        skill_slot: usize,
+        weapon_index: usize,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
-        let owner = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
         let projectile = Projectile {
             id: projectile_id,
-            team: owner.placement.team,
-            owner: actor_id,
+            team: source.team,
+            owner: source.owner,
             target_kind,
             target: target_id,
-            x: owner.x,
-            y: unit_height(owner.rules.domain),
-            z: owner.z,
-            x_q32: owner.x_q32,
-            y_q32: space_to_q32(unit_height(owner.rules.domain)),
-            z_q32: owner.z_q32,
+            x: source.x,
+            y: source.y,
+            z: source.z,
+            x_q32: source.x_q32,
+            y_q32: space_to_q32(source.y),
+            z_q32: source.z_q32,
             cached_target_x: target_x,
             cached_target_y: target_y,
             cached_target_z: target_z,
@@ -395,16 +442,16 @@ impl Simulation {
             cached_target_y_q32: space_to_q32(target_y),
             cached_target_z_q32: target_z_q32,
             cached_target_radius: target_radius,
-            speed: owner.rules.attack.projectile_speed(),
-            damage: owner.stats.attack_damage(),
-            life: owner.rules.attack.projectile_life(),
-            lock_target: owner.rules.attack.lock_target,
+            speed: source.speed,
+            damage: source.damage,
+            life: source.life,
+            lock_target: source.lock_target,
         };
         let projectile_ref = projectile.object_ref();
         events.push(event(
             Some(projectile_ref),
-            Some(owner.object_ref()),
-            Some(owner.placement.team),
+            Some(source.owner.object_ref()),
+            Some(source.team),
             Some(ObjectRef::new(target_kind, target_id)),
             EventPayload::ProjectileReleased {
                 skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),

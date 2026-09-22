@@ -145,6 +145,25 @@ pub(crate) struct AttackConfig {
     pub(crate) splash_radius: f64,
     pub(crate) weapons: WeaponTopology,
     pub(crate) path: AttackPath,
+    /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
+    /// turret's is and no unit this build places reads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) magazine: Option<Magazine>,
+}
+
+/// `SkillData.loadingCapacity` and `reloadingTime`: the rounds a skill fires
+/// before `SkillReloadingState` takes it, and how long that state lasts.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Magazine {
+    pub(crate) capacity: u32,
+    pub(crate) reload: f64,
+}
+
+impl Magazine {
+    pub(crate) fn reload_time_units(&self) -> u64 {
+        quantize_u64(self.reload, TIME_UNITS_PER_SECOND)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

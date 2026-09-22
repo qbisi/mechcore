@@ -10,16 +10,18 @@
 //! reading, so a construction whose geometry nobody has measured is refused by
 //! name instead of being laid out by a formula fitted to the one that was.
 //!
-//! Nothing here fights. A turret carries a skill and its damage and no
-//! mechanism in this build fires one, so a turret is refused for that and not
-//! for its shape.
+//! **A construction that fires carries its skill.** A turret is one object
+//! with a `ProjectileSkillData` row, which the table's `skills` carries in the
+//! shape a unit's `attack` has, and the fight runs it through the machine a
+//! unit's skill runs through. A construction whose skill the table does not
+//! carry is refused by name.
 
 use std::collections::BTreeMap;
 
 use mechcore_document::{NativeFormation, Placement};
 use serde::Deserialize;
 
-use crate::{Error, Result};
+use crate::{Error, Result, rules::AttackConfig};
 
 const DEFAULT_CONSTRUCTIONS: &str = include_str!("../../../../config/constructions.yaml");
 
@@ -42,7 +44,7 @@ const MEASURED_SPACING: &[(i32, i64)] = &[(1, 12)];
 /// Every length is in the space units the kernel holds a building's in, a
 /// thousand to the metre, so that a construction and the map's own towers
 /// reach `BuildingState` the same way.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct ConstructionBuilding {
     pub(crate) team: u32,
     pub(crate) building_type_id: u32,
@@ -61,6 +63,11 @@ pub(crate) struct ConstructionBuilding {
     /// The row's `pathfinding_collider_priority`: the RVO layer the other
     /// side avoids it on.
     pub(crate) collider_priority: i32,
+    /// What it fires, when it fires anything: its skill row, with the
+    /// construction's own damage and attack angle.
+    pub(crate) skill: Option<AttackConfig>,
+    /// The row's `rotate_speed`, degrees a second, which its weapon turns at.
+    pub(crate) rotate_speed: i32,
 }
 
 /// Space units to the metre, as `crates/simulation/src/rules.rs` quantizes a
@@ -79,6 +86,16 @@ fn fixed_to_space(raw: i64) -> i64 {
 #[derive(Debug, Clone)]
 pub(crate) struct Constructions {
     rows: BTreeMap<i32, Row>,
+    skills: BTreeMap<i32, SkillRow>,
+}
+
+/// One skill a construction fires, as the table carries it.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SkillRow {
+    id: i32,
+    name: String,
+    attack: AttackConfig,
 }
 
 /// One row of the table, whole.
@@ -132,6 +149,8 @@ struct Table {
     schema: String,
     game_build: String,
     constructions: Vec<Row>,
+    #[serde(default)]
+    skills: Vec<SkillRow>,
 }
 
 impl Constructions {
@@ -165,7 +184,16 @@ impl Constructions {
                 )));
             }
         }
-        Ok(Self { rows })
+        let mut skills = BTreeMap::new();
+        for skill in table.skills {
+            let id = skill.id;
+            if skills.insert(id, skill).is_some() {
+                return Err(Error::new(format!(
+                    "construction table holds skill {id} twice"
+                )));
+            }
+        }
+        Ok(Self { rows, skills })
     }
 
     /// The buildings one placement puts on the board.
@@ -193,12 +221,11 @@ impl Constructions {
             ))
         })?;
         let named = format!("construction {id} ({})", row.name);
-        if row.damage != 0 {
-            return Err(Error::new(format!(
-                "{named} attacks for {}, and no mechanism here fires a construction's skill",
-                row.damage
-            )));
-        }
+        let skill = if row.damage == 0 {
+            None
+        } else {
+            Some(self.skill(row, &named)?)
+        };
         let offsets = row.offsets().ok_or_else(|| {
             Error::new(format!(
                 "{named} places {} objects over {} rows, and where they stand is not measured",
@@ -225,8 +252,68 @@ impl Constructions {
                 life: row.max_life,
                 searchable: row.enable_search_target,
                 collider_priority: row.pathfinding_collider_priority,
+                skill: skill.clone(),
+                rotate_speed: row.rotate_speed,
             })
             .collect())
+    }
+
+    /// The skill a construction that attacks fires, checked against the two
+    /// numbers the construction's row holds for it.
+    fn skill(&self, row: &Row, named: &str) -> Result<AttackConfig> {
+        let skill = self.skills.get(&row.skill_id).ok_or_else(|| {
+            Error::new(format!(
+                "{named} attacks for {} with skill {}, which the table does not carry",
+                row.damage, row.skill_id
+            ))
+        })?;
+        let attack = &skill.attack;
+        if attack.base_damage != i64::from(row.damage) {
+            return Err(Error::new(format!(
+                "{named} deals {} and its skill {} ({}) says {}",
+                row.damage, skill.id, skill.name, attack.base_damage
+            )));
+        }
+        #[allow(
+            clippy::cast_precision_loss,
+            reason = "a whole number of degrees, exact in f64"
+        )]
+        let angle = row.attack_angle as f64 / FIXED_ONE as f64;
+        if (attack.attack_half_angle - angle).abs() > f64::EPSILON {
+            return Err(Error::new(format!(
+                "{named} turns {angle} degrees and its skill {} says {}",
+                skill.id, attack.attack_half_angle
+            )));
+        }
+        // A construction runs a unit's skill machine, and the two turrets
+        // measured it firing one projectile at the lock the tick its interval
+        // is up. A row that winds up, swings, cools, bursts, scatters or is
+        // grouped asks the machine for what no construction has shown it.
+        let timing = &attack.timing;
+        let simple = timing.initial_cooldown == 0.0
+            && timing.prepare == 0.0
+            && timing.attack_point == 0.0
+            && timing.backswing == 0.0
+            && timing.cooling == 0.0
+            && attack.weapons.count == 1
+            && attack.weapons.mode != crate::rules::WeaponMode::Group
+            && matches!(
+                attack.path,
+                crate::rules::AttackPath::Projectile {
+                    count: 1,
+                    target_offset_radius,
+                    pre_flight_height,
+                    ..
+                } if target_offset_radius == 0.0 && pre_flight_height == 0.0
+            );
+        if !simple {
+            return Err(Error::new(format!(
+                "{named} fires skill {} ({}), whose timing or projectile no measured \
+                 construction has",
+                skill.id, skill.name
+            )));
+        }
+        Ok(attack.clone())
     }
 }
 
@@ -327,18 +414,20 @@ mod tests {
         );
     }
 
-    /// A turret is one object and is still refused: it attacks, and nothing
-    /// here fires a construction's skill. The refusal names it so a layout
-    /// carrying one says which of its constructions it was.
+    /// A turret is one object, and it carries the skill its row names, with
+    /// the row's own damage.
     #[test]
-    fn a_turret_is_refused_for_what_it_does_rather_than_for_its_shape() {
+    fn a_turret_carries_its_skill() {
         let table = Constructions::load().unwrap();
-        let refusal = table
+        let built = table
             .buildings(0, &placement("anti_armor_turret", 2, -140, -100))
-            .unwrap_err()
-            .to_string();
-        assert!(refusal.contains("attacks for 2748"), "{refusal}");
-        assert!(refusal.contains("反装甲炮"), "{refusal}");
+            .unwrap();
+        assert_eq!(built.len(), 1);
+        let skill = built[0].skill.as_ref().expect("a turret fires");
+        assert_eq!(skill.base_damage, 2748);
+        assert_eq!(skill.range(), 125_000);
+        assert_eq!(skill.magazine.map(|magazine| magazine.capacity), Some(6));
+        assert_eq!(built[0].radius, 12_000);
     }
 
     /// The one row that would settle how a multi-row construction is laid out

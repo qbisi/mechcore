@@ -19,7 +19,7 @@ impl Simulation {
             .iter()
             .map(|slot| {
                 slot.and_then(|unit| {
-                    self.wall_in_the_way(actor_id, FightActorRef::Unit(unit))
+                    self.wall_in_the_way(FightActorRef::Unit(actor_id), FightActorRef::Unit(unit))
                         .map(|building| (building, unit))
                 })
             })
@@ -56,7 +56,7 @@ impl Simulation {
             self.select_group_lock_replacement(actor_id, slot, order)?
             && !slots.contains(&Some(candidate))
             && self.slot_target_in_attack_range(
-                actor_id,
+                FightActorRef::Unit(actor_id),
                 Some(slot),
                 FightActorRef::Unit(candidate),
             )
@@ -100,7 +100,11 @@ impl Simulation {
         }
         for slot in 0..count {
             let before = self.actors[&actor_id].skill.group_skill_targets[slot];
-            if self.check_attackable_slot(actor_id, Some(slot), target_search_order)? {
+            if self.check_attackable_slot(
+                FightActorRef::Unit(actor_id),
+                Some(slot),
+                target_search_order,
+            )? {
                 let actor = self.actors.get_mut(&actor_id).expect("actor exists");
                 if slot != 0 && before.is_none() {
                     let target = actor
@@ -176,7 +180,7 @@ impl Simulation {
                 .flatten()
         };
         if let Some(target_id) = group_core_target
-            && self.target_in_attack_area(actor_id, target_id)
+            && self.target_in_attack_area(FightActorRef::Unit(actor_id), target_id)
         {
             let next_attack_step = self.sample_actor_attack_interval(actor_id, step)?;
             let actor = self
@@ -188,7 +192,7 @@ impl Simulation {
                 step,
                 target: target_id,
             }));
-            let _attack_point_rejected = self.release(actor_id, events)?;
+            let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
         }
         self.release_group_slots(actor_id, step, events)
     }
@@ -254,7 +258,13 @@ impl Simulation {
                     if self.actors.get(&target_id).is_some_and(Actor::alive) =>
                 {
                     self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
-                    self.release_projectile(actor_id, target_id, skill_index, skill_index, events)?;
+                    self.release_projectile(
+                        FightActorRef::Unit(actor_id),
+                        target_id,
+                        skill_index,
+                        skill_index,
+                        events,
+                    )?;
                 }
                 // A slot whose line of fire a construction stands in fires at
                 // the construction, as the core does.
@@ -277,7 +287,7 @@ impl Simulation {
                     };
                     self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
                     self.release_projectile_to(
-                        actor_id,
+                        FightActorRef::Unit(actor_id),
                         ObjectKind::Building,
                         building_id,
                         q32_to_space_rounded(x_q32),

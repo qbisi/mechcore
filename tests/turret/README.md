@@ -2,20 +2,25 @@
 
 Every layout here exists to measure **what a turret's skill does**: when it
 fires, at what, and how often. That is the half of a construction
-[`constructions.md`](../../docs/rules/constructions.md) leaves out, and the
-one the simulator refuses a layout for.
+[`constructions.md`](../../docs/rules/constructions.md) leaves out, and
+[`turrets.md`](../../docs/rules/turrets.md) states what these fights settled.
 
 | Fixture | What it separates | Approach |
 | --- | --- | --- |
 | `rapid-fire-head-on.yaml` | the search cadence and the first shot from the tick a target is in reach | 200 m straight down the turret's column |
 | `rapid-fire-flank.yaml` | whether the turret turns before it fires, and what the turn costs | the same Crawlers, 40 degrees off that line |
-| `anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers | as head-on, on the Anti-Armor Turret |
+| `anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers, and how a unit holds a turret that falls in its swing | as head-on, on the Anti-Armor Turret |
+| `anti-armor-arclights.yaml` | the same, through a reload, in a fight no tower falls in | four Arclights down the Anti-Armor Turret's column, two shots each |
 
 `skill.mcscript` records them with the `target_refs_v1` sidecar and records
-the head-on fight twice, requiring the two to be one recording. Nothing here
-runs the simulator: a turret is what the research question these fixtures
-were recorded for asks a claimant to build, and the offline
-`regressions.mcscript` that pins the answer is that claimant's to add.
+the head-on fight twice, requiring the two to be one recording.
+`arclights.mcscript` records the Arclight fight twice, requiring the two to be
+one recording. `regressions.mcscript` needs no game: it runs both Rapid-Fire
+fights and the Arclight fight through the simulator and holds them to the
+game's physics and content hashes. The Anti-Armor Crawler fight is not
+pinned. The simulator agrees with it through tick 508, and at 509 the Crawlers
+take blue's Energy Tower, whose loss weakens the Marksman in a way nothing
+here models (#104).
 
 ## What the build says a turret's skill is
 
@@ -37,10 +42,14 @@ carries the damage, the attack angle and the rotate speed.
 | splash range | 10 | 5 |
 | targets | ground only | ground only |
 | quick switch target | yes | yes |
-| weapon mode | Released (2) | Released (2) |
+| weapon mode | Standalone (2) | Standalone (2) |
+| magazine, reload | 10, 2.5 s | 6, 10 s |
 | attack angle (construction) | 20° | 20° |
 | rotate speed (construction) | 120°/s | 120°/s |
 | radius (construction) | 12 m | 12 m |
 
-A unit's skill carries weapon mode `Held` (0); what `Released` changes is not
-read.
+The build's `WeaponMode` is `Normal` (0), `Group` (1) and `Standalone` (2).
+A unit's skill is `Normal`; a turret's is `Standalone`, which gives its weapon
+a transform of its own that turns at the construction's rotate speed. A row
+of the loading type fires from a magazine: 10 rounds and 2.5 s to reload for
+the Rapid-Fire Turret, 6 and 10 s for the Anti-Armor.

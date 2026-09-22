@@ -81,16 +81,29 @@ go, and what the RVO solver made of that) and a `Skill` (`skill/mod.rs`, the
 attack being made). A path through a unit reads as the build's does:
 `actor.skill.lock_target`, `actor.motion.state`.
 
+A skill has one machine whoever owns it. A construction that fires
+(`construction.rs`, the `FightConstruction`) holds the same `Skill`, and
+`update_skill` is `SkillManager.Update` for either owner. What differs between
+the two reaches the skill only through `attacker.rs`, the build's
+`ISkillOwner` and `IAttacker`: where the owner stands, its radius and reach,
+what its attack angle is measured against, how fast its weapons turn, and
+whether it searches. A construction's `MotionController` is never updated, so
+its motion reads idle. The kernel asks a unit's skill to start its attack from
+the unit's motion (`attack_in_range`); a construction's asks it after the
+skill's update (`attack_in_reach`), with the same `try_start_attack`.
+
 | File | Mirrors |
 | --- | --- |
 | `mod.rs` | the objects, and `FightCoreSystem`'s advance: `step` |
 | `deploy.rs` | deployment: formations, the initial actors and buildings, the presearch |
 | `mech.rs` | `FightMech`: position, facing, life, and its snapshot |
+| `construction.rs` | `FightConstruction`: a building that owns a skill, and its update |
+| `attacker.rs` | `ISkillOwner` and `IAttacker`: what a skill reads of its owner, and the reach, angle, weapon turn and interval draw written once against it |
 | `search.rs` | the target quadtrees and the target selector |
 | `motion.rs` | `MotionController`: holding a dead target, attacking one in range, leaving or approaching one; the RVO submission |
 | `damage.rs` | `DamagePerformer`, [below](#damage) |
 | `projectile.rs` | `ProjectileSystem` |
-| `skill/mod.rs` | `FightSkill`'s update as named parts, its `SkillState`, the search timer, `TryStartAttack`, the attack-area checkers |
+| `skill/mod.rs` | `SkillManager.Update` for any owner: `FightSkill`'s update as named parts, its `SkillState` with the reload, the search timer, `TryStartAttack` |
 | `skill/check.rs` | `SearchAttackTarget`, `SkillAttackableChecker`, `WallConstructionTargetChecker`, `SkillAttackState.Finish` |
 | `skill/perform.rs` | the attack performers: a blow, a shot, a burst |
 | `skill/group.rs` | a grouped skill's slots |

@@ -65,6 +65,7 @@ pub(super) fn raw_test_simulation(
         fallen_buildings: Vec::new(),
         construction_colliders: construction_colliders.clone(),
         unsearchable_buildings: unsearchable.clone(),
+        constructions: BTreeMap::new(),
     }
 }
 
