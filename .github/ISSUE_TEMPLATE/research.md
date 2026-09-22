@@ -10,9 +10,11 @@ assignees: ""
 The Research section of .github/CONTRIBUTING.md states the rules. The short
 form:
 
-  Only the keeper opens one.     The session that holds the game commits the
-                                 fixtures, then records and publishes the
-                                 oracle as the release oracle/issue-<n>.
+  Only the keeper opens one.     The session that holds the game records
+                                 first, checks every hypothesis is separated
+                                 by a recording, and publishes the oracle as
+                                 the release oracle/issue-<n>; the layouts and
+                                 the script are in the issue, not the repo.
   One number or one decision.    "How is +0.3 composed", not "how do officers
                                  work". Hypotheses have to differ in it.
   Predict before you read.       Every hypothesis names the value it predicts.
@@ -30,8 +32,23 @@ draft is the claim.
 `mechcore-decomp/<build>/cpp2il/`, and what it cannot answer. Where the
 keeper's reading stopped.>
 
-**Fixtures.** `tests/<topic>/` at <commit>. <One line per layout: what it
-separates.>
+**Fixtures.** <Not in the repository yet: the claimant lands the ones the
+answer needed, under `tests/<topic>/`, with the regressions. One fenced block
+per layout, with the reason it exists, and one for the record script.>
+
+`<topic>/<name>.yaml`:
+
+```yaml
+kind: layout
+...
+```
+
+`<topic>/<script>.mcscript`:
+
+```yaml
+game: launch
+...
+```
 
 **Predicted.**
 

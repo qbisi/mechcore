@@ -85,9 +85,11 @@ automerge 逐条检查。不要在别的 PR 的分支上再开 PR：父 PR 压�
 
 模拟器的机制研究按 `.github/CONTRIBUTING.md` 的 Research 一节并行推进：
 一个问题一条 issue。持有游戏的那个会话（维护 `plan.md` 的主 agent，即
-keeper）先把问题收成一个数、读反编译、把 fixture 和录制脚本提交到 master、
-开 issue，再录像并用 `scripts/oracle.py publish <n>` 发成本仓库的 release
-`oracle/issue-<n>`。认领的 agent 从 `research/<n>-<slug>` 分支开草稿 PR
+keeper）先把问题收成一个数、读反编译、设计布阵和录制脚本、录像并确认每个假设都
+有录像能区分，然后开 issue（布阵和脚本写在 issue 里，不进仓库）、用
+`scripts/oracle.py publish <n>` 把录像发成本仓库的 release `oracle/issue-<n>`。
+认领者拿不到游戏，要新录像得等 keeper 一个来回，所以 issue 发出去时录像就得够用；
+最终用上的布阵和脚本由认领者随回答一起落到 `tests/<topic>/`。认领的 agent 从 `research/<n>-<slug>` 分支开草稿 PR
 （正文末尾 `Closes #n`，草稿即认领），用 `scripts/oracle.py fetch <n>` 取回
 录像，离线拟合、实现、钉住、写规则，`scripts/check-scripts.sh` 全过后转正式；
 keeper 读过、跑过之后打 `accepted`，automerge 才合并，合并后 release 删除。

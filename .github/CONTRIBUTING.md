@@ -173,6 +173,10 @@ commit message may.
 
 ### What the keeper does before opening one
 
+A claimant cannot record, and asking the keeper for a recording costs a round
+trip through the game and a wait, so a question is published with everything
+its hypotheses need already recorded.
+
 1. **Cuts the question to one number or one decision**, and writes what each
    hypothesis predicts for it, before recording. A question two hypotheses
    answer alike is not cut yet.
@@ -180,14 +184,23 @@ commit message may.
    class, the method, the address, the file under `mechcore-decomp`. The
    reading's result is written as plainly as what it cannot answer, so the
    claimant starts where the keeper stopped rather than from the beginning.
-3. **Commits the fixtures** under `tests/<topic>/` on master: the layouts, each
-   with the reason it exists, and the script that records them with its
-   predictions as `expect` lines. The script is the experiment; the issue
-   points at it.
-4. **Opens the issue** with the Research template, labelled `research`. The
-   `Touches` block names the modules the answer may change; two open questions
-   never share one, which is what makes them answerable in parallel.
-5. **Records, and publishes the oracle.** The files the script wrote under
+3. **Designs the fixtures**: one layout per branch the hypotheses take, each
+   with the reason it exists, and the script that records them with a
+   control. They are written into the issue, not into the repository: a
+   layout is right only once the recording it produced separated what it was
+   built to separate, and the claimant lands the ones that did, beside the
+   regressions that pin them, in the pull request that answers.
+4. **Records, and checks the coverage.** Every hypothesis has to differ from
+   every other in something a recording shows; a fight no hypothesis predicts
+   differently is dropped, and a hypothesis no fight separates gets another
+   layout and another recording before the issue opens. Reading the
+   recordings for this is the keeper's, and what they show goes into the
+   issue beside the predictions.
+5. **Opens the issue** with the Research template, labelled `research`, the
+   layouts and the script inline. The `Touches` block names the modules the
+   answer may change; two open questions never share one, which is what makes
+   them answerable in parallel.
+6. **Publishes the oracle.** The files the script wrote under
    `/tmp/mechcore/<topic>/<script>/` go to the release `oracle/issue-<n>` with
    `scripts/oracle.py publish <n> <path>...`, and the issue's `Oracle` block
    lists each file with its tick count and physics hash.
@@ -221,9 +234,11 @@ any checkout. That is the research directory of a claimed question.
    until the ticks agree, then on the reading until the rule says why.
 3. Land it the way `plan.md` says a mechanism lands: the rule and its scope in
    `docs/rules/`, the number's source stated, a refusal in the code for what
-   the scope does not cover, and the topic's offline `regressions.mcscript`
-   pinning each oracle fight the simulator can run, physics and content hash
-   both. `work/research/README.md`'s two gates decide what a rule may claim.
+   the scope does not cover, and under `tests/<topic>/` the issue's layouts
+   and record script, with the offline `regressions.mcscript` pinning each
+   oracle fight the simulator can run, physics and content hash both. A layout
+   the answer did not need stays in the issue. `work/research/README.md`'s two
+   gates decide what a rule may claim.
 4. Before every push: `cargo fmt --all`, the clippy and test lines
    `AGENTS.md` names, and `scripts/check-scripts.sh`, which runs every offline
    script and is the same loop CI runs. Every pin that held before has to
@@ -233,13 +248,15 @@ any checkout. That is the research directory of a claimed question.
 
 ### Asking for a capture
 
-When the oracle cannot separate the hypotheses that remain, the claimant
-designs the fight that would, and asks for it:
+The oracle is meant to be enough, and a request is the exception: it costs
+the keeper a session at the game and the claimant a wait. When the oracle
+still cannot separate the hypotheses that remain, the claimant designs the
+fight that would, and asks for it:
 
 1. commits the layout and its record script under `tests/<topic>/` on the
    branch, with the value each hypothesis predicts as an `expect` line;
-2. comments on the pull request what the fight separates, and adds the label
-   `capture`.
+2. comments on the pull request what the fight separates, which hypotheses
+   the oracle left standing and why, and adds the label `capture`.
 
 The keeper runs the script, publishes the files to the question's release,
 answers with the hashes and the tick counts, and removes the label. A capture
