@@ -22,7 +22,7 @@
 # `anti-armor-head-on.yaml` is not here. The simulator plays it tick for tick
 # up to tick 508, the Anti-Armor Turret's six shots and its fall at 335
 # included; at 509 the Crawlers take blue's Energy Tower, and the game
-# weakens the Marksman for it (#104), which is a mechanism of its own this
+# weakens the Marksman for it, which is a mechanism of its own this
 # build does not model.
 
 steps:

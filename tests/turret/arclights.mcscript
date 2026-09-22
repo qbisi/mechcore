@@ -5,7 +5,7 @@
 #
 # `anti-armor-head-on.yaml` asked whether the Anti-Armor Turret is the Rapid-
 # Fire Turret's machine with other numbers, and its Crawlers take blue's
-# Energy Tower at tick 509, which weakens the Marksman (#104). This fight asks
+# Energy Tower at tick 509, which weakens the Marksman. This fight asks
 # the same without a tower in the way, and asks more of it: four Arclights,
 # two shots each, so the six-round magazine empties and reloads before the
 # last one dies. It is recorded twice, and the two have to be one recording.

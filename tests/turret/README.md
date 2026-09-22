@@ -20,7 +20,7 @@ fights and the Arclight fight through the simulator and holds them to the
 game's physics and content hashes. The Anti-Armor Crawler fight is not
 pinned. The simulator agrees with it through tick 508, and at 509 the Crawlers
 take blue's Energy Tower, whose loss weakens the Marksman in a way nothing
-here models (#104).
+here models.
 
 ## What the build says a turret's skill is
 

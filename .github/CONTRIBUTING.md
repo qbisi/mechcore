@@ -152,6 +152,16 @@ anything. The Adapter's level check is what happens when this rule is broken,
 and it is a loss, not a safeguard: the keeper's next claim ends the claimant's
 capture unpublished.
 
+### Referring to other issues
+
+An issue number written in an issue, a pull request or a commit links the two
+on GitHub, both ways, and a link that carries no dependency buries the ones
+that do. So a number is written only for a dependency: `Closes #n`,
+`Blocked by #n`, or a decision that moves another item. Where something came
+from is told by its mechanism, its fixture or its file, not by the question
+that found it. A tracked file (a document, a script, a layout, a README)
+carries no issue number at all, as it carries no release: it outlives both.
+
 ### Where the evidence lives
 
 Three places hold what a question is answered from, and none of them is this
@@ -363,7 +373,7 @@ request, and reading means:
 
   A divergence the build does not have is a step back even when every
   recording agrees. The keeper returns it, or takes the pull request over
-  and folds it, as #93 was;
+  and folds it;
 - checking that the pull request's title and body are the commit master
   will hold, and that the documents say what the build does and not what
   the simulator does.

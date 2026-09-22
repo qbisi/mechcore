@@ -29,7 +29,7 @@
 `rapid-fire-flank.yaml` 和 `anti-armor-head-on.yaml` 由 `skill.mcscript` 录制，另有一
 份对照录像把正面那场原样再录一遍。`anti-armor-arclights.yaml` 由 `arclights.mcscript`
 录两遍：它让反装甲炮在一场没有塔倒下的仗里走完一次装填，因为 `anti-armor-head-on.yaml`
-的爬虫在第 509 tick 拆了一座塔（#104）。读的 build 代码是 `FightConstruction`、
+的爬虫在第 509 tick 拆了一座塔，而丢塔对己方的影响是另一个机制。读的 build 代码是 `FightConstruction`、
 `ConstructionSearchTargetController`、`FightSkill`、`SkillIdleState`、
 `SkillAttackState`、`SkillReloadingState`、`SkillAttackableChecker` 和
 `SkillAttackAngleChecker`。
@@ -141,7 +141,7 @@
 个锁定前面的墙块不同：那种会让犀牛一直保持攻击到挥完
 （[`constructions.zh.md`](constructions.zh.md)）。反装甲那场第 335 tick，挥到一半
 的四只爬虫拿着 3 号建筑变成空闲，没在挥的那一只放下它走了。那场仗录了但没钉：
-模拟器到第 508 tick 都和它一致，第 509 tick 它撞上 #104。
+模拟器到第 508 tick 都和它一致，第 509 tick 起是丢塔的减益。
 
 ## 范围
 
@@ -152,7 +152,7 @@
 它不覆盖：
 
 - **反装甲炮打爬虫那场第 508 tick 之后。** 那时爬虫在射手还站着的情况下打掉了蓝方的
-  能量塔，游戏因此削弱射手（#104），这不是炮台的机制。打弧光那场问的是反装甲炮同样的
+  能量塔，游戏因此削弱射手，这不是炮台的机制。打弧光那场问的是反装甲炮同样的
   问题，而没有塔倒下。
 - **和军官或单位科技同场的炮台。** 两者会不会作用到工事的技能没读过，所以一方放了炮台
   又带着其中之一，就拒绝。

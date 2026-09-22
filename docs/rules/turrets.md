@@ -34,7 +34,8 @@ are recorded by `skill.mcscript`, with a control recording that repeats the
 head-on fight exactly. `anti-armor-arclights.yaml` is recorded by
 `arclights.mcscript`, twice. It puts the Anti-Armor Turret through a reload in
 a fight no tower falls in, because the Crawlers of `anti-armor-head-on.yaml`
-take a tower at tick 509 (#104). The build was read at `FightConstruction`,
+take a tower at tick 509, and what losing a tower does to its side is a
+mechanism of its own. The build was read at `FightConstruction`,
 `ConstructionSearchTargetController`, `FightSkill`, `SkillIdleState`,
 `SkillAttackState`, `SkillReloadingState`, `SkillAttackableChecker` and
 `SkillAttackAngleChecker`.
@@ -188,7 +189,7 @@ attacking to the end of its swing ([`constructions.md`](constructions.md)). At
 tick 335 of the Anti-Armor fight, the four Crawlers mid-swing go idle holding
 building 3, and the one that was not mid-swing drops it and walks on. That
 fight is recorded but not pinned: the simulator agrees with it through tick
-508, and at 509 it runs into #104.
+508, and at 509 the tower-loss debuff begins.
 
 ## Scope
 
@@ -202,7 +203,7 @@ It does not cover:
 
 - **The Anti-Armor Crawler fight after tick 508.** There the Crawlers destroy
   blue's Energy Tower with the Marksman still standing, and the game weakens
-  the Marksman for it (#104), which is not a turret's mechanism. The Arclight
+  the Marksman for it, which is not a turret's mechanism. The Arclight
   fight asks the Anti-Armor Turret the same without a tower falling.
 - **A turret beside an officer or a unit technology.** Whether either reaches a
   construction's skill is not read, so a side that places a turret and carries
