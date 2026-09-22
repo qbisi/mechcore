@@ -572,3 +572,73 @@ impl Simulation {
         Ok(best.map(|(candidate, _)| candidate))
     }
 }
+
+impl Simulation {
+    /// `PerformGroupedSkillSearch` excludes the other slots' locks before
+    /// scoring opponents. If sharing is allowed and that answer cannot be
+    /// attacked, the same selector is asked about the held targets instead.
+    pub(in crate::fight) fn select_group_lock_replacement(
+        &self,
+        actor_id: u64,
+        slot: usize,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<Option<FightActorRef>> {
+        let source = &self.actors[&actor_id];
+        let held = source
+            .skill
+            .group_skill_targets
+            .iter()
+            .enumerate()
+            .filter_map(|(index, target)| (index != slot).then_some(*target).flatten())
+            .collect::<Vec<_>>();
+        if held.is_empty() {
+            return self.select_lock_replacement(actor_id, target_search_order);
+        }
+        let select = |shared: bool| {
+            let mut best: Option<(i64, u64)> = None;
+            for (&team, candidates) in target_search_order {
+                if team == source.placement.team {
+                    continue;
+                }
+                for candidate in candidates {
+                    let FightActorRef::Unit(id) = candidate else {
+                        continue;
+                    };
+                    let target = &self.actors[id];
+                    if held.contains(id) != shared
+                        || !target.alive()
+                        || !source.rules.attack.accepts(target.rules.domain)
+                    {
+                        continue;
+                    }
+                    let Some(score) = normal_visible_full_rotation_target_score_q32(
+                        source.target_query_x_q32,
+                        source.target_query_z_q32,
+                        source.rules.collision_radius(),
+                        source.body_rotation_q32,
+                        target.x_q32,
+                        target.z_q32,
+                        target.rules.collision_radius(),
+                        source.rules.attack.min_range(),
+                        self.slot_attack_range(actor_id, Some(slot)),
+                    ) else {
+                        continue;
+                    };
+                    if best.is_none_or(|(previous, _)| score < previous) {
+                        best = Some((score, *id));
+                    }
+                }
+            }
+            best.map(|(_, id)| FightActorRef::Unit(id))
+        };
+        let selected = select(false);
+        if source.rules.attack.weapons.allow_same_target == Some(true)
+            && selected.is_none_or(|target| {
+                !self.slot_target_in_attack_range(actor_id, Some(slot), target)
+            })
+        {
+            return Ok(select(true).or(selected));
+        }
+        Ok(selected)
+    }
+}

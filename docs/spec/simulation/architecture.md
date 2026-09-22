@@ -386,11 +386,10 @@ beside the recordings under `tests/construction/`.
 manifest are the oracle: each unit's skill state and attack phase per tick
 (`tests/regression/skill-state.mcscript`), and every `Check` call with the
 skill's lock and attack target on either side of it (the
-`skill_attackable_checker_v1` profile). The kernel's states now match the game's
-on every comparable unit-tick but three, and `check_attackable` answers the
-game's own calls identically on 149,695 of 149,829, every other one a grouped
-skill's slot. What that took, beyond the
-checker itself:
+`skill_attackable_checker_v1` profile). Grouped skills use the same checker
+per slot, with the siblings' lock holdings and each slot's own range. The
+[Wraith fixtures](../../../tests/wraith/README.md) describe the independent
+per-call replay and the physics/content checks. Beyond the checker itself:
 
 - the checker runs between blows, through the wait before a blow, and on the
   update the blow lands, before it is performed;
@@ -406,9 +405,16 @@ With those, the stale-target, quick-switch-out-of-range and stale-replacement
 paths that answered a lock dying or walking away are gone: the checker answers
 all of it.
 
-**What the mirror does not carry yet.** A grouped skill's core is a
-`GroupedSkillAttackBehaviour` rather than a `FightSkill`; the capture holds no
-state for it, and it keeps the prepare timing it was calibrated with. A skill
+**Grouped search boundary.** A group searches and checks its slots in order;
+each settled search publishes its lock to the mech. The ordinary search
+excludes sibling locks and permits sharing according to the skill data.
+The child-range rule is in [combat](../../rules/combat.md#a-grouped-slot-searches-around-its-siblings-locks).
+The mirror refuses live shared-lock redistribution onto an available unheld
+target and a child leaving its attack area. Grouped fusillade is outside the
+supported configs. The existing prepare offset and per-slot wall checks are
+separate from this target-search contract.
+
+**What the mirror does not carry yet.** A skill
 that cannot switch quickly keeps a live lock out of reach. That is measured,
 and the path is read: the build reads the quick-switch flag only in the
 research branch of `Check`, and a live lock sends `CheckWhenLoseTarget` to the
