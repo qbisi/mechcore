@@ -17,10 +17,66 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # What changed decides what runs. A change under `docs/` cannot break the
+  # test suite, and one under `tests/` cannot break the Adapter, so each job
+  # below asks this one whether its inputs moved. A job that does not run is
+  # skipped, which automerge counts as green; this job itself always runs, so
+  # the run has a conclusion for automerge to act on. A workflow change runs
+  # everything, because it is the jobs themselves that changed.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+      scripts: ${{ steps.scope.outputs.scripts }}
+      adapter: ${{ steps.scope.outputs.adapter }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Which inputs moved
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -eu
+          if [ "$EVENT" = pull_request ]; then
+            git fetch -q origin "$BASE_REF"
+            base=$(git merge-base "origin/$BASE_REF" HEAD)
+          elif git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base=$BEFORE
+          else
+            base=
+          fi
+          if [ -n "$base" ]; then
+            changed=$(git diff --name-only "$base" HEAD)
+          else
+            # A first push or a force push has no base to diff against.
+            changed=$(git ls-files)
+          fi
+          printf '%s\n' "$changed"
+          moved() { grep -qE "$1" <<<"$changed" && echo true || echo false; }
+          workflows=$(moved '^\.github/workflows/')
+          code=$(moved '^(crates/|config/|Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|\.cargo/)')
+          scripts=$(moved '^(scripts/|tests/|replay/|layouts/)|\.mcscript$')
+          adapter=$(moved '^(crates/adapter/|crates/mechcore/|crates/protocol/|Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|\.cargo/)')
+          if [ "$workflows" = true ]; then code=true; scripts=true; adapter=true; fi
+          if [ "$code" = true ]; then scripts=true; fi
+          {
+            echo "code=$code"
+            echo "scripts=$scripts"
+            echo "adapter=$adapter"
+          } >> "$GITHUB_OUTPUT"
+          echo "code=$code scripts=$scripts adapter=$adapter"
+
   # Does the code say what it should: formatting, lints and the test suite.
   # Only the Adapter is macOS code, so everything else is checked on Linux,
   # without the `adapter` feature that would build it.
   test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +112,8 @@ jobs:
   # fixtures, the corpus, every offline script and every tracked battle. A
   # different question from the test suite's, so it runs beside it.
   scripts:
+    needs: changes
+    if: needs.changes.outputs.scripts == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -163,6 +221,8 @@ jobs:
   # Adapter itself, the packaged build, and the process lookup `game: launch`
   # uses to find a running game.
   adapter:
+    needs: changes
+    if: needs.changes.outputs.adapter == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4

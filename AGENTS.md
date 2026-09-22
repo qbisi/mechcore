@@ -30,7 +30,12 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 # CI 与自动合并
 
-`.github/workflows/ci.yml` 分三个并行的 job，各答一个问题：
+`.github/workflows/ci.yml` 先由 `changes` 算改动范围，再分三个并行的 job，各答一个问题。
+只动 `docs/` 的 PR 三个 job 都跳过（跳过算绿，automerge 照合）；动了 `scripts/`、`tests/`、
+`replay/`、`layouts/` 或任何 `.mcscript` 跑 `scripts`；动了 `crates/`、`config/`、Cargo 文件
+跑 `test` 和 `scripts`；动了 `crates/adapter/`、`crates/mechcore/`、`crates/protocol/` 或 Cargo
+文件再跑 `adapter`；动了 workflow 文件全跑。要跑什么由改动决定，不由人决定：想让一个检查
+跑，就改它读的东西。三个 job 是：
 
 - `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
   `cargo clippy -D warnings`、`cargo test`，都是
