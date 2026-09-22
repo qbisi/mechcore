@@ -1,0 +1,23 @@
+kind: layout
+round: 1
+
+# What does a unit's level do to its numbers?
+#
+# The pinned `marksman-vs-arclight.yaml` fight with blue's Marksman at level
+# 2 and nothing else changed. The Arclight has 4813 of life: a level-1
+# Marksman needs three shots, a doubled one two, so the fight is shorter and
+# the Marksman takes fewer hits, and what the recording holds of it on its
+# first tick, its life and its damage, is the level and nothing else.
+
+blue:
+  units:
+    - name: marksman
+      index: 0
+      level: 2
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

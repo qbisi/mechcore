@@ -1,0 +1,22 @@
+kind: layout
+round: 1
+
+# What does a unit's level do to its numbers?
+#
+# The pinned `marksman-vs-arclight.yaml` fight with blue's Marksman at level
+# 3 and nothing else changed. A tripled shot, 6987 against the Arclight's
+# 4813 of life, ends the fight on the first hit. Level 3 is what separates
+# a rating that is the level from one that doubles each level: 3 times, or 4.
+
+blue:
+  units:
+    - name: marksman
+      index: 0
+      level: 3
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

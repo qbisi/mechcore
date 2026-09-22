@@ -28,7 +28,7 @@ impl Actor {
         // The layout resolved these when it compiled the placement, which is
         // where a refusal can name the side and the officer; reaching here
         // means they resolve.
-        let stats = crate::data::Stats::corrected(&rules, &placement.corrections)
+        let stats = crate::data::Stats::corrected(&rules, placement.level, &placement.corrections)
             .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
         let magazine = rules.attack.magazine;
@@ -239,8 +239,14 @@ impl Actor {
             visibility: Visibility::Normal,
             status_mask: 0,
             buff_modifiers: BuffModifierSet::default(),
-            unit_dynamic_modifiers: UnitDynamicModifierSet::default(),
-            skill_dynamic_modifiers: Vec::new(),
+            unit_dynamic_modifiers: self
+                .stats
+                .unit_dynamic_modifiers()
+                .expect("the layout refused every correction a snapshot cannot record"),
+            skill_dynamic_modifiers: self
+                .stats
+                .skill_dynamic_modifiers(self.skill.group_skill_targets.len().max(1))
+                .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: false,
                 enabled: true,
@@ -263,7 +269,7 @@ impl Actor {
                 // is on: the Steel Balls of `wall-laser.yaml` read 2, which
                 // is 55 at its first multiplier, on every tick of their fight.
                 attack_damage: i32::try_from(match &self.rules.attack.path {
-                    AttackPath::Laser { .. } => self.rules.attack.laser_damage(0),
+                    AttackPath::Laser { .. } => self.stats.laser_damage(&self.rules, 0),
                     _ => self.stats.attack_damage(),
                 })
                 .unwrap_or(i32::MAX),

@@ -13,6 +13,10 @@
 //! four effect tables are extracted. The loop that drives them is never edited
 //! for a mechanism.
 //!
+//! A unit's level is not a field here. It is part of the unit, as its type is:
+//! `FightMech` is built with its `IMechLevelData`, and the level scales the
+//! base numbers before any module's correction reaches them.
+//!
 //! A module that understands a field can still refuse one member of it, and
 //! the refusal then names the thing rather than the field:
 //! `FightConstructionSystem` places a Defensive Wall and a turret and refuses
@@ -39,7 +43,6 @@ pub(crate) enum Field {
     Contraptions,
     AirdropShields,
     Terrains,
-    UnitLevel,
     UnitEquipment,
     Travelling,
 }
@@ -58,7 +61,6 @@ impl Field {
             Self::Contraptions => "contraptions",
             Self::AirdropShields => "airdrop shields",
             Self::Terrains => "terrains",
-            Self::UnitLevel => "units above level one",
             Self::UnitEquipment => "unit equipment",
             Self::Travelling => "travelling units",
         }
@@ -78,7 +80,6 @@ impl Field {
             Self::Contraptions => !side.contraptions.is_empty(),
             Self::AirdropShields => !side.airdrop_shields.is_empty(),
             Self::Terrains => !side.terrains.is_empty(),
-            Self::UnitLevel => side.units.iter().any(|unit| unit.level != Some(1)),
             Self::UnitEquipment => side.units.iter().any(|unit| unit.equipment.is_some()),
             Self::Travelling => side.units.iter().any(|unit| unit.travelling),
         }
@@ -113,7 +114,7 @@ pub(crate) struct Module {
 /// `FightCoreSystem.PreCalculate` asks it `IsTravelling`.
 ///
 /// `Modifier` is the exception and is deliberately not a module of the build:
-/// officers, technologies, equipment and levels are applied to a unit before
+/// officers, technologies and equipment are applied to a unit before
 /// the fight rather than inside it — the build's own
 /// `TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is
 /// called from the deployment's `MAP_AddUnit` — so the simulator applies them
@@ -128,7 +129,6 @@ pub(crate) static MODULES: &[Module] = &[
             Field::Officers,
             Field::UnitTechnologies,
             Field::UnitEquipment,
-            Field::UnitLevel,
         ],
         understood: &[Field::Officers, Field::UnitTechnologies],
         implemented: true,
@@ -402,7 +402,6 @@ mod tests {
             Field::Contraptions,
             Field::AirdropShields,
             Field::Terrains,
-            Field::UnitLevel,
             Field::UnitEquipment,
             Field::Travelling,
         ];
@@ -467,12 +466,9 @@ mod tests {
                 .iter()
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
-            [
-                ("battle skills", "CommanderSkillSystem"),
-                ("units above level one", "Modifier"),
-            ],
-            "officers and the construction beside them are understood; the \
-             level and the skill are not"
+            [("battle skills", "CommanderSkillSystem")],
+            "officers, a unit's level and the construction beside them are \
+             understood; the battle skill is not"
         );
     }
 

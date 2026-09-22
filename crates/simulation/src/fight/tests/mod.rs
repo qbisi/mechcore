@@ -30,6 +30,7 @@ pub(super) fn test_placement(
         world_z,
         rotation: if team == 0 { 0 } else { 180_000 },
         rotated: false,
+        level: 1,
         corrections: Vec::new(),
     }
 }

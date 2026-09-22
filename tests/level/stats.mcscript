@@ -1,0 +1,56 @@
+# What does a unit's level do to its numbers?
+#
+#   mechcore run tests/level/stats.mcscript --check   parse without the game
+#   mechcore run tests/level/stats.mcscript           record
+#
+# The build's `attributeUpgradeDatas` holds nine rows whose `lifeRating` and
+# `damageRating` are the level itself, 1.0 to 9.0, and `MechUtility`'s
+# `GetBaseLife` and `GetBaseDamage` multiply the description's number by the
+# rating; `FightMech`'s constructor calls `GetBaseLife`, and `ChangeLevel`
+# refreshes the life data and the damage property. So a level-2 Marksman is
+# predicted to shoot for 4658 and carry 3244 of life, a level-3 one 6987 and
+# 4866, and Advanced Offensive Tactics on a level-2 one 6055, the rate on top
+# of the doubled base and truncated toward zero. What the reading does not
+# say is whether the level is written into the unit's overlay as a rate, or
+# folded into the base the overlay corrects; `fight stats` shows which.
+#
+# Every `expect` below is the prediction, written before the recording.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/level/stats
+  seed: 1787720817
+
+steps:
+  - let:
+      fights:
+        - {name: marksman-1, layout: tests/regression/marksman-vs-arclight.yaml, damage: 2329}
+        - {name: marksman-2, layout: tests/level/marksman-2.yaml, damage: 4658}
+        - {name: marksman-3, layout: tests/level/marksman-3.yaml, damage: 6987}
+        - {name: marksman-2-rate, layout: tests/level/marksman-2-rate.yaml, damage: 6055}
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(${fight.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${fight.name}.mcfr
+      - fight.stats:
+          recording: ${out}/${fight.name}.mcfr
+        expect:
+          sides.blue.0.derived.attack_damage: ${fight.damage}
+          sides.blue.0.derived.attack_range: 601295421440
+          sides.blue.0.derived.move_speed: 34359738368
+
+  # The level-1 fight is the manifest's marksman-vs-arclight; recorded again it
+  # is the control, and has to be the pinned recording.
+  - fight.stats:
+      recording: ${out}/marksman-2-rate.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.damage_rate.add: 1288490188

@@ -25,6 +25,8 @@ pub(crate) struct Placement {
     pub(crate) world_z: i64,
     pub(crate) rotation: i64,
     pub(crate) rotated: bool,
+    /// The formation's level, 1 to 9: its `IMechLevelData` rating.
+    pub(crate) level: i64,
     /// What the side's loadout wrote onto this formation, in the channel each
     /// correction belongs to. The entries are verified to resolve while the
     /// layout is compiled, which is the only place that can name the side and
@@ -195,7 +197,7 @@ fn compile_formation(
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Result<Placement> {
-    // Level, equipment and travelling are claimed fields and were refused by
+    // Equipment and travelling are claimed fields and were refused by
     // the module registry before this ran; what is left is a placement that is
     // not a unit at all.
     if !matches!(formation.native, NativeFormation::Unit(_)) {
@@ -211,7 +213,15 @@ fn compile_formation(
         ))
     })?;
     validate_formation_footprint(side_name, formation, rules)?;
-    let corrections = loadout(side_name, &formation.type_name, rules, side, loadouts)?;
+    let level = i64::from(formation.level.unwrap_or(1));
+    let corrections = loadout(
+        side_name,
+        &formation.type_name,
+        level,
+        rules,
+        side,
+        loadouts,
+    )?;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z, rotation) = if team == 0 {
@@ -230,6 +240,7 @@ fn compile_formation(
         world_z,
         rotation,
         rotated,
+        level,
         corrections,
     })
 }
@@ -243,6 +254,7 @@ fn compile_formation(
 fn loadout(
     side_name: &str,
     type_name: &str,
+    level: i64,
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
@@ -257,12 +269,17 @@ fn loadout(
             .corrections(&side.techs.units, type_name)
             .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
     );
-    Stats::corrected(rules, &corrections).map_err(|error| {
+    let refused = |error: Error| {
         Error::new(format!(
             "side {side_name} unit type {type_name:?} carries a loadout this \
              build cannot resolve: {error}"
         ))
-    })?;
+    };
+    let stats = Stats::corrected(rules, level, &corrections).map_err(refused)?;
+    // A snapshot carries each `DataSet`'s aggregate; one this build cannot
+    // record is refused here, where the side and the officer can be named.
+    stats.unit_dynamic_modifiers().map_err(refused)?;
+    stats.skill_dynamic_modifiers(1).map_err(refused)?;
     Ok(corrections)
 }
 

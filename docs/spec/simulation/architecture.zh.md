@@ -144,12 +144,17 @@ TechnologySystem            WreckageRecoverySystem
 是把它的模块填满，永远不是去改驱动它的那个循环。
 
 **一个模块不是全有或全无。** 它认领若干字段，其中一部分是它当下看得懂的，其余的照样
-被拒绝，和空模块的认领一模一样。`Modifier` 认领军官、科技、装备、等级，今天看得懂的是
+被拒绝，和空模块的认领一模一样。`Modifier` 认领军官、科技、装备，今天看得懂的是
 军官和科技——因为四张效果表里有两张已经提取出来了。而且即使字段本身看得懂，某一份
 具体 layout 仍可能被拒：一名军官或一项科技的效果这个 build 合成不出来时，持有它的那一方
 被拒绝，并指名是哪一项、哪个字段，而不是把它应用一半。
 
-有一个模块不是 build 的。军官、科技、装备、等级是在**开打之前**施加到单位上的——
+单位的等级既不是字段，也不是修正。`FightMech` 构造时就带着它的 `IMechLevelData`，
+`GetBaseLife` 和 `GetBaseDamage` 先用等级评级乘描述值，然后才轮到任何 `DataSet`；
+build 2259 的评级就是等级本身。所以等级随单位进入 `Stats`，是一个独立乘区，所有修正
+都作用在乘积上（[unit_levels.md](../../rules/unit_levels.md)）。
+
+有一个模块不是 build 的。军官、科技、装备是在**开打之前**施加到单位上的——
 build 自己的 `TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由部署
 动作 `MAP_AddUnit` 调用——不是战斗里的系统。所以模拟器在建立战斗时一次性把它们写进去，
 这一步叫 `Modifier`。其余"哪个模块认领哪个字段"是模拟器自己的安排，名字则是 build 的；
@@ -161,7 +166,7 @@ travelling 的单位——因为 `FightCoreSystem.PreCalculate` 问的正是它 
 
 ```text
 side blue needs modules this build has not implemented: constructions
-(FightConstructionSystem), units above level one (Modifier); side red needs
+(FightConstructionSystem), battle skills (CommanderSkillSystem); side red needs
 modules this build has not implemented: unit equipment (Modifier)
 ```
 

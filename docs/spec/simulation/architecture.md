@@ -167,13 +167,20 @@ module, never editing the loop that drives it.
 
 **A module is not all or nothing.** It claims fields and understands some of
 them; the rest are refused exactly as an empty module's claims are. `Modifier`
-claims officers, technologies, equipment and levels, and understands officers
-and technologies today, because two of the four effect tables are extracted. A
+claims officers, technologies and equipment, and understands officers and
+technologies today, because two of the four effect tables are extracted. A
 field it understands can still refuse one particular layout: an officer or a
 technology whose effect this build cannot compose refuses the side holding it,
 by name and by field, rather than being half applied.
 
-One module is not the build's. Officers, technologies, equipment and levels are
+A unit's level is not a field, and not a correction. `FightMech` is built
+with its `IMechLevelData`, and its `GetBaseLife` and `GetBaseDamage` multiply
+the description by the level's rating before any `DataSet` applies; build
+2259's ratings are the levels themselves. So the level travels with the unit
+into `Stats` as its own multiplier, and every overlay applies to the product
+([unit_levels.md](../../rules/unit_levels.md)).
+
+One module is not the build's. Officers, technologies and equipment are
 applied to a unit **before** the fight rather than inside it — the build's
 `TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is called
 from the deployment's `MAP_AddUnit` — so the simulator applies them as the fight
@@ -189,7 +196,7 @@ fought:
 
 ```text
 side blue needs modules this build has not implemented: constructions
-(FightConstructionSystem), units above level one (Modifier); side red needs
+(FightConstructionSystem), battle skills (CommanderSkillSystem); side red needs
 modules this build has not implemented: unit equipment (Modifier)
 ```
 
