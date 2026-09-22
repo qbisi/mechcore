@@ -1,0 +1,26 @@
+kind: layout
+round: 1
+
+# Is the Anti-Armor Turret the same skill machine with other numbers?
+#
+# The Anti-Armor Turret at world (-140, -100), where the opening group places
+# it, and red's Crawlers at world (-145, 100) walking straight down its
+# column, as in `rapid-fire-head-on.yaml`. One shot kills a Crawler, so every
+# shot is a death and the interval between deaths is the interval between
+# shots.
+
+blue:
+  constructions:
+    - name: anti_armor_turret
+      index: 2
+      position: {x: -140, y: -100}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 290, y: -150}
+
+red:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: 145, y: -100}
