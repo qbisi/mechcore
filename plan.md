@@ -18,7 +18,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 | ~~`officers`~~ | ~~Modifier~~ | **已落地**（曾是 334，100%） |
 | ~~`techs`~~ | ~~Modifier~~ | **已落地**（曾是 256，76%） |
 | ~~`constructions`~~ | ~~FightConstructionSystem~~ | **防御墙已落地**（曾是 322，96%；炮台仍拒绝，30 个回合） |
-| 单位 `level` > 1 | Modifier | 276 (82%) |
+| ~~单位 `level` > 1~~ | ~~单位自身~~ | **已落地**（曾是 276，82%；等级是独立乘区，不是修正） |
 | `battle_skills` | CommanderSkillSystem | 176 (52%) |
 | 单位 `equipment` | Modifier | 167 (50%) |
 | `contraptions` | InterceptSystem | 161 (48%) |
@@ -64,7 +64,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 30 个不是哪个模块落地能解的，是 `FightConstructionSystem` 自己欠的那一半。剩下
 292 个回合的 `constructions` 已经满足了。
 
-`Modifier` 还排在第二，因为它认领的另外三个字段（科技、装备、等级）还欠各自的效果表。
+`Modifier` 还排在第二，因为它认领的装备还欠效果表。
 军官那一份已经装上：`crates/simulation/src/modifier/officers.rs` 把 79 行里的 **47** 行应用到目标
 单位上，其余指名拒绝。合成规则三条子句全部对着游戏量过：
 
@@ -220,16 +220,16 @@ architecture.md 的 Unresolved 里。
 - ~~**统一索敌更新（第 2 步）。**~~ 做了（C 阶段）：技能状态收成一个 `SkillState`；游戏的技能状态和
   逐次 `Check` 调用两份采集当对照，内核状态在所有可比的单位-tick 上只差 3 处，`check_attackable` 对游戏
   149,829 次调用有 149,695 次同答，其余都是成组技能的槽位。快速切换出界、失效目标、失效替换三条旧路径删了。
-  成组技能（Wraith）随后由研究 issue #81 收口：四个槽位各自过检查器，搜索时排除兄弟槽位的锁定、
+  成组技能（Wraith）随后由它自己的研究问题收口：四个槽位各自过检查器，搜索时排除兄弟槽位的锁定、
   允许共享时退回到已占用的目标，子技能射程比父技能多 10 米；`tests/wraith/regressions.mcscript` 把两场
   oracle 物理、内容都钉住，规则在 `docs/rules/combat.md`。**还剩：** 成组核心的准备偏移（`step + 1`）
   仍是校准值；"不能快速切换的技能保留走远的活锁定"是量出来的。路径已读到，是同步搜索答回了锁定，
   不是快速切换分支；评分为什么偏向它还没有读到。
-- **炮台怎么开火。** 研究 issue #91 由 #93 收口：炮台是一座跑单位技能机的建筑，
+- **炮台怎么开火。** 已由研究问题收口：炮台是一座跑单位技能机的建筑，
   单位和建筑的差别只经 `fight/attacker.rs`（游戏的 `ISkillOwner`／`IAttacker`）进入共享的
   `update_skill`；装填是共享状态机的一部分。两场速射炮和反装甲炮打弧光那场物理、内容都钉在
   `tests/turret/regressions.mcscript`，规则在 `docs/rules/turrets.md`。**还剩：** 反装甲炮打爬虫
-  那场第 509 tick 起是塔被毁的减益（#104，排在 `BuildingSystem`）；单位的开始攻击仍从运动里
+  那场第 509 tick 起是塔被毁的减益（排在 `BuildingSystem`，研究问题已开）；单位的开始攻击仍从运动里
   问，建筑的从技能更新之后问，游戏里两者都在 `SkillIdleState`。
 - **释放到底需要什么。** 这个 build 只放得下"开局自带"的那些工事：同一份布阵换
   个种子、或者把墙挪到 `(-140, -105)`，释放就被拒绝。磁力路障因此也一次都没放
@@ -243,7 +243,7 @@ architecture.md 的 Unresolved 里。
 
 | 模块 | 认领的字段 | 验收面 |
 | --- | --- | --- |
-| **Modifier**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment`、单位 `level` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
+| **Modifier**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
 | ~~**FightConstructionSystem**~~ | `constructions` | 防御墙已落地，炮台指名拒绝 |
 | **BuildingSystem** | `energy_tower_skills`、`tower_strengthen_levels` | 录像的 `buildings` |
 | **CommanderSkillSystem** | `battle_skills` | 录像的 `terrains`、`shields` 和释放事件 |
@@ -252,7 +252,11 @@ architecture.md 的 Unresolved 里。
 | **InterceptSystem** | `contraptions` | 录像的 `buildings` 与拦截事件 |
 | **SuperDeploymentSystem** | `travelling` | 录像的 `units.position`／`motion_state` |
 
-`Modifier` 之所以不是原生的 35 个之一：军官、科技、装备、等级在游戏里是**开打之前**
+单位等级不归任何模块：`FightMech` 构造时就带着它的 `IMechLevelData`，`GetBaseLife`、
+`GetBaseDamage` 先乘等级评级、再过各个 `DataSet`，build 2259 的评级就是等级本身。所以等级
+随单位进入 `Stats`，是一个独立乘区（[`docs/rules/unit_levels.md`](docs/rules/unit_levels.md)）。
+
+`Modifier` 之所以不是原生的 35 个之一：军官、科技、装备在游戏里是**开打之前**
 施加到单位上的（`TechnologySystem.AddTechnologyEffect` 收的是 `PlayerController`，由
 部署动作 `MAP_AddUnit` 调用），不是战斗里的系统。模拟器照样在建立战斗时一次性把它们
 写进覆盖层。

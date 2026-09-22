@@ -11,7 +11,7 @@ round: 1
 # reach is shorter than the turret's, so none fires before its second shot
 # lands. Blue's Marksman stands in the far corner, which keeps it out of the
 # fight and away from red's buildings until the fourth Arclight dies and the
-# fight ends: no tower falls in it (#104).
+# fight ends: no tower falls in it.
 
 blue:
   constructions:
