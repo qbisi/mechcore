@@ -173,6 +173,32 @@ raw 单位。`tests/regression/crawlers-vs-marksman.yaml` 就是这场仗。
 都是 build 的；`crates/simulation/src/fight/mech.rs` 用 `lock_target` 和
 `Actor::attack_target` 实现这一拆分。
 
+## 成组槽位避开兄弟槽位的锁定来搜索
+
+本 build 的非齐射主技能组里，每个 `FightSkill` 保有自己的锁定。
+`SkillSearchTargetController.PerformGroupedSkillSearch` 遍历组内其它技能，收集它们非空的
+**锁定目标**，不是武器正在打的目标。没有兄弟占用时走普通搜索；否则对列表以外的存活敌人
+运行该槽位的选择器，保留首个严格最小分数。它不把一张排好序的目标表一次分给所有槽位。
+
+`CanAttackSameTarget` 为真时，若首选为空或在该槽位射程外，选择器还会考虑已占用目标。
+找到已占用目标就替换首选；找不到则保留首选。因此共享不保证每个目标分到相同数量的槽位。
+墙改变一个槽位的攻击目标，不改变其它槽位搜索时排除的锁定。
+
+**主技能的子技能比父技能多出 10 米射程。** `FightSkillFactory.PrepareGroupedSkill` 给子技能
+设置父技能；`FightSkillBatch.Init` 将 `isMainSkill` 传给成员。`FightSkill.GetAttackRange`
+读取 `ParentSkill` 和 `isMainSkill`，在这一分支给父技能射程加上 Q32 常量 `0xA00000000`。
+它恰好是 10 米。第一个技能没有父技能，保留普通射程。
+选择器的出界罚分和回退射程检查都使用槽位自己的射程；单位录像里的射程仍是核心的。
+
+本 build 的 `GroupedSkillAttackBehaviour.Update` 和 `OnStartAttack` 都是空方法，不会另做
+一次分配。检查器另有一条存活共享目标的再分配路径：`TrySearchGroupSkillLockTarget` 按现有
+锁定分组，判断当前技能是否独占其目标，按攻击次数在共享者中选择，再按搜索计时执行搜索。
+这不是普通搜索排除兄弟锁定的循环。
+
+**未覆盖。** 新的未占用目标可用时对存活共享锁定的再分配、子槽位离开攻击范围、成组齐射、
+墙阻挡的再分配，以及组准备时间偏移的推导：这些既没读到也没有录像分开，范围之外的说法都
+未经验证。分开其余部分的布阵见 [Wraith fixtures](../../tests/wraith/README.md)。
+
 ## 普通目标评分与战前索敌
 
 在当前可见、已完成转向、四叉树未分裂的普通地面目标中，且最优解唯一时，本 build 按

@@ -233,6 +233,48 @@ angle is not observed, only that its shot reaches the construction. Every
 reading is the build's; `crates/simulation/src/fight/mech.rs` implements the split
 as `lock_target` and `Actor::attack_target`.
 
+## A grouped slot searches around its siblings' locks
+
+For a non-fusillade main skill group on this build, each `FightSkill` keeps
+its own lock. `SkillSearchTargetController.PerformGroupedSkillSearch` walks
+the group's other skills and collects their non-null **lock targets**, not
+what their weapons fire at. With no sibling holdings it uses the ordinary
+search. Otherwise it scores alive opponents outside that list with the
+slot's selector, retaining the first strict score minimum. It does not
+allocate a sorted table of targets to all slots at once.
+
+When `CanAttackSameTarget` is true, a missing selection or one outside the
+slot's range makes the selector consider the held targets as well. A
+successful held-target selection replaces the first answer; without one,
+the first answer is retained. Sharing therefore does not promise equal
+numbers of slots per target. A wall redirecting a slot's attack target does
+not change the lock excluded by the other slots.
+
+**A main child skill reaches 10 metres beyond its parent.**
+`FightSkillFactory.PrepareGroupedSkill` assigns the parent to child skills;
+`FightSkillBatch.Init` propagates `isMainSkill` to the members.
+`FightSkill.GetAttackRange` reads `ParentSkill` and `isMainSkill`, and in
+that branch adds the Q32 literal `0xA00000000` to the parent's range, which
+is exactly 10 metres. The first skill has no parent and keeps its ordinary
+range. Both the
+selector's range penalty and its fallback range test use the slot's own
+range; the unit's recorded range remains its core's.
+
+`GroupedSkillAttackBehaviour.Update` and `OnStartAttack` are empty in this
+build. The hooks do not perform a separate allocation pass. The checker
+also has a distinct live-sharing redistribution path:
+`TrySearchGroupSkillLockTarget` groups existing locks, detects whether the
+current skill is their sole holder, and chooses among shared holders using
+attack counts before a throttled search. That path is not the ordinary
+search's sibling-exclusion loop.
+
+**Not covered.** Live-sharing redistribution when an unheld target becomes
+available, a child leaving its attack area, grouped fusillade, redistribution
+of wall blockers, and the derivation of the group's prepare offset: none of
+these was read or separated by a recording, and a claim just outside this
+scope is unverified. The fixtures that separated the rest are
+[the Wraith fixtures](../../tests/wraith/README.md).
+
 ## Normal target scoring and pre-battle acquisition
 
 Among currently visible, fully rotated, unsplit-quadtree ordinary ground targets

@@ -50,8 +50,10 @@ impl Simulation {
     /// What that second search can answer depends on the skill. A skill that
     /// switches quickly takes the selector's answer; one that does not gets
     /// back the lock it has while that lock lives, and fails. Checked against
-    /// every `Check` call of the 82 manifest fights, 149,695 of 149,829 (the
-    /// rest are a grouped skill's slots): a
+    /// every `Check` call of the 82 manifest fights, 149,695 of 149,829 before
+    /// the grouped search was included. The grouped oracle now also agrees on
+    /// all 4,188 slot calls, plus 344 in the two-target fallback capture, on
+    /// return value, lock and attack target (`grouped_checker_matches_every_captured_call`). A
     /// Crawler whose lock walks out of reach keeps it and ends its attack; a
     /// Stormcaller whose lock does takes the next target in reach.
     ///
@@ -69,44 +71,154 @@ impl Simulation {
         actor_id: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let lock = self.actors[&actor_id].skill.lock_target;
-        let before = self.actors[&actor_id].skill.attack_target();
+        #[cfg(test)]
+        self.replay_group_checker_calls(actor_id);
+        let skill = &self.actors[&actor_id].skill;
+        let slot = skill
+            .group_skill_targets
+            .iter()
+            .any(Option::is_some)
+            .then_some(0);
+        self.check_attackable_slot(actor_id, slot, target_search_order)
+    }
+
+    pub(in crate::fight) fn check_attackable_slot(
+        &mut self,
+        actor_id: u64,
+        slot: Option<usize>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
+        let lock = self.slot_lock_target(actor_id, slot);
+        let before = self.slot_attack_target(actor_id, slot);
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
-            self.search_attack_target(actor_id);
+            if let Some(slot) = slot.filter(|slot| *slot > 0) {
+                self.check_group_redistribution_scope(actor_id, slot, target_search_order)?;
+            }
+            self.search_slot_attack_target(actor_id, slot);
         } else {
-            if !self.search_lock_target(actor_id, target_search_order)? {
+            if !self.search_lock_target(actor_id, slot, target_search_order)? {
                 return Ok(false);
             }
             let actor = &self.actors[&actor_id];
-            if !actor.rules.attack.quick_switch_target && actor.skill.attack_target() != before {
+            if !actor.rules.attack.quick_switch_target
+                && self.slot_attack_target(actor_id, slot) != before
+            {
                 return Ok(false);
             }
         }
-        let Some(target) = self.actors[&actor_id].skill.attack_target() else {
+        let Some(target) = self.slot_attack_target(actor_id, slot) else {
             return Ok(false);
         };
-        if self.target_in_attack_area(actor_id, target) {
+        if self.slot_target_in_attack_area(actor_id, slot, target) {
             return Ok(true);
         }
-        if self.bodyless_target_in_attack_range(actor_id, target) {
+        if self.slot_target_in_attack_range(actor_id, slot, target) {
             return Ok(false);
         }
         let actor = &self.actors[&actor_id];
         if !actor.rules.attack.quick_switch_target
-            && actor
-                .skill
-                .lock_target
+            && self
+                .slot_lock_target(actor_id, slot)
                 .is_some_and(|lock| self.fight_actor_is_alive(lock))
         {
             return Ok(false);
         }
-        if !self.search_lock_target(actor_id, target_search_order)? {
+        if !self.search_lock_target(actor_id, slot, target_search_order)? {
             return Ok(false);
         }
-        Ok(self.actors[&actor_id]
-            .skill
-            .attack_target()
-            .is_some_and(|target| self.target_in_attack_area(actor_id, target)))
+        Ok(self
+            .slot_attack_target(actor_id, slot)
+            .is_some_and(|target| self.slot_target_in_attack_area(actor_id, slot, target)))
+    }
+
+    /// Main child skills read their parent's range plus Q32 `0xA00000000`
+    /// (10 metres) in build 2259's `FightSkill.GetAttackRange`. The first
+    /// grouped skill has no parent and keeps the ordinary range.
+    pub(in crate::fight) fn slot_attack_range(&self, actor_id: u64, slot: Option<usize>) -> i64 {
+        self.actors[&actor_id].stats.attack_range().saturating_add(
+            if slot.is_some_and(|slot| slot > 0) {
+                10_000
+            } else {
+                0
+            },
+        )
+    }
+
+    pub(in crate::fight) fn slot_target_in_attack_range(
+        &self,
+        actor_id: u64,
+        slot: Option<usize>,
+        target: FightActorRef,
+    ) -> bool {
+        if slot.is_none_or(|slot| slot == 0) {
+            return self.bodyless_target_in_attack_range(actor_id, target);
+        }
+        let source = &self.actors[&actor_id];
+        let Some(target) = self.fight_actor(target) else {
+            return false;
+        };
+        let distance =
+            native_q32_magnitude(target.x_q32 - source.x_q32, target.z_q32 - source.z_q32)
+                .saturating_sub(space_to_q32(source.rules.collision_radius()))
+                .saturating_sub(space_to_q32(target.radius))
+                .max(0);
+        target.alive
+            && target.targetable
+            && distance >= space_to_q32(source.rules.attack.min_range())
+            && distance <= space_to_q32(self.slot_attack_range(actor_id, slot))
+    }
+
+    fn slot_target_in_attack_area(
+        &self,
+        actor_id: u64,
+        slot: Option<usize>,
+        target: FightActorRef,
+    ) -> bool {
+        if slot.is_none_or(|slot| slot == 0) {
+            return self.target_in_attack_area(actor_id, target);
+        }
+        self.slot_target_in_attack_range(actor_id, slot, target)
+            && self.bodyless_target_in_attack_angle(actor_id, target)
+    }
+
+    fn slot_lock_target(&self, actor_id: u64, slot: Option<usize>) -> Option<FightActorRef> {
+        let skill = &self.actors[&actor_id].skill;
+        slot.map_or(skill.lock_target, |slot| {
+            skill.group_skill_targets[slot].map(FightActorRef::Unit)
+        })
+    }
+
+    fn slot_attack_target(&self, actor_id: u64, slot: Option<usize>) -> Option<FightActorRef> {
+        let skill = &self.actors[&actor_id].skill;
+        slot.map_or_else(
+            || skill.attack_target(),
+            |slot| skill.group_attack_target(slot),
+        )
+    }
+
+    fn search_slot_attack_target(&mut self, actor_id: u64, slot: Option<usize>) {
+        if slot.is_some() {
+            self.refresh_group_walls(actor_id);
+        } else {
+            self.search_attack_target(actor_id);
+        }
+    }
+
+    fn search_lock_target(
+        &mut self,
+        actor_id: u64,
+        slot: Option<usize>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
+        let Some(slot) = slot else {
+            return self.search_normal_lock_target(actor_id, target_search_order);
+        };
+        let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
+        let actor = self.actors.get_mut(&actor_id).expect("actor exists");
+        actor.skill.group_skill_targets[slot] = selected.and_then(FightActorRef::unit_id);
+        actor.skill.lock_target = selected;
+        self.refresh_group_walls(actor_id);
+        Ok(selected.is_some())
     }
 
     /// Whether `SkillAttackState` asks `CheckAttackable` on this update.
@@ -216,7 +328,7 @@ impl Simulation {
 
     /// `SearchLockTarget` followed by `SearchAttackTarget`, as the checker
     /// runs them; no lock found clears the targets.
-    pub(in crate::fight) fn search_lock_target(
+    fn search_normal_lock_target(
         &mut self,
         actor_id: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,

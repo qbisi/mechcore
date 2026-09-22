@@ -1,0 +1,17 @@
+# Build 2259 oracle fights, simulated without the game or the recordings.
+# Both hashes come from the native checker/target captures made by slots.mcscript.
+steps:
+  - fight.run:
+      layout: tests/regression/wraith-group-attack.yaml
+      seed: 1787857041
+    expect:
+      steps: 647
+      hashes.physics_result_hash: 7dbc9b1f09d984ab6883befe5a294f435471dcf40e019991b8f9eb44ef51b4dd
+      hashes.content_result_hash: 743fc5cee31bacaf2b593c4e4d9896fa17cecfb596b4254ec8242574545ed141
+  - fight.run:
+      layout: tests/wraith/two-targets.yaml
+      seed: 1787857041
+    expect:
+      steps: 96
+      hashes.physics_result_hash: f06a0cc77ad3894528db2d99c5e499de9845e5ffd064dc838268242cc64b296a
+      hashes.content_result_hash: 4be2b09840ae58c4f8fb7169b0376376dcf4f85bbe28abdc4d415d58da253080
