@@ -7,7 +7,7 @@ mod constructions;
 use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
-    modifier::{OfficerEffects, TechnologyEffects},
+    modifier::{EquipmentEffects, OfficerEffects, TechnologyEffects},
     rules::{UnitConfig, UnitConfigs},
 };
 pub(crate) use constructions::ConstructionBuilding;
@@ -91,12 +91,13 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 
 /// The tables a side's corrections are read from.
 ///
-/// One per source of an `ICommonMechDataChangeDataSource`: officers and
-/// technologies today, equipment and the energy tower's skills when their
-/// tables are extracted.
+/// One per source of an `ICommonMechDataChangeDataSource`: officers, technologies
+/// and equipment. The round bounds equipment lifetime semantics.
 struct Loadouts {
     officers: OfficerEffects,
     technologies: TechnologyEffects,
+    equipment: EquipmentEffects,
+    round: i32,
 }
 
 pub(crate) fn compile_with_seed(
@@ -120,6 +121,8 @@ pub(crate) fn compile_with_seed(
     let loadouts = Loadouts {
         officers: OfficerEffects::load()?,
         technologies: TechnologyEffects::load()?,
+        equipment: EquipmentEffects::load()?,
+        round: plan.round,
     };
     let mut placements = compile_side("blue", 0, &plan.blue, units, &loadouts)?;
     placements.extend(compile_side("red", 1, &plan.red, units, &loadouts)?);
@@ -183,7 +186,7 @@ fn compile_formation(
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Result<Placement> {
-    // Level, equipment and travelling are claimed fields and were refused by
+    // Level and travelling are claimed fields and were refused by
     // the module registry before this ran; what is left is a placement that is
     // not a unit at all.
     if !matches!(formation.native, NativeFormation::Unit(_)) {
@@ -199,7 +202,17 @@ fn compile_formation(
         ))
     })?;
     validate_formation_footprint(side_name, formation, rules)?;
-    let corrections = loadout(side_name, &formation.type_name, rules, side, loadouts)?;
+    let mut corrections = loadout(side_name, &formation.type_name, rules, side, loadouts)?;
+    if let Some(id) = formation.equipment {
+        corrections.extend(
+            loadouts
+                .equipment
+                .corrections(id, rules, loadouts.round, formation.level.unwrap_or(1))
+                .map_err(|e| Error::new(format!("side {side_name}: {e}")))?,
+        );
+        Stats::corrected(rules, &corrections)
+            .map_err(|e| Error::new(format!("side {side_name}: {e}")))?;
+    }
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z, rotation) = if team == 0 {
@@ -298,6 +311,23 @@ red:
         assert_eq!(layout.placements[0].unit_id, 0);
         assert_eq!(layout.placements[1].unit_id, 0);
         assert_eq!(layout.placements[0].formation_index, 0);
+    }
+
+    #[test]
+    fn equipment_belongs_to_its_formation_not_its_unit_type() {
+        let yaml = "kind: layout
+round: 1
+blue:
+  units:
+    - {name: marksman, index: 0, equipment: heavy_armor, position: {x: 0, y: -50}}
+    - {name: marksman, index: 1, position: {x: 40, y: -50}}
+red:
+  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
+";
+        let layout = compile_default(yaml).unwrap();
+        assert_eq!(layout.placements[0].corrections.len(), 1);
+        assert!(layout.placements[1].corrections.is_empty());
+        assert!(layout.placements[2].corrections.is_empty());
     }
 
     #[test]

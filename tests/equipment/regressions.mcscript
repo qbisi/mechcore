@@ -1,0 +1,19 @@
+# The two unequipped controls match both native hash layers.
+# Equipped fixtures remain unpinned while their existing modifier sets
+# are omitted by Actor::snapshot. README.md records the exact boundary.
+
+steps:
+  - fight.run:
+      layout: tests/regression/marksman-vs-arclight.yaml
+      seed: 1787720817
+    expect:
+      steps: 91
+      hashes.physics_result_hash: d9f9fa3a648ef2630baa1b5f2b7a4aab1208230939cac204ac535c5f0115dbaa
+      hashes.content_result_hash: bb7f1c21a0403c5e1656261081dad88e1d416443f3fddae1291662f1135603b2
+  - fight.run:
+      layout: tests/equipment/far-control.yaml
+      seed: 1787720817
+    expect:
+      steps: 165
+      hashes.physics_result_hash: ad4d78700e941072e292ef15ca11034baa2445b364d8e2e0e14ea2ad7bd4df3a
+      hashes.content_result_hash: e884baa15041bc430ae5fbc178857e5c6b36a8752bcda24521ae18cc62288646

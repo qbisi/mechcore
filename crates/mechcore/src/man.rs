@@ -82,6 +82,10 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/officers.zh.md"),
     ),
     (
+        "rules/equipment_effects",
+        include_str!("../../../docs/rules/equipment_effects.md"),
+    ),
+    (
         "rules/officer_effects",
         include_str!("../../../docs/rules/officer_effects.md"),
     ),
