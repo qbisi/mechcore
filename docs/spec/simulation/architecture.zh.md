@@ -57,9 +57,9 @@
 
 - **凡是会跑的东西都是模块。** `FightCoreSystem` 只是 35 个里的一个，不是一个挂着
   其它东西的特权主循环。
-- **凡是机制对单位的改动都走两层覆盖之一**——actor 自己的 `DataSet` 或它各技能的
+- **动态修正走两层覆盖之一**——actor 自己的 `DataSet` 或它各技能的
   `DataSet`——或者走 `BuffManager` 对生效 Buff 的聚合。**没有人写基础数值。**
-- **没有人直接读数值。** `FightProperty` 把共享描述和这些覆盖层合成出结果、缓存起来，
+- **没有人直接读数值。** `FightProperty` 把共享描述、选中的等级倍率和这些覆盖层合成出结果、缓存起来，
   由变更事件置脏。
 
 ## 代码在哪
@@ -98,7 +98,7 @@
 | `run.rs` | 跑一份布阵、和录像比较 |
 
 战斗之外，crate 里放的是搭起一场战斗的东西。`layout/` 把布阵编译成部署，`layout/constructions.rs` 算出
-工事释放的建筑。`modifier/` 就是 `Modifier` 这一步：开战前写到单位身上的军官和科技。`data.rs` 是它们和
+工事释放的建筑。`modifier/` 就是 `Modifier` 这一步：开战前施加到单位上的军官、科技和等级倍率。`data.rs` 是它们和
 战斗共同读取的数据层，`rules.rs` 是单位描述，`module.rs` 是哪个模块认领哪个布阵字段的登记表。
 
 ## 模块
@@ -144,9 +144,9 @@ TechnologySystem            WreckageRecoverySystem
 是把它的模块填满，永远不是去改驱动它的那个循环。
 
 **一个模块不是全有或全无。** 它认领若干字段，其中一部分是它当下看得懂的，其余的照样
-被拒绝，和空模块的认领一模一样。`Modifier` 认领军官、科技、装备、等级，今天看得懂的是
-军官和科技——因为四张效果表里有两张已经提取出来了。而且即使字段本身看得懂，某一份
-具体 layout 仍可能被拒：一名军官或一项科技的效果这个 build 合成不出来时，持有它的那一方
+被拒绝，和空模块的认领一模一样。`Modifier` 认领军官、科技、装备、等级。认领一个字段
+不允许静默丢掉它的效果；即使字段本身看得懂，某一份具体 layout 仍可能被拒：
+一名军官或一项科技的效果这个 build 合成不出来时，持有它的那一方
 被拒绝，并指名是哪一项、哪个字段，而不是把它应用一半。
 
 有一个模块不是 build 的。军官、科技、装备、等级是在**开打之前**施加到单位上的——
@@ -160,9 +160,9 @@ travelling 的单位——因为 `FightCoreSystem.PreCalculate` 问的正是它 
 能打还有多远：
 
 ```text
-side blue needs modules this build has not implemented: constructions
-(FightConstructionSystem), units above level one (Modifier); side red needs
-modules this build has not implemented: unit equipment (Modifier)
+side blue needs modules this build has not implemented: battle skills
+(CommanderSkillSystem); side red needs modules this build has not implemented:
+unit equipment (Modifier)
 ```
 
 来自"字段本身能过、但其中某一项不行"的拒绝，指的是那一项而不是那个字段——字段是看得懂
@@ -221,7 +221,12 @@ MCFR 记作 `unit_dynamic_modifiers` 和 `skill_dynamic_modifiers` 的那两组�
 记作 `buff_modifiers` 的其余那些。它**不是**一个 `DataSet`，这正是要点：一个 buff 和
 一条数据改动即使产生同一个数字，也仍然可以区分。
 
-所以一个单位的状态是**一份共享描述加三层覆盖**，而录像每一 tick 把三层都 dump 下来。
+**等级数据决定基础值。** `Modifier` 读取一行等级数据，把生命和伤害倍率通过基础通道
+交给 `Stats`。这条通道在动态修正之前解析，不得混入覆盖层的修正率。共享描述保持不变。
+机制和数据表见 [unit_levels.md](../../rules/unit_levels.md)。
+
+单位的数值状态是**一份共享描述、选中的等级数据和三层动态覆盖**。等级由布阵携带；
+录像的 modifier 集合只包含动态覆盖。
 
 ## 派生值
 

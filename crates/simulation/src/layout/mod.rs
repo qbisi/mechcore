@@ -7,7 +7,7 @@ mod constructions;
 use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
-    modifier::{OfficerEffects, TechnologyEffects},
+    modifier::{LevelEffects, OfficerEffects, TechnologyEffects},
     rules::{UnitConfig, UnitConfigs},
 };
 pub(crate) use constructions::ConstructionBuilding;
@@ -92,9 +92,11 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 /// The tables a side's corrections are read from.
 ///
 /// One per source of an `ICommonMechDataChangeDataSource`: officers and
-/// technologies today, equipment and the energy tower's skills when their
+/// technologies, plus the separate `IMechLevelData` table. Equipment and
+/// the energy tower's skills join when their
 /// tables are extracted.
 struct Loadouts {
+    levels: LevelEffects,
     officers: OfficerEffects,
     technologies: TechnologyEffects,
 }
@@ -118,6 +120,7 @@ pub(crate) fn compile_with_seed(
         return Err(Error::new(missing.join("; ")));
     }
     let loadouts = Loadouts {
+        levels: LevelEffects::load()?,
         officers: OfficerEffects::load()?,
         technologies: TechnologyEffects::load()?,
     };
@@ -195,7 +198,7 @@ fn compile_formation(
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Result<Placement> {
-    // Level, equipment and travelling are claimed fields and were refused by
+    // Equipment and travelling are claimed fields and were refused by
     // the module registry before this ran; what is left is a placement that is
     // not a unit at all.
     if !matches!(formation.native, NativeFormation::Unit(_)) {
@@ -211,7 +214,7 @@ fn compile_formation(
         ))
     })?;
     validate_formation_footprint(side_name, formation, rules)?;
-    let corrections = loadout(side_name, &formation.type_name, rules, side, loadouts)?;
+    let corrections = loadout(side_name, formation, rules, side, loadouts)?;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z, rotation) = if team == 0 {
@@ -242,11 +245,12 @@ fn compile_formation(
 /// make.
 fn loadout(
     side_name: &str,
-    type_name: &str,
+    formation: &mechcore_document::Placement,
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Result<Vec<(Channel, Entry)>> {
+    let type_name = formation.type_name.as_str();
     let mut corrections = loadouts
         .officers
         .corrections(&side.techs.officers, type_name)
@@ -256,6 +260,12 @@ fn loadout(
             .technologies
             .corrections(&side.techs.units, type_name)
             .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
+    );
+    corrections.extend(
+        loadouts
+            .levels
+            .corrections(formation.level.unwrap_or(1))
+            .map_err(|error| Error::new(format!("side {side_name} unit {type_name}: {error}")))?,
     );
     Stats::corrected(rules, &corrections).map_err(|error| {
         Error::new(format!(
@@ -331,6 +341,35 @@ red:
                 .iter()
                 .all(|placement| placement.unit_id == 0 && placement.formation_id == 0)
         );
+    }
+
+    #[test]
+    fn each_formation_selects_its_own_level_row() {
+        let value = LAYOUT.replace(
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units: [{name: marksman, index: 0, level: 2, position: {x: 0, y: -50}}, {name: marksman, index: 1, level: 3, position: {x: 20, y: -50}}]",
+        );
+        let layout = compile_default(&value).unwrap();
+        let config = SimulationConfig::load().unwrap();
+        for (placement, life, damage) in [
+            (&layout.placements[0], 3244, 4658),
+            (&layout.placements[1], 4866, 6987),
+        ] {
+            let stats = Stats::corrected(
+                config.units.get(&placement.type_name).unwrap(),
+                &placement.corrections,
+            )
+            .unwrap();
+            assert_eq!((stats.max_life(), stats.attack_damage()), (life, damage));
+        }
+        assert!(layout.placements[2].corrections.is_empty());
+    }
+
+    #[test]
+    fn level_outside_the_table_is_a_named_refusal() {
+        let too_high = LAYOUT.replace("name: marksman,", "name: marksman, level: 10,");
+        let error = compile_default(&too_high).unwrap_err().to_string();
+        assert!(error.contains("level must be 1..=9"), "{error}");
     }
 
     /// An officer reaches the fight as corrections on the units it targets.

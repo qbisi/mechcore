@@ -379,9 +379,8 @@ impl Simulation {
             let attacker = &self.actors[&actor_id];
             (
                 attacker
-                    .rules
-                    .attack
-                    .laser_damage(attacker.skill.laser_attack_count),
+                    .stats
+                    .laser_damage(&attacker.rules, attacker.skill.laser_attack_count),
                 attacker.object_ref(),
                 attacker.placement.team,
             )

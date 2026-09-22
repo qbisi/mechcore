@@ -716,19 +716,6 @@ impl AttackConfig {
         quantize_i64(target_offset_radius, SPACE_UNITS_PER_METER)
     }
 
-    #[allow(
-        clippy::cast_precision_loss,
-        clippy::cast_possible_truncation,
-        reason = "native laser damage scales in float and truncates toward zero"
-    )]
-    pub(crate) fn laser_damage(&self, attack_count: usize) -> i64 {
-        let AttackPath::Laser { damage_multipliers } = &self.path else {
-            unreachable!("laser damage requires the laser attack path")
-        };
-        let multiplier = damage_multipliers[attack_count.min(damage_multipliers.len() - 1)];
-        (self.base_damage as f64 * multiplier).trunc() as i64
-    }
-
     pub(crate) const fn accepts(&self, domain: UnitDomain) -> bool {
         match domain {
             UnitDomain::Ground => self.targets.ground,
@@ -967,13 +954,14 @@ mod tests {
     #[test]
     fn steel_ball_laser_damage_truncates_and_caps_the_native_multiplier_sequence() {
         let config = SimulationConfig::load().unwrap();
-        let attack = &config.units.get("steel_ball").unwrap().attack;
+        let rules = config.units.get("steel_ball").unwrap();
+        let stats = crate::data::Stats::of(rules).unwrap();
         let damage = (0..7)
-            .map(|attack_count| attack.laser_damage(attack_count))
+            .map(|attack_count| stats.laser_damage(rules, attack_count))
             .collect::<Vec<_>>();
 
         assert_eq!(damage, [2, 3, 8, 17, 31, 51, 77]);
-        assert_eq!(attack.laser_damage(usize::MAX), 2_604);
+        assert_eq!(stats.laser_damage(rules, usize::MAX), 2_604);
     }
 
     #[test]

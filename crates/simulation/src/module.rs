@@ -9,8 +9,8 @@
 //!
 //! Adding a mechanism is filling in its module and listing the fields it now
 //! understands. A module is not all or nothing: `Modifier` applies an officer
-//! and a technology and refuses the equipment beside them, because two of the
-//! four effect tables are extracted. The loop that drives them is never edited
+//! and a technology, reads the level's base ratings, and refuses equipment
+//! whose effects it cannot apply. The loop that drives them is never edited
 //! for a mechanism.
 //!
 //! A module that understands a field can still refuse one member of it, and
@@ -58,7 +58,7 @@ impl Field {
             Self::Contraptions => "contraptions",
             Self::AirdropShields => "airdrop shields",
             Self::Terrains => "terrains",
-            Self::UnitLevel => "units above level one",
+            Self::UnitLevel => "unit levels",
             Self::UnitEquipment => "unit equipment",
             Self::Travelling => "travelling units",
         }
@@ -130,7 +130,7 @@ pub(crate) static MODULES: &[Module] = &[
             Field::UnitEquipment,
             Field::UnitLevel,
         ],
-        understood: &[Field::Officers, Field::UnitTechnologies],
+        understood: &[Field::Officers, Field::UnitTechnologies, Field::UnitLevel],
         implemented: true,
     },
     Module {
@@ -467,12 +467,9 @@ mod tests {
                 .iter()
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
-            [
-                ("battle skills", "CommanderSkillSystem"),
-                ("units above level one", "Modifier"),
-            ],
-            "officers and the construction beside them are understood; the \
-             level and the skill are not"
+            [("battle skills", "CommanderSkillSystem")],
+            "officers, levels and the construction beside them are understood; \
+             the battle skill is not"
         );
     }
 
