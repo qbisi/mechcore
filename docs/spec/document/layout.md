@@ -579,7 +579,10 @@ the same `rotated: true` describes two different world shapes depending on which
 region the unit stands in. Collision checks use this region-aware
 footprint and compiled world positions, so units, constructions, and
 interceptors share one collision space within a side and across `blue` and
-`red` after the red-side 180-degree transform. Shields and missiles do not
+`red` after the red-side 180-degree transform. The four towers stand in that
+space from the start, each a `20 x 20` square on its centre at world
+`(±140, ±170)`, and a placement that overlaps one is rejected as the game
+rejects it (`RegionLimit`). Shields and missiles do not
 participate in deployment collision checks.
 
 For units, constructions, and interceptors, all four footprint vertices must

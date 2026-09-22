@@ -967,6 +967,18 @@ fn validate_placement_collisions(blue: &SidePlan, red: &SidePlan) -> Result<(), 
     for (index, &(left_side, left, left_x, left_y)) in world.iter().enumerate() {
         let (left_width, left_height) =
             placement_footprint(left).ok_or_else(|| missing_footprint(left_side, left))?;
+        for ((tower_x, tower_y), tower) in crate::board::TOWERS {
+            let overlaps_x =
+                (left_x - tower_x).abs() * 2 < left_width + crate::board::TOWER_FOOTPRINT;
+            let overlaps_y =
+                (left_y - tower_y).abs() * 2 < left_height + crate::board::TOWER_FOOTPRINT;
+            if overlaps_x && overlaps_y {
+                return Err(format!(
+                    "placement collides with a tower: {left_side} type {:?} at ({}, {}) overlaps the {tower}",
+                    left.type_name, left.position.x, left.position.y
+                ));
+            }
+        }
         for &(right_side, right, right_x, right_y) in &world[index + 1..] {
             let (right_width, right_height) =
                 placement_footprint(right).ok_or_else(|| missing_footprint(right_side, right))?;

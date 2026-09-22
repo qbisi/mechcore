@@ -16,6 +16,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub mod battle;
+mod board;
 pub mod catalog;
 pub mod compile;
 #[cfg(feature = "convert")]
@@ -1037,6 +1038,39 @@ red:
             error,
             "side blue placement type \"sledgehammer\" at (285, -60) footprint 50x20 exceeds the main deployment boundary x=[-300,300], y=[-310,-10]"
         );
+    }
+
+    #[test]
+    fn rejects_a_placement_on_a_tower_but_allows_edge_contact() {
+        // Measured against the game: `CheckAction` answers `RegionLimit` (16)
+        // for the rejected positions and places the others.
+        let layout = |blue: (i32, i32), red: (i32, i32)| {
+            json!({
+                "kind": "layout",
+                "round": 1,
+                "blue": {"units": [
+                    {"index": 0, "name": "marksman", "position": {"x": blue.0, "y": blue.1}}
+                ]},
+                "red": {"units": [
+                    {"index": 0, "name": "arclight", "position": {"x": red.0, "y": red.1}}
+                ]}
+            })
+        };
+
+        assert_eq!(
+            compile(&layout((-140, -160), (0, -50))).unwrap_err(),
+            "placement collides with a tower: blue type \"marksman\" at (-140, -160) overlaps the blue Energy Tower"
+        );
+        assert_eq!(
+            compile(&layout((-130, -170), (0, -50))).unwrap_err(),
+            "placement collides with a tower: blue type \"marksman\" at (-130, -170) overlaps the blue Energy Tower"
+        );
+        assert_eq!(
+            compile(&layout((0, -50), (140, -180))).unwrap_err(),
+            "placement collides with a tower: red type \"arclight\" at (140, -180) overlaps the red Research Center"
+        );
+        compile(&layout((-140, -150), (140, -140))).unwrap();
+        compile(&layout((-120, -170), (140, -220))).unwrap();
     }
 
     #[test]
