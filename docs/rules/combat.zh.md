@@ -187,7 +187,7 @@ raw 单位。`tests/regression/crawlers-vs-marksman.yaml` 就是这场仗。
 **主技能的子技能比父技能多出 10 米射程。** `FightSkillFactory.PrepareGroupedSkill` 给子技能
 设置父技能；`FightSkillBatch.Init` 将 `isMainSkill` 传给成员。`FightSkill.GetAttackRange`
 读取 `ParentSkill` 和 `isMainSkill`，在这一分支给父技能射程加上 Q32 常量 `0xA00000000`。
-它恰好是 10 米，在模拟器内部表示为 10,000 空间单位。第一个技能没有父技能，保留普通射程。
+它恰好是 10 米。第一个技能没有父技能，保留普通射程。
 选择器的出界罚分和回退射程检查都使用槽位自己的射程；单位录像里的射程仍是核心的。
 
 本 build 的 `GroupedSkillAttackBehaviour.Update` 和 `OnStartAttack` 都是空方法，不会另做
@@ -196,9 +196,8 @@ raw 单位。`tests/regression/crawlers-vs-marksman.yaml` 就是这场仗。
 这不是普通搜索排除兄弟锁定的循环。
 
 **未覆盖。** 新的未占用目标可用时对存活共享锁定的再分配、子槽位离开攻击范围、成组齐射、
-墙阻挡的再分配，以及组准备时间偏移的推导。模拟器拒绝前两种情况，不按槽位顺序替代再分配，
-也不让检查失败的槽位继续出手；已有配置支持检查排除齐射组。区分这些行为的布阵和独立检查器
-复验见 [Wraith fixtures](../../tests/wraith/README.md)。
+墙阻挡的再分配，以及组准备时间偏移的推导：这些既没读到也没有录像分开，范围之外的说法都
+未经验证。分开其余部分的布阵见 [Wraith fixtures](../../tests/wraith/README.md)。
 
 ## 普通目标评分与战前索敌
 

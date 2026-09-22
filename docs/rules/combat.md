@@ -254,9 +254,9 @@ not change the lock excluded by the other slots.
 `FightSkillFactory.PrepareGroupedSkill` assigns the parent to child skills;
 `FightSkillBatch.Init` propagates `isMainSkill` to the members.
 `FightSkill.GetAttackRange` reads `ParentSkill` and `isMainSkill`, and in
-that branch adds the Q32 literal `0xA00000000` to the parent's range. This
-is exactly 10 metres, represented internally here as 10,000 space units.
-The first skill has no parent and keeps its ordinary range. Both the
+that branch adds the Q32 literal `0xA00000000` to the parent's range, which
+is exactly 10 metres. The first skill has no parent and keeps its ordinary
+range. Both the
 selector's range penalty and its fallback range test use the slot's own
 range; the unit's recorded range remains its core's.
 
@@ -270,11 +270,10 @@ search's sibling-exclusion loop.
 
 **Not covered.** Live-sharing redistribution when an unheld target becomes
 available, a child leaving its attack area, grouped fusillade, redistribution
-of wall blockers, and the derivation of the group's prepare offset. The
-simulator refuses the first two cases rather than substituting a slot-order
-allocation or releasing a failed slot. Its supported config check excludes
-fusillade groups. The distinguishing fixtures and independent checker replay
-are described in [the Wraith fixtures](../../tests/wraith/README.md).
+of wall blockers, and the derivation of the group's prepare offset: none of
+these was read or separated by a recording, and a claim just outside this
+scope is unverified. The fixtures that separated the rest are
+[the Wraith fixtures](../../tests/wraith/README.md).
 
 ## Normal target scoring and pre-battle acquisition
 
