@@ -832,6 +832,7 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                 world_z: -105,
                 rotation: 0,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
             Placement {
@@ -844,6 +845,7 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                 world_z: 100,
                 rotation: 180_000,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
             Placement {
@@ -856,6 +858,7 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                 world_z: 100,
                 rotation: 180_000,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
         ],
@@ -919,6 +922,7 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
             world_z: 0,
             rotation: 0,
             rotated: false,
+            level: 1,
             corrections: Vec::new(),
         },
         rules,
@@ -952,6 +956,7 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
                 world_z: -105,
                 rotation: 0,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
             Placement {
@@ -964,6 +969,7 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
                 world_z: 100,
                 rotation: 180_000,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
         ],

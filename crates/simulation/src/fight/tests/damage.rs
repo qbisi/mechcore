@@ -406,6 +406,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
                 world_z: -50,
                 rotation: 0,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
             Placement {
@@ -418,6 +419,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
                 world_z: 100,
                 rotation: 180_000,
                 rotated: false,
+                level: 1,
                 corrections: Vec::new(),
             },
         ],

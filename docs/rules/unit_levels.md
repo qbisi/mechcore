@@ -7,11 +7,14 @@ They do not create entries in the unit's or skill's modifier overlay.
 
 ## The ratings
 
-[`config/unit_levels.yaml`](../../config/unit_levels.yaml) copies all nine
-rows from `ConfigDataContainer.m_Structure.attributeUpgradeDatas`. The source
-export's SHA-256 is
-`92849e4b0cba65bb03448cac0c868ef94fcbbd476eabb8f2bc33d484e820ac4f`.
-Both columns store `FPoint` Q32.32 raw integers, not percentages or additions:
+The level is its own multiplier. It is not a correction and not one of the
+`DataSet`s an officer, a technology or a buff writes into: it scales the
+description's life and damage first, and every overlay applies to the
+product.
+
+`ConfigDataContainer.m_Structure.attributeUpgradeDatas` holds nine rows, and
+each rates life and damage at exactly its own level. Both columns store
+`FPoint` Q32.32 raw integers:
 
 | Level | Life rating | Damage rating | Raw value in either column |
 | ---: | ---: | ---: | ---: |
@@ -25,8 +28,9 @@ Both columns store `FPoint` Q32.32 raw integers, not percentages or additions:
 | 8 | 8 | 8 | 34359738368 |
 | 9 | 9 | 9 | 38654705664 |
 
-These are serialized values, not a fitted progression. A zero description
-value remains zero under the multiplication.
+So the simulator multiplies by the level, and keeps no table of it. A build
+whose rows stop being their level is the change that would need one. A layout
+refuses a level outside one to nine by name, because there is no row for it.
 
 ## Where the level enters
 

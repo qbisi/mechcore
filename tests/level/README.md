@@ -9,15 +9,15 @@ all four offline and pins both native hash layers.
 | `../regression/marksman-vs-arclight.yaml` | unchanged level-one control | 2329 | 1622 |
 | `marksman-2.yaml` | level two from no scaling | 4658 | 3244 |
 | `marksman-3.yaml` | linear ratings from doubling each level | 6987 | 4866 |
-| `marksman-2-rate.yaml` | rating in the base from a rate in the skill overlay | 6055 | 3244 |
+| `marksman-2-rate.yaml` | the level as its own multiplier from a rate in the skill overlay | 6055 | 3244 |
 
 Range remains 140 m, speed 8 m/s and the first interval 55 ticks. The bare
 level-two unit has no dynamic modifiers; the officer case has only the
 skill's +0.3 damage rate (raw 1288490188). The level is not added to it.
 These observations distinguish the channels, not just the final damage.
 
-The base formula and its nine serialized ratings are in
-[unit_levels.md](../../docs/rules/unit_levels.md). The tests of `LevelEffects`
-also check the highest table row, unchanged range/speed/interval, a zero base,
-and refusal of levels outside the table. These are arithmetic and boundary
-checks; the native fights cover levels one through three.
+The rule, and why the level is its own multiplier and not a correction, are
+in [unit_levels.md](../../docs/rules/unit_levels.md). `data.rs`'s tests check
+the same numbers offline: a level multiplies base life and damage and nothing
+else, and it is applied before the overlays. A level outside one to nine is
+refused by the layout, by name.

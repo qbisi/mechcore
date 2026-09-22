@@ -47,14 +47,17 @@ const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 11] = [
 
 /// The integer form of [`SPACE_UNITS_PER_METER`], for whole-meter checks on
 /// values that have already been quantized.
-const SPACE_UNITS_PER_METER_SCALE: i64 = 1_000;
+pub(crate) const SPACE_UNITS_PER_METER_SCALE: i64 = 1_000;
 #[allow(
     clippy::cast_precision_loss,
     reason = "the scale is a small power of ten and is exact in f64"
 )]
 const SPACE_UNITS_PER_METER: f64 = SPACE_UNITS_PER_METER_SCALE as f64;
 const Q32_UNITS_PER_ONE: f64 = 4_294_967_296.0;
-const TIME_UNITS_PER_SECOND: f64 = 2_000.0;
+/// The integer form of [`TIME_UNITS_PER_SECOND`].
+pub(crate) const TIME_UNITS_PER_SECOND_SCALE: i64 = 2_000;
+#[allow(clippy::cast_precision_loss, reason = "2000 is exact in f64")]
+const TIME_UNITS_PER_SECOND: f64 = TIME_UNITS_PER_SECOND_SCALE as f64;
 const MILLIDEGREES_PER_DEGREE: f64 = 1_000.0;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

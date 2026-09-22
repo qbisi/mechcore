@@ -9,13 +9,13 @@
 //! buffs separately; MCFR records all three, which is why they are three here.
 //!
 //! [`Stats`] is the build's `FightProperty`: a derived number, computed from
-//! the description, level ratings and overlays, and recomputed when one changes.
+//! the description and the overlays and recomputed when one of them changes.
 //! Nothing in the fight reads a description directly.
 //!
 //! **A rate composes by summing within its channel and multiplying once**,
 //! which `tests/modifier/composition.mcscript` measured against the game and
 //! `docs/rules/officer_effects.md` records. The decompilation index carries no
-//! method bodies for that earlier rate study; what the build stores
+//! method bodies, so nothing here is read off the build; what the build stores
 //! and what it then computed were captured together and agree. What that
 //! capture did not reach — a value correction, and one number corrected in two
 //! channels at once — is refused rather than extended to.
@@ -55,7 +55,7 @@ impl Index {
     }
 }
 
-/// Which base or dynamic channel an entry lives in.
+/// Which overlay an entry lives in.
 ///
 /// A buff and a data change that produce the same number stay distinguishable,
 /// which is the whole reason the build keeps them apart and MCFR records them
@@ -67,9 +67,6 @@ impl Index {
 )]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum Channel {
-    /// `FightMech.levelData`: ratings applied before all dynamic overlays.
-    /// This is not a `DataSet` and never appears in an MCFR modifier set.
-    Base,
     /// The unit's own `DataSet`.
     Unit,
     /// The skill's `DataSet`.
@@ -78,7 +75,7 @@ pub(crate) enum Channel {
     Buff,
 }
 
-/// A base rating or one of the two corrections a dynamic `DataSet` stores.
+/// A correction, in the two shapes the build stores.
 ///
 /// The build keeps them in two different classes, named after their own
 /// arithmetic: `DataSet.floatDatas` is a `List<AdditiveDataFloat>` whose
@@ -98,8 +95,6 @@ pub(crate) enum Channel {
 )]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Correction {
-    /// A complete Q32.32 multiplier from `IMechLevelData`, not an additive rate.
-    Rating(i64),
     /// Q32.32 raw. `add` enhances and `reduce` impairs; one entry commonly
     /// carries one of them, and a recording's aggregate carries both.
     Rate { add: i64, reduce: i64 },
@@ -112,7 +107,6 @@ impl Correction {
     /// Whether this correction changes nothing.
     const fn neutral(self) -> bool {
         match self {
-            Self::Rating(raw) => raw == 1 << 32,
             Self::Rate { add, reduce } => add == 0 && reduce == 0,
             Self::Value(value) => value == 0,
         }
@@ -157,12 +151,72 @@ impl Overlay {
             .iter()
             .filter(move |entry| entry.index == index)
     }
+
+    /// What this overlay's `DataSet` holds for one number: the values summed
+    /// (`AdditiveDataFloat`), the enhancements summed and the impairments
+    /// compounded into one (`MultiplicativeDataFloat`), or nothing when no
+    /// entry changes it. A recording stores exactly this aggregate.
+    fn aggregate(&self, index: Index) -> Option<Aggregate> {
+        let mut aggregate = Aggregate::default();
+        let mut touched = false;
+        for entry in self.corrections(index) {
+            match entry.correction {
+                correction if correction.neutral() => {}
+                Correction::Value(add) => {
+                    aggregate.value += i128::from(add);
+                    touched = true;
+                }
+                Correction::Rate { add, reduce } => {
+                    aggregate.enhance += i128::from(add);
+                    if reduce != 0 {
+                        aggregate.remaining =
+                            aggregate.remaining * (ONE - i128::from(reduce)) / ONE;
+                    }
+                    touched = true;
+                }
+            }
+        }
+        touched.then_some(aggregate)
+    }
 }
 
-/// The level-data base channel and the three dynamic overlays a unit carries.
+/// One number's aggregate in one overlay.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Aggregate {
+    /// Σ value, in the number's own units.
+    value: i128,
+    /// Σ enhance, Q32.32.
+    enhance: i128,
+    /// Π (1 − impair), Q32.32.
+    remaining: i128,
+}
+
+impl Default for Aggregate {
+    fn default() -> Self {
+        Self {
+            value: 0,
+            enhance: 0,
+            remaining: ONE,
+        }
+    }
+}
+
+impl Aggregate {
+    /// The rate half as a recording stores it: the enhancements' sum, and one
+    /// less the compounded remainder.
+    fn rate(self) -> Result<mechcore_mcfr::RateModifier> {
+        Ok(mechcore_mcfr::RateModifier {
+            add: i64::try_from(self.enhance)
+                .map_err(|_| Error::new("an enhancement is outside the signed range"))?,
+            reduce: i64::try_from(ONE - self.remaining)
+                .map_err(|_| Error::new("an impairment is outside the signed range"))?,
+        })
+    }
+}
+
+/// The three overlays a unit carries.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Overlays {
-    base: Overlay,
     unit: Overlay,
     skill: Overlay,
     buff: Overlay,
@@ -172,33 +226,10 @@ impl Overlays {
     #[allow(dead_code, reason = "a mechanism reaches for a channel to write it")]
     pub(crate) const fn channel(&mut self, channel: Channel) -> &mut Overlay {
         match channel {
-            Channel::Base => &mut self.base,
             Channel::Unit => &mut self.unit,
             Channel::Skill => &mut self.skill,
             Channel::Buff => &mut self.buff,
         }
-    }
-
-    fn resolve_base(&self, index: Index, base: i64) -> Result<i64> {
-        // `GetBaseLife` / `GetBaseDamage` multiply by the level data first.
-        // There is one level row, not a sum of rates in a dynamic DataSet.
-        let mut ratings = self.base.corrections(index);
-        let base = if let Some(entry) = ratings.next() {
-            if ratings.next().is_some() {
-                return Err(Error::new("more than one level rating for a base number"));
-            }
-            let Correction::Rating(raw) = entry.correction else {
-                return Err(Error::new("the base channel requires a level rating"));
-            };
-            if !matches!(index, Index::MaxLife | Index::AttackDamage) || raw <= 0 {
-                return Err(Error::new("a level rating only scales base life or damage"));
-            }
-            i64::try_from(i128::from(base) * i128::from(raw) / ONE)
-                .map_err(|_| Error::new("level-scaled base is outside the signed range"))?
-        } else {
-            base
-        };
-        Ok(base)
     }
 
     /// The description's number, with every overlay that touches it applied.
@@ -228,56 +259,33 @@ impl Overlays {
     /// how it combines them is not measured — so this refuses rather than
     /// assuming the formula extends across channels.
     fn resolve(&self, index: Index, base: i64) -> Result<i64> {
-        self.resolve_dynamic(index, self.resolve_base(index, base)?)
-    }
-
-    fn resolve_dynamic(&self, index: Index, base: i64) -> Result<i64> {
         let mut corrected: Option<&'static str> = None;
-        let mut value = 0_i128;
-        let mut enhance = 0_i128;
-        let mut remaining = ONE;
+        let mut total = Aggregate::default();
         for (channel, overlay) in [
             ("unit", &self.unit),
             ("skill", &self.skill),
             ("buff", &self.buff),
         ] {
-            let mut touched = false;
-            for entry in overlay.corrections(index) {
-                if matches!(entry.correction, Correction::Rating(_)) {
-                    return Err(Error::new("a level rating belongs in the base channel"));
-                }
-                if entry.correction.neutral() {
-                    continue;
-                }
-                touched = true;
-                match entry.correction {
-                    Correction::Value(add) => value += i128::from(add),
-                    Correction::Rating(_) => unreachable!("ratings were refused above"),
-                    Correction::Rate { add, reduce } => {
-                        enhance += i128::from(add);
-                        if reduce != 0 {
-                            remaining = remaining * (ONE - i128::from(reduce)) / ONE;
-                        }
-                    }
-                }
+            let Some(aggregate) = overlay.aggregate(index) else {
+                continue;
+            };
+            if let Some(first) = corrected {
+                return Err(Error::new(format!(
+                    "{} is corrected in the {first} channel and the {channel} channel \
+                     at once, and what a property does with two channels' aggregates \
+                     is not measured: see the unresolved questions in \
+                     docs/spec/simulation/architecture.md",
+                    index.name()
+                )));
             }
-            if touched {
-                if let Some(first) = corrected {
-                    return Err(Error::new(format!(
-                        "{} is corrected in the {first} channel and the {channel} channel \
-                         at once, and what a property does with two channels' aggregates \
-                         is not measured: see the unresolved questions in \
-                         docs/spec/simulation/architecture.md",
-                        index.name()
-                    )));
-                }
-                corrected = Some(channel);
-            }
+            corrected = Some(channel);
+            total = aggregate;
         }
         if corrected.is_none() {
             return Ok(base);
         }
-        let scaled = (i128::from(base) + value) * (ONE + enhance) / ONE * remaining / ONE;
+        let scaled =
+            (i128::from(base) + total.value) * (ONE + total.enhance) / ONE * total.remaining / ONE;
         i64::try_from(scaled).map_err(|_| {
             Error::new(format!(
                 "{} resolved outside the range a number can hold",
@@ -296,6 +304,9 @@ impl Overlays {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Stats {
     pub(crate) overlays: Overlays,
+    /// The unit's level, which is its `IMechLevelData` rating: base life and
+    /// base damage are the description's times it, before any overlay.
+    level: i64,
     move_speed: i64,
     max_life: i64,
     attack_damage: i64,
@@ -310,9 +321,20 @@ impl Stats {
     ///
     /// Cannot fail while the overlays are empty; it answers a `Result` because
     /// [`Stats::refresh`] does.
+    #[cfg(test)]
     pub(crate) fn of(rules: &UnitConfig) -> Result<Self> {
+        Self::at_level(rules, 1)
+    }
+
+    /// The numbers a description gives at a level, with no correction on them.
+    ///
+    /// # Errors
+    ///
+    /// See [`Stats::of`].
+    pub(crate) fn at_level(rules: &UnitConfig, level: i64) -> Result<Self> {
         let mut stats = Self {
             overlays: Overlays::default(),
+            level,
             move_speed: 0,
             max_life: 0,
             attack_damage: 0,
@@ -329,8 +351,12 @@ impl Stats {
     ///
     /// Returns whatever [`Overlays::resolve`] refuses, which is what makes a
     /// correction this build cannot compose a refusal rather than a number.
-    pub(crate) fn corrected(rules: &UnitConfig, written: &[(Channel, Entry)]) -> Result<Self> {
-        let mut stats = Self::of(rules)?;
+    pub(crate) fn corrected(
+        rules: &UnitConfig,
+        level: i64,
+        written: &[(Channel, Entry)],
+    ) -> Result<Self> {
+        let mut stats = Self::at_level(rules, level)?;
         for (channel, entry) in written {
             stats.overlays.channel(*channel).write(entry.clone());
         }
@@ -338,17 +364,25 @@ impl Stats {
         Ok(stats)
     }
 
-    /// Recomputes every derived number from its level-scaled base and overlays.
+    /// Recomputes every derived number from the description, the level and
+    /// the overlays.
+    ///
+    /// The level is its own multiplier, not a correction: `FightMech`'s
+    /// `GetBaseLife` and `GetBaseDamage` multiply the description by the
+    /// level's rating and hand the product to the properties, which then
+    /// apply the `DataSet`s. Build 2259's nine `attributeUpgradeDatas` rows
+    /// rate life and damage at exactly their level, so the rating is the
+    /// level.
     ///
     /// # Errors
     ///
-    /// Returns an error for an invalid rating or unsupported channel
-    /// composition; see [`Overlays::resolve`].
+    /// Returns an error when an overlay carries a correction that is not
+    /// neutral; see [`Overlays::resolve`].
     pub(crate) fn refresh(&mut self, rules: &UnitConfig) -> Result<()> {
         let resolve = |index, base| self.overlays.resolve(index, base);
         self.move_speed = resolve(Index::MoveSpeed, rules.move_speed())?;
-        self.max_life = resolve(Index::MaxLife, rules.max_life)?;
-        self.attack_damage = resolve(Index::AttackDamage, rules.attack.base_damage)?;
+        self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
+        self.attack_damage = resolve(Index::AttackDamage, self.base(rules.attack.base_damage)?)?;
         self.attack_interval = u64::try_from(resolve(
             Index::AttackInterval,
             i64::try_from(rules.attack.interval_time_units())
@@ -357,6 +391,13 @@ impl Stats {
         .map_err(|_| Error::new("attack interval resolved below zero"))?;
         self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
         Ok(())
+    }
+
+    /// A base number at this unit's level.
+    fn base(&self, description: i64) -> Result<i64> {
+        description
+            .checked_mul(self.level)
+            .ok_or_else(|| Error::new("a level-scaled base is outside the signed range"))
     }
 
     pub(crate) const fn move_speed(&self) -> i64 {
@@ -384,50 +425,122 @@ impl Stats {
             unreachable!("laser damage requires the laser attack path")
         };
         let base = self
-            .overlays
-            .resolve_base(Index::AttackDamage, rules.attack.base_damage)
-            .expect("the layout verified the base rating");
+            .base(rules.attack.base_damage)
+            .expect("the layout verified the level-scaled base");
         let multiplier = damage_multipliers[attack_count.min(damage_multipliers.len() - 1)];
         let ramped = (base as f64 * multiplier).trunc() as i64;
         self.overlays
-            .resolve_dynamic(Index::AttackDamage, ramped)
+            .resolve(Index::AttackDamage, ramped)
             .expect("the layout verified the damage corrections")
     }
 
-    /// The skill damage-rate aggregate as stored by the native `DataSet`.
-    /// Level ratings are in the base channel and must never appear here.
-    pub(crate) fn skill_damage_modifiers(
-        &self,
-        slots: usize,
-    ) -> Vec<mechcore_mcfr::SkillNumericModifierState> {
-        let mut add = 0_i128;
-        let mut remaining = ONE;
-        for entry in self.overlays.skill.corrections(Index::AttackDamage) {
-            if let Correction::Rate {
-                add: enhance,
-                reduce,
-            } = entry.correction
-            {
-                add += i128::from(enhance);
-                remaining = remaining * (ONE - i128::from(reduce)) / ONE;
+    /// The unit's own `DataSet` as a recording stores it: life's rate, move
+    /// speed's value in whole metres, and move speed's rate, each the
+    /// aggregate its field keeps.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a correction the unit `DataSet` has no field for.
+    pub(crate) fn unit_dynamic_modifiers(&self) -> Result<mechcore_mcfr::UnitDynamicModifierSet> {
+        let unit = &self.overlays.unit;
+        let mut set = mechcore_mcfr::UnitDynamicModifierSet::default();
+        if let Some(life) = unit.aggregate(Index::MaxLife) {
+            if life.value != 0 {
+                return Err(Error::new("the unit DataSet has no field for a life value"));
+            }
+            set.life_rate = life.rate()?;
+        }
+        if let Some(speed) = unit.aggregate(Index::MoveSpeed) {
+            // `DataSet.intDatas`: whole metres, which is how the officer's
+            // integer reaches the recording (3 for one Advanced Power System,
+            // 6 for two, in `tests/modifier/`).
+            let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
+            if speed.value % metres != 0 {
+                return Err(Error::new(
+                    "a unit's move-speed value is a whole number of metres",
+                ));
+            }
+            set.move_speed_value = i32::try_from(speed.value / metres)
+                .map_err(|_| Error::new("a unit's move-speed value is outside i32"))?;
+            set.move_speed_change_rate = speed.rate()?;
+        }
+        for index in [
+            Index::AttackDamage,
+            Index::AttackInterval,
+            Index::AttackRange,
+        ] {
+            if unit.aggregate(index).is_some() {
+                return Err(Error::new(format!(
+                    "the unit DataSet has no field for {}",
+                    index.name()
+                )));
             }
         }
-        let rate = mechcore_mcfr::RateModifier {
-            add: i64::try_from(add).expect("validated damage rate fits i64"),
-            reduce: i64::try_from(ONE - remaining).expect("validated damage impairment fits i64"),
+        Ok(set)
+    }
+
+    /// The skill's `DataSet` as a recording stores it, one entry per skill
+    /// slot, or none when the skill channel holds nothing.
+    ///
+    /// Each number the skill channel corrects lands in the field the build
+    /// keeps its aggregate in: damage's rate, the attack range's value and
+    /// rate, the attack interval's value and rate. A value is the number's own
+    /// units here and Q32.32 metres or seconds in the recording. Level ratings
+    /// are in the base channel and never appear here.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a correction the skill `DataSet` has no field
+    /// for, rather than dropping it from what the recording is compared with.
+    pub(crate) fn skill_dynamic_modifiers(
+        &self,
+        slots: usize,
+    ) -> Result<Vec<mechcore_mcfr::SkillNumericModifierState>> {
+        let skill = &self.overlays.skill;
+        let mut set = mechcore_mcfr::SkillDynamicModifierSet::default();
+        let q32 = |value: i128, units_per_one: i128| {
+            i64::try_from(value * ONE / units_per_one)
+                .map_err(|_| Error::new("a skill value is outside the signed range"))
         };
-        if rate == mechcore_mcfr::RateModifier::default() {
-            return Vec::new();
+        if let Some(damage) = skill.aggregate(Index::AttackDamage) {
+            if damage.value != 0 {
+                return Err(Error::new(
+                    "the skill DataSet has no field for a damage value",
+                ));
+            }
+            set.damage_rate = damage.rate()?;
         }
-        (0..slots)
+        if let Some(range) = skill.aggregate(Index::AttackRange) {
+            set.attack_range_value = q32(
+                range.value,
+                i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+            )?;
+            set.attack_range_rate = range.rate()?;
+        }
+        if let Some(interval) = skill.aggregate(Index::AttackInterval) {
+            set.attack_interval_value = q32(
+                interval.value,
+                i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE),
+            )?;
+            set.attack_interval_rate = interval.rate()?;
+        }
+        for index in [Index::MoveSpeed, Index::MaxLife] {
+            if skill.aggregate(index).is_some() {
+                return Err(Error::new(format!(
+                    "the skill DataSet has no field for {}",
+                    index.name()
+                )));
+            }
+        }
+        if set.is_zero() {
+            return Ok(Vec::new());
+        }
+        Ok((0..slots)
             .map(|slot| mechcore_mcfr::SkillNumericModifierState {
                 skill_slot: u16::try_from(slot).expect("validated skill count fits u16"),
-                modifiers: mechcore_mcfr::SkillDynamicModifierSet {
-                    damage_rate: rate,
-                    ..mechcore_mcfr::SkillDynamicModifierSet::default()
-                },
+                modifiers: set,
             })
-            .collect()
+            .collect())
     }
 
     pub(crate) const fn attack_interval(&self) -> u64 {
@@ -464,6 +577,41 @@ mod tests {
         assert_eq!(stats.attack_damage(), rules.attack.base_damage);
         assert_eq!(stats.attack_interval(), rules.attack.interval_time_units());
         assert_eq!(stats.attack_range(), rules.attack.range());
+    }
+
+    /// A level multiplies the description's life and damage, and nothing
+    /// else, before any overlay: `tests/level/`'s recordings read 3244 and
+    /// 4658 at level 2, 4866 and 6987 at level 3, and move speed, interval and
+    /// range unchanged.
+    #[test]
+    fn a_level_multiplies_base_life_and_damage() {
+        let rules = marksman();
+        for (level, life, damage) in [(2, 3244, 4658), (3, 4866, 6987)] {
+            let stats = Stats::at_level(&rules, level).unwrap();
+            assert_eq!((stats.max_life(), stats.attack_damage()), (life, damage));
+            assert_eq!(stats.move_speed(), rules.move_speed());
+            assert_eq!(stats.attack_interval(), rules.attack.interval_time_units());
+            assert_eq!(stats.attack_range(), rules.attack.range());
+        }
+    }
+
+    /// The level is its own multiplier, applied before the `DataSet`s: a
+    /// level-2 Marksman under Advanced Offensive Tactics shoots 6055, which is
+    /// `4658 × 1.3` truncated once. Were the level a rate among the officer's,
+    /// it would be `2329 × (1 + 1 + 0.3)`, 5356; the recording is not.
+    #[test]
+    fn a_level_is_applied_before_the_overlays() {
+        let rules = marksman();
+        let officer = Entry {
+            index: Index::AttackDamage,
+            source: "Modifier",
+            correction: Correction::Rate {
+                add: THIRTY_PERCENT,
+                reduce: 0,
+            },
+        };
+        let stats = Stats::corrected(&rules, 2, &[(Channel::Skill, officer)]).unwrap();
+        assert_eq!(stats.attack_damage(), 6055);
     }
 
     /// Advanced Offensive Tactics' `+0.3`, in the Q32.32 raw the build stores

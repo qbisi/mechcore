@@ -28,7 +28,7 @@ impl Actor {
         // The layout resolved these when it compiled the placement, which is
         // where a refusal can name the side and the officer; reaching here
         // means they resolve.
-        let stats = crate::data::Stats::corrected(&rules, &placement.corrections)
+        let stats = crate::data::Stats::corrected(&rules, placement.level, &placement.corrections)
             .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
         let magazine = rules.attack.magazine;
@@ -239,10 +239,14 @@ impl Actor {
             visibility: Visibility::Normal,
             status_mask: 0,
             buff_modifiers: BuffModifierSet::default(),
-            unit_dynamic_modifiers: UnitDynamicModifierSet::default(),
+            unit_dynamic_modifiers: self
+                .stats
+                .unit_dynamic_modifiers()
+                .expect("the layout refused every correction a snapshot cannot record"),
             skill_dynamic_modifiers: self
                 .stats
-                .skill_damage_modifiers(self.skill.group_skill_targets.len().max(1)),
+                .skill_dynamic_modifiers(self.skill.group_skill_targets.len().max(1))
+                .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: false,
                 enabled: true,

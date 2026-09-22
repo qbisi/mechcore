@@ -63,11 +63,11 @@ Three sentences carry it:
 
 - **Everything that runs is a module.** `FightCoreSystem` is one of 35, not a
   privileged loop with the rest hanging off it.
-- **Dynamic corrections go through one of two
+- **Everything a mechanism changes about a unit goes through one of two
   overlays**, the actor's `DataSet` or its skills' `DataSet`, or through the
   `BuffManager`'s aggregate of active buffs. Nothing writes a base number.
 - **Nothing reads a number directly.** A `FightProperty` composes the shared
-  description, the selected level ratings and those overlays, caches the result, and is invalidated by
+  description with those overlays, caches the result, and is invalidated by
   change events.
 
 ## Where the code lives
@@ -115,7 +115,7 @@ skill's update (`attack_in_reach`), with the same `try_start_attack`.
 Outside the fight, the crate holds what builds one. `layout/` compiles a
 layout into placements and, in `layout/constructions.rs`, the buildings a
 construction releases. `modifier/` is the `Modifier` step: the officers and
-technologies and level ratings applied to a unit before it fights. `data.rs` is the data layer
+technologies written onto a unit before it fights. `data.rs` is the data layer
 both of them and the fight read, `rules.rs` the unit descriptions, and
 `module.rs` the registry of which module claims which layout field.
 
@@ -167,13 +167,20 @@ module, never editing the loop that drives it.
 
 **A module is not all or nothing.** It claims fields and understands some of
 them; the rest are refused exactly as an empty module's claims are. `Modifier`
-claims officers, technologies, equipment and levels. Claiming a field does not
-permit silently dropping its effects: a field the registry understands can
-still refuse one particular layout. An officer or a
+claims officers, technologies and equipment, and understands officers and
+technologies today, because two of the four effect tables are extracted. A
+field it understands can still refuse one particular layout: an officer or a
 technology whose effect this build cannot compose refuses the side holding it,
 by name and by field, rather than being half applied.
 
-One module is not the build's. Officers, technologies, equipment and levels are
+A unit's level is not a field, and not a correction. `FightMech` is built
+with its `IMechLevelData`, and its `GetBaseLife` and `GetBaseDamage` multiply
+the description by the level's rating before any `DataSet` applies; build
+2259's ratings are the levels themselves. So the level travels with the unit
+into `Stats` as its own multiplier, and every overlay applies to the product
+([unit_levels.md](../../rules/unit_levels.md)).
+
+One module is not the build's. Officers, technologies and equipment are
 applied to a unit **before** the fight rather than inside it — the build's
 `TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is called
 from the deployment's `MAP_AddUnit` — so the simulator applies them as the fight
@@ -188,9 +195,9 @@ because what a caller wants to know is how far a deployment is from being
 fought:
 
 ```text
-side blue needs modules this build has not implemented: battle skills
-(CommanderSkillSystem); side red needs modules this build has not implemented:
-unit equipment (Modifier)
+side blue needs modules this build has not implemented: constructions
+(FightConstructionSystem), battle skills (CommanderSkillSystem); side red needs
+modules this build has not implemented: unit equipment (Modifier)
 ```
 
 A refusal from inside a field the registry lets through names the thing rather
@@ -256,15 +263,8 @@ owner and exposes the total through getters — `GetAmplifyDamageAddRate`,
 `buff_modifiers`. It is not a `DataSet`, and that is the point: a buff and a
 data change that produce the same number stay distinguishable.
 
-**Level data selects the base.** `Modifier` reads one level row and passes its
-life and damage ratings through the base channel to `Stats`. This channel is
-resolved before dynamic corrections and cannot be mixed into an overlay rate.
-The shared description remains immutable. The mechanism and table are in
-[unit_levels.md](../../rules/unit_levels.md).
-
-A unit's numeric state is **one shared description, selected level data and
-three dynamic overlays**. The level is carried by the layout; a recording's
-modifier sets contain only the dynamic overlays.
+So a unit's state is **one shared description and three overlays**, and a
+recording dumps all three every tick.
 
 ## Derived values
 
