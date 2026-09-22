@@ -27,8 +27,11 @@ red's region is blue's turned half a turn.
    one, and the first position found wins a tie.
 
 A position is free when the footprint lies inside the region and overlaps no
-unit, construction or contraption already on it with positive area; edges
-may touch, and a shield or missile takes no part. A unit's footprint
+unit, construction or contraption already on it, and neither of the side's
+towers, with positive area; edges may touch, and a shield or missile takes no
+part. A tower occupies a 20 m square on its centre, local `(-140, -170)` and
+`(140, -170)`, which was measured against the game: a placement on it is
+refused as `RegionLimit`. A unit's footprint
 exchanges width and height when it is rotated. Squads handed out together land
 one at a time, each clear of the ones before it.
 

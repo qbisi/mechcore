@@ -136,7 +136,8 @@ pub fn landing(state: &SideState, type_name: &str, red: bool) -> Option<Position
 }
 
 /// Everything on the side's main region a new formation cannot overlap, as
-/// local centres and world-frame sizes.
+/// local centres and world-frame sizes: its units, constructions and
+/// contraptions, and its two towers.
 fn obstacles(state: &SideState) -> Vec<(Position, (i64, i64))> {
     let mut placed = Vec::new();
     for entry in &state.units {
@@ -161,6 +162,16 @@ fn obstacles(state: &SideState) -> Vec<(Position, (i64, i64))> {
         {
             placed.push((construction.position, size));
         }
+    }
+    // The side's own towers stand in its region from the start.
+    for (x, y) in crate::board::OWN_TOWERS_LOCAL {
+        placed.push((
+            Position {
+                x: i32::try_from(x).expect("a tower's centre fits i32"),
+                y: i32::try_from(y).expect("a tower's centre fits i32"),
+            },
+            (crate::board::TOWER_FOOTPRINT, crate::board::TOWER_FOOTPRINT),
+        ));
     }
     for contraption in &state.contraptions {
         // A shield and a missile take part in no deployment collision.
