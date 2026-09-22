@@ -19,12 +19,12 @@ were recorded for asks a claimant to build, and the offline
 
 ## What the build says a turret's skill is
 
-Read from `level0`, the `MechSkillGroupData` object at path 173, by the field
-order `GRCore`'s `SkillData` and `ProjectileSkillData` declare, and checked
-against the Marksman's and the Crawler's rows, which reproduce
-`config/units/` exactly. Both turrets are `ProjectileSkillData` rows; the
-construction row (`config/constructions.yaml`) carries the damage, the
-attack angle and the rotate speed.
+Read by `scripts/extract-skills.py` from `level0`, the `MechSkillGroupData`
+object at path 173, by the field order `GRCore`'s `SkillData` and
+`ProjectileSkillData` declare, and checked against the Marksman's row, which
+reproduces `config/units/marksman.yaml` exactly. Both turrets are
+`ProjectileSkillData` rows; the construction row (`config/constructions.yaml`)
+carries the damage, the attack angle and the rotate speed.
 
 | | Rapid-Fire Turret, skill 3003001 | Anti-Armor Turret, skill 3002001 |
 | --- | ---: | ---: |
