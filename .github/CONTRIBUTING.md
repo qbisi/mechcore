@@ -204,13 +204,18 @@ its hypotheses need already recorded.
    `/tmp/mechcore/<topic>/<script>/` go to the release `oracle/issue-<n>` with
    `scripts/oracle.py publish <n> <path>...`, and the issue's `Oracle` block
    lists each file with its tick count and physics hash.
+7. **Labels it `claimable`.** The label says the oracle is published and the
+   layouts are in the issue, which is everything a claimant needs. A
+   `research` issue without it is not ready: the keeper is still cutting it,
+   or it is a blocker a claimant filed that nobody has recorded for yet.
 
 A question that needs a new instrumentation profile or a change to the Adapter
 is the keeper's own and is not published.
 
 ### Claiming
 
-A claimant claims by opening a **draft** pull request from a branch named
+A claimant claims only an issue labelled `claimable`, by opening a **draft**
+pull request from a branch named
 `research/<n>-<slug>`, based on master, whose body says which agent is
 working it and where, and ends with `Closes #<n>` before its `Co-Authored-By`
 trailer. The body is the commit master will hold, so it is written as one. The draft is the claim: an issue
@@ -263,6 +268,32 @@ answers with the hashes and the tick counts, and removes the label. A capture
 that needs a field the current profiles do not read is a request for the
 keeper's own work, and the comment says which field.
 
+### When a claim is blocked
+
+Finding a mechanism that stops an answer is a normal outcome of research, and
+the keeper cannot foresee every one when the fixtures are designed. When a
+fixture's recording runs into something outside the question's `Touches`, the
+claimant does not widen the question to take it in:
+
+1. files it as [a finding](#a-finding), which says which issue and which
+   fixture it blocks, the first tick the simulator parts from the recording,
+   and what the recording shows there;
+2. lands what holds: the fixtures the blocker does not reach are pinned, and
+   the blocked one stays unpinned, named in the pull request's body with the
+   finding;
+3. says so in the pull request's thread, `Blocked by #<m>`, and leaves the
+   pull request a draft.
+
+The blocker is not claimable when it is filed: it has no oracle. The keeper
+decides what happens to the claim, and the thread records the decision:
+
+- **cut the blocker** as a research question of its own, recorded,
+  published and labelled `claimable`, and the blocked claim waits for it;
+- **record around it**: a fixture that separates the same hypotheses without
+  reaching the blocker replaces the blocked one in the question's release;
+- **accept what holds**: the claim is marked ready without the blocked
+  fixture, and the blocker is what remains when the issue closes.
+
 ### The keeper's loop
 
 The keeper follows one thing at a time. Several questions may be open and
@@ -276,9 +307,15 @@ when it wakes, and finished before the next is taken:
    as [Acceptance](#acceptance) says, push what a small fix needs, then label
    `accepted` or say what is missing. A pull request whose CI is red is left
    to its claimant; the keeper runs nothing in its place.
-3. **A merged claim**: delete the release with `scripts/oracle.py delete <n>`,
+3. **A blocked claim**: a draft whose thread says `Blocked by` and has no
+   decision yet. Read the finding, decide as
+   [When a claim is blocked](#when-a-claim-is-blocked) says, and write the
+   decision in the thread. The keeper keeps knowing why every open question
+   and every draft is where it is; a blocked claim nobody decided is the
+   keeper's to move.
+4. **A merged claim**: delete the release with `scripts/oracle.py delete <n>`,
    check the issue closed, and note in `plan.md` what the answer moved.
-4. **Fewer than three questions open**: cut the next one, from `plan.md`'s
+5. **Fewer than three questions open**: cut the next one, from `plan.md`'s
    order, and take it through the steps above, until three stand open,
    claimed or not. Three is the depth a claimant can pick from without the
    keeper being asked; it is not held to when one question blocks the rest
@@ -286,8 +323,9 @@ when it wakes, and finished before the next is taken:
    overlap an open one waits.
 
 A wake finds these with `gh pr list --label capture`, `gh pr list
---search "is:open -is:draft"`, `gh pr list --state merged --label accepted`
-and `gh issue list --label research`. A question the keeper is cutting is
+--search "is:open -is:draft"`, `gh pr list --search "is:draft \"Blocked by\""`,
+`gh pr list --state merged --label accepted` and `gh issue list --label
+research`. A question the keeper is cutting is
 not published until it is whole, so a wake in the middle of one continues
 it rather than starting another.
 
@@ -306,9 +344,24 @@ request, and reading means:
 - reading the rule against the two gates: a mechanism closes on the build's
   code or on the risk-adjusted record, a number traces to one of three
   sources;
-- checking that the answer goes through the mechanism the build uses, adds
-  no branch keyed on a kind of object that the build does not have, and
-  refuses by name what it did not read rather than approximating it;
+- checking that the answer goes through the mechanism the build uses, and
+  refuses by name what it did not read rather than approximating it. A new
+  kind of object is a question about abstraction, and the new code is read
+  for how it relates to the code already there. Four questions decide it:
+  1. Which build method does each new function mirror? Two functions that
+     mirror one method are a divergence, and a function named for a kind
+     beside one that already does the same for units is its usual shape.
+  2. Does what differs between two owners reach the shared code only through
+     the interface the build asks it through, such as `ISkillOwner` and
+     `IAttacker`?
+  3. Does every branch on a kind of object in shared code point to the place
+     the build branches: an override, or a type test?
+  4. Is a new variant of a shared type handled by the shared code, or
+     refused by name, rather than handled only on the new kind's path?
+
+  A divergence the build does not have is a step back even when every
+  recording agrees. The keeper returns it, or takes the pull request over
+  and folds it, as #93 was;
 - checking that the pull request's title and body are the commit master
   will hold, and that the documents say what the build does and not what
   the simulator does.
