@@ -92,9 +92,11 @@ keeper）先把问题收成一个数、读反编译、把 fixture 和录制脚�
 录像，离线拟合、实现、钉住、写规则，`scripts/check-scripts.sh` 全过后转正式；
 keeper 读过、跑过之后打 `accepted`，automerge 才合并，合并后 release 删除。
 
-证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`（云端
-通过 GitHub 读），录像语料在公开的 `mechcore-replay`（`scripts/replay.py sync`
-按 `replay/REPLAY_REV` 取回），每个问题的录像和 sidecar 在它自己的 release。
+证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`，
+`scripts/decomp.py sync` 放到 `work/decomp/<build>/`（dump 在 `cpp2il/`，索引
+`index.sqlite` 在同一目录，本机已有的不重下）；录像语料在公开的 `mechcore-replay`
+（`scripts/replay.py sync` 按 `replay/REPLAY_REV` 取回 `work/replay/`）；每个问题的
+录像和 sidecar 在它自己的 release（`scripts/oracle.py fetch <n>` 回到 `/tmp/mechcore/`）。
 仓库里固定下来的只有 `tests/<topic>/` 的布阵、脚本和它钉住的哈希。
 
 **游戏只有一个进程，只有 keeper 持有它。** 认领方永远不跑带 `game:` 的

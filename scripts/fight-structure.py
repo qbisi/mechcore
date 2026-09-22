@@ -28,8 +28,11 @@ NOISE = ("0x", "il2cpp", "0")
 
 
 def default_index() -> pathlib.Path | None:
-    for candidate in sorted((REPOSITORY / "work" / "unity-index").glob("*/index.sqlite")):
-        return candidate
+    """The newest build's index under work/decomp, where scripts/decomp.py puts it."""
+    for root in ("decomp", "unity-index"):
+        candidates = sorted((REPOSITORY / "work" / root).glob("*/index.sqlite"))
+        if candidates:
+            return candidates[-1]
     return None
 
 
@@ -67,8 +70,7 @@ def main() -> int:
     index = pathlib.Path(arguments.index) if arguments.index else default_index()
     if index is None or not index.exists():
         print(
-            "no decompilation index under work/unity-index; this is a local"
-            " research artifact and is not tracked",
+            "no decompilation index under work/decomp; run scripts/decomp.py sync",
             file=sys.stderr,
         )
         return 2
