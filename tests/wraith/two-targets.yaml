@@ -1,0 +1,27 @@
+kind: layout
+round: 1
+
+# What does a slot take when every unit in reach is already held by another?
+#
+# Blue's Wraith has four slots and red offers exactly two units, two
+# Marksmen 40 metres apart, both inside the Wraith's 60-metre range once it
+# has closed. Two slots cannot hold a unit of their own; whether they double
+# up, and on which, is what separates a search that excludes what the other
+# slots hold from one that does not. The Marksmen shoot back and outrange
+# the Wraith, so the fight is short; the slots' first allocation is the
+# reading.
+
+blue:
+  units:
+    - name: wraith
+      index: 0
+      position: {x: 5, y: -35}
+
+red:
+  units:
+    - name: marksman
+      index: 0
+      position: {x: -20, y: -30}
+    - name: marksman
+      index: 1
+      position: {x: 20, y: -30}
