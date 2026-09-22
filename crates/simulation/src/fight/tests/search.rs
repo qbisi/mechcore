@@ -362,7 +362,7 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     simulation.actors.get_mut(&3).unwrap().z_q32 = space_to_q32(100_000);
     simulation.actors.get_mut(&4).unwrap().z_q32 = space_to_q32(10_000);
     simulation
-        .update_fight_skill_target_search(1, 1, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
         .unwrap();
 
     assert_eq!(
@@ -381,7 +381,7 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     simulation.actors.get_mut(&3).unwrap().z_q32 = space_to_q32(100_000);
     simulation.actors.get_mut(&4).unwrap().z_q32 = space_to_q32(10_000);
     simulation
-        .update_fight_skill_target_search(1, 1, &target_search_order)
+        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
         .unwrap();
 
     assert_eq!(

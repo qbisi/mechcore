@@ -48,6 +48,12 @@ the skill search at all: a construction whose row answers
 target. The lock that controller keeps is not the one the turret aims or fires
 at; the skill keeps its own.
 
+The simulator runs a unit's skill code for it. What a construction answers
+differently reaches that code only through what the build's `ISkillOwner` and
+`IAttacker` ask: where it stands, its radius and reach, that its attack angle
+is measured against its weapon, its rotate speed, and whether it searches. Its
+`MotionController` is never updated, so it reads idle.
+
 The simulator updates a turret after every unit of its side. The three fights
 do not separate that from the other order: no unit of the turret's side acts
 in them. The order of the deployment draw is measured, and it is below.
@@ -62,9 +68,12 @@ distance weighted by the angle from where the **weapon** points, with the
 out-of-range penalty. A turret therefore holds a lock before anything is in
 reach, and turns its weapon onto it.
 
-The search timer is ten updates. A search resets it, and so do leaving idle for
-the attack and leaving the reload. Idle and attack count it down, and the attack
-never searches on it. A live lock is kept.
+The search timer is a unit's skill's, ten updates. A search resets it, and so
+does leaving the reload; idle counts it down, and a live lock is kept. The
+attack never searches on it. Whether the attack counts it down too, and whether
+entering the attack resets it, these fights do not separate: they play back
+tick for tick with both and with neither. The simulator does neither, as for a
+unit.
 
 - When the Rapid-Fire Turret's target dies, the next target is the one the
   selector scores from the weapon's rotation, not the nearest. At tick 146 of
@@ -143,8 +152,10 @@ Turret that makes the 53-tick gap:
 
 `SkillAttackableChecker` asks for a new lock on the update it sees the old one
 dead, and the skill, which switches targets quickly, goes on attacking. A lock
-that leaves the attack area is searched again the same way. If nothing is found
-in reach, the attack finishes and the skill is idle without a lock. No shot in
+that walks out of reach is searched again the same way; one still in reach but
+outside the weapon's attack angle finishes the attack, as a unit's does. If
+nothing is found in reach, the attack finishes and the skill is idle without a
+lock. No shot in
 the three fights waits for a switch: every gap between shots is its drawn
 interval.
 

@@ -510,6 +510,9 @@ impl Simulation {
         let source = self
             .attacker(owner)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
+        if !source.searches {
+            return Ok(None);
+        }
         let mut best: Option<(FightActorRef, i64)> = None;
         let mut consider = |candidate, score| match best {
             None => {
@@ -595,7 +598,8 @@ impl Simulation {
             .filter_map(|(index, target)| (index != slot).then_some(*target).flatten())
             .collect::<Vec<_>>();
         if held.is_empty() {
-            return self.select_lock_replacement(actor_id, target_search_order);
+            return self
+                .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
         }
         let select = |shared: bool| {
             let mut best: Option<(i64, u64)> = None;
@@ -637,7 +641,7 @@ impl Simulation {
         let selected = select(false);
         if source.rules.attack.weapons.allow_same_target == Some(true)
             && selected.is_none_or(|target| {
-                !self.slot_target_in_attack_range(actor_id, Some(slot), target)
+                !self.slot_target_in_attack_range(FightActorRef::Unit(actor_id), Some(slot), target)
             })
         {
             return Ok(select(true).or(selected));

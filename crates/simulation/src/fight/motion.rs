@@ -693,7 +693,7 @@ impl Simulation {
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
             self.try_start_attack(
-                actor_id,
+                FightActorRef::Unit(actor_id),
                 step,
                 target,
                 entered_attack,
@@ -710,7 +710,7 @@ impl Simulation {
             )
         };
         if release_now {
-            let _attack_point_rejected = self.release(actor_id, events)?;
+            let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
         }
         if self.actors[&actor_id].motion.state != MotionState::Attacking {
             // FightSkill runs before MotionController. A laser own-kill

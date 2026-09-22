@@ -74,8 +74,16 @@ pub(in crate::fight) struct Attacker<'a> {
     /// The attack interval, in native time units, with whatever corrects it.
     pub(in crate::fight) attack_interval: u64,
     pub(in crate::fight) facing: Facing<'a>,
+    /// Whether its weapons turn on a transform of their own, which the attack
+    /// angle is then measured from: a unit with a body, and a construction.
+    /// A unit without one falls back to its root.
+    pub(in crate::fight) has_body: bool,
     /// `ISkillOwner.GetRotateSpeed`, as one update's turn in Q32.32 degrees.
     pub(in crate::fight) turn_q32: i64,
+    /// Whether its skill searches at all: a construction without a
+    /// `ConstructionSearchTargetController`, which its row's
+    /// `IsEnableSearchTarget` decides, never finds a target.
+    pub(in crate::fight) searches: bool,
 }
 
 impl Attacker<'_> {
@@ -153,7 +161,9 @@ impl Simulation {
                     } else {
                         Facing::Root(actor.body_rotation_q32)
                     },
+                    has_body: actor.rules.has_body,
                     turn_q32: actor.turn_q32(),
+                    searches: true,
                 })
             }
             FightActorRef::Building(id) => {
@@ -184,7 +194,9 @@ impl Simulation {
                     attack_damage: construction.attack.base_damage,
                     attack_interval: construction.attack.interval_time_units(),
                     facing: Facing::Weapons(&construction.skill.weapon_rotations_q32),
+                    has_body: true,
                     turn_q32: construction.turn_q32,
+                    searches: construction.searches,
                 })
             }
         }
@@ -214,6 +226,47 @@ impl Simulation {
                     .expect("construction identity is stable")
                     .skill
             }
+        }
+    }
+
+    /// `ISkillData`'s quick switch: whether the skill takes the next target
+    /// in the middle of its attack.
+    pub(in crate::fight) fn quick_switch_target(&self, owner: FightActorRef) -> bool {
+        self.attacker(owner)
+            .expect("skill owner identity is stable")
+            .attack
+            .quick_switch_target
+    }
+
+    /// The unit whose motion a skill's decisions reach, if the owner has
+    /// motion that runs.
+    ///
+    /// `FightConstruction` builds a `MotionController` but its `Update` never
+    /// runs one (`ConstructionSearchTargetController`, `SkillManager`,
+    /// `BuffManager`, and nothing else): a construction's motion never leaves
+    /// idle, and nothing it would publish moves anything. The skill machine
+    /// itself asks no motion anything; what reaches the motion here is the
+    /// kernel's, where a unit's motion stops with its attack.
+    pub(in crate::fight) fn moving_mut(&mut self, owner: FightActorRef) -> Option<&mut Actor> {
+        match owner {
+            FightActorRef::Unit(id) => self.actors.get_mut(&id),
+            FightActorRef::Building(_) => None,
+        }
+    }
+
+    /// The state of the owner's motion: a construction's reads idle.
+    pub(in crate::fight) fn motion_state(&self, owner: FightActorRef) -> MotionState {
+        match owner {
+            FightActorRef::Unit(id) => self.actors[&id].motion.state,
+            FightActorRef::Building(_) => MotionState::Idle,
+        }
+    }
+
+    /// Whether the owner's motion holds its fire while it turns to face.
+    pub(in crate::fight) fn attack_hold_fire(&self, owner: FightActorRef) -> bool {
+        match owner {
+            FightActorRef::Unit(id) => self.actors[&id].motion.attack_hold_fire,
+            FightActorRef::Building(_) => false,
         }
     }
 

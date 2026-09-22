@@ -26,8 +26,8 @@ use crate::{
     Error, Result,
     layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
-        AttackConfig, AttackPath, AttackTargets, RvoSize, SimulationConfig, TrainingGroundConfig,
-        UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
+        AttackConfig, AttackPath, AttackTargets, Magazine, RvoSize, SimulationConfig,
+        TrainingGroundConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
     },
 };
 
@@ -60,7 +60,7 @@ pub(crate) use run::*;
 pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
-use skill::{FightSkillPhase, Launch, Skill};
+use skill::{FightSkillPhase, Launch, Skill, SkillUpdate};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 

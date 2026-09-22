@@ -72,7 +72,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     // that switches quickly searches again and takes the unit in its area.
     assert!(
         simulation
-            .check_attackable(1, &target_search_order)
+            .check_attackable(FightActorRef::Unit(1), &target_search_order)
             .unwrap()
     );
     assert_eq!(
@@ -87,7 +87,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     let target_search_order = simulation.target_search_order();
     assert!(
         simulation
-            .check_attackable(1, &target_search_order)
+            .check_attackable(FightActorRef::Unit(1), &target_search_order)
             .unwrap()
     );
     assert_eq!(
@@ -104,7 +104,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     let target_search_order = simulation.target_search_order();
     assert!(
         !simulation
-            .check_attackable(1, &target_search_order)
+            .check_attackable(FightActorRef::Unit(1), &target_search_order)
             .unwrap()
     );
 }
@@ -733,7 +733,9 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     simulation.actors.get_mut(&2).unwrap().life = 1;
     let mut events = Vec::new();
 
-    simulation.release(1, &mut events).unwrap();
+    simulation
+        .release(FightActorRef::Unit(1), &mut events)
+        .unwrap();
 
     let source = &simulation.actors[&1];
     assert_eq!(source.motion.state, MotionState::Idle);

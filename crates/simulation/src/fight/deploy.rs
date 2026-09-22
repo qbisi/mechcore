@@ -324,7 +324,7 @@ impl Simulation {
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
-            self.search_attack_target(actor_id);
+            self.search_attack_target(FightActorRef::Unit(actor_id));
         }
         Ok(())
     }

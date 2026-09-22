@@ -96,8 +96,16 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
                     [Some(41), Some(30), Some(48), Some(55)]
                 );
                 assert_eq!(sim.actors[&29].skill.lock_target, Some(unit_target(55)));
-                assert!(!sim.slot_target_in_attack_range(29, Some(0), unit_target(55)));
-                assert!(sim.slot_target_in_attack_range(29, Some(3), unit_target(55)));
+                assert!(!sim.slot_target_in_attack_range(
+                    FightActorRef::Unit(29),
+                    Some(0),
+                    unit_target(55)
+                ));
+                assert!(sim.slot_target_in_attack_range(
+                    FightActorRef::Unit(29),
+                    Some(3),
+                    unit_target(55)
+                ));
             }
         }
     }
@@ -120,10 +128,10 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     set_actor_position(sim.actors.get_mut(&1).unwrap(), 0, 0);
     let radii = sim.actors[&1].rules.collision_radius() + sim.actors[&2].rules.collision_radius();
     set_actor_position(sim.actors.get_mut(&2).unwrap(), 0, radii + 70_000);
-    assert!(!sim.slot_target_in_attack_range(1, Some(0), unit_target(2)));
-    assert!(sim.slot_target_in_attack_range(1, Some(1), unit_target(2)));
+    assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(0), unit_target(2)));
+    assert!(sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
     set_actor_position(sim.actors.get_mut(&2).unwrap(), 0, radii + 70_100);
-    assert!(!sim.slot_target_in_attack_range(1, Some(1), unit_target(2)));
+    assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
 }
 
 #[test]
@@ -272,7 +280,7 @@ mod oracle {
                         _ => None,
                     };
                     let result = self
-                        .check_attackable_slot(actor_id, Some(slot), &order)
+                        .check_attackable_slot(FightActorRef::Unit(actor_id), Some(slot), &order)
                         .unwrap();
                     let actual = (
                         result,

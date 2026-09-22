@@ -31,6 +31,7 @@ impl Actor {
         let stats = crate::data::Stats::corrected(&rules, &placement.corrections)
             .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
+        let magazine = rules.attack.magazine;
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
         let max_speed_q32 = space_to_q32(stats.move_speed());
@@ -81,7 +82,7 @@ impl Actor {
                 state: MotionState::Idle,
                 attack_hold_fire: false,
             },
-            skill: Skill::new(weapon_rotations_q32, group_skill_count),
+            skill: Skill::new(weapon_rotations_q32, group_skill_count, magazine),
         }
     }
 
@@ -116,6 +117,19 @@ impl Actor {
         self.motion.published_target_x_q32 = self.x_q32;
         self.motion.published_target_z_q32 = self.z_q32;
         self.motion.published_speed_q32 = 0;
+    }
+
+    /// `MotionIdleState` entered with a stop: the motion reads idle and
+    /// publishes zero speed at its maximum, and, where the stop is published
+    /// anew, the point it stands on as its target.
+    pub(in crate::fight) fn stop_in_place(&mut self, publish_point: bool) {
+        self.motion.state = MotionState::Idle;
+        if publish_point {
+            self.motion.next_target_x_q32 = self.x_q32;
+            self.motion.next_target_z_q32 = self.z_q32;
+        }
+        self.motion.next_speed_q32 = 0;
+        self.motion.next_max_speed_q32 = space_to_q32(self.stats.move_speed());
     }
 
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {

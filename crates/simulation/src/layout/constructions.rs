@@ -285,10 +285,10 @@ impl Constructions {
                 skill.id, attack.attack_half_angle
             )));
         }
-        // The machine `crate::fight` runs a construction's skill through
-        // fires one projectile at the lock the tick its interval is up. A row
-        // that winds up, swings, cools, bursts or scatters asks for more of it
-        // than the two turrets measured.
+        // A construction runs a unit's skill machine, and the two turrets
+        // measured it firing one projectile at the lock the tick its interval
+        // is up. A row that winds up, swings, cools, bursts, scatters or is
+        // grouped asks the machine for what no construction has shown it.
         let timing = &attack.timing;
         let simple = timing.initial_cooldown == 0.0
             && timing.prepare == 0.0
@@ -296,6 +296,7 @@ impl Constructions {
             && timing.backswing == 0.0
             && timing.cooling == 0.0
             && attack.weapons.count == 1
+            && attack.weapons.mode != crate::rules::WeaponMode::Group
             && matches!(
                 attack.path,
                 crate::rules::AttackPath::Projectile {

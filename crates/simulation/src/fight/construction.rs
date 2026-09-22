@@ -24,8 +24,6 @@ pub(in crate::fight) struct Construction {
     pub(in crate::fight) radius: i64,
     /// The skill row, with the construction's own damage.
     pub(in crate::fight) attack: AttackConfig,
-    /// The rounds left in the magazine.
-    pub(in crate::fight) rounds: u32,
     /// How far its weapon turns in one update.
     pub(in crate::fight) turn_q32: i64,
     /// Whether it has a `ConstructionSearchTargetController`, which its row's
@@ -41,9 +39,7 @@ impl Construction {
         rotate_speed: i32,
         searches: bool,
     ) -> Self {
-        let rounds = attack
-            .magazine
-            .map_or(u32::MAX, |magazine| magazine.capacity);
+        let magazine = attack.magazine;
         Self {
             team: building.team_id,
             x: building_x(building),
@@ -52,7 +48,6 @@ impl Construction {
             z_q32: building.position.z,
             radius: building_radius(building),
             attack,
-            rounds,
             turn_q32: q32_mul(i64::from(rotate_speed) << 32, NATIVE_LOGIC_DELTA_Q32),
             searches,
             // A side's board faces the other side: blue's weapons rest at 0
@@ -64,6 +59,7 @@ impl Construction {
                     180_i64 << 32
                 }],
                 0,
+                magazine,
             ),
         }
     }
@@ -102,8 +98,8 @@ pub(in crate::fight) fn initialize_constructions(
 
 impl Simulation {
     /// One construction's update, in the order `FightConstruction.Update`
-    /// runs it: its skill, which searches for its own lock, and then its
-    /// weapon, which turns towards it.
+    /// runs it: `SkillManager.Update`, the skill a unit's is, and then
+    /// `UpdateWeaponRotateion`, the weapon turning towards the lock.
     pub(in crate::fight) fn step_construction(
         &mut self,
         building_id: u64,
@@ -111,17 +107,62 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        if !self.fight_actor_is_alive(FightActorRef::Building(building_id)) {
-            let construction = self
-                .constructions
-                .get_mut(&building_id)
-                .expect("construction identity is stable");
-            construction.skill.drop_lock();
-            construction.skill.set_phase(FightSkillPhase::Idle);
+        let owner = FightActorRef::Building(building_id);
+        if !self.fight_actor_is_alive(owner) {
+            let skill = self.skill_mut(owner);
+            skill.drop_lock();
+            skill.set_phase(FightSkillPhase::Idle);
             return Ok(());
         }
-        self.update_construction_skill(building_id, step, target_search_order, events)?;
+        if let Some(update) = self.update_skill(owner, step, target_search_order, events)? {
+            self.attack_in_reach(owner, step, update, events)?;
+        }
         self.turn_construction_weapon(building_id);
+        Ok(())
+    }
+
+    /// `SkillIdleState.TryStartAttack` and `SkillAttackState.TryPerformAttack`
+    /// with what the skill fires at in reach, and the blow they wind up
+    /// performed when it is due at once.
+    ///
+    /// Both are the skill's in the build, asked by `SkillIdleState.Update` and
+    /// `SkillAttackState.Update`. The kernel asks them for a unit from its
+    /// motion, on the update `MotionAttackState` finds the target in range
+    /// (`attack_in_range`); a construction has no motion that runs, so its
+    /// skill asks them here, with the same answers to the same questions.
+    fn attack_in_reach(
+        &mut self,
+        owner: FightActorRef,
+        step: u64,
+        update: SkillUpdate,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let skill = self.skill(owner);
+        let Some(target) = skill.mechanical_attack_target() else {
+            return Ok(());
+        };
+        if !self.target_in_attack_range(owner, target) {
+            return Ok(());
+        }
+        // The attack is entered from idle; the state is not updated on the
+        // tick it is entered.
+        let entered_attack = skill.phase() == FightSkillPhase::Idle;
+        let in_attack_angle = self.target_in_attack_angle(owner, target);
+        self.try_start_attack(
+            owner,
+            step,
+            target,
+            entered_attack,
+            in_attack_angle,
+            update.prepare_finished,
+        );
+        if self
+            .skill(owner)
+            .pending()
+            .is_some_and(|pending| pending.step == step)
+        {
+            self.release(owner, events)?;
+        }
         Ok(())
     }
 
