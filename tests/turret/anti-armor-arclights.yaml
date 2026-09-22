@@ -1,0 +1,39 @@
+kind: layout
+round: 1
+
+# Is the Anti-Armor Turret the same skill machine with other numbers, through
+# a reload?
+#
+# The Anti-Armor Turret at world (-140, -100), where the opening group places
+# it, and four red Arclights down its column, in two pairs 40 m apart with the
+# pairs 80 m apart: red's own building stands between them. Two shots kill one, so the six rounds of its
+# magazine take three and the fourth is killed after the reload. An Arclight's
+# reach is shorter than the turret's, so none fires before its second shot
+# lands. Blue's Marksman stands in the far corner, which keeps it out of the
+# fight and away from red's buildings until the fourth Arclight dies and the
+# fight ends: no tower falls in it (#104).
+
+blue:
+  constructions:
+    - name: anti_armor_turret
+      index: 2
+      position: {x: -140, y: -100}
+  units:
+    - name: marksman
+      index: 0
+      position: {x: 290, y: -300}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 140, y: -100}
+    - name: arclight
+      index: 1
+      position: {x: 140, y: -140}
+    - name: arclight
+      index: 2
+      position: {x: 140, y: -220}
+    - name: arclight
+      index: 3
+      position: {x: 140, y: -260}

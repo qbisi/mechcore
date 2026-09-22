@@ -9,15 +9,18 @@ fires, at what, and how often. That is the half of a construction
 | --- | --- | --- |
 | `rapid-fire-head-on.yaml` | the search cadence and the first shot from the tick a target is in reach | 200 m straight down the turret's column |
 | `rapid-fire-flank.yaml` | whether the turret turns before it fires, and what the turn costs | the same Crawlers, 40 degrees off that line |
-| `anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers | as head-on, on the Anti-Armor Turret |
+| `anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers, and how a unit holds a turret that falls in its swing | as head-on, on the Anti-Armor Turret |
+| `anti-armor-arclights.yaml` | the same, through a reload, in a fight no tower falls in | four Arclights down the Anti-Armor Turret's column, two shots each |
 
 `skill.mcscript` records them with the `target_refs_v1` sidecar and records
 the head-on fight twice, requiring the two to be one recording.
-`regressions.mcscript` needs no game: it runs both Rapid-Fire fights through
-the simulator and holds them to the game's physics and content hashes. The
-Anti-Armor fight is not pinned. The simulator agrees with it through tick
-508, and at 509 the Crawlers take blue's Energy Tower, whose loss weakens the
-Marksman in a way nothing here models.
+`arclights.mcscript` records the Arclight fight twice, requiring the two to be
+one recording. `regressions.mcscript` needs no game: it runs both Rapid-Fire
+fights and the Arclight fight through the simulator and holds them to the
+game's physics and content hashes. The Anti-Armor Crawler fight is not
+pinned. The simulator agrees with it through tick 508, and at 509 the Crawlers
+take blue's Energy Tower, whose loss weakens the Marksman in a way nothing
+here models (#104).
 
 ## What the build says a turret's skill is
 

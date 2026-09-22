@@ -17,11 +17,13 @@
 # degrees a second and scores its next target from where it points, and after
 # the tenth shot spends 53 ticks reloading before the eleventh.
 #
+# `anti-armor-arclights.yaml` is the Anti-Armor Turret's fight: eight shots
+# at four Arclights, the magazine's six, a reload of 200 ticks, and two more.
 # `anti-armor-head-on.yaml` is not here. The simulator plays it tick for tick
 # up to tick 508, the Anti-Armor Turret's six shots and its fall at 335
 # included; at 509 the Crawlers take blue's Energy Tower, and the game
-# weakens the Marksman for it, which is a mechanism of its own this build
-# does not model. The rules document says where the fight stops agreeing.
+# weakens the Marksman for it (#104), which is a mechanism of its own this
+# build does not model.
 
 steps:
   # Crawlers straight down the turret's column. 24 fall to the turret, which
@@ -48,3 +50,16 @@ steps:
       teams.0.remaining_life: 1622
       hashes.physics_result_hash: cd1298cd5148d083243c872accc593a2dc4ed55779f37aabd3bd73ac49525f66
       hashes.content_result_hash: ca6bd5d45f103943bb190daee8434c4decc1c76ed52225e906458f447382b486
+
+  # Four Arclights down the Anti-Armor Turret's column, two shots each. The
+  # sixth shot empties the magazine at 574, the reload runs to 776, and the
+  # seventh and eighth kill the last at 836. No tower falls.
+  - fight.run:
+      layout: tests/turret/anti-armor-arclights.yaml
+      seed: 4242
+    expect:
+      steps: 836
+      winner: blue
+      teams.0.remaining_life: 1622
+      hashes.physics_result_hash: 705b3e392de6475968424efc98cde76582f30b46f35b80eceb5ddc37d80b54cb
+      hashes.content_result_hash: b6728f04b60d7b6cc675e6fc872944a34250fe796f612be4298816db80936837

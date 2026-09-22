@@ -28,10 +28,13 @@ Marksman's row first.
 
 Every prepare, attack point, backswing, cooling and initial cooldown is zero.
 
-The rules were measured against three fights, `tests/turret/`'s
-`rapid-fire-head-on.yaml`, `rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`,
-recorded by `skill.mcscript` with a control recording that repeats the
-head-on fight exactly. The build was read at `FightConstruction`,
+The rules were measured against four fights in `tests/turret/`.
+`rapid-fire-head-on.yaml`, `rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`
+are recorded by `skill.mcscript`, with a control recording that repeats the
+head-on fight exactly. `anti-armor-arclights.yaml` is recorded by
+`arclights.mcscript`, twice. It puts the Anti-Armor Turret through a reload in
+a fight no tower falls in, because the Crawlers of `anti-armor-head-on.yaml`
+take a tower at tick 509 (#104). The build was read at `FightConstruction`,
 `ConstructionSearchTargetController`, `FightSkill`, `SkillIdleState`,
 `SkillAttackState`, `SkillReloadingState`, `SkillAttackableChecker` and
 `SkillAttackAngleChecker`.
@@ -98,6 +101,7 @@ target.
 | rapid-fire-head-on | 90 (115.4 m at the end of 88, 114.6 at the end of 89) | 91 |
 | rapid-fire-flank | 86 (115.5 m, then 114.7) | 87 |
 | anti-armor-head-on | 77 (125.3 m, then 124.5) | 78 |
+| anti-armor-arclights | 166 (125.0 m, just outside, then 124.65) | 167 |
 
 The flank fight's Crawlers come in 36.6° off the turret's resting line, and its
 first shot is as early, from reach, as the head-on one. That is not because
@@ -120,7 +124,8 @@ The interval is drawn from the owning side's random stream, the one a unit's
 stagger comes from: once when the skill enters the fight, and once at every
 shot. A turret draws after every unit of its side. In both Rapid-Fire fights
 the gaps between shots are 7 6 6 6 6 7 6 5 6, then 53, then 6 6 6 6 5 7. The
-Anti-Armor Turret's are 49 48 52 50 50. Each is blue's stream seeded
+Anti-Armor Turret's are 49 48 52 50 50 against the Crawlers, and 49, 52, 50
+and 52 between its two shots at each Arclight. Each is blue's stream seeded
 `(round + team) × 4444`, past the Marksman's draw of range 12 and the turret's
 own draw at deployment.
 
@@ -147,6 +152,9 @@ Turret that makes the 53-tick gap:
 | 148–197 | 50 ticks of reload; the last refills and returns to idle |
 | 198 | idle enters the attack |
 | 199 | the 11th shot |
+
+The Anti-Armor Turret does the same with six rounds and 200 ticks: its sixth
+shot at 574 empties the magazine, and its seventh leaves at 777.
 
 ## A lock that dies is replaced on the spot
 
@@ -178,20 +186,24 @@ looks for the next target, as it would for a unit that died. That is
 unlike a wall block that stood in the way of another lock, which keeps a Rhino
 attacking to the end of its swing ([`constructions.md`](constructions.md)). At
 tick 335 of the Anti-Armor fight, the four Crawlers mid-swing go idle holding
-building 3, and the one that was not mid-swing drops it and walks on.
+building 3, and the one that was not mid-swing drops it and walks on. That
+fight is recorded but not pinned: the simulator agrees with it through tick
+508, and at 509 it runs into #104.
 
 ## Scope
 
 Everything above is build 2259, the 1v1 board, round one, and the two turrets
 a layout can place. It covers them firing at ground units, with every timing
 the rows carry at zero. It holds the simulator to both Rapid-Fire fights,
-physics and content, and to the Anti-Armor fight through tick 508.
+and to the Anti-Armor Arclight fight, physics and content. It agrees with the
+Anti-Armor Crawler fight through tick 508, which is recorded and not pinned.
 
 It does not cover:
 
-- **The Anti-Armor fight after tick 508.** There the Crawlers destroy blue's
-  Energy Tower with the Marksman still standing, and the game weakens the
-  Marksman for it, which is not a turret's mechanism. The fight is not pinned.
+- **The Anti-Armor Crawler fight after tick 508.** There the Crawlers destroy
+  blue's Energy Tower with the Marksman still standing, and the game weakens
+  the Marksman for it (#104), which is not a turret's mechanism. The Arclight
+  fight asks the Anti-Armor Turret the same without a tower falling.
 - **A turret beside an officer or a unit technology.** Whether either reaches a
   construction's skill is not read, so a side that places a turret and carries
   either is refused.
