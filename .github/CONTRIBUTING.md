@@ -278,9 +278,12 @@ when it wakes, and finished before the next is taken:
    to its claimant; the keeper runs nothing in its place.
 3. **A merged claim**: delete the release with `scripts/oracle.py delete <n>`,
    check the issue closed, and note in `plan.md` what the answer moved.
-4. **No open question unclaimed**: cut the next one, from `plan.md`'s order,
-   and take it through the steps above. A question whose `Touches` overlap
-   an open one waits.
+4. **Fewer than three questions open**: cut the next one, from `plan.md`'s
+   order, and take it through the steps above, until three stand open,
+   claimed or not. Three is the depth a claimant can pick from without the
+   keeper being asked; it is not held to when one question blocks the rest
+   of the plan, or when the plan is nearly done. A question whose `Touches`
+   overlap an open one waits.
 
 A wake finds these with `gh pr list --label capture`, `gh pr list
 --search "is:open -is:draft"`, `gh pr list --state merged --label accepted`
