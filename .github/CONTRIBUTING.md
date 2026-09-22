@@ -290,7 +290,9 @@ decides what happens to the claim, and the thread records the decision:
 - **cut the blocker** as a research question of its own, recorded,
   published and labelled `claimable`, and the blocked claim waits for it;
 - **record around it**: a fixture that separates the same hypotheses without
-  reaching the blocker replaces the blocked one in the question's release;
+  reaching the blocker replaces the blocked one in the question's release,
+  published with `scripts/oracle.py publish` and the blocked recording taken
+  out with `scripts/oracle.py retract <n> <path>...`;
 - **accept what holds**: the claim is marked ready without the blocked
   fixture, and the blocker is what remains when the issue closes.
 

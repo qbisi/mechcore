@@ -3,6 +3,7 @@
 
     scripts/oracle.py publish <n> <path>...  upload files under /tmp/mechcore to the release oracle/issue-<n>
     scripts/oracle.py fetch <n> [--force]    download the release oracle/issue-<n> back under /tmp/mechcore
+    scripts/oracle.py retract <n> <path>...  take files back out of the release oracle/issue-<n>
     scripts/oracle.py delete <n>             delete the release and its tag, when the issue closes
     scripts/oracle.py list [<n>]             list the oracles, or one oracle's files
 
@@ -12,9 +13,10 @@ to run that script against, so the keeper publishes what it recorded as a
 release of this repository named after the question's issue, and the claimant
 fetches it to the paths the script would have written:
 `/tmp/mechcore/<topic>/<script>/<name>.mcfr`, and the sidecar beside it. A
-release is not a commit, is added to when a capture is asked for, and is
-deleted when the issue closes. `.github/CONTRIBUTING.md`'s Research section
-is where an oracle fits in.
+release is not a commit, is added to when a capture is asked for, loses a
+recording the keeper recorded around a blocker, and is deleted when the issue
+closes. `.github/CONTRIBUTING.md`'s Research section is where an oracle fits
+in.
 
 An asset name cannot hold a slash, so the path under `/tmp/mechcore` is joined
 with `__`. `MANIFEST.json` lists every file with its size and SHA-256, and
@@ -171,6 +173,37 @@ def fetch(issue, force):
     print(f"fetched {len(manifest['files'])} file(s) from {tag}")
 
 
+def retract(issue, paths):
+    """Takes recordings back out of an oracle: a fixture the keeper recorded
+    around a blocker is no longer one the question is answered against, and
+    CI plays back every recording the release holds."""
+    tag = release(issue)
+    relatives = []
+    for argument in paths:
+        path = Path(argument)
+        if path.is_absolute():
+            try:
+                path = path.resolve().relative_to(REAL_ROOT)
+            except ValueError:
+                fail(f"{argument} is not under {ROOT}")
+        relatives.append(str(path))
+    with tempfile.TemporaryDirectory() as scratch:
+        gh("release", "download", tag, "--repo", REPOSITORY, "--dir", scratch, "--pattern", MANIFEST)
+        manifest_path = Path(scratch) / MANIFEST
+        manifest = json.loads(manifest_path.read_text())
+        missing = [relative for relative in relatives if relative not in manifest["files"]]
+        if missing:
+            fail(f"{tag} does not hold {', '.join(missing)}")
+        for relative in relatives:
+            del manifest["files"][relative]
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        gh("release", "upload", tag, "--repo", REPOSITORY, "--clobber", str(manifest_path))
+    for relative in relatives:
+        gh("release", "delete-asset", tag, asset_name(Path(relative)), "--repo", REPOSITORY, "--yes")
+        print(f"retracted {relative}")
+    print(f"{tag} holds {len(manifest['files'])} file(s)")
+
+
 def delete(issue):
     tag = release(issue)
     gh("release", "delete", tag, "--repo", REPOSITORY, "--cleanup-tag", "--yes")
@@ -196,6 +229,8 @@ def main(argv):
         publish(argv[2], argv[3:])
     elif len(argv) >= 3 and argv[1] == "fetch":
         fetch(argv[2], "--force" in argv[3:])
+    elif len(argv) >= 4 and argv[1] == "retract":
+        retract(argv[2], argv[3:])
     elif len(argv) == 3 and argv[1] == "delete":
         delete(argv[2])
     elif len(argv) in (2, 3) and argv[1] == "list":
