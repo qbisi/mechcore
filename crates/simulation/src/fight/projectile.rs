@@ -132,7 +132,10 @@ impl Simulation {
         projectile: &Projectile,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let (owner_team, splash_radius) = self.attacker(projectile.owner)?;
+        let (owner_team, splash_radius) = self
+            .attacker(projectile.owner)
+            .map(|attacker| (attacker.team, attacker.attack.splash_radius()))
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
         let (aimed, reach) = if projectile.target_kind == ObjectKind::Building {
             // A building stands on the ground, and a projectile narrows a
             // dual-domain skill to its target's domain.

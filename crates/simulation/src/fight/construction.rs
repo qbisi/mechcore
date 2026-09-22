@@ -15,7 +15,6 @@ use super::*;
 /// the skill searches at all, which is `searches`.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Construction {
-    pub(in crate::fight) building_id: u64,
     pub(in crate::fight) team: u32,
     pub(in crate::fight) x: i64,
     pub(in crate::fight) z: i64,
@@ -46,7 +45,6 @@ impl Construction {
             .magazine
             .map_or(u32::MAX, |magazine| magazine.capacity);
         Self {
-            building_id: building.building_id,
             team: building.team_id,
             x: building_x(building),
             z: building_z(building),
@@ -67,23 +65,6 @@ impl Construction {
                 }],
                 0,
             ),
-        }
-    }
-
-    /// Where its shot leaves from and what it carries.
-    pub(in crate::fight) fn launch(&self) -> Launch {
-        Launch {
-            owner: FightActorRef::Building(self.building_id),
-            team: self.team,
-            x: self.x,
-            z: self.z,
-            x_q32: self.x_q32,
-            y: 0,
-            z_q32: self.z_q32,
-            speed: self.attack.projectile_speed(),
-            damage: self.attack.base_damage,
-            life: self.attack.projectile_life(),
-            lock_target: self.attack.lock_target,
         }
     }
 }
@@ -120,27 +101,6 @@ pub(in crate::fight) fn initialize_constructions(
 }
 
 impl Simulation {
-    /// The side an attacker fights for and how far its splash reaches, which
-    /// is what a projectile asks of whoever released it when it lands.
-    pub(in crate::fight) fn attacker(&self, owner: FightActorRef) -> Result<(u32, i64)> {
-        match owner {
-            FightActorRef::Unit(id) => {
-                let actor = self
-                    .actors
-                    .get(&id)
-                    .ok_or_else(|| Error::new("projectile owner is absent"))?;
-                Ok((actor.placement.team, actor.rules.attack.splash_radius()))
-            }
-            FightActorRef::Building(id) => {
-                let construction = self
-                    .constructions
-                    .get(&id)
-                    .ok_or_else(|| Error::new("projectile owner is absent"))?;
-                Ok((construction.team, construction.attack.splash_radius()))
-            }
-        }
-    }
-
     /// One construction's update, in the order `FightConstruction.Update`
     /// runs it: its skill, which searches for its own lock, and then its
     /// weapon, which turns towards it.
@@ -168,25 +128,18 @@ impl Simulation {
     /// `SkillManager.UpdateWeaponRotateion`: the weapon turns towards the
     /// lock at the construction's rotate speed.
     pub(in crate::fight) fn turn_construction_weapon(&mut self, building_id: u64) {
-        let construction = &self.constructions[&building_id];
-        let Some(target) = construction
-            .skill
+        let owner = FightActorRef::Building(building_id);
+        let Some(target) = self
+            .skill(owner)
             .lock_target
             .and_then(|target| self.fight_actor(target))
         else {
             return;
         };
-        let bearing_q32 = direction_degrees_q32_raw(
-            target.x_q32.saturating_sub(construction.x_q32),
-            target.z_q32.saturating_sub(construction.z_q32),
-        );
-        let construction = self
-            .constructions
-            .get_mut(&building_id)
-            .expect("construction identity is stable");
-        let turn_q32 = construction.turn_q32;
-        for rotation in &mut construction.skill.weapon_rotations_q32 {
-            *rotation = rotate_towards_q32(*rotation, bearing_q32, turn_q32);
-        }
+        let bearing_q32 = self
+            .attacker(owner)
+            .expect("construction identity is stable")
+            .bearing_q32(target.x_q32, target.z_q32);
+        self.turn_weapons_towards(owner, bearing_q32);
     }
 }

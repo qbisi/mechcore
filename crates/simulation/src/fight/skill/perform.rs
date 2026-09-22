@@ -388,20 +388,10 @@ impl Simulation {
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let owner = &self.actors[&actor_id];
-        let source = Launch {
-            owner: FightActorRef::Unit(actor_id),
-            team: owner.placement.team,
-            x: owner.x,
-            z: owner.z,
-            x_q32: owner.x_q32,
-            y: unit_height(owner.rules.domain),
-            z_q32: owner.z_q32,
-            speed: owner.rules.attack.projectile_speed(),
-            damage: owner.stats.attack_damage(),
-            life: owner.rules.attack.projectile_life(),
-            lock_target: owner.rules.attack.lock_target,
-        };
+        let source = self
+            .attacker(FightActorRef::Unit(actor_id))
+            .expect("actor identity is stable")
+            .launch();
         self.launch_projectile(
             source,
             target_kind,

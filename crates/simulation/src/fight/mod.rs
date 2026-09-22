@@ -31,6 +31,7 @@ use crate::{
     },
 };
 
+mod attacker;
 mod construction;
 mod damage;
 mod deploy;
@@ -46,6 +47,8 @@ mod skill;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+use attacker::Facing;
 use construction::*;
 use damage::*;
 use deploy::*;
@@ -245,88 +248,17 @@ impl Simulation {
                 })?
                 .ensure_current_kernel_support()?;
         }
-        let mut actors = initialize_actors(layout, configs, seed)?;
-        let mut team_random = BTreeMap::new();
-        // Deployment draws one stagger per member, in identity order, and the
-        // build keeps it as that member's first interval. Nothing schedules an
-        // attack yet, so the draw is kept rather than consumed and discarded.
-        for actor in actors.values_mut() {
-            let random = team_random.entry(actor.placement.team).or_insert_with(|| {
-                GrRandom::new(u64::from(
-                    layout
-                        .round
-                        .cast_signed()
-                        .wrapping_add(actor.placement.team.cast_signed())
-                        .wrapping_mul(4_444)
-                        .cast_unsigned(),
-                ))
-            });
-            let offset_steps =
-                native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
-            if offset_steps > 0 {
-                let skill_count = if actor.rules.attack.weapons.mode == WeaponMode::Group {
-                    actor.rules.attack.weapons.count
-                } else {
-                    1
-                };
-                for index in 0..skill_count {
-                    let sample =
-                        random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX));
-                    if index == 0 {
-                        actor.skill.current_attack_interval = i64::try_from(
-                            native_time_units_to_steps(actor.stats.attack_interval()),
-                        )
-                        .unwrap_or(i64::MAX)
-                        .saturating_add(i64::from(sample))
-                        .max(1)
-                        .cast_unsigned();
-                    }
-                }
-            } else {
-                actor.skill.current_attack_interval =
-                    native_time_units_to_steps(actor.stats.attack_interval()).max(1);
-            }
-        }
+        let actors = initialize_actors(layout, configs, seed)?;
         let InitialBuildings {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
         } = initialize_buildings(training_ground, &layout.constructions)?;
-        let mut constructions = initialize_constructions(&buildings, &layout.constructions)?;
-        // A construction's skill draws its stagger at deployment as a unit's
-        // does, from its side's stream, after every unit's: the Anti-Armor
-        // Turret's shots in `tests/turret/` are 49 48 52 50 50 ticks apart,
-        // which is blue's stream past the Marksman's draw and one more.
-        for construction in constructions.values_mut() {
-            let random = team_random.entry(construction.team).or_insert_with(|| {
-                GrRandom::new(u64::from(
-                    layout
-                        .round
-                        .cast_signed()
-                        .wrapping_add(construction.team.cast_signed())
-                        .wrapping_mul(4_444)
-                        .cast_unsigned(),
-                ))
-            });
-            let interval_steps =
-                native_time_units_to_steps(construction.attack.interval_time_units());
-            let offset_steps =
-                native_time_units_to_steps(construction.attack.interval_offset_time_units());
-            let sample = if offset_steps > 0 {
-                i64::from(random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)))
-            } else {
-                0
-            };
-            construction.skill.current_attack_interval = i64::try_from(interval_steps)
-                .unwrap_or(i64::MAX)
-                .saturating_add(sample)
-                .max(1)
-                .cast_unsigned();
-        }
+        let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
-        Ok(Self {
+        let mut simulation = Self {
             actors,
-            team_random,
+            team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             buildings,
             target_quadtrees,
@@ -339,7 +271,9 @@ impl Simulation {
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
             constructions,
-        })
+        };
+        simulation.deploy_attack_intervals(layout.round)?;
+        Ok(simulation)
     }
 
     fn snapshot(&self) -> WorldSnapshot {

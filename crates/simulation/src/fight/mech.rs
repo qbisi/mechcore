@@ -147,24 +147,17 @@ impl Actor {
         }
     }
 
-    pub(in crate::fight) fn rotate_weapons_towards(&mut self, target_q32: i64) {
-        let maximum = q32_mul(
+    /// `ISkillOwner.GetRotateSpeed`, as one update's turn.
+    pub(in crate::fight) fn turn_q32(&self) -> i64 {
+        q32_mul(
             mdeg_to_degrees_q32(self.rules.rotate_speed_mdeg_per_second()),
             NATIVE_LOGIC_DELTA_Q32,
-        );
-        for rotation in &mut self.skill.weapon_rotations_q32 {
-            *rotation = rotate_towards_q32(*rotation, target_q32, maximum);
-        }
+        )
     }
 
-    pub(in crate::fight) fn weapons_in_attack_angle(&self, target_q32: i64) -> bool {
-        let half_angle_q32 = mdeg_to_degrees_q32(self.rules.attack.attack_half_angle_mdeg());
-        !self.skill.weapon_rotations_q32.is_empty()
-            && self
-                .skill
-                .weapon_rotations_q32
-                .iter()
-                .all(|rotation| rotation_distance_q32(*rotation, target_q32) <= half_angle_q32)
+    pub(in crate::fight) fn rotate_weapons_towards(&mut self, target_q32: i64) {
+        let turn_q32 = self.turn_q32();
+        self.skill.turn_weapons_towards(target_q32, turn_q32);
     }
 
     pub(in crate::fight) fn snapshot(&self) -> LiveUnitState {

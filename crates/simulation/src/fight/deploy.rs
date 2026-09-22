@@ -291,7 +291,11 @@ impl Simulation {
             .map(|&actor_id| {
                 Ok((
                     actor_id,
-                    self.select_normal_target_with_order(actor_id, &target_search_order, false)?,
+                    self.select_normal_target_with_order(
+                        FightActorRef::Unit(actor_id),
+                        &target_search_order,
+                        false,
+                    )?,
                 ))
             })
             .collect::<Result<Vec<_>>>()?;

@@ -404,7 +404,7 @@ fn the_selector_answers_a_tower_once_no_enemy_unit_is_left() {
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
     let selected = simulation
-        .select_normal_target_with_order(1, &target_search_order, true)
+        .select_normal_target_with_order(FightActorRef::Unit(1), &target_search_order, true)
         .unwrap();
     let Some(FightActorRef::Building(building_id)) = selected else {
         panic!("expected a tower, got {selected:?}");

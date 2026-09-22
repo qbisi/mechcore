@@ -157,37 +157,30 @@ impl Skill {
         }
     }
 
-    /// `SkillAttackState.TryPerformAttack` once the interval is up: draws the
-    /// next interval from the team's stream, schedules the next attack after
-    /// it, and winds up a blow that lands after the attack point.
-    ///
-    /// The draw is taken only when the skill has a random offset, so a skill
-    /// without one leaves the stream to the next owner.
+    /// `SkillAttackState.TryPerformAttack` once the interval is up: schedules
+    /// the next attack after the interval drawn for it, and winds up a blow
+    /// that lands after the attack point.
     pub(in crate::fight) fn schedule_blow(
         &mut self,
-        random: &mut GrRandom,
         step: u64,
-        interval_steps: u64,
-        offset_steps: u64,
+        interval: u64,
         attack_point_steps: u64,
         target: FightActorRef,
     ) {
-        let sample = if offset_steps == 0 {
-            0
-        } else {
-            i64::from(random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)))
-        };
-        let sampled = i64::try_from(interval_steps)
-            .unwrap_or(i64::MAX)
-            .saturating_add(sample)
-            .max(1)
-            .cast_unsigned();
-        self.next_attack_step = step.saturating_add(sampled);
-        self.current_attack_interval = sampled;
+        self.next_attack_step = step.saturating_add(interval);
+        self.current_attack_interval = interval;
         self.set_pending(Some(PendingRelease {
             step: step.saturating_add(attack_point_steps),
             target,
         }));
+    }
+
+    /// `SkillManager.UpdateWeaponRotateion`: every weapon turns towards a
+    /// bearing, by at most one update's turn.
+    pub(in crate::fight) fn turn_weapons_towards(&mut self, bearing_q32: i64, turn_q32: i64) {
+        for rotation in &mut self.weapon_rotations_q32 {
+            *rotation = rotate_towards_q32(*rotation, bearing_q32, turn_q32);
+        }
     }
 
     /// The coarse phase: idle (a cooling reads idle), preparing, attacking.
@@ -425,9 +418,11 @@ impl Simulation {
         let candidate = if step < started.saturating_add(cooling_steps) {
             match held {
                 Some(candidate) => Some(candidate),
-                None => {
-                    self.select_normal_target_with_order(actor_id, target_search_order, true)?
-                }
+                None => self.select_normal_target_with_order(
+                    FightActorRef::Unit(actor_id),
+                    target_search_order,
+                    true,
+                )?,
             }
         } else {
             None
@@ -521,7 +516,7 @@ impl Simulation {
             None
         } else {
             self.select_normal_target_with_order(
-                actor_id,
+                FightActorRef::Unit(actor_id),
                 target_search_order,
                 target_died_during_tick,
             )
@@ -534,7 +529,11 @@ impl Simulation {
                 .is_some_and(|target| target.query_alive && !target.alive)
         {
             selected_candidate = self
-                .select_normal_target_with_order(actor_id, target_search_order, true)
+                .select_normal_target_with_order(
+                    FightActorRef::Unit(actor_id),
+                    target_search_order,
+                    true,
+                )
                 .map_err(|error| {
                     Error::new(format!("logic step {step} actor {actor_id}: {error}"))
                 })?;
@@ -557,10 +556,9 @@ impl Simulation {
         let quick_idle_retains_attackable_target = actor.rules.attack.quick_switch_target
             && actor.skill.phase() == FightSkillPhase::Idle
             && step >= actor.skill.next_attack_step
-            && actor
-                .skill
-                .attack_target()
-                .is_some_and(|target_id| self.target_in_attack_area(actor_id, target_id));
+            && actor.skill.attack_target().is_some_and(|target_id| {
+                self.target_in_attack_area(FightActorRef::Unit(actor_id), target_id)
+            });
         let selected = if target_alive
             && (!actor.rules.attack.quick_switch_target || quick_idle_retains_attackable_target)
             && actor.motion.state == MotionState::Attacking
@@ -752,23 +750,14 @@ impl Simulation {
             && !prepare_finished
             && step >= actor.skill.next_attack_step
         {
-            let interval_steps = native_time_units_to_steps(actor.stats.attack_interval());
-            let offset_steps =
-                native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
             let attack_point_steps =
                 native_time_units_to_steps(actor.rules.attack.attack_point_time_units());
-            let random = self
-                .team_random
-                .get_mut(&actor.placement.team)
+            let owner = FightActorRef::Unit(actor_id);
+            let interval = self
+                .draw_attack_interval(owner)
                 .expect("every actor team owns one attack random stream");
-            actor.skill.schedule_blow(
-                random,
-                step,
-                interval_steps,
-                offset_steps,
-                attack_point_steps,
-                target,
-            );
+            self.skill_mut(owner)
+                .schedule_blow(step, interval, attack_point_steps, target);
         }
     }
 
@@ -892,7 +881,7 @@ impl Simulation {
                 && actor.skill.pending().is_none()
                 && actor.skill.backswing_finish_step().is_none()
                 && actor.skill.attack_target().is_some_and(|target_id| {
-                    self.bodyless_target_in_attack_area(actor_id, target_id)
+                    self.target_in_attack_area(FightActorRef::Unit(actor_id), target_id)
                 })
         };
         if bodyless_skill_starts_before_idle_search {
@@ -1028,7 +1017,9 @@ impl Simulation {
                 && actor.skill.pending().is_some())
             .then_some(actor.skill.attack_target())
             .flatten()
-            .filter(|&target_id| self.target_in_attack_area(actor_id, target_id))
+            .filter(|&target_id| {
+                self.target_in_attack_area(FightActorRef::Unit(actor_id), target_id)
+            })
         };
         if let Some(target_id) = bodyful_quick_switch_target {
             self.actors
@@ -1108,58 +1099,9 @@ impl Simulation {
         Ok((Flow::Next, attack_point_rejected))
     }
 
-    pub(in crate::fight) fn bodyless_target_in_attack_area(
-        &self,
-        actor_id: u64,
-        target: FightActorRef,
-    ) -> bool {
-        self.bodyless_target_in_attack_range(actor_id, target)
-            && self.bodyless_target_in_attack_angle(actor_id, target)
-    }
-
-    pub(in crate::fight) fn target_in_attack_area(
-        &self,
-        actor_id: u64,
-        target: FightActorRef,
-    ) -> bool {
-        if !self.bodyless_target_in_attack_range(actor_id, target) {
-            return false;
-        }
-        let actor = &self.actors[&actor_id];
-        if !actor.rules.has_body {
-            return self.bodyless_target_in_attack_angle(actor_id, target);
-        }
-        let target = self.fight_actor(target).expect("target identity is stable");
-        actor.weapons_in_attack_angle(direction_degrees_q32_raw(
-            target.x_q32.saturating_sub(actor.x_q32),
-            target.z_q32.saturating_sub(actor.z_q32),
-        ))
-    }
-
-    pub(in crate::fight) fn bodyless_target_in_attack_range(
-        &self,
-        actor_id: u64,
-        target: FightActorRef,
-    ) -> bool {
-        let actor = &self.actors[&actor_id];
-        let Some(target) = self.fight_actor(target) else {
-            return false;
-        };
-        if !target.alive || !target.targetable {
-            return false;
-        }
-        let center_distance_q32 = native_q32_magnitude(
-            target.x_q32.saturating_sub(actor.x_q32),
-            target.z_q32.saturating_sub(actor.z_q32),
-        );
-        let edge_distance_q32 = center_distance_q32
-            .saturating_sub(space_to_q32(actor.rules.collision_radius()))
-            .saturating_sub(space_to_q32(target.radius))
-            .max(0);
-        edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
-    }
-
+    /// Whether a target is within the attack angle of the unit's own
+    /// rotation, whatever its weapons point at: the angle a unit without a
+    /// body is measured by, and a grouped skill's other slots.
     pub(in crate::fight) fn bodyless_target_in_attack_angle(
         &self,
         actor_id: u64,
@@ -1188,7 +1130,7 @@ impl Simulation {
         if actor.rules.has_body {
             return false;
         }
-        !self.bodyless_target_in_attack_area(actor_id, target)
+        !self.target_in_attack_area(FightActorRef::Unit(actor_id), target)
     }
 
     /// Schedules the next attack and remembers the interval it used.
@@ -1197,32 +1139,9 @@ impl Simulation {
         actor_id: u64,
         step: u64,
     ) -> Result<u64> {
-        let actor = self
-            .actors
-            .get(&actor_id)
-            .ok_or_else(|| Error::new("attack interval owner is absent"))?;
-        let interval_steps = native_time_units_to_steps(actor.stats.attack_interval());
-        let offset_steps =
-            native_time_units_to_steps(actor.rules.attack.interval_offset_time_units());
-        let team = actor.placement.team;
-        let sample = if offset_steps == 0 {
-            0
-        } else {
-            i64::from(
-                self.team_random
-                    .get_mut(&team)
-                    .ok_or_else(|| Error::new("group skill team random stream is absent"))?
-                    .next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)),
-            )
-        };
-        let sampled = i64::try_from(interval_steps)
-            .unwrap_or(i64::MAX)
-            .saturating_add(sample)
-            .max(1)
-            .cast_unsigned();
-        if let Some(actor) = self.actors.get_mut(&actor_id) {
-            actor.skill.current_attack_interval = sampled;
-        }
+        let owner = FightActorRef::Unit(actor_id);
+        let sampled = self.draw_attack_interval(owner)?;
+        self.skill_mut(owner).current_attack_interval = sampled;
         Ok(step.saturating_add(sampled))
     }
 }

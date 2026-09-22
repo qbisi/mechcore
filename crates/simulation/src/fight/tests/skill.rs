@@ -433,7 +433,7 @@ fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
     source.skill.set_phase(FightSkillPhase::Idle);
     source.skill.next_attack_step = 20;
     simulation.actors.get_mut(&2).unwrap().life = 0;
-    assert!(simulation.bodyless_target_in_attack_range(1, unit_target(3)));
+    assert!(simulation.target_in_attack_range(FightActorRef::Unit(1), unit_target(3)));
     assert!(!simulation.bodyless_target_in_attack_angle(1, unit_target(3)));
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
@@ -924,9 +924,15 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
     );
     let target = 0;
     actor.skill.weapon_rotations_q32 = vec![0, 41_i64 << 32];
-    assert!(!actor.weapons_in_attack_angle(target));
+    assert!(
+        !Facing::Weapons(&actor.skill.weapon_rotations_q32)
+            .faces(target, actor.rules.attack.attack_half_angle_mdeg())
+    );
     actor.skill.weapon_rotations_q32[1] = 40_i64 << 32;
-    assert!(actor.weapons_in_attack_angle(target));
+    assert!(
+        Facing::Weapons(&actor.skill.weapon_rotations_q32)
+            .faces(target, actor.rules.attack.attack_half_angle_mdeg())
+    );
 }
 
 #[test]

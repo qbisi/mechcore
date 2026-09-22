@@ -66,22 +66,26 @@ impl Simulation {
                 // the attack, and with no cooling that is idle, lock cleared.
                 let target = if lock_alive
                     && lock.is_some_and(|target| {
-                        self.construction_reaches_target(building_id, target)
-                            && self.construction_faces_target(building_id, target)
+                        self.target_in_attack_range(FightActorRef::Building(building_id), target)
+                            && self.target_in_attack_angle(
+                                FightActorRef::Building(building_id),
+                                target,
+                            )
                     }) {
                     lock
                 } else {
-                    self.select_construction_target(building_id, target_search_order)
+                    self.search_construction_target(building_id, target_search_order)?
                 };
-                let Some(target) =
-                    target.filter(|&target| self.construction_reaches_target(building_id, target))
-                else {
+                let Some(target) = target.filter(|&target| {
+                    self.target_in_attack_range(FightActorRef::Building(building_id), target)
+                }) else {
                     let construction = self.construction_mut(building_id);
                     construction.skill.drop_lock();
                     construction.skill.set_phase(FightSkillPhase::Idle);
                     return Ok(());
                 };
-                let faces = self.construction_faces_target(building_id, target);
+                let faces =
+                    self.target_in_attack_angle(FightActorRef::Building(building_id), target);
                 let construction = self.construction_mut(building_id);
                 construction.skill.lock_target = Some(target);
                 // `SkillAttackState.Update` counts the timer down and never
@@ -97,7 +101,8 @@ impl Simulation {
                 // or the timer run out.
                 let searches = !lock_alive || construction.skill.search_target_time <= 0;
                 if searches {
-                    let found = self.select_construction_target(building_id, target_search_order);
+                    let found =
+                        self.search_construction_target(building_id, target_search_order)?;
                     let construction = self.construction_mut(building_id);
                     construction.skill.lock_target = found;
                     construction.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
@@ -107,8 +112,8 @@ impl Simulation {
                 let Some(target) = self.constructions[&building_id].skill.lock_target else {
                     return Ok(());
                 };
-                if self.construction_reaches_target(building_id, target)
-                    && self.construction_faces_target(building_id, target)
+                if self.target_in_attack_range(FightActorRef::Building(building_id), target)
+                    && self.target_in_attack_angle(FightActorRef::Building(building_id), target)
                 {
                     // `SkillIdleState.Exit` resets the timer.
                     let construction = self.construction_mut(building_id);
@@ -118,6 +123,24 @@ impl Simulation {
                 Ok(())
             }
         }
+    }
+
+    /// The skill's search, which a construction without a
+    /// `ConstructionSearchTargetController` never makes
+    /// (`IsMechSearchTargetEnabled`).
+    fn search_construction_target(
+        &self,
+        building_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<Option<FightActorRef>> {
+        if !self.constructions[&building_id].searches {
+            return Ok(None);
+        }
+        self.select_normal_target_with_order(
+            FightActorRef::Building(building_id),
+            target_search_order,
+            false,
+        )
     }
 
     fn construction_mut(&mut self, building_id: u64) -> &mut Construction {
@@ -134,31 +157,22 @@ impl Simulation {
         target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let construction = &self.constructions[&building_id];
-        let team = construction.team;
-        let interval_steps = native_time_units_to_steps(construction.attack.interval_time_units());
-        let offset_steps =
-            native_time_units_to_steps(construction.attack.interval_offset_time_units());
-        let attack_point_steps =
-            native_time_units_to_steps(construction.attack.attack_point_time_units());
-        let random = self
-            .team_random
-            .get_mut(&team)
-            .ok_or_else(|| Error::new("construction team random stream is absent"))?;
-        let construction = self
-            .constructions
-            .get_mut(&building_id)
-            .expect("construction identity is stable");
-        construction.skill.schedule_blow(
-            random,
-            step,
-            interval_steps,
-            offset_steps,
-            attack_point_steps,
-            target,
+        let owner = FightActorRef::Building(building_id);
+        let attack_point_steps = native_time_units_to_steps(
+            self.constructions[&building_id]
+                .attack
+                .attack_point_time_units(),
         );
+        let interval = self.draw_attack_interval(owner)?;
+        let launch = self
+            .attacker(owner)
+            .expect("construction identity is stable")
+            .launch();
+        let construction = self.construction_mut(building_id);
+        construction
+            .skill
+            .schedule_blow(step, interval, attack_point_steps, target);
         construction.rounds = construction.rounds.saturating_sub(1);
-        let launch = construction.launch();
         let pending = construction
             .skill
             .pending()

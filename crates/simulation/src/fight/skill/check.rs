@@ -151,7 +151,7 @@ impl Simulation {
         target: FightActorRef,
     ) -> bool {
         if slot.is_none_or(|slot| slot == 0) {
-            return self.bodyless_target_in_attack_range(actor_id, target);
+            return self.target_in_attack_range(FightActorRef::Unit(actor_id), target);
         }
         let source = &self.actors[&actor_id];
         let Some(target) = self.fight_actor(target) else {
@@ -175,7 +175,7 @@ impl Simulation {
         target: FightActorRef,
     ) -> bool {
         if slot.is_none_or(|slot| slot == 0) {
-            return self.target_in_attack_area(actor_id, target);
+            return self.target_in_attack_area(FightActorRef::Unit(actor_id), target);
         }
         self.slot_target_in_attack_range(actor_id, slot, target)
             && self.bodyless_target_in_attack_angle(actor_id, target)
@@ -314,14 +314,21 @@ impl Simulation {
             .mechanical_attack_target()
             .and_then(|target| self.fight_actor(target))
             .is_some_and(|target| target.query_alive && !target.alive);
-        let selected =
-            self.select_normal_target_with_order(actor_id, target_search_order, died_this_tick)?;
+        let selected = self.select_normal_target_with_order(
+            FightActorRef::Unit(actor_id),
+            target_search_order,
+            died_this_tick,
+        )?;
         if !died_this_tick
             && selected
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
         {
-            return self.select_normal_target_with_order(actor_id, target_search_order, true);
+            return self.select_normal_target_with_order(
+                FightActorRef::Unit(actor_id),
+                target_search_order,
+                true,
+            );
         }
         Ok(selected)
     }

@@ -176,7 +176,7 @@ impl Simulation {
                 .flatten()
         };
         if let Some(target_id) = group_core_target
-            && self.target_in_attack_area(actor_id, target_id)
+            && self.target_in_attack_area(FightActorRef::Unit(actor_id), target_id)
         {
             let next_attack_step = self.sample_actor_attack_interval(actor_id, step)?;
             let actor = self
