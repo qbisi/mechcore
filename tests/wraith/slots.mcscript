@@ -1,0 +1,48 @@
+# How does a Wraith's slot choose its target, given what the other slots hold?
+#
+#   mechcore run tests/wraith/slots.mcscript --check   parse without the game
+#   mechcore run tests/wraith/slots.mcscript           record
+#
+# A Wraith's core is a `SkillGroup`: four `FightSkill`s, one per slot, each
+# calling `SkillAttackableChecker.Check` by itself, with a
+# `GroupedSkillAttackBehaviour` over them. The `skill_attackable_checker_v1`
+# sidecar records every one of those calls with the slot's lock before and
+# after it, which is where a slot's choice is read; `target_refs_v1` records
+# what every other unit locks and attacks, and nothing for the Wraith's
+# slots, because its core is not a `FightSkill`. Each layout is recorded
+# once under each profile, under the seed the regression manifest pins.
+#
+#   group-attack   tests/regression/wraith-group-attack.yaml, the pinned fight
+#                  where three of one Wraith's four slots change lock on one
+#                  tick and the fourth does not take the unit a sibling holds
+#   two-targets    two units for four slots
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/wraith/slots
+  # The seed tests/regression/mcfr-regressions.yaml pins wraith-group-attack-01 with.
+  seed: 1787857041
+
+steps:
+  - let:
+      recordings:
+        - {name: group-attack-checker, layout: tests/regression/wraith-group-attack.yaml, profile: skill_attackable_checker_v1}
+        - {name: group-attack-targets, layout: tests/regression/wraith-group-attack.yaml, profile: target_refs_v1}
+        - {name: two-targets-checker, layout: tests/wraith/two-targets.yaml, profile: skill_attackable_checker_v1}
+        - {name: two-targets-targets, layout: tests/wraith/two-targets.yaml, profile: target_refs_v1}
+
+  - foreach: {recording: $recordings}
+    steps:
+      - let:
+          layout: read_yaml(${recording.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${recording.name}.mcfr
+          instrumentation:
+            output: ${out}/${recording.name}.h5
+            profile: ${recording.profile}

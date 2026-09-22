@@ -12,6 +12,7 @@ says what was measured:
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | `skill-order/` | whether the release order of two battle skills changes the fight |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
+| [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, given what the others hold |
 | `regression/` | the native regression table, its layouts, and the three scripts that read it: offline, re-recorded, and re-recorded with each unit's skill state |
 
 A script that needs no game is run by CI; one that needs the game is only
