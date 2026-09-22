@@ -21,9 +21,10 @@ form:
   The claimant never runs the    A capture request is how it asks for more.
   game.
 
-Claim it by opening a draft pull request from a branch research/<n>-<slug>
-whose body ends with `Closes #<n>` before its Co-Authored-By trailer. The
-draft is the claim.
+The keeper labels it `claimable` once the oracle is published. Claim a
+`claimable` issue by opening a draft pull request from a branch
+research/<n>-<slug> whose body ends with `Closes #<n>` before its
+Co-Authored-By trailer. The draft is the claim.
 -->
 
 **Question.** <One number or one decision, and the hypotheses that differ in it.>
