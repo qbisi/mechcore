@@ -1,0 +1,67 @@
+# When does a turret fire its first shot, and how often after?
+#
+#   mechcore run tests/turret/skill.mcscript --check   parse without the game
+#   mechcore run tests/turret/skill.mcscript           record
+#
+# A turret is a `FightConstruction`, which updates a `SkillManager` like a
+# unit does and finds its lock target through its own
+# `ConstructionSearchTargetController`. Nothing in the simulator fires one
+# yet, so nothing here runs the simulator: these fights are the oracle a
+# research question is answered against, and the readings are the ticks of
+# the turret's `projectile_released` events and the damage they do.
+#
+# Three fights and a control:
+#
+#   rapid-fire-head-on   Crawlers walk 200 m straight down the turret's column
+#   rapid-fire-flank     the same Crawlers come in 40 degrees off that line
+#   anti-armor-head-on   the other turret, whose every shot is a kill
+#   control              rapid-fire-head-on recorded again, which has to be
+#                        the same recording tick for tick
+#
+# The `target_refs_v1` sidecar records each unit's lock and attack target,
+# so it says when a Crawler locks the turret; the turret's own skill state
+# is not in it, because the profile reads `FightMech` fields.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/turret/skill
+  seed: 4242
+
+steps:
+  - let:
+      fights:
+        - {name: rapid-fire-head-on, layout: tests/turret/rapid-fire-head-on.yaml}
+        - {name: rapid-fire-flank, layout: tests/turret/rapid-fire-flank.yaml}
+        - {name: anti-armor-head-on, layout: tests/turret/anti-armor-head-on.yaml}
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(${fight.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${fight.name}.mcfr
+          instrumentation:
+            output: ${out}/${fight.name}.h5
+            profile: target_refs_v1
+
+  # The control: the same fight twice has to be the same recording, or every
+  # difference read below it means nothing.
+  - let:
+      layout: read_yaml(tests/turret/rapid-fire-head-on.yaml)
+  - game.apply_layout:
+      layout: $layout
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/control.mcfr
+  - fight.compare:
+      left: ${out}/rapid-fire-head-on.mcfr
+      right: ${out}/control.mcfr
+    expect:
+      equal: true
+      content_equal: true
