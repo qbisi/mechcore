@@ -272,10 +272,10 @@ when it wakes, and finished before the next is taken:
 1. **A `capture` label** on a claimed pull request: record the script the
    branch holds, publish to the question's release, answer with the hashes,
    remove the label.
-2. **A pull request marked ready** that claims an issue: read it as
-   [Acceptance](#acceptance) says, push what a small fix needs, then label
+2. **A pull request marked ready** that claims an issue and is green: read it
+   as [Acceptance](#acceptance) says, push what a small fix needs, then label
    `accepted` or say what is missing. A pull request whose CI is red is left
-   to its claimant with a comment naming the failure.
+   to its claimant; the keeper runs nothing in its place.
 3. **A merged claim**: delete the release with `scripts/oracle.py delete <n>`,
    check the issue closed, and note in `plan.md` what the answer moved.
 4. **No open question unclaimed**: cut the next one, from `plan.md`'s order,
@@ -290,17 +290,25 @@ it rather than starting another.
 
 ### Acceptance
 
+CI runs every check that can be written down: the test suite, the offline
+scripts with every pin, and, for a branch named `research/<n>-…`, the
+issue's oracle played back through the branch's simulator, physics and
+content, recording by recording. A check that CI does not run is a gap in
+CI, not a step for the keeper; a claimant or a keeper runs a check locally
+to see why it failed, never to stand in for it.
+
 CI green is necessary and not sufficient. The keeper reads a ready pull
 request, and reading means:
 
-- running `scripts/check-scripts.sh` on the branch, and the question's oracle
-  through `fight verify` and `fight compare` in the content layer, and the
-  sidecar where the profile recorded one;
 - reading the rule against the two gates: a mechanism closes on the build's
   code or on the risk-adjusted record, a number traces to one of three
   sources;
-- checking that the answer goes through the mechanism the build uses, and adds
-  no branch keyed on a kind of object that the build does not have.
+- checking that the answer goes through the mechanism the build uses, adds
+  no branch keyed on a kind of object that the build does not have, and
+  refuses by name what it did not read rather than approximating it;
+- checking that the pull request's title and body are the commit master
+  will hold, and that the documents say what the build does and not what
+  the simulator does.
 
 The keeper may push to the branch. When the pull request holds, the keeper
 adds the label `accepted`, and `automerge.yml` merges it: a pull request that
