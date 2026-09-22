@@ -263,6 +263,31 @@ answers with the hashes and the tick counts, and removes the label. A capture
 that needs a field the current profiles do not read is a request for the
 keeper's own work, and the comment says which field.
 
+### The keeper's loop
+
+The keeper follows one thing at a time. Several questions may be open and
+claimed, but the keeper's own attention is on one item, taken in this order
+when it wakes, and finished before the next is taken:
+
+1. **A `capture` label** on a claimed pull request: record the script the
+   branch holds, publish to the question's release, answer with the hashes,
+   remove the label.
+2. **A pull request marked ready** that claims an issue: read it as
+   [Acceptance](#acceptance) says, push what a small fix needs, then label
+   `accepted` or say what is missing. A pull request whose CI is red is left
+   to its claimant with a comment naming the failure.
+3. **A merged claim**: delete the release with `scripts/oracle.py delete <n>`,
+   check the issue closed, and note in `plan.md` what the answer moved.
+4. **No open question unclaimed**: cut the next one, from `plan.md`'s order,
+   and take it through the steps above. A question whose `Touches` overlap
+   an open one waits.
+
+A wake finds these with `gh pr list --label capture`, `gh pr list
+--search "is:open -is:draft"`, `gh pr list --state merged --label accepted`
+and `gh issue list --label research`. A question the keeper is cutting is
+not published until it is whole, so a wake in the middle of one continues
+it rather than starting another.
+
 ### Acceptance
 
 CI green is necessary and not sufficient. The keeper reads a ready pull
