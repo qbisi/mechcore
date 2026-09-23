@@ -361,17 +361,6 @@ impl Simulation {
             .iter()
             .map(|(&actor_id, actor)| (actor_id, actor.motion.state))
             .collect::<BTreeMap<_, _>>();
-        let teams_with_building_target_at_start = self
-            .actors
-            .values()
-            .filter_map(|actor| {
-                matches!(
-                    actor.skill.attack_target(),
-                    Some(FightActorRef::Building(_))
-                )
-                .then_some(actor.placement.team)
-            })
-            .collect::<std::collections::BTreeSet<_>>();
         self.refresh_target_query_snapshot();
         let mut events = Vec::new();
         if publish_late_building_events && let Some(winning_team) = self.winner() {
@@ -508,7 +497,6 @@ impl Simulation {
                 .iter()
                 .find(|building| building.team_id != winning_team && building_alive(building))
                 .map(|building| building.team_id)
-            && !teams_with_building_target_at_start.contains(&losing_team)
         {
             let mut queued_direct_own_kill_handoff = false;
             let actor_ids = self

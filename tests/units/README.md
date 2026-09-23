@@ -77,7 +77,7 @@ agrees with its `config/units/` file.
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
 the same six layouts against the reference units: 84 recordings, of which
-73 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
+75 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
 definition. A cell that parts gives the recording's ticks and the first tick
 the simulator differs on.
 
@@ -115,10 +115,10 @@ the simulator differs on.
 | wraith | `m6-formations` | refused | 330, parts at 124 |
 | stormcaller | `m1-mirror` | 120 | 248 |
 | stormcaller | `m2-rhino` | 315 | 291 |
-| stormcaller | `m3-crawler` | 352 | 301, parts at 301 |
+| stormcaller | `m3-crawler` | 352 | 301 |
 | stormcaller | `m4-wasp` | 213 | 211 |
 | stormcaller | `m5-rotated` | 273 | 272 |
-| stormcaller | `m6-formations` | 462, parts at 1 | 449, parts at 449 |
+| stormcaller | `m6-formations` | 462, parts at 1 | 449 |
 | phoenix | `m1-mirror` | 77 | 76 |
 | phoenix | `m2-rhino` | 139 | 147 |
 | phoenix | `m3-crawler` | 463 | 462 |
@@ -126,7 +126,7 @@ the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-Each fight that parts does so on one of four mechanisms, none of them the
+Each fight that parts does so on one of three mechanisms, none of them the
 unit's own damage or motion:
 
 - **Facing a target dead ahead.** A Stormcaller or Steel Ball whose
@@ -134,10 +134,6 @@ unit's own damage or motion:
   in the game, as it would with no offset, and −0.245° in the simulator,
   until it first moves. `AcosFastest(1)` is not zero, so the offset's sign
   picks the side. Steel Ball's and Stormcaller's M6 with seed 4242.
-- **The winner's turn on the last tick.** On the tick a side loses its last
-  unit, Crawlers that update after the killer still turn in the game, one
-  of them a full step toward the dead target; the simulator freezes them.
-  Two Stormcaller fights, on their last tick.
 - **A Fang's velocity.** One Fang's velocity differs by 0.0015 m/s at
   tick 420 of its M6 with seed 1787720817. Not read yet.
 - **The Wraith's grouped search.** Each of the Wraith's weapons searches
