@@ -14,10 +14,10 @@ use std::{
 };
 
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
-    GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState,
-    ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QVec3, Rational, TickSlice,
-    TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
+    BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
+    IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
+    PersonalShieldState, ProjectileState, QVec3, Rational, TickSlice, TransitionEvents, Visibility,
+    WeaponAimState, WorldSnapshot,
 };
 
 use serde::Serialize;
@@ -46,6 +46,7 @@ mod search;
 mod skill;
 #[cfg(test)]
 mod tests;
+mod tower;
 
 #[cfg(test)]
 use attacker::Facing;
@@ -61,6 +62,7 @@ pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSum
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
 use skill::{FightSkillPhase, Launch, Skill, SkillUpdate};
+use tower::{RunningBuff, TowerLoss, Towers};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 
@@ -177,6 +179,13 @@ struct Actor {
     aim_rotation: i64,
     life: i64,
     last_damage_source: Option<(ObjectRef, u32)>,
+    /// The buffs running on it, `BuffManager`'s list.
+    buffs: Vec<RunningBuff>,
+    /// `RVOControllerFixed._maxSpeed`: the speed `Active` read when the unit
+    /// took the field, which `StopMove` hands the agent as its maximum. A
+    /// buff that changes the unit's speed later reaches a moving agent through
+    /// `Move`, and never this.
+    rvo_max_speed_q32: i64,
     pub(in crate::fight) motion: Motion,
     pub(in crate::fight) skill: Skill,
 }
@@ -216,6 +225,12 @@ struct Simulation {
     unsearchable_buildings: BTreeSet<u64>,
     /// The constructions whose skill fires, by building.
     constructions: BTreeMap<u64, Construction>,
+    /// The tower table: what a strengthen level adds, what a loss writes.
+    towers: Towers,
+    /// What each tower's fall writes, by building.
+    tower_losses: BTreeMap<u64, TowerLoss>,
+    /// The constructions a tower's loss would reach, by building.
+    tower_buffed_constructions: BTreeSet<u64>,
 }
 
 impl Simulation {
@@ -249,11 +264,19 @@ impl Simulation {
                 .ensure_current_kernel_support()?;
         }
         let actors = initialize_actors(layout, configs, seed)?;
+        let towers = Towers::load()?;
         let InitialBuildings {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
-        } = initialize_buildings(training_ground, &layout.constructions)?;
+            tower_losses,
+            tower_buffed_constructions,
+        } = initialize_buildings(
+            training_ground,
+            &layout.constructions,
+            &layout.tower_levels,
+            &towers,
+        )?;
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let mut simulation = Self {
@@ -271,6 +294,9 @@ impl Simulation {
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
             constructions,
+            towers,
+            tower_losses,
+            tower_buffed_constructions,
         };
         simulation.deploy_attack_intervals(layout.round)?;
         Ok(simulation)
@@ -597,7 +623,7 @@ impl Simulation {
                 if natural_finish_handoff {
                     actor.motion.next_target_x_q32 = target_x_q32;
                     actor.motion.next_target_z_q32 = target_z_q32;
-                    actor.motion.next_speed_q32 = space_to_q32(actor.stats.move_speed());
+                    actor.motion.next_speed_q32 = actor.stats.move_speed_q32();
                 } else {
                     let (move_target_x_q32, move_target_z_q32) = native_auto_move_target_point(
                         actor.x_q32,
@@ -611,7 +637,7 @@ impl Simulation {
                     actor.motion.next_target_x_q32 = move_target_x_q32;
                     actor.motion.next_target_z_q32 = move_target_z_q32;
                     actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
-                        space_to_q32(actor.stats.move_speed()),
+                        actor.stats.move_speed_q32(),
                         actor.rules.rotate_speed_mdeg_per_second(),
                         actor.body_rotation_q32,
                         actor.motion.current_velocity_x_q32,

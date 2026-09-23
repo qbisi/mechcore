@@ -323,9 +323,9 @@ gaining any, so the field's name is not what it does.
 ## What is not established here
 
 - **How a `*_value` correction composes**, which 44 of the table's 79 rows
-  wait on, and what order two channels apply in when both correct one number.
-  The captures above settled the rate in each channel and reached neither of
-  these.
+  wait on, and what an attack interval does when two channels correct it.
+  Damage and move speed compose across channels as within one, which
+  [towers.md](towers.md) records.
 - **What a correction does once it lands**, for the four fields above: no
   mechanism here reads a tower's life, a mine, a shield device or a deployment
   clock yet.

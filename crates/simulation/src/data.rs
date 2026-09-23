@@ -14,11 +14,12 @@
 //!
 //! **A rate composes by summing within its channel and multiplying once**,
 //! which `tests/modifier/composition.mcscript` measured against the game and
-//! `docs/rules/officer_effects.md` records. The decompilation index carries no
-//! method bodies, so nothing here is read off the build; what the build stores
-//! and what it then computed were captured together and agree. What that
-//! capture did not reach — a value correction, and one number corrected in two
-//! channels at once — is refused rather than extended to.
+//! `docs/rules/officer_effects.md` records. Across channels a number composes
+//! as its own property reads them: `DamageProperty.CalculateDamage` and
+//! `MoveSpeedProperty.Refresh` sum every channel's values and enhancements and
+//! multiply their remainders, which the tower-loss fights measured on a unit
+//! whose damage and speed a buff corrects. A number whose property has not been
+//! read is still refused when two channels correct it.
 
 use crate::{
     Error, Result,
@@ -27,6 +28,15 @@ use crate::{
 
 /// One, in the Q32.32 fixed point a rate is stored in.
 const ONE: i128 = 1 << 32;
+
+/// Millimetres to Q32.32 metres, exact for any whole number of millimetres a
+/// description quantizes to.
+fn space_to_q32(millimetres: i64) -> i64 {
+    i64::try_from(
+        i128::from(millimetres) * ONE / i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+    )
+    .expect("a quantized speed fits Q32.32")
+}
 
 /// Which of a unit's numbers an overlay entry corrects.
 ///
@@ -41,9 +51,26 @@ pub(crate) enum Index {
     AttackDamage,
     AttackInterval,
     AttackRange,
+    /// The rate on the damage a unit takes: `PerformHitTargetEffect` reads a
+    /// buff's `amplifyDamageRate` and scales each hit by it. It corrects no
+    /// number of the description, only what reaches the unit.
+    AmplifyDamage,
 }
 
 impl Index {
+    /// Whether this number's property composes every channel as one
+    /// aggregate: values and enhancements summed, remainders multiplied.
+    /// `DamageProperty.CalculateDamage` does for damage, adding the buff's
+    /// `GetDamageChangeAddRate` to the skill's rate and multiplying the two
+    /// reduce rates; `MoveSpeedProperty.Refresh` does for speed, over the
+    /// unit's `DataSet` and the buffs'; a hit's amplification has one source.
+    const fn composes_across_channels(self) -> bool {
+        matches!(
+            self,
+            Self::AttackDamage | Self::MoveSpeed | Self::AmplifyDamage
+        )
+    }
+
     const fn name(self) -> &'static str {
         match self {
             Self::MoveSpeed => "move speed",
@@ -51,6 +78,7 @@ impl Index {
             Self::AttackDamage => "attack damage",
             Self::AttackInterval => "attack interval",
             Self::AttackRange => "attack range",
+            Self::AmplifyDamage => "damage taken",
         }
     }
 }
@@ -254,11 +282,22 @@ impl Overlays {
     /// # Errors
     ///
     /// Returns an error when one number is corrected in more than one channel
-    /// at once. What a property does with two channels' aggregates is its own
-    /// arithmetic — `AttackIntervalProperty` reads a skill's and a buff's, and
-    /// how it combines them is not measured — so this refuses rather than
-    /// assuming the formula extends across channels.
+    /// and its property's composition has not been read: `AttackIntervalProperty`
+    /// reads a skill's and a buff's aggregates by its own arithmetic, which is
+    /// not measured, so an interval corrected twice is refused rather than
+    /// assumed to compose like damage.
     fn resolve(&self, index: Index, base: i64) -> Result<i64> {
+        self.resolve_scaled(index, base, |value| value)
+    }
+
+    /// [`Overlays::resolve`] for a base held in other units than its values:
+    /// `value_scale` carries a summed value into the base's units.
+    fn resolve_scaled(
+        &self,
+        index: Index,
+        base: i64,
+        value_scale: impl Fn(i128) -> i128,
+    ) -> Result<i64> {
         let mut corrected: Option<&'static str> = None;
         let mut total = Aggregate::default();
         for (channel, overlay) in [
@@ -269,23 +308,30 @@ impl Overlays {
             let Some(aggregate) = overlay.aggregate(index) else {
                 continue;
             };
-            if let Some(first) = corrected {
+            if let Some(first) = corrected
+                && !index.composes_across_channels()
+            {
                 return Err(Error::new(format!(
                     "{} is corrected in the {first} channel and the {channel} channel \
-                     at once, and what a property does with two channels' aggregates \
-                     is not measured: see the unresolved questions in \
+                     at once, and what its property does with two channels' \
+                     aggregates is not read: see the unresolved questions in \
                      docs/spec/simulation/architecture.md",
                     index.name()
                 )));
             }
             corrected = Some(channel);
-            total = aggregate;
+            total.value += aggregate.value;
+            total.enhance += aggregate.enhance;
+            total.remaining = total.remaining * aggregate.remaining / ONE;
         }
         if corrected.is_none() {
             return Ok(base);
         }
-        let scaled =
-            (i128::from(base) + total.value) * (ONE + total.enhance) / ONE * total.remaining / ONE;
+        // The rates meet first, as one FPoint factor, and the number is
+        // multiplied by it once: `CalculateDamage` multiplies its summed
+        // enhancement by the reduce rates before it reaches the damage.
+        let factor = (ONE + total.enhance) * total.remaining / ONE;
+        let scaled = (i128::from(base) + value_scale(total.value)) * factor / ONE;
         i64::try_from(scaled).map_err(|_| {
             Error::new(format!(
                 "{} resolved outside the range a number can hold",
@@ -307,7 +353,9 @@ pub(crate) struct Stats {
     /// The unit's level, which is its `IMechLevelData` rating: base life and
     /// base damage are the description's times it, before any overlay.
     level: i64,
-    move_speed: i64,
+    /// Q32.32 metres a second: `MoveSpeedProperty` keeps the speed as an
+    /// `FPoint`, and a rate on it lands between two millimetres.
+    move_speed_q32: i64,
     max_life: i64,
     attack_damage: i64,
     attack_interval: u64,
@@ -335,7 +383,7 @@ impl Stats {
         let mut stats = Self {
             overlays: Overlays::default(),
             level,
-            move_speed: 0,
+            move_speed_q32: 0,
             max_life: 0,
             attack_damage: 0,
             attack_interval: 0,
@@ -380,7 +428,13 @@ impl Stats {
     /// neutral; see [`Overlays::resolve`].
     pub(crate) fn refresh(&mut self, rules: &UnitConfig) -> Result<()> {
         let resolve = |index, base| self.overlays.resolve(index, base);
-        self.move_speed = resolve(Index::MoveSpeed, rules.move_speed())?;
+        // A value is whole millimetres; the speed is resolved in Q32.32.
+        let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
+        self.move_speed_q32 = self.overlays.resolve_scaled(
+            Index::MoveSpeed,
+            space_to_q32(rules.move_speed()),
+            |value| value * ONE / metres,
+        )?;
         self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
         self.attack_damage = resolve(Index::AttackDamage, self.base(rules.attack.base_damage)?)?;
         self.attack_interval = u64::try_from(resolve(
@@ -400,8 +454,9 @@ impl Stats {
             .ok_or_else(|| Error::new("a level-scaled base is outside the signed range"))
     }
 
-    pub(crate) const fn move_speed(&self) -> i64 {
-        self.move_speed
+    /// Q32.32 metres a second.
+    pub(crate) const fn move_speed_q32(&self) -> i64 {
+        self.move_speed_q32
     }
 
     pub(crate) const fn max_life(&self) -> i64 {
@@ -468,6 +523,7 @@ impl Stats {
             Index::AttackDamage,
             Index::AttackInterval,
             Index::AttackRange,
+            Index::AmplifyDamage,
         ] {
             if unit.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -524,7 +580,7 @@ impl Stats {
             )?;
             set.attack_interval_rate = interval.rate()?;
         }
-        for index in [Index::MoveSpeed, Index::MaxLife] {
+        for index in [Index::MoveSpeed, Index::MaxLife, Index::AmplifyDamage] {
             if skill.aggregate(index).is_some() {
                 return Err(Error::new(format!(
                     "the skill DataSet has no field for {}",
@@ -541,6 +597,53 @@ impl Stats {
                 modifiers: set,
             })
             .collect())
+    }
+
+    /// The buffs' aggregate as a recording stores it: move speed's rate,
+    /// damage's rate and the rate on damage taken.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a buff correction the recording has no field
+    /// for, rather than dropping it from what the recording is compared with.
+    pub(crate) fn buff_modifiers(&self) -> Result<mechcore_mcfr::BuffModifierSet> {
+        let buff = &self.overlays.buff;
+        let mut set = mechcore_mcfr::BuffModifierSet::default();
+        for (index, field) in [
+            (Index::MoveSpeed, &mut set.move_speed_rate),
+            (Index::AttackDamage, &mut set.damage_rate),
+            (Index::AmplifyDamage, &mut set.amplify_damage_rate),
+        ] {
+            if let Some(aggregate) = buff.aggregate(index) {
+                if aggregate.value != 0 {
+                    return Err(Error::new(format!(
+                        "a buff's {} value is not a field this build records",
+                        index.name()
+                    )));
+                }
+                *field = aggregate.rate()?;
+            }
+        }
+        for index in [Index::MaxLife, Index::AttackInterval, Index::AttackRange] {
+            if buff.aggregate(index).is_some() {
+                return Err(Error::new(format!(
+                    "no buff here corrects {}",
+                    index.name()
+                )));
+            }
+        }
+        Ok(set)
+    }
+
+    /// What one hit of `amount` takes off this unit: the amount scaled by
+    /// the rate on damage taken and truncated once, as `PerformHitTargetEffect`
+    /// scales it by `GetBuffAmplifyDamageAddRate`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the scaled hit leaves the signed range.
+    pub(crate) fn damage_taken(&self, amount: i64) -> Result<i64> {
+        self.overlays.resolve(Index::AmplifyDamage, amount)
     }
 
     pub(crate) const fn attack_interval(&self) -> u64 {
@@ -572,7 +675,10 @@ mod tests {
     fn an_empty_overlay_answers_the_description() {
         let rules = marksman();
         let stats = Stats::of(&rules).unwrap();
-        assert_eq!(stats.move_speed(), rules.move_speed());
+        assert_eq!(
+            stats.move_speed_q32(),
+            super::space_to_q32(rules.move_speed())
+        );
         assert_eq!(stats.max_life(), rules.max_life);
         assert_eq!(stats.attack_damage(), rules.attack.base_damage);
         assert_eq!(stats.attack_interval(), rules.attack.interval_time_units());
@@ -589,7 +695,10 @@ mod tests {
         for (level, life, damage) in [(2, 3244, 4658), (3, 4866, 6987)] {
             let stats = Stats::at_level(&rules, level).unwrap();
             assert_eq!((stats.max_life(), stats.attack_damage()), (life, damage));
-            assert_eq!(stats.move_speed(), rules.move_speed());
+            assert_eq!(
+                stats.move_speed_q32(),
+                super::space_to_q32(rules.move_speed())
+            );
             assert_eq!(stats.attack_interval(), rules.attack.interval_time_units());
             assert_eq!(stats.attack_range(), rules.attack.range());
         }
@@ -665,7 +774,10 @@ mod tests {
             correction: Correction::Rate { add: 0, reduce: 0 },
         });
         stats.refresh(&rules).unwrap();
-        assert_eq!(stats.move_speed(), rules.move_speed());
+        assert_eq!(
+            stats.move_speed_q32(),
+            super::space_to_q32(rules.move_speed())
+        );
     }
 
     /// A value is added to the description in its own units, before any rate
@@ -736,15 +848,15 @@ mod tests {
         assert_eq!(summed, 1816, "and not 2329 x (1 - 0.22)");
     }
 
-    /// The capture put both officers in one channel, so what two channels do
-    /// to one number in what order is still nobody's measurement.
+    /// An interval's property reads a skill's and a buff's aggregates by an
+    /// arithmetic nobody has measured, so two channels on it are refused.
     #[test]
-    fn two_channels_correcting_one_number_are_refused() {
+    fn two_channels_on_an_unread_property_are_refused() {
         let rules = marksman();
         let mut stats = Stats::of(&rules).unwrap();
         for channel in [Channel::Skill, Channel::Buff] {
             stats.overlays.channel(channel).write(Entry {
-                index: Index::AttackDamage,
+                index: Index::AttackInterval,
                 source: "Modifier",
                 correction: Correction::Rate {
                     add: THIRTY_PERCENT,
@@ -753,11 +865,40 @@ mod tests {
             });
         }
         let refused = stats.refresh(&rules).unwrap_err().to_string();
-        assert!(refused.contains("attack damage"), "{refused}");
+        assert!(refused.contains("attack interval"), "{refused}");
         assert!(
             refused.contains("skill channel and the buff channel"),
             "{refused}"
         );
+    }
+
+    /// Damage composes across channels as it does within one: an officer's
+    /// `+0.3` in the skill channel and a lost tower's `-0.9` in the buff
+    /// channel meet as one factor, `1.3 × 0.1`, before the damage is
+    /// multiplied, as `DamageProperty.CalculateDamage` computes it.
+    #[test]
+    fn damage_composes_across_channels_as_one_factor() {
+        let rules = marksman();
+        let mut stats = Stats::of(&rules).unwrap();
+        stats.overlays.channel(Channel::Skill).write(Entry {
+            index: Index::AttackDamage,
+            source: "Modifier",
+            correction: Correction::Rate {
+                add: THIRTY_PERCENT,
+                reduce: 0,
+            },
+        });
+        stats.overlays.channel(Channel::Buff).write(Entry {
+            index: Index::AttackDamage,
+            source: "BuffSystem",
+            correction: Correction::Rate {
+                add: 0,
+                reduce: 3_865_470_566,
+            },
+        });
+        stats.refresh(&rules).unwrap();
+        // 2329 × trunc_q32(1.3 × 0.1) = 302.77…
+        assert_eq!(stats.attack_damage(), 302);
     }
 
     /// An overlay is a set of tagged entries and not a running total, so what

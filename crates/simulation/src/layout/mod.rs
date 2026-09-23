@@ -4,6 +4,8 @@ use mechcore_document::{NativeFormation, SidePlan};
 
 mod constructions;
 
+use std::collections::BTreeMap;
+
 use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
@@ -43,6 +45,9 @@ pub(crate) struct CompiledLayout {
     /// fight sees buildings rather than constructions, so the placement they
     /// came from is not carried past here.
     pub(crate) constructions: Vec<ConstructionBuilding>,
+    /// Each side's tower strengthen levels, in the order the side's towers
+    /// stand in the map; a side that strengthened none has none.
+    pub(crate) tower_levels: BTreeMap<u32, Vec<u8>>,
 }
 
 impl CompiledLayout {
@@ -53,6 +58,7 @@ impl CompiledLayout {
             round,
             placements,
             constructions: Vec::new(),
+            tower_levels: BTreeMap::new(),
         }
     }
 }
@@ -143,6 +149,21 @@ pub(crate) fn compile_with_seed(
             round: u32::try_from(plan.round).expect("validated layout round is positive"),
             placements,
             constructions,
+            tower_levels: [(0, &plan.blue), (1, &plan.red)]
+                .into_iter()
+                .map(|(team, side)| {
+                    let levels = side
+                        .tower_strengthen_levels
+                        .iter()
+                        .map(|level| {
+                            u8::try_from(*level).map_err(|_| {
+                                Error::new(format!("a tower strengthen level of {level}"))
+                            })
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    Ok((team, levels))
+                })
+                .collect::<Result<BTreeMap<_, _>>>()?,
         },
     ))
 }

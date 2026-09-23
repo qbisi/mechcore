@@ -198,7 +198,6 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
         cached_target_z_q32: space_to_q32(20_000),
         cached_target_radius: simulation.actors[&2].rules.collision_radius(),
         speed: simulation.actors[&1].rules.attack.projectile_speed(),
-        damage: simulation.actors[&1].stats.attack_damage(),
         life: 1,
         lock_target: true,
     };
@@ -274,7 +273,6 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
         cached_target_z_q32: space_to_q32(20_000),
         cached_target_radius: simulation.actors[&2].rules.collision_radius(),
         speed: simulation.actors[&1].rules.attack.projectile_speed(),
-        damage: simulation.actors[&1].stats.attack_damage(),
         life: 1,
         lock_target: true,
     };
@@ -316,7 +314,6 @@ fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
         cached_target_z_q32: space_to_q32(1_000_000),
         cached_target_radius: simulation.actors[&2].rules.collision_radius(),
         speed: 1,
-        damage: 1,
         life: 1,
         lock_target: false,
     });
@@ -375,7 +372,6 @@ fn projectile_splash_takes_a_building_beside_its_target() {
         cached_target_z_q32: space_to_q32(20_000),
         cached_target_radius: simulation.actors[&2].rules.collision_radius(),
         speed: simulation.actors[&1].rules.attack.projectile_speed(),
-        damage: simulation.actors[&1].stats.attack_damage(),
         life: 1,
         lock_target: true,
     };

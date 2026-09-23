@@ -97,11 +97,14 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
     );
     let make_simulation = || {
         let actors = actors.clone();
+        let towers = Towers::load().unwrap();
         let InitialBuildings {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
-        } = initialize_buildings(&config.training_ground, &[]).unwrap();
+            tower_losses,
+            tower_buffed_constructions,
+        } = initialize_buildings(&config.training_ground, &[], &BTreeMap::new(), &towers).unwrap();
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         Simulation {
             actors,
@@ -118,6 +121,9 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
             constructions: BTreeMap::new(),
+            towers,
+            tower_losses,
+            tower_buffed_constructions,
         }
     };
     let mut simulation = make_simulation();

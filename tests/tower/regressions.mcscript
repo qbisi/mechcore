@@ -1,0 +1,66 @@
+# Every tower-loss fixture, replayed through the simulator.
+#
+#   mechcore run tests/tower/regressions.mcscript
+#
+# This needs no game. The hashes are what the game recorded with
+# `levels.mcscript` and `both.mcscript`, seed 4242, and the simulator
+# reproduces each fight tick for tick, physics and content, from the layout
+# and the seed alone. `README.md` says what each fight separates.
+
+steps:
+  # Level 0: the loss writes buff 1, 180 ticks; the tower has 3400 life.
+  - fight.run:
+      layout: tests/tower/tower-level-0.yaml
+      seed: 4242
+    expect:
+      steps: 870
+      hashes.physics_result_hash: 152953670c2aee1fef69fd07fc02a6844f2448dc4c8d96b0a5a4cec3104469b9
+      hashes.content_result_hash: 11fde14e662345dee0d9d9c591fe05d74fd22ed98742b3083d4fabca8aa0fa52
+  # Level 1: 23400 life, buff 2, 140 ticks.
+  - fight.run:
+      layout: tests/tower/tower-level-1.yaml
+      seed: 4242
+    expect:
+      steps: 925
+      hashes.physics_result_hash: 7e303e7b8b0c07d0882c9fab8313f57538ce1b25eaff0fced7a74204bb94f745
+      hashes.content_result_hash: a5ce68d8d22bec6917ad77725aa3fed4d5215849bdbe12c002fdc0eca7e4debd
+  # Level 2: 59400 life, buff 3, 100 ticks.
+  - fight.run:
+      layout: tests/tower/tower-level-2.yaml
+      seed: 4242
+    expect:
+      steps: 928
+      hashes.physics_result_hash: b8b4aaf47fd1d0f0e7d8e494e5b86add9729ebd605b2e57ba7ea7d689126c8cf
+      hashes.content_result_hash: 89c8d5e7e252941144e1ca4d3109cb201e7d2b052f5d2123647e0c38f4132cc9
+  # Level 3: 131400 life, buff 4, 60 ticks.
+  - fight.run:
+      layout: tests/tower/tower-level-3.yaml
+      seed: 4242
+    expect:
+      steps: 964
+      hashes.physics_result_hash: 37d9474d995978b45c43e347e4da90bdd9dd11e55985a949864d6ca9b299767e
+      hashes.content_result_hash: 76ad31669117a7fda68b1a818b65c7be0a3b02d320398faa8c73272d0d809b1b
+  # Level 4: 235400 life, buff 5, 20 ticks.
+  - fight.run:
+      layout: tests/tower/tower-level-4.yaml
+      seed: 4242
+    expect:
+      steps: 959
+      hashes.physics_result_hash: 2123082575aec8113f611e58c12f7a019c0421cde3d3515f640063c2caa4864f
+      hashes.content_result_hash: 17f9cdf8d457f4312c203740bad72bb13f27b32951d629a90a8afd7833ee99c3
+  # A second level-0 loss inside the first: the debuff lasts 180 ticks longer.
+  - fight.run:
+      layout: tests/tower/both-towers-0-0.yaml
+      seed: 4242
+    expect:
+      steps: 581
+      hashes.physics_result_hash: 89e20b87fca637065fb1b48939a6a4d081abb046fc6b28459265c48573201d8e
+      hashes.content_result_hash: f480fcc70402777a5e7f9ec8ad584791c59361b91a048c272e8f5c29e6a56ff9
+  # A level-4 loss inside a level-0 one: 180 + 20, gone at tick 431.
+  - fight.run:
+      layout: tests/tower/both-towers-0-4.yaml
+      seed: 4242
+    expect:
+      steps: 641
+      hashes.physics_result_hash: df39500eecc350a8bce1ddaca697062b701e989ef46d98ff1f09ee54a0ec982b
+      hashes.content_result_hash: 1bd62996d64c8575282e99ca2a301050a219fc2a57b34281f2c13412a6c51849

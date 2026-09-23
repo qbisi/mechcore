@@ -46,11 +46,14 @@ pub(super) fn raw_test_simulation(
     seed: i32,
 ) -> Simulation {
     let actors = initialize_actors(layout, &config.units, seed).unwrap();
+    let towers = Towers::load().unwrap();
     let InitialBuildings {
         states: buildings,
         unsearchable,
         colliders: construction_colliders,
-    } = initialize_buildings(&config.training_ground, &[]).unwrap();
+        tower_losses,
+        tower_buffed_constructions,
+    } = initialize_buildings(&config.training_ground, &[], &BTreeMap::new(), &towers).unwrap();
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     Simulation {
         actors,
@@ -67,6 +70,9 @@ pub(super) fn raw_test_simulation(
         construction_colliders: construction_colliders.clone(),
         unsearchable_buildings: unsearchable.clone(),
         constructions: BTreeMap::new(),
+        towers,
+        tower_losses,
+        tower_buffed_constructions,
     }
 }
 

@@ -156,8 +156,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "BuildingSystem",
         claims: &[Field::EnergyTowerSkills, Field::TowerStrengthenLevels],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::TowerStrengthenLevels],
+        implemented: true,
     },
     Module {
         native: "BurrowSystem",

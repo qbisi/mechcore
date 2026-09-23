@@ -7,6 +7,10 @@ pub(in crate::fight) struct InitialBuildings {
     pub(in crate::fight) unsearchable: BTreeSet<u64>,
     /// Each construction's RVO collider priority.
     pub(in crate::fight) colliders: BTreeMap<u64, i32>,
+    /// What each tower's fall writes on its side.
+    pub(in crate::fight) tower_losses: BTreeMap<u64, TowerLoss>,
+    /// The constructions a tower's loss reaches.
+    pub(in crate::fight) tower_buffed_constructions: BTreeSet<u64>,
 }
 
 /// One building before it is given an identity, from either source.
@@ -22,6 +26,10 @@ pub(in crate::fight) struct RawBuilding {
     pub(in crate::fight) searchable: bool,
     /// A construction's `pathfinding_collider_priority`; none for a tower.
     pub(in crate::fight) collider_priority: Option<i32>,
+    /// A tower's loss, in ticks of its buff; none for a construction.
+    pub(in crate::fight) loss_ticks: Option<u32>,
+    /// Whether a tower's loss reaches this construction.
+    pub(in crate::fight) tower_buff: bool,
 }
 
 pub(in crate::fight) fn generate_formation_positions(
@@ -158,6 +166,43 @@ pub(in crate::fight) fn initialize_actors(
     Ok(actors)
 }
 
+/// The map's own buildings, each tower at its side's strengthen level: in the
+/// order the map lists a side's towers, which is the order its levels are
+/// written in.
+fn map_buildings(
+    training_ground: &TrainingGroundConfig,
+    tower_levels: &BTreeMap<u32, Vec<u8>>,
+    towers: &Towers,
+) -> Result<Vec<RawBuilding>> {
+    let mut seen = BTreeMap::<u32, usize>::new();
+    training_ground
+        .buildings
+        .iter()
+        .map(|building| {
+            let position = seen.entry(building.team_id).or_default();
+            let level = tower_levels
+                .get(&building.team_id)
+                .and_then(|levels| levels.get(*position))
+                .copied()
+                .unwrap_or(0);
+            *position += 1;
+            Ok(RawBuilding {
+                team_id: building.team_id,
+                building_type_id: building.building_type_id,
+                x: building.x(),
+                z: building.z(),
+                radius: building.radius(),
+                life: building.life + towers.life_added(level)?,
+                collision_enabled: building.collision_enabled,
+                searchable: true,
+                collider_priority: None,
+                loss_ticks: Some(towers.loss_ticks(level)?),
+                tower_buff: false,
+            })
+        })
+        .collect()
+}
+
 /// Every building the fight starts with: the map's own, and the ones this
 /// layout's constructions place.
 ///
@@ -165,25 +210,18 @@ pub(in crate::fight) fn initialize_actors(
 /// x, z)` order over both sources together, one-based, which is how a
 /// recording numbers them and therefore the only numbering the two backends
 /// can be compared under.
+///
+/// A side's towers take their strengthen levels in the order the map lists
+/// them, which is `BuildingManager.buildings`' order and the key
+/// `tower_strengthen_levels` is written in: a level adds its life and chooses
+/// the buff the tower's loss writes.
 pub(in crate::fight) fn initialize_buildings(
     training_ground: &TrainingGroundConfig,
     constructions: &[ConstructionBuilding],
+    tower_levels: &BTreeMap<u32, Vec<u8>>,
+    towers: &Towers,
 ) -> Result<InitialBuildings> {
-    let mut raw = training_ground
-        .buildings
-        .iter()
-        .map(|building| RawBuilding {
-            team_id: building.team_id,
-            building_type_id: building.building_type_id,
-            x: building.x(),
-            z: building.z(),
-            radius: building.radius(),
-            life: building.life,
-            collision_enabled: building.collision_enabled,
-            searchable: true,
-            collider_priority: None,
-        })
-        .collect::<Vec<_>>();
+    let mut raw = map_buildings(training_ground, tower_levels, towers)?;
     raw.extend(constructions.iter().map(|building| RawBuilding {
         team_id: building.team,
         building_type_id: building.building_type_id,
@@ -198,6 +236,8 @@ pub(in crate::fight) fn initialize_buildings(
         collision_enabled: true,
         searchable: building.searchable,
         collider_priority: Some(building.collider_priority),
+        loss_ticks: None,
+        tower_buff: building.tower_buff,
     }));
 
     let building_key = |building: &RawBuilding| {
@@ -255,10 +295,31 @@ pub(in crate::fight) fn initialize_buildings(
             })
         })
         .collect::<Result<Vec<_>>>()?;
+    let tower_losses = raw
+        .iter()
+        .filter_map(|building| {
+            building.loss_ticks.map(|ticks| {
+                (
+                    normalized_ids[&building_key(building)],
+                    TowerLoss {
+                        team: building.team_id,
+                        ticks,
+                    },
+                )
+            })
+        })
+        .collect();
+    let tower_buffed_constructions = raw
+        .iter()
+        .filter(|building| building.tower_buff)
+        .map(|building| normalized_ids[&building_key(building)])
+        .collect();
     Ok(InitialBuildings {
         states,
         unsearchable,
         colliders,
+        tower_losses,
+        tower_buffed_constructions,
     })
 }
 

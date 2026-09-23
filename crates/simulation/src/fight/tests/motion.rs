@@ -24,7 +24,7 @@ fn rvo_solves_a_collision_building_inside_the_influence_bound() {
     source.motion.state = MotionState::Moving;
     source.motion.next_target_x_q32 = target_position.0;
     source.motion.next_target_z_q32 = target_position.1;
-    source.motion.next_speed_q32 = space_to_q32(source.stats.move_speed());
+    source.motion.next_speed_q32 = source.stats.move_speed_q32();
     source.motion.next_max_speed_q32 = source.motion.next_speed_q32;
     simulation.rvo_counter = 3;
     simulation.step_rvo();
@@ -82,7 +82,7 @@ fn rvo_q32_boundary_uses_raw_distance_not_snapshot_rounding() {
     source.motion.state = MotionState::Moving;
     source.motion.next_target_x_q32 = target_position.0;
     source.motion.next_target_z_q32 = target_position.1;
-    source.motion.next_speed_q32 = space_to_q32(source.stats.move_speed());
+    source.motion.next_speed_q32 = source.stats.move_speed_q32();
     source.motion.next_max_speed_q32 = source.motion.next_speed_q32;
     simulation.rvo_counter = 3;
     simulation.step_rvo();
@@ -142,7 +142,7 @@ fn zero_published_speed_still_snaps_a_tolerance_equal_rvo_delta() {
     let actor = simulation.actors.get_mut(&1).unwrap();
     assert!(actor.motion.rvo_stopped_snap_since_boundary);
     actor.motion.state = MotionState::Moving;
-    actor.motion.next_speed_q32 = space_to_q32(actor.stats.move_speed());
+    actor.motion.next_speed_q32 = actor.stats.move_speed_q32();
     actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
     actor.motion.solver_target_x_q32 = 1_717_060_204_994;
     actor.motion.solver_target_z_q32 = 1_696_431_970_300;

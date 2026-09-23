@@ -68,6 +68,9 @@ pub(crate) struct ConstructionBuilding {
     pub(crate) skill: Option<AttackConfig>,
     /// The row's `rotate_speed`, degrees a second, which its weapon turns at.
     pub(crate) rotate_speed: i32,
+    /// The row's `canBeEffectedByTowerBuff`: whether a tower's loss writes its
+    /// buff on this building too.
+    pub(crate) tower_buff: bool,
 }
 
 /// Space units to the metre, as `crates/simulation/src/rules.rs` quantizes a
@@ -254,6 +257,7 @@ impl Constructions {
                 collider_priority: row.pathfinding_collider_priority,
                 skill: skill.clone(),
                 rotate_speed: row.rotate_speed,
+                tower_buff: row.can_be_effected_by_tower_buff,
             })
             .collect())
     }

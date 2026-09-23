@@ -493,11 +493,13 @@ contract says. Three things are deliberately not claimed:
 
 ## Unresolved
 
-- **What a property does with two channels' aggregates.** One channel is
-  settled, below; what `AttackIntervalProperty` does when a skill's `DataSet`
-  and the `BuffManager` both answer is not, and `data.rs` refuses a number
-  corrected in two channels at once rather than assuming the same shape
-  extends across them.
+- **What `AttackIntervalProperty` does with two channels' aggregates.** Damage
+  and move speed are read: `DamageProperty.CalculateDamage` and
+  `MoveSpeedProperty.Refresh` sum every channel's values and enhancements and
+  multiply their remainders, as one channel does, and the tower-loss fights of
+  `tests/tower/` hold the buff channel's half. The interval's property has its
+  own arithmetic, which is not read, so `data.rs` still refuses an interval
+  corrected in two channels at once.
 - **The order the modules are driven in, and the order of work inside one
   advance.** `FightCoreSystem.Update` calls `TeamUpdate` then `GroupUpdate`, and
   `PreCalculate` exists beside `Update`, but a body's call order is not in the

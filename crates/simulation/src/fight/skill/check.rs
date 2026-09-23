@@ -248,20 +248,25 @@ impl Simulation {
         skill.phase() == FightSkillPhase::Attack && (waiting || winding_up)
     }
 
-    /// `SkillAttackState.CheckAttackable`: an attack on a building that has
-    /// fallen is over; otherwise `FightSkill.CheckAttackable(true)`.
+    /// `SkillAttackState.CheckAttackable`: an attack on a construction that
+    /// has fallen is over; otherwise `FightSkill.CheckAttackable(true)`.
     ///
-    /// The building test is the build's own. The state rejects a dead attack
-    /// target of the building class before asking the checker, where a dead
-    /// unit goes on to the checker and may be switched from: the Marksman of
-    /// `crawlers-vs-marksman.yaml` stays attacking onto the next Crawler, and
-    /// the one of `wall-line-of-fire.yaml` finishes when its block falls.
+    /// The construction test is the build's own: the state tests the attack
+    /// target for `FightConstruction`, the class `FightTeamController.RemoveActor`
+    /// hands to `RemoveConstruction`, and rejects a dead one before asking the
+    /// checker. A dead unit goes on to the checker and may be switched from,
+    /// and so does a tower, which is a `FightCrystal`: the Marksman of
+    /// `crawlers-vs-marksman.yaml` stays attacking onto the next Crawler, the
+    /// one of `anti-armor-head-on.yaml` onto a Crawler the tick after it fells
+    /// red's tower, and the one of `wall-line-of-fire.yaml` finishes when its
+    /// block falls.
     pub(in crate::fight) fn attack_state_check_attackable(
         &mut self,
         owner: FightActorRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         if let Some(target @ FightActorRef::Building(_)) = self.skill(owner).attack_target()
+            && !self.is_tower(target)
             && !self.fight_actor_is_alive(target)
         {
             return Ok(false);

@@ -601,11 +601,12 @@ impl Simulation {
     }
 
     /// One unit's update, in the order `FightMech.Update` runs it: its skill,
-    /// then its motion.
+    /// then its motion, then its buffs.
     ///
     /// The motion's part, `update_motion`, is where a target in range starts
     /// the skill (`SkillIdleState.TryStartAttack`) and one out of range is
-    /// left or walked towards.
+    /// left or walked towards. `BuffManager.Update` runs whichever way the two
+    /// before it ended.
     pub(in crate::fight) fn step_actor_with_target_order(
         &mut self,
         actor_id: u64,
@@ -619,8 +620,19 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.exit_fight_on_death();
-            return Ok(());
+            return self.drop_buffs_of_the_dead(actor_id);
         }
+        self.step_actor_skill_and_motion(actor_id, step, target_search_order, events)?;
+        self.update_buffs(actor_id)
+    }
+
+    fn step_actor_skill_and_motion(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let Some(update) = self.update_skill(
             FightActorRef::Unit(actor_id),
             step,
