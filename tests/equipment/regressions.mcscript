@@ -1,0 +1,77 @@
+# Every equipment fixture, replayed through the simulator.
+#
+#   mechcore run tests/equipment/regressions.mcscript
+#
+# This needs no game. The hashes below are what the game recorded with
+# `stats.mcscript`, seed 1787720817, and the simulator has to reproduce each
+# one tick for tick from the layout and the seed alone. Both hash layers are
+# pinned: the content hash covers the unit and skill `DataSet` aggregates, so
+# an equipment written into the wrong channel fails here even where the
+# fight's physics would not move.
+
+steps:
+  # The control: the Marksman with nothing on it.
+  - fight.run:
+      layout: tests/regression/marksman-vs-arclight.yaml
+      seed: 1787720817
+    expect:
+      steps: 91
+      hashes.physics_result_hash: d9f9fa3a648ef2630baa1b5f2b7a4aab1208230939cac204ac535c5f0115dbaa
+      hashes.content_result_hash: bb7f1c21a0403c5e1656261081dad88e1d416443f3fddae1291662f1135603b2
+  # Heavy Armor alone: +0.75 of life in the unit channel, 2838.
+  - fight.run:
+      layout: tests/equipment/heavy-armor.yaml
+      seed: 1787720817
+    expect:
+      steps: 139
+      hashes.physics_result_hash: 83fefdcb48355125c0253ef0d2a7ea309543e7a31155fe526eddc83ed48a0ef8
+      hashes.content_result_hash: f07c1ba42cc4c2ce3f5fc7a8ab87f938a67605c51c3ee4890e183976374185ed
+  # With Advanced Defensive Tactics: the two rates sum, 3325.
+  - fight.run:
+      layout: tests/equipment/heavy-armor-officer.yaml
+      seed: 1787720817
+    expect:
+      steps: 139
+      hashes.physics_result_hash: 6f6a23fd2a28057808bfc075be4669f073fe9bea505cedcacaeef0ac6b61a338
+      hashes.content_result_hash: 8d5ecb0a1a64f6276accb8210ef47f2d9cf6aab1c1e16ce399d24ba60e77f691
+  # Improved Firepower Control System: +0.65 of damage in the skill channel, 3842.
+  - fight.run:
+      layout: tests/equipment/firepower.yaml
+      seed: 1787720817
+    expect:
+      steps: 83
+      hashes.physics_result_hash: 9e0fe14ccf0e698fa49373df704145d2dd33cdc645ba81de795567a02b83ec46
+      hashes.content_result_hash: 3160362456ed4b7416a3617aeffbdf885bf9d1fbdcb9598abb7916794a1b4171
+  # With Advanced Offensive Tactics: the two rates sum, 4541.
+  - fight.run:
+      layout: tests/equipment/firepower-officer.yaml
+      seed: 1787720817
+    expect:
+      steps: 83
+      hashes.physics_result_hash: 849e5df22eeae13ca502fd71f123b776ec26ab80ed861b5db826e60be4f8d33e
+      hashes.content_result_hash: c8ee84cb0d6fb48eb2830e86e6f792d730761e2478d317a5b54808eafb77dfc1
+  # Laser Sights: +20 m of range. The target starts in reach, so the fight is
+  # the control's and only the content hash tells them apart.
+  - fight.run:
+      layout: tests/equipment/laser-sights.yaml
+      seed: 1787720817
+    expect:
+      steps: 91
+      hashes.physics_result_hash: d9f9fa3a648ef2630baa1b5f2b7a4aab1208230939cac204ac535c5f0115dbaa
+      hashes.content_result_hash: dfa090a5f9dc1d3a054a2e5793fe63f96eb27ea56357d3054a94dde594da8f11
+  # The far control: 170 m apart, the Marksman walks before it fires.
+  - fight.run:
+      layout: tests/equipment/far-control.yaml
+      seed: 1787720817
+    expect:
+      steps: 165
+      hashes.physics_result_hash: ad4d78700e941072e292ef15ca11034baa2445b364d8e2e0e14ea2ad7bd4df3a
+      hashes.content_result_hash: e884baa15041bc430ae5fbc178857e5c6b36a8752bcda24521ae18cc62288646
+  # Laser Sights at 170 m: the range acts, and the first shot comes sooner.
+  - fight.run:
+      layout: tests/equipment/laser-sights-far.yaml
+      seed: 1787720817
+    expect:
+      steps: 140
+      hashes.physics_result_hash: ccabdec5164eee74fd45df11200366f6a0fd03a2dc5505363d6be0faf392542d
+      hashes.content_result_hash: e6dac8224c77eca75921133111846636fdebf2b095c5bf8ee2b46cea35186dfc

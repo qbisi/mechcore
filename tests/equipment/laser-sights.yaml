@@ -1,0 +1,22 @@
+kind: layout
+round: 1
+
+# Where does an equipment's value land?
+#
+# The pinned fight with Laser Sights on blue's Marksman: +20 of attack range
+# in the number's own units, for ranged units only (`mechType` 4). An
+# officer's range value lands in the skill's overlay as `attack_range_value`;
+# the prediction is the same entry and a range of 160 metres, so the Marksman
+# has the longer reach; the far pair tests when that changes the fight.
+blue:
+  units:
+    - name: marksman
+      index: 0
+      equipment: laser_sights
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

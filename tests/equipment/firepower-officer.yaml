@@ -1,0 +1,21 @@
+kind: layout
+round: 1
+
+# Does an equipment's damage rate sum with an officer's?
+#
+# `firepower.yaml` with Advanced Offensive Tactics, +0.3 of damage rate. One
+# channel: `damage_rate` +0.95 and a shot of 2329 × 1.95 = 4541. Two channels:
+# 2329 × 1.65 × 1.3 = 4995, and the +0.3 alone in the skill's overlay.
+blue:
+  officers: [advanced_offensive_tactics]
+  units:
+    - name: marksman
+      index: 0
+      equipment: improved_firepower_control_system
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

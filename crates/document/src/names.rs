@@ -219,6 +219,12 @@ pub fn technology_owner(technology: i32) -> Option<i32> {
     names().owners.get(&technology).copied()
 }
 
+/// An equipment item's name, which a refusal quotes.
+#[must_use]
+pub fn equipment_name(id: i32) -> Option<&'static str> {
+    names().equipment.name(id)
+}
+
 /// A kind of named row, as the serde helpers below use it.
 pub(crate) trait Kind {
     const WHAT: &'static str;

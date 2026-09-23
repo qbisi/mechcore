@@ -1,0 +1,26 @@
+kind: layout
+round: 1
+
+# Does the written range act in the fight?
+#
+# `laser-sights.yaml` reads +20 in the overlay and 160 in `derived`, but
+# both units there start 100 metres apart, inside 140, so the recording is
+# the control's tick for tick. Here red's Arclight starts at world (0, 120),
+# 170 metres from blue's Marksman, 153 edge to edge with the radii of 8 and
+# 9 taken off: inside 160 and outside 140, so a Marksman whose range acts
+# opens fire where it stands, and one whose range is only written walks
+# thirteen metres first. `far-control.yaml` is the same without the
+# item.
+
+blue:
+  units:
+    - name: marksman
+      index: 0
+      equipment: laser_sights
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -120}

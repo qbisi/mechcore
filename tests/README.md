@@ -8,6 +8,7 @@ says what was measured:
 | Directory | What it holds |
 | --- | --- |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
+| [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`interval/`](interval/README.md) | how an attack interval is staggered |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |

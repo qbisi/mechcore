@@ -20,7 +20,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 | ~~`constructions`~~ | ~~FightConstructionSystem~~ | **防御墙已落地**（曾是 322，96%；炮台仍拒绝，30 个回合） |
 | ~~单位 `level` > 1~~ | ~~单位自身~~ | **已落地**（曾是 276，82%；等级是独立乘区，不是修正） |
 | `battle_skills` | CommanderSkillSystem | 176 (52%) |
-| 单位 `equipment` | Modifier | 167 (50%) |
+| ~~单位 `equipment`~~ | ~~Modifier~~ | **第一回合的普通装备已落地**（曾是 167，50%；之后的回合和其它装备类仍拒绝） |
 | `contraptions` | InterceptSystem | 161 (48%) |
 | `tower_strengthen_levels` | BuildingSystem | 123 (36%) |
 | `energy_tower_skills` | BuildingSystem | 118 (35%) |
@@ -243,7 +243,7 @@ architecture.md 的 Unresolved 里。
 
 | 模块 | 认领的字段 | 验收面 |
 | --- | --- | --- |
-| **Modifier**（非原生模块） | ~~`officers`~~（已落地）、`techs`、`equipment` | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
+| **Modifier**（非原生模块） | ~~`officers`~~、~~`techs`~~（已落地）、~~`equipment`~~（第一回合已落地） | `fight modifiers` 的三条通道 + 原生 MCFR 逐 tick 对齐 |
 | ~~**FightConstructionSystem**~~ | `constructions` | 防御墙已落地，炮台指名拒绝 |
 | **BuildingSystem** | `energy_tower_skills`、`tower_strengthen_levels` | 录像的 `buildings` |
 | **CommanderSkillSystem** | `battle_skills` | 录像的 `terrains`、`shields` 和释放事件 |
