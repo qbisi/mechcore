@@ -464,6 +464,20 @@ steps:
       hashes.physics_result_hash: fd2e3325541fc361dfe26030211d8aac8143a76bda18d92b1157f82a796fab40
       hashes.content_result_hash: 870c43807eb5efbf4d9304e8d35115f34e48860264c8a35957906f2b1cf925a7
   - fight.run:
+      layout: tests/units/fang/m5-rotated.yaml
+      seed: 4242
+    expect:
+      steps: 365
+      hashes.physics_result_hash: c19101bb52f372ebce209b3eb59e19a7ea13a959ec376c657a6fe33ce8b48898
+      hashes.content_result_hash: dae17b32c1e159a0f8cf87e9eb4d47b3dabf9ba61e3578667d991c9c2d5b1067
+  - fight.run:
+      layout: tests/units/fang/m5-rotated.yaml
+      seed: 1787720817
+    expect:
+      steps: 328
+      hashes.physics_result_hash: e996dee655ec6237721c5d374ac0ce7de4baaac1ae06a23b9194837597e48d01
+      hashes.content_result_hash: c0a71f93a16a61a3eac1c53ea35c67fb867aaf4a93d55d09311c7fb30b47b101
+  - fight.run:
       layout: tests/units/fang/m6-formations.yaml
       seed: 4242
     expect:

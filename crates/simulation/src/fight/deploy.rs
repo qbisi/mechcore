@@ -39,11 +39,6 @@ pub(in crate::fight) fn generate_formation_positions(
 ) -> Result<Vec<(i64, i64)>> {
     let members = i64::from(rules.formation.members);
     let (width, depth) = rules.formation_footprint_meters()?;
-    let (width, depth) = if placement.rotated {
-        (depth, width)
-    } else {
-        (width, depth)
-    };
     let slot_size = rules.formation_slot_size_meters()?;
     let max_columns = width / slot_size;
     if max_columns <= 0 {
@@ -59,6 +54,16 @@ pub(in crate::fight) fn generate_formation_positions(
             rules.type_name
         )));
     }
+    // `MechPositionManager.CalculateMechLocalPosition` counts the grid once,
+    // on the unrotated footprint, and lays the rotated grid on the swapped
+    // footprint with the two counts exchanged: its rows are the unrotated
+    // columns. Counting again on the swapped footprint would stand a Fang
+    // in two columns of nine rather than three of six.
+    let (width, depth, rows, max_columns) = if placement.rotated {
+        (depth, width, max_columns, rows)
+    } else {
+        (width, depth, rows, max_columns)
+    };
     let row_step = depth / rows;
     let column_step = width / max_columns;
     if row_step <= 0 || column_step <= 0 {
