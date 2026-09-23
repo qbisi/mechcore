@@ -416,7 +416,7 @@ impl Simulation {
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Ok(());
         };
         let target_view = self.fight_actor(target).expect("target identity is stable");
@@ -571,7 +571,7 @@ impl Simulation {
                     actor.motion.next_target_z_q32 = actor.z_q32;
                 }
                 actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 return Flow::Done;
             }
             if !target_alive && backswing_just_finished {
@@ -588,7 +588,7 @@ impl Simulation {
                     actor.motion.next_target_z_q32 = actor.z_q32;
                 }
                 actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 return Flow::Done;
             }
             if !target_alive {
@@ -640,7 +640,7 @@ impl Simulation {
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             let completed_attack_reentry_rejected = entered_attack
                 && backswing_just_finished
                 && actor.rules.attack.melee
@@ -653,7 +653,7 @@ impl Simulation {
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 return Ok(());
             }
             if entered_attack {
@@ -687,7 +687,7 @@ impl Simulation {
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 return Ok(());
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
@@ -840,7 +840,7 @@ impl Simulation {
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Flow::Done;
         }
         if attack_point_rejected
@@ -859,7 +859,7 @@ impl Simulation {
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Flow::Done;
         }
         if backswing_just_finished && actor.rules.attack.melee && !actor.rules.has_body {
@@ -874,7 +874,7 @@ impl Simulation {
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Flow::Done;
         }
         Flow::Next
@@ -937,7 +937,7 @@ impl Simulation {
             ));
         }
         actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
-            space_to_q32(actor.stats.move_speed()),
+            actor.stats.move_speed_q32(),
             actor.rules.rotate_speed_mdeg_per_second(),
             actor.body_rotation_q32,
             actor.motion.current_velocity_x_q32,

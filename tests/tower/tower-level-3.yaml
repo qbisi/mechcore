@@ -1,0 +1,21 @@
+kind: layout
+round: 1
+
+# What does losing a tower of strengthen level 3 write on its side?
+#
+# Red's Steel Balls come down blue's Energy Tower column and take the tower;
+# blue's Fangs stand at the back under the Research Center, out of the fight
+# until the tower has fallen, and carry what the loss writes on blue's units.
+
+blue:
+  tower_strengthen_levels: [3, 3]
+  units:
+    - name: fang
+      index: 0
+      position: {x: 145, y: -300}
+
+red:
+  units:
+    - name: steel_ball
+      index: 0
+      position: {x: 145, y: -20}

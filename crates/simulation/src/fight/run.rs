@@ -235,8 +235,7 @@ pub(in crate::fight) fn execute(
         combat_round: layout.round,
         match_seed: seed,
     };
-    let mut simulation =
-        Simulation::new_unprepared(layout, &config.units, &config.training_ground, seed)?;
+    let mut simulation = Simulation::new_unprepared(layout, &config.units, &config.towers, seed)?;
     let mut writer = match output {
         Some(path) => {
             let mut replay_layout = mechcore_document::parse_yaml(

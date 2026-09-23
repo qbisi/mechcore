@@ -127,7 +127,6 @@ impl Attacker<'_> {
             y: self.y,
             z_q32: self.z_q32,
             speed: self.attack.projectile_speed(),
-            damage: self.attack_damage,
             life: self.attack.projectile_life(),
             lock_target: self.attack.lock_target,
         }

@@ -12,7 +12,6 @@ pub(in crate::fight) struct Launch {
     pub(in crate::fight) y: i64,
     pub(in crate::fight) z_q32: i64,
     pub(in crate::fight) speed: i64,
-    pub(in crate::fight) damage: i64,
     pub(in crate::fight) life: i64,
     pub(in crate::fight) lock_target: bool,
 }
@@ -97,10 +96,12 @@ impl Simulation {
             // A block the beam fells is left to the fallen-block rule on the
             // next tick, as a blow's is: the Steel Ball of `wall-laser.yaml`
             // that fells block 4 reads attacking on that tick, idle on the
-            // next.
+            // next. A tower is an actor of its own, `FightCrystal`, and dies
+            // as a unit does: the Steel Ball that fells a tower in the
+            // tower-loss fights reads idle on that tick.
             if target_was_alive
                 && !self.fight_actor_is_alive(target)
-                && matches!(target, FightActorRef::Unit(_))
+                && (matches!(target, FightActorRef::Unit(_)) || self.is_tower(target))
             {
                 let actor = self
                     .actors
@@ -443,7 +444,6 @@ impl Simulation {
             cached_target_z_q32: target_z_q32,
             cached_target_radius: target_radius,
             speed: source.speed,
-            damage: source.damage,
             life: source.life,
             lock_target: source.lock_target,
         };

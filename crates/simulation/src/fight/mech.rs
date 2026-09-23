@@ -34,7 +34,7 @@ impl Actor {
         let magazine = rules.attack.magazine;
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
-        let max_speed_q32 = space_to_q32(stats.move_speed());
+        let max_speed_q32 = stats.move_speed_q32();
         let weapon_rotations_q32 = vec![
             mdeg_to_degrees_q32(placement.rotation);
             usize::try_from(rules.attack.weapons.count)
@@ -63,6 +63,8 @@ impl Actor {
             stats,
             life: max_life,
             last_damage_source: None,
+            buffs: Vec::new(),
+            rvo_max_speed_q32: max_speed_q32,
             motion: Motion {
                 rvo_tree_x_q32: x_q32,
                 rvo_tree_z_q32: z_q32,
@@ -129,7 +131,7 @@ impl Actor {
             self.motion.next_target_z_q32 = self.z_q32;
         }
         self.motion.next_speed_q32 = 0;
-        self.motion.next_max_speed_q32 = space_to_q32(self.stats.move_speed());
+        self.motion.next_max_speed_q32 = self.rvo_max_speed_q32;
     }
 
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {
@@ -238,7 +240,10 @@ impl Actor {
             targetable: true,
             visibility: Visibility::Normal,
             status_mask: 0,
-            buff_modifiers: BuffModifierSet::default(),
+            buff_modifiers: self
+                .stats
+                .buff_modifiers()
+                .expect("only the tower's loss writes a buff, and it is recordable"),
             unit_dynamic_modifiers: self
                 .stats
                 .unit_dynamic_modifiers()
@@ -263,7 +268,7 @@ impl Actor {
             // number this simulator computed, one tick at a time, instead of
             // arranging a fight whose outcome happens to tell them apart.
             derived: DerivedStats {
-                move_speed: space_to_q32(self.stats.move_speed()),
+                move_speed: self.stats.move_speed_q32(),
                 attack_range: space_to_q32(self.stats.attack_range()),
                 // A beam's damage is its ramp's first step, whatever step it
                 // is on: the Steel Balls of `wall-laser.yaml` read 2, which

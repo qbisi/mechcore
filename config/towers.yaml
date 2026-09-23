@@ -1,0 +1,62 @@
+schema: mechcore.towers
+game_build: 1.11.1.3.2259
+
+# The map's towers, what strengthening one does and what losing one
+# writes on its side. docs/rules/towers.md states what each field means.
+
+# The four towers as the Training Ground places them: team, building
+# type (1 the Energy Tower, 2 the Research Center), centre in metres,
+# life, half-width. ConfigDataContainer does not carry them, so they were
+# measured on a capture and are kept by hand.
+buildings:
+  - team_id: 0
+    building_type_id: 1
+    position: {x: -140, z: -170}
+    life: 3400
+    radius: 10
+    collision_enabled: true
+  - team_id: 0
+    building_type_id: 2
+    position: {x: 140, z: -170}
+    life: 3400
+    radius: 10
+    collision_enabled: true
+  - team_id: 1
+    building_type_id: 2
+    position: {x: -140, z: 170}
+    life: 3400
+    radius: 10
+    collision_enabled: true
+  - team_id: 1
+    building_type_id: 1
+    position: {x: 140, z: 170}
+    life: 3400
+    radius: 10
+    collision_enabled: true
+
+# Everything below is read out of ConfigDataContainer by
+# scripts/extract-towers.py. A rate is an FPoint Q32.32 raw integer:
+# -3865470566 is -0.9.
+
+# The buff a tower's loss writes on its side: buffDatas ids 1 to 5, one
+# buff that differs only in how long it lasts.
+destroyed_buff:
+  name: 能量塔摧毁
+  buff_divide: 1
+  additive: true
+  max_additive_stack: 0
+  can_affect_construction: true
+  clear_when_technologies_disabled: true
+  move_speed_rate: -3435973836  # -0.8
+  damage_rate: -3865470566  # -0.9
+  amplify_damage_rate: 2147483648  # +0.5
+
+# One row per strengthen level. `life` is what the level adds to the
+# tower, on top of the levels below it; `buff` is the buffDatas row its
+# loss writes, and `duration` that row's, in seconds.
+levels:
+  - {level: 0, life: 0, buff: 1, duration: 9}
+  - {level: 1, life: 20000, buff: 2, duration: 7}
+  - {level: 2, life: 36000, buff: 3, duration: 5}
+  - {level: 3, life: 72000, buff: 4, duration: 3}
+  - {level: 4, life: 104000, buff: 5, duration: 1}

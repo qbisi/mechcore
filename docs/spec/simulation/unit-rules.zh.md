@@ -131,7 +131,7 @@ body 方向，因此必须省略该字段。当前 P0 数据中所有适用值�
 
 ## 模拟读取的配置
 
-配置随二进制分发：`config.yaml`、`training_ground.yaml` 和 `units/` 下每个单位一份
+配置随二进制分发：`config.yaml`、`towers.yaml` 和 `units/` 下每个单位一份
 文件都编译在内。模拟不从磁盘读取配置，因此一份二进制只模拟它自带的那个 build，
 在哪里运行都一样。schema 可以加载当前
 P0 的全部单位路径，但 Simulator 在完成对应 Formation 生成和原生攻击路径前必须拒绝

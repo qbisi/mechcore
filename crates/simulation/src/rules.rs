@@ -30,7 +30,7 @@ const DEFAULT_UNITS: [&str; 23] = [
     include_str!("../../../config/units/vortex.yaml"),
 ];
 const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
-const DEFAULT_TRAINING_GROUND: &str = include_str!("../../../config/training_ground.yaml");
+const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 11] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/arclight.yaml"),
@@ -243,7 +243,7 @@ pub(crate) struct UnitConfigs {
 pub(crate) struct SimulationConfig {
     pub(crate) game_build: String,
     pub(crate) units: UnitConfigs,
-    pub(crate) training_ground: TrainingGroundConfig,
+    pub(crate) towers: TowersConfig,
 }
 
 #[derive(Deserialize)]
@@ -252,11 +252,56 @@ struct TopLevelConfig {
     game_build: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// `config/towers.yaml`: the map's towers, what strengthening one adds and
+/// what losing one writes on its side.
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct TrainingGroundConfig {
+pub(crate) struct TowersConfig {
     schema: String,
+    game_build: String,
+    /// The Training Ground's four towers, measured on a capture.
     pub(crate) buildings: Vec<BuildingConfig>,
+    /// `buffDatas` 1 to 5, one buff that differs only in duration.
+    pub(crate) destroyed_buff: DestroyedBuff,
+    /// `towerStrengthenDatas`, with level 0 before them.
+    pub(crate) levels: Vec<TowerLevel>,
+}
+
+/// The buff a tower's loss writes on its side.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
+pub(crate) struct DestroyedBuff {
+    pub(crate) name: String,
+    pub(crate) buff_divide: i32,
+    pub(crate) additive: bool,
+    pub(crate) max_additive_stack: i32,
+    pub(crate) can_affect_construction: bool,
+    /// `isClearSelfBuffWhenDisableTech`. Nothing this simulator places
+    /// disables a unit's technologies, so nothing reads it.
+    #[allow(dead_code, reason = "no mechanism here disables technologies")]
+    pub(crate) clear_when_technologies_disabled: bool,
+    pub(crate) move_speed_rate: i64,
+    pub(crate) damage_rate: i64,
+    pub(crate) amplify_damage_rate: i64,
+}
+
+/// One strengthen level: the life it adds and the buff its loss writes.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct TowerLevel {
+    pub(crate) level: u8,
+    pub(crate) life: i64,
+    #[allow(
+        dead_code,
+        reason = "which row it is; the duration is what the fight reads"
+    )]
+    pub(crate) buff: i32,
+    /// Seconds.
+    pub(crate) duration: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -280,36 +325,47 @@ pub(crate) struct BuildingPosition {
 impl SimulationConfig {
     pub(crate) fn load() -> Result<Self> {
         let top_level = parse_top_level(DEFAULT_CONFIG.as_bytes(), "embedded config")?;
-        let training_ground = parse_training_ground(
-            DEFAULT_TRAINING_GROUND.as_bytes(),
-            "embedded training-ground config",
-        )?;
+        let towers = parse_towers(DEFAULT_TOWERS.as_bytes(), "embedded tower config")?;
         if top_level.game_build.trim().is_empty() {
             return Err(Error::new("top-level config game_build must not be empty"));
         }
-        training_ground.validate()?;
+        towers.validate()?;
         Ok(Self {
             game_build: top_level.game_build,
             units: UnitConfigs::load()?,
-            training_ground,
+            towers,
         })
     }
 }
 
-impl TrainingGroundConfig {
+impl TowersConfig {
     fn validate(&self) -> Result<()> {
-        if self.schema != "mechcore.training_ground" {
-            return Err(Error::new("unsupported training-ground config type"));
+        if self.schema != "mechcore.towers" || self.game_build.trim().is_empty() {
+            return Err(Error::new("unsupported tower config type"));
         }
         if self.buildings.is_empty() {
-            return Err(Error::new(
-                "training-ground config must contain native building rows",
-            ));
+            return Err(Error::new("tower config must contain native building rows"));
+        }
+        if !self
+            .levels
+            .iter()
+            .enumerate()
+            .all(|(index, level)| usize::from(level.level) == index)
+        {
+            return Err(Error::new("the tower levels are not 0 onwards in order"));
+        }
+        // `maxAdditiveStack` bounds how many times an additive buff is
+        // lengthened. Zero is the tower's row, and no bound is read for it.
+        if self.destroyed_buff.max_additive_stack != 0 {
+            return Err(Error::new(format!(
+                "{} bounds its additive stack, which is not read",
+                self.destroyed_buff.name
+            )));
         }
         for building in &self.buildings {
             if building.team_id > 1 || building.building_type_id == 0 || building.life <= 0 {
                 return Err(Error::new(
-                    "training-ground building contains invalid identities or life",
+                    "a tower building contains invalid identities or life",
                 ));
             }
             validate_signed_scaled(building.position.x, SPACE_UNITS_PER_METER, "position.x")?;
@@ -804,9 +860,9 @@ fn parse_top_level(bytes: &[u8], source: &str) -> Result<TopLevelConfig> {
         .map_err(|error| Error::new(format!("invalid top-level config {source}: {error}")))
 }
 
-fn parse_training_ground(bytes: &[u8], source: &str) -> Result<TrainingGroundConfig> {
+fn parse_towers(bytes: &[u8], source: &str) -> Result<TowersConfig> {
     serde_yaml::from_slice(bytes)
-        .map_err(|error| Error::new(format!("invalid training-ground config {source}: {error}")))
+        .map_err(|error| Error::new(format!("invalid tower config {source}: {error}")))
 }
 
 #[cfg(test)]
@@ -828,9 +884,9 @@ mod tests {
             config.units.get("marksman").unwrap().independent_aim,
             Some(false)
         );
-        assert_eq!(config.training_ground.buildings.len(), 4);
-        assert_eq!(config.training_ground.buildings[0].x(), -140_000);
-        assert_eq!(config.training_ground.buildings[0].radius(), 10_000);
+        assert_eq!(config.towers.buildings.len(), 4);
+        assert_eq!(config.towers.buildings[0].x(), -140_000);
+        assert_eq!(config.towers.buildings[0].radius(), 10_000);
     }
 
     #[test]

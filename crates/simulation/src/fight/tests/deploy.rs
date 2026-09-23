@@ -101,7 +101,9 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
-        } = initialize_buildings(&config.training_ground, &[]).unwrap();
+            tower_losses,
+            tower_buffed_constructions,
+        } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         Simulation {
             actors,
@@ -118,6 +120,9 @@ fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
             constructions: BTreeMap::new(),
+            towers: config.towers.clone(),
+            tower_losses,
+            tower_buffed_constructions,
         }
     };
     let mut simulation = make_simulation();
@@ -480,13 +485,8 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
 
     assert_eq!(
         (
@@ -520,13 +520,8 @@ fn first_rvo_solve_avoids_same_formation_at_tick_eight() {
         &config.units,
     )
     .unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_831_322,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_831_322).unwrap();
 
     for step in 0..8 {
         simulation.step(step).unwrap();
@@ -580,13 +575,8 @@ fn tick_fifteen_aim_uses_raw_q32_positions() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
 
     for step in 0..14 {
         simulation.step(step).unwrap();

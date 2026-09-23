@@ -1,0 +1,24 @@
+kind: layout
+round: 1
+
+# A level-4 tower lost inside a level-0 tower's nine seconds.
+#
+# Red's Steel Balls come down both of blue's tower columns, the Energy Tower's
+# lane ahead, so blue loses its second tower while the first loss's debuff
+# runs. Blue's Fangs stand at the back between the two.
+
+blue:
+  tower_strengthen_levels: [0, 4]
+  units:
+    - name: fang
+      index: 0
+      position: {x: 5, y: -300}
+
+red:
+  units:
+    - name: steel_ball
+      index: 0
+      position: {x: 145, y: -20}
+    - name: steel_ball
+      index: 1
+      position: {x: -145, y: -20}

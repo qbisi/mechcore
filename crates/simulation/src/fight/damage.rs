@@ -216,6 +216,9 @@ impl Simulation {
                     .actors
                     .get_mut(&unit_id)
                     .ok_or_else(|| Error::new("damage target unit is absent"))?;
+                // `PerformHitTargetEffect` scales the hit by the unit's rate on
+                // damage taken before it takes any life.
+                let amount = unit.stats.damage_taken(amount)?;
                 let previous_life = unit.life;
                 unit.life = unit.life.saturating_sub(amount).max(0);
                 let actual = previous_life - unit.life;
@@ -251,11 +254,18 @@ impl Simulation {
                 if destroyed {
                     building.targetable = false;
                 }
-                Ok(Stroke {
+                let stroke = Stroke {
                     actual: i64::from(previous_life - building.life.current),
                     death: None,
                     fallen: destroyed.then_some(building.position),
-                })
+                };
+                // `FightCrystal.OnDead` invokes `OnBuildingDestroyed` in the
+                // hit that fells it, so a tower's loss is on its side before
+                // the next hit lands.
+                if destroyed {
+                    self.lose_tower(building_id)?;
+                }
+                Ok(stroke)
             }
         }
     }
@@ -415,8 +425,12 @@ impl Simulation {
                     .map_err(|_| Error::new("laser damage exceeds i32"))?,
             },
         ));
+        // A building the beam fells is recorded at the end of the tick, as a
+        // blow's and a projectile's are: in the tower-loss fight with two
+        // lanes, the other lane's Steel Ball damages its tower between the
+        // beam that fells the first and that tower's `building_destroyed`.
         if let Some(position) = stroke.fallen {
-            events.push(event(
+            self.fallen_buildings.push(event(
                 Some(target.object_ref()),
                 None,
                 None,

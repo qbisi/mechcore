@@ -410,8 +410,10 @@ instrumentation profile），和 `tests/construction/` 下的录像一起。
   `base × (1 + Σ add − Σ reduce)`、向零截断，
   [`officer_effects.md`](../../rules/officer_effects.zh.md) 记录了那次捕获。但那次捕获
   把两条修正放在同一条通道里、而且两条都是比率，所以同一下标上 Float 与 FloatRate 并存
-  时如何相互作用、单位/技能/buff 三条通道按什么顺序作用，仍然没有人测过——`data.rs`
-  对这两种情况一律拒绝，而不是把规则外推过去。
+  时如何相互作用，仍然没有人测过。三条通道之间，伤害和移速已经读明：
+  `DamageProperty.CalculateDamage` 与 `MoveSpeedProperty.Refresh` 把各通道的 value 与加成
+  相加、剩余倍率相乘，和单通道内的形状相同，`tests/tower/` 的输塔对局守着 buff 通道这一半；
+  攻击间隔的属性有自己的算法、没有读，`data.rs` 对两条通道同时修正攻击间隔仍然拒绝。
 - **模块被驱动的顺序，以及一次推进内部的工作顺序。** `FightCoreSystem.Update` 调用
   `TeamUpdate` 再调用 `GroupUpdate`，`PreCalculate` 和 `Update` 并列存在，但方法体内的
   调用顺序不在索引里。这一条靠对着录像测量关掉。

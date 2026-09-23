@@ -22,7 +22,6 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) cached_target_z_q32: i64,
     pub(in crate::fight) cached_target_radius: i64,
     pub(in crate::fight) speed: i64,
-    pub(in crate::fight) damage: i64,
     pub(in crate::fight) life: i64,
     pub(in crate::fight) lock_target: bool,
 }
@@ -155,11 +154,19 @@ impl Simulation {
                 Reach::Domain(target_domain),
             )
         };
+        // A projectile carries no damage of its own: it takes its owner's as
+        // the owner has it when it lands. The Fangs of the two-tower fight
+        // whose debuff ends, or who die, while a shot is in the air land it
+        // for the full 63.
+        let amount = self
+            .attacker(projectile.owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .attack_damage;
         let hit = DamageHit {
             source: projectile.owner.object_ref(),
             source_team: projectile.team,
             team: owner_team,
-            amount: projectile.damage,
+            amount,
             aimed,
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),

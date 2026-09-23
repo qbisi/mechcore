@@ -357,7 +357,7 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
             .map(|tower| tower["kind"].as_str().unwrap())
             .collect();
         assert_eq!(kinds, ["energy_tower", "research_center"], "{side}");
-        // 3400 of life and a 20 m box, which `config/training_ground.yaml`
+        // 3400 of life and a 20 m box, which `config/towers.yaml`
         // states and the capture confirmed.
         assert_eq!(towers[0]["life"]["maximum"], 3400, "{side}");
         assert_eq!(towers[0]["bounds"]["width"], 20_i64 << 32, "{side}");

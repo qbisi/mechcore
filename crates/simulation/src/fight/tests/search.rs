@@ -135,7 +135,9 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         states: buildings,
         unsearchable,
         colliders: construction_colliders,
-    } = initialize_buildings(&config.training_ground, &[]).unwrap();
+        tower_losses,
+        tower_buffed_constructions,
+    } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let simulation = Simulation {
         actors,
@@ -152,6 +154,9 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         construction_colliders: construction_colliders.clone(),
         unsearchable_buildings: unsearchable.clone(),
         constructions: BTreeMap::new(),
+        towers: config.towers.clone(),
+        tower_losses,
+        tower_buffed_constructions,
     };
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
 }

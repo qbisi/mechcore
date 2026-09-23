@@ -24,7 +24,7 @@ fn rvo_solves_a_collision_building_inside_the_influence_bound() {
     source.motion.state = MotionState::Moving;
     source.motion.next_target_x_q32 = target_position.0;
     source.motion.next_target_z_q32 = target_position.1;
-    source.motion.next_speed_q32 = space_to_q32(source.stats.move_speed());
+    source.motion.next_speed_q32 = source.stats.move_speed_q32();
     source.motion.next_max_speed_q32 = source.motion.next_speed_q32;
     simulation.rvo_counter = 3;
     simulation.step_rvo();
@@ -82,7 +82,7 @@ fn rvo_q32_boundary_uses_raw_distance_not_snapshot_rounding() {
     source.motion.state = MotionState::Moving;
     source.motion.next_target_x_q32 = target_position.0;
     source.motion.next_target_z_q32 = target_position.1;
-    source.motion.next_speed_q32 = space_to_q32(source.stats.move_speed());
+    source.motion.next_speed_q32 = source.stats.move_speed_q32();
     source.motion.next_max_speed_q32 = source.motion.next_speed_q32;
     simulation.rvo_counter = 3;
     simulation.step_rvo();
@@ -142,7 +142,7 @@ fn zero_published_speed_still_snaps_a_tolerance_equal_rvo_delta() {
     let actor = simulation.actors.get_mut(&1).unwrap();
     assert!(actor.motion.rvo_stopped_snap_since_boundary);
     actor.motion.state = MotionState::Moving;
-    actor.motion.next_speed_q32 = space_to_q32(actor.stats.move_speed());
+    actor.motion.next_speed_q32 = actor.stats.move_speed_q32();
     actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
     actor.motion.solver_target_x_q32 = 1_717_060_204_994;
     actor.motion.solver_target_z_q32 = 1_696_431_970_300;
@@ -212,13 +212,8 @@ fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
     let actor = simulation.actors.get_mut(&1).unwrap();
     actor.motion.current_velocity_x_q32 = -198_556_428;
     actor.motion.current_velocity_z_q32 = -30_061_443_202;
@@ -263,13 +258,8 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
     let initial = simulation.actors[&2].clone();
 
     for tick in 1..=9 {
@@ -312,13 +302,8 @@ fn first_split_rvo_tree_uses_the_zero_position_buffer() {
         &config.units,
     )
     .unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_748_319,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_748_319).unwrap();
 
     for step in 0..8 {
         simulation.step(step).unwrap();
@@ -364,13 +349,8 @@ fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_posi
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
 
     for step in 0..4 {
         simulation.step(step).unwrap();
@@ -452,13 +432,8 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
     let mut tick_121_raw_position = None;
     let mut tick_121_body_rotation = None;
 
@@ -565,13 +540,8 @@ fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
     let marksman = simulation.actors.get_mut(&1).unwrap();
     assert_eq!(marksman.rules.independent_aim, Some(false));
     marksman.motion.state = MotionState::Attacking;

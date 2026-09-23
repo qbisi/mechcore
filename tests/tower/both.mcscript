@@ -1,0 +1,25 @@
+# A second tower lost while the first loss's debuff runs.
+#
+#   mechcore run tests/tower/both.mcscript --check   parse without the game
+#   mechcore run tests/tower/both.mcscript           record
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/tower/both
+  seed: 4242
+
+steps:
+  - let:
+      fights: [both-towers-0-0, both-towers-0-4]
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(tests/tower/${fight}.yaml)
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${fight}.mcfr

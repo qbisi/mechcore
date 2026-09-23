@@ -13,6 +13,7 @@ says what was measured:
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | `skill-order/` | whether the release order of two battle skills changes the fight |
+| [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`units/`](units/README.md) | each unit's standard layouts, the definition of basic support |
 | [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, given what the others hold |

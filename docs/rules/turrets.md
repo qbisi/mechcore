@@ -189,7 +189,8 @@ attacking to the end of its swing ([`constructions.md`](constructions.md)). At
 tick 335 of the Anti-Armor fight, the four Crawlers mid-swing go idle holding
 building 3, and the one that was not mid-swing drops it and walks on. That
 fight is recorded but not pinned: the simulator agrees with it through tick
-508, and at 509 the tower-loss debuff begins.
+1026, across two towers' losses, and parts at 1027 over which target the
+Marksman takes when its own walks out of range.
 
 ## Scope
 
@@ -197,20 +198,21 @@ Everything above is build 2259, the 1v1 board, round one, and the two turrets
 a layout can place. It covers them firing at ground units, with every timing
 the rows carry at zero. It holds the simulator to both Rapid-Fire fights,
 and to the Anti-Armor Arclight fight, physics and content. It agrees with the
-Anti-Armor Crawler fight through tick 508, which is recorded and not pinned.
+Anti-Armor Crawler fight through tick 1026, which is recorded and not pinned.
 
 It does not cover:
 
-- **The Anti-Armor Crawler fight after tick 508.** There the Crawlers destroy
-  blue's Energy Tower with the Marksman still standing, and the game weakens
-  the Marksman for it, which is not a turret's mechanism. The Arclight
-  fight asks the Anti-Armor Turret the same without a tower falling.
+- **The Anti-Armor Crawler fight after tick 1026.** There the Marksman's
+  Crawler walks out of its range and the game ends the attack where the
+  simulator switches to a nearer Crawler, which is not a turret's mechanism.
+  The Arclight fight asks the Anti-Armor Turret the same without a tower
+  falling.
 - **A turret beside an officer or a unit technology.** Whether either reaches a
   construction's skill is not read, so a side that places a turret and carries
   either is refused.
-- **Tower buffs on a turret.** A row may say `can_be_effected_by_tower_buff`, and
-  a side with energy-tower skills or strengthened towers is refused before
-  that matters.
+- **Tower buffs on a turret.** A row may say `can_be_effected_by_tower_buff`,
+  and a side that loses a tower while such a turret stands is refused when it
+  happens ([`towers.md`](towers.md)); no recording has one.
 - **A construction skill with a wind-up, a swing, a cooling, a burst or a
   scattered target.** The two turrets have none. A row that has one is refused
   by name.

@@ -22,7 +22,7 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 | `battle_skills` | CommanderSkillSystem | 176 (52%) |
 | ~~单位 `equipment`~~ | ~~Modifier~~ | **第一回合的普通装备已落地**（曾是 167，50%；之后的回合和其它装备类仍拒绝） |
 | `contraptions` | InterceptSystem | 161 (48%) |
-| `tower_strengthen_levels` | BuildingSystem | 123 (36%) |
+| ~~`tower_strengthen_levels`~~ | ~~BuildingSystem~~ | **已落地**（曾是 123，36%；输塔的减益一并落地，见 [towers.md](docs/rules/towers.md)） |
 | `energy_tower_skills` | BuildingSystem | 118 (35%) |
 | `travelling` | SuperDeploymentSystem | 94 (28%) |
 | `terrains` | RangeItemSystem | 5 (1%) |
@@ -51,20 +51,17 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 这样涨：
 
 ```text
-+ Modifier                        49/334
-+ CommanderSkillSystem            72/334
-+ InterceptSystem               109/334
-+ BuildingSystem                203/334
-+ SuperDeploymentSystem         295/334
-+ RangeItemSystem               300/334
-+ AdvancedEnergyShieldSystem    304/334
++ CommanderSkillSystem            29/334
++ InterceptSystem                 73/334
++ BuildingSystem                 145/334
++ SuperDeploymentSystem          237/334
++ RangeItemSystem                242/334
++ AdvancedEnergyShieldSystem     246/334
 ```
 
-天花板从 334 掉到 304，是因为 30 个回合的工事里有炮台，而炮台被指名拒绝——这
-30 个不是哪个模块落地能解的，是 `FightConstructionSystem` 自己欠的那一半。剩下
-292 个回合的 `constructions` 已经满足了。
+（这是塔的强化等级落地之后的数。现在有 88 个回合的拒绝不点名任何字段——炮台、会写溅射
+半径的科技之类，是已实现模块自己按名拒绝的一半——所以天花板是 246 而不是 334。）
 
-`Modifier` 还排在第二，因为它认领的装备还欠效果表。
 军官那一份已经装上：`crates/simulation/src/modifier/officers.rs` 把 79 行里的 **47** 行应用到目标
 单位上，其余指名拒绝。合成规则三条子句全部对着游戏量过：
 
