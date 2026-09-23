@@ -434,13 +434,16 @@ target and a child leaving its attack area. Grouped fusillade is outside the
 supported configs. The existing prepare offset and per-slot wall checks are
 separate from this target-search contract.
 
-**What the mirror does not carry yet.** A skill
-that cannot switch quickly keeps a live lock out of reach. That is measured,
-and the path is read: the build reads the quick-switch flag only in the
-research branch of `Check`, and a live lock sends `CheckWhenLoseTarget` to the
-synchronous search (`PerformNormalSkillSearch` with no prepared job), which
-answers the lock. Why the selector's score favours it there is not read. The
-mirror states the measured rule in place of that score.
+**A live lock beyond reach ends the attack.** `Check` searches again after a
+failed area test only when `IsAttackTargetInAttackArea` reports
+`isMissingDistance`, which is `FightSkill.IsInAttackRange`'s `isMissing`: the
+target nearer than the skill's minimum range (vtable 1088), not beyond its
+range (1104). So a live lock that walks out of reach fails the check for every
+skill, whether it switches quickly or not, and the attack finishes; one that
+walks inside the minimum range sends `CheckWhenLoseTarget` to `SearchLockTarget`,
+and the check passes if the answer is in the area. The Stormcaller is the one
+unit with a minimum range. The build reads the quick-switch flag only in the
+research branch of `Check`.
 
 ## The mirror, and what is dummy
 

@@ -42,28 +42,27 @@ impl Simulation {
     /// A live lock is kept and `SearchAttackTarget` asked again; a dead one
     /// is searched for, and a skill that cannot switch quickly fails if that
     /// changes what it fires at. What it fires at must then be in the attack
-    /// area. One out of range is searched for again (`CheckWhenLoseTarget`),
-    /// and the check passes if the answer is in the area.
+    /// area.
     ///
-    /// What that second search can answer depends on the skill. A skill that
-    /// switches quickly takes the selector's answer; one that does not gets
-    /// back the lock it has while that lock lives, and fails. Checked against
-    /// every `Check` call of the 82 manifest fights, 149,695 of 149,829 before
-    /// the grouped search was included. The grouped oracle now also agrees on
-    /// all 4,188 slot calls, plus 344 in the two-target fallback capture, on
-    /// return value, lock and attack target (`grouped_checker_matches_every_captured_call`). A
-    /// Crawler whose lock walks out of reach keeps it and ends its attack; a
-    /// Stormcaller whose lock does takes the next target in reach.
+    /// A target out of the area is searched for again only when
+    /// `IsAttackTargetInAttackArea` reports `isMissingDistance`, and that is
+    /// `FightSkill.IsInAttackRange`'s `isMissing`: the target stands nearer
+    /// than the skill's minimum range (vtable 1088), not beyond its range
+    /// (1104). Then `CheckWhenLoseTarget` searches (`SearchLockTarget`) and the
+    /// check passes if the answer is in the area. A target beyond the range
+    /// fails the check, for every skill, whether it switches quickly or not.
+    /// The Stormcaller, the one unit with a minimum range (70 m), is the one
+    /// whose lock walking inside it takes the next target in reach; a Crawler
+    /// or a Marksman whose live lock walks out of reach ends its attack
+    /// (`tests/turret/anti-armor-head-on.yaml`, tick 1027).
     ///
-    /// It is not a quick-switch branch. The build reads that flag
-    /// (`ISkillData` slot 24) in one place, the research branch above. The
-    /// second search is `SkillSearchTargetController.PerformNormalSkillSearch`,
-    /// which finds no prepared job for a live lock, because only a null or
-    /// dead lock prepares one. So it runs the synchronous search: the selector
-    /// over the enemies within max(reach, 400 m), then 200 m and 300 m wider,
-    /// then all of them. That search answers the kept lock. Why it does is
-    /// not read: our selector, fed the snapshot or live positions in place of
-    /// the rule, keeps 73 or 71 of the 106 pinned fights.
+    /// The build reads the quick-switch flag (`ISkillData` slot 24) in one
+    /// place, the research branch above. An earlier stand-in let a
+    /// quick-switching skill search again beyond its range; every pinned fight
+    /// plays back the same without it, and the Anti-Armor Crawler fight only
+    /// without it. Grouped skills are checked against all 4,188 captured slot
+    /// calls plus 344 in the two-target fallback capture, on return value,
+    /// lock and attack target (`grouped_checker_matches_every_captured_call`).
     pub(in crate::fight) fn check_attackable(
         &mut self,
         owner: FightActorRef,
@@ -116,11 +115,7 @@ impl Simulation {
         if self.slot_target_in_attack_range(owner, slot, target) {
             return Ok(false);
         }
-        if !self.quick_switch_target(owner)
-            && self
-                .slot_lock_target(owner, slot)
-                .is_some_and(|lock| self.fight_actor_is_alive(lock))
-        {
+        if !self.target_inside_min_range(owner, target) {
             return Ok(false);
         }
         if !self.search_lock_target(owner, slot, target_search_order)? {
@@ -167,6 +162,21 @@ impl Simulation {
             && target.targetable
             && distance >= space_to_q32(source.rules.attack.min_range())
             && distance <= space_to_q32(self.slot_attack_range(actor_id, slot))
+    }
+
+    /// `IsInAttackRange`'s `isMissing`: the target stands nearer than the
+    /// skill's minimum range, the only miss of distance
+    /// `CheckWhenLoseTarget` searches again for.
+    fn target_inside_min_range(&self, owner: FightActorRef, target: FightActorRef) -> bool {
+        let (Some(source), Some(target)) = (self.attacker(owner), self.fight_actor(target)) else {
+            return false;
+        };
+        let distance =
+            native_q32_magnitude(target.x_q32 - source.x_q32, target.z_q32 - source.z_q32)
+                .saturating_sub(space_to_q32(source.radius))
+                .saturating_sub(space_to_q32(target.radius))
+                .max(0);
+        distance < space_to_q32(source.attack.min_range())
     }
 
     fn slot_target_in_attack_area(

@@ -63,3 +63,14 @@ steps:
       teams.0.remaining_life: 1622
       hashes.physics_result_hash: 705b3e392de6475968424efc98cde76582f30b46f35b80eceb5ddc37d80b54cb
       hashes.content_result_hash: b6728f04b60d7b6cc675e6fc872944a34250fe796f612be4298816db80936837
+
+  # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
+  # a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
+  # when its live lock walks out of reach, as every skill does.
+  - fight.run:
+      layout: tests/turret/anti-armor-head-on.yaml
+      seed: 4242
+    expect:
+      steps: 1397
+      hashes.physics_result_hash: 9c8ead2a754a4f4a8d73d880f00765de84f13a2c2ec1c4a86bc2b6e5b9ccb711
+      hashes.content_result_hash: 5409aef11cf21ed57a88bf36c5990f834a9aa8644dc517d9e5f840783d15794d

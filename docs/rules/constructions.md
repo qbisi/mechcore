@@ -114,8 +114,9 @@ than the wall, have not been.
 **A block that falls ends the attack on it, and the lock with it.** This is
 the build's attack state, not something about walls. `SkillAttackState` checks
 its attack target between blows and while the next one winds up, and a dead
-attack target of the building class fails that check outright, where a dead
-unit goes on to the checker and may be switched from. A failed check finishes
+attack target of the construction class (`FightConstruction`) fails that
+check outright, where a dead unit, or a dead tower, goes on to the checker and
+may be switched from. A failed check finishes
 the attack: `FightSkill.StopAttack` clears the lock, the weapons keep naming
 what they fired at, the skill cools for its cooling time, and it then enters
 idle with its targets cleared and searches again. A capture of the skill's own

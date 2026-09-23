@@ -359,10 +359,12 @@ instrumentation profile），和 `tests/construction/` 下的录像一起。
 再分配到新的可用目标，以及子槽位离开攻击范围；成组齐射不在支持的配置中。已有准备时间偏移
 和逐槽墙检查与这里的目标搜索契约分开。
 
-**镜像还没接管的部分。** 不能快速切换的技能会保留走出射程的活锁定，这是量出来的，
-路径也已读到：build 只在 `Check` 的重搜分支里读快速切换标志；锁定活着时，`CheckWhenLoseTarget` 走同步搜索
-（`PerformNormalSkillSearch` 没有预备好的 job），答回的就是这个锁定。选择器的评分为什么在那里偏向它，还没有读到。
-镜像用量出来的规则代替这个评分。
+**活锁定走出射程，攻击就结束。** 攻击区域判定失败之后，`Check` 只在
+`IsAttackTargetInAttackArea` 报告 `isMissingDistance` 时重新搜索，而它就是
+`FightSkill.IsInAttackRange` 的 `isMissing`：目标近于技能的最小射程（虚表 1088），不是超出射程（1104）。
+所以活锁定走出射程时，无论技能能否快速切换，检查都失败、攻击结束；走进最小射程时才让
+`CheckWhenLoseTarget` 调 `SearchLockTarget`，新目标在攻击区域内就通过。只有风暴召唤者有最小射程。
+build 只在 `Check` 的重搜分支里读快速切换标志。
 
 ## 镜像，以及现在哪些是空的
 
