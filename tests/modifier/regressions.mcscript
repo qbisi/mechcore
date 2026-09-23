@@ -152,3 +152,22 @@ steps:
       hashes.physics_result_hash: 0e45dcb5ad8bfe32a00840464eb8bd5856496355e56774a79a4979065d0a144d
       hashes.content_result_hash: ef6be0a9633b81c1a3a0362c9c2a8b31a3afbcee84c9628833bb1aeee82b7f30
 
+
+  # Which units a Ranged row reaches. The control is six formations with no
+  # officer; with Advanced Targeting System the four ranged ones reach 10 m
+  # further and the Crawler and the Rhino carry nothing, which only the content
+  # hash can tell from a row that reached every unit.
+  - fight.run:
+      layout: tests/modifier/targeting-ranged-none.yaml
+      seed: 4242
+    expect:
+      steps: 144
+      hashes.physics_result_hash: 15d19c998b71dca307a43e60f84f9e747897433f6d66f3561ae6ec4f84e348d9
+      hashes.content_result_hash: 8ce00e182ddcd4c27650701e3d2779f896165a36b1dab6c16fd9ad161c480b65
+  - fight.run:
+      layout: tests/modifier/targeting-ranged.yaml
+      seed: 4242
+    expect:
+      steps: 138
+      hashes.physics_result_hash: f6fc46b5d828f5e910ae4967e3b7938ed1927aa9bddc24724b7e2ad74ddac6b9
+      hashes.content_result_hash: 4c612918567d12f78efadb3ad7fa8cad61f5d68034cfcb0db42a016e871c19b3

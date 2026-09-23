@@ -66,6 +66,8 @@ Normal selector takes the Rhino rather than a building.
 | `technology-interval-value.yaml` | one second of value | 63 |
 | `technology-interval-rate.yaml` | one rate of `+0.3` | 110 |
 | `technology-interval.yaml` | **a value and a rate on one number** | 84, so the value applies first |
+| `targeting-ranged-none.yaml` | none: the control for the targeting fixture | 144 ticks |
+| `targeting-ranged.yaml` | **which units a Ranged row reaches** | `+10` on four ranged formations, nothing on two melee ones |
 
 `officer-impair-once.yaml` cannot separate the two rules — one impairment is
 `0.89` either way — which is what makes it this experiment's control.
@@ -86,6 +88,7 @@ the end.
 | `technology.mcscript` | yes | records the technology fixture |
 | `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
 | `disable.mcscript` | yes | records the Raiden shooting the Rhino |
+| `targeting.mcscript` | yes | records the two targeting fixtures |
 | `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts both hash layers |
 
 The three recording scripts are this directory's experiments: each one writes
@@ -99,6 +102,18 @@ These fixtures are deliberately **not** in `tests/regression/mcfr-regressions.ya
 table that holds them lives here, beside them and beside the scripts that
 produced them, so that a fixture, its measurement and its regression are one
 thing to read and one thing to move.
+
+## Which units a row reaches
+
+The two targeting fixtures are the other exception: they do not measure a
+clause of the formula but which units a row lands on at all. Blue fields six
+formations in one column, four ranged ones across the projectile and laser
+paths and the two melee ones, and `targeting-ranged.yaml` adds Advanced
+Targeting System, a Ranged row of `+10` of range. `UnitUtility.IsEffectTarget`
+answers Ranged from the unit's main `SkillData.isMeleeAttack`, and the
+recording agrees: the four ranged formations carry the `+10` and the Crawler
+and the Rhino carry no skill correction. The formations are declared in the
+order their identities sort by world z, which is why they stand in a column.
 
 ## A correction can leave
 

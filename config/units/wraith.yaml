@@ -39,6 +39,7 @@ attack:
     fusillade: false
     allow_same_target: true
     rotation_speed: 90
+  melee: false
   path:
     type: projectile
     count: 1

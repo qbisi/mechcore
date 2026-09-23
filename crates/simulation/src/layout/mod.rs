@@ -261,7 +261,7 @@ fn loadout(
 ) -> Result<Vec<(Channel, Entry)>> {
     let mut corrections = loadouts
         .officers
-        .corrections(&side.techs.officers, type_name)
+        .corrections(&side.techs.officers, rules)
         .map_err(|error| Error::new(format!("side {side_name}: {error}")))?;
     corrections.extend(
         loadouts
@@ -378,12 +378,12 @@ red:
     fn an_officer_this_build_cannot_apply_refuses_the_side_that_holds_it() {
         let value = LAYOUT.replace(
             "blue:\n  units:",
-            "blue:\n  officers: [advanced_targeting_system]\n  units:",
+            "blue:\n  officers: [berserk_rhino]\n  units:",
         );
         let refused = compile_default(&value).unwrap_err().to_string();
         assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("20006"), "{refused}");
-        assert!(refused.contains("ranged units"), "{refused}");
+        assert!(refused.contains("30502"), "{refused}");
+        assert!(refused.contains("kills"), "{refused}");
     }
 
     /// An officer that only touches a ledger reaches the fight as nothing,

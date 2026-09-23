@@ -54,6 +54,7 @@ attack:
     mode: normal
     count: 1
     per_skill: 1
+  melee: false
   path:
     type: projectile
     count: 1
@@ -88,6 +89,7 @@ attack:
 | `quick_switch_target` | 周期搜索发现不同且仍存活的目标时，是否允许不先退出当前攻击状态而直接替换；死亡或失效目标的替换走另一条原生分支。 |
 | `timing.*` | 原生攻击间隔、随机偏移、初始冷却、准备、前摇、后摇与退出冷却阶段。 |
 | `splash_radius` | 原生基础作用半径；零表示没有范围效果。 |
+| `melee` | 主技能的 `SkillData.isMeleeAttack`。战斗里的近战分支读它，近战和远程两个目标类别也由它回答。 |
 
 Formation 行列数由 `members`、`slot_size` 和 `footprint` 推导；jitter 常量、成员 RNG、
 更新顺序和身份分配属于内核机制，不在单位 YAML 中重复保存。Adapter 会按 team、世界 `z`、世界 `x` 排序后分配
@@ -110,11 +112,11 @@ body 方向，因此必须省略该字段。当前 P0 数据中所有适用值�
 `path` 是四种变体的标签联合：
 
 - `projectile`：投射物数量、释放间隔、运动、目标偏移、可拦截标记与投射物生命；
-- `direct`：直接效果及显式 `melee` 分支选择；
+- `direct`：直接效果；
 - `laser`：按攻击次数使用的伤害倍率；
 - `control_beam`：预热攻击次数和预热伤害倍率。
 
-单发/多发由 `path.count` 决定，近战/非近战直接效果由 `path.melee` 决定，Group/Fusillade
+单发/多发由 `path.count` 决定，近战/非近战由每条路径都有的 `melee` 决定，Group/Fusillade
 保留在武器拓扑层。配置 schema 不引入 `grouped_projectile` 一类组合类型。
 
 ## 单位与数值边界

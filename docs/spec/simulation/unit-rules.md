@@ -56,6 +56,7 @@ attack:
     mode: normal
     count: 1
     per_skill: 1
+  melee: false
   path:
     type: projectile
     count: 1
@@ -90,6 +91,7 @@ attack:
 | `quick_switch_target` | Whether a periodic search may replace a still-alive attack target without first leaving the active attack state. Dead or invalid target replacement follows a separate native branch. |
 | `timing.*` | Native attack interval, random offset, initial cooldown, prepare, attack point, backswing and cooling phases. |
 | `splash_radius` | Native base effect radius; zero means no area effect. |
+| `melee` | The main skill's `SkillData.isMeleeAttack`. The fight's melee branches read it, and the Melee and Ranged targeting categories are answered from it. |
 
 Formation rows and columns are derived from `members`, `slot_size`, and
 `footprint`; jitter constants, member RNG, update order, and identity allocation
@@ -119,13 +121,13 @@ The `path` tagged union has four variants:
 
 - `projectile`: count, release interval, movement and target-offset data,
   interception flag, and projectile life;
-- `direct`: direct effect with an explicit `melee` branch selector;
+- `direct`: direct effect;
 - `laser`: attack-count damage multipliers;
 - `control_beam`: warmup attack count and warmup damage multiplier.
 
 Single versus multi-projectile behavior comes from `path.count`; melee versus
-non-melee direct behavior comes from `path.melee`; Group/Fusillade remains in
-weapon topology. Combination-shaped types such as `grouped_projectile` are not
+non-melee behavior comes from `melee`, which every path has; Group/Fusillade
+remains in weapon topology. Combination-shaped types such as `grouped_projectile` are not
 part of the configuration schema.
 
 ## Units and numeric boundary
@@ -188,7 +190,7 @@ that runs it.
   `game_build` for the root, and no version matching is performed against it.
 - **Combination-shaped path types.** `grouped_projectile` and its relatives are
   not schema types. Single versus multi-projectile comes from `path.count`,
-  melee versus non-melee from `path.melee`, and Group or Fusillade from weapon
+  melee versus non-melee from `melee`, and Group or Fusillade from weapon
   topology.
 
 ## Unresolved

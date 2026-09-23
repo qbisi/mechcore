@@ -37,6 +37,7 @@ attack:
     mode: normal
     count: 1
     per_skill: 1
+  melee: false
   path:
     type: control_beam
     warmup_attack_count: 2

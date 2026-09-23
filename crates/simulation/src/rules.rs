@@ -147,6 +147,10 @@ pub(crate) struct AttackConfig {
     pub(crate) timing: AttackTiming,
     pub(crate) splash_radius: f64,
     pub(crate) weapons: WeaponTopology,
+    /// `SkillData.isMeleeAttack` of the main skill. The fight's melee
+    /// branches read it, and `UnitUtility.IsEffectTarget` answers the Melee
+    /// and Ranged targeting categories from it.
+    pub(crate) melee: bool,
     pub(crate) path: AttackPath,
     /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
     /// turret's is and no unit this build places reads.
@@ -222,9 +226,7 @@ pub(crate) enum AttackPath {
         interceptible: bool,
         max_life: i64,
     },
-    Direct {
-        melee: bool,
-    },
+    Direct,
     Laser {
         damage_multipliers: Vec<f64>,
     },
@@ -607,7 +609,7 @@ impl AttackConfig {
                     true,
                 )
             }
-            AttackPath::Direct { .. } => Ok(()),
+            AttackPath::Direct => Ok(()),
             AttackPath::Laser { damage_multipliers } => {
                 if damage_multipliers.is_empty()
                     || damage_multipliers
@@ -907,10 +909,8 @@ mod tests {
         assert_eq!(rhino.formation_slot_size_meters().unwrap(), 30);
         assert!(!rhino.has_body);
         assert_eq!(rhino.independent_aim, None);
-        assert!(matches!(
-            rhino.attack.path,
-            AttackPath::Direct { melee: true }
-        ));
+        assert!(matches!(rhino.attack.path, AttackPath::Direct));
+        assert!(rhino.attack.melee);
 
         let wraith = config.units.get("wraith").unwrap();
         assert_eq!(wraith.attack.weapons.mode, WeaponMode::Group);
@@ -927,10 +927,8 @@ mod tests {
         assert_eq!(vortex.attack.weapons.mode, WeaponMode::Group);
         assert_eq!(vortex.attack.weapons.fusillade, Some(true));
         assert_eq!(vortex.attack.weapons.allow_same_target, Some(false));
-        assert!(matches!(
-            vortex.attack.path,
-            AttackPath::Direct { melee: false }
-        ));
+        assert!(matches!(vortex.attack.path, AttackPath::Direct));
+        assert!(!vortex.attack.melee);
 
         let crawler = config.units.get("crawler").unwrap();
         assert_eq!(crawler.formation.members, 24);

@@ -1,0 +1,51 @@
+# Which units does a Ranged row reach?
+#
+#   mechcore run tests/modifier/targeting.mcscript --check   parse without the game
+#   mechcore run tests/modifier/targeting.mcscript           record
+#
+# `UnitUtility.IsEffectTarget` switches on the row's `UnitEffectTargetType`
+# and answers Ranged (4) from the unit's main `SkillData.isMeleeAttack` being
+# clear, Melee (3) from it being set. Advanced Targeting System is a Ranged
+# row of `attack_range_value` +10, so each ranged formation's skill slot
+# should carry 42949672960 and its range grow by 10 m, and the two melee
+# formations should carry no skill correction at all: the recording writes no
+# skill modifier set for a unit whose set is empty.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/modifier/targeting
+  seed: 4242
+
+steps:
+  - let:
+      none: read_yaml(tests/modifier/targeting-ranged-none.yaml)
+      ranged: read_yaml(tests/modifier/targeting-ranged.yaml)
+
+  - game.apply_layout:
+      layout: $none
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/ranged-none.mcfr
+    expect:
+      operation.tick_count: 144
+
+  - game.apply_layout:
+      layout: $ranged
+      seed: $seed
+  - game.record_battle:
+      output: ${out}/ranged.mcfr
+    expect:
+      operation.tick_count: 138
+
+  - fight.stats:
+      recording: ${out}/ranged.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.attack_range_value: 42949672960
+      sides.blue.1.skill.0.modifiers.attack_range_value: 42949672960
+      sides.blue.2.skill.0.modifiers.attack_range_value: 42949672960
+      sides.blue.3.skill.0.modifiers.attack_range_value: 42949672960
+      sides.blue.0.derived.attack_range: 644245094400
+      sides.blue.3.derived.attack_range: 236223201280
+      sides.blue.4.derived.attack_range: 25769803776
+      sides.blue.5.derived.attack_range: 25769803776

@@ -173,6 +173,7 @@ def attack(row, body):
                 "count": len(row["weapons"]),
                 "per_skill": row["weaponCountPerSkill"],
             },
+            "melee": row["isMeleeAttack"],
             "path": {
                 "type": "projectile",
                 "count": row["projectileCount"],
