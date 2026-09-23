@@ -8,10 +8,9 @@
 //! of rejections.
 //!
 //! Adding a mechanism is filling in its module and listing the fields it now
-//! understands. A module is not all or nothing: `Modifier` applies an officer
-//! and a technology and refuses the equipment beside them, because two of the
-//! four effect tables are extracted. The loop that drives them is never edited
-//! for a mechanism.
+//! understands. A module is not all or nothing: it can understand fewer
+//! fields than it claims, and refuse the rest until their mechanism lands. The
+//! loop that drives them is never edited for a mechanism.
 //!
 //! A unit's level is not a field here. It is part of the unit, as its type is:
 //! `FightMech` is built with its `IMechLevelData`, and the level scales the
@@ -95,11 +94,10 @@ pub(crate) struct Module {
     pub(crate) claims: &'static [Field],
     /// Which of its claims this build understands.
     ///
-    /// A module is not all or nothing: `Modifier` applies an officer and a
-    /// technology and not the equipment beside them, because two of the four
-    /// effect tables are extracted. A field left out of this list is refused
-    /// exactly as an unimplemented module's claim is, so a side carrying it is
-    /// still outside the closure.
+    /// A module is not all or nothing: it can understand fewer fields than it
+    /// claims. A field left out of this list is refused exactly as an
+    /// unimplemented module's claim is, so a side carrying it is still outside
+    /// the closure.
     pub(crate) understood: &'static [Field],
     /// Whether this build of the simulator implements the module at all.
     pub(crate) implemented: bool,
@@ -130,7 +128,11 @@ pub(crate) static MODULES: &[Module] = &[
             Field::UnitTechnologies,
             Field::UnitEquipment,
         ],
-        understood: &[Field::Officers, Field::UnitTechnologies],
+        understood: &[
+            Field::Officers,
+            Field::UnitTechnologies,
+            Field::UnitEquipment,
+        ],
         implemented: true,
     },
     Module {

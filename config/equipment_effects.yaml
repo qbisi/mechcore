@@ -1,0 +1,85 @@
+schema: mechcore.equipment_effects
+game_build: 1.11.1.3.2259
+
+# What an ordinary EquipmentData row writes onto the unit that wears it,
+# read out of level0 path 188 by scripts/extract-equipment-effects.py.
+# docs/rules/equipment_effects.md states what each field means. A field
+# is written only when it is set; what an equipment costs is
+# config/reinforce_items.yaml's, and its other pool fields are not here.
+#
+# A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is
+# an FPoint in the number's own units: 85899345920 is +20 of range.
+
+equipment:
+  - id: 13030001
+    name: 激光瞄具
+    mech_type: [4]
+    main_skill_effect: true
+    attack_range_value: 85899345920  # +20
+  - id: 13030002
+    name: 重型装甲
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 3221225472  # +0.75
+  - id: 13030003
+    name: 改良火控系统
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    damage_rate: 2791728742  # +0.65
+  - id: 13030004
+    name: 强化模块
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 1073741824  # +0.25
+    damage_rate: 1073741824  # +0.25
+  - id: 13030005
+    name: 速攻模块
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    damage_rate: 1503238553  # +0.35
+    speed_value: 5
+  - id: 13030006
+    name: 超重型装甲
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 6442450944  # +1.5
+  - id: 13030007
+    name: 增幅核心
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 2147483648  # +0.5
+    damage_rate: 2147483648  # +0.5
+  - id: 13030008
+    name: 高级火控系统
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    damage_rate: 8589934592  # +2
+  - id: 13030009
+    name: 次级增幅核心
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 944892805  # +0.22
+    damage_rate: 944892805  # +0.22
+  - id: 13030010
+    name: 统御核心
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    important_unit: true
+    life_rate: 4294967296  # +1
+    damage_rate: 2147483648  # +0.5
+  - id: 13030011
+    name: 快速装填机
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+    attack_interval_rate: -2147483648  # -0.5

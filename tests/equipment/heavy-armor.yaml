@@ -1,0 +1,22 @@
+kind: layout
+round: 1
+
+# Where does an equipment's life rate land?
+#
+# The pinned `marksman-vs-arclight.yaml` fight with Heavy Armor on blue's
+# Marksman: the table says +0.75 of life rate and nothing else. An officer's
+# life rate lands in the unit's overlay as `life_rate`; whether an equipment's
+# does, and whether the Marksman then carries 1622 × 1.75 = 2838, is the
+# reading.
+blue:
+  units:
+    - name: marksman
+      index: 0
+      equipment: heavy_armor
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

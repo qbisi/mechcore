@@ -1,0 +1,22 @@
+kind: layout
+round: 1
+
+# Does an equipment's rate sum with an officer's in one channel?
+#
+# `heavy-armor.yaml` with Advanced Defensive Tactics, +0.3 of life rate, on
+# blue as well. Two rates in one channel sum (`tests/modifier/composition`):
+# 1622 × 2.05 = 3325 and one `life_rate` of +1.05. Two channels multiply:
+# 1622 × 1.75 × 1.3 = 3690, and the +0.3 sits alone in the unit's overlay.
+blue:
+  officers: [advanced_defensive_tactics]
+  units:
+    - name: marksman
+      index: 0
+      equipment: heavy_armor
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

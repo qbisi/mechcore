@@ -1,0 +1,75 @@
+# Where does an equipment's correction land, and how does it compose with an officer's?
+#
+#   mechcore run tests/equipment/stats.mcscript --check   parse without the game
+#   mechcore run tests/equipment/stats.mcscript           record
+#
+# `EquipmentData` implements the same `ICommonMechDataChangeDataSource`,
+# `ISkillDataChangeDataSource` and `IUnitDataChangeDataSource` an officer
+# does, and its rows (`level0` path 188, `equipmentDatas`) carry the same
+# field kinds: a life rate, a damage rate, a range value. So the prediction is
+# an officer's: a rate lands in the channel the field names and sums with an
+# officer's rate there; a value adds in the number's own units. Every
+# `expect` below is that prediction, written before the recording; the
+# recordings are made first and read after, so a prediction that fails still
+# leaves every recording behind.
+#
+# Life is not in `derived`; it is read off the recording's first tick. The
+# two `far` fights start the units 170 metres apart, where only a range that
+# acts lets the Marksman open fire without walking: `laser-sights.yaml`
+# alone is the control's fight tick for tick, both units inside 140 from
+# the start.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/equipment/stats
+  seed: 1787720817
+
+steps:
+  - let:
+      fights:
+        - {name: control, layout: tests/regression/marksman-vs-arclight.yaml}
+        - {name: heavy-armor, layout: tests/equipment/heavy-armor.yaml}
+        - {name: heavy-armor-officer, layout: tests/equipment/heavy-armor-officer.yaml}
+        - {name: firepower, layout: tests/equipment/firepower.yaml}
+        - {name: firepower-officer, layout: tests/equipment/firepower-officer.yaml}
+        - {name: laser-sights, layout: tests/equipment/laser-sights.yaml}
+        - {name: far-control, layout: tests/equipment/far-control.yaml}
+        - {name: laser-sights-far, layout: tests/equipment/laser-sights-far.yaml}
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(${fight.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${fight.name}.mcfr
+
+  - fight.stats:
+      recording: ${out}/heavy-armor.mcfr
+    expect:
+      sides.blue.0.unit.life_rate.add: 3221225472
+      sides.blue.0.derived.attack_damage: 2329
+  - fight.stats:
+      recording: ${out}/heavy-armor-officer.mcfr
+    expect:
+      sides.blue.0.unit.life_rate.add: 4509715660
+  - fight.stats:
+      recording: ${out}/firepower.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.damage_rate.add: 2791728742
+      sides.blue.0.derived.attack_damage: 3842
+  - fight.stats:
+      recording: ${out}/firepower-officer.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.damage_rate.add: 4080218930
+      sides.blue.0.derived.attack_damage: 4541
+  - fight.stats:
+      recording: ${out}/laser-sights.mcfr
+    expect:
+      sides.blue.0.skill.0.modifiers.attack_range_value: 85899345920
+      sides.blue.0.derived.attack_range: 687194767360

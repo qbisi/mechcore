@@ -7,7 +7,7 @@ mod constructions;
 use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
-    modifier::{OfficerEffects, TechnologyEffects},
+    modifier::{EquipmentEffects, OfficerEffects, TechnologyEffects},
     rules::{UnitConfig, UnitConfigs},
 };
 pub(crate) use constructions::ConstructionBuilding;
@@ -93,12 +93,14 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 
 /// The tables a side's corrections are read from.
 ///
-/// One per source of an `ICommonMechDataChangeDataSource`: officers and
-/// technologies today, equipment and the energy tower's skills when their
-/// tables are extracted.
+/// One per source of an `ICommonMechDataChangeDataSource`: officers,
+/// technologies and equipment today, the energy tower's skills when their
+/// table is extracted. The round is what an equipment's lifetime is read in.
 struct Loadouts {
     officers: OfficerEffects,
     technologies: TechnologyEffects,
+    equipment: EquipmentEffects,
+    round: i32,
 }
 
 pub(crate) fn compile_with_seed(
@@ -122,6 +124,8 @@ pub(crate) fn compile_with_seed(
     let loadouts = Loadouts {
         officers: OfficerEffects::load()?,
         technologies: TechnologyEffects::load()?,
+        equipment: EquipmentEffects::load()?,
+        round: plan.round,
     };
     let mut placements = compile_side("blue", 0, &plan.blue, units, &loadouts)?;
     placements.extend(compile_side("red", 1, &plan.red, units, &loadouts)?);
@@ -197,8 +201,8 @@ fn compile_formation(
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Result<Placement> {
-    // Equipment and travelling are claimed fields and were refused by
-    // the module registry before this ran; what is left is a placement that is
+    // Travelling is a claimed field and was refused by the module registry
+    // before this ran; what is left is a placement that is
     // not a unit at all.
     if !matches!(formation.native, NativeFormation::Unit(_)) {
         return Err(Error::new(format!(
@@ -218,6 +222,7 @@ fn compile_formation(
         side_name,
         &formation.type_name,
         level,
+        formation.equipment,
         rules,
         side,
         loadouts,
@@ -245,7 +250,7 @@ fn compile_formation(
     })
 }
 
-/// What this side's loadout writes onto one of its unit types.
+/// What this side's loadout and a formation's equipment write onto it.
 ///
 /// The corrections are resolved here as well as gathered, because this is
 /// where a refusal can still say whose side and which unit it is about. Once
@@ -255,6 +260,7 @@ fn loadout(
     side_name: &str,
     type_name: &str,
     level: i64,
+    equipment: Option<i32>,
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
@@ -269,6 +275,14 @@ fn loadout(
             .corrections(&side.techs.units, type_name)
             .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
     );
+    if let Some(id) = equipment {
+        corrections.extend(
+            loadouts
+                .equipment
+                .corrections(id, rules, loadouts.round)
+                .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
+        );
+    }
     let refused = |error: Error| {
         Error::new(format!(
             "side {side_name} unit type {type_name:?} carries a loadout this \
