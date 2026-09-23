@@ -12,25 +12,16 @@ The level is its own multiplier. It is not a correction and not one of the
 description's life and damage first, and every overlay applies to the
 product.
 
-`ConfigDataContainer.m_Structure.attributeUpgradeDatas` holds nine rows, and
-each rates life and damage at exactly its own level. Both columns store
-`FPoint` Q32.32 raw integers:
+A level-`n` unit, for `n` from 1 to 9, has `n` times its description's life
+and `n` times its description's damage.
 
-| Level | Life rating | Damage rating | Raw value in either column |
-| ---: | ---: | ---: | ---: |
-| 1 | 1 | 1 | 4294967296 |
-| 2 | 2 | 2 | 8589934592 |
-| 3 | 3 | 3 | 12884901888 |
-| 4 | 4 | 4 | 17179869184 |
-| 5 | 5 | 5 | 21474836480 |
-| 6 | 6 | 6 | 25769803776 |
-| 7 | 7 | 7 | 30064771072 |
-| 8 | 8 | 8 | 34359738368 |
-| 9 | 9 | 9 | 38654705664 |
-
-So the simulator multiplies by the level, and keeps no table of it. A build
-whose rows stop being their level is the change that would need one. A layout
-refuses a level outside one to nine by name, because there is no row for it.
+The game reads this from a table,
+`ConfigDataContainer.m_Structure.attributeUpgradeDatas`, whose nine rows are
+looked up by level. In this build every row's `lifeRating` and
+`damageRating` equals its own level, so the simulator multiplies by the level
+and keeps no table. A layout refuses a level outside
+one to nine by name, because there is no row for it. A build whose rows stop
+equalling their level is the change that would need the table.
 
 ## Where the level enters
 
@@ -42,8 +33,8 @@ integer to Q32.32, multiplies, then shifts back to an integer.
 returns the product as Q32.32 to `DamageProperty.RefreshBaseDamage`.
 `DamageProperty.CalculateBaseDamage` applies the skill's damage multiplier
 and adds its own damage before converting to an integer. `CalculateDamage`
-then applies dynamic skill and buff rates. The nine integer ratings make the
-unit's level multiplication exact; later damage conversions truncate.
+then applies dynamic skill and buff rates. Because every rating is a whole
+number, the level's product is exact; only later damage conversions truncate.
 
 The stable source symbols are `FightMech.GetBaseLife`,
 `FightMech.GetBaseDamage`, `IMechLevelData.GetLifeRating`,
