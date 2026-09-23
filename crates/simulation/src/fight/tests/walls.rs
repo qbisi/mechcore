@@ -16,8 +16,7 @@ fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
         &config.units,
     )
     .unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     let state = |simulation: &Simulation| {
         simulation
             .actors
@@ -67,8 +66,7 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
         &config.units,
     )
     .unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     for step in 0..145 {
         simulation.step(step).unwrap();
     }
@@ -112,8 +110,7 @@ fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
         &config.units,
     )
     .unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     let read = |simulation: &Simulation, id: u64| simulation.actors[&id].snapshot();
     for step in 0..96 {
         simulation.step(step).unwrap();
@@ -157,8 +154,7 @@ fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
         &config.units,
     )
     .unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     for step in 0..2 {
         simulation.step(step).unwrap();
     }

@@ -24,8 +24,10 @@ life and chooses the buff the tower's loss writes. Both come from
 | 3 | 131400 | 4 | 3 s, 60 ticks |
 | 4 | 235400 | 5 | 1 s, 20 ticks |
 
-The map's own 3400 is in `config/training_ground.yaml`. Level 0's buff is
-id 1, which no strengthen row names: the recordings read its 180 ticks.
+The map's own 3400, with each tower's place and size, opens the same file:
+the container does not carry them, so they were measured on a capture and are
+kept by hand. Level 0's buff is id 1, which no strengthen row names: the
+recordings read its 180 ticks.
 
 ## What a loss writes
 

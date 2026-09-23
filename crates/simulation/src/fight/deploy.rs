@@ -170,12 +170,11 @@ pub(in crate::fight) fn initialize_actors(
 /// order the map lists a side's towers, which is the order its levels are
 /// written in.
 fn map_buildings(
-    training_ground: &TrainingGroundConfig,
+    towers: &TowersConfig,
     tower_levels: &BTreeMap<u32, Vec<u8>>,
-    towers: &Towers,
 ) -> Result<Vec<RawBuilding>> {
     let mut seen = BTreeMap::<u32, usize>::new();
-    training_ground
+    towers
         .buildings
         .iter()
         .map(|building| {
@@ -216,12 +215,11 @@ fn map_buildings(
 /// `tower_strengthen_levels` is written in: a level adds its life and chooses
 /// the buff the tower's loss writes.
 pub(in crate::fight) fn initialize_buildings(
-    training_ground: &TrainingGroundConfig,
+    towers: &TowersConfig,
     constructions: &[ConstructionBuilding],
     tower_levels: &BTreeMap<u32, Vec<u8>>,
-    towers: &Towers,
 ) -> Result<InitialBuildings> {
-    let mut raw = map_buildings(training_ground, tower_levels, towers)?;
+    let mut raw = map_buildings(towers, tower_levels)?;
     raw.extend(constructions.iter().map(|building| RawBuilding {
         team_id: building.team,
         building_type_id: building.building_type_id,

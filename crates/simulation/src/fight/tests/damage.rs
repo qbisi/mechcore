@@ -421,13 +421,8 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation = Simulation::new(
-        &layout,
-        &config.units,
-        &config.training_ground,
-        1_787_555_163,
-    )
-    .unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
     let mut millimeter_path = None;
     let mut raw_x = Vec::new();
     let mut millimeter_x = Vec::new();

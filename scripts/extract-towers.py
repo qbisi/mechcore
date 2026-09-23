@@ -17,6 +17,11 @@ not tracked). Two of its lists are read:
 
 Rates and durations are written as the FPoint raw integers the build stores,
 with a comment reading each one. `docs/rules/towers.md` states what they mean.
+
+The same file opens with the map's four towers, `buildings:`, which the export
+does not carry: `CrystalElement` takes a `TowerDefaultData` the container does
+not hold, so their places, life and size were measured on a capture. That
+block is kept by hand, and this script carries it through unchanged.
 """
 
 import json
@@ -43,6 +48,16 @@ def reading(value):
     return f"  # {text}"
 
 
+def map_block():
+    """The hand-kept `buildings:` block of the current table, verbatim."""
+    lines = OUTPUT.read_text().splitlines()
+    start = lines.index("buildings:")
+    end = start + 1
+    while end < len(lines) and lines[end].startswith((" ", "#")):
+        end += 1
+    return lines[start:end]
+
+
 def render(structure):
     buffs = {row["id"]: row for row in structure["buffDatas"]}
     levels = sorted(structure["towerStrengthenDatas"], key=lambda row: row["level"])
@@ -66,9 +81,17 @@ def render(structure):
         "schema: mechcore.towers",
         f"game_build: {BUILD}",
         "",
-        "# What strengthening a tower and losing one do, read out of",
-        "# ConfigDataContainer by scripts/extract-towers.py. docs/rules/towers.md",
-        "# states what each field means. A rate is an FPoint Q32.32 raw integer:",
+        "# The map's towers, what strengthening one does and what losing one",
+        "# writes on its side. docs/rules/towers.md states what each field means.",
+        "",
+        "# The four towers as the Training Ground places them: team, building",
+        "# type (1 the Energy Tower, 2 the Research Center), centre in metres,",
+        "# life, half-width. ConfigDataContainer does not carry them, so they were",
+        "# measured on a capture and are kept by hand.",
+        *map_block(),
+        "",
+        "# Everything below is read out of ConfigDataContainer by",
+        "# scripts/extract-towers.py. A rate is an FPoint Q32.32 raw integer:",
         "# -3865470566 is -0.9.",
         "",
         "# The buff a tower's loss writes on its side: buffDatas ids 1 to 5, one",

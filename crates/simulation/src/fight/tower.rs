@@ -1,8 +1,9 @@
 //! What strengthening a tower does to it, and what losing one writes on its
 //! side.
 //!
-//! `config/towers.yaml` is the build's own table, extracted by
-//! `scripts/extract-towers.py`, and `docs/rules/towers.md` states the rule.
+//! `config/towers.yaml`, read as [`TowersConfig`], holds the map's towers and
+//! the build's strengthen and buff rows, and `docs/rules/towers.md` states the
+//! rule.
 //! A tower's strengthen level adds life and chooses the buff its loss writes:
 //! `buffDatas` 1 to 5, one buff that differs only in how long it lasts.
 //!
@@ -15,69 +16,16 @@
 //! runs last in `FightMech.Update`, after the skill and the motion, and a buff
 //! ends on the update its elapsed ticks reach its duration.
 
-use serde::Deserialize;
-
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
+    rules::{TowerLevel, TowersConfig},
 };
 
 use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND};
 
-const TOWERS: &str = include_str!("../../../../config/towers.yaml");
-
 /// The module that tags what a buff writes, so that its end takes it away.
 pub(in crate::fight) const SOURCE: &str = "BuffSystem";
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Table {
-    schema: String,
-    game_build: String,
-    destroyed_buff: DestroyedBuff,
-    levels: Vec<Row>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "the buff row's flags are independent fields"
-)]
-struct DestroyedBuff {
-    name: String,
-    buff_divide: i32,
-    additive: bool,
-    max_additive_stack: i32,
-    can_affect_construction: bool,
-    /// `isClearSelfBuffWhenDisableTech`. Nothing this simulator places
-    /// disables a unit's technologies, so nothing reads it.
-    #[allow(dead_code, reason = "no mechanism here disables technologies")]
-    clear_when_technologies_disabled: bool,
-    move_speed_rate: i64,
-    damage_rate: i64,
-    amplify_damage_rate: i64,
-}
-
-#[derive(Debug, Clone, Copy, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Row {
-    level: u8,
-    life: i64,
-    #[allow(
-        dead_code,
-        reason = "which row it is; the duration is what the fight reads"
-    )]
-    buff: i32,
-    duration: u32,
-}
-
-/// The tower table, as the fight reads it.
-#[derive(Debug, Clone)]
-pub(in crate::fight) struct Towers {
-    buff: DestroyedBuff,
-    levels: Vec<Row>,
-}
 
 /// A buff running on a unit: `Buff.durationTime` against `maxDurationtime`,
 /// both in ticks.
@@ -96,40 +44,8 @@ pub(in crate::fight) struct TowerLoss {
     pub(in crate::fight) ticks: u32,
 }
 
-impl Towers {
-    pub(in crate::fight) fn load() -> Result<Self> {
-        let table: Table = serde_yaml::from_str(TOWERS)
-            .map_err(|error| Error::new(format!("cannot read the tower table: {error}")))?;
-        if table.schema != "mechcore.towers" || table.game_build.trim().is_empty() {
-            return Err(Error::new(
-                "the tower table is not the one this build reads",
-            ));
-        }
-        if !table
-            .levels
-            .iter()
-            .enumerate()
-            .all(|(index, level)| usize::from(level.level) == index)
-        {
-            return Err(Error::new(
-                "the tower table's levels are not 0 onwards in order",
-            ));
-        }
-        // `maxAdditiveStack` bounds how many times an additive buff is
-        // lengthened. Zero is the tower's row, and no bound is read for it.
-        if table.destroyed_buff.max_additive_stack != 0 {
-            return Err(Error::new(format!(
-                "{} bounds its additive stack, which is not read",
-                table.destroyed_buff.name
-            )));
-        }
-        Ok(Self {
-            buff: table.destroyed_buff,
-            levels: table.levels,
-        })
-    }
-
-    fn level(&self, level: u8) -> Result<&Row> {
+impl TowersConfig {
+    fn level(&self, level: u8) -> Result<&TowerLevel> {
         self.levels
             .get(usize::from(level))
             .ok_or_else(|| Error::new(format!("a tower has no strengthen level {level}")))
@@ -155,7 +71,7 @@ impl Towers {
     /// Whether the buff reaches a construction whose row lets a tower's buff
     /// reach it.
     pub(in crate::fight) const fn reaches_constructions(&self) -> bool {
-        self.buff.can_affect_construction
+        self.destroyed_buff.can_affect_construction
     }
 
     /// What the buff writes, in the buff channel.
@@ -174,9 +90,12 @@ impl Towers {
             }
         };
         [
-            (Index::MoveSpeed, self.buff.move_speed_rate),
-            (Index::AttackDamage, self.buff.damage_rate),
-            (Index::AmplifyDamage, self.buff.amplify_damage_rate),
+            (Index::MoveSpeed, self.destroyed_buff.move_speed_rate),
+            (Index::AttackDamage, self.destroyed_buff.damage_rate),
+            (
+                Index::AmplifyDamage,
+                self.destroyed_buff.amplify_damage_rate,
+            ),
         ]
         .into_iter()
         .filter(|(_, raw)| *raw != 0)
@@ -224,8 +143,8 @@ impl Simulation {
             }
         }
         let entries = self.towers.entries();
-        let divide = self.towers.buff.buff_divide;
-        let additive = self.towers.buff.additive;
+        let divide = self.towers.destroyed_buff.buff_divide;
+        let additive = self.towers.destroyed_buff.additive;
         let actor_ids = self
             .actors
             .iter()
@@ -318,14 +237,13 @@ impl Simulation {
 
 #[cfg(test)]
 mod tests {
-    use super::Towers;
 
     /// Rows 1 to 5 last 9, 7, 5, 3 and 1 seconds, and the tower-loss fights
     /// read 180, 140, 100, 60 and 20 ticks; a level's life adds up its row and
     /// every row below it on top of the map's 3400.
     #[test]
     fn a_level_chooses_the_loss_and_adds_the_life() {
-        let towers = Towers::load().unwrap();
+        let towers = crate::rules::SimulationConfig::load().unwrap().towers;
         let ticks = (0..=4)
             .map(|level| towers.loss_ticks(level).unwrap())
             .collect::<Vec<_>>();

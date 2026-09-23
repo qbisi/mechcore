@@ -26,8 +26,8 @@ use crate::{
     Error, Result,
     layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
-        AttackConfig, AttackPath, AttackTargets, Magazine, RvoSize, SimulationConfig,
-        TrainingGroundConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
+        AttackConfig, AttackPath, AttackTargets, Magazine, RvoSize, SimulationConfig, TowersConfig,
+        UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
     },
 };
 
@@ -62,7 +62,7 @@ pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSum
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
 use skill::{FightSkillPhase, Launch, Skill, SkillUpdate};
-use tower::{RunningBuff, TowerLoss, Towers};
+use tower::{RunningBuff, TowerLoss};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
 
@@ -226,7 +226,7 @@ struct Simulation {
     /// The constructions whose skill fires, by building.
     constructions: BTreeMap<u64, Construction>,
     /// The tower table: what a strengthen level adds, what a loss writes.
-    towers: Towers,
+    towers: TowersConfig,
     /// What each tower's fall writes, by building.
     tower_losses: BTreeMap<u64, TowerLoss>,
     /// The constructions a tower's loss would reach, by building.
@@ -238,10 +238,10 @@ impl Simulation {
     fn new(
         layout: &CompiledLayout,
         configs: &UnitConfigs,
-        training_ground: &TrainingGroundConfig,
+        towers: &TowersConfig,
         seed: i32,
     ) -> Result<Self> {
-        let mut simulation = Self::new_unprepared(layout, configs, training_ground, seed)?;
+        let mut simulation = Self::new_unprepared(layout, configs, towers, seed)?;
         simulation.initialize_presearch_targets()?;
         Ok(simulation)
     }
@@ -249,7 +249,7 @@ impl Simulation {
     fn new_unprepared(
         layout: &CompiledLayout,
         configs: &UnitConfigs,
-        training_ground: &TrainingGroundConfig,
+        towers: &TowersConfig,
         seed: i32,
     ) -> Result<Self> {
         for placement in &layout.placements {
@@ -264,19 +264,13 @@ impl Simulation {
                 .ensure_current_kernel_support()?;
         }
         let actors = initialize_actors(layout, configs, seed)?;
-        let towers = Towers::load()?;
         let InitialBuildings {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
             tower_losses,
             tower_buffed_constructions,
-        } = initialize_buildings(
-            training_ground,
-            &layout.constructions,
-            &layout.tower_levels,
-            &towers,
-        )?;
+        } = initialize_buildings(towers, &layout.constructions, &layout.tower_levels)?;
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let mut simulation = Self {
@@ -294,7 +288,7 @@ impl Simulation {
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
             constructions,
-            towers,
+            towers: towers.clone(),
             tower_losses,
             tower_buffed_constructions,
         };

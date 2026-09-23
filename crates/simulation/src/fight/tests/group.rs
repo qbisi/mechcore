@@ -43,8 +43,7 @@ fn grouped_skills_prime_one_attack_interval_sample_per_child() {
             },
         ],
     );
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.training_ground, 7).unwrap();
+    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 7).unwrap();
 
     let blue = simulation.team_random.get_mut(&0).unwrap();
     assert_eq!([blue.next_in_range(4), blue.next_in_range(4)], [-1, -2]);
@@ -69,13 +68,8 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
         ),
     ] {
         let (_, layout) = crate::layout::compile_with_seed(yaml, &config.units).unwrap();
-        let mut sim = Simulation::new(
-            &layout,
-            &config.units,
-            &config.training_ground,
-            1_787_857_041,
-        )
-        .unwrap();
+        let mut sim =
+            Simulation::new(&layout, &config.units, &config.towers, 1_787_857_041).unwrap();
         for step in 0..ticks {
             sim.step(step).unwrap();
             if ticks == 10 && step == 9 {
@@ -174,8 +168,7 @@ fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
         &config.units,
     )
     .unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.training_ground, 4242).unwrap();
+    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     let slots_at = |simulation: &mut Simulation, tick: u64, done: &mut u64| {
         while *done < tick {
             simulation.step(*done).unwrap();
@@ -325,13 +318,8 @@ mod oracle {
             let (_, layout) =
                 crate::layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
                     .unwrap();
-            let mut sim = Simulation::new(
-                &layout,
-                &config.units,
-                &config.training_ground,
-                1_787_857_041,
-            )
-            .unwrap();
+            let mut sim =
+                Simulation::new(&layout, &config.units, &config.towers, 1_787_857_041).unwrap();
             let mut replay = Replay::default();
             for index in 0..capture.len() {
                 let entry = capture.entry(index).unwrap();

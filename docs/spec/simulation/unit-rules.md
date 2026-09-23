@@ -145,7 +145,7 @@ native state machine quantizes and consumes them separately.
 ## The configuration a simulation reads
 
 The configuration travels with the binary: `config.yaml`,
-`training_ground.yaml` and one file per unit under `units/` are compiled in. A
+`towers.yaml` and one file per unit under `units/` are compiled in. A
 simulation reads no configuration from disk, so a binary simulates the build it
 carries and nothing else, wherever it runs.
 
