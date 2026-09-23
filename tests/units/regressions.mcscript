@@ -685,6 +685,13 @@ steps:
       hashes.physics_result_hash: b6b39d590298bc18a94ff4598035dfdb691770ec57bef2930ef80b115736b947
       hashes.content_result_hash: 027d734ae04080ca42e1b36eb833c26a10b8e784f9c59a6c1970e199882efcf9
   - fight.run:
+      layout: tests/units/stormcaller/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 301
+      hashes.physics_result_hash: ce8177524e4d17156b8a42ffd630d09863ff903008757753057845f164665457
+      hashes.content_result_hash: 5c00cc3d0206ce4245148fecc9c3aed5b57a4138493573118ae78598b829a497
+  - fight.run:
       layout: tests/units/stormcaller/m4-wasp.yaml
       seed: 4242
     expect:
@@ -712,6 +719,13 @@ steps:
       steps: 272
       hashes.physics_result_hash: e00d722a361c08ee199443f6e7392f6295d6c8c85a5f8b7b2131340ba8403948
       hashes.content_result_hash: 3540badbc38ecf9b679a15342a1e0db41d36a546815dc7e98e80306c2370e3b6
+  - fight.run:
+      layout: tests/units/stormcaller/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 449
+      hashes.physics_result_hash: b3d06e379c3a58676010816aef751bd12ae204178c996d62206f5c9327b60d81
+      hashes.content_result_hash: 7fd31cfe5aa5a54ca0bd629440f10ed8b0d5e0e307c5f44e0648613ab884187e
   # phoenix
   - fight.run:
       layout: tests/units/phoenix/m1-mirror.yaml

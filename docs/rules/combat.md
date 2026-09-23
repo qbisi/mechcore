@@ -372,6 +372,14 @@ Tower death lands later than that tick's `DeadEffectSystem.Update`, so one drain
 tick is still required. Once the fight meets the finish gate, no further RVO
 runs.
 
+On the tick a side loses its last unit, the winner's units may be handed one
+of the loser's towers for that tick, and turn toward it. What the loser's own
+last units were attacking does not decide whether that happens: a Stormcaller
+killed while it attacked a tower still leaves the Crawlers that update after
+its killer a step turned toward a tower. Which of the winner's units are
+handed a tower is the simulator's `natural_finish_handoff`, not read from the
+build.
+
 **Not covered.** Multi-member and multi-group fights, summons, respawns,
 Construction, shields, and mixed damage inside one tick.
 
