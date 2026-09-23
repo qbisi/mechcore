@@ -1,0 +1,17 @@
+kind: layout
+round: 1
+
+# M3: a swarm of ground targets, which cannot hit back.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields three formations.
+
+blue:
+  units:
+    - {name: phoenix, index: 0, position: {x: 0, y: -180}}
+    - {name: phoenix, index: 1, position: {x: 0, y: -140}}
+    - {name: phoenix, index: 2, position: {x: 0, y: -100}}
+
+red:
+  units:
+    - {name: crawler, index: 0, position: {x: 5, y: -100}}

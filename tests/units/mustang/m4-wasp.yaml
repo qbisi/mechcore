@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M4: a ground unit against air units.
+
+blue:
+  units:
+    - {name: mustang, index: 0, position: {x: 5, y: -100}}
+
+red:
+  units:
+    - {name: wasp, index: 0, position: {x: 5, y: -100}}
