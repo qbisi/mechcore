@@ -1,4 +1,4 @@
-# The reference units' standard layouts, recorded with two seeds each.
+# Every unit's standard layouts, recorded with two seeds each.
 #
 #   mechcore run tests/units/record.mcscript --check   parse without the game
 #   mechcore run tests/units/record.mcscript           record
@@ -61,6 +61,90 @@ steps:
         - {unit: marksman, name: m5-rotated, layout: tests/units/marksman/m5-rotated.yaml, seed: 1787720817}
         - {unit: marksman, name: m6-formations, layout: tests/units/marksman/m6-formations.yaml, seed: 4242}
         - {unit: marksman, name: m6-formations, layout: tests/units/marksman/m6-formations.yaml, seed: 1787720817}
+        - {unit: arclight, name: m1-mirror, layout: tests/units/arclight/m1-mirror.yaml, seed: 4242}
+        - {unit: arclight, name: m1-mirror, layout: tests/units/arclight/m1-mirror.yaml, seed: 1787720817}
+        - {unit: arclight, name: m2-rhino, layout: tests/units/arclight/m2-rhino.yaml, seed: 4242}
+        - {unit: arclight, name: m2-rhino, layout: tests/units/arclight/m2-rhino.yaml, seed: 1787720817}
+        - {unit: arclight, name: m3-crawler, layout: tests/units/arclight/m3-crawler.yaml, seed: 4242}
+        - {unit: arclight, name: m3-crawler, layout: tests/units/arclight/m3-crawler.yaml, seed: 1787720817}
+        - {unit: arclight, name: m4-wasp, layout: tests/units/arclight/m4-wasp.yaml, seed: 4242}
+        - {unit: arclight, name: m4-wasp, layout: tests/units/arclight/m4-wasp.yaml, seed: 1787720817}
+        - {unit: arclight, name: m5-rotated, layout: tests/units/arclight/m5-rotated.yaml, seed: 4242}
+        - {unit: arclight, name: m5-rotated, layout: tests/units/arclight/m5-rotated.yaml, seed: 1787720817}
+        - {unit: arclight, name: m6-formations, layout: tests/units/arclight/m6-formations.yaml, seed: 4242}
+        - {unit: arclight, name: m6-formations, layout: tests/units/arclight/m6-formations.yaml, seed: 1787720817}
+        - {unit: fang, name: m1-mirror, layout: tests/units/fang/m1-mirror.yaml, seed: 4242}
+        - {unit: fang, name: m1-mirror, layout: tests/units/fang/m1-mirror.yaml, seed: 1787720817}
+        - {unit: fang, name: m2-rhino, layout: tests/units/fang/m2-rhino.yaml, seed: 4242}
+        - {unit: fang, name: m2-rhino, layout: tests/units/fang/m2-rhino.yaml, seed: 1787720817}
+        - {unit: fang, name: m3-crawler, layout: tests/units/fang/m3-crawler.yaml, seed: 4242}
+        - {unit: fang, name: m3-crawler, layout: tests/units/fang/m3-crawler.yaml, seed: 1787720817}
+        - {unit: fang, name: m4-wasp, layout: tests/units/fang/m4-wasp.yaml, seed: 4242}
+        - {unit: fang, name: m4-wasp, layout: tests/units/fang/m4-wasp.yaml, seed: 1787720817}
+        - {unit: fang, name: m5-rotated, layout: tests/units/fang/m5-rotated.yaml, seed: 4242}
+        - {unit: fang, name: m5-rotated, layout: tests/units/fang/m5-rotated.yaml, seed: 1787720817}
+        - {unit: fang, name: m6-formations, layout: tests/units/fang/m6-formations.yaml, seed: 4242}
+        - {unit: fang, name: m6-formations, layout: tests/units/fang/m6-formations.yaml, seed: 1787720817}
+        - {unit: mustang, name: m1-mirror, layout: tests/units/mustang/m1-mirror.yaml, seed: 4242}
+        - {unit: mustang, name: m1-mirror, layout: tests/units/mustang/m1-mirror.yaml, seed: 1787720817}
+        - {unit: mustang, name: m2-rhino, layout: tests/units/mustang/m2-rhino.yaml, seed: 4242}
+        - {unit: mustang, name: m2-rhino, layout: tests/units/mustang/m2-rhino.yaml, seed: 1787720817}
+        - {unit: mustang, name: m3-crawler, layout: tests/units/mustang/m3-crawler.yaml, seed: 4242}
+        - {unit: mustang, name: m3-crawler, layout: tests/units/mustang/m3-crawler.yaml, seed: 1787720817}
+        - {unit: mustang, name: m4-wasp, layout: tests/units/mustang/m4-wasp.yaml, seed: 4242}
+        - {unit: mustang, name: m4-wasp, layout: tests/units/mustang/m4-wasp.yaml, seed: 1787720817}
+        - {unit: mustang, name: m5-rotated, layout: tests/units/mustang/m5-rotated.yaml, seed: 4242}
+        - {unit: mustang, name: m5-rotated, layout: tests/units/mustang/m5-rotated.yaml, seed: 1787720817}
+        - {unit: mustang, name: m6-formations, layout: tests/units/mustang/m6-formations.yaml, seed: 4242}
+        - {unit: mustang, name: m6-formations, layout: tests/units/mustang/m6-formations.yaml, seed: 1787720817}
+        - {unit: steel_ball, name: m1-mirror, layout: tests/units/steel_ball/m1-mirror.yaml, seed: 4242}
+        - {unit: steel_ball, name: m1-mirror, layout: tests/units/steel_ball/m1-mirror.yaml, seed: 1787720817}
+        - {unit: steel_ball, name: m2-rhino, layout: tests/units/steel_ball/m2-rhino.yaml, seed: 4242}
+        - {unit: steel_ball, name: m2-rhino, layout: tests/units/steel_ball/m2-rhino.yaml, seed: 1787720817}
+        - {unit: steel_ball, name: m3-crawler, layout: tests/units/steel_ball/m3-crawler.yaml, seed: 4242}
+        - {unit: steel_ball, name: m3-crawler, layout: tests/units/steel_ball/m3-crawler.yaml, seed: 1787720817}
+        - {unit: steel_ball, name: m4-wasp, layout: tests/units/steel_ball/m4-wasp.yaml, seed: 4242}
+        - {unit: steel_ball, name: m4-wasp, layout: tests/units/steel_ball/m4-wasp.yaml, seed: 1787720817}
+        - {unit: steel_ball, name: m5-rotated, layout: tests/units/steel_ball/m5-rotated.yaml, seed: 4242}
+        - {unit: steel_ball, name: m5-rotated, layout: tests/units/steel_ball/m5-rotated.yaml, seed: 1787720817}
+        - {unit: steel_ball, name: m6-formations, layout: tests/units/steel_ball/m6-formations.yaml, seed: 4242}
+        - {unit: steel_ball, name: m6-formations, layout: tests/units/steel_ball/m6-formations.yaml, seed: 1787720817}
+        - {unit: wraith, name: m1-mirror, layout: tests/units/wraith/m1-mirror.yaml, seed: 4242}
+        - {unit: wraith, name: m1-mirror, layout: tests/units/wraith/m1-mirror.yaml, seed: 1787720817}
+        - {unit: wraith, name: m2-rhino, layout: tests/units/wraith/m2-rhino.yaml, seed: 4242}
+        - {unit: wraith, name: m2-rhino, layout: tests/units/wraith/m2-rhino.yaml, seed: 1787720817}
+        - {unit: wraith, name: m3-crawler, layout: tests/units/wraith/m3-crawler.yaml, seed: 4242}
+        - {unit: wraith, name: m3-crawler, layout: tests/units/wraith/m3-crawler.yaml, seed: 1787720817}
+        - {unit: wraith, name: m4-marksman, layout: tests/units/wraith/m4-marksman.yaml, seed: 4242}
+        - {unit: wraith, name: m4-marksman, layout: tests/units/wraith/m4-marksman.yaml, seed: 1787720817}
+        - {unit: wraith, name: m5-rotated, layout: tests/units/wraith/m5-rotated.yaml, seed: 4242}
+        - {unit: wraith, name: m5-rotated, layout: tests/units/wraith/m5-rotated.yaml, seed: 1787720817}
+        - {unit: wraith, name: m6-formations, layout: tests/units/wraith/m6-formations.yaml, seed: 4242}
+        - {unit: wraith, name: m6-formations, layout: tests/units/wraith/m6-formations.yaml, seed: 1787720817}
+        - {unit: stormcaller, name: m1-mirror, layout: tests/units/stormcaller/m1-mirror.yaml, seed: 4242}
+        - {unit: stormcaller, name: m1-mirror, layout: tests/units/stormcaller/m1-mirror.yaml, seed: 1787720817}
+        - {unit: stormcaller, name: m2-rhino, layout: tests/units/stormcaller/m2-rhino.yaml, seed: 4242}
+        - {unit: stormcaller, name: m2-rhino, layout: tests/units/stormcaller/m2-rhino.yaml, seed: 1787720817}
+        - {unit: stormcaller, name: m3-crawler, layout: tests/units/stormcaller/m3-crawler.yaml, seed: 4242}
+        - {unit: stormcaller, name: m3-crawler, layout: tests/units/stormcaller/m3-crawler.yaml, seed: 1787720817}
+        - {unit: stormcaller, name: m4-wasp, layout: tests/units/stormcaller/m4-wasp.yaml, seed: 4242}
+        - {unit: stormcaller, name: m4-wasp, layout: tests/units/stormcaller/m4-wasp.yaml, seed: 1787720817}
+        - {unit: stormcaller, name: m5-rotated, layout: tests/units/stormcaller/m5-rotated.yaml, seed: 4242}
+        - {unit: stormcaller, name: m5-rotated, layout: tests/units/stormcaller/m5-rotated.yaml, seed: 1787720817}
+        - {unit: stormcaller, name: m6-formations, layout: tests/units/stormcaller/m6-formations.yaml, seed: 4242}
+        - {unit: stormcaller, name: m6-formations, layout: tests/units/stormcaller/m6-formations.yaml, seed: 1787720817}
+        - {unit: phoenix, name: m1-mirror, layout: tests/units/phoenix/m1-mirror.yaml, seed: 4242}
+        - {unit: phoenix, name: m1-mirror, layout: tests/units/phoenix/m1-mirror.yaml, seed: 1787720817}
+        - {unit: phoenix, name: m2-rhino, layout: tests/units/phoenix/m2-rhino.yaml, seed: 4242}
+        - {unit: phoenix, name: m2-rhino, layout: tests/units/phoenix/m2-rhino.yaml, seed: 1787720817}
+        - {unit: phoenix, name: m3-crawler, layout: tests/units/phoenix/m3-crawler.yaml, seed: 4242}
+        - {unit: phoenix, name: m3-crawler, layout: tests/units/phoenix/m3-crawler.yaml, seed: 1787720817}
+        - {unit: phoenix, name: m4-marksman, layout: tests/units/phoenix/m4-marksman.yaml, seed: 4242}
+        - {unit: phoenix, name: m4-marksman, layout: tests/units/phoenix/m4-marksman.yaml, seed: 1787720817}
+        - {unit: phoenix, name: m5-rotated, layout: tests/units/phoenix/m5-rotated.yaml, seed: 4242}
+        - {unit: phoenix, name: m5-rotated, layout: tests/units/phoenix/m5-rotated.yaml, seed: 1787720817}
+        - {unit: phoenix, name: m6-formations, layout: tests/units/phoenix/m6-formations.yaml, seed: 4242}
+        - {unit: phoenix, name: m6-formations, layout: tests/units/phoenix/m6-formations.yaml, seed: 1787720817}
 
   - foreach: {fight: $fights}
     steps:

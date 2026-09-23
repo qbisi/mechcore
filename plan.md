@@ -108,9 +108,9 @@ rhino、crawler 各有几十场钉住的对局，mustang、wasp、phoenix 各只
    U 本身就是对手的那一格（rhino 的 M2、crawler 的 M3）与 M1 重合，不另录。
 
    **标准布阵要在任何一座塔倒下之前结束。** 塔被摧毁会给那一方挂减益，这是另一个机制，
-   不属于单位。打不到对面的一方会走去拆塔，所以这种格子里能打的一方出三个编队（rhino
-   或 crawler 对三个 wasp 编队、三个 wasp 编队对 rhino 或 crawler），M5 的目标放得比敌方
-   两座塔都近。只用一个 wasp 编队、或者目标放远时，参照单位的这 16 场录像全都在塔倒下
+   不属于单位。打不到对面的一方会走去拆塔，所以这种格子里能打的一方出足够多的编队，
+   在塔倒下之前赢（rhino 或 crawler 对三个 wasp 编队、三个 wasp 编队对 rhino 或 crawler、
+   五个 wraith 编队对 rhino——三个时塔先倒了），M5 的目标放得比敌方两座塔都近。只用一个 wasp 编队、或者目标放远时，参照单位的这 16 场录像全都在塔倒下
    那一 tick 与模拟器分开。
 2. 反编译里 U 不带科技就有的每个技能，要么被某个布阵复现，要么按名拒绝；U 身上有
    按名拒绝的技能，就不算。
@@ -134,6 +134,14 @@ farseer 19、typhoon 17、scorpion 12、hacker 7。问题按机制切，不按�
 rhino 的 M6（种子 1787720817）：后摇期间被挤出射程、下一 tick 回来的爬虫，要在回来的那一
 tick 就开始下一击，模拟器原先推迟了一 tick。不带科技时单位只有主技能（`FightMech` 构造时只加
 `mechData.GetMainSkillID()`，额外技能只经由科技），所以第 2 条由主攻击本身满足。
+
+**其余 7 个的进度。** arclight、fang、mustang、steel_ball、wraith、stormcaller、phoenix
+的 84 场录像里 65 场逐 tick 对上并钉住；arclight、mustang、phoenix 已达标。另外 19 场
+分在六个机制上，都不是单位自己的伤害或移动：钢球全歼对面时塔的拆除事件晚一 tick（6 场）、
+目标正前方时出生朝向的正负号（2 场）、旋转编队的列数（fang 的 2 场 M5）、最后一 tick
+胜方单位的转向（2 场）、fang M6 一处 0.0015 m/s 的速度差（1 场）、wraith 的分组武器搜索
+（5 场，外加 1 场被模拟器按名拒绝）。逐场的 tick 与分叉点见
+[`tests/units/`](tests/units/README.md)。
 
 ## 一、先定架构，否则并行不起来
 
