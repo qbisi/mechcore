@@ -4,9 +4,7 @@
 #
 # This needs no game. The hashes are what the game recorded with
 # `record.mcscript`, and the simulator reproduces each fight tick for tick,
-# physics and content, from the layout and the seed alone. One recording is
-# not here: the Rhino's M6 with seed 1787720817, where one Crawler's second
-# blow lands in the game and not in the simulator. README.md says which.
+# physics and content, from the layout and the seed alone.
 
 steps:
   # rhino
@@ -73,6 +71,13 @@ steps:
       steps: 377
       hashes.physics_result_hash: 4b8cb17bc9efed5856b723dc5034b2f7fb10a837396ba2d95d3b888db688a775
       hashes.content_result_hash: 70effa5e0e77061e75b3b67ae34c92da0fa55a5336e070f66f208ee3b876cd67
+  - fight.run:
+      layout: tests/units/rhino/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 386
+      hashes.physics_result_hash: 9b2927d73b9ed654d87ccaa91ee147c35a99ed6bbbcf007410b619961ebe9733
+      hashes.content_result_hash: 9759003bc0b210fa4e521f95d8ee6eb613458f9629c0327b56cfe1485b023e3a
   # crawler
   - fight.run:
       layout: tests/units/crawler/m1-mirror.yaml

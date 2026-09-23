@@ -419,7 +419,13 @@ per-call replay and the physics/content checks. Beyond the checker itself:
 - a state is not updated on the tick it is entered: the skill enters its
   prepare or attack state the tick the unit comes into range, even while its
   facing is still being corrected, and the first blow waits for the tick after
-  the prepare ends.
+  the prepare ends;
+- a skill already in its attack state starts its next blow when its interval
+  is up, whatever its motion does: a Crawler pushed out of reach during its
+  backswing and back on the next tick starts its next blow on the tick it
+  returns, as the game's skill-state capture of the Rhino's formation fight
+  reads (`tests/units/rhino/m6-formations.yaml`, seed 1787720817). Only
+  entering the attack state from idle waits a tick.
 
 With those, the stale-target, quick-switch-out-of-range and stale-replacement
 paths that answered a lock dying or walking away are gone: the checker answers

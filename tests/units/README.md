@@ -40,7 +40,7 @@ layouts use, so they are held to the definition first. Ticks per recording:
 | rhino | `m3-crawler` | 276 | 293 |
 | rhino | `m4-wasp` | 239 | 258 |
 | rhino | `m5-rotated` | 202 | 199 |
-| rhino | `m6-formations` | 377 | 386 (not pinned) |
+| rhino | `m6-formations` | 377 | 386 |
 | crawler | `m1-mirror` | 368 | 345 |
 | crawler | `m2-rhino` | 313 | 304 |
 | crawler | `m4-wasp` | 417 | 404 |
@@ -59,14 +59,12 @@ layouts use, so they are held to the definition first. Ticks per recording:
 | marksman | `m5-rotated` | 203 | 201 |
 | marksman | `m6-formations` | 243 | 238 |
 
-43 of the 44 play back exactly and are pinned. The Rhino's M6 with seed
-1787720817 is not: every recorded field agrees through tick 121, and at
-tick 122 one Crawler's second blow on a Rhino lands in the game and not in
-the simulator, whose Crawler strikes again only at tick 156. Which of the
-simulator's bodyless-melee exits from the attack state drops it is an open
-research question; the recording and a skill-state capture of it are its
-oracle. Until it closes, the Rhino and the Crawler do not meet the
-definition; the Wasp and the Marksman do.
+All 44 play back exactly and are pinned, so all four reference units meet the
+definition. The Rhino's M6 with seed 1787720817 was the last: a Crawler pushed
+out of reach during its backswing, and back on the next tick, starts its next
+blow on the tick it returns, which a skill-state capture of the game read and
+the simulator had deferred a tick
+([`architecture.md`](../../docs/spec/simulation/architecture.md)).
 
 Without technology a unit has only its main skill: `FightMech`'s constructor
 adds one skill, `mechData.GetMainSkillID()`, and extra skills reach a mech
