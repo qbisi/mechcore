@@ -278,6 +278,10 @@ Q32 边缘距离、严格的最小射程排除、一个角度因子、一个超�
 塔的死亡晚于那个 tick 的 `DeadEffectSystem.Update`，所以仍然需要一个流失 tick。战斗
 一旦满足结束判定，就不再运行 RVO。
 
+`FightingState.Update` 每个 tick 在所有模块之后调用一次 `TryDstroyTower`，它不管最后
+一击是谁打的。钢球的激光击杀也一样拆掉败方的塔：击杀那一 tick 塔就没了，
+`building_destroyed` 落在下一 tick，也就是战斗的最后一 tick。
+
 **未覆盖。** 多成员与多编组的战斗、召唤、重生、建筑、护盾，以及同一 tick 内的混合
 伤害。
 
