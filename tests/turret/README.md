@@ -15,13 +15,11 @@ fires, at what, and how often. That is the half of a construction
 `skill.mcscript` records them with the `target_refs_v1` sidecar and records
 the head-on fight twice, requiring the two to be one recording.
 `arclights.mcscript` records the Arclight fight twice, requiring the two to be
-one recording. `regressions.mcscript` needs no game: it runs both Rapid-Fire
-fights and the Arclight fight through the simulator and holds them to the
-game's physics and content hashes. The Anti-Armor Crawler fight is not
-pinned. The simulator agrees with it through tick 1026, across blue's tower
-lost at 509 and red's at 771 ([`towers.md`](../../docs/rules/towers.md)). At
-1027 the Marksman's Crawler walks out of its range: the game ends the attack,
-and the simulator switches to a nearer Crawler.
+one recording. `regressions.mcscript` needs no game: it runs all four fights
+through the simulator and holds them to the game's physics and content hashes.
+The Anti-Armor Crawler fight runs through blue's tower lost at 509 and red's at
+771 ([`towers.md`](../../docs/rules/towers.md)), and at 1027 its Marksman ends
+its attack when its Crawler walks out of reach.
 
 ## What the build says a turret's skill is
 

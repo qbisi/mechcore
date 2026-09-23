@@ -187,26 +187,20 @@ looks for the next target, as it would for a unit that died. That is
 unlike a wall block that stood in the way of another lock, which keeps a Rhino
 attacking to the end of its swing ([`constructions.md`](constructions.md)). At
 tick 335 of the Anti-Armor fight, the four Crawlers mid-swing go idle holding
-building 3, and the one that was not mid-swing drops it and walks on. That
-fight is recorded but not pinned: the simulator agrees with it through tick
-1026, across two towers' losses, and parts at 1027 over which target the
-Marksman takes when its own walks out of range.
+building 3, and the one that was not mid-swing drops it and walks on. The
+fight plays back to its end, across two towers' losses
+([`towers.md`](towers.md)) and the Marksman ending its attack at 1027 when its
+Crawler walks out of reach ([`architecture.md`](../spec/simulation/architecture.md)).
 
 ## Scope
 
 Everything above is build 2259, the 1v1 board, round one, and the two turrets
 a layout can place. It covers them firing at ground units, with every timing
 the rows carry at zero. It holds the simulator to both Rapid-Fire fights,
-and to the Anti-Armor Arclight fight, physics and content. It agrees with the
-Anti-Armor Crawler fight through tick 1026, which is recorded and not pinned.
+and to both Anti-Armor fights, physics and content.
 
 It does not cover:
 
-- **The Anti-Armor Crawler fight after tick 1026.** There the Marksman's
-  Crawler walks out of its range and the game ends the attack where the
-  simulator switches to a nearer Crawler, which is not a turret's mechanism.
-  The Arclight fight asks the Anti-Armor Turret the same without a tower
-  falling.
 - **A turret beside an officer or a unit technology.** Whether either reaches a
   construction's skill is not read, so a side that places a turret and carries
   either is refused.
