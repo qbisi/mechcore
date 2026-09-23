@@ -132,25 +132,21 @@ moment is still open.
 ## Research
 
 A research question is sought, which is exactly what a finding is not. It has
-an owner once it is claimed, it has a size, and it has a definition of done
+an owner once it is worked, it has a size, and it has a definition of done
 written before anyone starts. `plan.md` describes the loop a mechanism is
 studied by; this section is how that loop is split between the one session
-that holds the game and the agents that answer questions without it.
+that holds the game, the **keeper**, and the agents it hands the work to.
 
 ### Why the game is the boundary
 
 One machine runs one game, and one process drives it: the Adapter serves one
 client, refuses a second at the same level, and a higher level takes the game
 by tearing down the capture in flight. So exactly one session records, and
-that session is the one that keeps `plan.md`: the **keeper**. Everything a
-question needs from the game is done before the question is published, and
-everything it turns out to need later is asked for, never taken.
-
-A **claimant** therefore never runs a script that declares `game:`.
-`mechcore run <script> --check` says whether one does, without touching
-anything. The Adapter's level check is what happens when this rule is broken,
-and it is a loss, not a safeguard: the keeper's next claim ends the claimant's
-capture unpublished.
+that session is the one that keeps `plan.md`. Every other agent never runs a
+script that declares `game:`; `mechcore run <script> --check` says whether one
+does, without touching anything. A recording an agent needs is asked of the
+keeper, which records it; the Adapter's level check is what happens when this
+rule is broken, and it is a loss, not a safeguard.
 
 ### Referring to other issues
 
@@ -171,175 +167,164 @@ repository's history.
 | --- | --- | --- |
 | the build's decompilation, one directory per build, and its symbol index as a release | [`qbisi/mechcore-decomp`](https://github.com/qbisi/mechcore-decomp), private, put under `work/decomp/<build>/` by `scripts/decomp.py sync`, which reuses what the machine already holds | a cloud session through GitHub: attached to the session or through the GitHub connector in Claude Code, through a read-only token in `MECHCORE_DECOMP_TOKEN` on that repository alone in Codex |
 | the native replays and the battle documents converted from them | [`qbisi/mechcore-replay`](https://github.com/qbisi/mechcore-replay), public, fetched by `scripts/replay.py sync` at the commit `replay/REPLAY_REV` pins | anyone |
-| the recordings and sidecars a question is answered against | a release of this repository named `oracle/issue-<n>`, one per question, published by `scripts/oracle.py` | anyone, while the question is open |
+| the recordings and sidecars a question is answered against | a release of this repository named `oracle/issue-<n>`, one per question, published by `scripts/oracle.py` | anyone |
 
 A recording is an unstable product: it is captured again when the build
-changes, added to when a claimant asks for more, and gone when its question
-closes. What the repository keeps of it is what reproduces it, the layout and
-the script under `tests/<topic>/`, and what it established, the hashes the
-topic's `regressions.mcscript` pins. The release is deleted when the issue
-closes, tag included, and no tracked document cites one; an issue and a
-commit message may.
+changes and added to when a question needs more. What the repository keeps of
+it is what reproduces it, the layout and the script under `tests/<topic>/`,
+and what it established, the hashes the topic's `regressions.mcscript` pins.
+The release outlives its issue, because it is the evidence behind those
+hashes: a pin whose recording is gone can be recorded again but not read
+again. It is deleted only when a re-recording has replaced what it holds. No
+tracked document cites a release; an issue and a commit message may.
 
-### What the keeper does before opening one
+### Cutting a question
 
-A claimant cannot record, and asking the keeper for a recording costs a round
-trip through the game and a wait, so a question is published with everything
-its hypotheses need already recorded.
+A question is published with everything its hypotheses need already recorded,
+because a recording asked for later costs a round trip through the one game.
+The keeper:
 
-1. **Cuts the question to one number or one decision**, and writes what each
+1. **Places it against what is open.** A question is placed by the modules
+   and files its answer will change. Two questions whose answers change the
+   same module are taken one after the other, not side by side, and a
+   question that needs another's answer waits for it. Parallel questions that
+   shared `modifier/` and the layout compiler blocked and rebased each other;
+   the overlap was visible before either was cut.
+2. **Cuts it to one number or one decision**, and writes what each
    hypothesis predicts for it, before recording. A question two hypotheses
    answer alike is not cut yet.
-2. **Reads the build**, and names in the issue what a claimant will read: the
-   class, the method, the address, the file under `mechcore-decomp`. The
-   reading's result is written as plainly as what it cannot answer, so the
-   claimant starts where the keeper stopped rather than from the beginning.
-3. **Designs the fixtures**: one layout per branch the hypotheses take, each
+3. **Reads the build**, and names in the issue what was read: the class, the
+   method, the address, the file under `mechcore-decomp`, and what the reading
+   cannot answer.
+4. **Designs the fixtures**: one layout per branch the hypotheses take, each
    with the reason it exists, and the script that records them with a
-   control. They are written into the issue, not into the repository: a
-   layout is right only once the recording it produced separated what it was
-   built to separate, and the claimant lands the ones that did, beside the
-   regressions that pin them, in the pull request that answers.
-4. **Records, and checks the coverage.** Every hypothesis has to differ from
+   control. They are written into the issue, not into the repository, until
+   the answer lands the ones that separated what they were built to separate.
+5. **Records, and checks the coverage.** Every hypothesis has to differ from
    every other in something a recording shows; a fight no hypothesis predicts
    differently is dropped, and a hypothesis no fight separates gets another
-   layout and another recording before the issue opens. Reading the
-   recordings for this is the keeper's, and what they show goes into the
-   issue beside the predictions.
-5. **Opens the issue** with the Research template, labelled `research`, the
-   layouts and the script inline. The `Touches` block names the modules the
-   answer may change; two open questions never share one, which is what makes
-   them answerable in parallel.
-6. **Publishes the oracle.** The files the script wrote under
+   layout and another recording before the issue opens.
+6. **Opens the issue** with the Research template, labelled `research`, the
+   layouts and the script inline. **The issue says what is observed, never how
+   to build it.** `Accept` names the recordings to reproduce, the pins, the
+   rule and the refusals; it does not name the module an answer must go
+   through, a table to add or a field to claim. That is decided from the
+   build at the structure step below, and an issue that prescribed it has
+   been wrong: one required a unit's level to be a config table read through
+   `Modifier`, and the build multiplies by the level. `Touches` is the
+   keeper's forecast, which placing questions reads; it is not a fence, and an
+   answer that needs a file outside it says so in its pull request.
+7. **Publishes the oracle.** The files the script wrote under
    `/tmp/mechcore/<topic>/<script>/` go to the release `oracle/issue-<n>` with
    `scripts/oracle.py publish <n> <path>...`, and the issue's `Oracle` block
    lists each file with its tick count and physics hash.
-7. **Labels it `claimable`.** The label says the oracle is published and the
-   layouts are in the issue, which is everything a claimant needs. A
-   `research` issue without it is not ready: the keeper is still cutting it,
-   or it is a blocker a claimant filed that nobody has recorded for yet.
 
-A question that needs a new instrumentation profile or a change to the Adapter
-is the keeper's own and is not published.
+A question the keeper's own agents work is not labelled further. A question
+offered to an agent outside the keeper's session is labelled `claimable`; see
+[Claiming from outside](#claiming-from-outside).
 
-### Claiming
+### Working a question
 
-A claimant claims only an issue labelled `claimable`, by opening a **draft**
-pull request from a branch named
-`research/<n>-<slug>`, based on master, whose body says which agent is
-working it and where, and ends with `Closes #<n>` before its `Co-Authored-By`
-trailer. The body is the commit master will hold, so it is written as one. The draft is the claim: an issue
-with a draft already open is taken, and a second claimant yields to the first.
-Assignment is not used, because every agent here acts through one account.
+The keeper works a question through agents it starts itself, each in a
+worktree of its own. They report to the keeper, not through GitHub: a claim, a
+label or a comment is ceremony between sessions that cannot talk, and these
+can.
 
-The claim is also where the working record lives. A claimant's clone dies with
-its session, so the discarded hypotheses, the first divergences and the ticks
-that decided go into the pull request's thread and the issue's, which outlive
-any checkout. That is the research directory of a claimed question.
-
-### Answering without the game
-
-1. `python3 scripts/oracle.py fetch <n>` puts the oracle's files exactly where
-   the record script would have written them, under `/tmp/mechcore/`. It uses
-   `gh` when one is signed in and plain HTTPS otherwise, because the release is
-   public.
-2. `mechcore fight verify <recording>...` simulates each recording's own
-   layout and names the first tick the simulator differs at; `mechcore fight
-   compare --fields <group>` reads the content layer. Iterate on the model
-   until the ticks agree, then on the reading until the rule says why.
-3. Land it the way `plan.md` says a mechanism lands: the rule and its scope in
+1. **Structure first.** A read-only agent reads the build for the mechanism
+   and returns a structure map: the build methods the answer mirrors, where
+   the build branches and on what (an override, a type test, a field such as
+   `SkillData.isMeleeAttack`), and which simulator functions already mirror
+   those methods. The keeper answers the four questions of
+   [Acceptance](#acceptance) against the map and writes the decision down
+   before any code: what changes, what is reused, what must not be added.
+   Most of what a review used to send back is decided here: a second skill
+   machine for constructions, a per-unit special case for a targeting
+   category, a table for a regularity.
+2. **Implement.** One agent per question, in a worktree on
+   `research/<n>-<slug>`, given the issue, the oracle
+   (`scripts/oracle.py fetch <n>`) and the structure decision. It iterates on
+   `mechcore fight verify` until the ticks agree, then lands the answer the
+   way `plan.md` says a mechanism lands: the rule and its scope in
    `docs/rules/`, the number's source stated, a refusal in the code for what
-   the scope does not cover, and under `tests/<topic>/` the issue's layouts
-   and record script, with the offline `regressions.mcscript` pinning each
-   oracle fight the simulator can run, physics and content hash both. A layout
-   the answer did not need stays in the issue. `work/research/README.md`'s two
-   gates decide what a rule may claim.
-4. Before every push: `cargo fmt --all`, the clippy and test lines
-   `AGENTS.md` names, and `scripts/check-scripts.sh`, which runs every offline
-   script and is the same loop CI runs. Every pin that held before has to
-   hold after; a pin that moves is a finding to explain, not a table to edit.
-5. Mark the pull request ready when the issue's `Accept` block holds. A commit
-   carries its model's `Co-Authored-By` trailer, as `AGENTS.md` requires.
+   the scope does not cover, and under `tests/<topic>/` the layouts and record
+   script the answer used, with the offline `regressions.mcscript` pinning
+   each oracle fight, physics and content hash both. `work/research/README.md`'s
+   two gates decide what a rule may claim. Every pin that held before holds
+   after; a pin that moves is a finding to explain, not a table to edit.
+3. **Captures on demand.** An agent that needs a recording does not work
+   around its absence, neither by computing a hash with the simulator nor by
+   special-casing the one unit that was recorded. It stops and returns a
+   capture request: the layout, the record script with an `expect` line per
+   hypothesis, and what it separates. The keeper records it, publishes it to
+   the question's release, and resumes the same agent with the hashes. **A
+   pinned hash always comes from a recording.** Captures run one at a time,
+   because there is one game.
+4. **Blockers are decided at once.** An agent that runs into a mechanism
+   outside the question returns the fixture, the first tick the simulator
+   parts from the recording, and what the recording shows there. The keeper
+   decides in the same session, and writes the decision into the pull
+   request's thread when there is one:
+   - **cut the blocker** as a research question of its own, and the blocked
+     question waits for it;
+   - **record around it**: a fixture that separates the same hypotheses
+     without reaching the blocker replaces the blocked one in the release,
+     published with `scripts/oracle.py publish` and the blocked recording
+     taken out with `scripts/oracle.py retract <n> <path>...`;
+   - **accept what holds**: the answer lands without the blocked fixture, and
+     the blocker is filed as [a finding](#a-finding).
+5. **A second agent reviews.** Before the keeper reads the branch, an agent
+   that did not write it reviews it against [Acceptance](#acceptance): the
+   four questions, every pinned hash traced to a file in the release, no
+   config table where the build's rows are a plain regularity, every earlier
+   pin unchanged. The keeper checks each finding and sends the real ones back
+   to the implementing agent.
+6. **The keeper opens the pull request**, from `research/<n>-<slug>`, its
+   title and body the commit master will hold, ending with `Closes #<n>`
+   before the `Co-Authored-By` trailers. It then asks the committer, as
+   [Acceptance](#acceptance) says.
 
-### Asking for a capture
+How many questions run at once is bounded by two things: the captures, which
+the one game takes one at a time, and the overlap between answers, which
+placing a question decides. Two or three is the usual depth.
 
-The oracle is meant to be enough, and a request is the exception: it costs
-the keeper a session at the game and the claimant a wait. When the oracle
-still cannot separate the hypotheses that remain, the claimant designs the
-fight that would, and asks for it:
+### Claiming from outside
 
-1. commits the layout and its record script under `tests/<topic>/` on the
-   branch, with the value each hypothesis predicts as an `expect` line;
-2. comments on the pull request what the fight separates, which hypotheses
-   the oracle left standing and why, and adds the label `capture`.
+An agent outside the keeper's session, a cloud session or another machine,
+can still answer a question labelled `claimable`. It claims one by opening a
+**draft** pull request from `research/<n>-<slug>`, based on master, whose
+body says which agent is working it and ends with `Closes #<n>`; the draft is
+the claim, and a second claimant yields to the first. The thread is its
+working record, since its checkout dies with its session. It answers as
+[Working a question](#working-a-question) steps 2 to 4 say, over GitHub
+instead of in a session:
 
-The keeper runs the script, publishes the files to the question's release,
-answers with the hashes and the tick counts, and removes the label. A capture
-that needs a field the current profiles do not read is a request for the
-keeper's own work, and the comment says which field.
+- it asks for a capture by committing the layout and its record script, with
+  the `expect` lines, under `tests/<topic>/` on the branch, saying in the
+  thread what the fight separates, and adding the label `capture`;
+- it reports a blocker by filing [a finding](#a-finding), pinning what holds,
+  writing `Blocked by #<m>` in the thread and leaving the draft a draft.
 
-### When a claim is blocked
-
-Finding a mechanism that stops an answer is a normal outcome of research, and
-the keeper cannot foresee every one when the fixtures are designed. When a
-fixture's recording runs into something outside the question's `Touches`, the
-claimant does not widen the question to take it in:
-
-1. files it as [a finding](#a-finding), which says which issue and which
-   fixture it blocks, the first tick the simulator parts from the recording,
-   and what the recording shows there;
-2. lands what holds: the fixtures the blocker does not reach are pinned, and
-   the blocked one stays unpinned, named in the pull request's body with the
-   finding;
-3. says so in the pull request's thread, `Blocked by #<m>`, and leaves the
-   pull request a draft.
-
-The blocker is not claimable when it is filed: it has no oracle. The keeper
-decides what happens to the claim, and the thread records the decision:
-
-- **cut the blocker** as a research question of its own, recorded,
-  published and labelled `claimable`, and the blocked claim waits for it;
-- **record around it**: a fixture that separates the same hypotheses without
-  reaching the blocker replaces the blocked one in the question's release,
-  published with `scripts/oracle.py publish` and the blocked recording taken
-  out with `scripts/oracle.py retract <n> <path>...`;
-- **accept what holds**: the claim is marked ready without the blocked
-  fixture, and the blocker is what remains when the issue closes.
+It marks the pull request ready when the issue's `Accept` block holds, and
+the keeper takes it from step 5.
 
 ### The keeper's loop
 
-The keeper follows one thing at a time. Several questions may be open and
-claimed, but the keeper's own attention is on one item, taken in this order
-when it wakes, and finished before the next is taken:
+The keeper follows one thing at a time, in this order:
 
-1. **A `capture` label** on a claimed pull request: record the script the
-   branch holds, publish to the question's release, answer with the hashes,
-   remove the label.
-2. **A pull request marked ready** that claims an issue and is green: read it
-   as [Acceptance](#acceptance) says, push what a small fix needs, then label
-   `accepted` or say what is missing. A pull request whose CI is red is left
-   to its claimant; the keeper runs nothing in its place.
-3. **A blocked claim**: a draft whose thread says `Blocked by` and has no
-   decision yet. Read the finding, decide as
-   [When a claim is blocked](#when-a-claim-is-blocked) says, and write the
-   decision in the thread. The keeper keeps knowing why every open question
-   and every draft is where it is; a blocked claim nobody decided is the
-   keeper's to move.
-4. **A merged claim**: delete the release with `scripts/oracle.py delete <n>`,
-   check the issue closed, and note in `plan.md` what the answer moved.
-5. **Fewer than three questions open**: cut the next one, from `plan.md`'s
-   order, and take it through the steps above, until three stand open,
-   claimed or not. Three is the depth a claimant can pick from without the
-   keeper being asked; it is not held to when one question blocks the rest
-   of the plan, or when the plan is nearly done. A question whose `Touches`
-   overlap an open one waits.
+1. **A capture request**, from one of its agents or a `capture` label: record,
+   publish, answer with the hashes, resume the agent or remove the label.
+2. **A blocker without a decision**: decide as step 4 of
+   [Working a question](#working-a-question) says.
+3. **A branch done**: have it reviewed, read it, and send the committer its
+   change sheet.
+4. **A merged answer**: check that the issue closed and close it by hand if
+   not, and note in `plan.md` what the answer moved.
+5. **Room for another question**: cut the next one in `plan.md`'s order, placed
+   as [Cutting a question](#cutting-a-question) says.
 
-A wake finds these with `gh pr list --label capture`, `gh pr list
---search "is:open -is:draft"`, `gh pr list --search "is:draft \"Blocked by\""`,
-`gh pr list --state merged --label accepted` and `gh issue list --label
-research`. A question the keeper is cutting is
-not published until it is whole, so a wake in the middle of one continues
-it rather than starting another.
+Nothing polls on a timer. The keeper is woken by its agents finishing and by
+the committer; `gh pr list --label capture`, `gh pr list --search "is:open
+-is:draft"` and `gh issue list --label research` find what came from outside.
 
 ### Acceptance
 
@@ -347,11 +332,11 @@ CI runs every check that can be written down: the test suite, the offline
 scripts with every pin, and, for a branch named `research/<n>-…`, the
 issue's oracle played back through the branch's simulator, physics and
 content, recording by recording. A check that CI does not run is a gap in
-CI, not a step for the keeper; a claimant or a keeper runs a check locally
-to see why it failed, never to stand in for it.
+CI, not a step for the keeper; an agent or the keeper runs a check locally to
+see why it failed, never to stand in for it.
 
-CI green is necessary and not sufficient. The keeper reads a ready pull
-request, and reading means:
+CI green is necessary and not sufficient. The keeper reads the branch, and
+reading means:
 
 - reading the rule against the two gates: a mechanism closes on the build's
   code or on the risk-adjusted record, a number traces to one of three
@@ -372,18 +357,38 @@ request, and reading means:
      refused by name, rather than handled only on the new kind's path?
 
   A divergence the build does not have is a step back even when every
-  recording agrees. The keeper returns it, or takes the pull request over
-  and folds it;
+  recording agrees. The keeper sends it back, or takes the branch over and
+  folds it;
 - checking that the pull request's title and body are the commit master
   will hold, and that the documents say what the build does and not what
   the simulator does.
 
-The keeper may push to the branch. When the pull request holds, the keeper
-adds the label `accepted`, and `automerge.yml` merges it: a pull request that
-claims an issue, by its `research/` branch or its `Closes` line, is not merged
-without that label. Merging closes the issue, which is a finding's fifth exit:
-the question's content now lives in an assertion. The keeper then deletes the
-release with `scripts/oracle.py delete <n>`.
+**The committer approves.** A pull request that resolves an issue, by its
+`research/` branch or its `Closes` line, merges only with an approving review
+on its head commit from a committer: someone with write access to this
+repository who is not the pull request's author. The keeper's reading ends
+with a **change sheet**, posted on the pull request and handed to the
+committer, which says in a few lines what the merge changes:
+
+- behaviour: what the simulator did before and does after, with numbers;
+- structure: modules, functions or tables added or removed;
+- pins: which hashes were added or moved, and the recording each came from;
+- refusals: which were added and which lifted;
+- what stays unverified.
+
+The committer approves on GitHub, or tells the keeper in so many words to
+approve that one pull request, and the keeper runs `gh pr review <n>
+--approve`. An approval covers the pull request it was given for and the
+commit it was given on: a push after it needs a new one, and an approval for
+one pull request is not one for the next. `automerge.yml` merges once the
+approval and every check are in; `review.yml` exists only so that submitting a
+review wakes it.
+
+GitHub refuses an approval from a pull request's own author, so an approval
+needs the agents to open pull requests under an account that is not the
+committer's. While they act through the committer's own account, no review
+can approve, and the committer merges a pull request whose change sheet they
+accepted by hand.
 
 A question that turns out not to close inside its scope still lands what
 holds, with a refusal for the rest, and its issue closes with a comment that

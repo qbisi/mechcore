@@ -72,12 +72,12 @@ git config core.hooksPath .githooks
 用仓库级设置，是因为全局 `core.hooksPath`（Nix 或 home-manager 常设）会盖过
 `.git/hooks`。
 
-`.github/workflows/automerge.yml` 在 ci 通过后运行。当一个 PR 的每一条提交和它的
+`.github/workflows/automerge.yml` 在 ci 通过或有人提交 review（`review.yml`）后运行。当一个 PR 的每一条提交和它的
 正文都带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、
 来自本仓库的分支、不是草稿、且该 commit 上的其它检查也全绿时，它以 **squash**
 合并并删除分支。GPT 与 Claude 的提交可以混合；任何一条提交或正文没有上述署名，
-就留给人来合并。认领了 issue 的 PR（分支名以 `research/` 开头，或正文带
-`Closes #n`）还要等主 agent 打上 `accepted` 标签才合并，见下一节。
+就留给人来合并。解决 issue 的 PR（分支名以 `research/` 开头，或正文带
+`Closes #n`）还要有 committer 在当前 head 上的 approve 才合并，见下一节。
 
 **主线上一个 PR 就是一个 commit。** 仓库只允许 squash 合并：落到 master 的
 commit 标题是 PR 标题加 `(#N)`，正文是 PR 正文，和 openai/codex 一样。所以下面
@@ -88,35 +88,43 @@ automerge 逐条检查。不要在别的 PR 的分支上再开 PR：父 PR 压�
 
 # 研究管线
 
-模拟器的机制研究按 `.github/CONTRIBUTING.md` 的 Research 一节并行推进：
-一个问题一条 issue。持有游戏的那个会话（维护 `plan.md` 的主 agent，即
-keeper）先把问题收成一个数、读反编译、设计布阵和录制脚本、录像并确认每个假设都
-有录像能区分，然后开 issue（布阵和脚本写在 issue 里，不进仓库）、用
-`scripts/oracle.py publish <n>` 把录像发成本仓库的 release `oracle/issue-<n>`，
-再打上 `claimable` 标签：有 oracle、有布阵的 issue 才能被认领。
-认领者拿不到游戏，要新录像得等 keeper 一个来回，所以 issue 发出去时录像就得够用；
-最终用上的布阵和脚本由认领者随回答一起落到 `tests/<topic>/`。认领的 agent 只认领带 `claimable` 的 issue，从 `research/<n>-<slug>` 分支开草稿 PR
-（正文末尾 `Closes #n`，草稿即认领），用 `scripts/oracle.py fetch <n>` 取回
-录像，离线拟合、实现、钉住、写规则，`scripts/check-scripts.sh` 全过后转正式；
-keeper 读过、跑过之后打 `accepted`，automerge 才合并，合并后 release 删除。
+模拟器的机制研究按 `.github/CONTRIBUTING.md` 的 Research 一节推进：一个问题一条
+issue。持有游戏的会话（维护 `plan.md` 的主 agent，即 keeper）切问题、录像、发
+oracle，再把问题交给自己起的子代理去做，子代理各用一个工作树，直接向 keeper 汇报，
+不经过 GitHub 的标签和评论。
+
+- **切问题先排依赖。** 答案会改同一个模块的两个问题先后做，不并行；issue 只写问题、
+  假设、预测和可观测的验收，不规定答案走哪个模块、加什么表。`Touches` 是 keeper 的
+  预估，不是禁区。
+- **先定结构再写代码。** 一个只读子代理读反编译，交回结构图：答案对应 build 的哪些
+  方法、build 在哪里按什么分支、模拟器里哪些函数已经对应它们。keeper 按 Acceptance
+  的四个问题定下改什么、复用什么、不许新增什么，再交给实现子代理。
+- **录像按需、串行。** 实现子代理缺录像时不绕过去（不用模拟器算哈希、不特判恰好录过
+  的那个单位），而是交回录制请求；keeper 录完发到同一个 release，再让同一个子代理继续。
+  钉住的哈希一律来自录像。
+- **阻塞当场决定。** 撞上问题以外的机制时，keeper 在同一个会话里决定：切成新问题、
+  换布阵重录，或接受已钉住的部分。
+- **另一个子代理审查**，然后 keeper 自己读，再给 committer 发一张变更确认单：行为
+  前后（带数字）、结构增删、钉住的哈希及其来源录像、新增或解除的拒绝、未验证的部分。
+- **committer approve 才合并。** committer 在 GitHub 上 approve，或者在对话里明确授权
+  keeper 对那一个 PR 执行 `gh pr review <n> --approve`；授权只对那一个 PR、那一个
+  commit 有效。GitHub 不允许作者 approve 自己的 PR，所以只要 agent 还用 committer 的
+  账号开 PR，就没有 review 能生效，这时由 committer 看过确认单后手动合并。
+
+**游戏只有一个进程，只有 keeper 持有它。** 其它 agent 永远不跑带 `game:` 的脚本，
+`mechcore run <script> --check` 会说一份脚本要不要游戏。
 
 证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`，
 `scripts/decomp.py sync` 放到 `work/decomp/<build>/`（dump 在 `cpp2il/`，索引
 `index.sqlite` 在同一目录，本机已有的不重下）；录像语料在公开的 `mechcore-replay`
 （`scripts/replay.py sync` 按 `replay/REPLAY_REV` 取回 `work/replay/`）；每个问题的
-录像和 sidecar 在它自己的 release（`scripts/oracle.py fetch <n>` 回到 `/tmp/mechcore/`）。
-仓库里固定下来的只有 `tests/<topic>/` 的布阵、脚本和它钉住的哈希。
+录像和 sidecar 在它自己的 release（`scripts/oracle.py fetch <n>` 回到 `/tmp/mechcore/`），
+issue 关闭后 release 仍保留，因为它是钉住的哈希的证据。仓库里固定下来的只有
+`tests/<topic>/` 的布阵、脚本和它钉住的哈希。
 
-**游戏只有一个进程，只有 keeper 持有它。** 认领方永远不跑带 `game:` 的
-脚本，`mechcore run <script> --check` 会说一份脚本要不要游戏。要新录像，
-就把布阵和录制脚本（连预期值）提交到分支上，在 PR 上说明它区分什么并打
-`capture` 标签，等 keeper 录完发到同一个 release。
-
-**研究中撞上别的机制是常态。** 某个布阵的录像撞上问题 `Touches` 以外的机制时，认领方
-自己开一条 finding（写明挡住哪个 issue 的哪个布阵、模拟器第一处分叉的 tick、录像在那
-里显示什么），能钉的先钉，被挡的布阵不钉，在 PR 里写 `Blocked by #m` 并保持草稿。
-keeper 负责知道每条 issue 和草稿为什么停在那里，并在 PR 里写下决定：把阻塞切成新的研究
-问题、换一个绕开它的布阵重录，或者接受已钉住的部分。
+keeper 会话之外的 agent（云端会话、别的机器）仍可以认领带 `claimable` 的 issue：
+开草稿 PR 认领，要录像就提交布阵和脚本并打 `capture`，被挡住就开 finding 写
+`Blocked by #m`，做完转正式，由 keeper 从审查那一步接手。
 
 **编号只写依赖。** issue、PR、提交里写别的编号会在 GitHub 上双向挂链接，没有依赖的链接只会
 把真正的依赖淹掉。所以只在 `Closes #n`、`Blocked by #n` 或推动另一项的决定里写编号；来历用

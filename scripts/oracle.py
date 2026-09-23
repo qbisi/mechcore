@@ -4,7 +4,7 @@
     scripts/oracle.py publish <n> <path>...  upload files under /tmp/mechcore to the release oracle/issue-<n>
     scripts/oracle.py fetch <n> [--force]    download the release oracle/issue-<n> back under /tmp/mechcore
     scripts/oracle.py retract <n> <path>...  take files back out of the release oracle/issue-<n>
-    scripts/oracle.py delete <n>             delete the release and its tag, when the issue closes
+    scripts/oracle.py delete <n>             delete the release and its tag, once a re-recording replaced it
     scripts/oracle.py list [<n>]             list the oracles, or one oracle's files
 
 A recording never enters the repository; what the repository keeps is the
@@ -14,9 +14,10 @@ release of this repository named after the question's issue, and the claimant
 fetches it to the paths the script would have written:
 `/tmp/mechcore/<topic>/<script>/<name>.mcfr`, and the sidecar beside it. A
 release is not a commit, is added to when a capture is asked for, loses a
-recording the keeper recorded around a blocker, and is deleted when the issue
-closes. `.github/CONTRIBUTING.md`'s Research section is where an oracle fits
-in.
+recording the keeper recorded around a blocker, and outlives its issue, because
+it is the evidence behind the hashes the topic pins; `delete` is for a release
+a re-recording has replaced. `.github/CONTRIBUTING.md`'s Research section is
+where an oracle fits in.
 
 An asset name cannot hold a slash, so the path under `/tmp/mechcore` is joined
 with `__`. `MANIFEST.json` lists every file with its size and SHA-256, and
