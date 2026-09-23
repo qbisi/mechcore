@@ -77,7 +77,7 @@ agrees with its `config/units/` file.
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
 the same six layouts against the reference units: 84 recordings, of which
-69 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
+75 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
 definition. A cell that parts gives the recording's ticks and the first tick
 the simulator differs on.
 
@@ -101,12 +101,12 @@ the simulator differs on.
 | mustang | `m4-wasp` | 183 | 181 |
 | mustang | `m5-rotated` | 378 | 439 |
 | mustang | `m6-formations` | 260 | 261 |
-| steel_ball | `m1-mirror` | 314 | 318, parts at 317 |
-| steel_ball | `m2-rhino` | 180, parts at 179 | 182, parts at 181 |
+| steel_ball | `m1-mirror` | 314 | 318 |
+| steel_ball | `m2-rhino` | 180 | 182 |
 | steel_ball | `m3-crawler` | 446 | 435 |
 | steel_ball | `m4-wasp` | 355 | 338 |
-| steel_ball | `m5-rotated` | 173, parts at 172 | 171, parts at 170 |
-| steel_ball | `m6-formations` | 530, parts at 1 | 511, parts at 510 |
+| steel_ball | `m5-rotated` | 173 | 171 |
+| steel_ball | `m6-formations` | 530, parts at 1 | 511 |
 | wraith | `m1-mirror` | 430 | 429 |
 | wraith | `m2-rhino` | 287, parts at 225 | 286, parts at 248 |
 | wraith | `m3-crawler` | 247, parts at 156 | 201, parts at 136 |
@@ -126,13 +126,9 @@ the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-Each fight that parts does so on one of four mechanisms, none of them the
+Each fight that parts does so on one of three mechanisms, none of them the
 unit's own damage or motion:
 
-- **A Steel Ball's last kill.** When Steel Balls eliminate the other side,
-  the game takes that side's towers down on the kill's tick and reports
-  their destruction on the next, the fight's last. The simulator reports it
-  on the kill's tick. Six fights.
 - **Facing a target dead ahead.** A Stormcaller or Steel Ball whose
   presearched Crawler stands 6 Q32 units (1.4 nm) to its left faces +0.245°
   in the game, as it would with no offset, and −0.245° in the simulator,
