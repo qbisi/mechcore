@@ -1,0 +1,73 @@
+# The reference units' standard layouts, recorded with two seeds each.
+#
+#   mechcore run tests/units/record.mcscript --check   parse without the game
+#   mechcore run tests/units/record.mcscript           record
+#
+# `plan.md` defines basic support: six standard layouts per unit, two seeds
+# each, both hash layers. A unit that is its own opponent in a cell does not
+# record it twice, so the Rhino has no M2 and the Crawler no M3.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/units
+
+steps:
+  - let:
+      fights:
+        - {unit: rhino, name: m1-mirror, layout: tests/units/rhino/m1-mirror.yaml, seed: 4242}
+        - {unit: rhino, name: m1-mirror, layout: tests/units/rhino/m1-mirror.yaml, seed: 1787720817}
+        - {unit: rhino, name: m3-crawler, layout: tests/units/rhino/m3-crawler.yaml, seed: 4242}
+        - {unit: rhino, name: m3-crawler, layout: tests/units/rhino/m3-crawler.yaml, seed: 1787720817}
+        - {unit: rhino, name: m4-wasp, layout: tests/units/rhino/m4-wasp.yaml, seed: 4242}
+        - {unit: rhino, name: m4-wasp, layout: tests/units/rhino/m4-wasp.yaml, seed: 1787720817}
+        - {unit: rhino, name: m5-rotated, layout: tests/units/rhino/m5-rotated.yaml, seed: 4242}
+        - {unit: rhino, name: m5-rotated, layout: tests/units/rhino/m5-rotated.yaml, seed: 1787720817}
+        - {unit: rhino, name: m6-formations, layout: tests/units/rhino/m6-formations.yaml, seed: 4242}
+        - {unit: rhino, name: m6-formations, layout: tests/units/rhino/m6-formations.yaml, seed: 1787720817}
+        - {unit: crawler, name: m1-mirror, layout: tests/units/crawler/m1-mirror.yaml, seed: 4242}
+        - {unit: crawler, name: m1-mirror, layout: tests/units/crawler/m1-mirror.yaml, seed: 1787720817}
+        - {unit: crawler, name: m2-rhino, layout: tests/units/crawler/m2-rhino.yaml, seed: 4242}
+        - {unit: crawler, name: m2-rhino, layout: tests/units/crawler/m2-rhino.yaml, seed: 1787720817}
+        - {unit: crawler, name: m4-wasp, layout: tests/units/crawler/m4-wasp.yaml, seed: 4242}
+        - {unit: crawler, name: m4-wasp, layout: tests/units/crawler/m4-wasp.yaml, seed: 1787720817}
+        - {unit: crawler, name: m5-rotated, layout: tests/units/crawler/m5-rotated.yaml, seed: 4242}
+        - {unit: crawler, name: m5-rotated, layout: tests/units/crawler/m5-rotated.yaml, seed: 1787720817}
+        - {unit: crawler, name: m6-formations, layout: tests/units/crawler/m6-formations.yaml, seed: 4242}
+        - {unit: crawler, name: m6-formations, layout: tests/units/crawler/m6-formations.yaml, seed: 1787720817}
+        - {unit: wasp, name: m1-mirror, layout: tests/units/wasp/m1-mirror.yaml, seed: 4242}
+        - {unit: wasp, name: m1-mirror, layout: tests/units/wasp/m1-mirror.yaml, seed: 1787720817}
+        - {unit: wasp, name: m2-rhino, layout: tests/units/wasp/m2-rhino.yaml, seed: 4242}
+        - {unit: wasp, name: m2-rhino, layout: tests/units/wasp/m2-rhino.yaml, seed: 1787720817}
+        - {unit: wasp, name: m3-crawler, layout: tests/units/wasp/m3-crawler.yaml, seed: 4242}
+        - {unit: wasp, name: m3-crawler, layout: tests/units/wasp/m3-crawler.yaml, seed: 1787720817}
+        - {unit: wasp, name: m4-marksman, layout: tests/units/wasp/m4-marksman.yaml, seed: 4242}
+        - {unit: wasp, name: m4-marksman, layout: tests/units/wasp/m4-marksman.yaml, seed: 1787720817}
+        - {unit: wasp, name: m5-rotated, layout: tests/units/wasp/m5-rotated.yaml, seed: 4242}
+        - {unit: wasp, name: m5-rotated, layout: tests/units/wasp/m5-rotated.yaml, seed: 1787720817}
+        - {unit: wasp, name: m6-formations, layout: tests/units/wasp/m6-formations.yaml, seed: 4242}
+        - {unit: wasp, name: m6-formations, layout: tests/units/wasp/m6-formations.yaml, seed: 1787720817}
+        - {unit: marksman, name: m1-mirror, layout: tests/units/marksman/m1-mirror.yaml, seed: 4242}
+        - {unit: marksman, name: m1-mirror, layout: tests/units/marksman/m1-mirror.yaml, seed: 1787720817}
+        - {unit: marksman, name: m2-rhino, layout: tests/units/marksman/m2-rhino.yaml, seed: 4242}
+        - {unit: marksman, name: m2-rhino, layout: tests/units/marksman/m2-rhino.yaml, seed: 1787720817}
+        - {unit: marksman, name: m3-crawler, layout: tests/units/marksman/m3-crawler.yaml, seed: 4242}
+        - {unit: marksman, name: m3-crawler, layout: tests/units/marksman/m3-crawler.yaml, seed: 1787720817}
+        - {unit: marksman, name: m4-wasp, layout: tests/units/marksman/m4-wasp.yaml, seed: 4242}
+        - {unit: marksman, name: m4-wasp, layout: tests/units/marksman/m4-wasp.yaml, seed: 1787720817}
+        - {unit: marksman, name: m5-rotated, layout: tests/units/marksman/m5-rotated.yaml, seed: 4242}
+        - {unit: marksman, name: m5-rotated, layout: tests/units/marksman/m5-rotated.yaml, seed: 1787720817}
+        - {unit: marksman, name: m6-formations, layout: tests/units/marksman/m6-formations.yaml, seed: 4242}
+        - {unit: marksman, name: m6-formations, layout: tests/units/marksman/m6-formations.yaml, seed: 1787720817}
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(${fight.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: ${fight.seed}
+      - game.record_battle:
+          output: ${out}/${fight.unit}/${fight.name}-${fight.seed}.mcfr
