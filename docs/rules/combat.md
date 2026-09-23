@@ -372,6 +372,11 @@ Tower death lands later than that tick's `DeadEffectSystem.Update`, so one drain
 tick is still required. Once the fight meets the finish gate, no further RVO
 runs.
 
+`FightingState.Update` calls `TryDstroyTower` once per tick, after every module,
+and it does not ask what dealt the last blow. A Steel Ball's laser kill takes
+the loser's towers down the same way: gone on the kill's tick, their
+`building_destroyed` on the next, which is the fight's last.
+
 **Not covered.** Multi-member and multi-group fights, summons, respawns,
 Construction, shields, and mixed damage inside one tick.
 

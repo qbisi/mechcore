@@ -564,6 +564,27 @@ steps:
       hashes.physics_result_hash: f479c70305bc72412eb5edef4f54560a21c44765574d39a748f653818688a098
       hashes.content_result_hash: 13e53b8348bed71e058f8445470622d739ae71768c7ca1c8df48c3babe59ad97
   - fight.run:
+      layout: tests/units/steel_ball/m1-mirror.yaml
+      seed: 1787720817
+    expect:
+      steps: 318
+      hashes.physics_result_hash: 0345155973352e7924eef8f7b1a2fbcfd63367979e84523f66fcc7c06c938341
+      hashes.content_result_hash: 4d802f7f96cf14252357c632bbf24824161cbf99aded9db98b3db763220def4b
+  - fight.run:
+      layout: tests/units/steel_ball/m2-rhino.yaml
+      seed: 4242
+    expect:
+      steps: 180
+      hashes.physics_result_hash: c82a8f03520ee440b56ad063664c37dcd9cef87efd1d50177db2a2cfc26e6400
+      hashes.content_result_hash: 0080fc0534536c04dda45f1a2b1895848562bcaecb7e7186a3d2b1b5358979dc
+  - fight.run:
+      layout: tests/units/steel_ball/m2-rhino.yaml
+      seed: 1787720817
+    expect:
+      steps: 182
+      hashes.physics_result_hash: d43e3746cd677f32d69c995d657eca96ed397543dfa4a893d5c2819659c82de7
+      hashes.content_result_hash: 31096f1fee51500269e43db48d4c2584c35c2cc1b23b86b2b9d7e873897da8cd
+  - fight.run:
       layout: tests/units/steel_ball/m3-crawler.yaml
       seed: 4242
     expect:
@@ -591,6 +612,27 @@ steps:
       steps: 338
       hashes.physics_result_hash: 03984d2312a11bf2d16665a51fb10e6e5b2139668e0336a5ac9baf0e655c82c2
       hashes.content_result_hash: eedb0928b9f4cb6eb962cde9b427d94881da31c37d22071abb94c2cd9710ee05
+  - fight.run:
+      layout: tests/units/steel_ball/m5-rotated.yaml
+      seed: 4242
+    expect:
+      steps: 173
+      hashes.physics_result_hash: 99218daac5eb01a6df86ff4e3fff0e74c6dbe24b32ecaa59b9d10838a83c6c5f
+      hashes.content_result_hash: 72055c0a065e5a5ccf3db3e8d126b8c6ebf2fa37447aee71ff59d6151fa0b7e2
+  - fight.run:
+      layout: tests/units/steel_ball/m5-rotated.yaml
+      seed: 1787720817
+    expect:
+      steps: 171
+      hashes.physics_result_hash: 6fbef7e57b79ae5a37bc151e38771d9a3bbf57f1642f831a3668379f0d8d70ff
+      hashes.content_result_hash: 1746478988668214aa6f30fc9e641557c8dd4cd8af76ab710a451f65d17caeb5
+  - fight.run:
+      layout: tests/units/steel_ball/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 511
+      hashes.physics_result_hash: 64abe990971fa5ab6b519bb5a0a8b6ef757eb4f2776c85dbefad0e493d88dc5c
+      hashes.content_result_hash: af275caabb5f5d4a39a40dcecacdb2e2fc14daccdf74a32e61b4242cf9992214
   # wraith
   - fight.run:
       layout: tests/units/wraith/m1-mirror.yaml

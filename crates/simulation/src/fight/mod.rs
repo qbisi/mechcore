@@ -645,22 +645,18 @@ impl Simulation {
                 self.terminal_drain_pending = true;
             }
         }
-        // Native build 2259 tears down the defeated towers through the
-        // direct-attack finish path. Projectile drain reaches the same round
+        // `FightingState.Update` runs `FightCoreSystem.TryDstroyTower` after
+        // every module has updated: a side that has lost its last unit loses
+        // its towers on that tick, whatever dealt the last blow, and their
+        // `OnDead` lands on the next. Projectile drain reaches the same round
         // result without mutating buildings (observed in Fang mirror battles).
-        let direct_attack_winner = !fight_was_finished
+        let towers_fall = !fight_was_finished
             && !winner_was_decided
             && !projectile_finished_fight
-            && self.winner().is_some_and(|winning_team| {
-                self.actors.values().any(|actor| {
-                    actor.placement.team == winning_team
-                        && actor.alive()
-                        && matches!(actor.rules.attack.path, AttackPath::Direct)
-                })
-            });
+            && self.winner().is_some();
         let mut queued_late_building_events = false;
         for building in self.buildings.iter_mut().filter(|building| {
-            direct_attack_winner
+            towers_fall
                 && building_alive(building)
                 && team_alive_counts
                     .get(&building.team_id)
@@ -673,44 +669,6 @@ impl Simulation {
         if queued_late_building_events {
             self.terminal_drain_pending = true;
             self.late_building_events_pending = true;
-        }
-        let laser_finish_observed_at_defeated_team_entry = !fight_was_finished
-            && self.naturally_finished()
-            && self.winner().is_some_and(|winning_team| {
-                self.actors.values().any(|actor| {
-                    actor.placement.team == winning_team
-                        && actor.alive()
-                        && matches!(actor.rules.attack.path, AttackPath::Laser { .. })
-                })
-            })
-            && team_alive_counts
-                .iter()
-                .any(|(&team_id, &alive_count)| alive_count == 0 && Some(team_id) != self.winner());
-        if laser_finish_observed_at_defeated_team_entry {
-            // FightCore updates blue before red. If an earlier team eliminates
-            // a later team, the native finish callback is queued only after
-            // that defeated team's module observes its empty actor set. Its
-            // attacker therefore exposes the dead laser target for one tick
-            // while the callback tears down that team's towers.
-            for building in self.buildings.iter_mut().filter(|building| {
-                building_alive(building)
-                    && team_alive_counts
-                        .get(&building.team_id)
-                        .is_some_and(|alive_count| *alive_count == 0)
-            }) {
-                events.push(event(
-                    Some(ObjectRef::new(ObjectKind::Building, building.building_id)),
-                    None,
-                    None,
-                    None,
-                    EventPayload::BuildingDestroyed {
-                        position: building.position,
-                    },
-                ));
-                building.life.current = 0;
-                building.targetable = false;
-            }
-            self.terminal_drain_pending = true;
         }
         let ready_to_finish = self.ready_to_finish();
         let stop_fight = ready_to_finish || winner_was_decided;
