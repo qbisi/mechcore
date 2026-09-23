@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M1: the mirror. One formation each, 200 m apart, outside every reference unit's range.
+
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -100}}
+
+red:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -100}}

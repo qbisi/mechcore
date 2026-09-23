@@ -1,0 +1,316 @@
+# Every reference unit's standard layouts, replayed through the simulator.
+#
+#   mechcore run tests/units/regressions.mcscript
+#
+# This needs no game. The hashes are what the game recorded with
+# `record.mcscript`, and the simulator reproduces each fight tick for tick,
+# physics and content, from the layout and the seed alone. One recording is
+# not here: the Rhino's M6 with seed 1787720817, where one Crawler's second
+# blow lands in the game and not in the simulator. README.md says which.
+
+steps:
+  # rhino
+  - fight.run:
+      layout: tests/units/rhino/m1-mirror.yaml
+      seed: 4242
+    expect:
+      steps: 210
+      hashes.physics_result_hash: df2235f33057e6861778f775ff1e42f8509724a85da008deaa77c208d412e520
+      hashes.content_result_hash: 4b32289bf7e69d52a181131a986468b64a129939291538916ef8880ddf5febd0
+  - fight.run:
+      layout: tests/units/rhino/m1-mirror.yaml
+      seed: 1787720817
+    expect:
+      steps: 209
+      hashes.physics_result_hash: c8ae277713ae7a2b11a4903560e6a5b45b83e9b625fd4c26ccb0a8e0eb73494e
+      hashes.content_result_hash: 3727e697ad3b87831b550e8d39701064081576a459708c673922d3dd2dff12e3
+  - fight.run:
+      layout: tests/units/rhino/m3-crawler.yaml
+      seed: 4242
+    expect:
+      steps: 276
+      hashes.physics_result_hash: d98d1b5a5c1c90e38fed15cdb042d022645e6459860803290cc9fcec925045fa
+      hashes.content_result_hash: 647c87e369928fabd60002e17f8e6bd0715786a20d0a8966239ce2e087725dc8
+  - fight.run:
+      layout: tests/units/rhino/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 293
+      hashes.physics_result_hash: e4fbff56f1f8cc6061875d1844073d6b199f238af3ffa5edada83f8157ee5a24
+      hashes.content_result_hash: 6ef635fe4f091ecd2bb95cb83b7d5c3f01b87eeac15c8e19b125c4d3cb1cd6cb
+  - fight.run:
+      layout: tests/units/rhino/m4-wasp.yaml
+      seed: 4242
+    expect:
+      steps: 239
+      hashes.physics_result_hash: 7f5b335d07a99980a04c3a3d4725d69852ec029b339f5a34270fad64f22540ac
+      hashes.content_result_hash: e9c598ebe2b285e77a3b40a00a131447fa3399c240982740690ccfd08e1aa908
+  - fight.run:
+      layout: tests/units/rhino/m4-wasp.yaml
+      seed: 1787720817
+    expect:
+      steps: 258
+      hashes.physics_result_hash: bba6341077fcc1a7cb59092106924a9fa488aa0df5c1beaa9a1cab308ff14c30
+      hashes.content_result_hash: 826ec027248cab1c5462161c3b9df30def33f146e5bb0505a3f04c47dfc2b3ea
+  - fight.run:
+      layout: tests/units/rhino/m5-rotated.yaml
+      seed: 4242
+    expect:
+      steps: 202
+      hashes.physics_result_hash: 4c39bfad07b0dc0a77efee2fbc66c6f2dc1ee7151fe42acfcbfd0822289d9f8f
+      hashes.content_result_hash: 09e6085479bc6af14e0aa2390a013b92c65f4fecfd421ed55a7a2c1b0dca5c13
+  - fight.run:
+      layout: tests/units/rhino/m5-rotated.yaml
+      seed: 1787720817
+    expect:
+      steps: 199
+      hashes.physics_result_hash: 60db26619bc4ce8562ff72b141d4f12d3fec3ac43309bf21c43aced372598481
+      hashes.content_result_hash: 0629d0b09144eeffd1d98983b4f1b668354cdf89c5e3cac78ba6316aa86e77a8
+  - fight.run:
+      layout: tests/units/rhino/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 377
+      hashes.physics_result_hash: 4b8cb17bc9efed5856b723dc5034b2f7fb10a837396ba2d95d3b888db688a775
+      hashes.content_result_hash: 70effa5e0e77061e75b3b67ae34c92da0fa55a5336e070f66f208ee3b876cd67
+  # crawler
+  - fight.run:
+      layout: tests/units/crawler/m1-mirror.yaml
+      seed: 4242
+    expect:
+      steps: 368
+      hashes.physics_result_hash: 4d845316367b86115b139399c7c61038dd995fd49107040af78afc25ecadf968
+      hashes.content_result_hash: a0907ce0bfa75bdf516ffa9e02bdeee9bdc3f2617c8a4c056cddd4289766ad29
+  - fight.run:
+      layout: tests/units/crawler/m1-mirror.yaml
+      seed: 1787720817
+    expect:
+      steps: 345
+      hashes.physics_result_hash: c5e53b2f87d32b18115e942e215329fab295f83c289b69dd0fe1b847abdbcf7f
+      hashes.content_result_hash: b83425949eded9e706d984bbb7c0f75e7cc26ca02ac746ce6ce1349047d462c5
+  - fight.run:
+      layout: tests/units/crawler/m2-rhino.yaml
+      seed: 4242
+    expect:
+      steps: 313
+      hashes.physics_result_hash: b6979a42a2eb2cf6ab1187dc107cc6f57d1c0df0ead1e4a3dcda625f9beb6dfa
+      hashes.content_result_hash: 9d81d4a886701486f843e740ef1f6b1fdb83e61d9eac1f51c2dd2c5f56108dad
+  - fight.run:
+      layout: tests/units/crawler/m2-rhino.yaml
+      seed: 1787720817
+    expect:
+      steps: 304
+      hashes.physics_result_hash: 7a831f8c657c2e912b3c47e10f5f204c6d96b6c1b10b7f3084790f9ea1745c9e
+      hashes.content_result_hash: 39a7461878dafbfb23fbaa9fc5b4c1fdffc198af96bbeed80f472c4f31ccd34e
+  - fight.run:
+      layout: tests/units/crawler/m4-wasp.yaml
+      seed: 4242
+    expect:
+      steps: 417
+      hashes.physics_result_hash: 633960312f8754c7059de9b9de97476423503952f9171c991334a48f973bc1ed
+      hashes.content_result_hash: 80e6a9718a3664ddd0b6382819fee1ec2f0bc51187e3401c73ccb421d6767406
+  - fight.run:
+      layout: tests/units/crawler/m4-wasp.yaml
+      seed: 1787720817
+    expect:
+      steps: 404
+      hashes.physics_result_hash: 121710aee80f3f6eed134f511a504dfd7612b340385a8043f4b66c6ee8d94e89
+      hashes.content_result_hash: c8307fcb4580ea06681ad61d4b9598b87bdd900cb610455ed5aa68576014ecd4
+  - fight.run:
+      layout: tests/units/crawler/m5-rotated.yaml
+      seed: 4242
+    expect:
+      steps: 295
+      hashes.physics_result_hash: c4fb9fd6b2e2d66ff46c846564932e081ddaf79c936b8dd4573119a6d9f9f274
+      hashes.content_result_hash: 75d37c50bd649b080a68d675f5c672b80c54361fecdc4885f67b52343c2430b9
+  - fight.run:
+      layout: tests/units/crawler/m5-rotated.yaml
+      seed: 1787720817
+    expect:
+      steps: 294
+      hashes.physics_result_hash: d3088ce0d43607951e8c8862f39f80d94952f8b6c71b7c206970d5e5b701cdd8
+      hashes.content_result_hash: 8b16c7a9f38f8d0f94887b77ed0c0e36cabdd9882e89bf20c92e6cbf206731ed
+  - fight.run:
+      layout: tests/units/crawler/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 375
+      hashes.physics_result_hash: 1053dac90de7ff666364c68e06c9b9eb9b30738e7913767b25f5c01a6c731e9d
+      hashes.content_result_hash: 2aa48b3d35f4eb4ae1e054087e057c9785857c867aca6addfbda418d5de77a11
+  - fight.run:
+      layout: tests/units/crawler/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 400
+      hashes.physics_result_hash: 39a4529536a78af4a7f133dd4fc9c235ec37bc84bfd532cedb36069e723d8b76
+      hashes.content_result_hash: 87d839bfa9278cc528ca5bdb970d99376167cc1d6b3c4a2efeb65b89a5295b40
+  # wasp
+  - fight.run:
+      layout: tests/units/wasp/m1-mirror.yaml
+      seed: 4242
+    expect:
+      steps: 217
+      hashes.physics_result_hash: a24176ddad214753488592265cd54c2c1c70afea6a15bd571247593d7c74bf3e
+      hashes.content_result_hash: 9d7d640ad12a9d41fc24951fa6fd4fc111f976d4fef8bf4178d66c9fb84dff38
+  - fight.run:
+      layout: tests/units/wasp/m1-mirror.yaml
+      seed: 1787720817
+    expect:
+      steps: 219
+      hashes.physics_result_hash: 0bfcd7eaa6c35fac33ae30603a8086c4149a02dd26c73858ad29bf0491541c2b
+      hashes.content_result_hash: c2ba63a0510d96e83ef53fc92ef51512380aa597f455b383f48d1cad4e41629e
+  - fight.run:
+      layout: tests/units/wasp/m2-rhino.yaml
+      seed: 4242
+    expect:
+      steps: 244
+      hashes.physics_result_hash: 1f215e1cce91f63c338e0fb33297fa78d9e595d536f8c7dfd7cd51ee408ce1be
+      hashes.content_result_hash: e8781990211509c98d08abdf0143b30c9862363906d926dc0307d222a33b4ab2
+  - fight.run:
+      layout: tests/units/wasp/m2-rhino.yaml
+      seed: 1787720817
+    expect:
+      steps: 304
+      hashes.physics_result_hash: 0d92609aff24ee6449b0706fd6ba6112250c4fa8fe28fbefa878161803d895f5
+      hashes.content_result_hash: 458f23f2307a574d233f0ffdf63509761f3f6ebc0c6ce71e9caff0a3ea65c8db
+  - fight.run:
+      layout: tests/units/wasp/m3-crawler.yaml
+      seed: 4242
+    expect:
+      steps: 397
+      hashes.physics_result_hash: e2ba0857a6d54997f083ca48b9d9311423fd27ce932682f8cd64ac90cf555e64
+      hashes.content_result_hash: 219ed35ae93834b014fb12df5aabcc8b0761184eae46869e58e25c4f7b669d04
+  - fight.run:
+      layout: tests/units/wasp/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 388
+      hashes.physics_result_hash: de9d531344990018918270c51ffc0da8c898e687594432262b597aa149061808
+      hashes.content_result_hash: a58dabc71eea2c98d2d36d9d13c1568ffe045753accd1fe36e5ee4e9ba5a2411
+  - fight.run:
+      layout: tests/units/wasp/m4-marksman.yaml
+      seed: 4242
+    expect:
+      steps: 195
+      hashes.physics_result_hash: 07489b34d2bcb701d2b951a429a47cb9f9726602b4083f8430b13f9946d77a81
+      hashes.content_result_hash: dd95601e86a3edc80bd9be005af35204d230eef36e734caa1632d6cf328b9f3e
+  - fight.run:
+      layout: tests/units/wasp/m4-marksman.yaml
+      seed: 1787720817
+    expect:
+      steps: 195
+      hashes.physics_result_hash: 3885865a3efc88d297850a07bd4a183d16dd211cfba646e667717006a7024032
+      hashes.content_result_hash: a1af0b2e2b25d308d29f5ffe4e311d659f2ad3e10b7d85dc7a0362be8b51d557
+  - fight.run:
+      layout: tests/units/wasp/m5-rotated.yaml
+      seed: 4242
+    expect:
+      steps: 189
+      hashes.physics_result_hash: eb5f42bf632a275a16c8a7801997f567906507dc920c447b10e91c5b25e410e8
+      hashes.content_result_hash: 7c5a1d7cc329a798dee271b839273e24159b87b232400bf4944541037651cc52
+  - fight.run:
+      layout: tests/units/wasp/m5-rotated.yaml
+      seed: 1787720817
+    expect:
+      steps: 187
+      hashes.physics_result_hash: e6a2c08cc029197e1dd499fb74095447d96e92a230475cf03321e6cf7bc8f034
+      hashes.content_result_hash: f2c14c241c4772602945eebb5f4cc80f66a11d120255ad4f2288f0916f9cf0d6
+  - fight.run:
+      layout: tests/units/wasp/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 433
+      hashes.physics_result_hash: 850fc1934f8e29c726c583ca3af34fae122eb4f656b780069921633603ae541b
+      hashes.content_result_hash: 66e6b05724127b3b16b7732529b9f7fe0cedbde90a6f65cbeb8473d94d27b8ce
+  - fight.run:
+      layout: tests/units/wasp/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 398
+      hashes.physics_result_hash: 019120e35ca3f026eada19f0d6c404059f2f91159741992afb676e6bcb299bee
+      hashes.content_result_hash: 0255863ccd85ce859f4f5abcca2a584e7f1dfeb023ba43de4e8e47f44e11b238
+  # marksman
+  - fight.run:
+      layout: tests/units/marksman/m1-mirror.yaml
+      seed: 4242
+    expect:
+      steps: 85
+      hashes.physics_result_hash: e4a2b871ac5451be21cbe44cd1cc0dfff7b62ac9c6bec2899ef351571ecaa26a
+      hashes.content_result_hash: 00ae615aafe258dbf6e9a51835bfc26ea81d3aee1e80b830346e2d55ec04de7f
+  - fight.run:
+      layout: tests/units/marksman/m1-mirror.yaml
+      seed: 1787720817
+    expect:
+      steps: 83
+      hashes.physics_result_hash: 25ba92d8f1d5abd5f485a7da06fa6a68ab8830e70cc8e4e7ac66d6485b7078de
+      hashes.content_result_hash: 6c5781b8b6ac3436bcf3e717c1bc7e81418e0681b5450a7285150e21ad051c1e
+  - fight.run:
+      layout: tests/units/marksman/m2-rhino.yaml
+      seed: 4242
+    expect:
+      steps: 213
+      hashes.physics_result_hash: 96251009dde213709e6a6a1da68a7202f526853ed88d6ffe3c19dab8a2ba2344
+      hashes.content_result_hash: 75fbd5b9ba1023689974fe18e8e9aa82e6ece112889098f4ebd434d61064a38b
+  - fight.run:
+      layout: tests/units/marksman/m2-rhino.yaml
+      seed: 1787720817
+    expect:
+      steps: 212
+      hashes.physics_result_hash: 8fd13595ca225d9a363da8ccd4ae69545f2dcd84f7781f64acf0fd00a837a031
+      hashes.content_result_hash: 0ab38fb3b313398b17177a1bdbb88a246e9ccaec18f2424a699cadcdb1c9e65c
+  - fight.run:
+      layout: tests/units/marksman/m3-crawler.yaml
+      seed: 4242
+    expect:
+      steps: 239
+      hashes.physics_result_hash: d5cb08fea076bdff5682850f393d7b1577153851d4ee61243a095e0c4a508093
+      hashes.content_result_hash: 81080f6d4114760500a675ebf8b8fa494f9e5acb6fbb86199249bea573505473
+  - fight.run:
+      layout: tests/units/marksman/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 239
+      hashes.physics_result_hash: 9687e666f8808fbc1b6d3726d3e1db73883f7b4ae4d6689efaf428ab69c8bcb4
+      hashes.content_result_hash: 8ef50134860bf918534e142333d06db39ba2da82bd3d6fee51f70998c0400d24
+  - fight.run:
+      layout: tests/units/marksman/m4-wasp.yaml
+      seed: 4242
+    expect:
+      steps: 195
+      hashes.physics_result_hash: fb2e16b031599e113b50685fbbaf3e46ac81e4cbae80475ea0ec4536f9298743
+      hashes.content_result_hash: 7efa244b3e7beb5d318c3714cf701c11f3e6e6002dce6c8f67fbae157e4b1803
+  - fight.run:
+      layout: tests/units/marksman/m4-wasp.yaml
+      seed: 1787720817
+    expect:
+      steps: 187
+      hashes.physics_result_hash: 001ec148bb57f340116b8e74fa2bc8dbbbf336c2afa22284c3b0726ffcd0607f
+      hashes.content_result_hash: 03386d080c2bf2fcbc8aa3b0339748803159c9ea326473246e67643c4a4b91d3
+  - fight.run:
+      layout: tests/units/marksman/m5-rotated.yaml
+      seed: 4242
+    expect:
+      steps: 203
+      hashes.physics_result_hash: 9fcafec65a8ff2cf109236500316efbc29ea2f6e7e78b61b5ff462cb2dc65efd
+      hashes.content_result_hash: a6d2e9bb5319ccb6fa2e6f78faf50665cd3d1e3b111806950ce7127093a8191f
+  - fight.run:
+      layout: tests/units/marksman/m5-rotated.yaml
+      seed: 1787720817
+    expect:
+      steps: 201
+      hashes.physics_result_hash: 0d12347475a66bed4b30f9ba6c5fef4f9ee5ce5ef7e3b016e227ec24d49c7d95
+      hashes.content_result_hash: 795ecc2de3548b894a55dc5914bbf829d9dbda96c009b417de634e71c0ed9345
+  - fight.run:
+      layout: tests/units/marksman/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 243
+      hashes.physics_result_hash: dc4fc7a48c2a15a75d893868a0b571f7d3915b00cf8f162dff0e1f00939d1b3e
+      hashes.content_result_hash: c3652d0b40d921ad7e58c8e23a3326ed8aed616c1bf04619c959e43cc27e00ae
+  - fight.run:
+      layout: tests/units/marksman/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 238
+      hashes.physics_result_hash: 338d304615d8f0845668e66df8c7d6d98636570dce737360b5a1ba96d76067f4
+      hashes.content_result_hash: 92e4a33294da7fe6c201b22aa8c6e06d6f973c8175eb5450690d7841573c5f83

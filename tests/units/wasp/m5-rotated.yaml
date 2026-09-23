@@ -1,0 +1,14 @@
+kind: layout
+round: 1
+
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. The target stands nearer than either enemy tower.
+# An air unit's target is a Marksman, which shoots back, as in M4.
+
+blue:
+  units:
+    - {name: wasp, index: 0, rotated: true, position: {x: -60, y: -55}}
+
+red:
+  units:
+    - {name: marksman, index: 0, position: {x: -40, y: -100}}
