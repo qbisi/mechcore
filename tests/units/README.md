@@ -77,7 +77,7 @@ agrees with its `config/units/` file.
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
 the same six layouts against the reference units: 84 recordings, of which
-71 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
+73 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
 definition. A cell that parts gives the recording's ticks and the first tick
 the simulator differs on.
 
@@ -93,7 +93,7 @@ the simulator differs on.
 | fang | `m2-rhino` | 358 | 352 |
 | fang | `m3-crawler` | 326 | 331 |
 | fang | `m4-wasp` | 251 | 247 |
-| fang | `m5-rotated` | 365, parts at 1 | 328, parts at 1 |
+| fang | `m5-rotated` | 365 | 328 |
 | fang | `m6-formations` | 651 | 618, parts at 420 |
 | mustang | `m1-mirror` | 238 | 280 |
 | mustang | `m2-rhino` | 337 | 282 |
@@ -126,7 +126,7 @@ the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-Each fight that parts does so on one of five mechanisms, none of them the
+Each fight that parts does so on one of four mechanisms, none of them the
 unit's own damage or motion:
 
 - **Facing a target dead ahead.** A Stormcaller or Steel Ball whose
@@ -134,9 +134,6 @@ unit's own damage or motion:
   in the game, as it would with no offset, and −0.245° in the simulator,
   until it first moves. `AcosFastest(1)` is not zero, so the offset's sign
   picks the side. Steel Ball's and Stormcaller's M6 with seed 4242.
-- **A rotated formation's columns.** A rotated Fang formation stands in
-  three columns of six in the game and in two of nine in the simulator.
-  Both of Fang's M5.
 - **The winner's turn on the last tick.** On the tick a side loses its last
   unit, Crawlers that update after the killer still turn in the game, one
   of them a full step toward the dead target; the simulator freezes them.

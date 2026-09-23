@@ -136,12 +136,12 @@ tick 就开始下一击，模拟器原先推迟了一 tick。不带科技时单�
 `mechData.GetMainSkillID()`，额外技能只经由科技），所以第 2 条由主攻击本身满足。
 
 **其余 7 个的进度。** arclight、fang、mustang、steel_ball、wraith、stormcaller、phoenix
-的 84 场录像里 71 场逐 tick 对上并钉住；arclight、mustang、phoenix 已达标。钢球全歼对面
-时塔的拆除事件（6 场）已按构建改正：`TryDstroyTower` 不看最后一击的攻击方式。另外 13 场
-分在五个机制上，都不是单位自己的伤害或移动：目标正前方时出生朝向的正负号（2 场）、旋转
-编队的列数（fang 的 2 场 M5）、最后一 tick 胜方单位的转向（2 场）、fang M6 一处
-0.0015 m/s 的速度差（1 场）、wraith 的分组武器搜索（5 场，外加 1 场被模拟器按名拒绝）。
-逐场的 tick 与分叉点见 [`tests/units/`](tests/units/README.md)。
+的 84 场录像里 73 场逐 tick 对上并钉住；arclight、mustang、phoenix 已达标。按构建改正过的：
+旋转编队的行列数（fang 的 2 场 M5）；钢球全歼对面时塔的拆除事件（6 场），`TryDstroyTower`
+不看最后一击的攻击方式。另外 11 场分在四个机制上，都不是单位自己的伤害或移动：目标正前方
+时出生朝向的正负号（2 场）、最后一 tick 胜方单位的转向（2 场）、fang M6 一处 0.0015 m/s
+的速度差（1 场）、wraith 的分组武器搜索（5 场，外加 1 场被模拟器按名拒绝）。逐场的 tick
+与分叉点见 [`tests/units/`](tests/units/README.md)。
 
 ## 一、先定架构，否则并行不起来
 

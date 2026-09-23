@@ -91,7 +91,11 @@ attack:
 | `splash_radius` | 原生基础作用半径；零表示没有范围效果。 |
 | `melee` | 主技能的 `SkillData.isMeleeAttack`。战斗里的近战分支读它，近战和远程两个目标类别也由它回答。 |
 
-Formation 行列数由 `members`、`slot_size` 和 `footprint` 推导；jitter 常量、成员 RNG、
+Formation 行列数由 `members`、`slot_size` 和 `footprint` 推导：`footprint.width / slot_size`
+列，行数按成员数补足。旋转编队不在转过的占地上重新计数：
+`MechPositionManager.CalculateMechLocalPosition` 把它排在宽深互换的占地上，两个计数也互换，
+行数就是未旋转时的列数，所以旋转的 fang 站成三列六行，而不是两列九行。两套网格用同一份
+逐成员 jitter。jitter 常量、成员 RNG、
 更新顺序和身份分配属于内核机制，不在单位 YAML 中重复保存。Adapter 会按 team、世界 `z`、世界 `x` 排序后分配
 初始单位身份；原生成员创建顺序不是 MCFR 身份顺序。
 

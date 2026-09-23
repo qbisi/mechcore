@@ -94,7 +94,12 @@ attack:
 | `melee` | The main skill's `SkillData.isMeleeAttack`. The fight's melee branches read it, and the Melee and Ranged targeting categories are answered from it. |
 
 Formation rows and columns are derived from `members`, `slot_size`, and
-`footprint`; jitter constants, member RNG, update order, and identity allocation
+`footprint`: `footprint.width / slot_size` columns and as many rows as the
+members need. A rotated formation is not counted again on the turned
+footprint. `MechPositionManager.CalculateMechLocalPosition` lays it on the
+swapped footprint with the two counts exchanged, so its rows are the
+unrotated columns: a rotated Fang stands in three columns of six, not two
+of nine. Both grids take the same per-member jitter. Jitter constants, member RNG, update order, and identity allocation
 are kernel mechanisms. They are not duplicated in unit YAML. The Adapter assigns initial unit identities after
 sorting by team, world `z`, then world `x`; native member creation order is not
 the MCFR identity order.
