@@ -1,0 +1,20 @@
+kind: layout
+round: 1
+
+# The control for `targeting-ranged.yaml`: the same six formations with no
+# officer. Four ranged units across three attack paths (Marksman and Arclight
+# projectile, Fang projectile, Steel Ball laser) and two melee ones (Crawler,
+# Rhino), in one column so that every formation's identities sort by world z
+# in the order they are declared.
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -210}}
+    - {name: arclight, index: 1, position: {x: 0, y: -180}}
+    - {name: fang, index: 2, position: {x: 5, y: -150}}
+    - {name: steel_ball, index: 3, position: {x: 5, y: -120}}
+    - {name: crawler, index: 4, position: {x: 5, y: -90}}
+    - {name: rhino, index: 5, position: {x: 5, y: -55}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: 5, y: -55}}

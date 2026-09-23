@@ -508,7 +508,7 @@ impl Simulation {
                         && matches!(candidate.rules.attack.path, AttackPath::Projectile { .. })
                 });
                 let moving_direct = motion_at_start == MotionState::Moving
-                    && matches!(actor.rules.attack.path, AttackPath::Direct { .. })
+                    && matches!(actor.rules.attack.path, AttackPath::Direct)
                     && team_has_bodyful_projectile
                     && (actor.motion.current_velocity_x_q32 != 0
                         || actor.motion.current_velocity_z_q32 != 0)
@@ -635,7 +635,7 @@ impl Simulation {
                 self.actors.values().any(|actor| {
                     actor.placement.team == winning_team
                         && actor.alive()
-                        && matches!(actor.rules.attack.path, AttackPath::Direct { .. })
+                        && matches!(actor.rules.attack.path, AttackPath::Direct)
                 })
             });
         let mut queued_late_building_events = false;

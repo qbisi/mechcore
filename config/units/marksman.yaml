@@ -37,6 +37,7 @@ attack:
     mode: normal
     count: 1
     per_skill: 1
+  melee: false
   path:
     type: projectile
     count: 1

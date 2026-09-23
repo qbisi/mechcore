@@ -47,7 +47,7 @@ impl Simulation {
             .attack;
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
         let quick_switch_target = attack.quick_switch_target;
-        let strikes = matches!(attack.path, AttackPath::Direct { .. });
+        let strikes = matches!(attack.path, AttackPath::Direct);
         let beams = matches!(attack.path, AttackPath::Laser { .. });
         let skill = self.skill_mut(owner);
         skill.set_pending(None);

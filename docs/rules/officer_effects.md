@@ -245,10 +245,10 @@ existed, and the whole fight hashes identically.
 
 `crates/simulation/src/modifier/officers.rs` turns a row of the table into corrections
 on the units it reaches, tagged `Modifier` so removing the officer removes
-them. Of the 79 rows, **61** are applied: the ones whose every field is a rate,
+them. Of the 79 rows, **62** are applied: the ones whose every field is a rate,
 a value or a plain integer on a number the simulator derives — damage, life,
-attack interval, attack range, movement speed — and whose `mech_type` is 0, 1
-or 10.
+attack interval, attack range, movement speed — and whose `mech_type` is 0, 1,
+4 or 10.
 
 The rest refuse the side that holds them, by name:
 
@@ -257,12 +257,10 @@ The rest refuse the side that holds them, by name:
 | a tower, shield, mine, deployment clock, experience or a projectile's life | 11 | the mechanism that owns that object |
 | `*_by_kill_count` | 3 | a mechanism that counts a unit's kills |
 | `splash_range_value` | 3 | a splash radius among the numbers this simulator derives |
-| `mech_type` 4 | 1 | knowing which units count as ranged |
 
 What is left is no longer about how a correction composes. All three of
 `DataSet`'s lists have been read and measured; every remaining refusal is a
-mechanism this simulator does not have, or a targeting category nothing
-enumerates.
+mechanism this simulator does not have.
 
 A partly applied officer is not offered: a side carrying one this build cannot
 compose is refused, because a fight with two thirds of an officer on it is a
@@ -288,11 +286,19 @@ is what 先进进攻战术's `+0.3` damage is: the officer a side may hold twice
 Type 11 rows correct `tower_life_rate`, `energy_shield_rate`, `land_mine_rate`
 or `extra_life`, none of which is a unit's number at all.
 
-Type 4 is one row, 先进瞄准系统, with `+10` of range and no unit list. Nothing
-in the build's data says what the category selects; the officer index's text
-does, "increases the range of all **ranged** units by 10", so the category is
-read from the effect rather than from the data. Which units count as ranged is
-not stated by either.
+Type 4 is one row, 先进瞄准系统, with `+10` of range and no unit list. The
+category is `UnitEffectTargetType.Ranged`, and `UnitUtility.IsEffectTarget`,
+which officers, equipment, energy-tower skills and unit reinforcements all
+ask, answers it from the unit's main `SkillData.isMeleeAttack`: a unit whose
+main skill is not a melee attack is ranged. Melee (3) is the same flag set.
+In this build's units only the Rhino and the Crawler are melee, and the unit
+table carries the flag as `attack.melee`.
+
+`tests/modifier/targeting.mcscript` recorded the officer on a side fielding
+Marksman, Arclight, Fang, Steel Ball, Crawler and Rhino. The four ranged
+formations, across the projectile and laser paths, carried `+10` of range in
+their skill channel; the Crawler and the Rhino carried no skill correction at
+all. The fight plays back tick for tick, physics and content.
 
 ## What the four odd fields touch
 
@@ -320,8 +326,6 @@ gaining any, so the field's name is not what it does.
   wait on, and what order two channels apply in when both correct one number.
   The captures above settled the rate in each channel and reached neither of
   these.
-- **Which units are "ranged"**, which `mech_type` 4 selects and neither the data
-  nor the text enumerates.
 - **What a correction does once it lands**, for the four fields above: no
   mechanism here reads a tower's life, a mine, a shield device or a deployment
   clock yet.

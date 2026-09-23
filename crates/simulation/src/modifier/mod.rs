@@ -5,11 +5,12 @@
 //! `TechnologySystem.AddTechnologyEffect` takes a `PlayerController` and is
 //! called from `MAP_AddUnit` — so they are applied as the fight is built, into
 //! the overlays [`crate::data`] resolves. [`effects`] is what both tables
-//! write; [`officers`] and [`technologies`] read their own table and say which
-//! units a row reaches.
+//! write; [`officers`] and [`technologies`] read their own table, and
+//! [`targets`] says which units a row's targeting category reaches.
 
 mod effects;
 mod officers;
+mod targets;
 mod technologies;
 
 pub(crate) use officers::OfficerEffects;

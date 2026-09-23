@@ -19,9 +19,13 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
+    rules::UnitConfig,
 };
 
-use super::effects::{self, Fields, KILLS, PROJECTILE, SPLASH, VALUE_ELSEWHERE};
+use super::{
+    effects::{self, Fields, KILLS, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
+    targets::Targets,
+};
 
 const DEFAULT_OFFICER_EFFECTS: &str = include_str!("../../../../config/officer_effects.yaml");
 
@@ -43,16 +47,6 @@ struct Officer {
     /// whole either way: an officer nobody holds refuses nothing, and a fight
     /// is only refused for what its sides actually carry.
     effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
-}
-
-#[derive(Debug, Clone)]
-enum Targets {
-    /// `mech_type` 0: every unit.
-    Every,
-    /// `mech_type` 1 and 10: the units the row lists.
-    Listed(Vec<String>),
-    /// A category this build does not resolve, carrying what to say about it.
-    Refused(String),
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -150,7 +144,7 @@ impl OfficerEffects {
         Ok(Self { officers })
     }
 
-    /// Every correction this side's officers write onto one unit type.
+    /// Every correction this side's officers write onto one unit.
     ///
     /// An id the table does not hold writes nothing: the table carries the
     /// officers that correct a unit's numbers, and an officer that only
@@ -165,7 +159,7 @@ impl OfficerEffects {
     pub(crate) fn corrections(
         &self,
         held: &[i32],
-        unit_type: &str,
+        unit: &UnitConfig,
     ) -> Result<Vec<(Channel, Entry)>> {
         let mut written = Vec::new();
         for id in held {
@@ -176,7 +170,7 @@ impl OfficerEffects {
                 .effect
                 .as_ref()
                 .map_err(|why| Error::new(why.clone()))?;
-            if corrections.is_empty() || !officer.reaches(unit_type)? {
+            if corrections.is_empty() || !officer.reaches(unit)? {
                 continue;
             }
             for (channel, index, correction) in corrections {
@@ -196,48 +190,22 @@ impl OfficerEffects {
 
 impl Officer {
     fn of(row: &Row) -> Self {
-        let name = row.name.clone();
-        let targets = match row.mech_type {
-            0 => Targets::Every,
-            1 | 10 => Targets::Listed(row.units.clone()),
-            // Type 11 corrects a tower, a shield or a mine. Its rows carry no
-            // unit number at all, so the refusal below names the field first;
-            // this is here so a future type-11 row with one is not silently
-            // applied to every unit.
-            11 => Targets::Refused(format!(
-                "officer {} ({}) corrects a tower, a shield or a mine rather \
-                 than a unit",
-                row.id, name
-            )),
-            4 => Targets::Refused(format!(
-                "officer {} ({}) targets ranged units, which neither the \
-                 build's data nor docs/rules/officer_effects.md enumerates",
-                row.id, name
-            )),
-            other => Targets::Refused(format!(
-                "officer {} ({}) targets mech_type {other}, which this build \
-                 does not read",
-                row.id, name
-            )),
-        };
+        let who = format!("officer {} ({})", row.id, row.name);
+        let targets = Targets::of(row.mech_type, &row.units, &who);
         Self {
             targets,
             effect: corrections_of(row),
         }
     }
 
-    /// Whether this officer writes onto the given unit type.
+    /// Whether this officer writes onto the given unit.
     ///
     /// A refused targeting category is only an error for an officer that
     /// writes something: a row that corrects a tower reaches no unit either
     /// way, and refusing the fight over it would refuse a side for carrying an
     /// officer whose effect is not a unit's at all.
-    fn reaches(&self, unit_type: &str) -> Result<bool> {
-        match &self.targets {
-            Targets::Every => Ok(true),
-            Targets::Listed(units) => Ok(units.iter().any(|listed| listed == unit_type)),
-            Targets::Refused(reason) => Err(Error::new(reason.clone())),
-        }
+    fn reaches(&self, unit: &UnitConfig) -> Result<bool> {
+        self.targets.reaches(unit)
     }
 }
 
@@ -307,14 +275,20 @@ const ELSEWHERE: &str = "it corrects a tower, a shield, a mine, a deployment \
 #[cfg(test)]
 mod tests {
     use super::{Channel, Index, OfficerEffects};
-    use crate::data::Correction;
+    use crate::{
+        data::Correction,
+        rules::{UnitConfig, UnitConfigs},
+    };
+
+    fn unit(name: &str) -> UnitConfig {
+        UnitConfigs::load().unwrap().get(name).unwrap().clone()
+    }
 
     /// Advanced Offensive Tactics, the officer the capture measured.
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
     /// Advanced Defensive Tactics, the same shape on life instead.
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
-    /// Advanced Targeting System, whose `+10` of range reaches a category
-    /// nothing enumerates.
+    /// Advanced Targeting System, whose `+10` of range reaches ranged units.
     const ADVANCED_TARGETING_SYSTEM: i32 = 20006;
     /// Advanced Power System, whose `+3` of movement is a plain integer.
     const ADVANCED_POWER_SYSTEM: i32 = 20004;
@@ -329,7 +303,7 @@ mod tests {
     fn a_plain_integer_is_a_value_in_the_unit_channel() {
         let table = OfficerEffects::load().unwrap();
         let speed = table
-            .corrections(&[ADVANCED_POWER_SYSTEM], "marksman")
+            .corrections(&[ADVANCED_POWER_SYSTEM], &unit("marksman"))
             .unwrap();
         assert_eq!(speed.len(), 1);
         assert_eq!(speed[0].0, Channel::Unit);
@@ -341,7 +315,7 @@ mod tests {
     fn a_rate_lands_in_the_channel_its_recording_keeps_it_in() {
         let table = OfficerEffects::load().unwrap();
         let damage = table
-            .corrections(&[ADVANCED_OFFENSIVE_TACTICS], "marksman")
+            .corrections(&[ADVANCED_OFFENSIVE_TACTICS], &unit("marksman"))
             .unwrap();
         assert_eq!(damage.len(), 1);
         assert_eq!(damage[0].0, Channel::Skill);
@@ -355,7 +329,7 @@ mod tests {
         );
 
         let life = table
-            .corrections(&[ADVANCED_DEFENSIVE_TACTICS], "rhino")
+            .corrections(&[ADVANCED_DEFENSIVE_TACTICS], &unit("rhino"))
             .unwrap();
         assert_eq!(life.len(), 1);
         assert_eq!(life[0].0, Channel::Unit, "life is a unit's number");
@@ -367,7 +341,10 @@ mod tests {
     fn holding_one_officer_twice_writes_it_twice() {
         let table = OfficerEffects::load().unwrap();
         let held = [ADVANCED_OFFENSIVE_TACTICS, ADVANCED_OFFENSIVE_TACTICS];
-        assert_eq!(table.corrections(&held, "marksman").unwrap().len(), 2);
+        assert_eq!(
+            table.corrections(&held, &unit("marksman")).unwrap().len(),
+            2
+        );
     }
 
     #[test]
@@ -375,7 +352,7 @@ mod tests {
         let table = OfficerEffects::load().unwrap();
         assert_eq!(
             table
-                .corrections(&[AERIAL_SPECIALIST], "wasp")
+                .corrections(&[AERIAL_SPECIALIST], &unit("wasp"))
                 .unwrap()
                 .len(),
             2,
@@ -383,27 +360,37 @@ mod tests {
         );
         assert!(
             table
-                .corrections(&[AERIAL_SPECIALIST], "marksman")
+                .corrections(&[AERIAL_SPECIALIST], &unit("marksman"))
                 .unwrap()
                 .is_empty(),
             "a ground unit takes neither"
         );
     }
 
-    /// The table loads whole, and an officer this build cannot apply refuses
-    /// the fight that carries it rather than the table that lists it.
+    /// A Ranged row reaches every unit whose main skill is not a melee
+    /// attack, whatever its attack path, and no melee unit:
+    /// `tests/modifier/targeting.mcscript` recorded Advanced Targeting System
+    /// on all six of these.
     #[test]
-    fn an_officer_this_build_cannot_apply_is_refused_by_name() {
+    fn a_ranged_officer_reaches_every_unit_that_is_not_melee() {
         let table = OfficerEffects::load().unwrap();
-        let refused = table
-            .corrections(&[ADVANCED_TARGETING_SYSTEM], "marksman")
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("20006"), "{refused}");
-        assert!(refused.contains("ranged units"), "{refused}");
-
-        // Its `+10` of range is applied now, so what refuses it is which
-        // units it reaches rather than what it writes.
+        for ranged in ["marksman", "arclight", "fang", "steel_ball"] {
+            let written = table
+                .corrections(&[ADVANCED_TARGETING_SYSTEM], &unit(ranged))
+                .unwrap();
+            assert_eq!(written.len(), 1, "{ranged}");
+            assert_eq!(written[0].1.index, Index::AttackRange);
+            assert_eq!(written[0].1.correction, Correction::Value(10_000));
+        }
+        for melee in ["rhino", "crawler"] {
+            assert!(
+                table
+                    .corrections(&[ADVANCED_TARGETING_SYSTEM], &unit(melee))
+                    .unwrap()
+                    .is_empty(),
+                "{melee}"
+            );
+        }
     }
 
     /// An officer that only touches a ledger is not in this table, and writes
@@ -411,6 +398,11 @@ mod tests {
     #[test]
     fn an_officer_with_no_combat_effect_writes_nothing() {
         let table = OfficerEffects::load().unwrap();
-        assert!(table.corrections(&[10001], "marksman").unwrap().is_empty());
+        assert!(
+            table
+                .corrections(&[10001], &unit("marksman"))
+                .unwrap()
+                .is_empty()
+        );
     }
 }

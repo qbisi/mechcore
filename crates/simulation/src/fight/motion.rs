@@ -643,7 +643,7 @@ impl Simulation {
             actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             let completed_attack_reentry_rejected = entered_attack
                 && backswing_just_finished
-                && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+                && actor.rules.attack.melee
                 && !actor.rules.has_body
                 && !in_attack_angle;
             if completed_attack_reentry_rejected {
@@ -663,12 +663,11 @@ impl Simulation {
                 // after it has observed and corrected the facing.
                 actor.motion.attack_hold_fire = !actor.rules.has_body
                     && !in_attack_angle
-                    && matches!(
-                        actor.rules.attack.path,
-                        AttackPath::Projectile { .. }
-                            | AttackPath::Direct { melee: true }
-                            | AttackPath::Laser { .. }
-                    );
+                    && (actor.rules.attack.melee
+                        || matches!(
+                            actor.rules.attack.path,
+                            AttackPath::Projectile { .. } | AttackPath::Laser { .. }
+                        ));
             }
             let invalid_attack_angle_barrier = !actor.rules.has_body
                 && !entered_attack
@@ -828,8 +827,7 @@ impl Simulation {
             && !actor.motion.attack_hold_fire
             && actor.skill.pending().is_none()
             && actor.skill.backswing_finish_step().is_none()
-            && (matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
-                || actor.skill.phase() == FightSkillPhase::Attack)
+            && (actor.rules.attack.melee || actor.skill.phase() == FightSkillPhase::Attack)
         {
             // FightSkill updates before MotionController. An active bodyless
             // attack rejects an out-of-range retained target and enters
@@ -846,7 +844,7 @@ impl Simulation {
             return Flow::Done;
         }
         if attack_point_rejected
-            && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
+            && actor.rules.attack.melee
             && !actor.rules.has_body
             && actor.motion.state == MotionState::Attacking
             && actor.skill.pending().is_none()
@@ -864,10 +862,7 @@ impl Simulation {
             actor.motion.next_max_speed_q32 = space_to_q32(actor.stats.move_speed());
             return Flow::Done;
         }
-        if backswing_just_finished
-            && matches!(actor.rules.attack.path, AttackPath::Direct { melee: true })
-            && !actor.rules.has_body
-        {
+        if backswing_just_finished && actor.rules.attack.melee && !actor.rules.has_body {
             // SkillAttackState rechecks its retained target after the attack
             // controller finishes. If that target has left the legal attack
             // area, Finish synchronously enters SkillIdleState; SimpleFSM does

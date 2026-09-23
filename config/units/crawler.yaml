@@ -36,6 +36,6 @@ attack:
     mode: normal
     count: 1
     per_skill: 1
+  melee: true
   path:
     type: direct
-    melee: true
