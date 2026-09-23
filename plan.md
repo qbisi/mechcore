@@ -129,10 +129,10 @@ farseer 19、typhoon 17、scorpion 12、hacker 7。问题按机制切，不按�
 一批单位怎么推进：先把它们的全套布阵录下来、拿模拟器逐场核对，对得上的直接钉住；只有
 对不上的那几场，才按第一处分叉的机制切成研究问题。
 
-**参照单位的进度。** 四个参照单位的 44 场录像里 43 场逐 tick 对上，已经钉在
-[`tests/units/`](tests/units/README.md)。剩下一场是 rhino 的 M6（种子 1787720817）：第 122
-tick 一只爬虫对犀牛的第二击在游戏里落下、在模拟器里没有，是一个开放的研究问题，所以
-rhino 和 crawler 暂未达标；wasp 和 marksman 的 12 场全部钉住，已经达标。不带科技时单位只有主技能（`FightMech` 构造时只加
+**参照单位的进度。** 四个参照单位的 44 场录像全部逐 tick 对上，钉在
+[`tests/units/`](tests/units/README.md)，rhino、crawler、wasp、marksman 都已达标。最后一场是
+rhino 的 M6（种子 1787720817）：后摇期间被挤出射程、下一 tick 回来的爬虫，要在回来的那一
+tick 就开始下一击，模拟器原先推迟了一 tick。不带科技时单位只有主技能（`FightMech` 构造时只加
 `mechData.GetMainSkillID()`，额外技能只经由科技），所以第 2 条由主攻击本身满足。
 
 ## 一、先定架构，否则并行不起来

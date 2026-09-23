@@ -807,7 +807,6 @@ impl Simulation {
             .attack;
         let prepare_steps = native_time_units_to_steps(attack.prepare_time_units());
         let attack_point_steps = native_time_units_to_steps(attack.attack_point_time_units());
-        let quick_switch_target = attack.quick_switch_target;
         let attack_hold_fire = self.attack_hold_fire(owner);
         let skill = self.skill_mut(owner);
         let mut entered_skill_phase = false;
@@ -841,8 +840,12 @@ impl Simulation {
             });
             entered_skill_phase = prepare_steps > 0 || entered_attack;
         }
-        if (!entered_attack || quick_switch_target)
-            && !attack_hold_fire
+        // A skill already in its attack state starts its next blow's wait on
+        // the tick its interval is up, whatever its motion did: a Crawler
+        // pushed out of reach during its backswing and back in on the tick
+        // after starts its next blow on the tick it returns, as the game's
+        // skill state reads in the Rhino's formation fight.
+        if !attack_hold_fire
             && in_attack_angle
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
