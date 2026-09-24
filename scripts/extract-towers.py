@@ -1,42 +1,39 @@
 #!/usr/bin/env python3
-"""Extract what strengthening a tower and losing one do into `config/towers.yaml`.
+"""Extract the map's towers, their strengthening and their loss into `config/towers.yaml`.
 
-    python3 scripts/extract-towers.py            write the table
-    python3 scripts/extract-towers.py --check    compare it with the tracked one
+    python3 scripts/extract-towers.py [--build BUILD] [--check]
 
-The source is `ConfigDataContainer.m_Structure`, exported as JSON to
-`work/inputs/config-data-container-build2259.json` (a local research artifact,
-not tracked). Two of its lists are read:
+Read through `scripts/build_data.py`:
 
-* `towerStrengthenDatas`: one row per strengthen level, 1 to 4, each adding
-  life to the tower and naming the buff its loss writes.
-* `buffDatas` ids 1 to 5, all named 能量塔摧毁. A level-0 tower's loss writes
-  id 1, which no strengthen row names; the fights recorded for the tower-loss
-  question read its 180 ticks. The five rows are the same buff but for
-  `duration`, and the script refuses them if they are not.
+* `buildings`: the four towers of the map the Training Ground plays on,
+  `matchSettings` row `TRAINING_GROUND`. Its `mapData` names a `MapData` whose
+  `buildingDatas` place every building; the towers are the ones a team owns,
+  in the map's order, which is the order `BuildingManager.buildings` gives a
+  side's towers. A tower's life is not the map's: `CrystalElement` takes the
+  `towerDefaultDatas` row whose `limitedScene` holds the match's
+  `serverSubType` (`CheckSceneLimit(int subType)`).
+* `levels`: level 0 is that `towerDefaultDatas` row, whose `destroyAddBuff`
+  names the buff its loss writes; levels 1 to 4 are `towerStrengthenDatas`,
+  each adding its `life` on top of the levels below and naming a buff.
+* `destroyed_buff`: the `buffDatas` rows the levels name, which are one buff
+  but for `duration`; the script refuses them if they are not.
 
-Rates and durations are written as the FPoint raw integers the build stores,
-with a comment reading each one. `docs/rules/towers.md` states what they mean.
-
-The same file opens with the map's four towers, `buildings:`, which the export
-does not carry: `CrystalElement` takes a `TowerDefaultData` the container does
-not hold, so their places, life and size were measured on a capture. That
-block is kept by hand, and this script carries it through unchanged.
+Rates and durations are the FPoint raw integers the build stores, with a
+comment reading each one. `docs/rules/towers.md` states what they mean.
 """
 
-import json
 import pathlib
 import sys
 
+import build_data
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-EXPORT = ROOT / "work/inputs/config-data-container-build2259.json"
 OUTPUT = ROOT / "config/towers.yaml"
-BUILD = "1.11.1.3.2259"
+TRAINING_GROUND = 1021
 ONE = 1 << 32
-LEVEL_ZERO_BUFF = 1
 # The fields that may differ between the five rows. Everything else is the
 # one buff, and has to agree.
-PER_ROW = {"id", "duration"}
+PER_ROW = {"id", "duration", "name"}
 
 
 def raw(value):
@@ -48,22 +45,34 @@ def reading(value):
     return f"  # {text}"
 
 
-def map_block():
-    """The hand-kept `buildings:` block of the current table, verbatim."""
-    lines = OUTPUT.read_text().splitlines()
-    start = lines.index("buildings:")
-    end = start + 1
-    while end < len(lines) and lines[end].startswith((" ", "#")):
-        end += 1
-    return lines[start:end]
+def metres(value):
+    quotient, remainder = divmod(raw(value), ONE)
+    if remainder:
+        raise SystemExit(f"a tower sits at a fraction of a metre: {raw(value)}")
+    return quotient
+
+
+def tower_default(structure, sub_type):
+    rows = [row for row in structure["towerDefaultDatas"] if sub_type in row["limitedScene"]]
+    if len(rows) != 1:
+        raise SystemExit(f"{len(rows)} towerDefaultDatas rows hold scene {sub_type}")
+    return rows[0]
 
 
 def render(structure):
+    setting = next(row for row in structure["matchSettings"] if row["id"] == TRAINING_GROUND)
+    default = tower_default(structure, setting["serverSubType"])
+    map_data = build_data.shared("MapData")[setting["mapData"]]
+    towers = [row for row in map_data["buildingDatas"] if row["teamType"] >= 0]
+    if sorted((row["teamType"], row["buildingType"]) for row in towers) != [(0, 1), (0, 2), (1, 1), (1, 2)]:
+        raise SystemExit(f"{setting['mapData']} does not place one tower of each type per team")
+
     buffs = {row["id"]: row for row in structure["buffDatas"]}
-    levels = sorted(structure["towerStrengthenDatas"], key=lambda row: row["level"])
+    levels = sorted((row for row in structure["towerStrengthenDatas"] if build_data.in_standard(row)),
+                    key=lambda row: row["level"])
     if [row["level"] for row in levels] != [1, 2, 3, 4]:
-        raise SystemExit("towerStrengthenDatas does not hold levels 1 to 4")
-    named = [LEVEL_ZERO_BUFF] + [row["buffID"] for row in levels]
+        raise SystemExit("towerStrengthenDatas does not hold levels 1 to 4 outside Expedition")
+    named = [default["destroyAddBuff"]] + [row["buffID"] for row in levels]
     rows = [buffs[buff] for buff in named]
     first = rows[0]
     for row in rows[1:]:
@@ -79,23 +88,31 @@ def render(structure):
 
     lines = [
         "schema: mechcore.towers",
-        f"game_build: {BUILD}",
+        f"game_build: {build_data.build()}",
         "",
         "# The map's towers, what strengthening one does and what losing one",
-        "# writes on its side. docs/rules/towers.md states what each field means.",
+        "# writes on its side. Generated by scripts/extract-towers.py;",
+        "# docs/rules/towers.md states what each field means. A rate is an",
+        "# FPoint Q32.32 raw integer: -3865470566 is -0.9.",
         "",
-        "# The four towers as the Training Ground places them: team, building",
-        "# type (1 the Energy Tower, 2 the Research Center), centre in metres,",
-        "# life, half-width. ConfigDataContainer does not carry them, so they were",
-        "# measured on a capture and are kept by hand.",
-        *map_block(),
+        f"# The four towers of {setting['mapData']}, the Training Ground's map:",
+        "# team, building type (1 the Energy Tower, 2 the Research Center),",
+        "# centre in metres, life from towerDefaultDatas, half-width.",
+        "buildings:",
+    ]
+    for tower in towers:
+        lines += [
+            f"  - team_id: {tower['teamType']}",
+            f"    building_type_id: {tower['buildingType']}",
+            f"    position: {{x: {metres(tower['position']['x'])}, z: {metres(tower['position']['y'])}}}",
+            f"    life: {default['life']}",
+            f"    radius: {metres(tower['radius'])}",
+            f"    collision_enabled: {str(tower['enablePathfinding']).lower()}",
+        ]
+    lines += [
         "",
-        "# Everything below is read out of ConfigDataContainer by",
-        "# scripts/extract-towers.py. A rate is an FPoint Q32.32 raw integer:",
-        "# -3865470566 is -0.9.",
-        "",
-        "# The buff a tower's loss writes on its side: buffDatas ids 1 to 5, one",
-        "# buff that differs only in how long it lasts.",
+        "# The buff a tower's loss writes, one buff that differs by level only",
+        "# in how long it lasts.",
         "destroyed_buff:",
         f"  name: {first['name']}",
         f"  buff_divide: {first['buffDivide']}",
@@ -106,6 +123,10 @@ def render(structure):
         f"  move_speed_rate: {raw(first['speedChangeRate'])}{reading(raw(first['speedChangeRate']))}",
         f"  damage_rate: {raw(first['damageChangeRate'])}{reading(raw(first['damageChangeRate']))}",
         f"  amplify_damage_rate: {raw(first['amplifyDamageRate'])}{reading(raw(first['amplifyDamageRate']))}",
+    ]
+    if "canAffectTower" in first:
+        lines.append(f"  can_affect_tower: {str(first['canAffectTower']).lower()}")
+    lines += [
         "",
         "# One row per strengthen level. `life` is what the level adds to the",
         "# tower, on top of the levels below it; `buff` is the buffDatas row its",
@@ -121,18 +142,16 @@ def render(structure):
 
 
 def main():
-    if not EXPORT.exists():
-        print(f"{EXPORT} is missing; it is a local research artifact and is not tracked", file=sys.stderr)
-        return 2
-    written = render(json.loads(EXPORT.read_text())["m_Structure"])
-    if "--check" in sys.argv[1:]:
+    arguments = build_data.arguments(__doc__, lambda parser: parser.add_argument("--check", action="store_true"))
+    written = render(build_data.container())
+    if arguments.check:
         if not OUTPUT.exists() or OUTPUT.read_text() != written:
-            print("config/towers.yaml differs from the export", file=sys.stderr)
+            print("config/towers.yaml differs from the build's export", file=sys.stderr)
             return 1
-        print("config/towers.yaml agrees with the export byte for byte")
+        print("config/towers.yaml agrees with the build's export byte for byte")
         return 0
     OUTPUT.write_text(written)
-    print(f"five tower levels -> {OUTPUT.relative_to(ROOT)}")
+    print(f"towers of build {build_data.build()} -> {OUTPUT.relative_to(ROOT)}")
     return 0
 
 

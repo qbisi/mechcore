@@ -287,6 +287,11 @@ pub(crate) struct DestroyedBuff {
     pub(crate) move_speed_rate: i64,
     pub(crate) damage_rate: i64,
     pub(crate) amplify_damage_rate: i64,
+    /// `canAffectTower`, which build 2.0 added when a tower became a buff
+    /// target. This simulator puts no buff on a tower, so nothing reads it.
+    #[allow(dead_code, reason = "no mechanism here puts a buff on a tower")]
+    #[serde(default)]
+    pub(crate) can_affect_tower: bool,
 }
 
 /// One strengthen level: the life it adds and the buff its loss writes.
