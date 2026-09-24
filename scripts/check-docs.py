@@ -2,7 +2,8 @@
 """Check what a machine can check about the documents.
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
-and every spec follows the convention in docs/README.md. Nothing here judges
+every spec follows the convention in docs/README.md, and the name tables of
+docs/rules/ are the ones config/localization.yaml gives. Nothing here judges
 whether a sentence is true; that still needs a reader.
 
 Run from the repository root: python3 scripts/check-docs.py
@@ -188,6 +189,17 @@ def check_spec_structure(fail):
                  f"remove it from PENDING in scripts/check-docs.py")
 
 
+def check_name_tables(fail):
+    """The name tables of docs/rules/ are what config/localization.yaml gives."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("name_tables", REPO / "scripts" / "name-tables.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    for path in module.stale():
+        fail(f"{path.relative_to(REPO)}: a name table is stale; run scripts/name-tables.py")
+
+
 def main():
     problems = []
     paths = tracked_markdown()
@@ -196,6 +208,7 @@ def main():
     check_spec_classification(paths, problems.append)
     check_spec_structure(problems.append)
     check_repeated_paragraphs(paths, problems.append)
+    check_name_tables(problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)

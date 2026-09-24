@@ -39,6 +39,7 @@ import build_data
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "config/names.yaml"
+LOCALIZATION = ROOT / "config/localization.yaml"
 # Technologies are spread over every table whose rows are technologies; these
 # two carry some without saying so in their names.
 TECHNOLOGY_TABLES = ("SearchTargetSpecificData", "BurrowData")
@@ -64,6 +65,52 @@ def distinct(rows: dict[int, str], kind: str) -> dict[int, str]:
     if clash:
         raise SystemExit(f"{kind} names collide: {clash}")
     return rows
+
+
+def official(terms, tables, row):
+    """A row's official English and Simplified Chinese names, from whichever table localizes it."""
+    for table in tables:
+        value = terms.get(f"ConfigData/{table}/name_{row}")
+        if value and value[0]:
+            return value[0], value[1]
+    raise SystemExit(f"row {row} has no official name in {tables}")
+
+
+def quoted(text):
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def write_localization(terms, officers, commander_skills, equipment, technologies,
+                       skill_tables, equipment_tables, technology_tables):
+    """The official English and Chinese names of what a battle names, for readers."""
+    cards = build_data.container()["cardDatas"]
+    units = {
+        card["mechID"]: snake(official(terms, ["MechData"], card["mechID"])[0])
+        for card in cards
+        if build_data.in_standard(card) and not card["isTestUnit"] and card["specialUnit"] <= 0
+    }
+    sections = [
+        ("units", {unit: official(terms, ["MechData"], unit) for unit in units}),
+        ("officers", {row: official(terms, ["OfficerData"], row) for row in officers}),
+        ("commander_skills", {row: official(terms, skill_tables, row) for row in commander_skills}),
+        ("equipment", {row: official(terms, equipment_tables, row) for row in equipment}),
+        ("technologies", {row: official(terms, technology_tables, row)
+                          for rows in technologies.values() for row in rows}),
+    ]
+    lines = [
+        "schema: mechcore.localization",
+        f"game_build: {build_data.build()}",
+        "",
+        "# The game's official English and Simplified Chinese names of what a",
+        "# battle document names, for a reader to find it in the game. Generated",
+        "# by scripts/extract_names.py; config/names.yaml holds the snake-case",
+        "# names a document writes. scripts/name-tables.py turns this into the",
+        "# name tables of docs/rules/.",
+    ]
+    for section, rows in sections:
+        lines += ["", f"{section}:"]
+        lines += [f"  {row}: {{en: {quoted(en)}, zh: {quoted(zh)}}}" for row, (en, zh) in sorted(rows.items())]
+    LOCALIZATION.write_text("\n".join(lines) + "\n")
 
 
 def main():
@@ -177,6 +224,8 @@ def main():
     lines += ["", "equipment:"]
     lines += [f"  {row}: {name}" for row, name in sorted(equipment.items())]
     OUTPUT.write_text("\n".join(lines) + "\n")
+    write_localization(terms, officers, commander_skills, equipment, technologies,
+                       skill_tables, equipment_tables, tables)
     print(
         f"{len(officers)} officers, {sum(map(len, technologies.values()))} technologies, "
         f"{len(blueprints)} blueprints, {len(skills)} energy tower skills, "
