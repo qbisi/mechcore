@@ -8,7 +8,7 @@ formation:
   footprint: {width: 40, depth: 20}
 
 domain: ground
-max_life: 1522
+max_life: 1370
 collision_radius: 4
 move_speed: 8
 rotate_speed: 120
@@ -16,7 +16,7 @@ has_body: false
 rvo: {outer_radius: 5, inner_radius: 3, size: s, collider_priority: 4, priority: 0.005}
 
 attack:
-  base_damage: 995
+  base_damage: 1144
   min_range: 0
   range: 100
   attack_half_angle: 20

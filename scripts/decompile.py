@@ -288,7 +288,10 @@ for name in sys.argv[2:]:
             continue
         behaviour = obj.read(check_read=False)
         script = behaviour.m_Script.read()
-        found.append({"file": name, "path_id": obj.path_id, "name": behaviour.m_Name,
+        owner = ""
+        if not behaviour.m_Name and behaviour.m_GameObject.path_id:
+            owner = behaviour.m_GameObject.read().m_Name
+        found.append({"file": name, "path_id": obj.path_id, "name": behaviour.m_Name or owner,
                       "class": f"{script.m_Namespace}.{script.m_ClassName}".lstrip(".")})
 json.dump(found, sys.stdout)
 """
@@ -324,7 +327,11 @@ def exported_objects(app):
 
 
 def export_path(entry, counts):
-    """`<file>/<Class>.json` for a class the file holds once, else `<file>/<Class>/<name>.json`."""
+    """`<file>/<Class>.json` for a class the file holds once, else `<file>/<Class>/<name>.json`.
+
+    A component's name is its GameObject's, so a prefab's RVOControllerFixed
+    is `sharedassets0/RVOControllerFixed/Mech_Default_2.json`.
+    """
     if entry["class"] == "GameRiver.ConfigDataContainer":
         return pathlib.Path("config-data-container.json")
     directory = pathlib.Path(entry["file"].removesuffix(".assets"))
