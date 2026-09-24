@@ -1,7 +1,5 @@
 # Equipment index
 
-[中文](equipment.zh.md)
-
 This index is pinned to game build 2227. It contains the 18 ordinary
 reinforcement equipment items and the Lesser Amplifying Core embedded in the
 Amplify Specialist opening. Names and effects are taken from that build's

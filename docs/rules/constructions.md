@@ -1,7 +1,5 @@
 # What a construction is
 
-[简体中文](constructions.zh.md)
-
 This index is pinned to game build 2259. It states what a construction placed
 by a layout becomes in a fight, what numbers it carries, whether it obstructs
 anything, and which of that has been measured against the game rather than only

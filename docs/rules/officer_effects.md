@@ -1,7 +1,5 @@
 # What an officer does to a fight
 
-[简体中文](officer_effects.zh.md)
-
 This index is pinned to game build 2259. It states the corrections an officer
 writes onto the units it targets, how those corrections are encoded, and which
 units each one reaches. What an officer does to a ledger — a discount, an

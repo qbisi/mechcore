@@ -280,7 +280,7 @@ List<MultiplicativeDataFloat> floatRateDatas  ChangeDataFloatRate  —— 一条
 
 在 build 把结果转回 `Int32` 的地方向零截断一次，此前不截断。**削弱不是负的增强**：两条
 `0.11` 留下的是 `0.89 × 0.89`，不是 `1 − 0.22`。`tests/modifier/` 放着逐条子句
-对着游戏量出来的那些 fixture，[`officer_effects.md`](../../rules/officer_effects.zh.md)
+对着游戏量出来的那些 fixture，[`officer_effects.md`](../../rules/officer_effects.md)
 记录了它们的答案。
 
 这张表带出两件事。攻击间隔有下界钳制而射程没有，这是种类上的差别不是巧合。以及，一个
@@ -358,7 +358,7 @@ instrumentation profile），和 `tests/construction/` 下的录像一起。
 
 **成组搜索边界。** 组按槽位顺序搜索和检查，每次搜索确定锁定后将其发布给 mech。普通搜索
 排除兄弟锁定，是否允许共享由技能数据决定。子技能射程规则见
-[combat](../../rules/combat.zh.md#成组槽位避开兄弟槽位的锁定来搜索)。镜像拒绝将存活共享锁定
+[combat](../../rules/combat.md)。镜像拒绝将存活共享锁定
 再分配到新的可用目标，以及子槽位离开攻击范围；成组齐射不在支持的配置中。已有准备时间偏移
 和逐槽墙检查与这里的目标搜索契约分开。
 
@@ -413,7 +413,7 @@ build 只在 `Check` 的重搜分支里读快速切换标志。
 - **一个 value 怎么合成，以及两条通道按什么顺序作用。** 比率已经定了：
   `tests/modifier/composition.mcscript` 测出的是同一条通道内
   `base × (1 + Σ add − Σ reduce)`、向零截断，
-  [`officer_effects.md`](../../rules/officer_effects.zh.md) 记录了那次捕获。但那次捕获
+  [`officer_effects.md`](../../rules/officer_effects.md) 记录了那次捕获。但那次捕获
   把两条修正放在同一条通道里、而且两条都是比率，所以同一下标上 Float 与 FloatRate 并存
   时如何相互作用，仍然没有人测过。三条通道之间，伤害和移速已经读明：
   `DamageProperty.CalculateDamage` 与 `MoveSpeedProperty.Refresh` 把各通道的 value 与加成

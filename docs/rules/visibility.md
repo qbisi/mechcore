@@ -1,7 +1,5 @@
 # What a player knows about the other
 
-[简体中文](visibility.zh.md)
-
 This index is pinned to game build 2259. It states what the game gives a
 player about the other side, and separates the two answers that question has:
 what the client holds, which is settled, and what the interface shows a human,

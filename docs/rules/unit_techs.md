@@ -1,7 +1,5 @@
 # Unit technology index
 
-[简体中文](unit_techs.zh.md)
-
 [TOC]
 
 This index contains all 233 ordinary unit technologies referenced by the 32

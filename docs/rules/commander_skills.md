@@ -1,7 +1,5 @@
 # Commander skill cooldowns
 
-[简体中文](commander_skills.zh.md)
-
 This index is pinned to game build 2259. It states how a commander skill's
 cooldown counts, per skill and per round, and the evidence for it.
 

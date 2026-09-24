@@ -1,7 +1,5 @@
 # Seeded opening initialization
 
-[简体中文](opening.zh.md)
-
 These rules cover build **1.11.1.3.2259**, standard versus 1v1 with the shipped
 opening pools and no game rules, on maps 1001, 1011, 1021, 1031 and 1032.
 The initialization flow determines both offer arrays and the initial defensive

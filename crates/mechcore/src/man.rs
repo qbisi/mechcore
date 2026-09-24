@@ -17,69 +17,33 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/battle_skill.md"),
     ),
     (
-        "rules/battle_skill.zh",
-        include_str!("../../../docs/rules/battle_skill.zh.md"),
-    ),
-    (
         "rules/combat",
         include_str!("../../../docs/rules/combat.md"),
-    ),
-    (
-        "rules/combat.zh",
-        include_str!("../../../docs/rules/combat.zh.md"),
     ),
     (
         "rules/commander_skills",
         include_str!("../../../docs/rules/commander_skills.md"),
     ),
     (
-        "rules/commander_skills.zh",
-        include_str!("../../../docs/rules/commander_skills.zh.md"),
-    ),
-    (
         "rules/constructions",
         include_str!("../../../docs/rules/constructions.md"),
-    ),
-    (
-        "rules/constructions.zh",
-        include_str!("../../../docs/rules/constructions.zh.md"),
     ),
     (
         "rules/equipment",
         include_str!("../../../docs/rules/equipment.md"),
     ),
     (
-        "rules/equipment.zh",
-        include_str!("../../../docs/rules/equipment.zh.md"),
-    ),
-    (
         "rules/landing",
         include_str!("../../../docs/rules/landing.md"),
     ),
-    (
-        "rules/landing.zh",
-        include_str!("../../../docs/rules/landing.zh.md"),
-    ),
     ("rules/map", include_str!("../../../docs/rules/map.md")),
-    (
-        "rules/map.zh",
-        include_str!("../../../docs/rules/map.zh.md"),
-    ),
     (
         "rules/mobility",
         include_str!("../../../docs/rules/mobility.md"),
     ),
     (
-        "rules/mobility.zh",
-        include_str!("../../../docs/rules/mobility.zh.md"),
-    ),
-    (
         "rules/officers",
         include_str!("../../../docs/rules/officers.md"),
-    ),
-    (
-        "rules/officers.zh",
-        include_str!("../../../docs/rules/officers.zh.md"),
     ),
     (
         "rules/equipment_effects",
@@ -90,72 +54,36 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/rules/officer_effects.md"),
     ),
     (
-        "rules/officer_effects.zh",
-        include_str!("../../../docs/rules/officer_effects.zh.md"),
-    ),
-    (
         "rules/opening",
         include_str!("../../../docs/rules/opening.md"),
-    ),
-    (
-        "rules/opening.zh",
-        include_str!("../../../docs/rules/opening.zh.md"),
     ),
     (
         "rules/reinforce_items",
         include_str!("../../../docs/rules/reinforce_items.md"),
     ),
     (
-        "rules/reinforce_items.zh",
-        include_str!("../../../docs/rules/reinforce_items.zh.md"),
-    ),
-    (
         "rules/reinforcements",
         include_str!("../../../docs/rules/reinforcements.md"),
-    ),
-    (
-        "rules/reinforcements.zh",
-        include_str!("../../../docs/rules/reinforcements.zh.md"),
     ),
     (
         "rules/technology_effects",
         include_str!("../../../docs/rules/technology_effects.md"),
     ),
     (
-        "rules/technology_effects.zh",
-        include_str!("../../../docs/rules/technology_effects.zh.md"),
-    ),
-    (
         "rules/terrain",
         include_str!("../../../docs/rules/terrain.md"),
-    ),
-    (
-        "rules/terrain.zh",
-        include_str!("../../../docs/rules/terrain.zh.md"),
     ),
     (
         "rules/turrets",
         include_str!("../../../docs/rules/turrets.md"),
     ),
     (
-        "rules/turrets.zh",
-        include_str!("../../../docs/rules/turrets.zh.md"),
-    ),
-    (
         "rules/visibility",
         include_str!("../../../docs/rules/visibility.md"),
     ),
     (
-        "rules/visibility.zh",
-        include_str!("../../../docs/rules/visibility.zh.md"),
-    ),
-    (
         "rules/unit_experience",
         include_str!("../../../docs/rules/unit_experience.md"),
-    ),
-    (
-        "rules/unit_experience.zh",
-        include_str!("../../../docs/rules/unit_experience.zh.md"),
     ),
     (
         "rules/towers",
@@ -168,10 +96,6 @@ static TOPICS: &[(&str, &str)] = &[
     (
         "rules/unit_techs",
         include_str!("../../../docs/rules/unit_techs.md"),
-    ),
-    (
-        "rules/unit_techs.zh",
-        include_str!("../../../docs/rules/unit_techs.zh.md"),
     ),
     (
         "spec/adapter/adapter",

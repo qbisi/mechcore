@@ -1,7 +1,5 @@
 # Dynamic terrain
 
-[简体中文](terrain.zh.md)
-
 How build `1.11.1.3.2259` creates, shapes and ends the in-battle area effects
 that `RangeItemSystem` manages.
 

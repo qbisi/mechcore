@@ -1,7 +1,5 @@
 # 1v1 maps
 
-[简体中文](map.zh.md)
-
 The 1v1 map IDs a single-round layout may select on build `1.11.1.3.2259`, and
 what choosing one changes.
 

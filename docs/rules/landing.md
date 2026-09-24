@@ -1,7 +1,5 @@
 # Landing
 
-[简体中文](landing.zh.md)
-
 This index is pinned to game build 2259. It states where the board puts a
 unit that no decision places: a purchase, a reinforcement card's squads,
 an opening's force, and an officer's delivery. A battle states where a

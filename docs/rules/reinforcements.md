@@ -1,7 +1,5 @@
 # Reinforcement dealing
 
-[简体中文](reinforcements.zh.md)
-
 These rules cover build **1.11.1.3.2259**, standard versus 1v1 with no game
 rules, after the [opening initialization](opening.md). The seed determines a
 stream and initial pools. Later deals also depend on both players' fielded

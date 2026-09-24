@@ -367,9 +367,9 @@ collection is ordered by those IDs.
 Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
 
 - Officers and unit modifications:
-  [English](../../rules/officers.md) / [简体中文](../../rules/officers.zh.md)
+  [officers.md](../../rules/officers.md)
 - Unit technologies:
-  [English](../../rules/unit_techs.md) / [简体中文](../../rules/unit_techs.zh.md)
+  [unit_techs.md](../../rules/unit_techs.md)
 
 ### `officers`
 
@@ -703,7 +703,7 @@ then adds one copy from the runtime catalog to the current side's Training
 Ground inventory through `MAD_AddEquipment`, uses the existing native
 `PAD_UseEquipment` action on that unit, and requires authoritative equipment
 ownership readback. Available IDs and effects are listed in the
-[Equipment index](../../rules/equipment.md) ([中文](../../rules/equipment.zh.md)).
+[Equipment index](../../rules/equipment.md).
 
 ### `constructions`
 
@@ -927,7 +927,7 @@ the current round. “Battle skill” is the public layout term; native runtime
 objects and operations may continue to use `CommanderSkillData` and
 “commander skill”. The supported catalog is limited to position-targeted
 skills that affect combat and can occur in standard 1v1 matches:
-[English index](../../rules/battle_skill.md) / [简体中文索引](../../rules/battle_skill.zh.md).
+[battle_skill.md](../../rules/battle_skill.md).
 Skills requiring a unit or construction target and configurations absent from
 standard 1v1 are outside this layout contract.
 

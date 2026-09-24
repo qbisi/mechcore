@@ -1,7 +1,5 @@
 # What a technology does to a fight
 
-[简体中文](technology_effects.zh.md)
-
 This index is pinned to game build 2259. It states the corrections a
 technology writes onto the unit that researched it, how they are encoded, and
 how they grow with the unit's rank. Which technologies a unit may research and

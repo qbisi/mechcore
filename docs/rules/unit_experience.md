@@ -1,7 +1,5 @@
 # Unit experience
 
-[简体中文](unit_experience.zh.md)
-
 This index is pinned to game build 2259. It states how much experience fills
 each level of every unit a standard 1v1 match sells, the formula those amounts
 follow, what a full bar means, and what Intensive Training does with it.

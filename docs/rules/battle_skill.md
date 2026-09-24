@@ -1,7 +1,5 @@
 # Battle skill index
 
-[简体中文](battle_skill.zh.md)
-
 This index is pinned to game build 2227. It covers position-targeted battle
 skills that affect combat and can occur in standard 1v1 matches. Skills that
 require a unit or construction target, and configurations absent from standard

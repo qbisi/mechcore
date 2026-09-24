@@ -1,7 +1,5 @@
 # What a turret does
 
-[简体中文](turrets.zh.md)
-
 This document is pinned to game build 2259. It states what a turret does once it stands:
 when it locks a target, when it fires, how often, at what, and what its shot
 does. What a turret *is* — one object, 3650 or 5028 of life in a 24 × 24 box —

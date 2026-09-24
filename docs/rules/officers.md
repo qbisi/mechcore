@@ -1,7 +1,5 @@
 # Officer index: global effects and unit modifications
 
-[简体中文](officers.zh.md)
-
 [TOC]
 
 This is the build `1.11.1.2.2227` index for the Officers a layout or a state
