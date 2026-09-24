@@ -1773,7 +1773,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .method(fight_actor, "ReduceLife", 1)
             .map_err(|error| error.to_string())?;
         let fight_controller_on_actor_hitted = api
-            .method(fight, "OnActorHitted", 1)
+            .method(fight, "OnActorHitted", 2)
             .map_err(|error| error.to_string())?;
         let advanced_shield_damage = api
             .method(damage_performer, "PerformHitAdvancedEndergyShieldEffect", 4)
@@ -2378,7 +2378,7 @@ type DamagePerformFn = unsafe extern "C" fn(
 type FightActorReduceLifeFn =
     unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, *const MethodInfo) -> i32;
 type FightControllerOnActorHittedFn =
-    unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, *const MethodInfo);
+    unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, i32, *const MethodInfo);
 type AdvancedShieldDamageFn =
     unsafe extern "C" fn(*mut Object, *mut Object, i32, FixedVec3, bool, *const MethodInfo) -> i32;
 type ActorOnDeadFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
@@ -3092,7 +3092,7 @@ fn managed_array_length(array: *mut Object, label: &str, cap: usize) -> Result<u
         return Ok(0);
     }
     // The target IL2CPP array ABI stores max_length at 0x18. This is the same
-    // build-2259 ABI used below for the directly observed VO array.
+    // ABI used below for the directly observed VO array.
     // SAFETY: `array` is a non-null managed array read from a typed field.
     let length = unsafe {
         array
@@ -3674,7 +3674,7 @@ fn read_appended_vo_colliding(
             "native RVO VOBuffer capacity {capacity} does not contain index {index}"
         ));
     }
-    // DiffableCs for build 2259 gives VO stride 0xb8 and colliding offset 0x70.
+    // The build's DiffableCs gives VO stride 0xb8 and colliding offset 0x70.
     // SAFETY: capacity was validated above and the byte lies within that value entry.
     let raw = unsafe {
         buffer
@@ -4282,8 +4282,7 @@ fn resolve_damage_context(provider: *mut Object) -> DamageContext {
     } else {
         runtime
             .api
-            .invoke(owner, "GameRiver.Fight.ISkillOwner.GetFightActor", &mut [])
-            .or_else(|_| runtime.api.invoke(owner, "GetFightActor", &mut []))
+            .invoke(owner, "GetFightActor", &mut [])
             .unwrap_or(ptr::null_mut())
     };
     let team_controller = runtime
@@ -4329,16 +4328,7 @@ fn resolve_hit_damage_context(hit: NativeHitDamageInfo) -> DamageContext {
     } else {
         runtime
             .api
-            .invoke(
-                hit.source_skill_owner,
-                "GameRiver.Fight.ISkillOwner.GetFightActor",
-                &mut [],
-            )
-            .or_else(|_| {
-                runtime
-                    .api
-                    .invoke(hit.source_skill_owner, "GetFightActor", &mut [])
-            })
+            .invoke(hit.source_skill_owner, "GetFightActor", &mut [])
             .unwrap_or(ptr::null_mut())
     };
     let native_team_id = if hit.source_team.is_null() {
@@ -4385,6 +4375,7 @@ unsafe extern "C" fn fight_actor_reduce_life_hook(
 unsafe extern "C" fn fight_controller_on_actor_hitted_hook(
     controller: *mut Object,
     hit: NativeHitDamageInfo,
+    damage_taken: i32,
     method: *const MethodInfo,
 ) {
     let original = ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED.load(Ordering::Acquire);
@@ -4394,7 +4385,7 @@ unsafe extern "C" fn fight_controller_on_actor_hitted_hook(
     // SAFETY: hook installer stored the trampoline for this exact method ABI.
     let original: FightControllerOnActorHittedFn = unsafe { std::mem::transmute(original) };
     // SAFETY: IL2CPP arguments are forwarded unchanged.
-    unsafe { original(controller, hit, method) };
+    unsafe { original(controller, hit, damage_taken, method) };
     let _ = catch_unwind(AssertUnwindSafe(|| {
         record_damage(
             resolve_hit_damage_context(hit),
@@ -4982,7 +4973,7 @@ fn read_native_side(
         let unit = list_item(api, elements, index)?;
         let native_id = invoke_value::<i32>(api, unit, "GetID")?;
         let (type_name, _) = unit_type_from_id(native_id)
-            .ok_or_else(|| format!("unknown build-2259 unit type ID {native_id}"))?;
+            .ok_or_else(|| format!("unknown unit type ID {native_id}"))?;
         let native_level = invoke_value::<i32>(api, unit, "GetLevel")?;
         let displayed_level = native_level
             .checked_add(1)
@@ -5616,7 +5607,7 @@ fn read_native_constructions(
         let data = invoke_object(api, construction, "GetConstructionData")?;
         let native_id = invoke_value::<i32>(api, data, "GetID")?;
         let (type_name, _) = construction_type_from_id(native_id)
-            .ok_or_else(|| format!("unknown build-2259 construction type ID {native_id}"))?;
+            .ok_or_else(|| format!("unknown construction type ID {native_id}"))?;
         let position = invoke_value::<MapVector>(api, construction, "GetPosition")?;
         let (x, y) = side_local_position(position, team)?;
         let native_index = api
@@ -6064,7 +6055,7 @@ fn read_native_battle_skills(
             return Err(format!("duplicate released commander skill ID {id}"));
         }
         let type_name = battle_skill_type_from_id(id)
-            .ok_or_else(|| format!("unknown released build-2259 commander skill ID {id}"))?;
+            .ok_or_else(|| format!("unknown released commander skill ID {id}"))?;
         let release_skill = api
             .invoke(
                 release_data,
@@ -6920,7 +6911,7 @@ fn decode_terrain_type(value: i32) -> Result<TerrainType, String> {
         3 => Ok(TerrainType::Acid),
         4 => Ok(TerrainType::RecoveryZone),
         5 => Ok(TerrainType::FogSand),
-        _ => Err(format!("unknown build-2259 RangeItemType {value}")),
+        _ => Err(format!("unknown RangeItemType {value}")),
     }
 }
 
@@ -9233,7 +9224,7 @@ mod tests {
     }
 
     #[test]
-    fn native_hit_damage_info_layout_matches_build_2259() {
+    fn native_hit_damage_info_layout_matches_the_build() {
         assert_eq!(std::mem::size_of::<NativeHitDamageInfo>(), 0x50);
         assert_eq!(std::mem::align_of::<NativeHitDamageInfo>(), 8);
         assert_eq!(std::mem::offset_of!(NativeHitDamageInfo, source_team), 0x00);

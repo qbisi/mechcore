@@ -368,7 +368,7 @@ struct WatchRuleFields {
 }
 
 /// Refresh the first page of match-made scenes through the same cache-resetting
-/// path as the native lobby UI. The filter value is build-2259
+/// path as the native lobby UI. The filter value is
 /// `ERoomListFilter.MatchFirst`; room/custom lists are deliberately excluded.
 fn refresh_watch_scenes(runtime: &Runtime) -> Result<Value, OperationError> {
     if !runtime.current_match().is_null() {
@@ -1619,6 +1619,7 @@ fn apply_side_layout_stage(
         LayoutExecutionStage::Prepare => unreachable!("prepare returned before side application"),
         LayoutExecutionStage::Activation => json!({
             "techs": apply_techs(runtime, current, &side.techs)?,
+            "equipment": apply_equipment(runtime, &side.units)?,
             "energy_tower_skills": apply_energy_tower_skills(
                 runtime,
                 &side.energy_tower_skills,
@@ -1721,7 +1722,7 @@ fn restore_oil_terrain(
 ) -> Result<Value, OperationError> {
     if terrain.terrain_type != layout::TerrainType::Oil {
         return Err(OperationError::InvalidArguments(
-            "only oil terrain is supported by build-2259 native restoration".into(),
+            "only oil terrain is supported by native restoration".into(),
         ));
     }
     let current = require_training_deploying(runtime)?;
@@ -1806,7 +1807,7 @@ fn restore_oil_terrain(
         let mut round = RETAINED_OIL_ROUND;
         let mut use_grid = !local_rows.is_empty();
         let no_masks: *mut Object = std::ptr::null_mut();
-        // Build 2259 exposes exactly one eight-argument AddItem overload. Its
+        // The build exposes exactly one eight-argument AddItem overload. Its
         // closed generic Queue<ByteMask> parameter has no stable reflection
         // spelling through this IL2CPP runtime, so bind the unique arity.
         let method = api.method(
@@ -1897,7 +1898,7 @@ fn calculate_oil_terrain_positions(
         )));
     }
 
-    // CalculateAttackPositions is private and absent from build 2259's runtime
+    // CalculateAttackPositions is private and absent from the build's runtime
     // method table. Reproduce its line branch with the same public FixedMath
     // primitives, preserving their exact Q32.32 rounding behavior.
     let vector_class = api.class("GRUtility.dll", "FixedMath", "FVector3")?;
@@ -2576,6 +2577,45 @@ fn apply_formations(
     })
 }
 
+/// Fits every unit's equipment, in the order each unit lists it.
+///
+/// This runs after the side's officers are added, because an officer can give
+/// a formation a second slot and `CanUseEquipment` refuses an item for a unit
+/// whose slots are full.
+fn apply_equipment(
+    runtime: &Runtime,
+    placements: &[Placement],
+) -> Result<Vec<Value>, OperationError> {
+    let mut fitted = Vec::new();
+    for placement in placements {
+        if placement.equipment.is_empty() {
+            continue;
+        }
+        let unit_index = placement.index.ok_or_else(|| {
+            OperationError::InvalidState(format!(
+                "{} has no stable unit index",
+                describe_placement(placement)
+            ))
+        })?;
+        for &equipment_id in &placement.equipment {
+            add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
+                error.context(&format!(
+                    "add equipment for {}",
+                    describe_placement(placement)
+                ))
+            })?;
+            equip_unit(runtime, equipment_id, unit_index).map_err(|error| {
+                error.context(&format!("equip {}", describe_placement(placement)))
+            })?;
+        }
+        fitted.push(json!({
+            "unit_index": unit_index,
+            "equipment": placement.equipment,
+        }));
+    }
+    Ok(fitted)
+}
+
 fn apply_formation(
     runtime: &Runtime,
     placement: &Placement,
@@ -2659,16 +2699,6 @@ fn apply_unit_formation(
             .map_err(|error| error.context(&format!("read {}", describe_placement(placement))))?;
     }
     verify_unit_readback(placement, unit_id, level, world_position, &readback)?;
-    for &equipment_id in &placement.equipment {
-        add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
-            error.context(&format!(
-                "add equipment for {}",
-                describe_placement(placement)
-            ))
-        })?;
-        equip_unit(runtime, equipment_id, unit_index)
-            .map_err(|error| error.context(&format!("equip {}", describe_placement(placement))))?;
-    }
     Ok(json!({
         "type": placement.type_name,
         "unit_index": unit_index,
@@ -2676,8 +2706,7 @@ fn apply_unit_formation(
         "exp": readback.exp,
         "position": {"x": placement.position.x, "y": placement.position.y},
         "rotated": placement.rotated,
-        "travelling": readback.travelling,
-        "equipment": placement.equipment
+        "travelling": readback.travelling
     }))
 }
 

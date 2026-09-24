@@ -702,11 +702,13 @@ round 2.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
-rotation through authoritative unit readback. For each item in `equipment`,
-in order, it then adds one copy from the runtime catalog to the current side's
-Training Ground inventory through `MAD_AddEquipment`, uses the existing native
-`PAD_UseEquipment` action on that unit, and requires authoritative equipment
-ownership readback. Readback lists `CardElement.GetEquipments` in its order. Available IDs and effects are listed in the
+rotation through authoritative unit readback. Equipment is fitted later, once
+the side's officers are added, because an officer can add the slot a second
+item needs: for each item in `equipment`, in order, the executor adds one copy
+from the runtime catalog to the current side's Training Ground inventory
+through `MAD_AddEquipment`, uses the existing native `PAD_UseEquipment` action
+on that unit, and requires authoritative equipment ownership readback.
+Readback lists `CardElement.GetEquipments` in its order. Available IDs and effects are listed in the
 [Equipment index](../../rules/equipment.md).
 
 ### `constructions`
