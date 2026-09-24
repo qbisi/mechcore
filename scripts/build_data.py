@@ -10,6 +10,7 @@ given `--build`, and its export is `work/decomp/<build>/`, which
     level0("Class")        the m_Structure of a level0 data object, e.g. MechSkillGroupData
     shared("Class")        {name: m_Structure} of a class sharedassets0 holds, e.g. MapLayout
     names("Table")         {row id: {"en": ..., "zh": ...}} from the configuration's localization
+    description("Table", row)   a row's English description, its {n} placeholders filled from descParams
     in_standard(row)       whether a row can appear outside Interstellar Expedition
 """
 
@@ -108,6 +109,13 @@ def names(table):
         for term, (english, chinese) in _terms().items()
         if term.startswith(prefix) and term[len(prefix):].isdigit()
     }
+
+
+def description(table, row):
+    """A row's English description as the game shows it: `{n}` is the n-th of `descParams`."""
+    text = _terms().get(f"ConfigData/{table}/description_{row['id']}", ("", ""))[0]
+    params = [param for param in (row.get("descParams") or "").split(";")]
+    return re.sub(r"\{(\d+)\}", lambda match: params[int(match.group(1))] if int(match.group(1)) < len(params) else match.group(0), text)
 
 
 def in_standard(row):
