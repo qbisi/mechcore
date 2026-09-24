@@ -1,6 +1,10 @@
 # Combat internals
 
-What the fight core does inside a tick, on build `1.11.1.3.2259`.
+What the fight core does inside a tick. The recordings behind it are build
+`1.11.1.3.2259`'s; build 2.0 changes some signatures these rules name, such as
+`SkillAttackAngleChecker.IsWeaponInAttackAngle`, which gained a `FightActor`
+parameter, and a rule is re-verified when its recordings are re-recorded on
+2.0.
 
 Every entry is scoped, and the scope binds. What a rule does not cover is stated
 with it, because a claim just outside a closed scope is unverified however

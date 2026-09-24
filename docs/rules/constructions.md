@@ -1,16 +1,16 @@
 # What a construction is
 
-This index is pinned to game build 2259. It states what a construction placed
-by a layout becomes in a fight, what numbers it carries, whether it obstructs
+What a construction placed by a layout becomes in a fight, what numbers it carries, whether it obstructs
 anything, and which of that has been measured against the game rather than only
-read out of it. What a construction *does* on its own is not here: a turret's
+read out of it. The recordings behind it are build 1.11.1.3.2259's. What a
+construction *does* on its own is not here: a turret's
 skill is [`turrets.md`](turrets.md)'s, and a barrier's slow is nobody's yet.
 
 The machine-readable table is
 [`config/constructions.yaml`](../../config/constructions.yaml), and
 `scripts/extract-constructions.py` writes it from
-`ConfigDataContainer.constructionDatas`. The build holds **nine** rows; a
-layout can name **four** of them, and a ranked match deals with three.
+`ConfigDataContainer.constructionDatas`. A layout can name four of its rows'
+constructions, and a ranked match deals with three.
 
 ## A construction is several objects
 
@@ -303,11 +303,12 @@ recording does not say which construction a row came from**. Two things follow.
   other where two of them share both.
 
 The map's own buildings are the exception and are named: each side gets one
-`EnergyTower` and one `ResearchCenter`, 3400 of life in a 20 × 20 box.
+`EnergyTower` and one `ResearchCenter`, whose life and box
+[`config/towers.yaml`](../../config/towers.yaml) states.
 
 ## Scope
 
-Everything above is build 2259 and the 1v1 board. It covers what stands when a
+Everything above is recorded on build 2259 and the 1v1 board. It covers what stands when a
 fight begins, whether a Crawler-sized unit is held by a Defensive Wall, and
 which wall a unit shoots when one is in its way. What a turret's skill does is
 [`turrets.md`](turrets.md)'s. It does not cover what a Magnetic Barrier does to what
