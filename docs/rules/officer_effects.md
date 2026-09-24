@@ -1,25 +1,25 @@
 # What an officer does to a fight
 
-This index is pinned to game build 2259. It states the corrections an officer
-writes onto the units it targets, how those corrections are encoded, and which
-units each one reaches. What an officer does to a ledger — a discount, an
-income, a squad it hands out — is [`reinforce_items.md`](reinforce_items.md)'s
-and [`config/officers.yaml`](../../config/officers.yaml)'s.
+The corrections an officer writes onto the units it targets, how those
+corrections are encoded, and which units each one reaches. What an officer
+does to a ledger, a discount, an income, a squad it hands out, is
+[reinforce_items.md](reinforce_items.md)'s and
+[`config/officers.yaml`](../../config/officers.yaml)'s. The recordings behind
+it are build 1.11.1.3.2259's.
 
-The machine-readable table is
-[`config/officer_effects.yaml`](../../config/officer_effects.yaml), and
-`scripts/extract-officer-effects.py` writes it from the build's own
-`ConfigDataContainer`. Of the build's 132 officers, 79 carry a correction.
+[`config/officer_effects.yaml`](../../config/officer_effects.yaml) holds every
+officer that carries a correction; `scripts/extract-officer-effects.py` writes
+it from `ConfigDataContainer.officerDatas`, leaving out officers limited to
+Interstellar Expedition.
 
-**The numbers are checked against the game's own words.**
-[`officers.md`](officers.md) lists each officer's effect in the localized text,
-read out of build 2227 by another route entirely. Of the 79, 73 state a
-percentage there, and every one of those percentages is in this table: Aerial
-Specialist's "ATK by 13% and HP by 13%" is `damage_rate` and `life_rate` of
-`+0.13`, Advanced Offensive Tactics' 30% is `+0.3`, Advanced Missile Device's
-200% is `land_mine_rate` of `+2`. The extraction refuses to write a table that
-disagrees, so a misparse would have to agree with an independent reading of an
-earlier build to pass.
+**The numbers are checked against the game's own words.** Every percentage an
+officer's English description states, as the build localizes it with its
+parameters filled, has to be one of the rates the table holds for it: Aerial
+Specialist's "ATK by 13% and HP by 13%" is a `damage_rate` and `life_rate` of
+`+0.13`. The extraction refuses to write a table that disagrees.
+
+Build 2.0 stores `expChangeRate` as an FPoint rate where 2259 stored an integer
+percentage; the table reads it as a rate on both.
 
 ## Where it lands
 
@@ -239,22 +239,21 @@ the **unit** channel, gave the Rhino 25086 of its 19297, and left it 20428 after
 two hits — all three numbers predicted by the simulator before the recording
 existed, and the whole fight hashes identically.
 
-## What this build applies
+## What the simulator refuses
 
-`crates/simulation/src/modifier/officers.rs` turns a row of the table into corrections
-on the units it reaches, tagged `Modifier` so removing the officer removes
-them. Of the 79 rows, **62** are applied: the ones whose every field is a rate,
-a value or a plain integer on a number the simulator derives — damage, life,
-attack interval, attack range, movement speed — and whose `mech_type` is 0, 1,
-4 or 10.
+`crates/simulation/src/modifier/officers.rs` turns a row of the table into
+corrections on the units it reaches, tagged `Modifier` so removing the officer
+removes them: a row whose every field is a rate, a value or a plain integer on a
+number the simulator derives (damage, life, attack interval, attack range,
+movement speed) and whose `mech_type` it answers. It refuses the side that
+holds any other row, by name, for one of these reasons:
 
-The rest refuse the side that holds them, by name:
-
-| Why | Rows | What would close it |
-| --- | ---: | --- |
-| a tower, shield, mine, deployment clock, experience or a projectile's life | 11 | the mechanism that owns that object |
-| `*_by_kill_count` | 3 | a mechanism that counts a unit's kills |
-| `splash_range_value` | 3 | a splash radius among the numbers this simulator derives |
+- the row corrects a tower, shield, mine, deployment clock, experience or a
+  projectile's life, which needs the mechanism that owns that object;
+- the row carries a `*_by_kill_count` rate, which needs a mechanism that counts
+  a unit's kills;
+- the row carries a `splash_range_value`, which needs a splash radius among the
+  numbers the simulator derives.
 
 What is left is no longer about how a correction composes. All three of
 `DataSet`'s lists have been read and measured; every remaining refusal is a
@@ -320,8 +319,8 @@ gaining any, so the field's name is not what it does.
 
 ## What is not established here
 
-- **How a `*_value` correction composes**, which 44 of the table's 79 rows
-  wait on, and what an attack interval does when two channels correct it.
+- **How a `*_value` correction composes** for the rows that carry one, and
+  what an attack interval does when two channels correct it.
   Damage and move speed compose across channels as within one, which
   [towers.md](towers.md) records.
 - **What a correction does once it lands**, for the four fields above: no
