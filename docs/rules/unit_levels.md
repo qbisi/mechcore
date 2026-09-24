@@ -1,9 +1,10 @@
 # Unit levels
 
-This rule is pinned to build 1.11.1.3.2259. A deployed unit's level selects
+A deployed unit's level selects
 one row of `attributeUpgradeDatas`. Its `lifeRating` and `damageRating`
 multiply the description's life and damage before dynamic data changes.
-They do not create entries in the unit's or skill's modifier overlay.
+They do not create entries in the unit's or skill's modifier overlay. The
+recordings behind this rule are build 1.11.1.3.2259's.
 
 ## The ratings
 
@@ -17,16 +18,16 @@ and `n` times its description's damage.
 
 The game reads this from a table,
 `ConfigDataContainer.m_Structure.attributeUpgradeDatas`, whose nine rows are
-looked up by level. In this build every row's `lifeRating` and
-`damageRating` equals its own level, so the simulator multiplies by the level
-and keeps no table. A layout refuses a level outside
+looked up by level. In builds 1.11.1.3.2259 and 2.0.0.1.2324 every row's
+`lifeRating` and `damageRating` equals its own level (an FPoint on 2.0), so the
+simulator multiplies by the level and keeps no table. A layout refuses a level outside
 one to nine by name, because there is no row for it. A build whose rows stop
 equalling their level is the change that would need the table.
 
 ## Where the level enters
 
-`FightMech` holds the description as `IMechData` at offset `0xB0` and the
-selected row as `IMechLevelData` at `0xB8`. `GetBaseLife` calls the
+`FightMech` holds the description as an `IMechData` and the selected row as
+an `IMechLevelData`. `GetBaseLife` calls the
 description's `GetBaseLife` and the row's `GetLifeRating`; it converts the
 integer to Q32.32, multiplies, then shifts back to an integer.
 `GetBaseDamage` similarly calls `GetBaseDamage` and `GetDamageRating`, and
@@ -40,21 +41,21 @@ The stable source symbols are `FightMech.GetBaseLife`,
 `FightMech.GetBaseDamage`, `IMechLevelData.GetLifeRating`,
 `IMechLevelData.GetDamageRating`, `DamageProperty.RefreshBaseDamage`,
 `DamageProperty.CalculateBaseDamage` and `DamageProperty.CalculateDamage`.
-The `FightMech` getters' interface slots are respectively 6/1 for life and
-7/0 for damage (description/level data). Their ISIL reads the fields and
-performs the multiply; this is the fight's formula, independently of the
-card display's `MechUtility` getters.
+The `FightMech` getters read the two fields and perform the multiply; this is
+the fight's formula, independently of the card display's `MechUtility`
+getters.
 
-For a Marksman, description life 1622 and damage 2329 become 3244/4658 at
-level two and 4866/6987 at level three. With Advanced Offensive Tactics,
-level two still has base damage 4658 and the skill overlay has only +0.3:
-its damage is 6055 after truncation. Adding the level into that rate would
-give 5356 and is not this rule. The layout and recording procedure are in
+For a Marksman, whose description life and damage are
+[`config/units/marksman.yaml`](../../config/units/marksman.yaml)'s, life and
+damage are twice those at level two and three times at level three. With Advanced Offensive Tactics,
+level two still has twice the description's damage as its base, and the skill
+overlay carries only the officer's +0.3, applied to that base and truncated.
+Adding the level into that rate is not this rule. The layout and recording procedure are in
 [`tests/level/`](../../tests/level/README.md).
 
 No level multiplier is applied by these getters to range, speed or attack
-interval. The level-one, level-two and level-three Marksman observations
-retain 140 m, 8 m/s and the same first interval.
+interval. The level-one, level-two and level-three Marksman recordings keep the
+description's range, speed and first interval.
 
 ## Not covered
 

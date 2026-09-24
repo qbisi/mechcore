@@ -1,8 +1,8 @@
 # Deployment mobility
 
-This index is pinned to game build 2259. It states which units a side may
-move during deployment, what frees a unit that may not, and the evidence
-for both.
+Which units a side may move during deployment, what frees a unit that may
+not, and the evidence for both. The replays behind it are build
+1.11.1.3.2259's.
 
 A state carries the answer per unit as `movable`;
 [`state.md`](../spec/document/state.md#a-unit-carries-two-fields-a-layout-does-not)
@@ -45,16 +45,10 @@ not followed. The rule above rests for those parts on the corpus below.
 
 ## Evidence
 
-The local observation set records 3,735 moves across 41 matches. Every one is of
-a unit the rule lets move:
-
-| Why it could move | Moves |
-| --- | ---: |
-| bought or handed out this round | 2,812 |
-| delivered as the round opened | 790 |
-| wearing the Deployment Module | 43 |
-| its unit's Jump Drive researched | 40 |
-| targeted by a standing Redeploy this round | 50 |
+Every move the 2259 replay corpus `replay/REPLAY_REV` names records is of a unit
+the rule lets move: one bought or handed out that round, one delivered as the
+round opened, one wearing the Deployment Module, one whose type's Jump Drive
+is researched, or one a standing Redeploy targets that round.
 
 A unit "delivered as the round opened" is one at or above the unit
 allocator the previous round closed with. The snapshot's own `roundCount` does
