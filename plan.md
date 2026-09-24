@@ -20,18 +20,18 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
    x86_64 切片，和 2259 的 dump 同一种指令集，两个 build 才能逐行对比；逻辑和字段偏移在
    两个切片里相同。2.0 已经由 `scripts/decomp.py publish` 推进 `mechcore-decomp`，
    `decomp.py sync --build 2.0.0.1.2324` 取得回来。
-2. **读差异，定条目。** 两个 build 的 DiffableCs 对比（类、方法、字段的增删改）和两份
+2. **读差异，定条目。** ~~做完~~。两个 build 的 DiffableCs 对比（类、方法、字段的增删改）和两份
    配置对比，逐条对到 `docs/rules/` 上：哪条规则不再成立、哪条要新增、哪个单位或物件是新的。
    `scripts/decomp-diff.py` 出清单（加 `--config` 比配置表）。
    *已做*：`scripts/extract*.py` 全部改读类型化导出（`scripts/build_data.py`），不写死
    build、path id 和 `work/` 路径，`config/` 全部由 2.0 重新生成，差异写在各自的提交里；
    22 份规则文档按新的证据约定重写（`docs/README.md`），名称表由
    `config/localization.yaml` 生成；远征模式（`limitedScene` 只含 8、9）不纳入。
-   *还没做*：代码层差异里的新机制逐条定性——近战模式（`MeleeModeEffectSystem`）、
+   *占位*：代码层差异里的新机制主要随新单位而来——近战模式（`MeleeModeEffectSystem`）、
    副武器（`SideArmSearchTargetController`）、弹药池（`AmmoSkillPool`）、
-   `IgnoreBuffEffectSystem`、出售单位（`PAD_SellUnit`、单位回收）、塔成为 buff 目标；
-   以及只读未录的规则（`SupplyPercent`、两件装备）待第 5 步录像验证。
-   *做完*：一张差异清单，每条标明落到哪份规则或配置，或者写明不影响。
+   `IgnoreBuffEffectSystem`、出售单位（`PAD_SellUnit`、单位回收）、塔成为 buff 目标。
+   模拟器实现到对应单位时各开专题研究，这里不逐条定性。只读未录的规则（`SupplyPercent`、
+   两件装备）等第 5 步录像验证。
 3. **文档与 MCFR 的升级。** 已知一条：单位可以带两件装备，`equipment` 从一个值变成
    列表，layout、battle 文档、MCFR 都要跟着改。其余由第 2 步的清单决定。
    `game_build` 改成 2.0。*做完*：schema、转换器、读写器改完，版本号更新，旧格式不再
