@@ -1,5 +1,5 @@
 schema: mechcore.unit_experience
-game_build: 1.11.1.3.2259
+game_build: 2.0.0.1.2324
 
 # `upgrade_exp` is `mechExpDatas.upgradeLv2` through `upgradeLv9`. Its
 # n-th entry fills the bar of a formation at level n; level 9 fills

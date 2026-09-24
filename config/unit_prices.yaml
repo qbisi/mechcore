@@ -1,5 +1,5 @@
 schema: mechcore.unit_prices
-game_build: 1.11.1.3.2259
+game_build: 2.0.0.1.2324
 
 units:
   - type: fortress

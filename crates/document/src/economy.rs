@@ -234,15 +234,16 @@ pub struct Officer {
     /// Equipment it hands out when it arrives.
     #[serde(default)]
     pub equipment: Vec<i32>,
-    /// The round the officer hands out what it hands out.
+    /// The rounds the officer hands out what it hands out.
     ///
-    /// It is an absolute round rather than one counted from the officer's
+    /// Each is an absolute round rather than one counted from the officer's
     /// arrival, and it is the round the officer's own description names:
     /// Longbow Specialist reads "在第2回合免费获得1个3级长弓" and states 2, while
-    /// Rhino Specialist states 4. Only an officer with something to hand out
-    /// states one.
+    /// Rhino Specialist states 4. `OfficerData.activeRound` is a list from
+    /// build 2.0 on, and an officer hands out in every round it lists. Only an
+    /// officer with something to hand out states any.
     #[serde(default)]
-    pub active_round: i32,
+    pub active_round: Vec<i32>,
     /// A unit it unlocks and hands out a squad of.
     #[serde(default)]
     pub opening_unit: Option<OpeningUnit>,

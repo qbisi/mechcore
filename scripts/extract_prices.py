@@ -1,49 +1,32 @@
 #!/usr/bin/env python3
-"""Extract the build-2259 unit and technology prices into `config/`.
+"""Extract the prices a supply ledger needs into `config/`.
 
-The prices a supply ledger needs live in two Unity objects of `level0`:
+    python3 scripts/extract_prices.py [--build BUILD]
 
-* `ConfigDataContainer` at path id 160 carries `cardDatas` (a unit's purchase
-  price, its shop unlock price, its member count and the technologies it may
-  research; its `defaultTechnologies` are what a new account may unlock
-  without paying, which is an account rule rather than a match one) and
-  `mechExpDatas` (the supply and the experience one level costs). It is read
-  here from the JSON export
-  in this directory, because reading it back out of the asset needs the type
-  tree that a dummy-DLL build supplies.
-* `TechnologyGroupData` at path id 184 carries every `TechnologyData`, and its
-  `supply` field is the price of one technology. No type tree is needed: the
-  entries are parsed directly, since Unity serializes a MonoBehaviour's fields
-  base class first and in declaration order, and the declaration order is the
-  decompiled one.
+Everything is read through `scripts/build_data.py`, the build's typed export:
 
-A technology entry begins with its ID and its name, and the fields up to the
-price are four strings and four small integers:
+* `ConfigDataContainer`: `cardDatas` (a unit's purchase and unlock price, its
+  member count and the technologies it may research), `mechExpDatas` (the
+  supply and experience a level costs), the officers, the openings, the unit
+  reinforcement cards, the blueprints, the energy tower skills and the maps.
+* `TechnologyGroupData`: every technology's `supply`, the price of one.
+* `CommanderSkillGroupData` and `EquipmentGroupData`: the commander skill and
+  equipment cards a reinforcement can deal, their prices and, for a skill, its
+  two cooldowns.
+* `ContraptionGroupData`: what releasing each contraption costs.
+* `Config`: the step a technology's price rises by per technology already
+  researched.
 
-    id, name, isTestData, iconName, description, descParams, story,
-    targetSkillID, mainSkillEffect, extraSkillEffect,
-    extraSkillNumericalEffect, supply
-
-Every parse is checked against `docs/rules/unit_techs.md`, whose base supply column
-was read out of build 2227 by other means, so a silent misparse would have to
-agree with an independent extraction of an earlier build to pass.
-
-    work/tools/asset-venv/bin/python scripts/extract_prices.py \\
-        "<Mechabellum.app>/Contents/Resources/Data/level0"
+It writes `unit_techs`, `unit_prices`, `unit_experience`, `commander_skills`,
+`reinforce_items`, `unit_reinforcements`, `advance_teams`, `officers` and
+`economy`, all under `config/`.
 """
-import json
 import pathlib
 import re
-import struct
 import sys
 
-TECHNOLOGY_GROUP_PATH_ID = 184
-CONFIG_PATH_ID = 136
-COMMANDER_SKILL_PATH_ID = 167
-EQUIPMENT_PATH_ID = 188
-# The three contraptions a side can release, which the config data container
-# does not carry. The object spells its own field `constraptionDatas`.
-CONTRAPTION_PATH_ID = 159
+import build_data
+
 CONTRAPTION_TYPES = {10001: "shield", 20001: "missile", 30001: "interceptor"}
 # `limitedScene` lists the modes an item can be offered in, and every card a
 # ranked replay records carries this one.
@@ -58,7 +41,6 @@ OPENING_SCOPE = 2
 # offers what every versus map offers.
 STANDARD_MAP = 1001
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CONFIG_JSON = ROOT / "work/inputs/config-data-container-build2259.json"
 CATALOG = ROOT / "crates/document/src/catalog.rs"
 UNIT_TECHS = ROOT / "config/unit_techs.yaml"
 REINFORCE = ROOT / "config/reinforce_items.yaml"
@@ -69,230 +51,77 @@ ECONOMY = ROOT / "config/economy.yaml"
 UNIT_PRICES = ROOT / "config/unit_prices.yaml"
 UNIT_EXPERIENCE = ROOT / "config/unit_experience.yaml"
 COMMANDER_SKILLS = ROOT / "config/commander_skills.yaml"
-DOC = ROOT / "docs/rules/unit_techs.md"
-BUILD = "1.11.1.3.2259"
 
 
-def blobs(level0, path_ids):
-    import UnityPy
-
-    environment = UnityPy.load(str(level0))
-    found = {}
-    for obj in environment.objects:
-        if obj.type.name == "MonoBehaviour" and obj.path_id in path_ids:
-            found[obj.path_id] = obj.get_raw_data()
-    for path_id in path_ids:
-        if path_id not in found:
-            raise SystemExit(f"{level0} has no MonoBehaviour {path_id}")
-    return found
-
-
-# Where `GameRiver.Config`'s two match-wide supply numbers sit in its
-# serialized body. Unity writes a MonoBehaviour's own fields after the header
-# in declaration order, and the declaration order is the decompiled one:
-# `isClassicSurviveMode` as a padded bool, then the technology delta, then five
-# eight-byte `FPoint`s, two ints, another `FPoint`, two twelve-byte
-# `MechPositionChangeData`s, a twenty-byte `BuyUnitEffectData`, and the three
-# reinforcement ints. `mineFlyHeight` is private and does not serialize.
-CONFIG_FIELDS = {
-    "upgrade_technology_cost_increase_delta": 4,
-    "reinforce_item_count": 108,
-    "no_reinforcement_supply": 116,
-}
-
-
-def config_numbers(blob):
-    """The match-wide supply numbers `GameRiver.Config` carries.
-
-    `reinforce_item_count` also feeds the reinforcement predictor. Its known
-    resource value checks the body offset before the supply fields are used.
-    """
-    body = monobehaviour_body(blob)
-    values = {
-        name: struct.unpack_from("<i", body, offset)[0]
-        for name, offset in CONFIG_FIELDS.items()
-    }
-    if values["reinforce_item_count"] != 4:
-        raise SystemExit(
-            f"Config parses reinforce_item_count as {values['reinforce_item_count']}, "
-            "and every tracked round deals four offers; the field offsets are wrong"
-        )
-    return values
-
-
-def monobehaviour_body(blob):
-    """One MonoBehaviour's own fields, past the header Unity writes first.
-
-    The header is the owning GameObject pointer, the enabled flag, the script
-    pointer and the name, and the name is followed to the next four-byte
-    boundary.
-    """
-    offset = 28
-    (length,) = struct.unpack_from("<i", blob, offset)
-    offset += 4 + length
-    return blob[(offset + 3) & ~3:]
-
-
-def contraption_prices(blob):
-    """What releasing each contraption costs.
-
-    An entry is a `ContraptionData`, which is an `ItemData` followed by the
-    price. Each one is found by its own ID rather than by sweeping, because
-    there are three of them and the three subclasses put different fields after
-    the price.
-    """
-    prices = {}
-    for identifier in sorted(CONTRAPTION_TYPES):
-        offset = blob.find(struct.pack("<ii", 1, identifier))
-        if offset < 0:
-            raise SystemExit(f"contraption {identifier} is absent from {CONTRAPTION_PATH_ID}")
-        cursor = offset + 8
-        name, cursor = read_string(blob, cursor)
-        cursor += 4  # isTestData
-        for _ in range(3):  # iconName, description, descParams
-            _, cursor = read_string(blob, cursor)
-        # One int stands between the last string and the price in every entry.
-        _, supply = struct.unpack_from("<2i", blob, cursor)
-        if supply <= 0 or supply % 50:
-            raise SystemExit(f"contraption {identifier} priced {supply}, which is not a price")
-        prices[identifier] = (name.decode("utf-8"), supply)
-    return prices
-
-
-def parse_reinforce_item(blob, offset):
-    """Reads one `ReinforceItemData`, the base every drawable card shares.
-
-    After the four `ItemData` strings it declares the card's level, its scope,
-    its price, two more strings, a reactor core change, the modes it may be
-    offered in, its round window and whether it can repeat.
-    """
-    if offset + 8 > len(blob):
-        return None
-    (identifier,) = struct.unpack_from("<i", blob, offset)
-    name, cursor = read_string(blob, offset + 4)
-    if not name:
-        return None
-    try:
-        name = name.decode("utf-8")
-    except UnicodeDecodeError:
-        return None
-    cursor += 4  # isTestData
-    for _ in range(4):  # iconName, description, descParams, story
-        text, cursor = read_string(blob, cursor)
-        if text is None:
-            return None
-    if cursor + 12 > len(blob):
-        return None
-    level, scope, supply = struct.unpack_from("<3i", blob, cursor)
-    cursor += 12
-    pictures = []
-    for _ in range(2):  # reinforcePicName, advancePicName
-        text, cursor = read_string(blob, cursor)
-        if text is None:
-            return None
-        pictures.append(text)
-    # Every drawable card names the art its drop is shown with. Requiring it
-    # keeps the sweep from mistaking an icon name or a parameter string for an
-    # entry of its own.
-    if not pictures[0] or not pictures[0].isascii():
-        return None
-    if cursor + 8 > len(blob):
-        return None
-    cursor += 4  # reactorCore
-    (count,) = struct.unpack_from("<i", blob, cursor)
-    cursor += 4
-    if not 0 <= count < 32 or cursor + 4 * count > len(blob):
-        return None
-    scenes = list(struct.unpack_from(f"<{count}i", blob, cursor))
-    # Every price in this build is a multiple of fifty, and -1 stands for the
-    # level's own price, so anything else is a misread rather than a card.
-    if not (0 <= level <= 6 and 0 <= scope <= 4):
-        return None
-    if supply != -1 and not (0 <= supply <= 2000 and supply % 50 == 0):
-        return None
-    if not (len(scenes) <= 12 and all(0 <= scene <= 15 for scene in scenes)):
-        return None
-    row = {"id": identifier, "name": name, "supply": supply, "scope": scope,
-           "level": level, "scenes": scenes}
-    row.update(equipment_prices(blob, cursor + 4 * count))
-    return row
-
-
-def equipment_prices(blob, cursor):
-    """The two amounts an equipment changes rather than a stat.
-
-    `roundSupply` is what wearing it adds to its side's income each round, and
-    `upgradeSupplyChangeValue` is what it takes off the price of upgrading the
-    formation wearing it. Only `EquipmentData` carries either, and one item
-    uses each: Command Core pays 50 a round, Upgrade Kit discounts 100.
-
-    Both sit past the shared base, so this walks the subclass's own declaration
-    order: three flags, two integers, two fixed-point rates, a speed, eight more
-    fixed-point fields, a flag, and the two lists that say which units the item
-    may go on. Anything that does not read as a price is treated as absent,
-    since the sweep also lands on commander skills.
-    """
-    def price(value, low, high):
-        return value if low <= value <= high and value % 50 == 0 else 0
-
-    try:
-        # The rest of the shared base: two round bounds and the repeat flag.
-        cursor += 4 * 3
-        cursor += 4 * 3                                  # the three effect flags
-        _, round_supply = struct.unpack_from("<2i", blob, cursor)
-        cursor += 4 * 2 + 8 * 2 + 4 + 8 * 8 + 4
-        for _ in range(2):  # mechType, unitID
-            (count,) = struct.unpack_from("<i", blob, cursor)
-            if not 0 <= count < 64:
-                return {}
-            cursor += 4 + 4 * count
-        _, _, upgrade = struct.unpack_from("<3i", blob, cursor)
-    except struct.error:
-        return {}
-    return {"round_supply": price(round_supply, 0, 500),
-            "upgrade_supply": price(upgrade, -1000, 0)}
-
-
-def commander_skill_cooldowns(blob):
-    """Every commander skill's two cooldowns, in rounds.
-
-    `CommanderSkillData` extends the shared base with, in declaration order, a
-    fixed-point `startTime`, then `initialCoolDown`, `money`, `sellMoney`,
-    `effectRangeType` and `effectType`, a fixed-point `effectRange`, and
-    `releaseInterval`. `initialCoolDown` is where a slot starts when the skill
-    joins the panel, and `releaseInterval` is where it goes once the skill is
-    spent.
-    """
+def group_rows(name):
+    """Every row of every list of a level0 group object, by id."""
     rows = {}
-    for offset in range(0, len(blob) - 4, 4):
-        row = parse_reinforce_item(blob, offset)
-        if not row or not 100_000 <= row["id"] < 100_000_000 or row["id"] in rows:
-            continue
-        _, cursor = read_string(blob, offset + 4)
-        cursor += 4                                      # isTestData
-        for _ in range(4):
-            _, cursor = read_string(blob, cursor)
-        cursor += 12                                     # level, scope, supply
-        for _ in range(2):
-            _, cursor = read_string(blob, cursor)
-        cursor += 4                                      # reactorCore
-        (count,) = struct.unpack_from("<i", blob, cursor)
-        cursor += 4 + 4 * count                          # limitedScene
-        cursor += 4 * 3                                  # round bounds, repeat flag
-        cursor += 8                                      # startTime
-        initial, _, _, _, _ = struct.unpack_from("<5i", blob, cursor)
-        cursor += 4 * 5 + 8                              # ... effectRange
-        (interval,) = struct.unpack_from("<i", blob, cursor)
-        if not (0 <= initial <= 10 and 0 <= interval <= 10):
-            continue
-        rows[row["id"]] = {"id": row["id"], "name": row["name"],
-                           "initial_cooldown": initial, "cooldown": interval}
+    for table in build_data.level0(name).values():
+        if isinstance(table, list):
+            for row in table:
+                rows.setdefault(row["id"], row)
     return rows
 
 
-def write_commander_skills(blob):
-    rows = commander_skill_cooldowns(blob)
-    lines = ["schema: mechcore.commander_skills", f"game_build: {BUILD}", "",
+def config_numbers(structure):
+    """The match-wide supply numbers.
+
+    `upgradeTechnologyCostIncreaseDelta` is `Config`'s. What declining an
+    ordinary reinforcement pays is the standard map's `giveUpSupply`, which
+    build 2.0 moved onto `MatchSetting` from `Config.noReinforcementSupply`.
+    """
+    config = build_data.level0("Config")
+    if config["reinforceItemCount"] != 4:
+        raise SystemExit(f"Config deals {config['reinforceItemCount']} offers a round, not four")
+    standard = next(row for row in structure["matchSettings"] if row["id"] == STANDARD_MAP)
+    return {
+        "upgrade_technology_cost_increase_delta": config["upgradeTechnologyCostIncreaseDelta"],
+        "reinforce_item_count": config["reinforceItemCount"],
+        "no_reinforcement_supply": standard["giveUpSupply"],
+    }
+
+
+def contraption_prices():
+    """What releasing each contraption costs, by `ContraptionData` id."""
+    rows = group_rows("ContraptionGroupData")
+    return {identifier: (rows[identifier]["name"], rows[identifier]["supply"])
+            for identifier in sorted(CONTRAPTION_TYPES)}
+
+
+def reinforce_items(group):
+    """Every card of a group object: a commander skill or an equipment a reinforcement can deal."""
+    rows = {}
+    for row in group_rows(group).values():
+        if "scope" not in row or not 100_000 <= row["id"] < 100_000_000:
+            continue
+        rows[row["id"]] = {
+            "id": row["id"], "name": row["name"], "supply": row["supply"], "scope": row["scope"],
+            "level": row["level"], "scenes": row.get("limitedScene") or [],
+            # What wearing an equipment adds to its side's income each round,
+            # and takes off the price of upgrading its formation.
+            "round_supply": row.get("roundSupply", 0),
+            "upgrade_supply": row.get("upgradeSupplyChangeValue", 0),
+        }
+    return rows
+
+
+def commander_skill_cooldowns():
+    """Every commander skill's two cooldowns, in rounds.
+
+    `initialCoolDown` is where a slot starts when the skill joins the panel,
+    and `releaseInterval` is where it goes once the skill is spent.
+    """
+    return {
+        row["id"]: {"id": row["id"], "name": row["name"],
+                    "initial_cooldown": row["initialCoolDown"], "cooldown": row["releaseInterval"]}
+        for row in group_rows("CommanderSkillGroupData").values()
+        if 100_000 <= row["id"] < 100_000_000 and build_data.in_standard(row)
+    }
+
+
+def write_commander_skills():
+    rows = commander_skill_cooldowns()
+    lines = ["schema: mechcore.commander_skills", f"game_build: {build_data.build()}", "",
              "# Every commander skill and its two cooldowns, in rounds.",
              "# `initial_cooldown` is `initialCoolDown`, where a slot starts when",
              "# the skill joins the panel. `cooldown` is `releaseInterval`, where it",
@@ -307,84 +136,9 @@ def write_commander_skills(blob):
     print(f"commander skills: {len(rows)}")
 
 
-def reinforce_items(blob):
-    """Every card in one catalogue object, found by sweeping for a valid entry."""
-    rows = {}
-    for offset in range(0, len(blob) - 4, 4):
-        row = parse_reinforce_item(blob, offset)
-        # Both catalogues number their entries above a hundred thousand, which
-        # rules out a stray four or five digit integer that happens to be
-        # followed by two readable strings.
-        if row and 100_000 <= row["id"] < 100_000_000:
-            rows.setdefault(row["id"], row)
-    return rows
-
-
-def read_string(blob, offset):
-    """Unity writes a string as its length, its bytes, then padding to four."""
-    if offset < 0 or offset + 4 > len(blob):
-        return None, None
-    (length,) = struct.unpack_from("<i", blob, offset)
-    if not 0 <= length < 4096 or offset + 4 + length > len(blob):
-        return None, None
-    end = offset + 4 + length
-    return blob[offset + 4 : end], end + (-end) % 4
-
-
-def parse_technology(blob, offset):
-    """Reads one `TechnologyData` whose ID starts at `offset`."""
-    (identifier,) = struct.unpack_from("<i", blob, offset)
-    name, cursor = read_string(blob, offset + 4)
-    if not name:
-        return None
-    try:
-        name = name.decode("utf-8")
-    except UnicodeDecodeError:
-        return None
-    cursor += 4  # isTestData, one byte padded to four
-    icon, cursor = read_string(blob, cursor)
-    if not icon or not icon.isascii():
-        return None
-    for _ in range(3):  # description, descParams, story
-        text, cursor = read_string(blob, cursor)
-        if text is None:
-            return None
-        try:
-            text.decode("utf-8")
-        except UnicodeDecodeError:
-            return None
-    cursor += 4  # targetSkillID
-    cursor += 12  # three bools, each one byte padded to four
-    (supply,) = struct.unpack_from("<i", blob, cursor)
-    return identifier, name, supply
-
-
-def technology_prices(blob, identifiers):
-    prices = {}
-    for identifier in identifiers:
-        needle = struct.pack("<i", identifier)
-        start = 0
-        while True:
-            position = blob.find(needle, start)
-            if position < 0:
-                break
-            parsed = parse_technology(blob, position)
-            if parsed and parsed[0] == identifier and 0 <= parsed[2] <= 5000:
-                prices[identifier] = parsed[2]
-                break
-            start = position + 1
-    return prices
-
-
-def documented_prices():
-    """The base supply column of `docs/rules/unit_techs.md`, read from build 2227."""
-    pattern = re.compile(r"^\| .(\d+). \| [^|]+ \| [^|]+ \| (\d+) \|")
-    prices = {}
-    for line in DOC.read_text().splitlines():
-        match = pattern.match(line)
-        if match:
-            prices[int(match.group(1))] = int(match.group(2))
-    return prices
+def technology_prices(identifiers):
+    rows = group_rows("TechnologyGroupData")
+    return {identifier: rows[identifier]["supply"] for identifier in identifiers if identifier in rows}
 
 
 def unit_names():
@@ -408,7 +162,7 @@ def yaml_scalar(text):
 
 
 def yaml_units(rows, body):
-    lines = [f"schema: {rows}", f"game_build: {BUILD}", "", "units:"]
+    lines = [f"schema: {rows}", f"game_build: {build_data.build()}", "", "units:"]
     lines.extend(body)
     return "\n".join(lines) + "\n"
 
@@ -455,7 +209,7 @@ def write_unit_experience(names, levels):
     from decimal import Decimal, ROUND_HALF_UP
 
     factors = [Decimal(factor) for factor in EXPERIENCE_FACTORS]
-    lines = ["schema: mechcore.unit_experience", f"game_build: {BUILD}", "",
+    lines = ["schema: mechcore.unit_experience", f"game_build: {build_data.build()}", "",
              "# `upgrade_exp` is `mechExpDatas.upgradeLv2` through `upgradeLv9`. Its",
              "# n-th entry fills the bar of a formation at level n; level 9 fills",
              "# at the last entry. docs/rules/unit_experience.md states why, and the",
@@ -484,7 +238,7 @@ def write_unit_reinforcements(structure, by_level):
     `unitID` names one unit per squad, and no card in this build mixes two, so
     a row states the unit, how many squads of it, and the level they arrive at.
     """
-    lines = ["schema: mechcore.unit_reinforcements", f"game_build: {BUILD}", "",
+    lines = ["schema: mechcore.unit_reinforcements", f"game_build: {build_data.build()}", "",
              "# A card that hands out units: which unit, how many squads of it,",
              "# the level they arrive at, and the first round it can be offered.",
              "", "cards:"]
@@ -513,7 +267,7 @@ def write_advance_teams(structure):
     Two kinds share the choice: a team of units, and a specialist officer. Both
     move the reactor core, which is the price of the stronger openings.
     """
-    lines = ["schema: mechcore.advance_teams", f"game_build: {BUILD}", "",
+    lines = ["schema: mechcore.advance_teams", f"game_build: {build_data.build()}", "",
              "# The round 0 opening. A `units` row hands out that force, and the",
              "# round 1 roster of every side in the local set is exactly one of",
              "# them. An `officer` row grants the officer its own ID names, whose",
@@ -547,12 +301,14 @@ def write_advance_teams(structure):
 
 def write_officers(structure):
     """The officers that change what a side pays or earns."""
-    lines = ["schema: mechcore.officers", f"game_build: {BUILD}", "",
+    lines = ["schema: mechcore.officers", f"game_build: {build_data.build()}", "",
              "# An officer that changes a price or an income, and the units its",
              "# discount applies to. An empty scope applies to every unit.",
              "", "officers:"]
     count = 0
     for row in sorted(structure["officerDatas"], key=lambda row: row["id"]):
+        if not build_data.in_standard(row):
+            continue
         present = [(name, row[field]) for name, field in MODIFIERS if row.get(field)]
         granted = [(name, row[field]) for name, field in GRANTS if row.get(field)]
         opening = row.get("extraUnitLevel") and row.get("unitID")
@@ -590,7 +346,7 @@ def write_officers(structure):
 
 def write_economy(structure, contraptions, config):
     """What the towers, the blueprints and the energy tower charge."""
-    lines = ["schema: mechcore.economy", f"game_build: {BUILD}", "",
+    lines = ["schema: mechcore.economy", f"game_build: {build_data.build()}", "",
              "# Prices a round can pay that belong to no unit.",
              "",
              "# The blueprints a standard match can reach. A map lists what its",
@@ -614,6 +370,8 @@ def write_economy(structure, contraptions, config):
                      f"supply: {row.get('supply', 0)}, {grants}: {row.get('mapID', 0)}}}")
     lines += ["", "tower_strengthen:"]
     for row in sorted(structure["towerStrengthenDatas"], key=lambda row: row["level"]):
+        if not build_data.in_standard(row):
+            continue
         lines.append(f"  - {{level: {row['level']}, supply: {row.get('supply', 0)}}}")
     lines += ["", "# `supply` is what activating costs, `granted` what it pays back",
               "# at once, and `owed` what it takes from the next round's income.",
@@ -643,12 +401,12 @@ def write_economy(structure, contraptions, config):
               "# instead. Declining is",
               "# itself an item: `ReinforcementManager.GetGiveUpReinforce`",
               "# returns an `AddSupplyReinforceItem` built per round rather than",
-              "# read from a card table. This is `Config.noReinforcementSupply`,",
-              "# a shipped field whose name and value both match what every",
-              "# decidable decline in the local replay set pays. What is not",
-              "# traced is the path from the field to the item: nothing in the",
-              "# decompilation is recorded reading it, so the match is by name",
-              "# and value rather than by call chain.",
+              "# read from a card table. This is the standard map's",
+              "# `MatchSetting.giveUpSupply` (`Config.noReinforcementSupply` before",
+              "# build 2.0), a shipped field whose name and value match what a",
+              "# decline pays. The getter is inlined where it is read, so the",
+              "# decompilation records no call to cite: the match is by name and",
+              "# value rather than by call chain.",
               f"reinforce_decline: {config['no_reinforcement_supply']}"]
     lines += ["", "# What releasing a contraption costs. The config data container",
               "# does not carry these; they come from the `constraptionDatas`",
@@ -675,7 +433,8 @@ def write_economy(structure, contraptions, config):
     standard_supply = next(row for row in structure["matchSettings"]
                            if row["id"] == STANDARD_MAP)
     versus = [row for row in structure["matchSettings"]
-              if 1000 <= row["id"] < 3000 and row["id"] not in (1051, 2051)]
+              if 1000 <= row["id"] < 3000 and row["id"] not in (1051, 2051)
+              and row["serverSubType"] not in build_data.EXPEDITION_SCENES]
     fields = ("firstRoundSupply", "roundSupplyIncreaseValue", "maxRoundSupply")
     for row in versus:
         if any(row[field] != standard_supply[field] for field in fields):
@@ -696,35 +455,18 @@ def write_economy(structure, contraptions, config):
 
 
 def main():
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    raw = blobs(pathlib.Path(sys.argv[1]),
-                (TECHNOLOGY_GROUP_PATH_ID, CONFIG_PATH_ID, COMMANDER_SKILL_PATH_ID,
-                 EQUIPMENT_PATH_ID, CONTRAPTION_PATH_ID))
-    blob = raw[TECHNOLOGY_GROUP_PATH_ID]
-    structure = json.loads(CONFIG_JSON.read_text())["m_Structure"]
+    build_data.arguments(__doc__)
+    structure = build_data.container()
     cards = {row["id"]: row for row in structure["cardDatas"]}
     levels = {row["id"]: row for row in structure["mechExpDatas"]}
     names = unit_names()
 
-    wanted = sorted({tech for card in cards.values() for tech in card["technologies"]})
-    prices = technology_prices(blob, wanted)
+    wanted = sorted({tech for unit in names if unit in cards for tech in cards[unit]["technologies"]})
+    prices = technology_prices(wanted)
     missing = [tech for tech in wanted if tech not in prices]
-
-    documented = documented_prices()
-    shared = sorted(set(documented) & set(prices))
-    disagreements = [
-        (tech, prices[tech], documented[tech])
-        for tech in shared
-        if prices[tech] != documented[tech]
-    ]
-    print(f"technologies in the catalogue: {len(wanted)}, priced: {len(prices)}")
-    print(f"  also in docs/rules/unit_techs.md: {len(shared)}")
-    print(f"  disagreeing with that build-2227 table: {len(disagreements)}")
-    for tech, parsed, doc in disagreements:
-        print(f"    {tech}: build 2259 {parsed}, build 2227 {doc}")
+    print(f"technologies the named units may research: {len(wanted)}, priced: {len(prices)}")
     if missing:
-        print(f"  unpriced: {missing}")
+        raise SystemExit(f"technologies with no row: {missing}")
 
     techs, economy = [], []
     for unit_id in sorted(names):
@@ -747,11 +489,11 @@ def main():
     # A card with no price of its own is sold at its level's price.
     by_level = {row["level"]: row.get("price", 0)
                 for row in structure["reinforceItemPrices"]}
-    cards = reinforce_items(raw[COMMANDER_SKILL_PATH_ID])
-    equipment = reinforce_items(raw[EQUIPMENT_PATH_ID])
+    items = reinforce_items("CommanderSkillGroupData")
+    equipment = reinforce_items("EquipmentGroupData")
     equipment_ids = set(equipment)
-    cards.update(equipment)
-    for row in cards.values():
+    items.update(equipment)
+    for row in items.values():
         if row["supply"] < 0:
             row["supply"] = by_level.get(row["level"], 0)
     # An empty `limitedScene` restricts nothing, which is how Field Recovery
@@ -759,39 +501,33 @@ def main():
     # pool can offer the card at all: a skill a blueprint researches, or an
     # officer that belongs to an opening, carries another value and is never
     # dealt.
-    offered = {row["id"]: row for row in cards.values()
+    offered = {row["id"]: row for row in items.values()
                if (not row["scenes"] or STANDARD_SCENE in row["scenes"])
                and row["scope"] == DEALT_SCOPE}
-    print(f"reinforcement cards in the two catalogues: {len(cards)}, "
-          f"offered in standard play: {len(offered)}, "
-          f"priced: {sum(1 for row in offered.values() if row['supply'])}")
-    # A skill or equipment card grants the thing its own ID names, so the two
-    # catalogues above are told apart by which object holds the entry.
+    print(f"cards in the two groups: {len(items)}, offered in standard play: {len(offered)}")
     for identifier in offered:
         offered[identifier]["kind"] = (
             "equipment" if identifier in equipment_ids else "commander_skill"
         )
-    # The container carries the other kinds of card. Unit reinforcements have
-    # their own table, since what they hand out is more than a price.
-    for table, kind in (("officerDatas", "officer"),):
-        for row in structure[table]:
-            scenes = row.get("limitedScene") or []
-            if scenes and STANDARD_SCENE not in scenes:
-                continue
-            if row.get("scope") != DEALT_SCOPE:
-                continue
-            supply = row.get("supply", 0)
-            offered.setdefault(row["id"], {
-                "id": row["id"],
-                "name": row.get("name") or "",
-                "supply": by_level.get(row.get("level"), 0) if supply < 0 else supply,
-                "kind": kind,
-            })
-    lines = ["schema: mechcore.reinforce_items", f"game_build: {BUILD}", "",
+    for row in structure["officerDatas"]:
+        scenes = row.get("limitedScene") or []
+        if scenes and STANDARD_SCENE not in scenes:
+            continue
+        if row.get("scope") != DEALT_SCOPE:
+            continue
+        supply = row.get("supply", 0)
+        offered.setdefault(row["id"], {
+            "id": row["id"],
+            "name": row.get("name") or "",
+            "supply": by_level.get(row.get("level"), 0) if supply < 0 else supply,
+            "kind": "officer",
+        })
+    lines = ["schema: mechcore.reinforce_items", f"game_build: {build_data.build()}", "",
              "# Every card a standard match can offer, and what taking it costs.",
              "# A card whose limitedScene names other modes only is left out; an",
              "# empty list restricts nothing. A card with no price of its own is",
-             "# sold at its level's price, which is 0, 50, 100 and 200 by level.",
+             "# sold at its level's price, which reinforce_levels in economy.yaml",
+             "# states.",
              "#",
              "# Every card here grants the thing its own ID names. A unit card",
              "# and an advance team hand out units instead, and each has its",
@@ -799,8 +535,8 @@ def main():
              "# belongs to an opening are left out: the pool never deals them.",
              "", "items:"]
     for row in sorted(offered.values(), key=lambda row: row["id"]):
-        # Two items change an amount rather than a stat: Command Core pays a
-        # side 50 a round, and Upgrade Kit discounts its formation's upgrades.
+        # An equipment may change an amount rather than a stat: what it adds to
+        # a side's income each round, or takes off its formation's upgrades.
         extra = "".join(
             f", {name}: {row[name]}"
             for name in ("round_supply", "upgrade_supply")
@@ -811,12 +547,11 @@ def main():
     REINFORCE.write_text("\n".join(lines) + "\n")
     print(f"cards a standard match can offer: {len(offered)}")
 
-    write_commander_skills(raw[COMMANDER_SKILL_PATH_ID])
+    write_commander_skills()
     write_unit_reinforcements(structure, by_level)
     write_advance_teams(structure)
     write_officers(structure)
-    write_economy(structure, contraption_prices(raw[CONTRAPTION_PATH_ID]),
-                  config_numbers(raw[CONFIG_PATH_ID]))
+    write_economy(structure, contraption_prices(), config_numbers(structure))
 
     UNIT_TECHS.write_text(yaml_units("mechcore.unit_techs", techs))
     UNIT_PRICES.write_text(yaml_units("mechcore.unit_prices", economy))

@@ -88,7 +88,7 @@ fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i
                  not separate from an earlier unlock"
             ));
         }
-        if row.active_round == round {
+        if row.active_round.contains(&round) {
             squads += 1;
         }
     }

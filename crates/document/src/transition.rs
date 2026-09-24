@@ -684,7 +684,7 @@ pub fn deployed(
 /// shop's allowances refill, the income arrives less what an energy tower skill
 /// still owes, the energy tower skills lapse, and the board's formations are
 /// fixed again unless something frees them. Then the officers deliver: an officer's squad,
-/// its commander skills and its equipment arrive in its `active_round`, and its
+/// its commander skills and its equipment arrive in each of its `active_round`s, and its
 /// unit joins the shop in its `unlock_round`. The squad lands where the board
 /// puts it, which `placement` supplies; it arrived this round, so it may move,
 /// and a delivered skill starts after the count-down rather than inside it.
@@ -711,7 +711,7 @@ pub fn open_round(
         {
             unlock(&mut next, opening.unit);
         }
-        if row.active_round != round {
+        if !row.active_round.contains(&round) {
             continue;
         }
         for skill in &row.commander_skills {

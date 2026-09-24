@@ -1,10 +1,11 @@
 schema: mechcore.reinforce_items
-game_build: 1.11.1.3.2259
+game_build: 2.0.0.1.2324
 
 # Every card a standard match can offer, and what taking it costs.
 # A card whose limitedScene names other modes only is left out; an
 # empty list restricts nothing. A card with no price of its own is
-# sold at its level's price, which is 0, 50, 100 and 200 by level.
+# sold at its level's price, which reinforce_levels in economy.yaml
+# states.
 #
 # Every card here grants the thing its own ID names. A unit card
 # and an advance team hand out units instead, and each has its
@@ -17,6 +18,10 @@ items:
   - {id: 10007, name: 先进护盾装置, kind: officer, supply: 0}
   - {id: 10008, name: 先进飞弹装置, kind: officer, supply: 0}
   - {id: 10009, name: 快速传送, kind: officer, supply: 0}
+  - {id: 10524, name: 量产激光瞄具, kind: officer, supply: 100}
+  - {id: 10525, name: 量产火控系统, kind: officer, supply: 100}
+  - {id: 10526, name: 量产重型装甲, kind: officer, supply: 100}
+  - {id: 10540, name: 装备扩容, kind: officer, supply: 100}
   - {id: 20001, name: 先进防御战术, kind: officer, supply: 300}
   - {id: 20002, name: 先进进攻战术, kind: officer, supply: 350}
   - {id: 20003, name: 高效科技研发, kind: officer, supply: 100}
@@ -102,9 +107,9 @@ items:
   - {id: 200003, name: 光子投射, kind: commander_skill, supply: 100}
   - {id: 300001, name: 导弹打击, kind: commander_skill, supply: 50}
   - {id: 300003, name: 轨道轰炸, kind: commander_skill, supply: 150}
-  - {id: 300004, name: 核弹, kind: commander_skill, supply: 350}
-  - {id: 300005, name: 闪电风暴, kind: commander_skill, supply: 350}
-  - {id: 300006, name: 离子轰炸, kind: commander_skill, supply: 250}
+  - {id: 300004, name: 核弹, kind: commander_skill, supply: 250}
+  - {id: 300005, name: 闪电风暴, kind: commander_skill, supply: 250}
+  - {id: 300006, name: 离子轰炸, kind: commander_skill, supply: 200}
   - {id: 300007, name: 轨道标枪, kind: commander_skill, supply: 200}
   - {id: 500002, name: 酸液弹, kind: commander_skill, supply: 100}
   - {id: 600002, name: 烟雾弹, kind: commander_skill, supply: 100}
@@ -135,3 +140,4 @@ items:
   - {id: 13030007, name: 增幅核心, kind: equipment, supply: 150}
   - {id: 13030010, name: 统御核心, kind: equipment, supply: 100, round_supply: 50}
   - {id: 13040001, name: 部署模块, kind: equipment, supply: 0}
+  - {id: 13150101, name: 爆裂弹药, kind: equipment, supply: 100}
