@@ -10,6 +10,7 @@ into `work/tools/`, and writes the same shape every reader here expects:
     work/decomp/<build>/cpp2il/IsilDump/          the instruction dump, one file per class
     work/decomp/<build>/cpp2il/DiffableCs/        the C# stubs, with call-graph attributes
     work/decomp/<build>/config-data-container.json    GameRiver.ConfigDataContainer from level0
+    work/decomp/<build>/level0/<Class>.json       every other GameRiver data object of level0
     work/decomp/<build>/game-manifest.json        the game files and tools it came from
     work/decomp/<build>/index.sqlite              the symbol and call index
 
@@ -271,15 +272,24 @@ class Ripper:
 
 
 def step_config(app, out):
+    """Every `GameRiver` data object of level0, as AssetRipper types it.
+
+    `ConfigDataContainer` is `config-data-container.json`; every other
+    MonoBehaviour whose script is in the `GameRiver` namespace (skills,
+    technologies, equipment, commander skills) is `level0/<Class>.json`.
+    `GameRiver.Client` scripts are the UI and are left out.
+    """
     ripper = Ripper()
     try:
-        say("AssetRipper is loading the game; this takes about ten minutes")
+        say("AssetRipper is loading the game; this takes a few minutes")
         ripper.load(app)
         collections = ripper.collections()
         if "level0" not in collections:
             fail("AssetRipper found no level0")
         level0 = collections["level0"]
+        (out / "level0").mkdir(exist_ok=True)
         scripts = {}
+        exported = {}
         misses = 0
         path_id = 0
         while misses < 200:
@@ -291,16 +301,23 @@ def step_config(app, out):
             misses = 0
             head = raw[:2000].decode("utf-8", "replace")
             script = re.search(r'"m_Script": \{ "m_FileID": (\d+), "m_PathID": (\d+) \}', head)
-            if not script or '"m_Structure"' not in head:
+            if not script:
                 continue
             key = (int(script.group(1)), int(script.group(2)))
             if key not in scripts:
                 scripts[key] = monoscript(ripper, collections, key)
-            if scripts[key] == "GameRiver.ConfigDataContainer":
+            name = scripts[key] or ""
+            if name == "GameRiver.ConfigDataContainer":
                 (out / "config-data-container.json").write_bytes(raw)
-                say(f"ConfigDataContainer is level0 path id {path_id}")
-                return path_id
-        fail("level0 holds no MonoBehaviour of GameRiver.ConfigDataContainer")
+            elif name.startswith("GameRiver.") and not name.startswith("GameRiver.Client."):
+                (out / "level0" / f"{name.rsplit('.', 1)[1]}.json").write_bytes(raw)
+            else:
+                continue
+            exported[name] = path_id
+            say(f"{name} is level0 path id {path_id}")
+        if "GameRiver.ConfigDataContainer" not in exported:
+            fail("level0 holds no MonoBehaviour of GameRiver.ConfigDataContainer")
+        return exported
     finally:
         ripper.close()
 
@@ -318,7 +335,7 @@ def monoscript(ripper, collections, key):
     return None
 
 
-def step_manifest(app, build, unity, out, commands, container_path_id):
+def step_manifest(app, build, unity, out, commands, level0):
     root = app
     listed = []
     for role, path in artifacts(app).items():
@@ -342,7 +359,7 @@ def step_manifest(app, build, unity, out, commands, container_path_id):
                        "processors": PROCESSORS, "slice": "x86_64"},
             "assetripper": {"version": ASSETRIPPER["version"], "sha256": ASSETRIPPER["sha256"]},
         },
-        "config_data_container": {"file": "level0", "path_id": container_path_id},
+        "level0": level0,
         "unity_version": unity,
         "warnings": [],
     }
@@ -525,15 +542,14 @@ def main():
     if "cs" in force or not (out / "cpp2il/DiffableCs").is_dir():
         commands["diffable-cs"] = step_cs(app, work, unity, out)
         say("DiffableCs written")
-    container = out / "config-data-container.json"
     manifest_path = out / "game-manifest.json"
-    container_path_id = None
+    level0 = None
     if manifest_path.exists():
-        container_path_id = json.loads(manifest_path.read_text()).get("config_data_container", {}).get("path_id")
-    if "config" in force or not container.exists():
-        container_path_id = step_config(app, out)
+        level0 = json.loads(manifest_path.read_text()).get("level0")
+    if "config" in force or not (out / "config-data-container.json").exists() or not level0:
+        level0 = step_config(app, out)
     if "manifest" in force or not manifest_path.exists() or force & {"dylib", "isil", "cs", "config"}:
-        manifest = step_manifest(app, build, unity, out, commands, container_path_id)
+        manifest = step_manifest(app, build, unity, out, commands, level0)
         say("game-manifest.json written")
     else:
         manifest = json.loads(manifest_path.read_text())
