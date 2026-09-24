@@ -1,55 +1,47 @@
 #!/usr/bin/env python3
-"""Extract build 2259 standard 1v1 reinforcement prediction inputs.
+"""Extract the standard 1v1 reinforcement prediction inputs into `config/reinforcements.yaml`.
 
-Usage: python scripts/extract_reinforcements.py <ConfigDataContainer.json> <Data/>
-Requires UnityPy. Writes config/reinforcements.yaml.
+    python3 scripts/extract_reinforcements.py [--build BUILD]
+
+Reads the build through `scripts/build_data.py`: the commander skill and
+equipment cards of `CommanderSkillGroupData` and `EquipmentGroupData`, the
+officers, unit cards, round pools and level weights of `ConfigDataContainer`,
+and `Config.reinforceItemCount`.
 """
 import json
 from pathlib import Path
-import struct
 import sys
 
-from extract_prices import blobs, parse_reinforce_item, read_string, config_numbers
+import build_data
 from extract_opening import eligible
+from extract_prices import config_numbers, group_rows
 
 
-def catalogue(blob, kind):
-    rows = {}
-    for offset in range(0, len(blob) - 4, 4):
-        row = parse_reinforce_item(blob, offset)
-        if not row or not 100_000 <= row['id'] < 100_000_000:
-            continue
-        _, cursor = read_string(blob, offset + 4)
-        cursor += 4  # isTestData
-        for _ in range(4):
-            _, cursor = read_string(blob, cursor)
-        cursor += 12  # level, scope, supply
-        for _ in range(2):
-            _, cursor = read_string(blob, cursor)
-        cursor += 4  # reactorCore
-        count, = struct.unpack_from('<i', blob, cursor)
-        cursor += 4 + 4 * count
-        early, late, repeated = struct.unpack_from('<3i', blob, cursor)
-        rows[row['id']] = dict(row, kind=kind, limitedScene=row['scenes'],
-                              earliestRound=early, latestRound=late,
-                              canRepeated=bool(repeated))
-    return list(rows.values())
+def catalogue(group, kind):
+    return [dict(row, kind=kind) for row in group_rows(group).values()
+            if 'scope' in row and 100_000 <= row['id'] < 100_000_000]
 
 
-def extract(structure, data):
-    raw = blobs(data / 'level0', [136, 167, 188])
-    rows = catalogue(raw[167], 'skill') + catalogue(raw[188], 'equipment')
+def extract(structure):
+    rows = catalogue('CommanderSkillGroupData', 'skill') + catalogue('EquipmentGroupData', 'equipment')
     rows.extend(dict(row, kind='officer') for row in structure['officerDatas'])
     cards = {}
     for row in rows:
         if row['scope'] != 1 or not eligible(row):
             continue
-        assert row.get('appearCondition', 0) in (0, 1)
-        cards[row['id']] = dict(level=row['level'], group=row.get('typeID', 0),
-                               earliest=row['earliestRound'], latest=row['latestRound'],
-                               repeated=row['canRepeated'],
-                               cooldown=row['kind'] == 'skill' and row['level'] == 4,
-                               absent_units=row.get('unitID', []) if row.get('appearCondition') == 1 else [])
+        # EAppearCondition: 0 none, 1 NonexistUnit (offered only while the
+        # side holds none of `unitID`), 2 SupplyPercent (build 2.0's unit
+        # modifications, written through and refused by the predictor).
+        condition = row.get('appearCondition', 0)
+        assert condition in (0, 1, 2)
+        card = dict(level=row['level'], group=row.get('typeID', 0),
+                    earliest=row['earliestRound'], latest=row['latestRound'],
+                    repeated=row['canRepeated'],
+                    cooldown=row['kind'] == 'skill' and row['level'] == 4,
+                    absent_units=row.get('unitID', []) if condition == 1 else [])
+        if condition == 2:
+            card['supply_percent'] = row['appearConditionParameter']
+        cards[row['id']] = card
     units = {}
     for row in structure['unitReinforceDatas']:
         if not eligible(row):
@@ -68,21 +60,19 @@ def extract(structure, data):
     unit_costs = {row['id']: dict(supply=row['baseMoney'], unlock=row['unlockPrice'],
                                  tech_step=row['techUpgradeIncreaseSupplyPerCount'],
                                  tech_cap=row['techUpgradeMaxSupplyLimit'])
-                  for row in structure['cardDatas']}
+                  for row in structure['cardDatas'] if build_data.in_standard(row)}
     quantity = int(next(row['value'] for row in structure['commonParms']
                         if row['key'] == 'unit_reinforcement_quantity'))
-    return dict(ordinary_count=config_numbers(raw[136])['reinforce_item_count'],
+    return dict(ordinary_count=config_numbers(structure)['reinforce_item_count'],
                 unit_count=quantity, cards=dict(sorted(cards.items())),
                 units=dict(sorted(units.items())), pools=pools, weights=weights,
                 prevented=prevented, unit_costs=unit_costs)
 
 
 def main():
-    if len(sys.argv) != 3:
-        raise SystemExit(__doc__)
-    structure = json.loads(Path(sys.argv[1]).read_text())['m_Structure']
-    inputs = extract(structure, Path(sys.argv[2]))
-    lines = ['# Build 1.11.1.3.2259, standard versus 1v1. Generated by',
+    build_data.arguments(__doc__)
+    inputs = extract(build_data.container())
+    lines = [f'# Build {build_data.build()}, standard versus 1v1. Generated by',
              '# scripts/extract_reinforcements.py; see docs/rules/reinforcements.md.', '']
     for key, value in inputs.items():
         if isinstance(value, dict):

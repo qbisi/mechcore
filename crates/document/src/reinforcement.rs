@@ -28,6 +28,11 @@ struct Card {
     repeated: bool,
     cooldown: bool,
     absent_units: Vec<i32>,
+    /// `EAppearCondition.SupplyPercent`'s parameters, which build 2.0 gives
+    /// the unit-modification officers. What the condition reads is not
+    /// established, so a pool that holds such a card is refused.
+    #[serde(default)]
+    supply_percent: Vec<i32>,
 }
 
 impl Card {
@@ -173,6 +178,13 @@ impl Dealer {
                 groups.entry(card.group).or_default().push(id);
             }
             if card.group == 0 || opening.initialization.officers.get(&card.group) == Some(&id) {
+                if !card.supply_percent.is_empty() {
+                    return Err(format!(
+                        "card {id} appears on a share of supply ({:?}), which the \
+                         reinforcement prediction does not model",
+                        card.supply_percent
+                    ));
+                }
                 pools.entry(card.level).or_default().push(id);
             }
         }
