@@ -54,7 +54,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("battle.mcfr");
     let result = simulate_layout(fixture(), Some(&output), Some(7)).unwrap();
-    assert_eq!(result.game_build, "1.11.1.3.2259");
+    assert_eq!(result.game_build, "2.0.0.1.2324");
     assert_eq!(result.seed, 7);
     assert_eq!(result.seed_source, "external");
     assert_eq!(result.end_reason, "natural_module_drain");
@@ -65,7 +65,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     assert!(!result.draw);
 
     let reader = McfrReader::open(&output).unwrap();
-    assert_eq!(reader.game_build(), "1.11.1.3.2259");
+    assert_eq!(reader.game_build(), "2.0.0.1.2324");
     assert_eq!(reader.hashes(), &result.hashes);
     assert_eq!(
         Some(reader.file_size_bytes()),

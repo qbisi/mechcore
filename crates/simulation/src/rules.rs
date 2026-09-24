@@ -877,7 +877,7 @@ mod tests {
     #[test]
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
-        assert_eq!(config.game_build, "1.11.1.3.2259");
+        assert_eq!(config.game_build, "2.0.0.1.2324");
         assert_eq!(config.units.units.len(), 23);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);

@@ -49,7 +49,7 @@ fn verify_rejects_the_zero_seed_sentinel() {
     let layout = directory.path().join("layout.yaml");
     fs::write(
         &layout,
-        "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 0\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        "kind: layout\ngame_build: 2.0.0.1.2324\nseed: 0\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
     )
     .unwrap();
 
@@ -206,7 +206,7 @@ red:
         .unwrap();
     assert!(output.status.success());
     let canonical = String::from_utf8(output.stdout).unwrap();
-    assert!(canonical.starts_with("kind: layout\ngame_build: 1.11.1.3.2259\nround: 1\n"));
+    assert!(canonical.starts_with("kind: layout\ngame_build: 2.0.0.1.2324\nround: 1\n"));
     assert!(!canonical.contains("seed:"));
     assert!(!canonical.contains("level:"));
     assert!(!canonical.contains("rotated:"));
