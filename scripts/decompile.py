@@ -10,7 +10,7 @@ into `work/tools/`, and writes the same shape every reader here expects:
     work/decomp/<build>/cpp2il/IsilDump/          the instruction dump, one file per class
     work/decomp/<build>/cpp2il/DiffableCs/        the C# stubs, with call-graph attributes
     work/decomp/<build>/config-data-container.json    GameRiver.ConfigDataContainer from level0
-    work/decomp/<build>/level0/<Class>.json       every other GameRiver data object of level0
+    work/decomp/<build>/<file>/<Class>.json       every other GameRiver data object, by the file it is in
     work/decomp/<build>/game-manifest.json        the game files and tools it came from
     work/decomp/<build>/index.sqlite              the symbol and call index
 
@@ -271,68 +271,112 @@ class Ripper:
             return response.read()
 
 
-def step_config(app, out):
-    """Every `GameRiver` data object of level0, as AssetRipper types it.
+UNITYPY = "1.25.3"
+# Which data objects are exported, by the file they are in. Every MonoBehaviour
+# whose script is in the GameRiver namespace, except GameRiver.Client (the UI),
+# and the language source the configuration's names are localized in.
+EXPORT_FILES = ("level0", "resources.assets", "sharedassets0.assets")
+LANGUAGE_SOURCE = ("I2.Loc.LanguageSourceAsset", "I2LanguagesForConfigData")
+ENUMERATE = """
+import json, sys, UnityPy
+from pathlib import Path
+data = Path(sys.argv[1])
+found = []
+for name in sys.argv[2:]:
+    for obj in UnityPy.load(str(data / name)).objects:
+        if obj.type.name != "MonoBehaviour":
+            continue
+        behaviour = obj.read(check_read=False)
+        script = behaviour.m_Script.read()
+        found.append({"file": name, "path_id": obj.path_id, "name": behaviour.m_Name,
+                      "class": f"{script.m_Namespace}.{script.m_ClassName}".lstrip(".")})
+json.dump(found, sys.stdout)
+"""
 
-    `ConfigDataContainer` is `config-data-container.json`; every other
-    MonoBehaviour whose script is in the `GameRiver` namespace (skills,
-    technologies, equipment, commander skills) is `level0/<Class>.json`.
-    `GameRiver.Client` scripts are the UI and are left out.
+
+def unitypy():
+    """A Python that has UnityPy, in its own environment under work/tools."""
+    environment = TOOLS / f"unitypy-{UNITYPY}"
+    python = environment / "bin" / "python"
+    if not python.exists():
+        say(f"creating a Python environment with UnityPy {UNITYPY}")
+        if subprocess.run(["uv", "--version"], capture_output=True).returncode == 0:
+            subprocess.run(["uv", "venv", "--quiet", str(environment)], check=True)
+            subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(python), f"UnityPy=={UNITYPY}"], check=True)
+        else:
+            subprocess.run([sys.executable, "-m", "venv", str(environment)], check=True)
+            subprocess.run([str(python), "-m", "pip", "install", "--quiet", f"UnityPy=={UNITYPY}"], check=True)
+    return python
+
+
+def exported_objects(app):
+    """The data objects to export: file, path id, name and script class of each."""
+    data = app / "Contents/Resources/Data"
+    result = subprocess.run([str(unitypy()), "-c", ENUMERATE, str(data), *EXPORT_FILES],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        fail(f"UnityPy could not list the game's objects:\n{result.stderr.strip()}")
+    return [
+        entry for entry in json.loads(result.stdout)
+        if (entry["class"].startswith("GameRiver.") and not entry["class"].startswith("GameRiver.Client."))
+        or (entry["class"], entry["name"]) == LANGUAGE_SOURCE
+    ]
+
+
+def export_path(entry, counts):
+    """`<file>/<Class>.json` for a class the file holds once, else `<file>/<Class>/<name>.json`."""
+    if entry["class"] == "GameRiver.ConfigDataContainer":
+        return pathlib.Path("config-data-container.json")
+    directory = pathlib.Path(entry["file"].removesuffix(".assets"))
+    short = entry["class"].rsplit(".", 1)[-1]
+    if counts[(entry["file"], entry["class"])] == 1:
+        return directory / f"{short}.json"
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", entry["name"]) or str(entry["path_id"])
+    return directory / short / f"{stem}.json"
+
+
+def step_config(app, out):
+    """Every data object of the build, as AssetRipper types it from the build's assemblies.
+
+    UnityPy reads which script each MonoBehaviour runs, which needs no type
+    tree; AssetRipper, which reconstructs the types from the IL2CPP metadata,
+    exports the chosen ones by path id. `ConfigDataContainer` is
+    `config-data-container.json`; the rest go under a directory per file.
     """
+    objects = exported_objects(app)
+    counts = {}
+    for entry in objects:
+        counts[(entry["file"], entry["class"])] = counts.get((entry["file"], entry["class"]), 0) + 1
+    paths = {}
+    for entry in objects:
+        path = export_path(entry, counts)
+        if path in paths.values():
+            path = path.with_name(f"{path.stem}_{entry['path_id']}.json")
+        paths[(entry["file"], entry["path_id"])] = path
+    for directory in ("level0", "resources", "sharedassets0"):
+        subprocess.run(["rm", "-rf", str(out / directory)], check=True)
     ripper = Ripper()
     try:
-        say("AssetRipper is loading the game; this takes a few minutes")
+        say(f"AssetRipper is loading the game to export {len(objects)} objects; this takes a few minutes")
         ripper.load(app)
         collections = ripper.collections()
-        if "level0" not in collections:
-            fail("AssetRipper found no level0")
-        level0 = collections["level0"]
-        (out / "level0").mkdir(exist_ok=True)
-        scripts = {}
-        exported = {}
-        misses = 0
-        path_id = 0
-        while misses < 200:
-            path_id += 1
-            raw = ripper.asset(level0, path_id)
+        exported = []
+        for entry in objects:
+            if entry["file"] not in collections:
+                fail(f"AssetRipper found no {entry['file']}")
+            raw = ripper.asset(collections[entry["file"]], entry["path_id"])
             if raw is None:
-                misses += 1
-                continue
-            misses = 0
-            head = raw[:2000].decode("utf-8", "replace")
-            script = re.search(r'"m_Script": \{ "m_FileID": (\d+), "m_PathID": (\d+) \}', head)
-            if not script:
-                continue
-            key = (int(script.group(1)), int(script.group(2)))
-            if key not in scripts:
-                scripts[key] = monoscript(ripper, collections, key)
-            name = scripts[key] or ""
-            if name == "GameRiver.ConfigDataContainer":
-                (out / "config-data-container.json").write_bytes(raw)
-            elif name.startswith("GameRiver.") and not name.startswith("GameRiver.Client."):
-                (out / "level0" / f"{name.rsplit('.', 1)[1]}.json").write_bytes(raw)
-            else:
-                continue
-            exported[name] = path_id
-            say(f"{name} is level0 path id {path_id}")
-        if "GameRiver.ConfigDataContainer" not in exported:
-            fail("level0 holds no MonoBehaviour of GameRiver.ConfigDataContainer")
+                fail(f"AssetRipper cannot export {entry['file']} path id {entry['path_id']} ({entry['class']})")
+            target = out / paths[(entry["file"], entry["path_id"])]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+            exported.append({**entry, "export": str(paths[(entry["file"], entry["path_id"])])})
+        if not any(entry["class"] == "GameRiver.ConfigDataContainer" for entry in exported):
+            fail("the build holds no GameRiver.ConfigDataContainer")
+        say(f"exported {len(exported)} data objects")
         return exported
     finally:
         ripper.close()
-
-
-def monoscript(ripper, collections, key):
-    """The class a MonoBehaviour's `m_Script` names, looked up by path id."""
-    _, path_id = key
-    for name in ("globalgamemanagers.assets", "globalgamemanagers"):
-        if name in collections:
-            raw = ripper.asset(collections[name], path_id)
-            if raw:
-                script = json.loads(raw)
-                if "m_ClassName" in script:
-                    return f"{script.get('m_Namespace', '')}.{script['m_ClassName']}".lstrip(".")
-    return None
 
 
 def step_manifest(app, build, unity, out, commands, level0):
@@ -359,7 +403,7 @@ def step_manifest(app, build, unity, out, commands, level0):
                        "processors": PROCESSORS, "slice": "x86_64"},
             "assetripper": {"version": ASSETRIPPER["version"], "sha256": ASSETRIPPER["sha256"]},
         },
-        "level0": level0,
+        "exports": level0,
         "unity_version": unity,
         "warnings": [],
     }
@@ -545,7 +589,7 @@ def main():
     manifest_path = out / "game-manifest.json"
     level0 = None
     if manifest_path.exists():
-        level0 = json.loads(manifest_path.read_text()).get("level0")
+        level0 = json.loads(manifest_path.read_text()).get("exports")
     if "config" in force or not (out / "config-data-container.json").exists() or not level0:
         level0 = step_config(app, out)
     if "manifest" in force or not manifest_path.exists() or force & {"dylib", "isil", "cs", "config"}:
