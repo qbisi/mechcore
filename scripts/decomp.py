@@ -3,6 +3,7 @@
 
     scripts/decomp.py sync [--build BUILD]   clone qbisi/mechcore-decomp into work/decomp, one build, and its index
     scripts/decomp.py path [BUILD]           print work/decomp/<build>
+    scripts/decomp.py publish BUILD          commit a build scripts/decompile.py made, and release its index
 
 The decompilation lives in the private repository
 https://github.com/qbisi/mechcore-decomp, one directory per game build, with
@@ -24,8 +25,13 @@ machine that has run it once needs the network only for a build it lacks.
 own files. Access is whatever git and `gh` have: a signed-in `gh` on a
 machine, the GitHub proxy in a Claude Code cloud session with the repository
 attached, or a read-only token in `MECHCORE_DECOMP_TOKEN` on this repository
-alone, which is what a Codex container gets. Nothing here writes to the
-repository; the keeper pushes a new build there by hand.
+alone, which is what a Codex container gets.
+
+A new build comes from `scripts/decompile.py`, which decompiles the installed
+game into `work/decomp/<build>`. `publish` is the only verb here that writes:
+it commits that directory to the repository and pushes it, and uploads the
+index as the release `index/<build>`. Only the session that holds the game has
+anything to publish.
 """
 
 import gzip
@@ -34,6 +40,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -170,6 +177,46 @@ def path(build):
     print(DESTINATION / build)
 
 
+def publish(build):
+    directory = DESTINATION / build
+    for required in ("cpp2il/IsilDump", "cpp2il/DiffableCs", "config-data-container.json",
+                     "game-manifest.json", INDEX):
+        if not (directory / required).exists():
+            fail(f"{directory} has no {required}; run scripts/decompile.py first")
+    if not (DESTINATION / ".git").exists():
+        fail(f"{DESTINATION} is not a clone of {REPOSITORY}; run sync first")
+    if subprocess.run(["git", "sparse-checkout", "list"], cwd=DESTINATION, capture_output=True).returncode == 0:
+        run("git", "sparse-checkout", "add", build, cwd=DESTINATION)
+    run("git", "add", "--", build, cwd=DESTINATION)
+    status = run("git", "status", "--porcelain", "--", build, cwd=DESTINATION)
+    if status:
+        run("git", "commit", "--quiet", "-m",
+            f"decomp: build {build}, Cpp2IL dump and stubs, manifest, config", cwd=DESTINATION)
+    # A push that failed last time is retried by running publish again.
+    for attempt in range(5):
+        pushed = subprocess.run(["git", "push", "--quiet", "origin", "HEAD"], cwd=DESTINATION,
+                                capture_output=True, text=True)
+        if pushed.returncode == 0:
+            break
+        if attempt == 4:
+            fail(f"git push failed:\n{pushed.stderr.strip()}")
+        time.sleep(5)
+    print(f"{REPOSITORY}: {build} pushed")
+    tag = f"index/{build}"
+    if subprocess.run(["gh", "release", "view", tag, "--repo", REPOSITORY], capture_output=True).returncode == 0:
+        print(f"{tag}: already released")
+        return
+    packed = directory / f"{INDEX}.gz"
+    with open(directory / INDEX, "rb") as source, gzip.open(packed, "wb") as out:
+        shutil.copyfileobj(source, out)
+    try:
+        run("gh", "release", "create", tag, str(packed), "--repo", REPOSITORY,
+            "--title", tag, "--notes", f"The symbol and call index of build {build}.")
+    finally:
+        packed.unlink(missing_ok=True)
+    print(f"{tag}: released")
+
+
 def main(argv):
     if len(argv) >= 2 and argv[1] == "sync":
         if len(argv) == 2:
@@ -178,6 +225,8 @@ def main(argv):
             sync(argv[3])
         else:
             fail("usage: sync [--build BUILD]")
+    elif len(argv) == 3 and argv[1] == "publish":
+        publish(argv[2])
     elif len(argv) in (2, 3) and argv[1] == "path":
         path(argv[2] if len(argv) == 3 else None)
     else:
