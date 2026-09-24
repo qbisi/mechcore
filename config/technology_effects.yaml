@@ -1,5 +1,5 @@
 schema: mechcore.technology_effects
-game_build: 1.11.1.3.2259
+game_build: 2.0.0.1.2324
 
 # What a technology does to a fight, which is a correction it writes onto
 # the unit that researched it. `config/unit_techs.yaml` carries which
