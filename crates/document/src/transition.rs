@@ -1286,8 +1286,7 @@ mod tests {
 
     /// An officer delivers its equipment in its own round, not when it arrives.
     ///
-    /// 增幅专家 `10013` is the one officer in this build that hands out
-    /// equipment, and it hands out three copies of `13030009` in round 1.
+    /// 增幅专家 `10013` hands out three copies of `13030009` in round 1.
     #[test]
     fn an_officer_delivers_its_equipment_on_its_own_schedule() {
         let economy = Economy::embedded().unwrap();

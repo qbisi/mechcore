@@ -90,6 +90,7 @@ pub(crate) const fn resolve_unit_type(type_name: &str) -> Option<FormationSpec> 
         b"abyss" => Some(unit_spec(29, 70, 70)),
         b"void_eye" => Some(unit_spec(30, 40, 20)),
         b"vortex" => Some(unit_spec(31, 20, 20)),
+        b"centurion" => Some(unit_spec(32, 30, 30)),
         b"mountain" => Some(unit_spec(2002, 70, 70)),
         _ => None,
     }
@@ -152,6 +153,7 @@ pub const fn unit_type_from_id(id: i32) -> Option<(&'static str, (i64, i64))> {
         29 => Some(("abyss", (70, 70))),
         30 => Some(("void_eye", (40, 20))),
         31 => Some(("vortex", (20, 20))),
+        32 => Some(("centurion", (30, 30))),
         2002 => Some(("mountain", (70, 70))),
         _ => None,
     }

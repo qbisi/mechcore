@@ -1139,6 +1139,7 @@ red:
                     "sabertooth",
                     "tarantula",
                     "farseer",
+                    "centurion",
                 ],
                 (30, 30),
             ),
@@ -1173,7 +1174,7 @@ red:
         }
         assert_eq!(
             groups.iter().map(|(names, _)| names.len()).sum::<usize>(),
-            32
+            33
         );
     }
 
