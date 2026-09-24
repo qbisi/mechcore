@@ -68,7 +68,7 @@ blue:
   tower_strengthen_levels: [1, 2]
 
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: laser_sights}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [laser_sights]}
   - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 
   constructions:
@@ -346,7 +346,7 @@ when omitted:
 - A unit's `index` is required and has no default.
 - A unit's `level` defaults to `1`.
 - A unit's `rotated` defaults to `false`.
-- A unit's `equipment` defaults to no equipment.
+- A unit's `equipment` defaults to `[]`.
 - A unit's `travelling` defaults to `false`.
 
 Unknown fields must be rejected, and so is a document whose `kind` is absent or
@@ -675,7 +675,7 @@ following values form the closed public `name` vocabulary for each field:
   index: 0
   position: {x: 0, y: -50}
   exp: 12
-  equipment: laser_sights
+  equipment: [laser_sights]
   travelling: false
 ```
 
@@ -688,9 +688,13 @@ boolean, defaults to `false`, and declares the native unit-orientation flag. It
 is region-relative rather than absolute, so the owning region's own orientation
 still contributes to the world footprint; see the footprint rules above for the
 exact transposition.
-`equipment` optionally names the item the unit wears, which the adapter
-resolves to its native `EquipmentData.ID`. A unit has at
-most one equipment slot, so this field is singular rather than an array.
+`equipment` lists the items the unit wears, in the order they were fitted;
+the adapter resolves each to its native `EquipmentData.ID`. A formation has
+one slot, and each officer its side holds adds that officer's
+`equipment_slots` from [`config/officers.yaml`](../../../config/officers.yaml),
+which is `CardElement.GetEquipmentSlotCount`: one plus the side's
+`EquipmentSlotCount`. A unit that lists more items than its side gives it
+slots is refused.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
 effect only for an ambush-zone unit. `travelling: true` is invalid outside the
 ambush zones, and `travelling: false` is invalid for an ambush-zone unit in
@@ -698,11 +702,11 @@ round 2.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
-rotation through authoritative unit readback. When `equipment` is present, it
-then adds one copy from the runtime catalog to the current side's Training
-Ground inventory through `MAD_AddEquipment`, uses the existing native
+rotation through authoritative unit readback. For each item in `equipment`,
+in order, it then adds one copy from the runtime catalog to the current side's
+Training Ground inventory through `MAD_AddEquipment`, uses the existing native
 `PAD_UseEquipment` action on that unit, and requires authoritative equipment
-ownership readback. Available IDs and effects are listed in the
+ownership readback. Readback lists `CardElement.GetEquipments` in its order. Available IDs and effects are listed in the
 [Equipment index](../../rules/equipment.md).
 
 ### `constructions`

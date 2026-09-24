@@ -270,8 +270,10 @@ oppositely, so nothing may read a tower's identity out of its position.
 
 Fits the item `name` to the unit at `index`, as `upgrade_unit` and
 `move_unit` name one. The item leaves `equipment`,
-the side's list of what it owns and no unit wears, and becomes that
-unit's.
+the side's list of what it owns and no unit wears, and joins the end of
+that unit's. A unit wears at most as many items as it has slots, which is the
+same count [`layout.md`](layout.md#unit) gives a placement; fitting a full
+unit is refused.
 
 Fitting is free, because the item was paid for when it was taken. What it can
 change is later: an item may discount every upgrade of its unit, or pay its

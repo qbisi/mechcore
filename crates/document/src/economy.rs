@@ -234,6 +234,11 @@ pub struct Officer {
     /// Equipment it hands out when it arrives.
     #[serde(default)]
     pub equipment: Vec<i32>,
+    /// The equipment slots it adds to every formation of its side,
+    /// `OfficerData.equipmentCountChangeValue`, which build 2.0 added: Equipment
+    /// Expansion adds one.
+    #[serde(default)]
+    pub equipment_slots: i32,
     /// The rounds the officer hands out what it hands out.
     ///
     /// Each is an absolute round rather than one counted from the officer's
@@ -603,6 +608,18 @@ impl Economy {
     #[must_use]
     pub fn officer(&self, officer: i32) -> Option<&Officer> {
         self.officers.get(&officer)
+    }
+
+    /// How many equipment a formation of a side holding `officers` can wear:
+    /// `CardElement.GetEquipmentSlotCount`, one plus what the officers add.
+    #[must_use]
+    pub fn equipment_slots(&self, officers: &[i32]) -> usize {
+        let added: i32 = officers
+            .iter()
+            .filter_map(|officer| self.officer(*officer))
+            .map(|row| row.equipment_slots)
+            .sum();
+        usize::try_from(1 + added).unwrap_or(1)
     }
 
     /// What activating a blueprint costs.

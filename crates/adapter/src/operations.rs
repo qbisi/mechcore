@@ -1412,7 +1412,7 @@ fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<()
                 placement.type_name, placement.position.x, placement.position.y
             )));
         }
-        if let Some(equipment_id) = placement.equipment {
+        for &equipment_id in &placement.equipment {
             validate_equipment_catalog(runtime, config, placement, equipment_id)?;
         }
     }
@@ -2659,7 +2659,7 @@ fn apply_unit_formation(
             .map_err(|error| error.context(&format!("read {}", describe_placement(placement))))?;
     }
     verify_unit_readback(placement, unit_id, level, world_position, &readback)?;
-    if let Some(equipment_id) = placement.equipment {
+    for &equipment_id in &placement.equipment {
         add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
             error.context(&format!(
                 "add equipment for {}",
@@ -4091,7 +4091,7 @@ mod tests {
             level: Some(1),
             exp: Some(0),
             rotated: false,
-            equipment: None,
+            equipment: Vec::new(),
             travelling: false,
         };
         let Err(error) = layout_world_position(&placement, true) else {

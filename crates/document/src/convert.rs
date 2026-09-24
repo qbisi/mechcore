@@ -639,7 +639,10 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 level: Some(unit.level + 1).filter(|level| *level != 1),
                 exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
                 rotated: Some(unit.rotated).filter(|rotated| *rotated),
-                equipment: Some(unit.equipment_id).filter(|id| *id != 0),
+                equipment: Some(unit.equipment_id)
+                    .filter(|id| *id != 0)
+                    .into_iter()
+                    .collect(),
                 // No recorded field states it; see docs/spec/document/battle.md.
                 travelling: None,
             },

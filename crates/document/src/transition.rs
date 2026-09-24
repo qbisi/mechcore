@@ -243,15 +243,18 @@ pub fn step_placing(
             let formation = formation_mut(&mut next, *index)?;
             let unit =
                 unit_id_from_type(&formation.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
-            let worn = formation.unit.equipment;
+            let worn = formation.unit.equipment.clone();
             formation.unit.level = Some(formation.unit.level.unwrap_or(1) + 1);
             // A formation starts the next rank with nothing carried over.
             formation.unit.exp = None;
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
             let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
-            next.supply -=
-                (upgrade + worn.map_or(0, |id| economy.equipment_upgrade_supply(id))).max(0);
+            let discount: i32 = worn
+                .iter()
+                .map(|id| economy.equipment_upgrade_supply(*id))
+                .sum();
+            next.supply -= (upgrade + discount).max(0);
         }
         Action::UnlockUnit { unit } => {
             next.supply -= purse.unlock(*unit).ok_or(Unsettled::Unpriced("unlock"))?;
@@ -314,15 +317,23 @@ pub fn step_placing(
                 .ok_or(Unsettled::Unpriced("tower level"))?;
             next.supply -= price;
         }
-        // Fitting is free; the card was paid for when it was taken.
+        // Fitting is free; the card was paid for when it was taken. A formation
+        // wears as many as its side's officers give it slots, one without any.
         Action::UseEquipment { equipment, index } => {
             let position = next
                 .equipment
                 .iter()
                 .position(|item| item.id == *equipment)
                 .ok_or(Unsettled::Missing("equipment"))?;
+            let slots = economy.equipment_slots(&next.officers);
+            let formation = formation_mut(&mut next, *index)?;
+            if formation.unit.equipment.len() >= slots {
+                return Err(Unsettled::Refused(
+                    "equipment on a formation with no free slot",
+                ));
+            }
+            formation.unit.equipment.push(*equipment);
             next.equipment.remove(position);
-            formation_mut(&mut next, *index)?.unit.equipment = Some(*equipment);
             // A Deployment Module frees the formation that wears it to move.
             free_to_move(&mut next);
         }
@@ -513,11 +524,12 @@ fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Res
     let purse = Purse::new(economy, &next.officers);
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
     next.supply += entry.value.unwrap_or(0) + (entry.unit.level.unwrap_or(1) - 1) * upgrade;
-    if let Some(worn) = entry.unit.equipment {
-        next.equipment.push(EquipmentItem {
-            id: worn,
-            durability: None,
-        });
+    if !entry.unit.equipment.is_empty() {
+        next.equipment
+            .extend(entry.unit.equipment.iter().map(|worn| EquipmentItem {
+                id: *worn,
+                durability: None,
+            }));
         next.equipment.sort();
     }
     Ok(())
@@ -578,7 +590,7 @@ fn place(
             level: Some(level).filter(|level| *level != 1),
             exp: None,
             rotated: None,
-            equipment: None,
+            equipment: Vec::new(),
             travelling: None,
         },
         value: Some(value),
@@ -783,8 +795,8 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
     let worn: i32 = next
         .units
         .iter()
-        .filter_map(|entry| entry.unit.equipment)
-        .map(|equipment| economy.equipment_round_supply(equipment))
+        .flat_map(|entry| entry.unit.equipment.iter())
+        .map(|equipment| economy.equipment_round_supply(*equipment))
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
@@ -953,7 +965,7 @@ mod tests {
                         level: None,
                         exp: None,
                         rotated: None,
-                        equipment: None,
+                        equipment: Vec::new(),
                         travelling: None,
                     },
                     value: None,
@@ -1077,7 +1089,7 @@ mod tests {
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
         let next = fold(&economy, &state, &taken).unwrap();
         assert!(next.equipment.is_empty());
-        assert_eq!(next.units[0].unit.equipment, Some(13_030_001));
+        assert_eq!(next.units[0].unit.equipment, vec![13_030_001]);
     }
 
     fn slot(index: i32, id: i32, cooldown: i32) -> PanelSkill {
@@ -1167,8 +1179,8 @@ mod tests {
         };
         let state = SideState {
             units: vec![
-                formation(0, None),
-                formation(1, Some(crate::mobility::DEPLOYMENT_MODULE)),
+                formation(0, Vec::new()),
+                formation(1, vec![crate::mobility::DEPLOYMENT_MODULE]),
             ],
             ..SideState::default()
         };
@@ -1199,7 +1211,7 @@ mod tests {
                 exp: None,
                 rotated: None,
                 // Command Core pays 50 a round to the side wearing it.
-                equipment: Some(13_030_010),
+                equipment: vec![13_030_010],
                 travelling: None,
             },
             value: Some(100),
@@ -1274,7 +1286,7 @@ mod tests {
                 level: None,
                 exp: None,
                 rotated: None,
-                equipment: None,
+                equipment: Vec::new(),
                 travelling: Some(true),
             },
             value: Some(100),
@@ -1354,7 +1366,7 @@ mod tests {
                     level: None,
                     exp: None,
                     rotated: None,
-                    equipment: Some(13_030_004),
+                    equipment: vec![13_030_004],
                     travelling: None,
                 },
                 value: Some(100),
@@ -1394,7 +1406,7 @@ mod tests {
         let next = fold(&economy, &state, &refitted).unwrap();
         assert!(next.equipment.is_empty());
         assert_eq!(next.units[0].unit.index, 7);
-        assert_eq!(next.units[0].unit.equipment, Some(13_030_004));
+        assert_eq!(next.units[0].unit.equipment, vec![13_030_004]);
     }
 
     /// A fit with nothing to take is refused rather than clamped away.
@@ -1639,7 +1651,7 @@ mod tests {
             release: None,
         }];
         state.units[0].value = Some(400);
-        state.units[0].unit.equipment = Some(13_030_004);
+        state.units[0].unit.equipment = vec![13_030_004];
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,

@@ -79,7 +79,7 @@ impl Field {
             Self::Contraptions => !side.contraptions.is_empty(),
             Self::AirdropShields => !side.airdrop_shields.is_empty(),
             Self::Terrains => !side.terrains.is_empty(),
-            Self::UnitEquipment => side.units.iter().any(|unit| unit.equipment.is_some()),
+            Self::UnitEquipment => side.units.iter().any(|unit| !unit.equipment.is_empty()),
             Self::Travelling => side.units.iter().any(|unit| unit.travelling),
         }
     }

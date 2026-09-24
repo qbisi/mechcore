@@ -50,6 +50,9 @@ officers:
   - id: 10527
     name: 量产增幅核心
     equipment: [13030009, 13030009, 13030009]
+  - id: 10540
+    name: 装备扩容
+    equipment_slots: 1
   - id: 20003
     name: 高效科技研发
     technology_supply: -50

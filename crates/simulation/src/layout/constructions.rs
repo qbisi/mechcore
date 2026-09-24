@@ -364,7 +364,7 @@ mod tests {
             level: None,
             exp: None,
             rotated: false,
-            equipment: None,
+            equipment: Vec::new(),
             travelling: false,
         }
     }

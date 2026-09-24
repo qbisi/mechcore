@@ -690,7 +690,7 @@ red:
         assert_eq!(plan.blue.units[0].index, Some(0));
         assert_eq!(plan.blue.units[0].exp, Some(0));
         assert!(!plan.blue.units[0].rotated);
-        assert_eq!(plan.blue.units[0].equipment, None);
+        assert_eq!(plan.blue.units[0].equipment, Vec::<i32>::new());
         assert_eq!(plan.blue.units[0].type_name, "marksman");
         assert_eq!(plan.blue.units[0].native, NativeFormation::Unit(2));
         assert_eq!(plan.red.units[0].position, Position { x: 20, y: -180 });
@@ -764,7 +764,7 @@ red:
             "round": 1,
             "blue": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50},
-                "equipment": "laser_sights"
+                "equipment": ["laser_sights"]
             }]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -772,8 +772,31 @@ red:
         }))
         .unwrap();
 
-        assert_eq!(plan.blue.units[0].equipment, Some(13_030_001));
-        assert_eq!(plan.red.units[0].equipment, None);
+        assert_eq!(plan.blue.units[0].equipment, vec![13_030_001]);
+        assert_eq!(plan.red.units[0].equipment, Vec::<i32>::new());
+    }
+
+    /// A formation wears one equipment, and one more for each slot its side's
+    /// officers add: Equipment Expansion adds one.
+    #[test]
+    fn a_second_equipment_needs_a_second_slot() {
+        let layout = |officers: Value| {
+            json!({
+                "kind": "layout",
+                "round": 1,
+                "blue": {"officers": officers, "units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -50},
+                    "equipment": ["laser_sights", "heavy_armor"]
+                }]},
+                "red": {"units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -50}
+                }]}
+            })
+        };
+        let error = compile(&layout(json!([]))).unwrap_err();
+        assert!(error.contains("wears 2 equipment"), "{error}");
+        let plan = compile(&layout(json!(["equipment_expansion"]))).unwrap();
+        assert_eq!(plan.blue.units[0].equipment, vec![13_030_001, 13_030_002]);
     }
 
     #[test]
@@ -784,7 +807,7 @@ red:
             "blue": {
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
                 "constructions": [{"index": 0, "name": "defensive_wall", "position": {"x": 0, "y": -55},
-                 "equipment": "laser_sights"}]
+                 "equipment": ["laser_sights"]}]
             },
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -801,7 +824,7 @@ red:
             "kind": "layout",
             "round": 1,
             "blue": {"units": [{"index": 0,
-                "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": "not_an_item"
+                "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": ["not_an_item"]
             }]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}

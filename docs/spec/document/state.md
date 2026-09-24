@@ -588,7 +588,7 @@ answers it if the table is where a later build puts that difference, so this
 waits on how a later build handles those two skills.
 
 **Where a fitted item's durability would live.** `durability` belongs to the
-side's inventory, and a unit's `equipment` names only an ID. Under the game
+side's inventory, and a unit's `equipment` names only IDs. Under the game
 rule that makes equipment expire, a fitted item has a durability and this format
 has nowhere to put it.
 

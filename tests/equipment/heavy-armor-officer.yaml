@@ -12,7 +12,7 @@ blue:
   units:
     - name: marksman
       index: 0
-      equipment: heavy_armor
+      equipment: [heavy_armor]
       position: {x: 0, y: -50}
 
 red:

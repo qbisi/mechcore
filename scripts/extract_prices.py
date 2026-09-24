@@ -190,6 +190,7 @@ MODIFIERS = (
     ("first_round_supply", "firstRoundSupply"),
     ("granted_supply", "addSupply"),
     ("kill_bounty", "destroyHugeMechSupply"),
+    ("equipment_slots", "equipmentCountChangeValue"),
 )
 
 

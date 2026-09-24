@@ -4992,14 +4992,10 @@ fn read_native_side(
         let map_element = invoke_object(api, unit, "GetMapElement")?;
         let position = invoke_value::<MapVector>(api, map_element, "GetPosition")?;
         let rotated = invoke_value::<bool>(api, map_element, "IsRotate")?;
-        let equipment = api
-            .invoke(unit, "GetEquipment", &mut [])
-            .map_err(|error| error.to_string())?;
-        let equipment = if equipment.is_null() {
-            None
-        } else {
-            Some(invoke_value::<i32>(api, equipment, "GetID")?)
-        };
+        let worn = invoke_object(api, unit, "GetEquipments")?;
+        let equipment = (0..list_count(api, worn, 16)?)
+            .map(|slot| invoke_value::<i32>(api, list_item(api, worn, slot)?, "GetID"))
+            .collect::<Result<Vec<_>, _>>()?;
         let travelling = api
             .invoke_value::<bool>(
                 super_deployment,

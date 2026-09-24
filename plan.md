@@ -36,6 +36,10 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
    列表，layout、battle 文档、MCFR 都要跟着改。其余由第 2 步的清单决定。
    `game_build` 改成 2.0。*做完*：schema、转换器、读写器改完，版本号更新，旧格式不再
    接受。
+   *现状*：`equipment` 已是列表（layout、state、编译器按军官给槽数、模拟器逐件施加、
+   adapter 读 `GetEquipments` 并逐件 `PAD_UseEquipment`）；MCFR 不带装备，不用改。
+   录像读取器仍按 2259 的 GRBR 每个单位读一个 `EquipmentID`，2.0 录像格式在第 5 步
+   对着真录像核；语料重转和 `REPLAY_REV` 随之一起推。
 4. **Adapter。** 对着 2.0 的 DiffableCs 重核 adapter 写死的东西：原生内存布局（VO 步长、
    `HitDamageInfo`）、单位／工事／指挥官技能的 ID 表、`RangeItemType`、按签名找的重载。
    支持第 3 步的新字段（两件装备）。*做完*：一份不需要人看的冒烟脚本，逐项证明原有能力
