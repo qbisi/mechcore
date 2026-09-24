@@ -122,6 +122,12 @@ oracle，再把问题交给自己起的子代理去做，子代理各用一个�
 issue 关闭后 release 仍保留，因为它是钉住的哈希的证据。仓库里固定下来的只有
 `tests/<topic>/` 的布阵、脚本和它钉住的哈希。
 
+游戏换了版本，持有游戏的会话用 `scripts/decompile.py` 反编译本机装的那一版：它从游戏
+本身读出 build 号，缺的工具（Cpp2IL、AssetRipper，版本和 SHA-256 钉在脚本里）自己下到
+`work/tools/`，产出和已有 build 同一种形状；`scripts/decomp.py publish <build>` 推进
+`mechcore-decomp`，别的机器照常 `sync`。两个 build 之间改了什么，
+`scripts/decomp-diff.py <旧> <新>` 逐个声明比，加 `--config` 比两份配置表。
+
 keeper 会话之外的 agent（云端会话、别的机器）仍可以认领带 `claimable` 的 issue：
 开草稿 PR 认领，要录像就提交布阵和脚本并打 `capture`，被挡住就开 finding 写
 `Blocked by #m`，做完转正式，由 keeper 从审查那一步接手。
