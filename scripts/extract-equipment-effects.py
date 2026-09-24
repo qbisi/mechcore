@@ -1,76 +1,49 @@
 #!/usr/bin/env python3
-"""Extract build 2259's eleven ordinary EquipmentData rows, without a type tree.
+"""Extract what an ordinary EquipmentData row writes onto a unit into `config/equipment_effects.yaml`.
 
-    work/tools/asset-venv/bin/python scripts/extract-equipment-effects.py
+    python3 scripts/extract-equipment-effects.py [--build BUILD] [--check]
 
-Reads level0 path 188 in the serialized field order of GRObject, ConfigData,
-ItemData, ReinforceItemData and EquipmentData in GRCore. Subclass arrays are
-outside this table. Q32.32 integers are written as raw integers; only the
-comment beside one reads it as a decimal.
+The rows are `EquipmentGroupData.equipmentDatas` of `level0`, as
+`scripts/build_data.py` reads them: the equipment whose effect is the plain
+`ICommonMechDataChangeDataSource` correction. The subclass lists beside it
+(buff, lifesteal, shield and the rest) are other mechanisms and not here. Test
+rows and rows limited to Interstellar Expedition are left out. Q32.32 values
+are written as raw integers; only the comment beside one reads it as a decimal.
 """
 
-import argparse
-import importlib.util
-import json
+import sys
 from pathlib import Path
 
+import build_data
+
 ROOT = Path(__file__).resolve().parent.parent
-spec = importlib.util.spec_from_file_location("skills", ROOT / "scripts/extract-skills.py")
-skills = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(skills)
-
-FIELDS = (
-    ("life_rate", "i64"), ("damage_rate", "i64"), ("speed_value", "i32"),
-    ("min_attack_range_value", "i64"), ("attack_range_value", "i64"),
-    ("attack_range_rate", "i64"), ("attack_interval_value", "i64"),
-    ("attack_interval_rate", "i64"), ("splash_range_value", "i64"),
-    ("projectile_speed_value", "i64"), ("projectile_life_rate", "i64"),
-    ("important_unit", "flag"), ("mech_type", "ints"), ("units", "ints"),
-    ("exp_rate", "i32"), ("upgrade_supply_rate", "i32"),
-    ("upgrade_supply_value", "i32"), ("supply_value", "i32"),
-    ("destroy_huge_mech_earnings_value", "i32"), ("grade_upper_limit", "i32"),
-)
+# The build's field for each column this table writes.
+FIELDS = {
+    "life_rate": "lifeChangeRate", "damage_rate": "damageChangeRate",
+    "speed_value": "speedChangeValue", "min_attack_range_value": "minAttackRangeChangeValue",
+    "attack_range_value": "attackRangeChangeValue", "attack_range_rate": "attackRangeChangeRate",
+    "attack_interval_value": "attackIntervalChangeValue", "attack_interval_rate": "attackIntervalChangeRate",
+    "splash_range_value": "splashRangeChangeValue", "projectile_speed_value": "projectileSpeedChangeValue",
+    "projectile_life_rate": "projectileLifeChangeRate", "important_unit": "importantUnit",
+    "mech_type": "mechType", "units": "unitID", "exp_rate": "expChangeRate",
+    "grade_upper_limit": "changeGradeUpperLimit", "round_duration": "roundDuration",
+    "main_skill_effect": "mainSkillEffect", "extra_skill_effect": "extraSkillEffect",
+    "permanent_effect": "permanentEffect",
+}
 
 
-def row(r):
-    d = {"id": r.i32(), "name": r.string()}
-    if r.flag():
-        raise ValueError("test EquipmentData is outside build 2259's table")
-    for _ in range(4):  # ItemData: icon, description, descParams, story
-        r.string()
-    # ReinforceItemData's private itemLevel and ItemData.paramsArray are not serialized.
-    d.update(level=r.i32(), scope=r.i32(), supply=r.i32())
-    r.string(), r.string()  # reinforcePicName, advancePicName
-    d["reactor_core"] = r.i32()
-    d["limited_scene"] = r.ints()
-    d.update(earliest_round=r.i32(), latest_round=r.i32(), can_repeated=r.flag())
-    d.update(permanent_effect=r.flag(), main_skill_effect=r.flag(), extra_skill_effect=r.flag())
-    d.update(round_duration=r.i32(), round_supply=r.i32())
-    for name, kind in FIELDS:
-        d[name] = getattr(r, kind)()
-    return d
+def raw(value):
+    return value["m_rawValue"] if isinstance(value, dict) else value
 
 
-def extract(level0):
-    env = skills.UnityPy.load(str(level0))
-    obj = next(o for o in env.objects if o.path_id == 188)
-    r = skills.Reader(obj.get_raw_data())
-    r.i32(), r.i64(), r.flag(), r.i32(), r.i64(), r.string()
-    folder = r.string()
-    if folder != "equipmentDatas":
-        raise ValueError(f"path 188 is not EquipmentGroupData: {folder!r}")
-    count = r.i32()
-    if count != 11:
-        raise ValueError(f"expected eleven ordinary equipment rows, got {count}")
-    rows = [row(r) for _ in range(count)]
-    if [d["id"] for d in rows] != list(range(13030001, 13030012)):
-        raise ValueError("EquipmentData IDs moved; check the serialized layout")
-    # Independent native stats: the three captured items and their own channels.
-    expected = [(0, "attack_range_value", 20 << 32),
-                (1, "life_rate", 3221225472), (2, "damage_rate", 2791728742)]
-    for i, field, value in expected:
-        if rows[i][field] != value:
-            raise ValueError(f"row {rows[i]['id']} {field} disagrees with native stats")
+def extract():
+    rows = []
+    for row in build_data.level0("EquipmentGroupData")["equipmentDatas"]:
+        if row["isTestData"] or not build_data.in_standard(row):
+            continue
+        entry = {"id": row["id"], "name": row["name"]}
+        entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
+        rows.append(entry)
     return rows
 
 
@@ -81,7 +54,9 @@ RATES = ("life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate"
          "projectile_life_rate")
 VALUES = ("attack_range_value", "min_attack_range_value", "attack_interval_value",
           "splash_range_value", "projectile_speed_value")
-INTEGERS = ("speed_value", "exp_rate", "grade_upper_limit")
+INTEGERS = ("speed_value", "grade_upper_limit")
+# An int percentage on 1.11 builds, an FPoint rate from 2.0 on.
+RATES += ("exp_rate",)
 # Which skills and for how long, written only when set.
 FLAGS = ("main_skill_effect", "extra_skill_effect", "permanent_effect", "important_unit")
 
@@ -94,10 +69,10 @@ def reading(value):
 def render(rows):
     lines = [
         "schema: mechcore.equipment_effects",
-        "game_build: 1.11.1.3.2259",
+        f"game_build: {build_data.build()}",
         "",
         "# What an ordinary EquipmentData row writes onto the unit that wears it,",
-        "# read out of level0 path 188 by scripts/extract-equipment-effects.py.",
+        "# read out of EquipmentGroupData by scripts/extract-equipment-effects.py.",
         "# docs/rules/equipment_effects.md states what each field means. A field",
         "# is written only when it is set; what an equipment costs is",
         "# config/reinforce_items.yaml's, and its other pool fields are not here.",
@@ -128,19 +103,17 @@ def render(rows):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--level0", type=Path, default=skills.LEVEL0)
-    parser.add_argument("--check", action="store_true")
-    args = parser.parse_args()
+    arguments = build_data.arguments(__doc__, lambda parser: parser.add_argument("--check", action="store_true"))
     output = ROOT / "config/equipment_effects.yaml"
-    written = render(extract(args.level0))
-    if args.check:
+    rows = extract()
+    written = render(rows)
+    if arguments.check:
         if not output.exists() or output.read_text() != written:
-            raise SystemExit("equipment effect table differs from level0")
-        print("eleven EquipmentData rows agree byte for byte")
+            sys.exit("config/equipment_effects.yaml differs from the build's export")
+        print(f"{len(rows)} EquipmentData rows agree byte for byte")
     else:
         output.write_text(written)
-        print(f"eleven EquipmentData rows -> {output}")
+        print(f"{len(rows)} EquipmentData rows -> {output.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
