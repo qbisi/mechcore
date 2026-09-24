@@ -7,10 +7,8 @@ numbers a fight reads are per child — a Defensive Wall's `maxLife` is one
 block's, not the wall's. `docs/rules/constructions.md` says what each field
 means and which of them this build has measured.
 
-The source is `ConfigDataContainer.constructionDatas`, the same Unity object
-`scripts/extract_prices.py` reads a card's price out of, exported as JSON
-because reading it back out of the asset needs a type tree. The export keeps
-field names, so nothing here depends on declaration order.
+The source is `ConfigDataContainer.constructionDatas`, as `scripts/build_data.py`
+reads the build's typed export, so nothing here depends on declaration order.
 
 Two checks stand between the export and the table.
 
@@ -22,27 +20,24 @@ Two checks stand between the export and the table.
   child and a zero would mean the fields are not the ones they are named.
 
 A construction a layout can place that deals damage fires a skill, and its
-`ProjectileSkillData` row is written under `skills` in the shape a unit's
-`attack` has. That row is in `level0` rather than in this export, and
-`scripts/extract-skills.py` reads it, checking itself against the Marksman's
-row first; the construction's own `damage` and `attackAngle` are written as
-its `base_damage` and `attack_half_angle`, which the loader checks back.
-Reading `level0` needs UnityPy, so this runs under the asset environment:
+`ProjectileSkillData` row, from `MechSkillGroupData` as `scripts/extract-skills.py`
+reads it, is written under `skills` in the shape a unit's `attack` has; the
+construction's own `damage` and `attackAngle` are written as its `base_damage`
+and `attack_half_angle`, which the loader checks back.
 
-    work/tools/asset-venv/bin/python scripts/extract-constructions.py
+    python3 scripts/extract-constructions.py [--build BUILD]
 """
 
 import importlib.util
-import json
 import pathlib
 import re
 import sys
 
+import build_data
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CONFIG_JSON = ROOT / "work/inputs/config-data-container-build2259.json"
 CATALOG = ROOT / "crates/document/src/catalog.rs"
 OUTPUT = ROOT / "config/constructions.yaml"
-BUILD = "1.11.1.3.2259"
 ONE = 1 << 32
 # The side of one deployment grid cell, in metres. `layout.md` states it as the
 # grid a placement is checked against, and it is what turns a row's grid counts
@@ -103,8 +98,7 @@ def catalog_footprints():
 
 
 def rows():
-    container = json.loads(CONFIG_JSON.read_text(encoding="utf-8"))
-    return container["m_Structure"]["constructionDatas"]
+    return build_data.container()["constructionDatas"]
 
 
 def skill_reader():
@@ -121,13 +115,11 @@ def skill_rows(entries):
     if not firing:
         return []
     reader = skill_reader()
-    read = reader.rows()
-    reader.check_marksman(read)
-    every = {row["id"]: row for row in read}
+    every = {row["id"]: row for row in reader.rows()}
     skills = {}
     for body in firing:
         row = every.get(body["skill_id"])
-        if row is None or row["kind"] != "projectile":
+        if row is None or row["kind"] != "projectileSkillDatas":
             raise SystemExit(
                 f"construction {body['id']} ({body['layout_name']}) fires skill "
                 f"{body['skill_id']}, which is not a ProjectileSkillData row"
@@ -254,7 +246,7 @@ def scalar(value):
 def render(entries, skills):
     lines = [
         "schema: mechcore.constructions",
-        f"game_build: {BUILD}",
+        f"game_build: {build_data.build()}",
         "",
         "# What a construction is, read out of `ConfigDataContainer.constructionDatas`.",
         "# `docs/rules/constructions.md` states what each field means and which of",
@@ -289,8 +281,8 @@ def render(entries, skills):
             "# What a construction's skill does, for the constructions that fire one.",
             "#",
             "# Each is the `ProjectileSkillData` row the construction's `skill_id` names,",
-            "# read out of `level0` (the `MechSkillGroupData` object at path 173) by",
-            "# `scripts/extract-skills.py`, in the shape `config/units/*.yaml` gives a",
+            "# read out of `MechSkillGroupData` by `scripts/extract-skills.py`, in the",
+            "# shape `config/units/*.yaml` gives a",
             "# unit's `attack`. Two numbers are the construction row's rather than the",
             "# skill's, and the loader refuses a table where they disagree: `base_damage`",
             "# is the row's `damage` (a skill row carries none), and `attack_half_angle`",
@@ -308,9 +300,7 @@ def render(entries, skills):
 
 
 def main():
-    if not CONFIG_JSON.exists():
-        print(f"{CONFIG_JSON} is absent; it is a local research artifact", file=sys.stderr)
-        return 2
+    build_data.arguments(__doc__)
     named = catalog_footprints()
     entries = []
     for row in sorted(rows(), key=lambda row: row["id"]):
