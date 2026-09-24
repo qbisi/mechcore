@@ -1,84 +1,79 @@
 # Towers
 
-This rule is pinned to build **1.11.1.3.2259**. A side's two towers, the
-Energy Tower and the Research Center, can be strengthened before a fight, and
-losing one in a fight writes a debuff on everything the side still has
-standing.
+A side's two towers, the Energy Tower and the Research Center, can be
+strengthened before a fight, and losing one in a fight writes a debuff on the
+side. The recordings behind these rules were made on build 1.11.1.3.2259.
+Build 2.0.0.1.2324 moved how a loss reaches its targets; the sections below say
+which claims its dump agrees with and which wait for a 2.0 recording.
 
 ## Strengthening
 
 `tower_strengthen_levels` holds one level per tower, 0 to 4, in the order the
 map lists a side's towers (`BuildingManager.buildings`, and
 [`docs/spec/document/layout.md`](../spec/document/layout.md)). A level adds
-life and chooses the buff the tower's loss writes. Both come from
-[`config/towers.yaml`](../../config/towers.yaml), which
-[`scripts/extract-towers.py`](../../scripts/extract-towers.py) reads out of
-`ConfigDataContainer`: `towerStrengthenDatas` rows 1 to 4 each add their
-`life` on top of the levels below, and name the `buffDatas` row a loss writes.
+life and chooses the buff the tower's loss writes. Both are
+`ConfigDataContainer.towerStrengthenDatas`: each row adds its `life` on top of
+the levels below it, and names the `buffDatas` row a loss writes. Level 0 is
+the tower's own life and buff, which no strengthen row names.
+[`scripts/extract-towers.py`](../../scripts/extract-towers.py) writes them to
+[`config/towers.yaml`](../../config/towers.yaml).
 
-| Level | Life | Buff | Lasts |
-| ---: | ---: | ---: | ---: |
-| 0 | 3400 | 1 | 9 s, 180 ticks |
-| 1 | 23400 | 2 | 7 s, 140 ticks |
-| 2 | 59400 | 3 | 5 s, 100 ticks |
-| 3 | 131400 | 4 | 3 s, 60 ticks |
-| 4 | 235400 | 5 | 1 s, 20 ticks |
-
-The map's own 3400, with each tower's place and size, opens the same file:
-the container does not carry them, so they were measured on a capture and are
-kept by hand. Level 0's buff is id 1, which no strengthen row names: the
-recordings read its 180 ticks.
+On 2259 the tower's own life and footprint were not in the container, and
+`config/towers.yaml` keeps them as measured on a capture. On 2.0 they are:
+`towerDefaultDatas` gives a tower's `life`, `protectionRange` and `rvoRadius`
+per scene (`limitedScene`), and `addBufToOwner`, which the next section reads.
 
 ## What a loss writes
 
-`FightTeamController.OnTowerDestoryed` runs in the hit that fells a tower
-(`FightCrystal.OnDead`), and hands the tower's buff to
-`BuffSystem.TryAddSpecialBuffForTeam`, which gives it to every live object of
-the side (`FightTeam.activeActors`). Buff rows 1 to 5, all named 能量塔摧毁,
-are one buff that differs only in duration:
+The hit that fells a tower runs its `OnDead`, and `FightTeamController.OnTowerDestoryed`
+hands the tower's buff on.
 
-| Field | Raw | Reads |
-| --- | ---: | --- |
-| `speedChangeRate` | −3435973836 | move speed ×0.2 |
-| `damageChangeRate` | −3865470566 | damage ×0.1 |
-| `amplifyDamageRate` | 2147483648 | damage taken ×1.5 |
-| `buffDivide` | 1 | one group for all five rows |
-| `isAdditiveMode` | true | a second loss lengthens it |
+- **2259:** to `BuffSystem.TryAddSpecialBuffForTeam`, which gives it to every live
+  actor of the side (`FightTeam.activeActors`).
+- **2.0:** to `BuildingSystem.OnTowerDestroyed`, which makes one
+  `BuffSystem.AddBuff(buff, targets, team)` call. `targets` is the side's own
+  actor list when `isAddTowerBuffToOwnerTeam` is set (`SetAddTowerBuffTarget`,
+  which `towerDefaultDatas.addBufToOwner` feeds), and the group's actor list
+  otherwise. A tower is now a `FightTower : FightCrystal, IBuffTarget` with a
+  `BuffManager` of its own, and `buffDatas` rows carry `canAffectTower`, so the
+  standing tower may take the loss as well. That is read, not recorded.
 
-The rates land in the buff channel, which a recording keeps as the unit's
+The buff a loss writes is one buff that differs by level only in duration.
+Its rows correct three rates: `speedChangeRate` on move speed,
+`damageChangeRate` on damage dealt, and `amplifyDamageRate` on damage taken.
+All share one `buffDivide`, and `isAdditiveMode` is set. The values are in
+`config/towers.yaml`.
+
+The rates land in the buff channel, which a recording keeps as a unit's
 `buff_modifiers`. A number corrected in the buff channel and another composes
-as it does within one channel: `DamageProperty.CalculateDamage` adds the
-buff's enhancement to the skill's and multiplies the two reduce rates, as one
-factor, before the damage; `MoveSpeedProperty.Refresh` does the same over the
-unit's `DataSet` and the buffs', in Q32.32 metres a second. A Marksman under a
-lost tower shoots 232 for 2329. `PerformHitTargetEffect` scales each hit a unit
-takes by the rate on damage taken: a Crawler's 79 lands as 118.
+as it does within one channel: `DamageProperty.CalculateDamage` adds the buff's
+enhancement to the skill's and multiplies the two reduce rates, as one factor,
+before the damage; `MoveSpeedProperty.Refresh` does the same over the unit's
+`DataSet` and the buffs', in Q32.32 metres a second. `PerformHitTargetEffect`
+scales each hit a unit takes by the rate on damage taken. On 2.0 `BuffManager`
+keeps a tower's buffs in a separate `towerBuffDatas` set, read through
+`GetTowerBuffDamageChangeAddRate` and `GetTowerBuffDamageChangeReduceRate`;
+whether that changes the composition is not recorded.
 
 A second loss while the buff runs does not add a second buff. `BuffManager`
 finds the running one in the same `buffDivide`, and `Buff.Reset` lengthens it
-by the new row's duration, because the row is additive. So a level-4 tower lost
-inside a level-0 tower's 180 ticks leaves the debuff on for 200 from the first
-loss; the rates never stack.
+by the new row's duration, because the row is additive. The rates never stack.
 
 ## When
 
 The buff is on the side from the hit that fells the tower. `BuffManager.Update`
 runs last in `FightMech.Update`, after the skill and the motion, and a buff ends
 on the update its elapsed ticks reach its duration. A side updated before the
-side that fells its tower counts from the next tick: blue's units, when red's
-Steel Balls take blue's tower on tick T, carry a level-0 loss through tick
-T + 179 and lose it on T + 180.
+side that fells its tower counts from the next tick.
 
 A unit's buffs go on its first update after it dies, not on the tick it dies.
 A projectile takes its owner's damage as the owner has it when the projectile
 lands, so a shot fired under the debuff lands for the full damage once the
-debuff has ended, or once its dead owner's buffs are gone, and for the
-debuffed damage while it runs.
+debuff has ended, or once its dead owner's buffs are gone.
 
-A tower is an actor of its own, `FightCrystal`, and falls as a unit dies: the
-Steel Ball whose beam fells it reads idle on that tick, and an attacker whose
-lock it was goes on to `FightSkill.CheckAttackable` and may switch target,
-because `SkillAttackState.CheckAttackable` rejects a dead target only of the
+A tower falls as a unit dies: an attacker whose lock it was goes on to
+`FightSkill.CheckAttackable` and may switch target, because
+`SkillAttackState.CheckAttackable` rejects a dead target outright only of the
 `FightConstruction` class. A block of a wall is a construction, and is held as
 before.
 
@@ -89,17 +84,19 @@ gets the debuffed speed through `Move`.
 
 ## Evidence
 
-[`tests/tower/`](../../tests/tower/README.md) holds seven fights the game
-recorded: a tower lost at each strengthen level, and a second tower lost inside
-the first loss's debuff at levels 0-0 and 0-4. The simulator plays all seven
-back tick for tick, physics and content.
+[`tests/tower/`](../../tests/tower/README.md) pins seven fights: a tower lost at
+each strengthen level, and a second tower lost inside the first loss's debuff
+at levels 0-0 and 0-4. `tests/tower/levels.mcscript` and `both.mcscript` record
+them; `regressions.mcscript` replays them without the game. They were recorded
+on 2259.
 
 ## Not covered
 
 - **A construction standing when its side loses a tower.** `canAffectConstruction`
   is set on the buff and `can_be_effected_by_tower_buff` on every construction
-  but the Defensive Wall's row 1, and no recording has one standing through a
-  loss; the simulator refuses the fight when it happens.
+  but the Defensive Wall's first row, and no recording has one standing through
+  a loss; the simulator refuses the fight when it happens.
+- **A tower taking a buff**, new in 2.0.
 - **`isClearSelfBuffWhenDisableTech`**, set on the buff: nothing this simulator
   places disables a unit's technologies.
 - **The officer that lengthens the debuff and the energy tower's skills**, which
