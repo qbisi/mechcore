@@ -3404,11 +3404,14 @@ fn equip_unit(
         .invoke_void(action, "set_UnitIndex", &mut [argument(&mut unit_index)])?;
     check_action(runtime.api, controller, action)?;
     perform_sync(runtime.api, controller, action)?;
-    let has = runtime
-        .api
-        .invoke_value::<bool>(unit, "HasEquipment", &mut [])?;
-    let after = runtime.api.invoke(unit, "GetEquipment", &mut [])?;
-    if !has || after != equipment {
+    let worn = runtime.api.invoke(unit, "GetEquipments", &mut [])?;
+    let count = list_count(runtime.api, worn)?;
+    let last = if count > 0 {
+        list_item(runtime.api, worn, count - 1)?
+    } else {
+        std::ptr::null_mut()
+    };
+    if last != equipment {
         return Err(OperationError::Rejected(
             "equipment ownership readback did not match".into(),
         ));
@@ -3644,14 +3647,7 @@ fn construction(
         .api
         .invoke_value::<i32>(before_elements, "get_Count", &mut [])?;
 
-    let config_class = runtime.api.class("GRCore.dll", "GameRiver", "Config")?;
-    let singleton = runtime
-        .api
-        .class_parent(config_class)
-        .ok_or_else(|| OperationError::InvalidState("Config singleton base is missing".into()))?;
-    let config = runtime
-        .api
-        .invoke_static(singleton, "get_Instance", &mut [])?;
+    let config = config_instance(runtime)?;
     let data = runtime
         .api
         .invoke(config, "GetConstructionData", &mut [argument(&mut id)])?;
@@ -3708,9 +3704,18 @@ fn construction(
             "construction action did not preserve its type and position".into(),
         ));
     }
-    // The release controller fills IDX from the manager's allocator. A layout
-    // carries the identity the object had in the recorded match instead, and
-    // ConstructionManager keys its elements by exactly this value.
+    // A layout carries the identity the object had in the recorded match, and
+    // ConstructionManager keys its elements by exactly this value. The action's
+    // IDX does not decide it: converting the action sets needIncreaseIndex,
+    // and AddConstruction then takes the manager's nextConstructionIndex. So
+    // the counter is set to the wanted index first, through the setter the
+    // build restores snapshots with, and the action names the same index.
+    let mut force = true;
+    runtime.api.invoke_void(
+        manager,
+        "TryRefreshConstructionIndex",
+        &mut [argument(&mut wanted_index), argument(&mut force)],
+    )?;
     runtime
         .api
         .invoke_void(action, "set_IDX", &mut [argument(&mut wanted_index)])?;
@@ -3735,6 +3740,39 @@ fn construction(
     Ok(construction_index)
 }
 
+/// Each construction the manager holds, as `index:id@(x,y)`, for a refusal
+/// that has to say what is there instead of what was asked for.
+fn describe_construction_elements(
+    runtime: &Runtime,
+    manager: *mut Object,
+) -> Result<String, OperationError> {
+    let elements = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let mut held = Vec::new();
+    for offset in 0..list_count(runtime.api, elements)? {
+        let element = list_item(runtime.api, elements, offset)?;
+        let index = runtime.api.invoke_value::<i32>(
+            manager,
+            "GetConstructionIndex",
+            &mut [object_argument(element)],
+        )?;
+        let data = runtime
+            .api
+            .invoke(element, "GetConstructionData", &mut [])?;
+        let id = runtime.api.invoke_value::<i32>(data, "GetID", &mut [])?;
+        let position = runtime
+            .api
+            .invoke_value::<MapVector>(element, "GetPosition", &mut [])?;
+        held.push(format!("{index}:{id}@({},{})", position.x, position.y));
+    }
+    Ok(if held.is_empty() {
+        "nothing".into()
+    } else {
+        held.join(", ")
+    })
+}
+
 fn verify_construction_readback(
     runtime: &Runtime,
     manager: *mut Object,
@@ -3755,9 +3793,11 @@ fn verify_construction_readback(
         &mut [argument(&mut construction_index), argument(&mut element)],
     )?;
     if !found || element.is_null() {
-        return Err(OperationError::Rejected(
-            "released construction was not found".into(),
-        ));
+        return Err(OperationError::Rejected(format!(
+            "released construction {construction_id} was not found at index \
+             {construction_index}; the manager holds {}",
+            describe_construction_elements(runtime, manager)?
+        )));
     }
     let data = runtime
         .api
