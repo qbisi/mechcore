@@ -189,6 +189,24 @@ def check_spec_structure(fail):
                  f"remove it from PENDING in scripts/check-docs.py")
 
 
+# What a rules document may not cite, by docs/README.md's "Evidence a rule may
+# cite": an untracked path, an asset path id or an ISIL line, all of which
+# move between builds or machines.
+UNREPRODUCIBLE = (
+    (re.compile(r"(?<![\w/.-])work/"), "a path under work/, which is not tracked"),
+    (re.compile(r"\bpath[ _]id\b", re.I), "an asset path id, which moves between builds"),
+    (re.compile(r"\bISIL (line )?\d+|@isil:\d+", re.I), "an ISIL line, which moves between builds"),
+)
+
+
+def check_rules_evidence(fail):
+    for path in sorted((REPO / "docs" / "rules").glob("*.md")):
+        for number, line in outside_fences(path.read_text()):
+            for pattern, why in UNREPRODUCIBLE:
+                if pattern.search(line):
+                    fail(f"{path.relative_to(REPO)}:{number}: cites {why}")
+
+
 def check_name_tables(fail):
     """The name tables of docs/rules/ are what config/localization.yaml gives."""
     import importlib.util
@@ -209,6 +227,7 @@ def main():
     check_spec_structure(problems.append)
     check_repeated_paragraphs(paths, problems.append)
     check_name_tables(problems.append)
+    check_rules_evidence(problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)
