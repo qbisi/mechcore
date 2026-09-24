@@ -252,6 +252,7 @@ technologies:
   1203: {en: "Best Partner", zh: "最佳搭档"}
   1204: {en: "Crawler Production", zh: "爬虫制造"}
   1211: {en: "Mothership", zh: "母舰"}
+  1232: {en: "Summon Hounds", zh: "召唤猎犬"}
   1308: {en: "Mechanical Division", zh: "机械分裂"}
   1606: {en: "Jump Drive", zh: "高速引擎"}
   1611: {en: "Jump Drive", zh: "高速引擎"}
@@ -320,8 +321,10 @@ technologies:
   4721: {en: "Field Entrenchment ", zh: "野战工事"}
   4722: {en: "Field Entrenchment ", zh: "野战工事"}
   5122: {en: "Reactive Armor", zh: "反应装甲"}
+  5132: {en: "Reactive Armor", zh: "反应装甲"}
   5222: {en: "Maintenance Array", zh: "维修阵列"}
   5322: {en: "Wreckage Detonation", zh: "残骸引爆"}
+  5532: {en: "Melee Mode", zh: "近战模式"}
   10019: {en: "Siege Mode", zh: "攻城模式"}
   10102: {en: "Assault Mode", zh: "突击模式"}
   10131: {en: "Machine Learning", zh: "机器学习"}
@@ -353,6 +356,7 @@ technologies:
   10229: {en: "Range Enhancement", zh: "射程强化"}
   10230: {en: "Range Enhancement", zh: "射程强化"}
   10231: {en: "Range Enhancement", zh: "射程强化"}
+  10232: {en: "Range Enhancement", zh: "射程强化"}
   10301: {en: "Launcher Overload", zh: "发射器过载"}
   10311: {en: "Launcher Overload", zh: "发射器过载"}
   10312: {en: "Launcher Overload", zh: "发射器过载"}
@@ -405,6 +409,8 @@ technologies:
   110212: {en: "Anti-Air Missile", zh: "防空导弹"}
   110271: {en: "Fork", zh: "分叉"}
   110291: {en: "Swarm Missiles", zh: "蜂群导弹"}
+  110321: {en: "Dual Wield", zh: "双持"}
+  110322: {en: "Homing Missile", zh: "追踪导弹"}
   123101: {en: "Electromagnetic Twin", zh: "电磁双生"}
   180110: {en: "Replicate", zh: "复制"}
   180203: {en: "Ignite", zh: "引燃"}

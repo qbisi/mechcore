@@ -175,6 +175,12 @@ units:
     supply: 100
     members: 1
     upgrade_supply: 50
+  - type: centurion
+    unit_id: 32
+    supply: 300
+    members: 1
+    unlock_supply: 50
+    upgrade_supply: 150
   - type: mountain
     unit_id: 2002
     supply: 800

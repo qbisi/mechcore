@@ -373,6 +373,13 @@ technologies:
     180931: mobile_power_station
     493101: accumulator_shield
     503101: emergency_armor
+  centurion:
+    1232: summon_hounds
+    5132: reactive_armor
+    5532: melee_mode
+    10232: range_enhancement
+    110321: dual_wield
+    110322: homing_missile
   mountain:
     72002: saturation_bombardment
     302002: mountain_plating

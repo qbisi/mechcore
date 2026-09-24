@@ -38,4 +38,5 @@ units:
   - {type: abyss, unit_id: 29, upgrade_exp: [4800, 10815, 17097, 21553, 25010, 27835, 30223, 32291]}
   - {type: void_eye, unit_id: 30, upgrade_exp: [650, 1465, 2315, 2919, 3387, 3769, 4093, 4373]}
   - {type: vortex, unit_id: 31, upgrade_exp: [750, 1690, 2671, 3368, 3908, 4349, 4722, 5046]}
+  - {type: centurion, unit_id: 32, upgrade_exp: [2250, 5070, 8014, 10103, 11724, 13047, 14167, 15137]}
   - {type: mountain, unit_id: 2002, upgrade_exp: [3200, 7210, 11398, 14369, 16673, 18556, 20148, 21528]}

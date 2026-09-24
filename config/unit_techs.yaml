@@ -322,6 +322,15 @@ units:
       - {id: 180931, supply: 250}
       - {id: 493101, supply: 300}
       - {id: 503101, supply: 150}
+  - type: centurion
+    unit_id: 32
+    technologies:
+      - {id: 1232, supply: 200}
+      - {id: 5132, supply: 150}
+      - {id: 5532, supply: 100}
+      - {id: 10232, supply: 300}
+      - {id: 110321, supply: 300}
+      - {id: 110322, supply: 200}
   - type: mountain
     unit_id: 2002
     technologies:
