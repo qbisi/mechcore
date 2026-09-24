@@ -44,6 +44,13 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
    `HitDamageInfo`）、单位／工事／指挥官技能的 ID 表、`RangeItemType`、按签名找的重载。
    支持第 3 步的新字段（两件装备）。*做完*：一份不需要人看的冒烟脚本，逐项证明原有能力
    在 2.0 上还在——下发 layout、录制、各个 instrumentation profile、读回状态。
+   *已完成*：`tests/adapter/smoke.mcscript` 在 2.0 上 17 段全录成。改了三处：
+   `OnActorHitted` 多一个参数；hook 不再钉 2259 的序言字节，改为解码判定可搬迁；
+   工事下标经 `TryRefreshConstructionIndex` 设定（`AddConstruction` 只认计数器）。
+   装备在军官之后逐件装上，两件装备录成 `tests/equipment/two-items.yaml`。
+   留给第 5 步：`tests/turret/rapid-fire-head-on.yaml` 在 2.0 上从第 242 tick 起
+   模拟器与录像分叉；各主题 2259 的内容钉（如 `tests/construction/`）因 2.0 数值
+   变化不再成立，需重录重钉。
 5. **录一批。** 先把 `tests/*/` 的录制脚本在 2.0 上重录一遍，钉住的哈希换成 2.0 的；
    模拟器对不上的那些就是 2.0 改了的机制，按第一处分叉切问题。然后检查回放格式
    （GRBR、`BattleRecord`）有没有变，录一批 2.0 的对局补进语料。

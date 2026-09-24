@@ -62,7 +62,7 @@ opening holds exactly that many.
 
 Equipment Expansion, `10540`, new in build 2.0, sets `equipmentCountChangeValue`
 to 1, which raises every formation's equipment slots from one to two
-([equipment.md](equipment.md)). Read, not recorded.
+([equipment.md](equipment.md)); `tests/equipment/two-items.yaml` records it.
 
 ## Names
 

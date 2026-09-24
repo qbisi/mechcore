@@ -32,9 +32,12 @@ own target restrictions (`mechType`, `unitID`).
 `UnitDataChangeInt.EquipmentSlotCount`. An officer writes that through
 `equipmentCountChangeValue`: Equipment Expansion (`10540`) adds one, so a side
 holding it fits two to each formation. Nothing else in a standard match sets
-it. That is read, not recorded. A layout's and a state's `equipment` is a
-list in fitting order, and the document compiler gives a formation the slot
-count above from the side's officers.
+it. The slot is there as soon as the officer is added, and two items write
+their corrections as an item and an officer do, each in its own channel:
+`tests/equipment/two-items.yaml` fits Heavy Armor and Improved Firepower
+Control System to one Marksman, and the recording reads both. A layout's and a
+state's `equipment` is a list in fitting order, and the document compiler gives
+a formation the slot count above from the side's officers.
 
 The Training Ground executor does not charge a card's acquisition cost: it
 creates one inventory object through `MAD_AddEquipment` and lets
