@@ -1,9 +1,9 @@
 # Equipment corrections
 
-This rule is pinned to build **1.11.1.3.2259**. An ordinary `EquipmentData`
-row corrects the unit wearing it through the same writers as an officer, in
-the same channels, and its rates sum with an officer's there. It does not
-change the unit's description.
+An ordinary `EquipmentData` row corrects the unit wearing it through the same
+writers as an officer, in the same channels, and its rates sum with an
+officer's there. It does not change the unit's description. The recordings
+behind this rule are build 1.11.1.3.2259's.
 
 ## Where an equipment writes
 
@@ -19,10 +19,13 @@ the description, and the whole resolves as
 `(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)`.
 
 An equipment is worn by one formation. Another formation of the same unit
-type on the same side carries none of it.
+type on the same side carries none of it. A formation wearing two, which build
+2.0 allows ([equipment.md](equipment.md)), goes through the same writers twice;
+that the two sum in each channel is read from the writers, not recorded.
 
-`tests/equipment/` recorded a level-one Marksman with each of three items,
-alone and beside the officer that corrects the same number:
+`tests/equipment/` recorded a level-one Marksman, whose description
+[`config/units/marksman.yaml`](../../config/units/marksman.yaml) holds, with each
+of three items, alone and beside the officer that corrects the same number:
 
 | Fixture | Reading | Channel aggregate |
 | --- | ---: | --- |
@@ -43,7 +46,7 @@ range acts, not only reads.
 A row's `mech_type` is a `UnitEffectTargetType`, answered by the
 `UnitUtility.IsEffectTarget` an officer's row is answered by (see
 [officer corrections](officer_effects.md#which-units-a-correction-reaches)).
-Ten rows are `All`. Laser Sights is `Ranged`: every unit whose main skill is
+Most rows are `All`. Laser Sights is `Ranged`: every unit whose main skill is
 not a melee attack, which `tests/modifier/targeting.mcscript` recorded on four
 ranged units across the projectile and laser paths. On a Rhino or a Crawler
 it writes nothing.
@@ -55,41 +58,26 @@ simulator does not give a unit.
 ## The table
 
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml) holds
-the eleven rows of `EquipmentGroupData.equipmentDatas`, path 188 of `level0`,
+the rows of `EquipmentGroupData.equipmentDatas` a standard match can deal,
 which [`extract-equipment-effects.py`](../../scripts/extract-equipment-effects.py)
-reads in the serialized field order of `GRObject`, `ConfigData`, `ItemData`,
-`ReinforceItemData` and `EquipmentData`, checking the three recorded fields
-before it writes. A field is written only when it is set, and only the fields
-that say what a row does in a fight: its targeting, its skill selection, its
-lifetime and its corrections. What an item costs is
-[`config/reinforce_items.yaml`](../../config/reinforce_items.yaml)'s.
-
-| ID | Item | What it writes |
-| --- | --- | --- |
-| 13030001 | Laser Sights | range +20 m; Ranged; main skill only |
-| 13030002 | Heavy Armor | life +0.75 |
-| 13030003 | Improved Firepower Control System | damage +0.65 |
-| 13030004 | Enhancement Module | life +0.25, damage +0.25 |
-| 13030005 | Haste Module | damage +0.35, speed +5 m/s |
-| 13030006 | Super Heavy Armor | life +1.5 |
-| 13030007 | Amplifying Core | life +0.5, damage +0.5 |
-| 13030008 | 高级火控系统 | damage +2 |
-| 13030009 | Small Amplifying Core | life +0.22, damage +0.22 |
-| 13030010 | Dominion Core | life +1, damage +0.5; `importantUnit` |
-| 13030011 | 快速装填机 | interval −0.5; `roundDuration` 1 |
+reads from the build's typed export. A field is written only when it is set,
+and only the fields that say what a row does in a fight: its targeting, its
+skill selection, its lifetime and its corrections. What an item costs is
+[`config/reinforce_items.yaml`](../../config/reinforce_items.yaml)'s, and its
+names are [equipment.md](equipment.md)'s.
 
 ## What is refused
 
 A layout is refused by name, rather than fought with part of an item, when it
 carries:
 
-- an equipment that is not one of these eleven rows: the catalogue's other
-  ten items, shields, repair kits and production lines among them, are not
-  ordinary `EquipmentData`, and no mechanism here reads what they do;
+- an equipment that is not a row of the table: the catalogue's other items,
+  shields, repair kits and production lines among them, are not ordinary
+  `EquipmentData`, and no mechanism here reads what they do;
 - an equipment in a round after the first, since what `Equipment.durability`
   does across rounds has not been recorded;
-- Dominion Core's `importantUnit` and 快速装填机's `roundDuration`, whose
-  effects have not been recorded.
+- a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
+  Autoloader), whose effects have not been recorded.
 
 A unit's level is not a boundary: `Equipment`'s `IsLocked(CardLevel)`
 returns false for every level, and the level scales the description before

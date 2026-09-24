@@ -1,7 +1,7 @@
 # What a player knows about the other
 
-This index is pinned to game build 2259. It states what the game gives a
-player about the other side, and separates the two answers that question has:
+What the game gives a player about the other side, as build 1.11.1.3.2259's
+replays show it, and separates the two answers that question has:
 what the client holds, which is settled, and what the interface shows a human,
 which is not. What a match on this platform shows a player is not here; that is
 the `match` namespace of [`cli.md`](../spec/mechcore/cli.md), which decides it
@@ -17,8 +17,8 @@ has unlocked, its officers and its research.
 the corpus replay `2259_20260823--67294111_[你是蓬莱花仙]VS[crower].grbr` has `Seat` 1,
 so it was recorded by the player who held seat 1, and its round 3 snapshot
 gives seat 0's `shop.unlockedUnits` as `[9, 24, 30, 1]`, with that player's
-`officers` and `supply` beside them. Eleven of the tracked replays were
-recorded from seat 0 or 1 and every one of them carries both sides.
+`officers` and `supply` beside them. Every replay of the corpus
+`replay/REPLAY_REV` names carries both sides, whichever seat recorded it.
 
 So hiding is the interface's work, not the client's. A player's machine can
 answer any question about the other side; what the game decides is what it
@@ -47,8 +47,8 @@ These remain open, and none of them is answered by reading further:
 
 Each is a question about what is drawn, so each closes the same way: play a
 match and record what the interface shows at the moments the adapter captures
-the state, then compare. That is a research task with an observation, not a
-reading of the binary, and it belongs in `work/research/` until it answers.
+the state, then compare. That is a research question with an observation, not
+a reading of the binary.
 
 ## Why this matters to a document
 
