@@ -1,19 +1,20 @@
 # Landing
 
-This index is pinned to game build 2259. It states where the board puts a
+Where the board puts a
 unit that no decision places: a purchase, a reinforcement card's squads,
 an opening's force, and an officer's delivery. A battle states where a
 purchase's moves end, so it reads this rule only for the other three. [`action.md`](../spec/document/action.md) and
 the round-opening deliveries of [`battle.md`](../spec/document/battle.md) rest
-on it.
+on it. The replays behind it are build 1.11.1.3.2259's.
 
 ## The rule
 
-A new unit lands on its side's main deployment region, local
-`x=[-300,300], y=[-310,-10]`, and the game places it in the world frame, where
-red's region is blue's turned half a turn.
+A new unit lands on its side's main deployment region, the rectangle of the
+main region of the map's `MapLayout` territory, and the game places it in the
+world frame, where red's region is blue's turned half a turn.
 
-1. The preferred position is the region's centre, local `(0, -160)`, with the
+1. The preferred position is the region's centre, which
+   [`config/opening.yaml`](../../config/opening.yaml) states per map, with the
    unit's corner aligned to the ten-metre grid. The corner is the centre
    less half the footprint, divided by ten and rounded half to even, then
    multiplied back. A footprint of odd tens therefore shifts the landing by
@@ -27,9 +28,9 @@ red's region is blue's turned half a turn.
 A position is free when the footprint lies inside the region and overlaps no
 unit, construction or contraption already on it, and neither of the side's
 towers, with positive area; edges may touch, and a shield or missile takes no
-part. A tower occupies a 20 m square on its centre, local `(-140, -170)` and
-`(140, -170)`, which was measured against the game: a placement on it is
-refused as `RegionLimit`. A unit's footprint
+part. A tower occupies the square of its `MapData` radius around its centre,
+both of which [`config/towers.yaml`](../../config/towers.yaml) states: a
+placement on it is refused as `RegionLimit`. A unit's footprint
 exchanges width and height when it is rotated. Squads handed out together land
 one at a time, each clear of the ones before it.
 
@@ -50,13 +51,12 @@ IsilDump.
 
 ## Evidence
 
-In the local observation set, 341 units arrived without a purchase: card
-squads, opening forces and officer deliveries, some landing clear of units
-that already stood at the centre. The rule places all 341 exactly where the game
-did. With the rule in place of the recorded landings, the native oracle still
-closes every decision and every deployment it checks.
-
-Every purchase in the tracked replays lands where the rule puts it: all 1,632,
-each read against the position the round had reached when it was bought.
+The rule was checked against the 2259 replay corpus `replay/REPLAY_REV` names:
+it places every unit that arrived without a purchase (card squads, opening
+forces and officer deliveries, some landing clear of units already at the
+centre) exactly where the game did, and every purchase where the round had
+reached when it was bought. With the rule in place of the recorded landings,
+`scripts/verify-battles.py` still closes every decision and deployment it
+checks.
 
 The rule has not been observed on a full region, where no free position exists.
