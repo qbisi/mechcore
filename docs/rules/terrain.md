@@ -1,7 +1,8 @@
 # Dynamic terrain
 
-How build `1.11.1.3.2259` creates, shapes and ends the in-battle area effects
-that `RangeItemSystem` manages.
+How the build creates, shapes and ends the in-battle area effects that
+`RangeItemSystem` manages. The recordings behind it are build 1.11.1.3.2259's;
+the call chains named below are the same in build 2.0.0.1.2324's dump.
 
 Map decoration, deployment footprints and unit movement collision are not area
 effects and are not here. Neither are the specific radii, effect clocks and
@@ -31,8 +32,8 @@ battle skill ground impact
   -> the matching RangeItemController's item set
 ```
 
-On build 2259 `PerformEffect` calls `AddItem` directly, which is what fixes the
-entry point rather than merely suggesting it.
+`PerformEffect` calls `AddItem` directly, which is what fixes the entry point
+rather than merely suggesting it.
 
 A unit technology projectile also creates a `RangeItem`. Its path is not closed
 on a static call edge, and it is reconstructed from position and timing instead:
@@ -112,7 +113,7 @@ holds the provider's release data, so this path fails closed when an endpoint is
 missing. The file path has no such requirement, and only the game path observes
 what a specific build actually restored.
 
-Build 2259's `CommanderSkillManager.CalculateAttackPositions` generates the
+`CommanderSkillManager.CalculateAttackPositions` generates the
 interior centres from the stored control points, so only the endpoints need
 storing. The method is private and absent from the runtime reflection table;
 reproducing it requires the same native `FVector3` and `FPoint` operations,

@@ -1,31 +1,21 @@
 # What a turret does
 
-This document is pinned to game build 2259. It states what a turret does once it stands:
-when it locks a target, when it fires, how often, at what, and what its shot
-does. What a turret *is* — one object, 3650 or 5028 of life in a 24 × 24 box —
-is [`constructions.md`](constructions.md)'s.
+What a turret does once it stands: when it locks a target, when it fires, how
+often, at what, and what its shot does. What a turret *is*, one object with its
+own life and box, is [constructions.md](constructions.md)'s. The recordings
+behind it are build 1.11.1.3.2259's.
 
 The numbers are in [`config/constructions.yaml`](../../config/constructions.yaml):
 the construction row carries the damage, the attack angle, the rotate speed and
 the radius, and its `skills` section carries the `ProjectileSkillData` row each
-turret's `skill_id` names, in the shape a unit's `attack` has.
-`scripts/extract-constructions.py` writes both. It reads the skill rows out of
-`level0` with `scripts/extract-skills.py`, which checks itself against the
-Marksman's row first.
+turret's `skill_id` names, in the shape a unit's `attack` has: range, interval
+and its random part, magazine and reload, bullet speed, splash and targets.
+`scripts/extract-constructions.py` writes both from the build's typed export,
+the skill rows through `scripts/extract-skills.py`.
 
-| | Rapid-Fire Turret | Anti-Armor Turret |
-| --- | ---: | ---: |
-| skill | 3003001 | 3002001 |
-| damage, splash | 82, 10 m | 2748, 5 m |
-| attack range | 115 | 125 |
-| interval, random | 0.3 s ± 0.1 (6 ± 1 ticks) | 2.5 s ± 0.2 (50 ± 4 ticks) |
-| magazine, reload | 10 rounds, 2.5 s (50 ticks) | 6 rounds, 10 s (200 ticks) |
-| bullet speed | 400 | 300 |
-| attack angle, rotate speed | 20°, 120°/s | 20°, 120°/s |
-| targets | ground | ground |
-
-Every prepare, attack point, backswing, cooling and initial cooldown is zero.
-
+For the Rapid-Fire Turret and the Anti-Armor Turret, the two a layout can
+place, every prepare, attack point, backswing, cooling and initial cooldown is
+zero, and both target ground only.
 The rules were measured against four fights in `tests/turret/`.
 `rapid-fire-head-on.yaml`, `rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`
 are recorded by `skill.mcscript`, with a control recording that repeats the
@@ -192,7 +182,7 @@ Crawler walks out of reach ([`architecture.md`](../spec/simulation/architecture.
 
 ## Scope
 
-Everything above is build 2259, the 1v1 board, round one, and the two turrets
+Everything above is recorded on build 2259, the 1v1 board, round one, and the two turrets
 a layout can place. It covers them firing at ground units, with every timing
 the rows carry at zero. It holds the simulator to both Rapid-Fire fights,
 and to both Anti-Armor fights, physics and content.
