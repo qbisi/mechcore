@@ -35,6 +35,19 @@ their corrections as an item and an officer do, each in its own channel. A
 layout's and a state's `equipment` is a list in fitting order, and the document
 compiler gives a formation the slot count above from the side's officers.
 
+**Two of one item may be worn, and both count.** `CanUseEquipment` asks that
+the item is in stock and worn by nobody, that the formation has a free slot, that
+the side holds the formation and that the item may target it; it never compares
+the item with what the formation already wears. The two are two modifiers of the
+formation's data set, which sums every integer it holds but its level.
+
+That is what an Enhancement Module's `upgradeSupplyChangeValue` of −100 does to
+the price of the formation's next level. `CardElement.GetUpgradeSupply` takes the
+level's price, scales it by the set's `UpGradeSupplyRate` and adds its
+`UpGradeSupplyChangeValue`, the officers' and every worn item's together, then
+floors the result at zero once. Two modules take 200 off a Fortress's 200, and
+the level is free; no level is ever paid back.
+
 The Training Ground executor does not charge a card's acquisition cost: it
 creates one inventory object through `MAD_AddEquipment` and lets
 `CanUseEquipment` decide.
@@ -87,10 +100,20 @@ creates one inventory object through `MAD_AddEquipment` and lets
   `EquipmentSlotCount`: `CardElement.equipments`,
   `CardElement.GetEquipmentSlotCount`.
 - An officer adds slots: `OfficerData.equipmentCountChangeValue`.
+- Fitting never compares an item with what the formation already wears:
+  `EquipmentManager.CanUseEquipment`, `CardElement.CanAddEquipment`.
+- A formation's data set sums every integer but its level, which keeps the
+  largest: `CardElement.CardElement`, `DataIntGroup.Refresh`,
+  `DataIntSingleMax.Refresh`, `UnitDataChangeInt.Level`.
+- The next level's price is the level price, scaled by the rate and corrected
+  by the summed value, floored at zero: `CardElement.GetUpgradeSupply`,
+  `UnitDataChangeInt.UpGradeSupplyChangeValue`,
+  `UnitDataChangeInt.UpGradeSupplyRate`.
 
 ### Not established
 
-- **Two items of the same kind on one formation.** Whether they stack, as two
-  different items do, is not recorded.
+- **Two items of the same kind on one formation in a recording.** That they may
+  be fitted and that two Enhancement Modules stack on the level price are read,
+  not recorded; no replay holds a formation wearing two items.
 - **An item that is not an ordinary correction** worn beside another: a
   production line, a shield or a buff in a second slot is not recorded.

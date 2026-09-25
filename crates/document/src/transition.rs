@@ -255,12 +255,13 @@ pub fn step_placing(
             formation.unit.exp = None;
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
-            let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
-            let discount: i32 = worn
+            let worn: i32 = worn
                 .iter()
                 .map(|id| economy.equipment_upgrade_supply(*id))
                 .sum();
-            next.supply -= (upgrade + discount).max(0);
+            next.supply -= purse
+                .upgrade_wearing(unit, worn)
+                .ok_or(Unsettled::Unpriced("upgrade"))?;
         }
         Action::UnlockUnit { unit } => {
             next.supply -= purse.unlock(*unit).ok_or(Unsettled::Unpriced("unlock"))?;
@@ -1019,6 +1020,29 @@ mod tests {
                 .collect(),
             ..solvent()
         }
+    }
+
+    /// Two Enhancement Modules on one formation both take their 100 off its
+    /// level price, and the price stops at zero rather than paying back.
+    #[test]
+    fn two_enhancement_modules_both_take_off_an_upgrade() {
+        let economy = Economy::embedded().unwrap();
+        let paid = |modules: usize| {
+            let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+            state.units[0].unit.type_name = "fortress".into();
+            state.units[0].unit.equipment = vec![13_030_004; modules];
+            let before = state.supply;
+            let next = step_placing(
+                &economy,
+                &state,
+                &Action::UpgradeUnit { index: 0 },
+                None,
+                &mut |_, _| None,
+            )
+            .unwrap();
+            before - next.supply
+        };
+        assert_eq!([paid(0), paid(1), paid(2)], [200, 100, 0]);
     }
 
     /// A repeatable officer card stacks rather than replacing itself.
