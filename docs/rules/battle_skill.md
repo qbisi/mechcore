@@ -36,6 +36,7 @@ the card and the blueprint speak one ID space. A skill's two cooldowns are
 | `lightning_storm` | 300005 | 300009 | 1 | random circle | overlap |
 | `ion_blast` | 300006 | 300010 | 2 | line | overlap |
 | `orbital_javelin` | 300007 | | 1 | circle | overlap |
+| `heavy_missile_strike` | 300016 | | 1 | circle | overlap |
 | `sticky_oil_bomb` | 400002 | | 2 | line | overlap |
 | `acid_blast` | 500002 | | 2 | line | overlap |
 | `smoke_bomb` | 600002 | | 2 | line | overlap |
@@ -56,9 +57,10 @@ may coexist. A document names them apart, as
 [`config/names.yaml`](../../config/names.yaml) does, and the compiler maps each
 name to its own ID. The two share one path and one cooldown.
 
-Heavy Missile Strike (`300016`), a circle an officer hands out in place of two
-Missile Strikes, and Unit Recycle (`900010`), which targets a friendly unit,
-are not layout types yet.
+Heavy Missile Strike (`300016`) is no card: Missile Specialist hands it out,
+in place of the two Missile Strikes it once did. Its row is Missile Strike's in
+every field that places or times it, and differs in damage alone. Unit Recycle
+(`900010`) targets a friendly unit, and is not a layout type.
 
 ## Effect geometry and target regions
 
@@ -155,6 +157,11 @@ synthesize coordinates.
 
 ## Evidence
 
+### Replayed
+
+- Missile Specialist hands out Heavy Missile Strike as round 3 opens, and a
+  side releases it at one position: `scripts/verify-battles.py`.
+
 ### Read
 
 - A skill's kind is the list of `CommanderSkillGroupData` holding its row:
@@ -182,6 +189,9 @@ synthesize coordinates.
 
 ### Not established
 
+- **A Training Ground release of Heavy Missile Strike.** Its geometry and map
+  rule are Missile Strike's by the row, and the corpus releases it, but no
+  layout naming it has been run in the Training Ground.
 - **The `contained`, `center` and `overlap` map rules.** They were measured
   against the Training Ground's refusals in another version, and no test pins
   them; the region check they come from is not read.

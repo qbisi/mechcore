@@ -196,6 +196,7 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
         300_005 => Some("lightning_storm"),
         300_006 => Some("ion_blast"),
         300_007 => Some("orbital_javelin"),
+        300_016 => Some("heavy_missile_strike"),
         400_002 => Some("sticky_oil_bomb"),
         500_002 => Some("acid_blast"),
         600_002 => Some("smoke_bomb"),
@@ -283,6 +284,13 @@ pub(crate) const fn resolve_battle_skill_type(type_name: &str) -> Option<BattleS
         ),
         b"missile_strike" => battle_skill_spec(
             300_001,
+            1,
+            BattleSkillShape::Circle { radius: 40 },
+            BattleSkillMapRule::Overlap,
+            None,
+        ),
+        b"heavy_missile_strike" => battle_skill_spec(
+            300_016,
             1,
             BattleSkillShape::Circle { radius: 40 },
             BattleSkillMapRule::Overlap,
