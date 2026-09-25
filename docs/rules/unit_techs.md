@@ -2,8 +2,7 @@
 
 A unit is a `ConfigDataContainer.cardDatas` row and the `mechDatas` row its
 `mechID` names. Its technologies are the IDs its card lists in `technologies`,
-each a row of one of `TechnologyGroupData`'s lists in `level0`. The rules below
-are read from build 2.0.0.1.2324's dump.
+each a row of one of `TechnologyGroupData`'s lists in `level0`.
 
 ## Naming and applying
 
@@ -30,7 +29,8 @@ the unit's technologies already active times a step, the unit's positive
 `techUpgradeIncreaseSupplyPerCount` or the match-wide
 `Config.upgradeTechnologyCostIncreaseDelta` otherwise, capped by a positive
 `techUpgradeMaxSupplyLimit`. [`config/economy.yaml`](../../config/economy.yaml)
-carries the step.
+carries the step. The sum also takes the technology's own
+`PlayerDataChangeInt.Supply`, which no standard officer writes.
 
 A card's `defaultTechnologies` are what a new account may unlock without
 paying, an account rule rather than a match one; nothing here uses them.
@@ -325,3 +325,28 @@ What a technology writes onto its unit's numbers is
 | `wraith` | 110181 | 浮游炮阵 | Floating Artillery Array | `floating_artillery_array` |
 | `wraith` | 180418 | 退化光束 | Degeneration Beam | `degeneration_beam` |
 <!-- /names -->
+
+## Evidence
+
+### Recorded
+
+- A technology a layout names under its unit is active in the fight, alone and
+  beside an officer's correction to the same number:
+  `tests/modifier/regressions.mcscript`.
+
+### Read
+
+- A unit is its card and the mech row the card names, and its technologies are
+  the card's list: `CardData.mechID`, `CardData.technologies`.
+- Researching costs the technology's own supply plus a step per technology
+  already active, capped: `UnitUtility.CalculateUpgradeTechnologyCost`,
+  `CardData.techUpgradeIncreaseSupplyPerCount`,
+  `CardData.techUpgradeMaxSupplyLimit`,
+  `Config.upgradeTechnologyCostIncreaseDelta`.
+
+### Not established
+
+- **That `defaultTechnologies` is an account rule.** No match code read here
+  reads `CardData.defaultTechnologies`, and what does is not traced.
+- **A research's price in a match.** The formula is read; no pin under `tests/`
+  checks a paid price against it.
