@@ -158,9 +158,14 @@ pub fn step_placing(
             // supply it hands over comes from the effects table.
             match economy.card_kind(*card) {
                 Some(CardKind::Officer) => {
-                    next.supply += economy
-                        .officer(*card)
-                        .map_or(0, |officer| officer.granted_supply);
+                    if let Some(officer) = economy.officer(*card) {
+                        next.supply += officer.granted_supply;
+                        // An officer with no round to hand out in hands out
+                        // as it is taken.
+                        if officer.active_round.is_empty() {
+                            hand_out_round(&mut next, officer);
+                        }
+                    }
                     if *card == EXTRA_DEPLOYMENT_CARD {
                         next.shop.buys_remaining += EXTRA_BUYS;
                     }
@@ -726,15 +731,7 @@ pub fn open_round(
         if !row.active_round.contains(&round) {
             continue;
         }
-        for skill in &row.commander_skills {
-            panel_add(&mut next, *skill);
-        }
-        next.equipment
-            .extend(row.equipment.iter().map(|id| EquipmentItem {
-                id: *id,
-                durability: None,
-            }));
-        next.equipment.sort();
+        hand_out_round(&mut next, row);
         if let Some(opening) = row.opening_unit {
             hand_out(
                 economy,
@@ -747,6 +744,20 @@ pub fn open_round(
         }
     }
     Ok(next)
+}
+
+/// `SystemOfficerController.PerformOfficerRoundEffect`: an officer's
+/// commander skills join the panel and its equipment joins the inventory.
+fn hand_out_round(next: &mut SideState, officer: &crate::economy::Officer) {
+    for skill in &officer.commander_skills {
+        panel_add(next, *skill);
+    }
+    next.equipment
+        .extend(officer.equipment.iter().map(|id| EquipmentItem {
+            id: *id,
+            durability: None,
+        }));
+    next.equipment.sort();
 }
 
 /// Resets what lasts one round, as `round` opens, and pays its income.
@@ -1323,6 +1334,37 @@ mod tests {
                 .equipment
                 .is_empty()
         );
+    }
+
+    /// An officer that lists no round hands out as it is taken, in time to
+    /// fit what it handed out in the same round.
+    #[test]
+    fn an_officer_with_no_round_hands_out_as_it_is_taken() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            supply: 1_000,
+            ..side_holding(&[(0, Position { x: 0, y: -160 })])
+        };
+        let taken = [
+            Action::ChooseReinforceItem {
+                offer: 0,
+                id: Some(10_524),
+            },
+            Action::UseEquipment {
+                equipment: 13_030_521,
+                index: 0,
+            },
+        ];
+        let next = fold(&economy, &state, &taken).unwrap();
+        assert_eq!(next.officers, vec![10_524]);
+        assert_eq!(
+            next.equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![13_030_521; 2]
+        );
+        assert_eq!(next.units[0].unit.equipment, vec![13_030_521]);
     }
 
     /// Fitting one of several copies takes exactly one out.

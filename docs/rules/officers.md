@@ -15,7 +15,9 @@ those are not additional `officers` entries. The skills are `CommanderSkillData`
 IDs, a separate ID space that `battle_skills` uses. An officer hands out what
 it hands out in each round its `activeRound` lists: an absolute round, not one
 counted from its arrival. One officer (Secondary Equipment Specialist,
-`10015`) lists every round.
+`10015`) lists every round. An officer that lists no round hands out as it is
+taken: the Mass-produced equipment officers (`10524` to `10526`) put their
+three items into the inventory the moment the card is chosen.
 
 Where its effects live:
 
@@ -178,12 +180,23 @@ raises every formation's equipment slots from one to two
 - Equipment Expansion gives a formation a second slot, and each of its two items
   writes: `tests/equipment/regressions.mcscript`.
 
+### Replayed
+
+- A Mass-produced equipment officer's three items are in the inventory from the
+  decision that took it, and can be fitted in the same round:
+  `scripts/verify-battles.py`.
+
 ### Read
 
 - An officer hands out what it hands out in a round its `activeRound` lists,
   the match's round and not one counted from its arrival:
   `OfficerSystem.ActiveOfficerEffect`, `OfficerData.IsActiveRound`,
   `OfficerData.activeRound`.
+- An officer that lists no round hands out when it is added with every effect,
+  which is how a chosen card adds it and not how a snapshot restores it:
+  `SystemOfficerController.PerformOfficerEffect`,
+  `OfficerData.IsActiveRoundEmpty`, `ReinforcementSystem.AddReinforceItem`,
+  `OfficerEffectMask.All`.
 - A unit modification's group is its `typeID`: `OfficerData.typeID`.
 - Equipment Expansion writes a slot: `OfficerData.equipmentCountChangeValue`.
 
