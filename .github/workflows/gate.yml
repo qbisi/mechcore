@@ -1,0 +1,108 @@
+name: gate
+
+# Says whether a pull request may be merged, and merges nothing. Its answer is
+# a commit status named `gate` on the pull request's head, which a ruleset on
+# master requires; whoever merges, an agent or a person, asks GitHub to merge
+# once the gate is green (`gh pr merge --auto --squash`), and GitHub does.
+#
+# Runs after ci or docs finishes rather than on the pull request itself, so
+# the answer is taken with the run's result already in hand, and the one of
+# the two that finishes last answers for both. `workflow_run` also keeps the
+# write token out of anything a pull request's own branch can change.
+#
+# A pull request that resolves an issue waits for a committer's approving
+# review (.github/CONTRIBUTING.md, Acceptance). Submitting a review runs no
+# CI, so `review.yml` runs on it and its completion is a second trigger.
+# `workflow_run` runs this file as master holds it, whichever workflow woke
+# it, which is what lets it carry the write token.
+on:
+  workflow_run:
+    workflows: [ci, docs, review]
+    types: [completed]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+      pull-requests: read
+      checks: read
+    steps:
+      - name: Answer whether the pull request at this head may be merged
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          answer() {
+            gh api "repos/$REPOSITORY/statuses/$HEAD_SHA" -f context=gate \
+              -f state="$1" -f description="$2" >/dev/null
+            echo "$1: $2"
+            exit 0
+          }
+
+          number=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/pulls" \
+            --jq 'map(select(.state == "open")) | first | .number // empty')
+          if [ -z "$number" ]; then
+            echo "no open pull request has $HEAD_SHA at its head"
+            exit 0
+          fi
+
+          pull=$(gh api "repos/$REPOSITORY/pulls/$number")
+          branch=$(jq -r '.head.ref' <<<"$pull")
+          body=$(jq -r '.body // ""' <<<"$pull")
+          author=$(jq -r '.user.login' <<<"$pull")
+          head=$(jq -r '.head.sha' <<<"$pull")
+
+          # The run that woke this job may already be behind its own branch;
+          # the newer head gets its own answer when its own ci finishes.
+          if [ "$head" != "$HEAD_SHA" ]; then
+            echo "#$number moved to $head after $HEAD_SHA was checked"
+            exit 0
+          fi
+
+          # Every check on the commit: ci's jobs, docs, and whatever is added
+          # later without touching this file. A check still running means the
+          # answer is not in yet, and no check at all is not every check green.
+          checks=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            --jq '[.check_runs[] | select(.name != "gate")]')
+          if [ "$(jq length <<<"$checks")" = 0 ]; then
+            answer pending "no check has started on this commit"
+          fi
+          pending=$(jq -r '[.[] | select(.status != "completed")] | length' <<<"$checks")
+          failed=$(jq -r \
+            '[.[] | select(.conclusion | IN("success", "skipped", "neutral") | not)] | length' \
+            <<<"$checks")
+          if [ "$failed" != 0 ]; then
+            answer failure "$failed check(s) failed on this commit"
+          fi
+          if [ "$pending" != 0 ]; then
+            answer pending "$pending check(s) still running"
+          fi
+
+          # A pull request that resolves an issue lands only with a committer's
+          # approval of the commit being merged: a review whose author has write
+          # access and is not the pull request's, left on this head, and no
+          # committer whose latest review asks for changes. It resolves an issue
+          # by its branch name or by a closing line in its body.
+          claims=false
+          case "$branch" in research/*) claims=true ;; esac
+          if grep -qiE '(^|[^[:alnum:]])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+#[0-9]+' <<<"$body"; then
+            claims=true
+          fi
+          if [ "$claims" = true ]; then
+            approved=$(gh api --paginate "repos/$REPOSITORY/pulls/$number/reviews" --jq '.[]' \
+              | jq -s --arg head "$HEAD_SHA" --arg author "$author" '
+                  map(select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "DISMISSED")
+                      | select(.author_association | IN("OWNER", "MEMBER", "COLLABORATOR")))
+                  | group_by(.user.login) | map(max_by(.submitted_at))
+                  | (any(.state == "CHANGES_REQUESTED") | not)
+                    and any(.state == "APPROVED" and .commit_id == $head and .user.login != $author)')
+            if [ "$approved" != true ]; then
+              answer pending "resolves an issue; waits for a committer's approval of this commit"
+            fi
+          fi
+
+          answer success "every check is green"
