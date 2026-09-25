@@ -176,6 +176,15 @@ impl Actor {
         self.skill.turn_weapons_towards(target_q32, turn_q32);
     }
 
+    /// A unit with a body turns its turret, whose rotation every weapon of
+    /// it shares; one without a body has none.
+    fn turret_rotation(&self) -> Option<i64> {
+        self.rules
+            .has_body
+            .then(|| self.skill.weapon_rotations_q32.first().copied())
+            .flatten()
+    }
+
     pub(in crate::fight) fn snapshot(&self) -> LiveUnitState {
         let height = unit_height(self.rules.domain);
         let position = QVec3 {
@@ -224,6 +233,7 @@ impl Actor {
             },
             position,
             body_rotation: self.body_rotation_q32,
+            turret_rotation: self.turret_rotation(),
             velocity: QVec3 {
                 x: self.motion.current_velocity_x_q32,
                 y: 0,

@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.6.0";
-pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v1";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.6.0";
+pub const MCFR_FORMAT: &str = "0.7.0";
+pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v2";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.7.0";
 pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
 pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 3;
 
@@ -545,6 +545,11 @@ pub struct LiveUnitState {
     pub domain: Domain,
     pub position: QVec3,
     pub body_rotation: i64,
+    /// The rotation of the unit's turret, `FightMech.mechBody`'s
+    /// `FightTransform`: what a unit with a body turns toward its attack
+    /// target and measures its attack angle from, while `body_rotation`
+    /// keeps the chassis. Null for a unit without a body.
+    pub turret_rotation: Option<i64>,
     pub velocity: QVec3,
     pub motion_state: MotionState,
     pub mech_lock_target: Option<ObjectRef>,

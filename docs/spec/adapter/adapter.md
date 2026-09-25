@@ -495,10 +495,6 @@ the class of the skill's current `SkillStateController` state
 `before`, `attacking`, `after`, or null between blows — and `skill_is_idle`
 reads `FightSkillBase.IsIdle`. All three are plain field reads at the snapshot
 boundary; they are null for a skill that is not a `FightSkill`.
-`mech_body_rotation` is the rotation of the mech's body, `FightMech.mechBody`'s
-`FightTransform`: what a unit with a body turns toward its attack target and
-measures its attack angle from, which the MCFR does not carry. It is null for a
-unit whose body has no transform.
 
 The `skill_attackable_checker_v1` profile records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a

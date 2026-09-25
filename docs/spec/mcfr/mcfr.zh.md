@@ -1,11 +1,11 @@
-# MCFR v6 格式规范（format 0.6.0）
+# MCFR v7 格式规范（format 0.7.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR v6 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.6.0"
+format = "0.7.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -86,12 +86,12 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.6.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.7.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `physics_hash_profile` | 精确值 `battle-physics-v1` | 稳定物理投影版本 |
+| `physics_hash_profile` | 精确值 `battle-physics-v2` | 稳定物理投影版本 |
 | `physics_result_hash` | 64 位小写十六进制 | 全部 `physics_tick_hash` 的有序摘要；回归判断依据 |
-| `content_hash_profile` | 精确值 `mcfr-content-0.6.0` | 完整内容摘要版本 |
+| `content_hash_profile` | 精确值 `mcfr-content-0.7.0` | 完整内容摘要版本 |
 | `content_result_hash` | 64 位小写十六进制 | 全部 `content_tick_hash` 的有序摘要；格式内诊断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -119,7 +119,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.6.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.7.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -127,6 +127,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `domain` | `UINT8 required` | 地面或空中 | `FightMech.IsFly()` |
 | `position` | `QVec3 required` | 世界坐标 | FightTransform `GetPositionInt3D()` |
 | `body_rotation` | `INT64 required` | 机体朝向，Q32.32 raw | FightTransform `GetRotationInt()` |
+| `turret_rotation` | `INT64 nullable` | 炮塔朝向，Q32.32 raw；没有身体的单位为 null | `FightMech.mechBody` 的 FightTransform `GetRotationInt()` |
 | `velocity` | `QVec3 required` | 当前速度 | MotionController 原生速度 |
 | `motion_state` | `UINT8 required` | idle/moving/attacking/stopped，见 2.10 | 原生运动状态机映射 |
 | `mech_lock_target` | nullable `ObjectRef` | 单位**本体**指向的对象，见 2.10 | `FightMech.lockTarget` |
@@ -301,6 +302,11 @@ Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历
 可以和 `mech_lock_target` 不同：技能会把挡在射线上的对象交给武器，而机甲保持自己的
 锁定；同一个成组技能的各个通道也可以各持不同的目标。没有身体的单位除了武器之外没有
 自己的朝向，所以它的 `body_rotation` 跟着攻击目标，而不是锁定。
+
+**`turret_rotation` 是有身体的单位瞄准的方向。** 这种单位在底盘上带着炮塔
+`FightMech.mechBody`：`body_rotation` 停在底盘朝向，`turret_rotation` 按单位的转速转向
+攻击目标，攻击角从它量起。一台停在 0.68° 的 Fortress，等炮塔转到离 32° 外的 Crawler
+不足 20° 时开火。没有身体的单位没有炮塔，该字段为 null。
 
 **`motion_state` 跟着攻击目标，不跟锁定。** `attacking` 表示某个武器的攻击目标在射
 程之内、本体为它停了下来；`moving` 是本体唯一会行进的状态，行进方向是
@@ -631,9 +637,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.6.0 身份规则
+## B.1 format 0.7.0 身份规则
 
-format `0.6.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.7.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -671,9 +677,9 @@ LE_u64(byte_length) || bytes
 
 固定前缀为 `mechcore.mcfr.canonical\0`。整数均按指明宽度使用小端补码原始位；布尔值使用单字节 `0/1`；`Option<T>` 先写单字节存在位，再在存在时写 `T`；列表长度使用 `LE_u64`。所有公开摘要均编码为 64 位小写十六进制，Parquet tick 列保存原始 32 bytes。
 
-## C.2 稳定物理层 `battle-physics-v1`
+## C.2 稳定物理层 `battle-physics-v2`
 
-`physics_tick_hash` 不对完整 MCFR schema 做摘要，而只对版本冻结的战斗物理投影做摘要。新增 MCFR 观测字段不会改变该投影；若投影字段、单位、精度、顺序或编码语义必须改变，应发布新的 profile，不能就地修改 `battle-physics-v1`。
+`physics_tick_hash` 不对完整 MCFR schema 做摘要，而只对版本冻结的战斗物理投影做摘要。新增 MCFR 观测字段不会改变该投影；若投影字段、单位、精度、顺序或编码语义必须改变，应发布新的 profile，不能就地修改 `battle-physics-v2`。
 
 WorldSnapshot 在哈希前按附录 B 规范化。对象列表保持按稳定 ID 的顺序，事件保持原生 `ordinal` 顺序，武器姿态保持 `(skill_slot, weapon_index)` 顺序。Q32.32 保留 `i64` raw bits；角度在哈希前按 `360 << 32` 取欧几里得模，使相差整数圈的角度等价。`logic_step` 先约分。
 
@@ -681,7 +687,7 @@ WorldSnapshot 在哈希前按附录 B 规范化。对象列表保持按稳定 ID
 
 | lane/domain | 纳入字段 |
 | --- | --- |
-| `battle-physics-kinematics-v1` | Unit：`unit_id, position, body_rotation, velocity`，以及仅含有效 `pose` 的 `skill_slot, weapon_index, pose.position, pose.rotation`；Projectile：`projectile_id, position, orientation`；Building：`building_id, position`；Shield：`shield_id, position, radius`；Terrain：`terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
+| `battle-physics-kinematics-v2` | Unit：`unit_id, position, body_rotation, turret_rotation, velocity`，以及仅含有效 `pose` 的 `skill_slot, weapon_index, pose.position, pose.rotation`；Projectile：`projectile_id, position, orientation`；Building：`building_id, position`；Shield：`shield_id, position, radius`；Terrain：`terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
 | `battle-physics-vitals-v1` | Unit：`unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`；Projectile：`projectile_id, team_id, owner, released, life`；Building：`building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`；Shield：`shield_id, team_id, owner, radius, energy, active`；Terrain：`terrain_id, team_id, terrain_type, radius` |
 | `battle-physics-interactions-v1` | 每项先纳入 `ordinal, subject, source, source_team_id, target`，再纳入事件类型及其物理 payload：弹体释放通道；弹体移除位置/拦截/吸收盾；伤害量；单位生成的队伍/类型/位置；单位死亡位置；建筑摧毁位置；单位换队；护盾生成队伍/位置；护盾摧毁位置；地形生成队伍/类型/位置/半径；地形移除或转换位置；治疗量 |
 
@@ -690,7 +696,7 @@ WorldSnapshot 在哈希前按附录 B 规范化。对象列表保持按稳定 ID
 定义：
 
 ```text
-K(t) = H_battle-physics-kinematics-v1(kinematics projection)
+K(t) = H_battle-physics-kinematics-v2(kinematics projection)
 V(t) = H_battle-physics-vitals-v1(vitals projection)
 I(t) = H_battle-physics-interactions-v1(interactions projection)
 
@@ -710,13 +716,13 @@ physics_result_hash = H_battle-physics-result-v1(
 
 因此物理回归仍精确引用逻辑时间、Q32.32 位置/角度/速度、生命与护盾以及伤害等相互作用，但不会因增加纯诊断字段而要求重录。
 
-## C.3 完整内容层 `mcfr-content-0.6.0`
+## C.3 完整内容层 `mcfr-content-0.7.0`
 
-完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.6.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
+完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.7.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
 
 ```text
-content_tick_hash(t) = H_content-tick-0.6.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-content_result_hash  = H_content-result-0.6.0(
+content_tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+content_result_hash  = H_content-result-0.7.0(
     LE_u32(tick_count),
     content_tick_hash(1)..content_tick_hash(n)
 )

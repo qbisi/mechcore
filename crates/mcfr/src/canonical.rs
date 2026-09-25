@@ -69,7 +69,7 @@ fn feed(hasher: &mut blake3::Hasher, bytes: &[u8]) {
 }
 
 pub(crate) fn content_tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("content-tick-0.6.0");
+    let mut hasher = CanonicalHasher::new("content-tick-0.7.0");
     hasher.update(&tick.to_le_bytes());
     hasher.update(state);
     hasher.update(events);
@@ -81,7 +81,7 @@ pub(crate) fn physics_result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH
 }
 
 pub(crate) fn content_result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
-    result_hash("content-result-0.6.0", tick_hashes)
+    result_hash("content-result-0.7.0", tick_hashes)
 }
 
 fn result_hash(domain: &str, tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
@@ -116,12 +116,13 @@ pub(crate) fn physics_tick_hash(
 }
 
 fn kinematics_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
-    let mut hasher = PhysicsHasher::new("battle-physics-kinematics-v1");
+    let mut hasher = PhysicsHasher::new("battle-physics-kinematics-v2");
     hasher.len(state.live_units.len());
     for unit in &state.live_units {
         hasher.u64(unit.unit_id);
         hasher.qvec3(unit.position);
         hasher.angle(unit.body_rotation);
+        hasher.optional_angle(unit.turret_rotation);
         hasher.qvec3(unit.velocity);
         hasher.len(
             unit.weapon_aims
@@ -458,6 +459,13 @@ impl PhysicsHasher {
         self.boolean(value.is_some());
         if let Some(value) = value {
             self.i32(value);
+        }
+    }
+
+    fn optional_angle(&mut self, value: Option<i64>) {
+        self.boolean(value.is_some());
+        if let Some(value) = value {
+            self.angle(value);
         }
     }
 

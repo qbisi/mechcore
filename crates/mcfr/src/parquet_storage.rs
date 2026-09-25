@@ -429,6 +429,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             u8_values(units.iter().map(|row| encode_domain(row.domain))),
             vec3_values(units.iter().map(|row| row.position)),
             i64_values(units.iter().map(|row| row.body_rotation)),
+            optional_i64_values(units.iter().map(|row| row.turret_rotation)),
             vec3_values(units.iter().map(|row| row.velocity)),
             u8_values(units.iter().map(|row| encode_motion(row.motion_state))),
             object_ref_values(units.iter().map(|row| row.mech_lock_target)),
@@ -1108,6 +1109,7 @@ fn unit_schema() -> SchemaRef {
         Field::new("domain", DataType::UInt8, false),
         struct_field("position", vec3_fields(), false),
         Field::new("body_rotation", DataType::Int64, false),
+        Field::new("turret_rotation", DataType::Int64, true),
         struct_field("velocity", vec3_fields(), false),
         Field::new("motion_state", DataType::UInt8, false),
         struct_field("mech_lock_target", object_ref_fields(), true),
@@ -2459,6 +2461,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let domain = column::<UInt8Array>(&batch, "domain")?;
         let position = struct_column(&batch, "position")?;
         let body_rotation = column::<Int64Array>(&batch, "body_rotation")?;
+        let turret_rotation = column::<Int64Array>(&batch, "turret_rotation")?;
         let velocity = struct_column(&batch, "velocity")?;
         let motion = column::<UInt8Array>(&batch, "motion_state")?;
         let target = struct_column(&batch, "mech_lock_target")?;
@@ -2486,6 +2489,9 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     domain: decode_domain(domain.value(index))?,
                     position: read_vec3(position, index)?,
                     body_rotation: body_rotation.value(index),
+                    turret_rotation: turret_rotation
+                        .is_valid(index)
+                        .then(|| turret_rotation.value(index)),
                     velocity: read_vec3(velocity, index)?,
                     motion_state: decode_motion(motion.value(index))?,
                     mech_lock_target: read_optional_ref(target, index)?,

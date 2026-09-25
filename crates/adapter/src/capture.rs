@@ -143,11 +143,6 @@ pub(crate) struct UnitTargetRefsObservation {
     pub(crate) skill_attack_phase: Option<&'static str>,
     /// `FightSkillBase.IsIdle`.
     pub(crate) skill_is_idle: Option<bool>,
-    /// The rotation of the mech's body, `FightMech.mechBody`'s
-    /// `FightTransform`: what a unit with a body turns toward its attack
-    /// target and measures its attack angle from. Absent for a unit whose
-    /// body has no transform.
-    pub(crate) mech_body_rotation: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -4811,7 +4806,6 @@ struct RawTargetRefs {
     skill_state: Option<String>,
     skill_attack_phase: Option<&'static str>,
     skill_is_idle: Option<bool>,
-    mech_body_rotation: Option<i64>,
 }
 
 /// The fields that name a skill's state machine state, resolved once.
@@ -6460,7 +6454,6 @@ fn snapshot(
                     skill_state: refs.skill_state,
                     skill_attack_phase: refs.skill_attack_phase,
                     skill_is_idle: refs.skill_is_idle,
-                    mech_body_rotation: refs.mech_body_rotation,
                 });
             }
             let target_refs = TargetRefsObservation {
@@ -6977,6 +6970,22 @@ fn read_unit(
     };
     let position = vec3(fixed_position);
     let body_rotation = fixed_rotation.raw;
+    // The turret: `FightMech.mechBody`'s `FightTransform`, which a unit
+    // without a body does not have.
+    let turret = api
+        .field_value::<*mut Object>(unit, metadata.fight_mech_body as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let turret_transform = if turret.is_null() {
+        ptr::null_mut()
+    } else {
+        api.invoke(turret, "GetFightTransform", &mut [])
+            .map_err(|error| error.to_string())?
+    };
+    let turret_rotation = if turret_transform.is_null() {
+        None
+    } else {
+        Some(invoke_value::<FixedPoint>(api, turret_transform, "GetRotationInt")?.raw)
+    };
     let main_skill = invoke_object(api, unit, "GetMainSkill")?;
     let mech_lock_target = api
         .field_value::<*mut Object>(unit, metadata.fight_mech_lock_target as *mut FieldInfo)
@@ -7018,20 +7027,6 @@ fn read_unit(
                 }
                 _ => (None, None, None),
             };
-            let body = api
-                .field_value::<*mut Object>(unit, metadata.fight_mech_body as *mut FieldInfo)
-                .map_err(|error| error.to_string())?;
-            let body_transform = if body.is_null() {
-                ptr::null_mut()
-            } else {
-                api.invoke(body, "GetFightTransform", &mut [])
-                    .map_err(|error| error.to_string())?
-            };
-            let mech_body_rotation = if body_transform.is_null() {
-                None
-            } else {
-                Some(invoke_value::<FixedPoint>(api, body_transform, "GetRotationInt")?.raw)
-            };
             Some(RawTargetRefs {
                 mech_lock_target,
                 normal_skill_fields_available,
@@ -7040,7 +7035,6 @@ fn read_unit(
                 skill_state,
                 skill_attack_phase,
                 skill_is_idle,
-                mech_body_rotation,
             })
         }
         _ => None,
@@ -7103,6 +7097,7 @@ fn read_unit(
             },
             position,
             body_rotation,
+            turret_rotation,
             velocity: vec3(velocity),
             motion_state,
             mech_lock_target: None,
@@ -9419,6 +9414,7 @@ mod tests {
                 z: 0,
             },
             body_rotation: 0,
+            turret_rotation: None,
             velocity: QVec3 { x: 0, y: 0, z: 0 },
             motion_state: MotionState::Idle,
             mech_lock_target: None,

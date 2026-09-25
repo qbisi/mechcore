@@ -1,4 +1,4 @@
-# MCFR v6, format 0.6.0
+# MCFR v7, format 0.7.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 battle the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.6.0"
+format = "0.7.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -114,12 +114,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.6.0` | the logical and physical contract version |
+| `format` | exactly `0.7.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `physics_hash_profile` | exactly `battle-physics-v1` | the stable physics projection version |
+| `physics_hash_profile` | exactly `battle-physics-v2` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.6.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.7.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -155,6 +155,7 @@ death survives as a `unit_died` event.
 | `domain` | `UINT8 required` | ground or air | `FightMech.IsFly()` |
 | `position` | `QVec3 required` | world coordinates | FightTransform `GetPositionInt3D()` |
 | `body_rotation` | `INT64 required` | body facing, Q32.32 raw | FightTransform `GetRotationInt()` |
+| `turret_rotation` | `INT64 nullable` | turret facing, Q32.32 raw; null for a unit without a body | `FightMech.mechBody`'s FightTransform `GetRotationInt()` |
 | `velocity` | `QVec3 required` | current velocity | MotionController native velocity |
 | `motion_state` | `UINT8 required` | idle, moving, attacking, stopped; [below](#what-a-unit-is-directed-at) | native motion state machine mapping |
 | `mech_lock_target` | nullable `ObjectRef` | what the unit's body is directed at; [below](#what-a-unit-is-directed-at) | `FightMech.lockTarget` |
@@ -376,6 +377,13 @@ and the channels of one grouped skill may each hold a different target. A unit
 without a body has no facing of its own apart from its weapon's, so its
 `body_rotation` follows its attack target rather than its lock.
 
+**`turret_rotation` is where a unit with a body aims.** Such a unit carries
+its turret, `FightMech.mechBody`, on the chassis: `body_rotation` stays where
+the chassis faces while `turret_rotation` turns toward the attack target at
+the unit's rotate speed, and the attack angle is measured from it. A Fortress
+standing still at 0.68° fires at a Crawler 32° off once its turret has turned
+within 20° of it. A unit without a body has no turret, and the field is null.
+
 **`motion_state` follows the attack target, not the lock.** `attacking` means a
 weapon's attack target is within reach and the body has stopped for it; `moving`
 is the only state in which the body travels, and it travels toward
@@ -385,7 +393,7 @@ reach, whenever something it can shoot stands in reach in front of it.
 A capture records all three as the native objects report them and derives none
 from another, which is what lets a reader compare them. They are content-layer
 fields: the physics layer excludes them (see
-[the physics layer](#the-stable-physics-layer-battle-physics-v1)), so a fight
+[the physics layer](#the-stable-physics-layer-battle-physics-v2)), so a fight
 whose physics matches can still disagree in them.
 
 ## Projectiles
@@ -761,7 +769,7 @@ Identity is what makes two recordings of one battle the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.6.0` uses `team_zx_sequential_v1`.
+Format `0.7.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -832,12 +840,14 @@ byte, an `Option<T>` a presence byte followed by `T` when present, and a list's
 length an `LE_u64`. Every public digest is 64 lowercase hex digits, and the
 Parquet tick columns hold the raw 32 bytes.
 
-### The stable physics layer, `battle-physics-v1`
+### The stable physics layer, `battle-physics-v2`
 
 `physics_tick_hash` digests a version-frozen combat physics projection rather
 than the whole MCFR schema. Adding an observation field does not change the
 projection. If a projection field, unit, precision, order or encoding must
-change, that is a new profile: `battle-physics-v1` is never edited in place.
+change, that is a new profile: `battle-physics-v2` is never edited in place.
+`battle-physics-v1` projected no turret; `v2` adds `turret_rotation` to the
+kinematics lane.
 
 The WorldSnapshot is canonicalised before hashing. Object lists stay in stable
 ID order, events in native `ordinal` order, weapon poses in `(skill_slot,
@@ -849,12 +859,12 @@ Each tick is three independent lane digests:
 
 | Lane | Fields |
 | --- | --- |
-| `battle-physics-kinematics-v1` | Unit: `unit_id, position, body_rotation, velocity`, plus `skill_slot, weapon_index, pose.position, pose.rotation` for channels that have a pose. Projectile: `projectile_id, position, orientation`. Building: `building_id, position`. Shield: `shield_id, position, radius`. Terrain: `terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
+| `battle-physics-kinematics-v2` | Unit: `unit_id, position, body_rotation, turret_rotation, velocity`, plus `skill_slot, weapon_index, pose.position, pose.rotation` for channels that have a pose. Projectile: `projectile_id, position, orientation`. Building: `building_id, position`. Shield: `shield_id, position, radius`. Terrain: `terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
 | `battle-physics-vitals-v1` | Unit: `unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`. Projectile: `projectile_id, team_id, owner, released, life`. Building: `building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`. Shield: `shield_id, team_id, owner, radius, energy, active`. Terrain: `terrain_id, team_id, terrain_type, radius` |
 | `battle-physics-interactions-v1` | each event contributes `ordinal, subject, source, source_team_id, target` first, then its type and physical payload: the release channel; a removal's position, interception and absorbing shield; a damage amount; a unit creation's team, type and position; a unit death position; a building destruction position; a team change; a shield creation's team and position; a shield destruction position; a terrain creation's team, type, position and radius; a terrain removal or conversion position; a healing amount |
 
 ```text
-K(t) = H_battle-physics-kinematics-v1(kinematics projection)
+K(t) = H_battle-physics-kinematics-v2(kinematics projection)
 V(t) = H_battle-physics-vitals-v1(vitals projection)
 I(t) = H_battle-physics-interactions-v1(interactions projection)
 
@@ -876,17 +886,17 @@ A physics regression therefore still pins logical time, Q32.32 position,
 rotation and velocity, life and shields, and the interactions including damage,
 while a new purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.6.0`
+### The full content layer, `mcfr-content-0.7.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers
-every `S(t)` and `E(t)` field of format 0.6.0 and diagnoses capture
+every `S(t)` and `E(t)` field of format 0.7.0 and diagnoses capture
 completeness within one format. It carries neither the layout, nor the
 DurableContext, nor any other file metadata.
 
 ```text
-content_tick_hash(t) = H_content-tick-0.6.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-content_result_hash  = H_content-result-0.6.0(
+content_tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+content_result_hash  = H_content-result-0.7.0(
     LE_u32(tick_count),
     content_tick_hash(1)..content_tick_hash(n)
 )
