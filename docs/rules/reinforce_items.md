@@ -5,7 +5,7 @@ each side takes one. This document says what the five kinds of card are, what
 taking one changes, and what it costs. The catalogues themselves are machine
 readable and live in `config/`.
 
-The evidence is the build 1.11.1.3.2259 replay corpus `replay/REPLAY_REV` names,
+The evidence is the build 1.11.1.3.2259 replay corpus in mechcore-replay,
 which `replay/README.md` describes.
 
 ## The five kinds

@@ -108,9 +108,10 @@ jobs:
       - name: Tests
         run: cargo test --workspace --exclude mechcore-adapter --no-default-features
 
-  # Does the release binary still answer what the repository claims: the
-  # fixtures, the corpus, every offline script and every tracked battle. A
-  # different question from the test suite's, so it runs beside it.
+  # Does the release binary still answer what the repository claims: every
+  # fixture and every offline script. A different question from the test
+  # suite's, so it runs beside it. The replay corpus is not read here: it only
+  # grows, and a converter need not read every version it holds.
   scripts:
     needs: changes
     if: needs.changes.outputs.scripts == 'true'
@@ -128,26 +129,8 @@ jobs:
           key: cargo-scripts-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: cargo-scripts-${{ runner.os }}-
 
-      # The replay corpus is qbisi/mechcore-replay at the commit
-      # `replay/REPLAY_REV` names; its build directory's SHA256SUMS is the
-      # identity of every replay and document in it.
-      - name: The replay corpus, at its pinned commit
-        run: |
-          python3 scripts/replay.py sync
-          (cd "$(python3 scripts/replay.py path)" && shasum -c --quiet SHA256SUMS)
-
       - name: Release build, without the Adapter
         run: cargo build --release -p mechcore --no-default-features
-
-      # A converter change that nobody carried into the corpus leaves
-      # mechcore-replay describing an older converter. Converting the corpus
-      # again into a scratch directory has to give back the documents it holds,
-      # byte for byte; when it does not, the corpus's `MECHCORE_REV` has to
-      # move to this change, and this repository's `replay/REPLAY_REV` after it.
-      - name: The battle corpus is what this converter writes
-        run: |
-          python3 scripts/export-replay-corpus.py --battle-dir /tmp/mechcore-battle
-          diff -r "$(python3 scripts/replay.py path)/battle" /tmp/mechcore-battle
 
       # An mcscript is a tracked, runnable claim, so every one of them has to
       # parse. The ones that need no game are also run: that is how the
@@ -157,11 +140,6 @@ jobs:
       - name: Every script parses, and the offline ones pass
         run: scripts/check-scripts.sh
 
-      # Every tracked battle has to predict each next opening in every leaf the
-      # fight does not decide. `docs/spec/document/battle.md` defines the
-      # coverage.
-      - name: Every tracked battle's transitions are predicted
-        run: python3 scripts/verify-battles.py
 
   # A pull request that claims a research issue is held to that issue's
   # oracle: every recording the keeper published as oracle/issue-<n> has to

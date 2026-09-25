@@ -175,7 +175,7 @@ cost methods. The skill cooldown cast is bound to `CommanderSkillBase` through
 the binary metadata slot, rather than inferred from matching offers.
 
 The 2259 rules were checked against the offer arrays and successive native
-random states of the replay corpus `replay/REPLAY_REV` names, which
+random states of the replay corpus in mechcore-replay, which
 `scripts/verify-battles.py` replays through the document crate. Modified
 pools, other modes, negative seeds and nonstandard capped unit types remain
 outside the supported scope. A last recorded round has no following snapshot

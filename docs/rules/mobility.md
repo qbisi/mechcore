@@ -45,7 +45,7 @@ not followed. The rule above rests for those parts on the corpus below.
 
 ## Evidence
 
-Every move the 2259 replay corpus `replay/REPLAY_REV` names records is of a unit
+Every move the 2259 replay corpus in mechcore-replay records is of a unit
 the rule lets move: one bought or handed out that round, one delivered as the
 round opened, one wearing the Deployment Module, one whose type's Jump Drive
 is researched, or one a standing Redeploy targets that round.

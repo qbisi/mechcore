@@ -90,7 +90,7 @@ Both refusals were observed in Training Ground on this build, and the second is
 the `IsExpMax` check its availability test makes. A level 9 unit can still
 hold a full bar; it cannot be trained into one.
 
-Every release of it in the 2259 replay corpus `replay/REPLAY_REV` names reaches
+Every release of it in the 2259 replay corpus in mechcore-replay reaches
 exactly the table's value, across units at levels 1 through 4. Levels 5 through
 8 are unobserved.
 

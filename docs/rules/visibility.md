@@ -18,7 +18,7 @@ the corpus replay `2259_20260823--67294111_[你是蓬莱花仙]VS[crower].grbr` 
 so it was recorded by the player who held seat 1, and its round 3 snapshot
 gives seat 0's `shop.unlockedUnits` as `[9, 24, 30, 1]`, with that player's
 `officers` and `supply` beside them. Every replay of the corpus
-`replay/REPLAY_REV` names carries both sides, whichever seat recorded it.
+in mechcore-replay carries both sides, whichever seat recorded it.
 
 So hiding is the interface's work, not the client's. A player's machine can
 answer any question about the other side; what the game decides is what it

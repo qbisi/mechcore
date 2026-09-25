@@ -1,29 +1,27 @@
 #!/usr/bin/env python3
-"""Fetch the replay corpus this checkout is held to.
+"""Fetch the replay corpus.
 
-    scripts/replay.py sync            fetch qbisi/mechcore-replay at replay/REPLAY_REV into work/replay
-    scripts/replay.py sync --rev REV  fetch another commit instead, to try a corpus before pinning it
-    scripts/replay.py path [BUILD]    print the corpus directory for a build (default: the only one)
+    scripts/replay.py sync             fetch qbisi/mechcore-replay's master into work/replay
+    scripts/replay.py path [VERSION]   print a version's replay directory (default: this checkout's)
 
-The native replays and the battle documents converted from them live in
-https://github.com/qbisi/mechcore-replay, one directory per game build, and
-this repository names the commit it reads them at in `replay/REPLAY_REV`.
-`scripts/verify-battles.py`, `scripts/fight-coverage.py` and CI read
-`work/replay/replays/<build>/{grbr,battle}`, which this script fills; `work/`
-is not tracked, so a checkout runs `sync` once, and again after the pin moves.
-The test suite reads no replay. Nothing here writes to the corpus: a replay is added there, and a
-battle document is what its workflow converts.
-
-The fetch is shallow and by commit, so it is the pinned tree and nothing else.
+The native replays live in https://github.com/qbisi/mechcore-replay, one
+directory per game version, `replays/<version>/<name>.grbr`. The repository
+only grows, so it is read at `master` and a newer fetch never takes away what
+an older one had. `work/` is not tracked, so a checkout runs `sync` once, and
+again to pick up replays added since. The version this checkout describes is
+the one `scripts/build_data.py` reads. Nothing here writes to the corpus, and
+nothing is generated in it: `scripts/export-replay-corpus.py` converts a
+version's replays into `work/battle/<version>/`.
 """
 
 import subprocess
 import sys
 from pathlib import Path
 
+import build_data
+
 REPOSITORY = "https://github.com/qbisi/mechcore-replay"
 ROOT = Path(__file__).resolve().parents[1]
-PIN = ROOT / "replay" / "REPLAY_REV"
 DESTINATION = ROOT / "work" / "replay"
 
 
@@ -39,45 +37,27 @@ def git(*arguments, cwd=DESTINATION):
     return result.stdout.strip()
 
 
-def pinned():
-    if not PIN.exists():
-        fail(f"{PIN.relative_to(ROOT)} is missing")
-    return PIN.read_text().strip()
-
-
-def sync(rev):
-    if (DESTINATION / ".git").exists():
-        if git("rev-parse", "HEAD") == rev:
-            print(f"work/replay is at {rev}")
-            return
-    else:
+def sync():
+    if not (DESTINATION / ".git").exists():
         DESTINATION.mkdir(parents=True, exist_ok=True)
         git("init", "-q")
         git("remote", "add", "origin", REPOSITORY)
-    git("fetch", "-q", "--depth", "1", "origin", rev)
+    git("fetch", "-q", "--depth", "1", "origin", "master")
     git("checkout", "-q", "--detach", "FETCH_HEAD")
-    print(f"work/replay is at {rev}")
+    print(f"work/replay is at {git('rev-parse', '--short', 'HEAD')}")
 
 
-def path(build):
-    builds = sorted(p.name for p in (DESTINATION / "replays").glob("*") if p.is_dir())
-    if not builds:
-        fail("no corpus under work/replay; run scripts/replay.py sync")
-    if build is None:
-        if len(builds) != 1:
-            fail(f"several builds under work/replay, name one: {', '.join(builds)}")
-        build = builds[0]
-    elif build not in builds:
-        fail(f"no build {build} under work/replay; it holds {', '.join(builds)}")
-    print(DESTINATION / "replays" / build)
+def path(version):
+    version = version or build_data.build()
+    directory = DESTINATION / "replays" / version
+    if not directory.is_dir():
+        fail(f"no replays of {version} under work/replay; run scripts/replay.py sync")
+    print(directory)
 
 
 def main(argv):
-    if len(argv) >= 2 and argv[1] == "sync":
-        rev = argv[3] if len(argv) == 4 and argv[2] == "--rev" else (pinned() if len(argv) == 2 else None)
-        if rev is None:
-            fail("usage: sync [--rev REV]")
-        sync(rev)
+    if argv[1:] == ["sync"]:
+        sync()
     elif len(argv) in (2, 3) and argv[1] == "path":
         path(argv[2] if len(argv) == 3 else None)
     else:

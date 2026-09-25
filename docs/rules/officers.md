@@ -55,7 +55,7 @@ these and are not named.
 Additional Deployment Slot, `10004`, raises the purchases a round allows by
 one, in the round it is taken and in every round after, since the side keeps
 the officer. A round opens with two purchases plus one per copy held. That is
-measured on the 2259 replay corpus `replay/REPLAY_REV` names, whose every round
+measured on the 2259 replay corpus in mechcore-replay, whose every round
 opening holds exactly that many.
 
 ## Equipment Expansion

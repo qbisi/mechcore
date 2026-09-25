@@ -27,7 +27,7 @@ read, so what -1 does is not read; the rule above is not stated for it.
 
 ## Evidence
 
-The rule was checked against the 2259 replay corpus `replay/REPLAY_REV` names:
+The rule was checked against the 2259 replay corpus in mechcore-replay:
 a spent skill shows its `cooldown` as the next round opens, an unspent slot
 drops by one, and a slot joins at its `initial_cooldown`. With the round-opening
 shop allowance and equipment income, it reproduces the native opening of every

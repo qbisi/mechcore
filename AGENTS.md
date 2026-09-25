@@ -10,9 +10,9 @@
 这些 readme 写的是所在目录的准入规则，从文件本身看不出来，而且往往正好禁止
 了 agent 默认会做的事。例如：
 
-- `replay/README.md`：录像和转换出的对局文档不在这个仓库里，在 `mechcore-replay`，
-  这里只钉一个 commit（`REPLAY_REV`），`scripts/replay.py sync` 取到 `work/replay/`；
-  录像不许重写，对局文档只能由转换器生成，值不对改 `crates/document/src/convert.rs`；
+- `replay/README.md`：录像不在这个仓库里，在 `mechcore-replay`，按游戏版本分目录、只增
+  不减，读它的 master，`scripts/replay.py sync` 取到 `work/replay/`；录像不许重写，对局
+  文档只在本地由转换器生成到 `work/battle/`，值不对改 `crates/document/src/convert.rs`；
 - `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
   必须写哪几节；
 - `work/research/README.md`：一个数值要拿什么才算有据，什么看着像证据其实
@@ -40,10 +40,9 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 - `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
   `cargo clippy -D warnings`、`cargo test`，都是
   `--workspace --exclude mechcore-adapter --no-default-features`。
-- `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——按
-  `replay/REPLAY_REV` 取回 `mechcore-replay` 的语料并核对它的哈希、用当前转换器把语料
-  再转一遍并要求逐字节一致、把每一份被跟踪的 `.mcscript` 过一遍 `--check` 并
-  **实际运行其中不需要游戏的那些**、`scripts/verify-battles.py`。
+- `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——把每一份被跟踪的
+  `.mcscript` 过一遍 `--check` 并**实际运行其中不需要游戏的那些**。CI 不读回放语料：
+  语料只增不减，转换器不必读得了它收的每个版本。
 - `adapter`（macOS）：只查别处查不了的——Adapter 自己的 clippy 和测试、默认
   feature 下 `mechcore` 把 dylib 打包到可执行文件旁边、以及找游戏进程的那段 macOS
   代码。
@@ -52,10 +51,8 @@ Adapter 是 `mechcore` 的默认 feature `adapter`；只有它需要 macOS，关
 （`--no-default-features`）整个 CLI 在任何平台都能构建和测试。所以新代码若只在
 macOS 上成立，要用 `cfg(target_os = "macos")` 隔开，不然 Linux 上的 job 会失败。
 
-`scripts` 里再转一遍语料那条意味着改了转换器就得把 `mechcore-replay` 的 `MECHCORE_REV`
-推到这次改动、再把 `REPLAY_REV` 跟上，不然 CI 过不去；跑离线
-脚本那条意味着一份离线脚本里的断言和一份测试同等有效，`tests/modifier/regressions.mcscript`
-就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
+跑离线脚本那条意味着一份离线脚本里的断言和一份测试同等有效，
+`tests/modifier/regressions.mcscript` 就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
 
 一份 `.mcscript` 要么需要游戏、要么不需要，`run --check` 的 `game` 字段就是答案：
 需要游戏的只被解析，不需要的会被跑起来。新增一份离线脚本不用改 CI。
@@ -117,7 +114,7 @@ oracle，再把问题交给自己起的子代理去做，子代理各用一个�
 证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`，
 `scripts/decomp.py sync` 放到 `work/decomp/<build>/`（dump 在 `cpp2il/`，索引
 `index.sqlite` 在同一目录，本机已有的不重下）；录像语料在公开的 `mechcore-replay`
-（`scripts/replay.py sync` 按 `replay/REPLAY_REV` 取回 `work/replay/`）；每个问题的
+（`scripts/replay.py sync` 取 master 到 `work/replay/`）；每个问题的
 录像和 sidecar 在它自己的 release（`scripts/oracle.py fetch <n>` 回到 `/tmp/mechcore/`），
 issue 关闭后 release 仍保留，因为它是钉住的哈希的证据。仓库里固定下来的只有
 `tests/<topic>/` 的布阵、脚本和它钉住的哈希。

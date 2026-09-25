@@ -51,7 +51,7 @@ IsilDump.
 
 ## Evidence
 
-The rule was checked against the 2259 replay corpus `replay/REPLAY_REV` names:
+The rule was checked against the 2259 replay corpus in mechcore-replay:
 it places every unit that arrived without a purchase (card squads, opening
 forces and officer deliveries, some landing clear of units already at the
 centre) exactly where the game did, and every purchase where the round had
