@@ -150,6 +150,8 @@ impl Simulation {
                     target: target.id(),
                     target_x_q32: target_x_q32.saturating_add(x),
                     target_z_q32: target_z_q32.saturating_add(z),
+                    offset_x_q32: x,
+                    offset_z_q32: z,
                     weapon_index: index % weapon_count,
                 });
         let first = releases
@@ -267,6 +269,10 @@ impl Simulation {
                 );
                 weapon_index = usize::from(weapon_index == 0);
             }
+        } else {
+            // One weapon takes the offsets last drawn first: a Phantom Ray's
+            // first projectile lands the second offset its burst drew.
+            offsets.reverse();
         }
         Ok(offsets)
     }
@@ -300,30 +306,50 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         match pending.target_kind {
-            ObjectKind::Unit => self.release_projectile_at(
-                owner,
-                pending.target,
-                pending.target_x_q32,
-                pending.target_z_q32,
-                0,
-                pending.weapon_index,
-                events,
-            ),
+            ObjectKind::Unit => {
+                let follows = self
+                    .attacker(owner)
+                    .ok_or_else(|| Error::new("projectile owner is absent"))?
+                    .attack
+                    .lock_target;
+                // A dead target is not followed: the projectile goes where the
+                // burst aimed it, as a Phantom Ray's second projectile does at
+                // a Crawler another shot killed in between.
+                let target = &self.actors[&pending.target];
+                let (target_x_q32, target_z_q32) = if follows && target.alive() {
+                    (
+                        target.x_q32.saturating_add(pending.offset_x_q32),
+                        target.z_q32.saturating_add(pending.offset_z_q32),
+                    )
+                } else {
+                    (pending.target_x_q32, pending.target_z_q32)
+                };
+                self.release_projectile_at(
+                    owner,
+                    pending.target,
+                    target_x_q32,
+                    target_z_q32,
+                    0,
+                    pending.weapon_index,
+                    events,
+                )
+            }
             ObjectKind::Building => {
                 let building = self
                     .buildings
                     .iter()
                     .find(|building| building.building_id == pending.target)
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
+                let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
                 self.release_projectile_to(
                     owner,
                     ObjectKind::Building,
                     pending.target,
-                    q32_to_space_rounded(pending.target_x_q32),
+                    q32_to_space_rounded(target_x_q32),
                     0,
-                    q32_to_space_rounded(pending.target_z_q32),
-                    pending.target_x_q32,
-                    pending.target_z_q32,
+                    q32_to_space_rounded(target_z_q32),
+                    target_x_q32,
+                    target_z_q32,
                     building_radius(building),
                     0,
                     pending.weapon_index,
@@ -426,6 +452,15 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
+        // A projectile that follows a unit keeps where it lands relative to
+        // that unit, and lands there however the unit moves.
+        let (offset_x_q32, offset_z_q32) = match self.actors.get(&target_id) {
+            Some(unit) if target_kind == ObjectKind::Unit && source.lock_target => (
+                target_x_q32.saturating_sub(unit.x_q32),
+                target_z_q32.saturating_sub(unit.z_q32),
+            ),
+            _ => (0, 0),
+        };
         let projectile = Projectile {
             id: projectile_id,
             team: source.team,
@@ -448,6 +483,8 @@ impl Simulation {
             speed: source.speed,
             life: source.life,
             lock_target: source.lock_target,
+            offset_x_q32,
+            offset_z_q32,
         };
         let projectile_ref = projectile.object_ref();
         events.push(event(

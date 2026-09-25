@@ -17,8 +17,16 @@ pub(in crate::fight) struct PendingProjectileRelease {
     pub(in crate::fight) step: u64,
     pub(in crate::fight) target_kind: ObjectKind,
     pub(in crate::fight) target: u64,
+    /// Where the burst aimed this projectile when it began: the target's
+    /// position then, plus the offset.
     pub(in crate::fight) target_x_q32: i64,
     pub(in crate::fight) target_z_q32: i64,
+    /// The offset alone. A projectile that follows its target lands it from
+    /// where the target stands when the projectile is released: the second
+    /// of a Phantom Ray's two projectiles, from where a charging Rhino stands
+    /// 0.3 seconds on.
+    pub(in crate::fight) offset_x_q32: i64,
+    pub(in crate::fight) offset_z_q32: i64,
     pub(in crate::fight) weapon_index: usize,
 }
 

@@ -200,6 +200,8 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
         speed: simulation.actors[&1].rules.attack.projectile_speed(),
         life: 1,
         lock_target: true,
+        offset_x_q32: 0,
+        offset_z_q32: 0,
     };
     let previous_life = [simulation.actors[&2].life, simulation.actors[&3].life];
     let mut events = Vec::new();
@@ -275,6 +277,8 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
         speed: simulation.actors[&1].rules.attack.projectile_speed(),
         life: 1,
         lock_target: true,
+        offset_x_q32: 0,
+        offset_z_q32: 0,
     };
     let ground_life = simulation.actors[&2].life;
     let air_life = simulation.actors[&3].life;
@@ -316,6 +320,8 @@ fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
         speed: 1,
         life: 1,
         lock_target: false,
+        offset_x_q32: 0,
+        offset_z_q32: 0,
     });
 
     simulation.step(1).unwrap();
@@ -374,6 +380,8 @@ fn projectile_splash_takes_a_building_beside_its_target() {
         speed: simulation.actors[&1].rules.attack.projectile_speed(),
         life: 1,
         lock_target: true,
+        offset_x_q32: 0,
+        offset_z_q32: 0,
     };
     let previous_life = simulation.actors[&2].life;
     simulation.impact(&projectile, &mut Vec::new()).unwrap();

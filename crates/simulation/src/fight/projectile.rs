@@ -24,6 +24,9 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) speed: i64,
     pub(in crate::fight) life: i64,
     pub(in crate::fight) lock_target: bool,
+    /// Where a projectile that follows its target lands relative to it.
+    pub(in crate::fight) offset_x_q32: i64,
+    pub(in crate::fight) offset_z_q32: i64,
 }
 
 impl Projectile {
@@ -75,12 +78,14 @@ impl Simulation {
                     .get(&projectile.target)
                     .filter(|actor| actor.alive())
             {
-                projectile.cached_target_x = target.x;
+                projectile.cached_target_x_q32 =
+                    target.x_q32.saturating_add(projectile.offset_x_q32);
+                projectile.cached_target_z_q32 =
+                    target.z_q32.saturating_add(projectile.offset_z_q32);
+                projectile.cached_target_x = q32_to_space_rounded(projectile.cached_target_x_q32);
                 projectile.cached_target_y = unit_height(target.rules.domain);
-                projectile.cached_target_z = target.z;
-                projectile.cached_target_x_q32 = target.x_q32;
+                projectile.cached_target_z = q32_to_space_rounded(projectile.cached_target_z_q32);
                 projectile.cached_target_y_q32 = space_to_q32(projectile.cached_target_y);
-                projectile.cached_target_z_q32 = target.z_q32;
                 projectile.cached_target_radius = target.rules.collision_radius();
             }
             let dx_q32 = projectile
