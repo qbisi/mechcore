@@ -65,6 +65,12 @@ and the difference is the platform's to decide rather than the game's.
 
 ## Evidence
 
+### Replayed
+
+- Every locally recorded replay carries both sides whole: all 34 replays of
+  this version's corpus convert with both sides' snapshots in every round,
+  whether a spectator recorded them or either player: `scripts/verify-battles.py`.
+
 ### Read
 
 - The deployment fog is a client object shown and hidden over a territory, and
@@ -73,8 +79,5 @@ and the difference is the platform's to decide rather than the game's.
 
 ### Not established
 
-- **That every locally recorded replay carries both sides whole.** It held for
-  every replay of another version's corpus, whichever seat recorded it. This
-  version's corpus is not replayed yet: `scripts/verify-battles.py`.
 - **What the interface draws of the other side**, for each of the questions
   above.

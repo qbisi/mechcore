@@ -110,6 +110,12 @@ the alternatives offered, not which alternative either player chooses.
 
 ## Evidence
 
+### Replayed
+
+- The flow reproduces every recorded opening: the four offers each side was
+  dealt and the construction layouts of all 34 replays of this version's
+  corpus: `scripts/verify-battles.py`.
+
 ### Read
 
 - The opening stream is the match's, seeded with the system seed, and the map
@@ -135,7 +141,4 @@ the alternatives offered, not which alternative either player chooses.
 
 ### Not established
 
-- **That the flow reproduces every recorded opening.** Offers and construction
-  layouts matched every replay of another version's corpus. This version's
-  corpus is not replayed yet: `scripts/verify-battles.py`.
 - **Modified pools, other modes and negative match seeds.**

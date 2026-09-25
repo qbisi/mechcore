@@ -49,6 +49,15 @@ as a round opens can already read 1.
 
 ## Evidence
 
+### Replayed
+
+- A unit that arrived this round, a unit wearing the Deployment Module and a
+  unit whose type's Jump Drive is researched may move, and every other one from
+  an earlier round may not: each of the corpus's 585 recorded moves is of a unit
+  the rule lets move, and every formation's `movable` agrees, across 4 battles
+  that fit the Module and 21 that research a Jump Drive:
+  `scripts/verify-battles.py`.
+
 ### Read
 
 - A move is allowed for a unit whose mobility state is not `Limit`:
@@ -59,12 +68,8 @@ as a round opens can already read 1.
 
 ### Not established
 
-- **Which writes set `Limit` and `Free`.** They are inlined and not read. That
-  a unit arriving this round, a unit wearing the Deployment Module and a unit
-  whose type's Jump Drive is researched may move, and every other one from an
-  earlier round may not, was replayed on another version's corpus: every
-  recorded move there was of a unit the rule lets move. This version's corpus
-  is not replayed yet: `scripts/verify-battles.py`.
+- **Which writes set `Limit` and `Free`.** They are inlined and not read; the
+  rule is what the corpus replays.
 - **That the rule is not too lenient.** A corpus holds no move the game refused,
   so it shows the rule is not too strict and cannot show it lets through only
   what the game does. A unit that stays in place is consistent with either.

@@ -26,6 +26,13 @@ stated for it.
 
 ## Evidence
 
+### Replayed
+
+- A spent skill shows its `cooldown` as the next round opens, an unspent slot
+  drops by one, and a slot joins at its `initial_cooldown`, Nuke's and Ion
+  Blast's 1 among them: every panel of this version's corpus:
+  `scripts/verify-battles.py`.
+
 ### Read
 
 - A skill's two cooldowns are its row's `initialCoolDown` and
@@ -37,12 +44,5 @@ stated for it.
 
 ### Not established
 
-- **The count-down and the restart.** A spent skill showing its `cooldown` as
-  the next round opens, an unspent slot dropping by one, and a slot joining at
-  its `initial_cooldown` were replayed on another version's corpus, together
-  with the round-opening shop allowance and equipment income. This version's
-  corpus is not replayed yet: `scripts/verify-battles.py`.
-- **A skill with an `initial_cooldown` above 0 in a replay.** The build reads
-  it, as above; no replay has shown one join the panel yet.
 - **A `cooldown` of -1.** What it does is not read.
 - **A skill the corpus never spends.** Its cooldowns are read, not observed.

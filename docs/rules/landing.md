@@ -49,6 +49,12 @@ touching rectangles do not overlap.
 
 ## Evidence
 
+### Replayed
+
+- Every arrival of this version's corpus lands where the rule puts it: the
+  squads of 160 unit cards, the opening forces of all 68 sides, and the squads
+  17 sides' specialists delivered as a round opened: `scripts/verify-battles.py`.
+
 ### Read
 
 - A new unit's preferred position is the region's centre with its corner
@@ -62,9 +68,4 @@ touching rectangles do not overlap.
 
 ### Not established
 
-- **That every arrival lands where the rule says.** Card squads, opening forces
-  and officer deliveries, some of them landing clear of units already at the
-  centre, were placed exactly where the game placed them in another version's
-  corpus, and every purchase where the round had reached when it was bought.
-  This version's corpus is not replayed yet: `scripts/verify-battles.py`.
 - **A full region.** No recording has shown a region with no free position.
