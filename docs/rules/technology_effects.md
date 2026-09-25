@@ -83,7 +83,7 @@ officers.
 The interval technologies put a value and a rate on one number: Mechanical Rage
 and Armour Piercing Bullets are the one pair that do, and they are what
 measured the order in the composition rule, which
-[officer_effects.md](officer_effects.md#a-value-applies-before-a-rate) carries.
+[officer_effects.md](officer_effects.md#how-a-correction-composes) carries.
 
 The simulator refuses a side holding a technology whose correction it does not
 derive (a minimum range, a splash radius, a projectile's speed or life) or
