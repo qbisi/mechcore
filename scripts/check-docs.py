@@ -215,7 +215,7 @@ RULES_PENDING = {
     "battle_skill.md", "combat.md", "constructions.md",
     "officer_effects.md", "officers.md", "opening.md", "reinforce_items.md",
     "reinforcements.md", "technology_effects.md", "terrain.md", "towers.md",
-    "unit_experience.md", "unit_techs.md",
+    "unit_techs.md",
 }
 EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
 ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")

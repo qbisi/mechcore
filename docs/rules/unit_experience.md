@@ -1,9 +1,7 @@
 # Unit experience
 
 How much experience fills each level of a unit, the formula those amounts
-follow, what a full bar means, and what Intensive Training does with it. The
-observations behind it are build 1.11.1.3.2259's; the formula holds on build
-2.0.0.1.2324's table as well, Centurion included.
+follow, what a full bar means, and what Intensive Training does with it.
 
 A unit's `exp` is its experience within its current level. Paying to
 upgrade a unit starts the new level at zero, whatever the old level held;
@@ -19,9 +17,9 @@ per unit, and checks the formula below on every row it writes.
 
 ## Where a bar is full
 
-A unit's bar is full at `GetUpgradeExp(level + 1)`, and level 9 fills at
-the same amount as level 8. Both halves are read from the build's code rather
-than measured:
+A unit's bar is full at `GetUpgradeExp(level + 1)`, unless something has
+replaced its bar (below), and level 9 fills at
+the same amount as level 8. Both halves are read from the build's code:
 
 - `MechExpData.PreProcess` builds the list `GetUpgradeExp` reads as
   `[0, upgradeLv2, …, upgradeLv9]`, indexed by `CardLevel`, whose `Level1` is
@@ -85,17 +83,47 @@ release, and does its work during deployment, so it is not a release the fight
 sees; [`action.md`](../spec/document/action.md#release_commander_skill) states
 the transition.
 
-It cannot target a unit at level 9, or one whose bar is already full.
-Both refusals were observed in Training Ground on this build, and the second is
-the `IsExpMax` check its availability test makes. A level 9 unit can still
-hold a full bar; it cannot be trained into one.
-
-Every release of it in the 2259 replay corpus in mechcore-replay reaches
-exactly the table's value, across units at levels 1 through 4. Levels 5 through
-8 are unobserved.
+It cannot target a unit at level 9, or one whose bar is already full; the
+second is the `IsExpMax` check its availability test makes. A level 9 unit can
+still hold a full bar; it cannot be trained into one.
 
 A full bar is also what a fight can leave behind. A unit that no training
 touched can open a round holding exactly its level's bar, so a full bar is a
-state a position holds rather than a trace of the skill. When a full bar turns into a
-level, and what a fight does with experience past it, belong to the fight and
-are not established here.
+state a position holds rather than a trace of the skill. When a full bar turns
+into a level, and what a fight does with experience past it, belong to the
+fight and are not established here.
+
+## Evidence
+
+### Read
+
+- The list a bar is read from is `[0, upgradeLv2, …, upgradeLv9]`, indexed by
+  level, and the index is clamped to its last entry: `MechExpData.PreProcess`,
+  `MechExpData.GetUpgradeExp`, `MechExpData.upgradeLv2`.
+- A unit's bar is the entry for the level above its own:
+  `UnitSystem.ChangeLevel`, `UnitUtility.GetUpgradeExp`,
+  `CardData.GetUpgradeExp`.
+- A full bar is kept as a state: `MechTeam.hasEnterMaxExp`, `MechTeam.IsExpMax`,
+  `CardElement.IsExpMax`.
+- A unit's bar is the table's entry unless its data set holds an
+  `UpgradeExp`, which then replaces it: `CardElement.GetNextLevelExp`.
+- A full unit takes no share of a fight's experience: `ExpSystem.IsValidOwner`.
+- Intensive Training refuses a full unit: `CS_AddExp.CheckAvaliable`.
+- Every row but Vulcan's follows the formula; `scripts/extract_prices.py`
+  checks it on every row it writes, which it did on this version's table:
+  `MechExpData.upgradeLv2`.
+
+### Not established
+
+- **Intensive Training's refusals in play.** That it refuses a level 9 unit
+  and a full one was observed in the Training Ground on another version; no
+  test pins it.
+- **Intensive Training reaching exactly the table's value.** Every release of
+  it in another version's corpus did, at levels 1 through 4. This version's
+  corpus is not replayed yet: `scripts/verify-battles.py`. Levels 5 through 8
+  are unobserved.
+- **When a full bar becomes a level**, and what a fight does with experience
+  past it.
+- **What writes a unit's `UpgradeExp`.** An officer's `expChangeRate` is the one
+  table field that touches experience; whether it reaches the bar through this
+  value is not read, and no recording has a bar changed.
