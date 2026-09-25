@@ -2,8 +2,7 @@
 
 The corrections a technology writes onto the unit that researched it, how they
 are encoded, and how they grow with the unit's rank. Which technologies a unit
-may research and what each costs is [unit_techs.md](unit_techs.md)'s. The
-recordings behind this rule are build 1.11.1.3.2259's.
+may research and what each costs is [unit_techs.md](unit_techs.md)'s.
 
 [`config/technology_effects.yaml`](../../config/technology_effects.yaml) holds
 every technology a unit may research that writes onto its unit's numbers;
@@ -75,33 +74,52 @@ also carries numbers that are.
 
 ## What the recordings show
 
-`tests/modifier/technology.mcscript` is what says the channel reaches the game.
 One Arclight researching Range Enhancement while its side holds Extended Range
 Arclight reaches the description's range plus both corrections, and the
 recording stores the technology's and the officer's range as **one**
-`attack_range_value` — the build merges two sources exactly as it merges two
+`attack_range_value`: the build merges two sources exactly as it merges two
 officers.
 
-The interval technologies did one more thing: Mechanical Rage and Armour
-Piercing Bullets are the one pair that put a value and a rate on one number,
-which is what measured the order in the composition rule.
-[officer_effects.md](officer_effects.md#a-value-applies-before-a-rate) carries
-the reading.
+The interval technologies put a value and a rate on one number: Mechanical Rage
+and Armour Piercing Bullets are the one pair that do, and they are what
+measured the order in the composition rule, which
+[officer_effects.md](officer_effects.md#a-value-applies-before-a-rate) carries.
 
 The simulator refuses a side holding a technology whose correction it does not
 derive (a minimum range, a splash radius, a projectile's speed or life) or
 whose effect grows with rank, rather than read index zero:
 `crates/simulation/src/modifier/technologies.rs` names each refusal.
 
-## What is not established here
+## Evidence
 
+### Recorded
+
+- A technology's range and an officer's range land in one `attack_range_value`,
+  and the fight uses their sum: `tests/modifier/regressions.mcscript`.
+
+### Read
+
+- A technology answers the same correction interface an officer does, so its
+  fields land in the same channels: `TechnologyData.lifeChangeRate`,
+  `TechnologyData.damageChangeRate`, `TechnologyData.attackRangeChangeValue`.
+- An effect is a list indexed by rank, and a growing list is its first entry
+  times the rank; `scripts/extract-technology-effects.py` refuses a table where
+  that does not hold, and wrote this version's: `TechnologyData.damageChangeRate`.
+- The numbers a technology states appear in its own description, which the
+  extraction checks: `TechnologyData.lifeChangeRate`.
+
+### Not established
+
+- **A value applies before a rate, for a technology.** Measured on the
+  Sledgehammer's interval technologies, whose fights no test pins because the
+  simulator refuses the unit.
 - **What the other technologies do**, in the terms a simulator needs. Each
   one owes the mechanism it belongs to: a summon, a skill's own numbers, a
   debuff on the target.
 - **Which rank index a fight reads.** The list is indexed by rank and this
-  index does not state what a unit's rank is at the moment a technology is
+  document does not state what a unit's rank is at the moment a technology is
   applied, nor whether raising a rank mid-fight re-reads it. Rank one is the
-  only case any capture has covered.
+  only case any recording has covered.
 - **`min_attack_range_value`, `splash_range_value`, `projectile_speed_value`
   and `projectile_life_rate`**, which no mechanism in `crates/simulation`
   reads.
