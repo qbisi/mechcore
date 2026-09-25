@@ -10,7 +10,10 @@ them, so it is read at `master`: nothing here pins a commit of it.
 | --- | --- |
 | `record-standard-1v1.mcscript` | how new replays are made: it watches live standard 1v1 matches unattended and keeps each one; it needs the game, so CI only parses it |
 
-`scripts/replay.py sync` fetches the corpus into the untracked `work/replay/`.
+`scripts/replay.py sync` fetches the corpus into the untracked `work/replay/`,
+and `scripts/replay.py publish` adds the replays this machine's game recorded
+under the installed version and pushes them: the collector keeps them in the
+game's own replay directory, and publishing is a separate step.
 The version this checkout describes selects its directory, and
 `scripts/export-replay-corpus.py` converts those replays into
 `work/battle/<version>/`, where `scripts/verify-battles.py` and
