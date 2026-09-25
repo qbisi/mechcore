@@ -460,8 +460,9 @@ still stands for a decision. `Redo` pushes it back.
 `CancelReleaseCommanderSkill` stops the newest standing
 `ReleaseCommanderSkill` with the same `SkillIndex` from counting, but the
 release stays on the stack as a spent entry, and the cancel is pushed as one
-too. What remains standing is the sequence, and it contains no retraction of
-either kind.
+too. Undoing the cancel stands its release again, and redoing the cancel spends
+it once more. What remains standing is the sequence, and it contains no
+retraction of either kind.
 
 Counting the spent entries is the part that is easy to get wrong, and it is what
 the game does: undo walks an index back over the recorded list, so an entry that

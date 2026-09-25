@@ -823,43 +823,66 @@ fn energy_tower_debt(
 /// `Redo` pushes the newest undone entry back, and any other action clears what
 /// could be redone. `docs/spec/document/action.md` states the rule.
 fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
-    /// An entry that no longer stands for a decision but still absorbs an undo.
-    const SPENT: bool = false;
-    let mut taken: Vec<(&ActionRecord, bool)> = Vec::with_capacity(recorded.len());
-    let mut undone: Vec<(&ActionRecord, bool)> = Vec::new();
+    /// One recorded action on the undo stack: whether it still stands for a
+    /// decision, and for a cancel, where on the stack its release sits.
+    struct Entry<'a> {
+        action: &'a ActionRecord,
+        stands: bool,
+        cancels: Option<usize>,
+    }
+    let mut taken: Vec<Entry> = Vec::with_capacity(recorded.len());
+    let mut undone: Vec<Entry> = Vec::new();
     for action in recorded {
         match action.kind.as_str() {
+            // Undoing a cancel stands its release again, and redoing it spends
+            // the release once more: the release sits below the cancel, so it
+            // is on the stack whenever the cancel is.
             "PAD_Undo" => {
                 if let Some(last) = taken.pop() {
+                    if let Some(release) = last.cancels {
+                        taken[release].stands = true;
+                    }
                     undone.push(last);
                 }
             }
             "PAD_Redo" => {
                 if let Some(last) = undone.pop() {
+                    if let Some(release) = last.cancels {
+                        taken[release].stands = false;
+                    }
                     taken.push(last);
                 }
             }
             "PAD_CancelReleaseCommanderSkill" => {
                 undone.clear();
-                if let Some(entry) = taken.iter_mut().rev().find(|(candidate, stands)| {
-                    *stands
-                        && candidate.kind == "PAD_ReleaseCommanderSkill"
-                        && candidate.skill_index == action.skill_index
-                }) {
-                    entry.1 = SPENT;
+                let release = taken.iter().rposition(|entry| {
+                    entry.stands
+                        && entry.action.kind == "PAD_ReleaseCommanderSkill"
+                        && entry.action.skill_index == action.skill_index
+                });
+                if let Some(release) = release {
+                    taken[release].stands = false;
                 }
-                taken.push((action, SPENT));
+                taken.push(Entry {
+                    action,
+                    stands: false,
+                    cancels: release,
+                });
             }
             "PAD_FinishDeploy" => undone.clear(),
             _ => {
                 undone.clear();
-                taken.push((action, true));
+                taken.push(Entry {
+                    action,
+                    stands: true,
+                    cancels: None,
+                });
             }
         }
     }
     taken
         .into_iter()
-        .filter_map(|(action, stands)| stands.then_some(action))
+        .filter_map(|entry| entry.stands.then_some(entry.action))
         .collect()
 }
 
@@ -1196,6 +1219,42 @@ fn skill_target(action: &ActionRecord, seat: Seat) -> Result<SkillTarget, String
 mod tests {
     use crate::Position;
     use crate::battle::Action;
+
+    /// Undoing a cancel stands the release it cancelled again. A side
+    /// released Orbital Javelin, cancelled it, released it again and then
+    /// undid past the cancel; its next snapshots show the javelin spent,
+    /// which only the first release, standing again, accounts for.
+    #[test]
+    fn undoing_a_cancel_stands_its_release_again() {
+        let entry = |kind: &str, index: &str| {
+            format!(r#"<MatchActionData xsi:type="{kind}">{index}</MatchActionData>"#)
+        };
+        let skill = |at: i32| format!("<SkillIndex>{at}</SkillIndex>");
+        let recorded = [
+            entry("PAD_ChooseReinforceItem", "<ID>300007</ID><Index>3</Index>"),
+            entry("PAD_ReleaseCommanderSkill", &skill(2)),
+            entry("PAD_CancelReleaseCommanderSkill", &skill(2)),
+            entry("PAD_ReleaseCommanderSkill", &skill(2)),
+            entry("PAD_Undo", ""),
+            entry("PAD_Undo", ""),
+            entry("PAD_ReleaseCommanderSkill", &skill(0)),
+        ]
+        .concat();
+        let records: crate::record::ActionRecords =
+            quick_xml::de::from_str(&format!("<actionRecords>{recorded}</actionRecords>")).unwrap();
+        let kept: Vec<_> = super::net_actions(&records.entries)
+            .iter()
+            .map(|action| (action.kind.as_str(), action.skill_index))
+            .collect();
+        assert_eq!(
+            kept,
+            [
+                ("PAD_ChooseReinforceItem", None),
+                ("PAD_ReleaseCommanderSkill", Some(2)),
+                ("PAD_ReleaseCommanderSkill", Some(0)),
+            ]
+        );
+    }
 
     /// A formation that begins its moves in the main half keeps only its
     /// last, a purchase takes every move of its own formation, and one that
