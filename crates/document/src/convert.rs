@@ -566,6 +566,7 @@ fn side_state(
             unlocked_units,
             buys_remaining: 0,
             unlocks_remaining: 0,
+            contraptions_remaining: 0,
         },
         blueprints,
         // What the previous round activated and still owes for, which the

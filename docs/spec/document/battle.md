@@ -549,7 +549,7 @@ owns it:
 | Field | Why it is rebuilt |
 | --- | --- |
 | `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
-| `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder. A round opens with two purchases, one more per Additional Deployment Slot held, and one unlock |
+| `shop.buys_remaining`, `unlocks_remaining`, `contraptions_remaining` | The recorded counters state the previous round's remainder, and the record keeps no contraption counter. A round opens with two purchases, one more per Additional Deployment Slot held, one unlock and eight contraption releases |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |
@@ -627,6 +627,7 @@ A [layout](layout.md#normal-form) is spelled by the same three:
       unlocked_units: [marksman, crawler, fire_badger, tarantula]
       buys_remaining: 2
       unlocks_remaining: 1
+      contraptions_remaining: 8
     next_index: {unit: 7, contraption: 0}
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}

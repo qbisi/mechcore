@@ -375,6 +375,7 @@ pub fn step_placing(
             next.supply -= economy
                 .contraption(*contraption)
                 .ok_or(Unsettled::Unpriced("contraption"))?;
+            next.shop.contraptions_remaining -= 1;
             let type_name =
                 contraption_type_from_id(*contraption).ok_or(Unsettled::Unpriced("contraption"))?;
             next.contraptions.push(ContraptionPlacement {
@@ -409,6 +410,11 @@ fn afford(next: &SideState) -> Result<(), Unsettled> {
     }
     if next.shop.unlocks_remaining < 0 {
         return Err(Unsettled::Refused("unlocking past the round's allowance"));
+    }
+    if next.shop.contraptions_remaining < 0 {
+        return Err(Unsettled::Refused(
+            "releasing contraptions past the round's allowance",
+        ));
     }
     Ok(())
 }
@@ -669,6 +675,11 @@ pub(crate) fn opening_position() -> SideState {
 pub(crate) const BUY_COUNT_PER_ROUND: i32 = 2;
 /// `Shop.UNLOCK_COUNT_PER_ROUND`.
 pub(crate) const UNLOCK_COUNT_PER_ROUND: i32 = 1;
+/// `ContraptionManager`'s `BuyCount`, which its constructor sets to 8 and
+/// only an officer's `contraptionBuyCount` raises; no standard officer does.
+/// `ContraptionSystem.OnEnterDeployment` restores `RemainCount` to it as each
+/// round opens, and releasing a contraption or a construction spends one.
+pub(crate) const CONTRAPTION_RELEASES_PER_ROUND: i32 = 8;
 
 /// The position a round's decisions reach, which is what the fight starts
 /// from.
@@ -826,6 +837,7 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         .count();
     next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
     next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
+    next.shop.contraptions_remaining = CONTRAPTION_RELEASES_PER_ROUND;
     // The round's income: the map's schedule and what the side's officers add
     // to it, what the equipment on the board pays, and less what an energy
     // tower skill the previous round activated still owes.
@@ -966,6 +978,7 @@ mod tests {
                 unlocked_units: (1..=31).chain([2002]).collect(),
                 buys_remaining: 99,
                 unlocks_remaining: 99,
+                contraptions_remaining: 99,
             },
             ..SideState::default()
         }
@@ -1020,6 +1033,26 @@ mod tests {
                 .collect(),
             ..solvent()
         }
+    }
+
+    /// A round lets a side release eight contraptions, and refuses a ninth.
+    #[test]
+    fn a_round_releases_eight_contraptions() {
+        let economy = Economy::embedded().unwrap();
+        let opened = super::open_round(&economy, &solvent(), 3, &mut |_, _| None, None).unwrap();
+        assert_eq!(opened.shop.contraptions_remaining, 8);
+        let shield = |x| Action::ReleaseContraption {
+            contraption: 10_001,
+            position: Position { x, y: -100 },
+            extra_position: None,
+        };
+        let eight: Vec<_> = (0..8).map(|at| shield(at * 20)).collect();
+        let released = fold(&economy, &opened, &eight).unwrap();
+        assert_eq!(released.shop.contraptions_remaining, 0);
+        assert!(matches!(
+            step_placing(&economy, &released, &shield(200), None, &mut |_, _| None),
+            Err(Unsettled::Refused(_))
+        ));
     }
 
     /// Two Enhancement Modules on one formation both take their 100 off its
@@ -1213,6 +1246,7 @@ mod tests {
                 unlocked_units: Vec::new(),
                 buys_remaining: 0,
                 unlocks_remaining: 0,
+                contraptions_remaining: 0,
             },
             energy_tower_skills: vec![1],
             officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
@@ -1601,6 +1635,7 @@ mod tests {
                 unlocked_units: vec![9],
                 buys_remaining: 2,
                 unlocks_remaining: 1,
+                contraptions_remaining: 8,
             },
             next_index: crate::battle::NextIndex {
                 unit: 7,

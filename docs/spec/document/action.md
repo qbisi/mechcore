@@ -103,7 +103,8 @@ round otherwise owns.
 - `buys_remaining` counts down as purchases are made, and two decisions add to
   it: energy tower skill `3` and reinforcement card `10004` each grant one more.
   The card is an officer the side keeps, so every later round opens with the
-  extra purchase too. `unlocks_remaining` only ever counts down.
+  extra purchase too. `unlocks_remaining` and `contraptions_remaining` only
+  ever count down.
 - A unit's `exp` is the fight's to grant, except that upgrading a unit
   discards it and Intensive Training fills it. A rank starts at zero however much
   the rank below it earned.

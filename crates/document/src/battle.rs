@@ -207,6 +207,9 @@ pub struct ShopState {
     pub unlocked_units: Vec<i32>,
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
+    /// What the round still lets the side release of contraptions and
+    /// constructions, which spend one allowance between them.
+    pub contraptions_remaining: i32,
 }
 
 /// A formation, and what recovering it pays back.

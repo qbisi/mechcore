@@ -146,6 +146,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
         unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
         buys_remaining: 3
         unlocks_remaining: 1
+        contraptions_remaining: 8
 
       blueprints: [sticky_oil_bomb, field_recovery, attack_enhancement_ii]
       energy_tower_skills: [rapid_resupply]
@@ -297,7 +298,8 @@ that, and an installer has to set it even though no state document carries it.
 
 ### The shop
 
-A state stores two shop numbers, and both differ from what the replay holds.
+A state stores the shop's unlocked units and three counters, and they differ
+from what the replay holds.
 
 `unlocked_units` names each unit type by the name a unit's `name` gives,
 and lists them in ascending unit ID.
@@ -306,14 +308,16 @@ and lists them in ascending unit ID.
 against the build's unit catalogue. `MaxUnlockCount` is dropped because it is
 the shipped constant plus a modifier no standard 1v1 source provides.
 
-The two counters that remain are stored as what is left, not as what was used,
-because that is the number a legality check reads. The purchase allowance gates
-a purchase directly: a buy is refused when the counter has fallen to zero.
+The counters are stored as what is left, not as what was used, because that is
+the number a legality check reads. Each gates its decision directly: a buy, an
+unlock or a contraption release is refused when its counter has fallen to zero.
 
 A round opens with two purchases, one more for every Additional Deployment Slot
-(`10004`) the side holds, and one unlock. Neither can be copied from a replay,
-for the same reason `supply` cannot: the recorded counters describe the previous
-round, because the snapshot is taken before the round's own reset.
+(`10004`) the side holds, one unlock, and eight contraption releases, which
+[contraptions.md](../../rules/contraptions.md) states. None can be copied from a
+replay, for the same reason `supply` cannot: the recorded purchase and unlock
+counters describe the previous round, because the snapshot is taken before the
+round's own reset, and the record keeps no contraption counter at all.
 
 ### Officers and technologies
 
