@@ -301,19 +301,26 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     let fought = run(&["match", "commit", &path, "--side", "red"]).ok();
     assert_eq!(fought["phase"], "fight");
     // The fight is run from the position the round ends in, so what stops it
-    // is what the simulator says about that position. Every opening hands its
-    // side an officer, a Defensive Wall and a turret. Each is applied alone,
-    // and the turret fires, but whether the officer reaches the turret's skill
-    // is not measured — so what a real match meets first is that question, and
-    // the refusal names the construction it is about.
+    // is what the simulator says about that position, all of it at once.
+    // Every opening hands its side an officer, a Defensive Wall and a turret.
+    // Each is applied alone, and the turret fires, but whether the officer
+    // reaches the turret's skill is not measured, so the refusal names the
+    // construction it is about; it names beside it the units the opening
+    // dealt that the kernel has no behaviour for.
     let unresolved = fought["unresolved"].as_str().unwrap();
     assert!(
-        unresolved.contains(
-            "round 1 is not fought: side blue: \"rapid_fire_turret\" fires a skill, and \
-             whether the side's officers and technologies reach it is not measured"
-        ),
+        unresolved.starts_with("round 1 is not fought: "),
         "{unresolved}"
     );
+    for clause in [
+        "side blue: \"rapid_fire_turret\" fires a skill, and whether the side's \
+         officers and technologies reach it is not measured",
+        "side red: \"rapid_fire_turret\" fires a skill",
+        "side blue: unit \"sledgehammer\" is not in the current kernel's supported \
+         behavior set",
+    ] {
+        assert!(unresolved.contains(clause), "{clause}: {unresolved}");
+    }
 
     // Nothing is approximated: the round stands unfought and both commits
     // stand with it, so the next caller finds the same fight waiting.

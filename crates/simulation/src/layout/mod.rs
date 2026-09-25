@@ -109,39 +109,102 @@ struct Loadouts {
     round: i32,
 }
 
+/// Everything a layout is refused for, gathered rather than stopped at.
+///
+/// A caller wants to know how far a deployment is from being fought, not its
+/// first step, so compiling goes on past a refusal and names every one. The
+/// same refusal is named once: an officer the build cannot compose refuses
+/// every formation it would reach with the same words.
+#[derive(Default)]
+struct Refusals(Vec<String>);
+
+impl Refusals {
+    fn push(&mut self, why: impl Into<String>) {
+        let why = why.into();
+        if !self.0.contains(&why) {
+            self.0.push(why);
+        }
+    }
+
+    /// The value, or nothing with its refusal kept.
+    fn hold<T>(&mut self, result: Result<T>) -> Option<T> {
+        result.map_err(|error| self.push(error.to_string())).ok()
+    }
+
+    /// Whether anything was refused, and if so every refusal as one error.
+    fn settle(self) -> Result<()> {
+        if self.0.is_empty() {
+            Ok(())
+        } else {
+            Err(Error::new(self.0.join("; ")))
+        }
+    }
+}
+
 pub(crate) fn compile_with_seed(
     bytes: &[u8],
     units: &UnitConfigs,
 ) -> Result<(Option<i32>, CompiledLayout)> {
     let layout = mechcore_document::parse_yaml(bytes).map_err(Error::new)?;
     let plan = mechcore_document::compile_layout(layout).map_err(Error::new)?;
-    // Both sides are asked before either is refused, so a caller sees the whole
-    // distance between this deployment and a fight rather than its first step.
-    let missing: Vec<String> = [("blue", &plan.blue), ("red", &plan.red)]
-        .into_iter()
-        .filter_map(|(name, side)| {
-            let missing = crate::module::unsupported(side);
-            (!missing.is_empty()).then(|| crate::module::refusal(name, &missing))
-        })
-        .collect();
-    if !missing.is_empty() {
-        return Err(Error::new(missing.join("; ")));
-    }
     let loadouts = Loadouts {
         officers: OfficerEffects::load()?,
         technologies: TechnologyEffects::load()?,
         equipment: EquipmentEffects::load()?,
         round: plan.round,
     };
-    let mut placements = compile_side("blue", 0, &plan.blue, units, &loadouts)?;
-    placements.extend(compile_side("red", 1, &plan.red, units, &loadouts)?);
+    let table = Constructions::load()?;
 
+    // Both sides are asked everything before either is refused. The registry
+    // speaks first, one clause a side naming every field it owes; what the
+    // registry lets through is then refused member by member.
+    let mut refused = Refusals::default();
+    let sides = [("blue", 0, &plan.blue), ("red", 1, &plan.red)];
+    for (name, _, side) in sides {
+        let missing = crate::module::unsupported(side);
+        if !missing.is_empty() {
+            refused.push(crate::module::refusal(name, &missing));
+        }
+    }
+    let mut placements = Vec::new();
     // Both sides' constructions are resolved here rather than in the kernel,
     // because this is the only place a refusal can still name the side and the
     // construction it is about.
-    let table = Constructions::load()?;
-    let mut constructions = compile_constructions("blue", 0, &plan.blue, &table)?;
-    constructions.extend(compile_constructions("red", 1, &plan.red, &table)?);
+    let mut constructions = Vec::new();
+    let mut tower_levels = BTreeMap::new();
+    for (name, team, side) in sides {
+        for (index, formation) in side.units.iter().enumerate() {
+            placements.extend(compile_formation(
+                name,
+                team,
+                index,
+                formation,
+                units,
+                side,
+                &loadouts,
+                &mut refused,
+            ));
+        }
+        constructions.extend(compile_constructions(
+            name,
+            team,
+            side,
+            &table,
+            &mut refused,
+        ));
+        let levels = side
+            .tower_strengthen_levels
+            .iter()
+            .map(|level| {
+                u8::try_from(*level)
+                    .map_err(|_| Error::new(format!("a tower strengthen level of {level}")))
+            })
+            .collect::<Result<Vec<_>>>();
+        if let Some(levels) = refused.hold(levels) {
+            tower_levels.insert(team, levels);
+        }
+    }
+    refused.settle()?;
 
     Ok((
         plan.seed,
@@ -149,21 +212,7 @@ pub(crate) fn compile_with_seed(
             round: u32::try_from(plan.round).expect("validated layout round is positive"),
             placements,
             constructions,
-            tower_levels: [(0, &plan.blue), (1, &plan.red)]
-                .into_iter()
-                .map(|(team, side)| {
-                    let levels = side
-                        .tower_strengthen_levels
-                        .iter()
-                        .map(|level| {
-                            u8::try_from(*level).map_err(|_| {
-                                Error::new(format!("a tower strengthen level of {level}"))
-                            })
-                        })
-                        .collect::<Result<Vec<_>>>()?;
-                    Ok((team, levels))
-                })
-                .collect::<Result<BTreeMap<_, _>>>()?,
+            tower_levels,
         },
     ))
 }
@@ -173,12 +222,17 @@ fn compile_constructions(
     team: u32,
     side: &SidePlan,
     table: &Constructions,
-) -> Result<Vec<ConstructionBuilding>> {
+    refused: &mut Refusals,
+) -> Vec<ConstructionBuilding> {
     let mut built = Vec::new();
     for placement in &side.constructions {
-        let buildings = table
-            .buildings(team, placement)
-            .map_err(|error| Error::new(format!("side {name}: {error}")))?;
+        let Some(buildings) = refused.hold(
+            table
+                .buildings(team, placement)
+                .map_err(|error| Error::new(format!("side {name}: {error}"))),
+        ) else {
+            continue;
+        };
         // Whether an officer or a technology reaches a construction's skill is
         // not read: the fight would shoot with the row's numbers where the
         // game may not. A firing construction on a side that carries either is
@@ -186,33 +240,21 @@ fn compile_constructions(
         if buildings.iter().any(|building| building.skill.is_some())
             && (!side.techs.officers.is_empty() || !side.techs.units.is_empty())
         {
-            return Err(Error::new(format!(
+            refused.push(format!(
                 "side {name}: {:?} fires a skill, and whether the side's officers and \
                  technologies reach it is not measured",
                 placement.type_name
-            )));
+            ));
+            continue;
         }
         built.extend(buildings);
     }
-    Ok(built)
+    built
 }
 
-fn compile_side(
-    name: &str,
-    team: u32,
-    side: &SidePlan,
-    units: &UnitConfigs,
-    loadouts: &Loadouts,
-) -> Result<Vec<Placement>> {
-    side.units
-        .iter()
-        .enumerate()
-        .map(|(index, formation)| {
-            compile_formation(name, team, index, formation, units, side, loadouts)
-        })
-        .collect()
-}
-
+/// One formation as the fight places it, or nothing with every reason it
+/// cannot be placed kept.
+#[allow(clippy::too_many_arguments)]
 fn compile_formation(
     side_name: &str,
     team: u32,
@@ -221,23 +263,29 @@ fn compile_formation(
     units: &UnitConfigs,
     side: &SidePlan,
     loadouts: &Loadouts,
-) -> Result<Placement> {
-    // Travelling is a claimed field and was refused by the module registry
-    // before this ran; what is left is a placement that is
-    // not a unit at all.
+    refused: &mut Refusals,
+) -> Option<Placement> {
+    // Travelling is a claimed field and was refused by the module registry;
+    // what is left is a placement that is not a unit at all.
     if !matches!(formation.native, NativeFormation::Unit(_)) {
-        return Err(Error::new(format!(
+        refused.push(format!(
             "side {side_name} holds a placement that is not a unit"
-        )));
+        ));
+        return None;
     }
-    let rotated = formation.rotated;
-    let rules = units.get(&formation.type_name).ok_or_else(|| {
-        Error::new(format!(
+    let Some(rules) = units.get(&formation.type_name) else {
+        refused.push(format!(
             "side {side_name} unit type {:?} has no unit configuration",
             formation.type_name
-        ))
-    })?;
-    validate_formation_footprint(side_name, formation, rules)?;
+        ));
+        return None;
+    };
+    let behaves = refused.hold(
+        rules
+            .ensure_current_kernel_support()
+            .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
+    );
+    let fits = refused.hold(validate_formation_footprint(side_name, formation, rules));
     let level = i64::from(formation.level.unwrap_or(1));
     let corrections = loadout(
         side_name,
@@ -247,7 +295,18 @@ fn compile_formation(
         rules,
         side,
         loadouts,
-    )?;
+        refused,
+    );
+    let formation_index = refused.hold(
+        i32::try_from(index)
+            .map_err(|_| Error::new("formation index exceeds the native integer range")),
+    );
+    let (Some(()), Some(()), Some(corrections), Some(formation_index)) =
+        (behaves, fits, corrections, formation_index)
+    else {
+        return None;
+    };
+    let rotated = formation.rotated;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z, rotation) = if team == 0 {
@@ -255,12 +314,11 @@ fn compile_formation(
     } else {
         (-local_x, -local_z, 180_000)
     };
-    Ok(Placement {
+    Some(Placement {
         team,
         unit_id: 0,
         formation_id: 0,
-        formation_index: i32::try_from(index)
-            .map_err(|_| Error::new("formation index exceeds the native integer range"))?,
+        formation_index,
         type_name: formation.type_name.clone(),
         world_x,
         world_z,
@@ -274,9 +332,11 @@ fn compile_formation(
 /// What this side's loadout and a formation's equipment write onto it.
 ///
 /// The corrections are resolved here as well as gathered, because this is
-/// where a refusal can still say whose side and which unit it is about. Once
-/// they are known to resolve, the fight applies them without a decision to
-/// make.
+/// where a refusal can still say whose side and which unit it is about. Each
+/// officer, technology and equipment is asked on its own, so a refusal names
+/// every one this build cannot apply. Once they are known to resolve, the
+/// fight applies them without a decision to make.
+#[allow(clippy::too_many_arguments)]
 fn loadout(
     side_name: &str,
     type_name: &str,
@@ -285,37 +345,55 @@ fn loadout(
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
-) -> Result<Vec<(Channel, Entry)>> {
-    let mut corrections = loadouts
+    refused: &mut Refusals,
+) -> Option<Vec<(Channel, Entry)>> {
+    let on_side = |error: Error| Error::new(format!("side {side_name}: {error}"));
+    let asked = side
+        .techs
         .officers
-        .corrections(&side.techs.officers, rules)
-        .map_err(|error| Error::new(format!("side {side_name}: {error}")))?;
-    corrections.extend(
-        loadouts
-            .technologies
-            .corrections(&side.techs.units, type_name)
-            .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
-    );
-    for &id in equipment {
-        corrections.extend(
+        .iter()
+        .map(|id| {
+            loadouts
+                .officers
+                .corrections(std::slice::from_ref(id), rules)
+                .map_err(on_side)
+        })
+        .chain(side.techs.units.iter().map(|id| {
+            loadouts
+                .technologies
+                .corrections(std::slice::from_ref(id), type_name)
+                .map_err(on_side)
+        }))
+        .chain(equipment.iter().map(|&id| {
             loadouts
                 .equipment
                 .corrections(id, rules, loadouts.round)
-                .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
-        );
+                .map_err(on_side)
+        }))
+        .collect::<Vec<_>>();
+    let mut corrections = Vec::new();
+    let mut resolved = true;
+    for answer in asked {
+        match refused.hold(answer) {
+            Some(written) => corrections.extend(written),
+            None => resolved = false,
+        }
     }
-    let refused = |error: Error| {
+    if !resolved {
+        return None;
+    }
+    let refusal = |error: Error| {
         Error::new(format!(
             "side {side_name} unit type {type_name:?} carries a loadout this \
              build cannot resolve: {error}"
         ))
     };
-    let stats = Stats::corrected(rules, level, &corrections).map_err(refused)?;
+    let stats = refused.hold(Stats::corrected(rules, level, &corrections).map_err(refusal))?;
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
-    stats.unit_dynamic_modifiers().map_err(refused)?;
-    stats.skill_dynamic_modifiers(1).map_err(refused)?;
-    Ok(corrections)
+    refused.hold(stats.unit_dynamic_modifiers().map_err(refusal))?;
+    refused.hold(stats.skill_dynamic_modifiers(1).map_err(refusal))?;
+    Some(corrections)
 }
 
 fn validate_formation_footprint(
@@ -503,6 +581,34 @@ red:
         assert!(refused.contains("side blue"), "{refused}");
         assert!(refused.contains("rapid_fire_turret"), "{refused}");
         assert!(refused.contains("officers and technologies"), "{refused}");
+    }
+
+    /// A layout refused for several things is refused for all of them at
+    /// once, each named once however many formations it reaches.
+    #[test]
+    fn a_refusal_names_everything_the_layout_is_refused_for() {
+        let value = LAYOUT
+            .replace(
+                "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+                "blue:\n  officers: [berserk_rhino]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
+            )
+            .replace(
+                "units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]",
+                "units:\n  - {name: hound, index: 0, position: {x: 0, y: -160}}\n  - {name: centurion, index: 1, position: {x: 45, y: -165}}",
+            );
+        let refused = compile_default(&value).unwrap_err().to_string();
+        let clauses: Vec<&str> = refused.split("; ").collect();
+        assert_eq!(clauses.len(), 4, "{refused}");
+        assert!(
+            clauses[0].contains("terrains (RangeItemSystem)"),
+            "{refused}"
+        );
+        assert!(clauses[1].contains("30502"), "{refused}");
+        assert!(clauses[2].contains("\"hound\""), "{refused}");
+        assert!(
+            clauses[3].contains("\"centurion\" has no unit configuration"),
+            "{refused}"
+        );
     }
 
     #[test]
