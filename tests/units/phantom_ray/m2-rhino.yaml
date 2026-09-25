@@ -1,0 +1,17 @@
+kind: layout
+round: 1
+
+# M2: a single large ground target, which cannot hit back.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields three formations.
+
+blue:
+  units:
+    - {name: phantom_ray, index: 0, position: {x: -5, y: -180}}
+    - {name: phantom_ray, index: 1, position: {x: -5, y: -140}}
+    - {name: phantom_ray, index: 2, position: {x: -5, y: -100}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: 5, y: -95}}

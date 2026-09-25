@@ -60,6 +60,8 @@ pub(crate) enum AgentSizeType {
     S,
     M,
     L,
+    Xl,
+    Xxl,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

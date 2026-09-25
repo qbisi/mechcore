@@ -44,6 +44,8 @@ pub(in crate::fight) fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
             RvoSize::S => AgentSizeType::S,
             RvoSize::M => AgentSizeType::M,
             RvoSize::L => AgentSizeType::L,
+            RvoSize::Xl => AgentSizeType::Xl,
+            RvoSize::Xxl => AgentSizeType::Xxl,
         },
         collider_priority: profile.collider_priority,
         priority_q32: profile.priority_q32(),

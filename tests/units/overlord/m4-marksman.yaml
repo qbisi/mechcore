@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M4: an air unit against a ground unit that shoots air.
+
+blue:
+  units:
+    - {name: overlord, index: 0, position: {x: -5, y: -105}}
+
+red:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -100}}

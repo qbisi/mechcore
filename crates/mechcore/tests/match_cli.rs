@@ -305,22 +305,15 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     // Every opening hands its side an officer, a Defensive Wall and a turret.
     // Each is applied alone, and the turret fires, but whether the officer
     // reaches the turret's skill is not measured, so the refusal names the
-    // construction it is about; it names beside it the units the opening
-    // dealt that the kernel has no behaviour for.
+    // construction it is about, on each side.
     let unresolved = fought["unresolved"].as_str().unwrap();
-    assert!(
-        unresolved.starts_with("round 1 is not fought: "),
-        "{unresolved}"
+    assert_eq!(
+        unresolved,
+        "round 1 is not fought: side blue: \"rapid_fire_turret\" fires a skill, and \
+         whether the side's officers and technologies reach it is not measured; \
+         side red: \"rapid_fire_turret\" fires a skill, and whether the side's \
+         officers and technologies reach it is not measured"
     );
-    for clause in [
-        "side blue: \"rapid_fire_turret\" fires a skill, and whether the side's \
-         officers and technologies reach it is not measured",
-        "side red: \"rapid_fire_turret\" fires a skill",
-        "side blue: unit \"sledgehammer\" is not in the current kernel's supported \
-         behavior set",
-    ] {
-        assert!(unresolved.contains(clause), "{clause}: {unresolved}");
-    }
 
     // Nothing is approximated: the round stands unfought and both commits
     // stand with it, so the next caller finds the same fight waiting.

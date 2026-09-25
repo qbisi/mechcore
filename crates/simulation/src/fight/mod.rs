@@ -253,15 +253,12 @@ impl Simulation {
         seed: i32,
     ) -> Result<Self> {
         for placement in &layout.placements {
-            configs
-                .get(&placement.type_name)
-                .ok_or_else(|| {
-                    Error::new(format!(
-                        "unit type {:?} has no configuration",
-                        placement.type_name
-                    ))
-                })?
-                .ensure_current_kernel_support()?;
+            configs.get(&placement.type_name).ok_or_else(|| {
+                Error::new(format!(
+                    "unit type {:?} has no configuration",
+                    placement.type_name
+                ))
+            })?;
         }
         let actors = initialize_actors(layout, configs, seed)?;
         let InitialBuildings {

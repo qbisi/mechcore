@@ -1,0 +1,52 @@
+schema: mechcore.unit
+type_name: vulcan
+unit_type_id: 3
+
+formation:
+  members: 1
+  slot_size: 40
+  footprint: {width: 40, depth: 40}
+
+domain: ground
+max_life: 30279
+collision_radius: 13
+move_speed: 6
+rotate_speed: 70
+has_body: true
+independent_aim: false
+rvo: {outer_radius: 15, inner_radius: 9, size: xl, collider_priority: 9, priority: 0.009}
+
+attack:
+  base_damage: 75
+  min_range: 0
+  range: 95
+  attack_half_angle: 30
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 0.1
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 15
+  weapons:
+    mode: normal
+    count: 2
+    per_skill: 2
+  melee: false
+  path:
+    type: projectile
+    count: 1
+    release_interval: 0
+    speed: 450
+    target_offset_radius: 0
+    evenly_allocate_targets: false
+    extra_search_range: 0
+    pre_flight_height: 0
+    simulated_motion: true
+    interceptible: false
+    max_life: 0

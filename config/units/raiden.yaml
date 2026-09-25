@@ -1,0 +1,43 @@
+schema: mechcore.unit
+type_name: raiden
+unit_type_id: 27
+
+formation:
+  members: 1
+  slot_size: 40
+  footprint: {width: 40, depth: 40}
+
+domain: air
+max_life: 16065
+collision_radius: 13
+move_speed: 10
+rotate_speed: 60
+has_body: false
+rvo: {outer_radius: 8, inner_radius: 3, size: m, collider_priority: 8, priority: 0.006}
+
+attack:
+  base_damage: 5027
+  min_range: 0
+  range: 110
+  attack_half_angle: 60
+  targets: {ground: true, air: true}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 4.6
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0.5
+  splash_radius: 0
+  weapons:
+    mode: group
+    count: 3
+    per_skill: 1
+    fusillade: true
+    allow_same_target: false
+  melee: false
+  path:
+    type: direct

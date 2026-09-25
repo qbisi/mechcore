@@ -1,0 +1,15 @@
+kind: layout
+round: 1
+
+# M6: two formations against a Crawler swarm and a Marksman:
+# target distribution and avoidance between allies.
+
+blue:
+  units:
+    - {name: centurion, index: 0, position: {x: -5, y: -125}}
+    - {name: centurion, index: 1, position: {x: -5, y: -85}}
+
+red:
+  units:
+    - {name: crawler, index: 0, position: {x: 5, y: -70}}
+    - {name: marksman, index: 1, position: {x: 0, y: -110}}
