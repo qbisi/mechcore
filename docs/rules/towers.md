@@ -2,9 +2,7 @@
 
 A side's two towers, the Energy Tower and the Research Center, can be
 strengthened before a fight, and losing one in a fight writes a debuff on the
-side. The recordings behind these rules were made on build 1.11.1.3.2259.
-Build 2.0.0.1.2324 moved how a loss reaches its targets; the sections below say
-which claims its dump agrees with and which wait for a 2.0 recording.
+side.
 
 ## Strengthening
 
@@ -18,25 +16,22 @@ the tower's own life and buff, which no strengthen row names.
 [`scripts/extract-towers.py`](../../scripts/extract-towers.py) writes them to
 [`config/towers.yaml`](../../config/towers.yaml).
 
-On 2259 the tower's own life and footprint were not in the container, and
-`config/towers.yaml` keeps them as measured on a capture. On 2.0 they are:
-`towerDefaultDatas` gives a tower's `life`, `protectionRange` and `rvoRadius`
-per scene (`limitedScene`), and `addBufToOwner`, which the next section reads.
+`towerDefaultDatas` gives a tower's own `life`, `protectionRange` and
+`rvoRadius` per scene (`limitedScene`), and `addBufToOwner`, which the next
+section reads.
 
 ## What a loss writes
 
-The hit that fells a tower runs its `OnDead`, and `FightTeamController.OnTowerDestoryed`
-hands the tower's buff on.
-
-- **2259:** to `BuffSystem.TryAddSpecialBuffForTeam`, which gives it to every live
-  actor of the side (`FightTeam.activeActors`).
-- **2.0:** to `BuildingSystem.OnTowerDestroyed`, which makes one
-  `BuffSystem.AddBuff(buff, targets, team)` call. `targets` is the side's own
-  actor list when `isAddTowerBuffToOwnerTeam` is set (`SetAddTowerBuffTarget`,
-  which `towerDefaultDatas.addBufToOwner` feeds), and the group's actor list
-  otherwise. A tower is now a `FightTower : FightCrystal, IBuffTarget` with a
-  `BuffManager` of its own, and `buffDatas` rows carry `canAffectTower`, so the
-  standing tower may take the loss as well. That is read, not recorded.
+The hit that fells a tower runs its `OnDead`, and
+`FightTeamController.OnTowerDestoryed` hands the tower's buff to
+`BuildingSystem.OnTowerDestroyed`, which makes one
+`BuffSystem.AddBuff(buff, targets, team)` call. `targets` is the side's own
+actor list when `isAddTowerBuffToOwnerTeam` is set (`SetAddTowerBuffTarget`,
+which `towerDefaultDatas.addBufToOwner` feeds), and the group's actor list
+otherwise. Every live unit of the side takes it. A tower is a
+`FightTower : FightCrystal, IBuffTarget` with a `BuffManager` of its own, and
+`buffDatas` rows carry `canAffectTower`, so the standing tower may take the
+loss as well.
 
 The buff a loss writes is one buff that differs by level only in duration.
 Its rows correct three rates: `speedChangeRate` on move speed,
@@ -50,8 +45,8 @@ as it does within one channel: `DamageProperty.CalculateDamage` adds the buff's
 enhancement to the skill's and multiplies the two reduce rates, as one factor,
 before the damage; `MoveSpeedProperty.Refresh` does the same over the unit's
 `DataSet` and the buffs', in Q32.32 metres a second. `PerformHitTargetEffect`
-scales each hit a unit takes by the rate on damage taken. On 2.0 `BuffManager`
-keeps a tower's buffs in a separate `towerBuffDatas` set, read through
+scales each hit a unit takes by the rate on damage taken. `BuffManager` keeps
+a tower's buffs in a separate `towerBuffDatas` set, read through
 `GetTowerBuffDamageChangeAddRate` and `GetTowerBuffDamageChangeReduceRate`;
 whether that changes the composition is not recorded.
 
@@ -84,19 +79,39 @@ gets the debuffed speed through `Move`.
 
 ## Evidence
 
-[`tests/tower/`](../../tests/tower/README.md) pins seven fights: a tower lost at
-each strengthen level, and a second tower lost inside the first loss's debuff
-at levels 0-0 and 0-4. `tests/tower/levels.mcscript` and `both.mcscript` record
-them; `regressions.mcscript` replays them without the game. They were recorded
-on 2259.
+### Recorded
 
-## Not covered
+- Losing a tower at each strengthen level writes its level's buff on every live
+  unit of the side, with the level's added life:
+  `tests/tower/regressions.mcscript`.
+- The buff's rates act in the buff channel, composing with a unit's own as one
+  factor on damage dealt, speed and damage taken:
+  `tests/tower/regressions.mcscript`.
+- A second loss inside the first's debuff lengthens it by the new row's
+  duration and does not stack the rates: `tests/tower/regressions.mcscript`.
+- The buff counts from the hit that fells the tower, reaches a side updated
+  before the felling side from the next tick, and a projectile takes its
+  owner's damage as it lands: `tests/tower/regressions.mcscript`.
+
+### Read
+
+- A tower's loss hands its buff on through one call, to the side's own actors
+  or the group's: `FightTeamController.OnTowerDestoryed`,
+  `BuildingSystem.OnTowerDestroyed`, `BuildingSystem.SetAddTowerBuffTarget`,
+  `TowerDefaultData.addBufToOwner`.
+- A second buff of the same divide lengthens the running one: `Buff.Reset`.
+- A tower's buffs are kept apart from a unit's: `BuffManager.towerBuffDatas`,
+  `BuffManager.GetTowerBuffDamageChangeAddRate`.
+- A buff row may reach a tower: `BuffData.canAffectTower`.
+
+### Not established
 
 - **A construction standing when its side loses a tower.** `canAffectConstruction`
   is set on the buff and `can_be_effected_by_tower_buff` on every construction
   but the Defensive Wall's first row, and no recording has one standing through
   a loss; the simulator refuses the fight when it happens.
-- **A tower taking a buff**, new in 2.0.
+- **A tower taking a buff.** Read above, not recorded.
+- **Whether a tower's separate buff set changes the composition.** Not recorded.
 - **`isClearSelfBuffWhenDisableTech`**, set on the buff: nothing this simulator
   places disables a unit's technologies.
 - **The officer that lengthens the debuff and the energy tower's skills**, which
