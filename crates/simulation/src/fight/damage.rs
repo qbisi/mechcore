@@ -400,7 +400,50 @@ impl Simulation {
             .expect("actor identity is stable")
             .skill
             .laser_attack_count += 1;
-        // A laser strikes one target and has no splash, so it takes the
+        // A beam that splashes strikes as any other hit does, what it was
+        // aimed at and everything of the other side around it, in the order
+        // the target trees hold them: a Melting Point's beam at one Crawler
+        // reads the Crawler beside it first.
+        let splash_radius = self.actors[&actor_id].rules.attack.splash_radius();
+        if splash_radius > 0 {
+            let attacker = &self.actors[&actor_id];
+            let center = match target {
+                FightActorRef::Unit(target_id) => {
+                    let aimed = &self.actors[&target_id];
+                    (aimed.x, aimed.z)
+                }
+                FightActorRef::Building(building_id) => self
+                    .buildings
+                    .iter()
+                    .find(|building| building.building_id == building_id)
+                    .map(|building| (building_x(building), building_z(building)))
+                    .ok_or_else(|| Error::new("laser target is absent"))?,
+            };
+            let hit = DamageHit {
+                source: attacker_ref,
+                source_team: attacker_team,
+                team: attacker_team,
+                amount: damage,
+                aimed: target,
+                hits_aimed: true,
+                center,
+                splash_radius,
+                reach: Reach::Targets(attacker.rules.attack.targets),
+            };
+            let struck = self.perform_damage(hit, events)?;
+            self.record_deaths(struck.deaths, events);
+            for (building_id, position) in struck.fallen {
+                self.fallen_buildings.push(event(
+                    Some(ObjectRef::new(ObjectKind::Building, building_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed { position },
+                ));
+            }
+            return Ok(());
+        }
+        // A laser with no splash strikes one target, so it takes the
         // stroke without the range step. A unit it kills is recorded dead
         // before the damage, and a block it fells falls after it: the Steel
         // Balls of `wall-laser.yaml` read `damage` and then
