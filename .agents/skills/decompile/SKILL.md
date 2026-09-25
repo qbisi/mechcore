@@ -23,6 +23,11 @@ python3 scripts/decomp.py publish <build>
   It takes about six minutes, most of it AssetRipper loading the game.
 - A step whose output exists is skipped. `--force isil,cs,config,...` redoes
   named steps; `--game PATH` or `MECHABELLUM_APP` points at another install.
+- A version string does not always change when the game does: Steam can
+  ship new binaries under the same `CFBundleShortVersionString`. The script
+  refuses a directory whose `game-manifest.json` was made from other game
+  files; `--build NAME` names a directory of its own. The manifest records
+  Steam's `buildid`, which does change, and is one number for every platform.
 - `publish` commits the build directory to `qbisi/mechcore-decomp`, pushes,
   and releases `index.sqlite.gz` as `index/<build>`. Rerun it if a push fails.
 

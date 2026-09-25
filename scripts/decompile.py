@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Decompile the installed game into work/decomp/<build>, whatever its build.
 
-    scripts/decompile.py [--game APP] [--force STEP[,STEP...]]
+    scripts/decompile.py [--game APP] [--build NAME] [--force STEP[,STEP...]]
 
 `scripts/decomp.py sync` fetches a build someone already decompiled; this makes
 one. It reads the build number from the game itself, fetches any tool it lacks
@@ -111,6 +111,24 @@ def game_identity(app):
     if not unity:
         fail(f"{app}: no Unity version in CFBundleGetInfoString")
     return build, unity.group(1)
+
+
+def steam_build(app):
+    """Steam's own identity for the installed game, when Steam installed it.
+
+    The version string does not always move when the game does: an update can
+    rebuild `GameAssembly.dylib` under the same `CFBundleShortVersionString`.
+    Steam's `buildid` always moves, and it is one number for every platform of
+    a branch, where each platform's files are a depot of their own.
+    """
+    steamapps = app.parent.parent.parent
+    for acf in sorted(steamapps.glob("appmanifest_*.acf")):
+        text = acf.read_text(errors="replace")
+        fields = dict(re.findall(r'^\s*"(\w+)"\s+"([^"]*)"', text, re.M))
+        if fields.get("installdir") == app.parent.name:
+            return {"appid": fields.get("appid"), "buildid": fields.get("buildid"),
+                    "branch": fields.get("BetaKey", "public")}
+    return None
 
 
 def artifacts(app):
@@ -400,6 +418,7 @@ def step_manifest(app, build, unity, out, commands, level0):
         "".join(f"{a['path']}\t{a['sha256']}\n" for a in sorted(listed, key=lambda a: a["path"])).encode()
     ).hexdigest()
     manifest = {
+        "steam": steam_build(app),
         "artifacts": listed,
         "backend": "il2cpp",
         "build": build,
@@ -568,6 +587,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--game", type=pathlib.Path, default=pathlib.Path(os.environ.get("MECHABELLUM_APP", DEFAULT_GAME)))
     parser.add_argument("--force", default="", help="steps to redo, comma separated, or all")
+    parser.add_argument("--build", help="the directory under work/decomp; the game's version string by default")
     arguments = parser.parse_args()
     app = arguments.game
     if not (app / "Contents/Info.plist").exists():
@@ -577,11 +597,22 @@ def main():
         fail(f"unknown steps {', '.join(sorted(force - set(STEPS)))}; the steps are {', '.join(STEPS)}")
 
     build, unity = game_identity(app)
-    out = DECOMP / build
-    work = ROOT / "work" / "inputs" / build
+    name = arguments.build or build
+    out = DECOMP / name
+    work = ROOT / "work" / "inputs" / name
+    # A directory made from other game files is not this game's, whatever
+    # version string both carry; reusing it would skip every step.
+    manifest_path = out / "game-manifest.json"
+    if manifest_path.exists():
+        made_from = {a["path"]: a["sha256"] for a in json.loads(manifest_path.read_text())["artifacts"]}
+        installed = {str(path.relative_to(app)): sha256(path) for path in artifacts(app).values()}
+        if made_from != installed:
+            steam = steam_build(app) or {}
+            fail(f"{out} was made from other game files than {app} (Steam build "
+                 f"{steam.get('buildid')}); pass --build to decompile this one elsewhere")
     out.mkdir(parents=True, exist_ok=True)
     work.mkdir(parents=True, exist_ok=True)
-    say(f"build {build}, Unity {unity}, into {out}")
+    say(f"build {build}, Steam build {(steam_build(app) or {}).get('buildid')}, Unity {unity}, into {out}")
 
     commands = {}
     if "dylib" in force or not (work / "GameAssembly-x86_64.dylib").exists():
@@ -593,7 +624,6 @@ def main():
     if "cs" in force or not (out / "cpp2il/DiffableCs").is_dir():
         commands["diffable-cs"] = step_cs(app, work, unity, out)
         say("DiffableCs written")
-    manifest_path = out / "game-manifest.json"
     level0 = None
     if manifest_path.exists():
         level0 = json.loads(manifest_path.read_text()).get("exports")
