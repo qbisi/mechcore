@@ -161,13 +161,27 @@ pub struct UnitRecord {
     pub level: i32,
     #[serde(rename = "Position")]
     pub position: PositionRecord,
-    #[serde(rename = "EquipmentID")]
-    pub equipment_id: i32,
+    /// What the formation wears, in fitting order. The single `EquipmentID`
+    /// beside it is always 0.
+    #[serde(default)]
+    pub equipments: UnitEquipments,
     #[serde(rename = "IsRotate")]
     pub rotated: bool,
     /// What recovering the formation pays back, at the prices actually paid.
     #[serde(rename = "SellSupply")]
     pub sell_supply: i32,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct UnitEquipments {
+    #[serde(default, rename = "equipment")]
+    pub entries: Vec<UnitEquipment>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UnitEquipment {
+    #[serde(rename = "@data")]
+    pub id: i32,
 }
 
 #[derive(Debug, Default, Deserialize)]

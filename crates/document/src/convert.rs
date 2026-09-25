@@ -649,10 +649,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 level: Some(unit.level + 1).filter(|level| *level != 1),
                 exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
                 rotated: Some(unit.rotated).filter(|rotated| *rotated),
-                equipment: Some(unit.equipment_id)
-                    .filter(|id| *id != 0)
-                    .into_iter()
-                    .collect(),
+                equipment: unit.equipments.entries.iter().map(|item| item.id).collect(),
                 // No recorded field states it; see docs/spec/document/battle.md.
                 travelling: None,
             },
@@ -708,8 +705,7 @@ fn unfitted_equipment(data: &PlayerData) -> Vec<EquipmentItem> {
         .units
         .entries
         .iter()
-        .map(|unit| unit.equipment_id)
-        .filter(|id| *id != 0)
+        .flat_map(|unit| unit.equipments.entries.iter().map(|item| item.id))
         .collect();
     let mut unfitted = Vec::new();
     for item in &data.equipment.entries {

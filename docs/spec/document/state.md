@@ -252,6 +252,9 @@ item the list omits.
 
 `equipment` is a multiset: a side can own two copies of one item.
 
+A unit's items are its record's `equipments` list, in fitting order. The
+single `EquipmentID` beside it is always 0.
+
 That difference is what an installer has to undo. The game restores equipment in
 two steps, creating the inventory and then attaching items by replaying the fit,
 so an installer must add the fitted items back to the inventory before it
@@ -552,6 +555,7 @@ skill panel; [the battle document](battle.md) states the rule.
 | `playerData.IsSpecialSupply` | A one-shot latch, always clear under 1v1 rules, see below |
 | `playerData.researchQueue` | Unreachable without game rule `999917`, above |
 | `matchDatas.deadCount` | Carries nothing a position needs |
+| `NewUnitData.EquipmentID` | Always 0; the unit's `equipments` list holds what it wears |
 | `NewUnitData.Durability` | Unused for units in this build |
 | `NewUnitData.RoundCount`, `SellSupply` | Both follow from when the unit was bought and what it cost |
 | `ConstructionSnapshotData.durability` | One entry per segment, and inert |
