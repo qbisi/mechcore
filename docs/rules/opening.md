@@ -1,9 +1,7 @@
 # Seeded opening initialization
 
 These rules cover standard versus 1v1 with the shipped opening pools and no
-game rules, on maps 1001, 1011, 1021, 1031 and 1032. The replays behind them
-are build 1.11.1.3.2259's; build 2.0.0.1.2324 keeps the inputs named below.
-The initialization flow determines both offer arrays and the initial defensive
+game rules, on maps 1001, 1011, 1021, 1031 and 1032. The initialization flow determines both offer arrays and the initial defensive
 construction layout. Player choices and subsequent reinforcement deals are
 outside this scope.
 
@@ -18,15 +16,15 @@ therefore do not advance the opening/reinforcement stream.
 `[seed, 0xff, 0, 0]` and sixteen discarded warm-up values. Range reduction masks
 and rejects values outside the requested interval. A random call can consume
 several raw values; initialization cannot be replaced with a fixed skip count.
-`ReinforcePool.ServerRand(bottom, top)` returns `math_random(bottom + 1, top) - 1`.
+`GRRandom.ServerRand(bottom, top)` returns `math_random(bottom + 1, top) - 1`.
 
 ## Reinforcement initialization before the opening
 
-`ReinforcementSystem.Init` calls `NormalInit`, then `InitUnitReinforce`.
-`NormalInit` applies `RandomTypeGroup` first to opening specialists, then to
-normal reinforcement officers. Eligible officer rows have the corresponding
-scope (2 for opening, 1 for normal) and an empty `limitedScene` or one containing
-standard versus scene 1. Opening specialists all have `typeID = 0` and cause no
+`ReinforcementSystem.Init` creates the match's reinforcement object, whose
+`Init` applies `RandomTypeGroup` first to opening specialists, then to normal
+reinforcement officers, and then runs `InitUnitReinforce`. Eligible officer
+rows have the corresponding scope (2 for opening, 1 for normal) and an empty
+`limitedScene` or one containing standard versus scene 1. Opening specialists all have `typeID = 0` and cause no
 random calls here.
 
 For normal officers, positive `typeID` values define groups. Groups are visited
@@ -92,7 +90,7 @@ The standard pools contain enough teams and specialists that the cap is
 
 `BattleOpeningController.PrepareData` reads the selected map's `MatchSetting`
 through `Config.GetMatchSetting`. It passes `advanceSameUnitMaximum` as
-`ReinforcePool.RandAdvance`'s `diffUnitLimit`; `scripts/extract_opening.py`
+`ReinforcementSystem.RandAdvance`'s `diffUnitLimit`; `scripts/extract_opening.py`
 checks that every supported map carries the same value. Despite its name, this argument is used as a lower bound on
 unit diversity, not an upper bound on a repeated unit's squad count.
 
@@ -105,28 +103,39 @@ zero. In the native method, `not eax` followed by adding `num` computes
 
 The constants are integers with no scaling or precision conversion.
 
-## Evidence and boundary
+The field values come from the shipped resources, and the field access and
+comparison from the native instructions. Cpp2IL's ISIL labels the native `not`
+as `Neg`; the native instruction determines the arithmetic. A seed determines
+the alternatives offered, not which alternative either player chooses.
 
-The field values come from the shipped resources. The field access and
-comparison come from the native instructions of
-`BattleOpeningController.CalculateChooseCount`,
-`BattleOpeningController.PrepareData(PlayerController, List<AdvanceTeam>,
-List<IReinforceItem>, int)` and `ReinforcePool.RandAdvance`. Cpp2IL's ISIL labels
-the native `not` as `Neg`; the native instruction determines the arithmetic.
+## Evidence
 
-The build the replays were recorded on is identified by its
-`mechcore-decomp/1.11.1.3.2259/game-manifest.json`, which
-`scripts/decomp.py sync` fetches.
+### Read
 
-The initialization call order and range branches come from
-`ReinforcementSystem.Init`, `NormalInit`, `RandomTypeGroup` (including its sort
-callbacks), and `InitUnitReinforce`. The independent map stream and its draw
-order come from `MapSystem.Init`, `LoadConstructionLayout`, `LoadConstruction`,
-`GRRandom.NextBool`, and `MapRegion.ConvertToWorldPoint`. Resources establish
-the eligible pools, group flags, positions and map geometry.
+- The opening stream is the match's, seeded with the system seed, and the map
+  draws from a stream of its own seeded the same, without drawing from the
+  match's: `MapSystem.Init`.
+- Initialization draws the officer groups and then the unit round pool, in
+  that order: `ReinforcementSystem.Init`, `ReinforcementRandomObject_Normal.Init`,
+  `ReinforcementRandomObject_Common.RandomTypeGroup`,
+  `ReinforcementRandomObject_Common.InitUnitReinforce`.
+- A range draw is `math_random(bottom + 1, top) - 1`: `GRRandom.ServerRand`.
+- A map chooses one construction group and reverses each side's with one
+  `NextBool`, blue first: `MapSystem.LoadConstructionLayout`,
+  `MapSystem.LoadConstruction`, `GRRandom.NextBool`.
+- A group position is rotated by the main region's facing and moved to its
+  centre: `MapRegion.ConvertToWorldPoint`.
+- A seat's reactor core is its map's by seat index, or the first for every
+  seat when the list is shorter than two: `MatchSetting.GetReactorCore`.
+- The deal size is the setting's choose count, capped by each pool's share:
+  `BattleOpeningController.CalculateChooseCount`.
+- The diversity limit is a lower bound on distinct types, counting the picks
+  after this one: `BattleOpeningController.PrepareData`,
+  `ReinforcementSystem.RandAdvance`.
 
-Modified pools, other modes and negative match seeds are unverified.
-[Reinforcement dealing](reinforcements.md) describes consumption after opening. A seed determines the alternatives offered, not
-which alternative either player chooses. Reopen when a supported map changes its
-initialization inputs, or a native state, construction layout or offer array
-disagrees with this flow.
+### Not established
+
+- **That the flow reproduces every recorded opening.** Offers and construction
+  layouts matched every replay of another version's corpus. This version's
+  corpus is not replayed yet: `scripts/verify-battles.py`.
+- **Modified pools, other modes and negative match seeds.**
