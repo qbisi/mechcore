@@ -324,7 +324,7 @@ pub(crate) fn fpcs_acos_fastest(value: i64) -> i64 {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::cast_possible_wrap,
-    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+    reason = "the 32-bit truncation and sign reinterpretation reproduce the build's Q32.32 arithmetic"
 )]
 pub(crate) fn fpcs_sin_fastest(value: i64) -> i64 {
     let turn = q32_mul(value, 0x28BE_60DC) as i32;

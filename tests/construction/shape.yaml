@@ -8,7 +8,7 @@ round: 1
 # separable from what a layout placed.
 #
 # The positions and the index order are `construction-battle.yaml`'s, which are
-# build-2227 opening group 28 as replay R002 recorded it: positions the game is
+# opening group 28 as replay R002 recorded it: positions the game is
 # known to accept, in the order the Training Ground's own opening allocates
 # them, so the wall and the rapid-fire turret are retained and only the
 # anti-armor turret is released.

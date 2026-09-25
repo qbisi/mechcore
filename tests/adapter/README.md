@@ -1,6 +1,6 @@
 # Adapter smoke
 
-Build 2.0.0.1.2324, seed 1787720817. `smoke.mcscript` needs the game and
+Seed 1787720817. `smoke.mcscript` needs the game and
 no one watching it: it answers whether the Adapter still installs, reads back
 and records everything it could on the build before, once per part of a
 layout, and whether every instrumentation profile's hooks still install.

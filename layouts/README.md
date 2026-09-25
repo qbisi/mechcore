@@ -22,7 +22,7 @@ explanation. The ones below were built to exercise a specific native path, and
 their coordinates are load-bearing: changing a position silently turns the
 fixture into a different test that still passes.
 
-`construction-battle.yaml` reproduces build 2227 opening construction group 28
+`construction-battle.yaml` reproduces opening construction group 28
 with the `reverse_x` transform observed in replay R002. In blue's side-local
 frame the Defensive Wall sits at `(-140, -55)`, the Rapid-Fire Turret at
 `(140, -100)` and the Anti-Armor Turret at `(-140, -100)`. Red uses the

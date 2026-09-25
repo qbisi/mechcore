@@ -68,7 +68,7 @@ impl Seat {
 ///
 /// # Errors
 ///
-/// Returns an error when the replay is not a build-2259 standard 1v1 recorded
+/// Returns an error when the replay is not a standard 1v1 of this version recorded
 /// by this machine, when its rounds are not the contiguous sequence both sides
 /// and the match share, or when it contains an object this build's catalogues
 /// or this format cannot name.

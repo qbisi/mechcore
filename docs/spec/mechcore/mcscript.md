@@ -30,7 +30,7 @@ Four top-level keys, all others rejected:
 game: launch        # optional: launch | attach; omitted means offline
 level: 1            # optional: 0..4, needs a game; higher takes it from lower
 vars:               # optional
-  grbr: work/replay/replays/1.11.1.3.2259/example.grbr
+  grbr: work/replay/replays/<version>/example.grbr
   out: /tmp/mechcore/example
 steps:              # required, at least one
   - game.record_replay_round:
@@ -403,7 +403,7 @@ itself carries, and require the two recordings to agree:
 game: launch
 
 vars:
-  grbr: work/replay/replays/1.11.1.3.2259/2259_20260901--201562374_[crower]VS[[TUFF]MARLFAUX].grbr
+  grbr: work/replay/replays/<version>/<replay>.grbr
   out: /tmp/mechcore/tuff-replay-vs-training
 
 steps:

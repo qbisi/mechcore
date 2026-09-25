@@ -207,6 +207,32 @@ def check_rules_evidence(fail):
                     fail(f"{path.relative_to(REPO)}:{number}: cites {why}")
 
 
+# The game version is written once, in GAME_VERSION; everything else reads it.
+# A five-part version string, or a build named by number, anywhere else is a
+# second pin that nothing keeps in step. plan.md is the migration's own record.
+# docs/rules/ still states which version its evidence came from; the rewrite
+# that gives each claim its evidence type takes it off this list.
+VERSION_PIN = re.compile(r"\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b|\b[Bb]uild[- ][0-9]{3,}\b")
+VERSION_WRITERS = {"GAME_VERSION", "plan.md"}
+VERSION_PENDING = ("docs/rules/",)
+
+
+def check_version_pins(fail):
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
+                            capture_output=True).stdout.decode().split("\0")
+    for name in filter(None, listed):
+        if name in VERSION_WRITERS or name.startswith(VERSION_PENDING):
+            continue
+        try:
+            text = (REPO / name).read_text()
+        except (UnicodeDecodeError, FileNotFoundError, IsADirectoryError):
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            match = VERSION_PIN.search(line)
+            if match and not match.group(0).startswith("0.0.0.0."):
+                fail(f"{name}:{number}: names a game version ({match.group(0)}); GAME_VERSION is the only place")
+
+
 def check_name_tables(fail):
     """The name tables of docs/rules/ are what config/localization.yaml gives."""
     import importlib.util
@@ -228,6 +254,7 @@ def main():
     check_repeated_paragraphs(paths, problems.append)
     check_name_tables(problems.append)
     check_rules_evidence(problems.append)
+    check_version_pins(problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)

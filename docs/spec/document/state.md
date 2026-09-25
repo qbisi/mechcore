@@ -324,7 +324,7 @@ something writes the key `name`. A unit type is the name a unit's `name`
 gives, and a contraption the name a layout gives it. An officer, a technology, a
 blueprint, an energy tower skill, a commander skill and an equipment item are
 the game's own English names in snake case, apostrophes dropped, which
-[`config/names.yaml`](../../../config/names.yaml) holds for build 2259: the
+[`config/names.yaml`](../../../config/names.yaml) holds: the
 officer `supply_specialist`, the technology `grenade_launcher`, the blueprint
 `field_recovery`, the energy tower skill `rapid_resupply`, the commander skill
 `intensive_training`, the equipment item `photon_coating`.
@@ -578,14 +578,11 @@ excluded item stays in the pool and is merely invisible for one named round.
 
 ## Unresolved
 
-**Whether a slot joining the panel reads its initial cooldown.** Every
-commander skill of build 2259 has an `initial_cooldown` of 0, and the
-transition adds a slot at 0 rather than reading the table. The two agree on
-this build, so the question is what a later build does: whether Lightning
-Storm and Nuclear Strike, which a specialist or a card can hand out, join the
-panel ready to release or already cooling down. Reading the table only
-answers it if the table is where a later build puts that difference, so this
-waits on how a later build handles those two skills.
+**Whether a slot joining the panel reads its initial cooldown.** The
+transition adds a slot at 0 rather than reading the table, and the table
+gives Nuke, Lightning Storm and Ion Bombardment an `initial_cooldown` of 1.
+Whether the game reads it, so that those skills join the panel already
+cooling down when a specialist or a card hands them out, is not recorded.
 
 **Where a fitted item's durability would live.** `durability` belongs to the
 side's inventory, and a unit's `equipment` names only IDs. Under the game

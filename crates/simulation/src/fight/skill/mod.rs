@@ -1095,7 +1095,7 @@ impl Simulation {
             .pending()
             .is_some_and(|pending| self.bodyless_attackable_invalid(owner, pending.target));
         if active_attack_rejected {
-            // Build 2259 SkillPrepareState and SkillAttackState both run
+            // The build's SkillPrepareState and SkillAttackState both run
             // CheckAttackable before advancing their current attack phase.
             // A failed check enters SkillIdleState in the same update.
             let skill = self.skill_mut(owner);

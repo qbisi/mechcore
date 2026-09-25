@@ -418,7 +418,7 @@ impl Stats {
     /// The level is its own multiplier, not a correction: `FightMech`'s
     /// `GetBaseLife` and `GetBaseDamage` multiply the description by the
     /// level's rating and hand the product to the properties, which then
-    /// apply the `DataSet`s. Build 2259's nine `attributeUpgradeDatas` rows
+    /// apply the `DataSet`s. The build's nine `attributeUpgradeDatas` rows
     /// rate life and damage at exactly their level, so the rating is the
     /// level.
     ///
@@ -469,7 +469,7 @@ impl Stats {
 
     /// The laser's base damage is truncated after its ramp multiplier, before
     /// the dynamic damage rates. `DamageProperty.CalculateBaseDamage` and
-    /// `CalculateDamage` are separate stages in build 2259.
+    /// `CalculateDamage` are separate stages in the build.
     #[allow(
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,

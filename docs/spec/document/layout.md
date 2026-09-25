@@ -197,7 +197,7 @@ map (not the game mode). Native replay export records `BattleInfo.MapID`;
 `apply_layout` selects that map before creating the Training Ground. Omission
 uses map 1021 (训练基地), the Mechcore Training Ground baseline. Unknown IDs are
 rejected by the native adapter.
-Build 2259 examples: `1001` is 铁道小镇 (`MainSceneDesert`), and `1021` is
+Examples: `1001` is 铁道小镇 (`MainSceneDesert`), and `1021` is
 训练基地 (`MainSceneMilitaryBase`). Map-owned neutral crystals are retained:
 the selected map, not a global deletion rule, determines the RVO environment.
 This field does not imply simulator support for map-specific obstacles.
@@ -359,12 +359,12 @@ A layout names what it holds rather than numbering it, as a battle's
 released skill. A unit, construction or contraption type is the catalog's name,
 and an officer, a technology, a blueprint, an Energy Tower skill, a commander
 skill and an equipment item are the game's English names in snake case, which
-[`config/names.yaml`](../../../config/names.yaml) holds for build 2259. A name
+[`config/names.yaml`](../../../config/names.yaml) holds. A name
 the build does not carry is refused, and so is a number where a name belongs.
 The compiler and the adapter work with the IDs the names stand for, and a
 collection is ordered by those IDs.
 
-Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
+The ID, localization, and configured-effect indexes:
 
 - Officers and unit modifications:
   [officers.md](../../rules/officers.md)
@@ -620,7 +620,7 @@ layout coordinates, its center must therefore lie in
 `x=[-230,230], y=[-240,-80]`.
 
 The footprint provider covers all 32 public ordinary units validated against
-the build `1.11.1.3.2259` card catalog, the four ordinary opening constructions,
+the build's card catalog, the four ordinary opening constructions,
 and the interceptor:
 
 - `arclight`, `marksman`, and `vortex`: `20 x 20`;
@@ -829,7 +829,7 @@ shields.
 An entry here always means a shield already present before this battle. A Shield
 Airdrop released during the requested round is a `battle_skills` entry instead,
 so one shield is never recorded in both places. The retained object uses
-build-2259 `CS_EnergyShield` (ID 800001), which is not short-lived and resets to
+`CS_EnergyShield` (ID 800001), which is not short-lived and resets to
 maximum energy between rounds.
 
 A replay records it, in the releasing skill's own `rangeItems` rather than in
@@ -893,7 +893,7 @@ terrains:
   side's local frame. The first is the skill start point and the second fixes the
   release direction. It is named apart from `positions` because `grid_rows` is
   keyed over a different sequence: the seven generated centers, not these two.
-  Build 2259's `CalculateAttackPositions` line branch expands them into seven oil
+  The build's `CalculateAttackPositions` line branch expands them into seven oil
   centers. Only these two endpoints are integers. The step length divides the
   path magnitude by six through a fixed-point square root, so the five
   intermediate centers land on fractional Q32.32 values and cannot be written as
@@ -919,7 +919,7 @@ keys already encode the active set, while remaining lifetime is not meaningful
 inside a single-fight layout.
 
 The Simulator rejects layouts with non-empty `terrains` before constructing a
-simulated battle. Adapter execution reproduces the build-2259 line branch with
+simulated battle. Adapter execution reproduces the build's line branch with
 native `FVector3`/`FPoint` operations, adds only the declared active indexes through
 `RangeItemSystem.AddItem`, then overwrites and reads back each optional
 `GridBlockInt` mask. Direct GRBR decoding is exposed as
@@ -1017,9 +1017,8 @@ or acquisition index would record something no outcome depends on.
 the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover.
 `tests/skill-order/release-order.mcscript` records three battles from them. Under
-build `1.11.1.3.2259` and seed `20260907`, the same order recorded twice gave
-byte-identical hashes at 415 ticks, while the swapped order diverged at tick 63
-and ended at 416. They are not in the regression manifest, because its offline
+seed `20260907` the two orders part at tick 63 and end at 416 and 415 ticks,
+and the same order recorded twice gave byte-identical hashes. They are not in the regression manifest, because its offline
 reader simulates every case and the Simulator has no battle-skill feature slice
 yet.
 

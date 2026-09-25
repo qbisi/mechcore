@@ -1,4 +1,4 @@
-# RVO 四叉树实现（build 1.11.1.3.2259）
+# RVO 四叉树实现
 
 [English](quadtree.md)
 

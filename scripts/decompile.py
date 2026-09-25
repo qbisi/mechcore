@@ -20,7 +20,7 @@ steps to redo: `dylib`, `isil`, `cs`, `config`, `manifest`, `index`, or `all`.
 Choices a rerun must not change:
 
 - **The x86_64 slice.** `GameAssembly.dylib` is universal. The dump is taken
-  from its x86_64 slice, as build 1.11.1.3.2259's was, so two builds' ISIL
+  from its x86_64 slice, as every build's has been, so two builds' ISIL
   compare line by line. Both slices come from the same IL and the same
   metadata; methods, fields and field offsets are identical, and the Adapter,
   which runs in the arm64 process, finds everything by name. An address in the

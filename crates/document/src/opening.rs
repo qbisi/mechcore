@@ -7,7 +7,7 @@
 //! four combinations are a function of a number the document already holds.
 //!
 //! `docs/rules/opening.md` pins the deal parameters and their arithmetic to
-//! build 2259. Initialization advances the reinforcement stream explicitly;
+//! the build. Initialization advances the reinforcement stream explicitly;
 //! map constructions use a separate stream seeded with the same match seed.
 
 use crate::battle::{Action, OpeningOffer, Turn, TurnActions};
@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// How many combinations a side is dealt.
 ///
-/// Build 2259's `AdvanceTeamSetting.chooseCount` is 4 (`level0`, path ID 146).
+/// The build's `AdvanceTeamSetting.chooseCount` is 4.
 /// `CalculateChooseCount` caps it by the available teams and specialists per
 /// player; neither cap binds for the standard 1v1 pools.
 pub const CHOOSE_COUNT: usize = 4;
@@ -27,7 +27,7 @@ pub const CHOOSE_COUNT: usize = 4;
 ///
 /// It is a floor rather than a cap: a candidate team is refused unless every
 /// price tier it touches can still reach this many different units by the time
-/// the deal is over. Build 2259 passes `MatchSetting.advanceSameUnitMaximum`
+/// the deal is over. The build passes `MatchSetting.advanceSameUnitMaximum`
 /// (3 for standard versus maps) into this parameter. Despite that field's
 /// name, `RandAdvance` compares a minimum count of distinct units per tier.
 pub const DIFFERENT_UNIT_FLOOR: i32 = 3;

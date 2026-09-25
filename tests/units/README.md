@@ -6,7 +6,6 @@ simulator tick for tick, physics and content. This directory holds those
 layouts, one directory per unit, the script that records them, and the
 offline `regressions.mcscript` that pins every recording the simulator
 reproduces. CI runs the regressions; the record script needs the game.
-Every tick count and pin here is build 2.0.0.1.2324's.
 
 | Layout | What it measures |
 | --- | --- |

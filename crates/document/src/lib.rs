@@ -160,7 +160,7 @@ red:
     fn a_document_of_another_build_is_refused() {
         let foreign = br"
 kind: layout
-game_build: 1.11.1.3.0001
+game_build: 0.0.0.0.1
 round: 1
 blue:
   units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
@@ -171,7 +171,7 @@ red:
         assert_eq!(
             error,
             format!(
-                "document is written against game build 1.11.1.3.0001, and this binary carries {}",
+                "document is written against game build 0.0.0.0.1, and this binary carries {}",
                 game_build()
             )
         );

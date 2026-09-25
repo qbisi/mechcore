@@ -1481,7 +1481,7 @@ fn validate_tech_catalog(
 
 #[cfg(test)]
 fn encoded_technology_owner(technology_id: i32) -> Result<i32, OperationError> {
-    // Build 2227 encodes the owning ordinary unit ID in the final two decimal
+    // The build encodes the owning ordinary unit ID in the final two decimal
     // digits of every unit TechnologyData.ID.
     let unit_id = technology_id % 100;
     if (1..=31).contains(&unit_id) {

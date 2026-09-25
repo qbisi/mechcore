@@ -7,7 +7,7 @@ blue:
       index: 0
       position: {x: 0, y: -150}
   constructions:
-    # Replay R002: build-2227 opening group 28 with reverse_x.
+    # Replay R002: opening group 28 with reverse_x.
     - name: defensive_wall
       index: 0
       position: {x: -140, y: -55}

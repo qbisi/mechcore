@@ -11,13 +11,13 @@
 [rvo.md](rvo.zh.md)、[quadtree.md](quadtree.zh.md)、[`docs/rules/`](../../rules)
 和每个机制自己的索引。
 
-这个形状不是设计出来的。build `1.11.1.3.2259` 本身有一套模块架构、对象模型和派生值
+这个形状不是设计出来的。游戏本身有一套模块架构、对象模型和派生值
 层，本文把三者都照着镜像过来——一个和被复现对象形状一致的模拟器，才能一块一块地对着
 它验收。当 build 的结构和"好写的结构"冲突时，以 build 为准，并写下理由。
 
 **证据覆盖到哪里。** 这里的结构读自本地反编译索引
-`work/unity-index/1.11.1.3.2259/index.sqlite`：Cpp2IL 产出的 36,361 个类型、
-301,615 个方法、662,014 条调用边。下面每一份清单和表格都由
+`scripts/decomp.py sync` 放到 `work/decomp/<version>/` 下的 `index.sqlite`：
+Cpp2IL 产出的类型、方法和调用边。下面每一份清单和表格都由
 [`scripts/fight-structure.py`](../../../scripts/fight-structure.py) 重新生成。
 该索引**不含方法体**，所以它能确立的是归属关系和调用边——哪个类型存在、它拥有什么、
 它调用了谁；它确立不了算术、分支条件，以及一个方法体内部的调用顺序。下面每一句都属于
@@ -151,7 +151,7 @@ TechnologySystem            WreckageRecoverySystem
 
 单位的等级既不是字段，也不是修正。`FightMech` 构造时就带着它的 `IMechLevelData`，
 `GetBaseLife` 和 `GetBaseDamage` 先用等级评级乘描述值，然后才轮到任何 `DataSet`；
-build 2259 的评级就是等级本身。所以等级随单位进入 `Stats`，是一个独立乘区，所有修正
+游戏的评级就是等级本身。所以等级随单位进入 `Stats`，是一个独立乘区，所有修正
 都作用在乘积上（[unit_levels.md](../../rules/unit_levels.md)）。
 
 有一个模块不是 build 的。军官、科技、装备是在**开打之前**施加到单位上的——

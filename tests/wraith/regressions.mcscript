@@ -1,4 +1,4 @@
-# Build 2259 oracle fights, simulated without the game or the recordings.
+# The game's recordings of these fights, simulated without the game or the recordings.
 # Both hashes come from the native checker/target captures made by slots.mcscript.
 steps:
   - fight.run:

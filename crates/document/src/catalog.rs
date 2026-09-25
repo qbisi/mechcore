@@ -213,7 +213,7 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
 
 /// The battlefield area a commander skill leaves behind, if it leaves one.
 ///
-/// Five skill classes derive from `RangeItemCommanderSkill` in build 2259 and
+/// Five skill classes derive from `RangeItemCommanderSkill` in the build and
 /// each answers `GetRangeItemType` with a constant: `CS_Fire` with `Fire`,
 /// `CS_Oil` with `Oil`, `CS_Fog` with `Fog`, `CS_Acid` with `Acid` and
 /// `CS_Recovery` with `RecoveryZone`. Four of those five are reached by a skill

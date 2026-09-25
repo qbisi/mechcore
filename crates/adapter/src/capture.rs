@@ -8968,7 +8968,7 @@ mod tests {
 
     #[test]
     fn stack_only_prologues_relocate_and_pc_relative_ones_do_not() {
-        // Prologues the hooked methods opened with on builds 2259 and 2.0.
+        // Prologues the hooked methods have opened with.
         let prologues: [[u8; 16]; 9] = [
             [
                 0xff, 0xc3, 0x01, 0xd1, 0xf8, 0x5f, 0x03, 0xa9, 0xf6, 0x57, 0x04, 0xa9, 0xf4, 0x4f,

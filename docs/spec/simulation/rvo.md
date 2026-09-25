@@ -4,8 +4,7 @@
 
 ## Scope
 
-This contract defines fixed-point sampled RVO as build `1.11.1.3.2259` performs
-it: the agent inputs, the four-tick pipeline, how a neighbour becomes a velocity
+This contract defines fixed-point sampled RVO as the build performs it: the agent inputs, the four-tick pipeline, how a neighbour becomes a velocity
 obstacle, and how a velocity is solved. It reproduces the combat movement
 behaviour of the native `GRPF.RVO.Sampled.Agent`, `RVOAgentFixed` and
 `RVOControllerFixed`. It is not a general RVO library, and nothing here should
@@ -31,8 +30,7 @@ them from the publicly restorable unit, building and movement state.
 
 Whether an unaligned `FightCrystal` joins the fight is the map's decision, not a
 Training Ground artefact to be deleted. A replay and a Training Ground scene
-select the same map through `layout.map_id` and keep its objects: on build 2259
-map 1021 has 0 neutral crystal RVO controllers and map 1001 has 73. Loading map
+select the same map through `layout.map_id` and keep its objects: map 1021 has 0 neutral crystal RVO controllers and map 1001 has 73. Loading map
 objects is not implemented, so agreement with a native capture on one map is not
 evidence about another.
 
@@ -296,7 +294,7 @@ Changing this module must preserve all of these:
 
 Three layers of test hold this:
 
-- `rvo.rs` unit tests pin build 2259's same-group pair solution and VO
+- `rvo.rs` unit tests pin the build's same-group pair solution and VO
   construction at raw values;
 - kernel tests cover building collision, Q32.32 distance boundaries, the tree's
   coarse reachable range, and the behaviour at the edge of stopping;

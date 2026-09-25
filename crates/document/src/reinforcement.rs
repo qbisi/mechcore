@@ -1,4 +1,4 @@
-//! Stateful build-2259 reinforcement prediction; see `docs/rules/reinforcements.md`.
+//! Stateful reinforcement prediction; see `docs/rules/reinforcements.md`.
 
 use crate::battle::{Action, SideState, Turn};
 use crate::catalog::{NativeFormation, resolve_unit_type};

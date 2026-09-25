@@ -27,7 +27,7 @@ fn initial_identity_uses_seeded_snapshot_coordinates_not_layout_centers() {
 
 #[test]
 #[allow(clippy::too_many_lines)]
-fn multi_formation_initial_state_and_target_search_entry_match_build_2259() {
+fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
     let layout = CompiledLayout::of_units(
         1,
         vec![

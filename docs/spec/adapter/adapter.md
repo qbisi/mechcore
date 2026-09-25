@@ -273,7 +273,7 @@ with native-allocated indices, without index placeholders. Contraptions and modi
 round, whose deployment timer is reset before the operation returns.
 
 Prepare only counts neutral scene FightCrystals; it does not deactivate, hide,
-unregister or remove them. In build 2259, selecting map 1021 produces 27 neutral
+unregister or remove them. Selecting map 1021 produces 27 neutral
 crystals with zero RVO controllers, while map 1001 produces 891 with 73 RVO
 controllers. These are map inputs, not a Training Ground cleanup category.
 
@@ -283,12 +283,12 @@ coordinates; duplicate keys fail closed. Native construction/building counters
 and layout order do not determine these IDs. Existing IDs and target/event
 references remain stable after allocation, including after object removal.
 
-A structurally valid layout may contain build-2259 retained Sticky Oil Bomb
+A structurally valid layout may contain retained Sticky Oil Bomb
 state in `sides.<side>.terrains`. During activation the Adapter expands each
 entry's two ordered control points with the native fixed-point primitives,
 creates only the mapped active indexes through `RangeItemSystem.AddItem`, and
 restores any final clipped grids with immediate native readback. The mechanism
-it restores is [terrain.md](../../rules/terrain.md); which build-2259 sources
+it restores is [terrain.md](../../rules/terrain.md); which sources
 produce which values is not part of that contract, and this operation restores
 whatever the replay recorded rather than deriving it from a type.
 
@@ -432,7 +432,7 @@ not native callback traces: creation events are appended first, then removal
 events, with each batch ordered by stable Terrain ID rather than process-local
 pointer address. Previously captured combat callbacks retain their original order.
 
-Native build `1.11.1.3.2259` capture coverage includes `oil`, `fire`, `acid`, and `fog` battle-skill
+Native capture coverage includes `oil`, `fire`, `acid`, and `fog` battle-skill
 layouts. In those recordings all four terrain types were present in `terrains.parquet` and their
 application lists referenced the affected enemy units. Oil populated the sparse
 `remaining_rounds` field; fire, acid, and fog used null.
@@ -468,7 +468,7 @@ Both `record_replay_round` and `record_battle` accept an optional research-only
 
 `rvo_scope` requires 1–8 unique positive **MCFR unit IDs**, not formation indices,
 and an inclusive window of at most 64 positive **MCFR combat ticks**.
-Build 2259 advances `FightController.get_Tick` by 100 per combat tick; the
+The build advances `FightController.get_Tick` by 100 per combat tick; the
 Adapter converts the window accordingly (8–14 selects native 800–1400).
 It filters RVO detail before reading agent state, neighbours, or VO buffers.
 Only selected sources are captured; their full neighbour lists may reference

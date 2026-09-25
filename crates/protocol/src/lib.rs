@@ -362,7 +362,7 @@ impl CaptureInstrumentationProfile {
     }
 }
 
-/// Research-only filter using one-based MCFR combat ticks. In build 2259,
+/// Research-only filter using one-based MCFR combat ticks. In the build,
 /// `FightController.Update` advances the native time counter by 100 per tick.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

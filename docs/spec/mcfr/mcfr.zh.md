@@ -8,7 +8,7 @@
 format = "0.6.0"
 ```
 
-当前 Adapter 原生字段映射绑定游戏 build `1.11.1.3.2259`。其他 build 可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
+当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
 
 ## 文件结构
 
@@ -101,7 +101,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | 类型与数据规范 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `logic_step` | `Rational<u32>`，分子分母均大于 0 | 每次逻辑推进的秒数 | 当前 Adapter 固定为 `1/20` |
-| `time_units_per_second` | `u32 > 0` | 原生离散时间单位密度 | build 2259 固定为 `2000` |
+| `time_units_per_second` | `u32 > 0` | 原生离散时间单位密度 | 游戏固定为 `2000` |
 | `combat_round` | `u32 > 0` | 当前战斗回合 | `CurrentMatch.get_RoundCount()` |
 
 `match_seed` 不写入 `ticks.parquet`。Writer 仍用调用方提供的 seed 校验嵌入布局，Reader 则从规范化 `layout.yaml.seed` 恢复公开 `DurableContext.match_seed`。`game_build` 作为独立文件 metadata 描述采集来源。
@@ -405,7 +405,7 @@ canonical tick/result hash。Unit 的 `body_rotation` 与武器姿态的 `rotati
 | `active` | `BOOLEAN required` | 当前是否参与投射物拦截 | `get_IsActive()` |
 | `active_order` | nullable `UINT32` | 所属 FightGroup 活跃集合内的零基顺序 | `GetActiveEnergyShields(fightGroup)` 的实际下标 |
 
-`source_kind` 的四个值分别对应 `EnergyShieldContraption`、`CS_EnergyShield`、`AdvancedEnergyShieldController` 和 `SpawnAdvancedShieldController`。未知数据源使 build 2259 Adapter fail-close。
+`source_kind` 的四个值分别对应 `EnergyShieldContraption`、`CS_EnergyShield`、`AdvancedEnergyShieldController` 和 `SpawnAdvancedShieldController`。未知数据源使 Adapter fail-close。
 
 `round_policy` 按下列有序规则保存：short-lived 对象为 `destroy_at_round_end`；其余 reset-next-round 对象为 `reset_to_max`；其余为 `retain_state`。`reset_to_max` 使用回合结束时数据源提供的当前有效最大值，因此护盾专家对既有普通盾造成的最大能量刷新可以直接体现在 Gauge 变化中。
 
@@ -532,7 +532,7 @@ JSON 中的 `ObjectRef.id`、`formation_id` 和 Q32.32 raw 均使用规范十进
 
 ## 7.4 当前 Adapter 原生事件来源
 
-共享 MCFR model 与 JSONL codec 实现上表事件。build 2259 Adapter 当前事件 producer 覆盖下列原生观测：
+共享 MCFR model 与 JSONL codec 实现上表事件。Adapter 当前事件 producer 覆盖下列原生观测：
 
 | 事件 | 当前原生来源 |
 | --- | --- |

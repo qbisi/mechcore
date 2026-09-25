@@ -1,4 +1,4 @@
-//! Typed reader for the `BattleRecord` XML embedded in a build-2259 GRBR.
+//! Typed reader for the `BattleRecord` XML embedded in a GRBR.
 //!
 //! The file is a .NET `BinaryFormatter` graph wrapping one XML document. This
 //! module locates that document and deserializes the parts the battle, turn and

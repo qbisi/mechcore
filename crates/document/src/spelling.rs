@@ -95,7 +95,7 @@ pub(crate) fn flow(value: &Value, out: &mut String) -> Result<(), String> {
         Value::Number(value) => out.push_str(&value.to_string()),
         Value::String(value) => {
             // An identifier, a gauge such as `124/450`, a team such as
-            // `vortex-fire_badger` or a build such as `1.11.1.3.2259` is
+            // `vortex-fire_badger` or a version such as `0.0.0.0.1` is
             // written bare, unless the reader would take it for something
             // other than this string, as it would `true`, `null`, `12` or
             // `1.5`.
@@ -165,8 +165,8 @@ mod tests {
             "marksman",
             "vortex-fire_badger",
             "124/450",
-            "1.11.1.3.2259",
-            "2259a",
+            "0.0.0.0.1",
+            "1a",
         ] {
             assert_eq!(written(bare), bare);
         }

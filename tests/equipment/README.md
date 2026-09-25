@@ -1,6 +1,6 @@
 # Equipment corrections
 
-Build 2.0.0.1.2324, seed 1787720817. `stats.mcscript` records the nine
+Seed 1787720817. `stats.mcscript` records the nine
 fixtures, then checks the native unit and skill channels. It needs the
 game. `regressions.mcscript` is offline.
 The layouts use round one and level-one units.
@@ -24,7 +24,6 @@ range are also exposed by `fight stats`.
 
 `regressions.mcscript` pins all nine fights, physics and content, with
 the hashes the game recorded; the simulator reproduces each tick for tick.
-The first eight were recorded on 2259 and again on 2.0 with the same hashes.
 
 The rule is [equipment_effects.md](../../docs/rules/equipment_effects.md).
 Recordings and extracted raw research artifacts are not tracked here.

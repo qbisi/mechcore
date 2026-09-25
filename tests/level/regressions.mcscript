@@ -1,4 +1,4 @@
-# Native build 2259 recordings from stats.mcscript, replayed without the game.
+# The game's recordings from stats.mcscript, replayed without the game.
 # Both layers are pinned, including the level-one manifest control.
 steps:
   - fight.run:

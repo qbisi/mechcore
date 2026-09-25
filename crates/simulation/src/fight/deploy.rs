@@ -341,7 +341,7 @@ pub(in crate::fight) const fn rvo_collides(building: &BuildingState) -> bool {
 impl Simulation {
     pub(in crate::fight) fn initialize_presearch_targets(&mut self) -> Result<()> {
         let actor_ids = self.actors.keys().copied().collect::<Vec<_>>();
-        // Build 2259 PresearchTargetController::CalculateCountPerTime returns
+        // The build's PresearchTargetController::CalculateCountPerTime returns
         // ceil(mech_count / 10). SearchTarget assigns the zero-based batch
         // ordinal to the main FightSkill search controller before selecting
         // its initial target.

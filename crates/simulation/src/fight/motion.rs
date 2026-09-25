@@ -509,7 +509,7 @@ impl Simulation {
                     .backswing_finish_step()
                     .is_some()
             {
-                // Build 2259 enters idle but retains the dead target through
+                // The build enters idle but retains the dead target through
                 // the remaining backswing even when an ally dealt the kill.
                 // MotionIdleState.Enter publishes StopMove once; its Update
                 // does not refresh that target on every remaining backswing
@@ -578,7 +578,7 @@ impl Simulation {
     /// `MotionController.CalculateTargetDirection` faces the attack target
     /// only while `FightSkill.TryGetValidAttackTarget` finds it alive, and the
     /// lock otherwise, so a felled block leaves the unit turning to the unit
-    /// behind it. Build 2259 went on facing the block. `wall-block.yaml` and
+    /// behind it. `wall-block.yaml` and
     /// `wall-rhino.yaml` measure it for a bodyless root; a unit with a body
     /// turns its weapons, and whether they follow the lock is not measured,
     /// so they stay on the block.

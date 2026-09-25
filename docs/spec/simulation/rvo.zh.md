@@ -1,9 +1,9 @@
-# RVO 移动避让实现（build 1.11.1.3.2259）
+# RVO 移动避让实现
 
 [English](rvo.md)
 
-本文说明 Simulator 当前的定点数 sampled-RVO 实现。其目标是复现 Mechabellum build
-`1.11.1.3.2259` 中 `GRPF.RVO.Sampled.Agent`、`RVOAgentFixed` 和
+本文说明 Simulator 当前的定点数 sampled-RVO 实现。其目标是复现 Mechabellum 中
+`GRPF.RVO.Sampled.Agent`、`RVOAgentFixed` 和
 `RVOControllerFixed` 的战斗移动行为，而不是提供一套通用 RVO 库。
 
 实现位于 `crates/simulation/src/fight/rvo.rs`，战斗循环的接入点位于
@@ -20,7 +20,7 @@
   障碍。
 
 无阵营 `FightCrystal` 是否参与战斗取决于地图，不能一概视为试验场额外对象并删除。
-原生录像/试验场通过 `layout.map_id` 选择同一地图并保留地图对象：build 2259 的
+原生录像/试验场通过 `layout.map_id` 选择同一地图并保留地图对象：
 1021 地图有 0 个中立水晶 RVO controller，1001 地图有 73 个。当前 Simulator
 未实现这套地图对象加载；上述原生对齐不代表 Simulator 已支持地图差异。
 RVO 的私有双缓冲、邻居列表和 VO 列表不是 Layout 或 MCFR 的输入；Simulator
@@ -233,7 +233,7 @@ point    += normalize(gradient) * step
 
 实现使用三层验证：
 
-- `rvo.rs` 单元测试固定 build 2259 的同组 pair 解和 VO 构造 raw 值；
+- `rvo.rs` 单元测试固定游戏的同组 pair 解和 VO 构造 raw 值；
 - kernel 测试覆盖建筑碰撞、Q32.32 距离边界、树的粗可达范围和停止移动的边界行为；
 - `tests/regression/mcfr-regressions.yaml` 的 native smoke 样本比较稳定物理投影的逐 tick
   `physics_result_hash`，包括

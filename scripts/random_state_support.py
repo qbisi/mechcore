@@ -25,7 +25,7 @@ def rotl(value, count):
 
 
 class GrRandom:
-    """Build-2259 `GRRandom` type 1, the xoshiro256** of crates/simulation."""
+    """The build's `GRRandom` type 1, the xoshiro256** of crates/simulation."""
 
     def __init__(self, seed):
         self.state = [seed & MASK, 255, 0, 0]

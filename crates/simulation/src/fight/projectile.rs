@@ -63,7 +63,7 @@ impl Simulation {
     #[allow(clippy::similar_names)] // Paired fixed-point x/z components are intentionally parallel.
     pub(in crate::fight) fn step_projectiles(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let mut retained = Vec::with_capacity(self.projectiles.len());
-        // Build 2259's ProjectileSystem keeps registration order in its List,
+        // The build's ProjectileSystem keeps registration order in its List,
         // but Update walks that list from Count - 1 down to zero. Preserve the
         // list order after this reverse update pass so later ticks use the
         // same stable registration sequence.
