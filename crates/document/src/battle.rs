@@ -115,7 +115,7 @@ impl Opening {
             .and_then(|at| self.offers.get(at))
             .expect("opening choice must name a dealt combination");
         Some(Action::ChooseAdvanceTeam {
-            offer: choose,
+            index: choose,
             id: taken.team,
             specialist: taken.specialist,
         })
@@ -311,7 +311,7 @@ pub struct TurnActions {
 /// what this platform does is `docs/spec/mechcore/cli.md`'s own rule.
 pub const DEFAULT_DEPLOY_TIME: i32 = 100;
 
-/// The `offer` of a [`Action::ChooseReinforceItem`] that declined the round.
+/// The `index` of a [`Action::ChooseReinforceItem`] that declined the round.
 ///
 /// The game records declining as the same action at this offer, which is not a
 /// position in `reinforce_offers`, with an `ID` of zero.
@@ -323,14 +323,14 @@ pub const DECLINED_OFFER: i32 = -1;
 pub enum Action {
     /// The round's reinforcement answer, which declining is one of.
     ///
-    /// `offer` is the offer's position in `reinforce_offers`, or
+    /// `index` is the offer's position in `reinforce_offers`, or
     /// [`DECLINED_OFFER`] for the decline, which the round always makes
     /// available and never deals. `id` names the item taken and is present
     /// exactly when the offer was not declined: what a decline hands back is
     /// built from the match's progress rather than drawn from a catalogue, so
     /// it has no ID to carry.
     ChooseReinforceItem {
-        offer: i32,
+        index: i32,
         #[serde(
             rename = "name",
             skip_serializing_if = "Option::is_none",
@@ -344,7 +344,7 @@ pub enum Action {
     ///
     /// It is the only decision of round zero, and no other round holds one.
     ChooseAdvanceTeam {
-        offer: i32,
+        index: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
         #[schemars(with = "String")]
         id: i32,
@@ -468,12 +468,12 @@ impl<'de> Deserialize<'de> for Action {
 )]
 enum ActionReader {
     ChooseReinforceItem {
-        offer: i32,
+        index: i32,
         #[serde(rename = "name", default, with = "crate::names::card::option")]
         id: Option<i32>,
     },
     ChooseAdvanceTeam {
-        offer: i32,
+        index: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
         id: i32,
         #[serde(with = "crate::names::officer::one")]
@@ -1128,7 +1128,7 @@ mod tests {
         }
         for yaml in [
             "{type: buy_unit, name: marksman}",
-            "{type: choose_advance_team, offer: 1, name: vortex-fire_badger}",
+            "{type: choose_advance_team, index: 1, name: vortex-fire_badger}",
             "{type: release_commander_skill, index: 0, target: {unit: 4}}",
             "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
@@ -1184,15 +1184,15 @@ mod tests {
         let at = Position { x: 10, y: -20 };
         let samples = [
             Action::ChooseReinforceItem {
-                offer: -1,
+                index: -1,
                 id: None,
             },
             Action::ChooseReinforceItem {
-                offer: 2,
+                index: 2,
                 id: Some(1_305_003),
             },
             Action::ChooseAdvanceTeam {
-                offer: 1,
+                index: 1,
                 id: 9910,
                 specialist: 20005,
             },

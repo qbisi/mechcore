@@ -17,9 +17,9 @@ red: {offers: [...], constructions: [...], tech_loadout: {...}}
 kind: action
 round: 0
 blue:
-- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
+- {type: choose_advance_team, index: 1, name: vortex-fire_badger, specialist: giant_specialist}
 red:
-- {type: choose_advance_team, offer: 0, name: crawler-tarantula, specialist: supply_specialist}
+- {type: choose_advance_team, index: 0, name: crawler-tarantula, specialist: supply_specialist}
 ---
 kind: state
 round: 1
@@ -254,7 +254,7 @@ draws one for each side, as the game's server does.
 ## The opening is round zero
 
 The opening is the first action segment, and it holds one
-`choose_advance_team` per side and nothing else. `offer` is the zero-based
+`choose_advance_team` per side and nothing else. `index` is the zero-based
 position of the combination taken in that side's header `offers`, and `name` and
 `specialist` name the team and specialist that combination holds. A decision
 whose `name` and `specialist` are not what its offer holds is refused.
@@ -598,7 +598,7 @@ because the conversion could not find it.
 | Collection | Order |
 | --- | --- |
 | segments | header, round zero's actions, then each round's state before its actions, ascending `round` |
-| `offers` | as dealt; an opening decision's `offer` names a zero-based position in it |
+| `offers` | as dealt; an opening decision's `index` names a zero-based position in it |
 | `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
 

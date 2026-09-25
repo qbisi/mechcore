@@ -466,7 +466,7 @@ impl Dealer {
             let choices: Vec<_> = actions
                 .iter()
                 .filter_map(|action| match action {
-                    Action::ChooseReinforceItem { offer, id } => Some((*offer, *id)),
+                    Action::ChooseReinforceItem { index, id } => Some((*index, *id)),
                     _ => None,
                 })
                 .collect();

@@ -58,7 +58,7 @@ fn dealt(directory: &Path) -> String {
 fn opening(view: &Value, side: &str) -> String {
     let offer = &view["sides"][side]["offers"][0];
     format!(
-        "{{type: choose_advance_team, offer: 0, name: {}, specialist: {}}}",
+        "{{type: choose_advance_team, index: 0, name: {}, specialist: {}}}",
         offer["team"].as_str().unwrap(),
         offer["specialist"].as_str().unwrap()
     )

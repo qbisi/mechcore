@@ -25,7 +25,7 @@ An action segment holds one round's decisions, one sequence per side.
 kind: action
 round: 7
 blue:
-- {type: choose_reinforce_item, offer: 3, name: sledgehammer_2x_lv2}
+- {type: choose_reinforce_item, index: 3, name: sledgehammer_2x_lv2}
 - {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 - {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
 red:
@@ -118,13 +118,13 @@ Answers the round's reinforcement offer. There are two answers and both are
 choices, so both are this one action.
 
 ```yaml
-- {type: choose_reinforce_item, offer: 3, name: photon_coating}
-- {type: choose_reinforce_item, offer: -1}
+- {type: choose_reinforce_item, index: 3, name: photon_coating}
+- {type: choose_reinforce_item, index: -1}
 ```
 
-`offer` is the offer's position in `reinforce_offers`, or `-1` for the decline,
+`index` is the offer's position in `reinforce_offers`, or `-1` for the decline,
 which is a choice the round always makes available and never one of the items it
-dealt. `name` names the item taken and is present exactly when `offer` is not
+dealt. `name` names the item taken and is present exactly when `index` is not
 `-1`: what the decline hands back is built from the match's progress rather than
 drawn from a catalogue, so it has nothing a document could name.
 
@@ -150,12 +150,12 @@ give both.
 ### `choose_advance_team`
 
 ```yaml
-- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
+- {type: choose_advance_team, index: 1, name: vortex-fire_badger, specialist: giant_specialist}
 ```
 
 The opening, which is one decision with two halves: the team and the specialist
 officer bound to it. `name` names the team as the header's offers do, and
-`specialist` names the officer; both are required. `offer` is the combination's
+`specialist` names the officer; both are required. `index` is the combination's
 position in the side's opening offers, which a battle's header states.
 
 It is round zero's only decision, and no other round holds one.

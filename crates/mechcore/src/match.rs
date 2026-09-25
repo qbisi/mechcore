@@ -779,7 +779,7 @@ impl Game {
         let opening = self.round() == 0;
         match decision {
             Action::ChooseAdvanceTeam {
-                offer,
+                index: offer,
                 id,
                 specialist,
             } => {
@@ -808,7 +808,7 @@ impl Game {
             _ if opening => Err(Failure::refused(
                 "round zero holds one decision, and it is the opening",
             )),
-            Action::ChooseReinforceItem { offer, .. } => {
+            Action::ChooseReinforceItem { index: offer, .. } => {
                 let dealt = self
                     .battle
                     .turns
@@ -852,7 +852,7 @@ impl Game {
                     "an opening is one decision, and this side has taken another number of them",
                 ));
             };
-            let Action::ChooseAdvanceTeam { offer, .. } = decision else {
+            let Action::ChooseAdvanceTeam { index: offer, .. } = decision else {
                 return Err(Failure::refused("round zero's decision is the opening"));
             };
             let offer = *offer;

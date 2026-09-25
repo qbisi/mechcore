@@ -1100,11 +1100,11 @@ mod tests {
         };
         let taken = [
             Action::ChooseReinforceItem {
-                offer: 0,
+                index: 0,
                 id: Some(20022),
             },
             Action::ChooseReinforceItem {
-                offer: 1,
+                index: 1,
                 id: Some(20022),
             },
         ];
@@ -1119,7 +1119,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let declined = Action::ChooseReinforceItem {
-            offer: crate::battle::DECLINED_OFFER,
+            index: crate::battle::DECLINED_OFFER,
             id: None,
         };
         let ordinary = crate::reinforcement::decline_supply(&economy, 1, 3).unwrap();
@@ -1145,7 +1145,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let declined = [Action::ChooseReinforceItem {
-            offer: crate::battle::DECLINED_OFFER,
+            index: crate::battle::DECLINED_OFFER,
             id: None,
         }];
         let next = fold(&economy, &state, &declined).unwrap();
@@ -1164,7 +1164,7 @@ mod tests {
     fn an_unfitted_card_stays_in_stock() {
         let economy = Economy::embedded().unwrap();
         let taken = [Action::ChooseReinforceItem {
-            offer: 0,
+            index: 0,
             id: Some(13_030_001),
         }];
         let next = fold(&economy, &solvent(), &taken).unwrap();
@@ -1187,7 +1187,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let taken = [
             Action::ChooseReinforceItem {
-                offer: 0,
+                index: 0,
                 id: Some(13_030_001),
             },
             Action::UseEquipment {
@@ -1350,7 +1350,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let before = super::before_opening(4500, Vec::new());
         let choice = Action::ChooseAdvanceTeam {
-            offer: 2,
+            index: 2,
             id: 9891,
             specialist: 10002,
         };
@@ -1446,7 +1446,7 @@ mod tests {
         };
         let taken = [
             Action::ChooseReinforceItem {
-                offer: 0,
+                index: 0,
                 id: Some(10_524),
             },
             Action::UseEquipment {
@@ -1704,7 +1704,7 @@ mod tests {
         let card = 102_212;
         let reinforcement = economy.unit_reinforcement(card).expect("a squad card");
         let taken = Action::ChooseReinforceItem {
-            offer: 0,
+            index: 0,
             id: Some(card),
         };
         // Where a squad lands is the board's to decide, so the plain step
@@ -1738,7 +1738,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let chosen = Action::ChooseAdvanceTeam {
-            offer: 2,
+            index: 2,
             id: 9890,
             specialist: 20005,
         };
@@ -1756,7 +1756,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         for (id, specialist) in [(20005, 9890), (9890, 9891), (20005, 20032)] {
             let chosen = Action::ChooseAdvanceTeam {
-                offer: 0,
+                index: 0,
                 id,
                 specialist,
             };
@@ -1775,7 +1775,7 @@ mod tests {
     fn both_halves_of_an_opening_price_the_core() {
         let economy = Economy::embedded().unwrap();
         let chosen = Action::ChooseAdvanceTeam {
-            offer: 0,
+            index: 0,
             id: 9890,
             specialist: 20032,
         };

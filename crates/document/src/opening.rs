@@ -546,7 +546,7 @@ pub struct StatedSide {
 /// The opening decision one side states in round zero.
 #[derive(Debug, Default)]
 pub struct StatedOpening {
-    /// The zero-based `offer` the decision names.
+    /// The zero-based `index` the decision names.
     pub choose: i32,
     /// The team and specialist the decision says that offer holds.
     pub taken: OpeningOffer,
@@ -586,7 +586,7 @@ impl StatedOpening {
             ));
         };
         let Action::ChooseAdvanceTeam {
-            offer,
+            index,
             id,
             specialist,
         } = choice
@@ -594,7 +594,7 @@ impl StatedOpening {
             return Err(format!("{side} opening is not choose_advance_team"));
         };
         Ok(Some(Self {
-            choose: *offer,
+            choose: *index,
             taken: OpeningOffer {
                 team: *id,
                 specialist: *specialist,

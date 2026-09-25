@@ -1105,10 +1105,10 @@ fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorde
             "PAD_ChooseReinforceItem" => {
                 // Declining is the same decision at the declined offer, and
                 // the game records its `ID` as zero rather than omitting it.
-                let offer = field("Index", action.index)?;
+                let index = field("Index", action.index)?;
                 Action::ChooseReinforceItem {
-                    offer,
-                    id: if offer == DECLINED_OFFER {
+                    index,
+                    id: if index == DECLINED_OFFER {
                         None
                     } else {
                         Some(field("ID", action.id)?)
