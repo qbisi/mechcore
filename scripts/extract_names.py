@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Extract build 2259's official English names into `config/names.yaml`.
+"""Extract the build's official English names into `config/names.yaml`.
 
 A battle document names what a side holds rather than numbering it: an
 officer, a unit's technologies, a blueprint, an energy tower skill, a
 commander skill and an equipment item. The
-names are the game's own English localization, read from the
-`I2LanguagesForConfigData` language source in `resources.assets`, where each
-configuration row has a term `ConfigData/<Table>/name_<id>` whose first
-language is English. A name is spelled in snake case: lower case, apostrophes
+names are the game's own English localization, the `I2LanguagesForConfigData`
+language source in `resources.assets` as `scripts/build_data.py` reads it,
+where each configuration row has a term `ConfigData/<Table>/name_<id>`. A name is spelled in snake case: lower case, apostrophes
 dropped, and every run of other characters one underscore, so "Vulcan's
 Descent" is `vulcans_descent` as a layout already spells it.
 
@@ -26,72 +25,29 @@ grants takes a `_card` suffix, which makes the card's Mobile Beacon
 `mobile_beacon_card`. Any other clash stops the extraction rather than
 inventing a spelling.
 
-    uv run --with UnityPy --with pyyaml python scripts/extract_names.py \\
-        "<Mechabellum.app>/Contents/Resources/Data"
+    uv run --with pyyaml python3 scripts/extract_names.py [--build BUILD]
 """
 
 import collections
 from pathlib import Path
 import re
-import struct
 import sys
 
 import yaml
 
+import build_data
+
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "config/names.yaml"
-BUILD = "1.11.1.3.2259"
-# The language source in resources.assets that localizes configuration rows.
-LANGUAGE_SOURCE = 1994
+LOCALIZATION = ROOT / "config/localization.yaml"
 # Technologies are spread over every table whose rows are technologies; these
 # two carry some without saying so in their names.
 TECHNOLOGY_TABLES = ("SearchTargetSpecificData", "BurrowData")
 
 
-def language_terms(data: Path) -> dict[str, list[str]]:
-    import UnityPy
-
-    environment = UnityPy.load(str(data / "resources.assets"))
-    raw = next(
-        obj.get_raw_data()
-        for obj in environment.objects
-        if obj.path_id == LANGUAGE_SOURCE
-    )
-    at = 0
-
-    def integer() -> int:
-        nonlocal at
-        value = struct.unpack_from("<i", raw, at)[0]
-        at += 4
-        return value
-
-    def aligned(length: int) -> bytes:
-        nonlocal at
-        value = raw[at : at + length]
-        at = (at + length + 3) & ~3
-        return value
-
-    def string() -> str:
-        return aligned(integer()).decode("utf-8")
-
-    # m_GameObject, m_Enabled, m_Script, then m_Name.
-    at = 12
-    integer()
-    at += 12
-    name = string()
-    if name != "I2LanguagesForConfigData":
-        raise SystemExit(f"path id {LANGUAGE_SOURCE} is {name!r}, not the config language source")
-    integer(), integer(), integer()
-    terms = {}
-    for _ in range(integer()):
-        term = string()
-        integer()  # TermType
-        languages = [string() for _ in range(integer())]
-        aligned(integer())  # Flags
-        for _ in range(integer()):  # Languages_Touch
-            string()
-        terms[term] = languages
-    return terms
+def language_terms() -> dict[str, list[str]]:
+    """Every configuration term, English first."""
+    return {term: [english, chinese] for term, (english, chinese) in build_data._terms().items()}
 
 
 def snake(text: str) -> str:
@@ -111,10 +67,54 @@ def distinct(rows: dict[int, str], kind: str) -> dict[int, str]:
     return rows
 
 
+def official(terms, tables, row):
+    """A row's official English and Simplified Chinese names, from whichever table localizes it."""
+    for table in tables:
+        value = terms.get(f"ConfigData/{table}/name_{row}")
+        if value and value[0]:
+            return value[0], value[1]
+    raise SystemExit(f"row {row} has no official name in {tables}")
+
+
+def quoted(text):
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def write_localization(terms, officers, commander_skills, equipment, technologies,
+                       skill_tables, equipment_tables, technology_tables):
+    """The official English and Chinese names of what a battle names, for readers."""
+    cards = build_data.container()["cardDatas"]
+    units = {
+        card["mechID"]: snake(official(terms, ["MechData"], card["mechID"])[0])
+        for card in cards
+        if build_data.in_standard(card) and not card["isTestUnit"] and card["specialUnit"] <= 0
+    }
+    sections = [
+        ("units", {unit: official(terms, ["MechData"], unit) for unit in units}),
+        ("officers", {row: official(terms, ["OfficerData"], row) for row in officers}),
+        ("commander_skills", {row: official(terms, skill_tables, row) for row in commander_skills}),
+        ("equipment", {row: official(terms, equipment_tables, row) for row in equipment}),
+        ("technologies", {row: official(terms, technology_tables, row)
+                          for rows in technologies.values() for row in rows}),
+    ]
+    lines = [
+        "schema: mechcore.localization",
+        "",
+        "# The game's official English and Simplified Chinese names of what a",
+        "# battle document names, for a reader to find it in the game. Generated",
+        "# by scripts/extract_names.py; config/names.yaml holds the snake-case",
+        "# names a document writes. scripts/name-tables.py turns this into the",
+        "# name tables of docs/rules/.",
+    ]
+    for section, rows in sections:
+        lines += ["", f"{section}:"]
+        lines += [f"  {row}: {{en: {quoted(en)}, zh: {quoted(zh)}}}" for row, (en, zh) in sorted(rows.items())]
+    LOCALIZATION.write_text("\n".join(lines) + "\n")
+
+
 def main():
-    if len(sys.argv) != 2:
-        raise SystemExit(__doc__)
-    terms = language_terms(Path(sys.argv[1]))
+    build_data.arguments(__doc__)
+    terms = language_terms()
     items = yaml.safe_load((ROOT / "config/reinforce_items.yaml").read_text())["items"]
     held = {row["id"] for row in items if row["kind"] == "officer"} | {
         row["id"]
@@ -197,7 +197,6 @@ def main():
 
     lines = [
         "schema: mechcore.names",
-        f"game_build: {BUILD}",
         "",
         "# The game's English names, in snake case, for what a battle document",
         "# names rather than numbers. Generated by scripts/extract_names.py from",
@@ -223,6 +222,8 @@ def main():
     lines += ["", "equipment:"]
     lines += [f"  {row}: {name}" for row, name in sorted(equipment.items())]
     OUTPUT.write_text("\n".join(lines) + "\n")
+    write_localization(terms, officers, commander_skills, equipment, technologies,
+                       skill_tables, equipment_tables, tables)
     print(
         f"{len(officers)} officers, {sum(map(len, technologies.values()))} technologies, "
         f"{len(blueprints)} blueprints, {len(skills)} energy tower skills, "

@@ -474,9 +474,11 @@ pub(crate) mod card {
         super::card_id(name).map_err(E::custom)
     }
 
-    /// An optional card: a reinforcement choice's, absent when declined.
-    pub(crate) mod option {
+    /// A reinforcement choice: the card taken, or the decline, written by
+    /// [`crate::battle::DECLINE_OFFER`].
+    pub(crate) mod choice {
         use super::{Deserialize, Deserializer, Serializer};
+        use crate::battle::DECLINE_OFFER;
 
         // Required by serde's `with` shape.
         #[allow(clippy::ref_option, clippy::trivially_copy_pass_by_ref)]
@@ -485,52 +487,102 @@ pub(crate) mod card {
             serializer: S,
         ) -> Result<S::Ok, S::Error> {
             match card {
-                Some(card) => serializer.serialize_some(super::name::<S::Error>(*card)?),
-                None => serializer.serialize_none(),
+                Some(card) => serializer.serialize_str(super::name::<S::Error>(*card)?),
+                None => serializer.serialize_str(DECLINE_OFFER),
             }
         }
 
         pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
             deserializer: D,
         ) -> Result<Option<i32>, D::Error> {
-            Option::<String>::deserialize(deserializer)?
-                .map(|name| super::id::<D::Error>(&name))
-                .transpose()
+            let name = String::deserialize(deserializer)?;
+            if name == DECLINE_OFFER {
+                return Ok(None);
+            }
+            super::id::<D::Error>(&name).map(Some)
         }
     }
 
-    /// An optional list of cards: a round's reinforcement offers.
+    /// A round's reinforcement offers: each card by name, and then the
+    /// decline with what it pays, `{name: decline_offer, refund: 50}`.
     pub(crate) mod offers {
         use super::{Deserialize, Deserializer, Serializer};
+        use crate::battle::{DECLINE_OFFER, Offers};
+        use serde::Serialize;
+
+        #[derive(Serialize, Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Decline {
+            name: String,
+            refund: i32,
+        }
+
+        #[derive(Serialize, Deserialize)]
+        #[serde(untagged)]
+        enum Entry {
+            Card(String),
+            Decline(Decline),
+        }
 
         #[allow(clippy::ref_option)] // Required by serde's `with` shape.
-        pub(crate) fn serialize<S: Serializer, V: AsRef<[i32]>>(
-            cards: &Option<V>,
+        pub(crate) fn serialize<S: Serializer, O: std::borrow::Borrow<Offers>>(
+            offers: &Option<O>,
             serializer: S,
         ) -> Result<S::Ok, S::Error> {
-            match cards {
-                Some(cards) => serializer.serialize_some(
-                    &cards
-                        .as_ref()
-                        .iter()
-                        .map(|card| super::name::<S::Error>(*card))
-                        .collect::<Result<Vec<_>, _>>()?,
-                ),
+            match offers {
+                Some(offers) => serializer.serialize_some(offers.borrow()),
                 None => serializer.serialize_none(),
             }
         }
 
+        /// One round's offers, the entries in order.
+        pub(crate) fn write<S: Serializer>(
+            offers: &Offers,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            let mut entries = offers
+                .dealt
+                .iter()
+                .map(|card| super::name::<S::Error>(*card).map(|name| Entry::Card(name.into())))
+                .collect::<Result<Vec<_>, _>>()?;
+            entries.push(Entry::Decline(Decline {
+                name: DECLINE_OFFER.into(),
+                refund: offers.refund,
+            }));
+            entries.serialize(serializer)
+        }
+
         pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
             deserializer: D,
-        ) -> Result<Option<Vec<i32>>, D::Error> {
-            Option::<Vec<String>>::deserialize(deserializer)?
-                .map(|names| {
-                    names
-                        .iter()
-                        .map(|name| super::id::<D::Error>(name))
-                        .collect()
+        ) -> Result<Option<Offers>, D::Error> {
+            use serde::de::Error;
+            let Some(mut entries) = Option::<Vec<Entry>>::deserialize(deserializer)? else {
+                return Ok(None);
+            };
+            let Some(Entry::Decline(decline_offer)) = entries.pop() else {
+                return Err(D::Error::custom(format!(
+                    "reinforce_offers ends in {{name: {DECLINE_OFFER}, refund: ...}}"
+                )));
+            };
+            if decline_offer.name != DECLINE_OFFER {
+                return Err(D::Error::custom(format!(
+                    "reinforce_offers ends in {DECLINE_OFFER}, not {}",
+                    decline_offer.name
+                )));
+            }
+            let dealt = entries
+                .iter()
+                .map(|entry| match entry {
+                    Entry::Card(name) => super::id::<D::Error>(name),
+                    Entry::Decline(_) => Err(D::Error::custom(format!(
+                        "reinforce_offers names {DECLINE_OFFER} once, last"
+                    ))),
                 })
-                .transpose()
+                .collect::<Result<_, _>>()?;
+            Ok(Some(Offers {
+                dealt,
+                refund: decline_offer.refund,
+            }))
         }
     }
 }

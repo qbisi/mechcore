@@ -1,0 +1,23 @@
+kind: layout
+round: 1
+
+# Do two items on one formation compose as an item and an officer do?
+#
+# Equipment Expansion gives each formation a second slot. The Marksman wears
+# Heavy Armor and Improved Firepower Control System, which write different
+# channels: +0.75 of life in the unit channel and +0.65 of damage in the
+# skill channel. If both land, life reads `heavy-armor.yaml`'s and a shot
+# reads `firepower.yaml`'s 3842.
+blue:
+  officers: [equipment_expansion]
+  units:
+    - name: marksman
+      index: 0
+      equipment: [heavy_armor, improved_firepower_control_system]
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

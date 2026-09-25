@@ -7,7 +7,7 @@ blue:
     - name: crawler
       index: 0
       position: {x: -5, y: -20}
-      equipment: amplifying_core
+      equipment: [amplifying_core]
 
 red:
   units:

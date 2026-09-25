@@ -1,0 +1,72 @@
+# Can the Adapter still do, on the pinned build, everything it could?
+#
+#   mechcore run tests/adapter/smoke.mcscript --check   parse without the game
+#   mechcore run tests/adapter/smoke.mcscript           run against the game
+#
+# Each layout below exercises one part of a layout the Adapter installs and
+# reads back: units and equipment, walls and turrets, contraptions, terrain,
+# towers and their strengthening, battle skills, energy tower skills, ambush
+# units, and a round-seven board taken from a replay. Each is applied and
+# recorded. Then one fight is recorded under every instrumentation profile,
+# which is what proves each profile's hooks still install. Nothing here pins a
+# hash: what a fight does is its topic's question, not the Adapter's.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/adapter/smoke
+  seed: 1787720817
+
+steps:
+  - let:
+      fights:
+        - {name: equipment, layout: tests/equipment/two-items.yaml}
+        - {name: constructions, layout: layouts/construction-battle.yaml}
+        - {name: turret, layout: tests/turret/rapid-fire-head-on.yaml}
+        - {name: contraptions, layout: layouts/shield-missile-battle.yaml}
+        - {name: interceptor, layout: layouts/interceptor-battle.yaml}
+        - {name: terrain-oil, layout: layouts/terrain-sticky-oil.yaml}
+        - {name: terrain-fire, layout: layouts/terrain-hound-incendiary.yaml}
+        - {name: towers, layout: tests/tower/both-towers-0-4.yaml}
+        - {name: battle-skills, layout: tests/skill-order/lightning-first.yaml}
+        - {name: readback, layout: layouts/layout-readback-p0-p1.yaml}
+        - {name: ambush, layout: layouts/upper-right-ambush-3v3.yaml}
+        - {name: replay-round, layout: layouts/tuff-replay-round-7.yaml}
+      profiles:
+        - target_refs_v1
+        - target_refs_rvo_v1
+        - skill_attackable_checker_v1
+        - selector_score_v1
+        - selector_score_rvo_v1
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(${fight.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+        expect:
+          operation.applied: true
+      - game.record_battle:
+          output: ${out}/${fight.name}.mcfr
+        expect:
+          operation.recorded: true
+
+  - foreach: {profile: $profiles}
+    steps:
+      - let:
+          layout: read_yaml(tests/regression/crawlers-vs-marksman.yaml)
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${profile}.mcfr
+          instrumentation:
+            output: ${out}/${profile}.h5
+            profile: $profile
+        expect:
+          operation.recorded: true
+          operation.instrumentation.profile: $profile

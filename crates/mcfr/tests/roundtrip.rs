@@ -15,7 +15,20 @@ use mechcore_mcfr::{
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
 
-const LAYOUT_YAML: &str = "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
+const LAYOUT_YAML: &str = "kind: layout\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
+
+/// A layout as the writer embeds it: canonical, which states the version the
+/// binary carries.
+fn stated(layout: &str) -> String {
+    layout.replacen(
+        "kind: layout\n",
+        &format!(
+            "kind: layout\ngame_build: {}\n",
+            mechcore_document::game_build()
+        ),
+        1,
+    )
+}
 
 #[test]
 #[allow(clippy::too_many_lines)]
@@ -40,7 +53,7 @@ fn writes_and_reads_v6_tracks() {
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
     assert_eq!(reader.context().match_seed, 42);
-    assert_eq!(reader.layout_yaml(), LAYOUT_YAML);
+    assert_eq!(reader.layout_yaml(), stated(LAYOUT_YAML));
     assert_eq!(reader.hashes(), &hashes);
     assert_eq!(
         reader.file_size_bytes(),
@@ -59,7 +72,7 @@ fn writes_and_reads_v6_tracks() {
         assert_eq!(entry.compression(), zip::CompressionMethod::Stored);
         let mut layout = String::new();
         entry.read_to_string(&mut layout).unwrap();
-        assert_eq!(layout, LAYOUT_YAML);
+        assert_eq!(layout, stated(LAYOUT_YAML));
     }
     for name in [
         "ticks.parquet",
@@ -366,7 +379,7 @@ fn physics_hash_ignores_event_provenance_annotations() {
 
 #[test]
 fn embedded_layout_is_not_a_hash_input() {
-    const OTHER_LAYOUT: &str = "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 20, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
+    const OTHER_LAYOUT: &str = "kind: layout\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 20, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
     let directory = tempfile::tempdir().unwrap();
     let events = damage_events();
     let left = write_battle(
@@ -382,12 +395,15 @@ fn embedded_layout_is_not_a_hash_input() {
     writer.append_tick(state(75), &events).unwrap();
     let right = writer.finish().unwrap();
     assert_eq!(left, right);
-    assert_eq!(McfrReader::open(path).unwrap().layout_yaml(), OTHER_LAYOUT);
+    assert_eq!(
+        McfrReader::open(path).unwrap().layout_yaml(),
+        stated(OTHER_LAYOUT)
+    );
 }
 
 #[test]
 fn embedded_layout_preserves_adapter_state_outside_public_legality() {
-    const PARTIAL_LAYOUT: &str = "kind: layout\ngame_build: 1.11.1.3.2259\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: -310, y: 20}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: -310, y: 20}}\n";
+    const PARTIAL_LAYOUT: &str = "kind: layout\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: -310, y: 20}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: -310, y: 20}}\n";
     assert!(mechcore_document::parse_yaml(PARTIAL_LAYOUT.as_bytes()).is_err());
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("partial-layout.mcfr");
@@ -399,7 +415,7 @@ fn embedded_layout_preserves_adapter_state_outside_public_legality() {
     writer.finish().unwrap();
     assert_eq!(
         McfrReader::open(path).unwrap().layout_yaml(),
-        PARTIAL_LAYOUT
+        stated(PARTIAL_LAYOUT)
     );
 }
 

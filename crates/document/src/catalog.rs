@@ -90,6 +90,7 @@ pub(crate) const fn resolve_unit_type(type_name: &str) -> Option<FormationSpec> 
         b"abyss" => Some(unit_spec(29, 70, 70)),
         b"void_eye" => Some(unit_spec(30, 40, 20)),
         b"vortex" => Some(unit_spec(31, 20, 20)),
+        b"centurion" => Some(unit_spec(32, 30, 30)),
         b"mountain" => Some(unit_spec(2002, 70, 70)),
         _ => None,
     }
@@ -152,6 +153,7 @@ pub const fn unit_type_from_id(id: i32) -> Option<(&'static str, (i64, i64))> {
         29 => Some(("abyss", (70, 70))),
         30 => Some(("void_eye", (40, 20))),
         31 => Some(("vortex", (20, 20))),
+        32 => Some(("centurion", (30, 30))),
         2002 => Some(("mountain", (70, 70))),
         _ => None,
     }
@@ -194,6 +196,7 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
         300_005 => Some("lightning_storm"),
         300_006 => Some("ion_blast"),
         300_007 => Some("orbital_javelin"),
+        300_016 => Some("heavy_missile_strike"),
         400_002 => Some("sticky_oil_bomb"),
         500_002 => Some("acid_blast"),
         600_002 => Some("smoke_bomb"),
@@ -211,7 +214,7 @@ pub const fn battle_skill_type_from_id(id: i32) -> Option<&'static str> {
 
 /// The battlefield area a commander skill leaves behind, if it leaves one.
 ///
-/// Five skill classes derive from `RangeItemCommanderSkill` in build 2259 and
+/// Five skill classes derive from `RangeItemCommanderSkill` in the build and
 /// each answers `GetRangeItemType` with a constant: `CS_Fire` with `Fire`,
 /// `CS_Oil` with `Oil`, `CS_Fog` with `Fog`, `CS_Acid` with `Acid` and
 /// `CS_Recovery` with `RecoveryZone`. Four of those five are reached by a skill
@@ -281,6 +284,13 @@ pub(crate) const fn resolve_battle_skill_type(type_name: &str) -> Option<BattleS
         ),
         b"missile_strike" => battle_skill_spec(
             300_001,
+            1,
+            BattleSkillShape::Circle { radius: 40 },
+            BattleSkillMapRule::Overlap,
+            None,
+        ),
+        b"heavy_missile_strike" => battle_skill_spec(
+            300_016,
             1,
             BattleSkillShape::Circle { radius: 40 },
             BattleSkillMapRule::Overlap,

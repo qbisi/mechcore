@@ -243,7 +243,7 @@ fn compile_formation(
         side_name,
         &formation.type_name,
         level,
-        formation.equipment,
+        &formation.equipment,
         rules,
         side,
         loadouts,
@@ -281,7 +281,7 @@ fn loadout(
     side_name: &str,
     type_name: &str,
     level: i64,
-    equipment: Option<i32>,
+    equipment: &[i32],
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
@@ -296,7 +296,7 @@ fn loadout(
             .corrections(&side.techs.units, type_name)
             .map_err(|error| Error::new(format!("side {side_name}: {error}")))?,
     );
-    if let Some(id) = equipment {
+    for &id in equipment {
         corrections.extend(
             loadouts
                 .equipment

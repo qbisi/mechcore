@@ -63,7 +63,7 @@ mod tests {
     /// eight levels that have a next one.
     #[test]
     fn every_sold_unit_has_eight_levels() {
-        assert_eq!(table().len(), 32);
+        assert_eq!(table().len(), 33);
         assert!(table().values().all(|row| row.len() == 8));
         assert_eq!(full("marksman", 1), Some(650));
         assert_eq!(full("marksman", 4), Some(2919));

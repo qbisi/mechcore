@@ -27,6 +27,8 @@ import subprocess
 import sys
 import tempfile
 
+import build_data
+
 REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
 
 # `side blue needs modules this build has not implemented: officers (Modifier),
@@ -54,7 +56,7 @@ def rounds_of(battle: pathlib.Path) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", default="target/debug/mechcore")
-    parser.add_argument("--battles", default="work/replay/replays/1.11.1.3.2259/battle")
+    parser.add_argument("--battles", help="the battle documents (default: work/battle/<version>)")
     arguments = parser.parse_args()
     binary = REPOSITORY / arguments.binary
     if not binary.exists():
@@ -68,7 +70,8 @@ def main() -> int:
     accepted = 0
     with tempfile.TemporaryDirectory() as room:
         layout = pathlib.Path(room) / "deployment.yaml"
-        for battle in sorted((REPOSITORY / arguments.battles).glob("*.yaml")):
+        battles = REPOSITORY / (arguments.battles or f"work/battle/{build_data.build()}")
+        for battle in sorted(battles.glob("*.yaml")):
             for round_number in range(1, rounds_of(battle) + 1):
                 projected = subprocess.run(
                     [binary, "doc", "project", battle, "--round", str(round_number),

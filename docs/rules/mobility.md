@@ -1,10 +1,7 @@
 # Deployment mobility
 
-[简体中文](mobility.zh.md)
-
-This index is pinned to game build 2259. It states which units a side may
-move during deployment, what frees a unit that may not, and the evidence
-for both.
+Which units a side may move during deployment, and what frees a unit that may
+not.
 
 A state carries the answer per unit as `movable`;
 [`state.md`](../spec/document/state.md#a-unit-carries-two-fields-a-layout-does-not)
@@ -31,38 +28,48 @@ round marks its slot `used` rather than released.
 
 ## What the game checks
 
-`TerritoryManager.CanMoveUnits`, which every recorded move passes through,
-asks `CardElement.CanMovable()` of each unit, and that is one comparison:
-`mobilityState != Limit`. `MobilityState` has three values, `Once` (0),
-`Limit` (1) and `Free` (2).
+`TerritoryManager.CanMoveUnits`, which every move passes through, asks
+`CardElement.CanMovable()` of each unit, and that is one comparison:
+`mobilityState != Limit`. `MobilityState` has three values, `Once`, `Limit` and
+`Free`.
 
 Redeploy's `PAP_ReleaseCommanderSkill.ChangeMobilityState` writes `Once` to its
 target and keeps the state it replaced, which `UndoChangeMobilityState` puts
-back. That much is read from the build's code.
+back.
 
 Which of the other writes sets `Limit` as a round opens, and `Free` for the
 Module and the Jump Drive, is not read: no call site names
 `CardElement.SetMobilityState`, so the writes are inlined where the code was
-not followed. The rule above rests for those parts on the corpus below.
+not followed.
+
+A unit "delivered as the round opened" is one at or above the unit allocator
+the previous round closed with. The snapshot's own `roundCount` does not
+separate those from units bought the round before: an officer's squad delivered
+as a round opens can already read 1.
 
 ## Evidence
 
-The local observation set records 3,735 moves across 41 matches. Every one is of
-a unit the rule lets move:
+### Replayed
 
-| Why it could move | Moves |
-| --- | ---: |
-| bought or handed out this round | 2,812 |
-| delivered as the round opened | 790 |
-| wearing the Deployment Module | 43 |
-| its unit's Jump Drive researched | 40 |
-| targeted by a standing Redeploy this round | 50 |
+- A unit that arrived this round, a unit wearing the Deployment Module and a
+  unit whose type's Jump Drive is researched may move, and every other one from
+  an earlier round may not: every recorded move of this version's corpus is of a
+  unit the rule lets move, and every formation's `movable` agrees, in battles
+  that fit the Module and battles that research a Jump Drive:
+  `scripts/verify-battles.py`.
 
-A unit "delivered as the round opened" is one at or above the unit
-allocator the previous round closed with. The snapshot's own `roundCount` does
-not separate those from units bought the round before: an officer's squad
-delivered as a round opens can already read 1.
+### Read
 
-The corpus holds no move the game refused, so it shows the rule is not too
-strict and cannot show it is not too lenient. A unit that stays in place
-and is not moved is consistent with either.
+- A move is allowed for a unit whose mobility state is not `Limit`:
+  `TerritoryManager.CanMoveUnits`, `CardElement.CanMovable`.
+- Redeploy writes `Once` to its target and restores the replaced state on undo:
+  `PAP_ReleaseCommanderSkill.ChangeMobilityState`,
+  `PAP_ReleaseCommanderSkill.UndoChangeMobilityState`.
+
+### Not established
+
+- **Which writes set `Limit` and `Free`.** They are inlined and not read; the
+  rule is what the corpus replays.
+- **That the rule is not too lenient.** A corpus holds no move the game refused,
+  so it shows the rule is not too strict and cannot show it lets through only
+  what the game does. A unit that stays in place is consistent with either.

@@ -1,5 +1,4 @@
 schema: mechcore.economy
-game_build: 1.11.1.3.2259
 
 # Prices a round can pay that belong to no unit.
 
@@ -51,12 +50,12 @@ technology_repeat_step: 200
 # instead. Declining is
 # itself an item: `ReinforcementManager.GetGiveUpReinforce`
 # returns an `AddSupplyReinforceItem` built per round rather than
-# read from a card table. This is `Config.noReinforcementSupply`,
-# a shipped field whose name and value both match what every
-# decidable decline in the local replay set pays. What is not
-# traced is the path from the field to the item: nothing in the
-# decompilation is recorded reading it, so the match is by name
-# and value rather than by call chain.
+# read from a card table. This is the standard map's
+# `MatchSetting.giveUpSupply` (`Config.noReinforcementSupply` before
+# build 2.0), a shipped field whose name and value match what a
+# decline pays. The getter is inlined where it is read, so the
+# decompilation records no call to cite: the match is by name and
+# value rather than by call chain.
 reinforce_decline: 50
 
 # What releasing a contraption costs. The config data container

@@ -11,7 +11,7 @@ blue:
   units:
     - name: marksman
       index: 0
-      equipment: improved_firepower_control_system
+      equipment: [improved_firepower_control_system]
       position: {x: 0, y: -50}
 
 red:

@@ -25,7 +25,7 @@ An action segment holds one round's decisions, one sequence per side.
 kind: action
 round: 7
 blue:
-- {type: choose_reinforce_item, offer: 3, name: sledgehammer_2x_lv2}
+- {type: choose_reinforce_item, index: 3, name: sledgehammer_2x_lv2}
 - {type: buy_unit, name: void_eye, position: {x: 0, y: -160}}
 - {type: release_commander_skill, index: 0, name: intensive_training, target: {unit: 4}}
 red:
@@ -52,9 +52,9 @@ two named things, and says `unit` and `tech`. Every other operand is a 32-bit
 integer or a position, except `release_commander_skill`'s target, which is a
 one-key mapping, and `rotated`, which is a boolean defaulting to false.
 
-Three keys are not always present. `choose_reinforce_item` omits `name` when the
-offer was declined, `release_contraption` omits `extra_position` unless the
-contraption spans two points, and `move_unit` omits `rotated` when it is false.
+Two keys are not always present. `release_contraption` omits `extra_position`
+unless the contraption spans two points, and `move_unit` omits `rotated` when it
+is false.
 
 `index` is a unit's deployment index, or a panel slot in
 `release_commander_skill`. `tower` is a position in `BuildingManager.buildings`,
@@ -67,7 +67,7 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
+| Settled | `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
 | Supply | `supply` |
 | Board | `units`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
 
@@ -95,15 +95,17 @@ destroyed by the fight and a unit can be, but neither index is handed out
 again, so the two counters only ever rise and rise only by a decision.
 
 `reinforce_offers` is granted by the round and written by no action. The rest of
-that reading needs qualifying, because a decision can reach three fields that a
+that reading needs qualifying, because a decision can reach three things that a
 round otherwise owns.
 
 - `reactor_core` is moved by the opening and by nothing else. Both halves of
   that one choice move it, so a team and its specialist are added together.
-- `buys_remaining` counts down as purchases are made, and two decisions add to
-  it: energy tower skill `3` and reinforcement card `10004` each grant one more.
-  The card is an officer the side keeps, so every later round opens with the
-  extra purchase too. `unlocks_remaining` only ever counts down.
+- The round's allowances, which a state does not write, count down as they are
+  spent, and a purchase, an unlock or a contraption release past its own is
+  refused. Two decisions add a purchase: energy tower skill `3` and
+  reinforcement card `10004` each grant one more. The card is an officer the side
+  keeps, so every later round opens with the extra purchase too. The unlock and
+  the contraption releases only ever count down.
 - A unit's `exp` is the fight's to grant, except that upgrading a unit
   discards it and Intensive Training fills it. A rank starts at zero however much
   the rank below it earned.
@@ -116,15 +118,15 @@ Answers the round's reinforcement offer. There are two answers and both are
 choices, so both are this one action.
 
 ```yaml
-- {type: choose_reinforce_item, offer: 3, name: photon_coating}
-- {type: choose_reinforce_item, offer: -1}
+- {type: choose_reinforce_item, index: 3, name: photon_coating}
+- {type: choose_reinforce_item, index: 4, name: decline_offer}
 ```
 
-`offer` is the offer's position in `reinforce_offers`, or `-1` for the decline,
-which is a choice the round always makes available and never one of the items it
-dealt. `name` names the item taken and is present exactly when `offer` is not
-`-1`: what the decline hands back is built from the match's progress rather than
-drawn from a catalogue, so it has nothing a document could name.
+`index` is the position of what is taken in the round's `reinforce_offers`, and
+`name` names it: a card dealt, or `decline_offer`, the decline the round always
+offers after its cards. The two have to agree, so a decision that names a card
+at another card's position, or the decline anywhere but after the cards, is
+refused.
 
 A card is named by what it grants, and a card of units as its unit, squads and
 level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
@@ -135,25 +137,25 @@ A taken item grants the thing it names, and which thing that is decides
 the effect: an officer joins `officers`, a commander skill joins
 `battle_skills`, an equipment joins `equipment`, and a unit card hands out
 squads. Squads advance `next_index.unit` and their unit type joins
-`shop.unlocked_units`. The decline writes none of those.
+`unlocked_units`. The decline writes none of those.
 
 A taken item costs its price, less what an officer taken this way grants back at
 once. The decline is the one reinforcement choice that pays the side instead:
-declining is an item of its own rather than the absence of one. What it pays is
-the round's, not the position's: 50 in an ordinary round, and in a unit round the
-figure the match's unit reinforcement schedule states for that round, which
-grows through the match. [The reinforcement rules](../../rules/reinforcements.md#declining)
-give both.
+declining is an item of its own rather than the absence of one. It pays the
+`refund` the round's `decline_offer` states: 50 in an ordinary round, and in a
+unit round the figure the match's unit reinforcement schedule states for that
+round, which grows through the match.
+[The reinforcement rules](../../rules/reinforcements.md#declining) give both.
 
 ### `choose_advance_team`
 
 ```yaml
-- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
+- {type: choose_advance_team, index: 1, name: vortex-fire_badger, specialist: giant_specialist}
 ```
 
 The opening, which is one decision with two halves: the team and the specialist
 officer bound to it. `name` names the team as the header's offers do, and
-`specialist` names the officer; both are required. `offer` is the combination's
+`specialist` names the officer; both are required. `index` is the combination's
 position in the side's opening offers, which a battle's header states.
 
 It is round zero's only decision, and no other round holds one.
@@ -201,7 +203,7 @@ type, less what the unit's equipment discounts, floored at zero.
 - {type: unlock_unit, name: void_eye}
 ```
 
-Adds the unit type `name` to `shop.unlocked_units`. Costs the unit's unlock price.
+Adds the unit type `name` to `unlocked_units`. Costs the unit's unlock price.
 
 ### `upgrade_technology`
 
@@ -270,8 +272,10 @@ oppositely, so nothing may read a tower's identity out of its position.
 
 Fits the item `name` to the unit at `index`, as `upgrade_unit` and
 `move_unit` name one. The item leaves `equipment`,
-the side's list of what it owns and no unit wears, and becomes that
-unit's.
+the side's list of what it owns and no unit wears, and joins the end of
+that unit's. A unit wears at most as many items as it has slots, which is the
+same count [`layout.md`](layout.md#unit) gives a placement; fitting a full
+unit is refused.
 
 Fitting is free, because the item was paid for when it was taken. What it can
 change is later: an item may discount every upgrade of its unit, or pay its
@@ -458,8 +462,9 @@ still stands for a decision. `Redo` pushes it back.
 `CancelReleaseCommanderSkill` stops the newest standing
 `ReleaseCommanderSkill` with the same `SkillIndex` from counting, but the
 release stays on the stack as a spent entry, and the cancel is pushed as one
-too. What remains standing is the sequence, and it contains no retraction of
-either kind.
+too. Undoing the cancel stands its release again, and redoing the cancel spends
+it once more. What remains standing is the sequence, and it contains no
+retraction of either kind.
 
 Counting the spent entries is the part that is easy to get wrong, and it is what
 the game does: undo walks an index back over the recorded list, so an entry that

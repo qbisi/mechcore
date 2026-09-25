@@ -149,13 +149,15 @@ pub struct UnitPlacement {
     pub exp: Option<Experience>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
+    /// What the formation wears, in the order it was fitted. Build 2.0 lets a
+    /// formation wear more than one when its side's officers add slots.
     #[serde(
         default,
-        skip_serializing_if = "Option::is_none",
-        with = "crate::names::equipment::option"
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::equipment::many"
     )]
-    #[schemars(with = "Option<String>")]
-    pub equipment: Option<i32>,
+    #[schemars(with = "Vec<String>")]
+    pub equipment: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
 }
@@ -284,7 +286,7 @@ pub struct BattleSkillDefinition {
 /// mapping, so a build that gave a second skill the same substance would not
 /// need a second name here.
 ///
-/// Under build 2259's standard 1v1 rules only `Oil` is ever read back, because
+/// Under the standard 1v1 rules only `Oil` is ever read back, because
 /// only the Sticky Oil Bomb lasts two rounds and every other area is gone
 /// before the round that would record it opens. The rest are carried so that a
 /// recording holding one is described rather than refused.

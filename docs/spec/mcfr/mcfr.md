@@ -12,8 +12,8 @@ battle the same recording, and what a reader must validate before trusting one.
 format = "0.6.0"
 ```
 
-The native field mapping is bound to game build `1.11.1.3.2259`. Another build
-may produce the same format, provided its producer has verified that the native
+The native field mapping is bound to the game version the repository pins in
+`GAME_VERSION`. Another version may produce the same format, provided its producer has verified that the native
 interfaces it reads mean what this document says they mean.
 
 The embedded `layout.yaml` is [layout.md](../document/layout.md) and is not
@@ -129,7 +129,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 | Field | Type and data | Meaning | Native source |
 | --- | --- | --- | --- |
 | `logic_step` | `Rational<u32>`, both parts above 0 | seconds per logic advance | the adapter fixes `1/20` |
-| `time_units_per_second` | `u32 > 0` | native discrete time density | build 2259 fixes `2000` |
+| `time_units_per_second` | `u32 > 0` | native discrete time density | the build fixes `2000` |
 | `combat_round` | `u32 > 0` | the combat round | `CurrentMatch.get_RoundCount()` |
 
 `match_seed` is not written to `ticks.parquet`. The writer still validates the
@@ -487,7 +487,7 @@ movement blocking, or layout deployment footprints.
 
 The four `source_kind` values are `EnergyShieldContraption`, `CS_EnergyShield`,
 `AdvancedEnergyShieldController` and `SpawnAdvancedShieldController`. An unknown
-data source makes the build 2259 adapter fail closed.
+data source makes the adapter fail closed.
 
 `round_policy` is decided in order: a short-lived object is
 `destroy_at_round_end`; of the rest, a reset-next-round object is
@@ -651,7 +651,7 @@ state change.
 ### Which events a producer can emit
 
 The MCFR model and the JSONL codec implement every event above. What a given
-producer can actually observe is narrower, and the build 2259 adapter covers:
+producer can actually observe is narrower, and the adapter covers:
 
 | Event | Native source |
 | --- | --- |

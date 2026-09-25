@@ -1,4 +1,4 @@
-//! Build-2259 `GRRandom` type 1: `RanState` xoshiro256** plus its integer projection.
+//! The build's `GRRandom` type 1: `RanState` xoshiro256** plus its integer projection.
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GrRandom {

@@ -250,11 +250,12 @@ mod tests {
     }
 
     /// Acquisition holds a game for longer than one command, so a command
-    /// refuses to launch one and says where launching belongs.
+    /// refuses to launch one and says where launching belongs. Neither call
+    /// reaches a game: a test that attached would take a running game from
+    /// whatever holds it.
     #[test]
     fn a_command_attaches_and_never_launches() {
         assert!(super::run(args(&["launch"])).is_err());
         assert!(super::run(args(&["status", "--launch"])).is_err());
-        assert!(super::run(args(&["status"])).is_err());
     }
 }

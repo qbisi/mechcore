@@ -13,12 +13,13 @@ use std::{fs, path::PathBuf};
 
 use mechcore_document::{
     battle::{
-        Action, Battle, BattleSide, DEFAULT_DEPLOY_TIME, Opening, OpeningOffer, SideState, State,
-        Turn as BattleTurn, TurnActions,
+        Action, Battle, BattleSide, DEFAULT_DEPLOY_TIME, Offers, Opening, OpeningOffer, SideState,
+        State, Turn as BattleTurn, TurnActions,
     },
     economy::Economy,
     layout::StaticPlacement,
-    opening, transition,
+    opening::{self, Stream},
+    transition,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -132,13 +133,16 @@ fn deal(
         Some(path) => read_loadout(path)?,
         None => economy.unit_technologies(),
     };
-    let side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| BattleSide {
+    // Each player brings a seed of its own, as the game's server hands one
+    // out, which an officer that draws its hand-out draws from.
+    let mut side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| BattleSide {
         opening: Opening {
             choose: None,
             offers: offers.to_vec(),
         },
         constructions: constructions.to_vec(),
         tech_loadout: loadout.clone(),
+        seed: Some(draw.seed()),
     };
     let battle = Battle {
         game_build: mechcore_document::game_build().to_owned(),
@@ -546,12 +550,22 @@ impl Game {
                 .opened(side)
                 .map_err(|failure| failure.reason().to_owned())?;
             let actions = self.committed_actions(side);
-            // Nothing is declined in round zero, which deals no reinforcement.
+            // Nothing is declined in round zero, which deals no reinforcement,
+            // and nothing has drawn from the side's own stream before it.
+            let stream = self.battle_side(side).seed.map(Stream::seeded);
             states.push(
-                transition::predict(&self.economy, round, &opened, &actions, side.red(), None)
-                    .map_err(|unsettled| {
-                        format!("round {round} {} is not settled: {unsettled}", side.name())
-                    })?,
+                transition::predict(
+                    &self.economy,
+                    round,
+                    &opened,
+                    &actions,
+                    side.red(),
+                    None,
+                    stream,
+                )
+                .map_err(|unsettled| {
+                    format!("round {round} {} is not settled: {unsettled}", side.name())
+                })?,
             );
         }
         let [blue, red] = [states.remove(0), states.remove(0)];
@@ -579,7 +593,7 @@ impl Game {
     /// match hands the whole document over rather than keeping a dealer
     /// between operations: a round is dealt the same way whichever process
     /// opened it, and a turn file that was lost changes nothing.
-    fn deal(&self) -> Result<Option<Vec<i32>>, String> {
+    fn deal(&self) -> Result<Option<Offers>, String> {
         let yaml = mechcore_document::battle::canonical_yaml(&self.battle)?;
         let stated = mechcore_document::opening::stated(yaml.as_bytes())?
             .ok_or("a match in progress is not a battle document")?;
@@ -673,6 +687,15 @@ impl Game {
         }
     }
 
+    /// What declining the round in progress pays, which its offers state.
+    fn declined(&self) -> Option<i32> {
+        self.battle
+            .turns
+            .last()
+            .and_then(|turn| turn.state.reinforce_offers.as_ref())
+            .map(|offers| offers.refund)
+    }
+
     /// This side's position in the round in progress: what the round opened
     /// with, and the decisions taken from it.
     fn position(&self, side: Side) -> Result<SideState, Failure> {
@@ -681,7 +704,7 @@ impl Game {
             &self.opened(side)?,
             &self.decisions(side),
             side.red(),
-            None,
+            self.declined(),
         )
         .map_err(|unsettled| {
             Failure::failed(format!(
@@ -711,9 +734,14 @@ impl Game {
         self.allowed(side, decision)?;
         let before = self.position(side)?;
         let mut placement = mechcore_document::landing::placement(side.red());
-        let after =
-            transition::step_placing(&self.economy, &before, decision, None, &mut placement)
-                .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
+        let after = transition::step_placing(
+            &self.economy,
+            &before,
+            decision,
+            self.declined(),
+            &mut placement,
+        )
+        .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
         self.deployable(side, &after)?;
         Ok(events(&before, &after))
     }
@@ -765,7 +793,7 @@ impl Game {
         let opening = self.round() == 0;
         match decision {
             Action::ChooseAdvanceTeam {
-                offer,
+                index: offer,
                 id,
                 specialist,
             } => {
@@ -794,22 +822,29 @@ impl Game {
             _ if opening => Err(Failure::refused(
                 "round zero holds one decision, and it is the opening",
             )),
-            Action::ChooseReinforceItem { offer, .. } => {
-                let dealt = self
+            Action::ChooseReinforceItem { index: offer, id } => {
+                let Some(offers) = self
                     .battle
                     .turns
                     .last()
-                    .and_then(|turn| turn.state.reinforce_offers.as_deref())
-                    .unwrap_or_default();
-                if *offer == mechcore_document::battle::DECLINED_OFFER {
-                    return Ok(());
-                }
-                if usize::try_from(*offer).is_ok_and(|at| at < dealt.len()) {
+                    .and_then(|turn| turn.state.reinforce_offers.as_ref())
+                else {
+                    return Err(Failure::refused("this round deals no reinforcement offer"));
+                };
+                // The decline sits after the cards dealt, and a card is taken
+                // at its own position.
+                let at = usize::try_from(*offer).ok();
+                let taken = match id {
+                    None => *offer == offers.decline_index(),
+                    Some(card) => at.and_then(|at| offers.dealt.get(at)) == Some(card),
+                };
+                if taken {
                     return Ok(());
                 }
                 Err(Failure::refused(format!(
-                    "offer {offer} is not one of the {} this round deals",
-                    dealt.len()
+                    "offer {offer} is not what this round offers there: it deals {} and declines at {}",
+                    offers.dealt.len(),
+                    offers.decline_index()
                 )))
             }
             _ => Ok(()),
@@ -838,7 +873,7 @@ impl Game {
                     "an opening is one decision, and this side has taken another number of them",
                 ));
             };
-            let Action::ChooseAdvanceTeam { offer, .. } = decision else {
+            let Action::ChooseAdvanceTeam { index: offer, .. } = decision else {
                 return Err(Failure::refused("round zero's decision is the opening"));
             };
             let offer = *offer;
@@ -925,7 +960,7 @@ impl Game {
     ///
     /// A side sees its own in full. Of the other it sees the position the
     /// round opened with, less what `docs/spec/mechcore/cli.md` hides: the
-    /// supply it holds, the shop it has unlocked, and the technologies it
+    /// supply it holds, the units it has unlocked, and the technologies it
     /// could research but has never fielded. Its round in progress is not
     /// there at all.
     fn side_view(&self, side: Side, own: bool) -> Result<SideView, Failure> {
@@ -942,7 +977,7 @@ impl Game {
             let fielded = self.fielded(side);
             if let Some(fields) = position.as_object_mut() {
                 fields.remove("supply");
-                fields.remove("shop");
+                fields.remove("unlocked_units");
             }
             self.battle_side(side)
                 .tech_loadout
@@ -1034,7 +1069,7 @@ struct View {
     #[serde(skip_serializing_if = "Option::is_none")]
     remaining: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    reinforce_offers: Option<Vec<i32>>,
+    reinforce_offers: Option<Offers>,
     /// What stopped a fight this match is due, when one is.
     #[serde(skip_serializing_if = "Option::is_none")]
     unresolved: Option<String>,

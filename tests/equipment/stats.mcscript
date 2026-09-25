@@ -38,6 +38,7 @@ steps:
         - {name: laser-sights, layout: tests/equipment/laser-sights.yaml}
         - {name: far-control, layout: tests/equipment/far-control.yaml}
         - {name: laser-sights-far, layout: tests/equipment/laser-sights-far.yaml}
+        - {name: two-items, layout: tests/equipment/two-items.yaml}
 
   - foreach: {fight: $fights}
     steps:
@@ -73,3 +74,9 @@ steps:
     expect:
       sides.blue.0.skill.0.modifiers.attack_range_value: 85899345920
       sides.blue.0.derived.attack_range: 687194767360
+  - fight.stats:
+      recording: ${out}/two-items.mcfr
+    expect:
+      sides.blue.0.unit.life_rate.add: 3221225472
+      sides.blue.0.skill.0.modifiers.damage_rate.add: 2791728742
+      sides.blue.0.derived.attack_damage: 3842

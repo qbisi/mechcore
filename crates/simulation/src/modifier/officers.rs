@@ -105,7 +105,6 @@ struct Row {
 #[serde(deny_unknown_fields)]
 struct Table {
     schema: String,
-    game_build: String,
     officers: Vec<Row>,
 }
 
@@ -128,9 +127,6 @@ impl OfficerEffects {
                 "officer effect table declares schema {:?}",
                 table.schema
             )));
-        }
-        if table.game_build.trim().is_empty() {
-            return Err(Error::new("officer effect table declares no game build"));
         }
         let mut officers = BTreeMap::new();
         for row in table.officers {

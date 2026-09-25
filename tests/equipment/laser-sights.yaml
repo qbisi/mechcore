@@ -12,7 +12,7 @@ blue:
   units:
     - name: marksman
       index: 0
-      equipment: laser_sights
+      equipment: [laser_sights]
       position: {x: 0, y: -50}
 
 red:

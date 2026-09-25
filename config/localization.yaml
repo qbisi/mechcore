@@ -1,0 +1,443 @@
+schema: mechcore.localization
+
+# The game's official English and Simplified Chinese names of what a
+# battle document names, for a reader to find it in the game. Generated
+# by scripts/extract_names.py; config/names.yaml holds the snake-case
+# names a document writes. scripts/name-tables.py turns this into the
+# name tables of docs/rules/.
+
+units:
+  1: {en: "Fortress", zh: "堡垒"}
+  2: {en: "Marksman", zh: "长弓"}
+  3: {en: "Vulcan", zh: "火神"}
+  4: {en: "Melting Point", zh: "熔点"}
+  5: {en: "Rhino", zh: "犀牛"}
+  6: {en: "Wasp", zh: "兵蜂"}
+  7: {en: "Mustang", zh: "野马"}
+  8: {en: "Steel Ball", zh: "钢球"}
+  9: {en: "Fang", zh: "尖牙"}
+  10: {en: "Crawler", zh: "爬虫"}
+  11: {en: "Overlord", zh: "霸主"}
+  12: {en: "Stormcaller", zh: "暴雨"}
+  13: {en: "Sledgehammer", zh: "铁锤"}
+  14: {en: "Hacker", zh: "骇客"}
+  15: {en: "Arclight", zh: "弧光"}
+  16: {en: "Phoenix", zh: "凤凰"}
+  17: {en: "War Factory", zh: "战争工厂"}
+  18: {en: "Wraith", zh: "恶灵"}
+  19: {en: "Scorpion", zh: "狂蝎"}
+  20: {en: "Fire Badger", zh: "火獾"}
+  21: {en: "Sabertooth", zh: "剑齿虎"}
+  22: {en: "Typhoon", zh: "台风"}
+  23: {en: "Sandworm", zh: "沙虫"}
+  24: {en: "Tarantula", zh: "狼蛛"}
+  25: {en: "Phantom Ray", zh: "鬼鳐"}
+  26: {en: "Farseer", zh: "先知"}
+  27: {en: "Raiden", zh: "雷霆"}
+  28: {en: "Hound", zh: "猎犬"}
+  29: {en: "Abyss", zh: "深渊"}
+  30: {en: "Void Eye", zh: "魔眼"}
+  31: {en: "Vortex", zh: "磁暴"}
+  32: {en: "Centurion", zh: "百夫长"}
+  2002: {en: "Mountain", zh: "泰山"}
+
+officers:
+  10002: {en: "Supply Specialist", zh: "补给专家"}
+  10003: {en: "Super Supply Enhancement", zh: "超级补给强化"}
+  10004: {en: "Additional Deployment Slot", zh: "额外部署位"}
+  10007: {en: "Advanced Shield Device", zh: "先进护盾装置"}
+  10008: {en: "Advanced Missile Device", zh: "先进飞弹装置"}
+  10009: {en: "Quick Teleport", zh: "快速传送"}
+  10010: {en: "Quick Supply Specialist", zh: "快速补给专家"}
+  10011: {en: "Missile Specialist", zh: "导弹专家"}
+  10014: {en: "Training Specialist", zh: "训练专家"}
+  10015: {en: "Secondary Equipment Expert", zh: "次级装备专家"}
+  10524: {en: "Mass-produced laser sight", zh: "量产激光瞄具"}
+  10525: {en: "Mass Production Fire Control System", zh: "量产火控系统"}
+  10526: {en: "Mass Production Heavy Armor", zh: "量产重型装甲"}
+  10540: {en: "Equipment Expansion", zh: "装备扩容"}
+  20001: {en: "Advanced Defensive Tactics", zh: "先进防御战术"}
+  20002: {en: "Advanced Offensive Tactics", zh: "先进进攻战术"}
+  20003: {en: "Efficient Tech Research", zh: "高效科技研发"}
+  20004: {en: "Advanced Power System", zh: "先进动力系统"}
+  20005: {en: "Giant Specialist", zh: "巨型专家"}
+  20006: {en: "Advanced Targeting System", zh: "先进瞄准系统"}
+  20007: {en: "Supply Enhancement", zh: "补给强化"}
+  20021: {en: "Aerial Specialist", zh: "空军专家"}
+  20022: {en: "Efficient Giant Manufacturing", zh: "高效巨型制造"}
+  20023: {en: "Efficient Light Manufacturing", zh: "高效小型制造"}
+  20024: {en: "Speed Specialist", zh: "速度专家"}
+  20029: {en: "Marksman Specialist", zh: "长弓专家"}
+  20032: {en: "Elite Specialist", zh: "精英专家"}
+  20033: {en: "Rhino Specialist", zh: "犀牛专家"}
+  20034: {en: "Cost Control Specialist", zh: "成本控制专家"}
+  20035: {en: "Fortified Specialist", zh: "重装专家"}
+  20036: {en: "Sabertooth Specialist", zh: "剑齿虎专家"}
+  20038: {en: "Fire Badger Specialist", zh: "火獾专家"}
+  20039: {en: "Typhoon Specialist", zh: "台风专家"}
+  30101: {en: "Mass-Produced Fortress", zh: "量产堡垒"}
+  30102: {en: "Assault Fortress", zh: "突击堡垒"}
+  30104: {en: "Improved Fortress", zh: "改进型堡垒"}
+  30105: {en: "Extended Range Fortress", zh: "增程堡垒"}
+  30201: {en: "Extended Range Marksman", zh: "增程长弓"}
+  30202: {en: "Smart Marksman", zh: "智能长弓"}
+  30203: {en: "Subsidized Marksman", zh: "长弓补贴"}
+  30204: {en: "Elite Marksman", zh: "精英长弓"}
+  30301: {en: "Extended Range Vulcan", zh: "增程火神"}
+  30302: {en: "Assault Vulcan", zh: "突击火神"}
+  30401: {en: "Assault Melting Point", zh: "突击熔点"}
+  30402: {en: "Improved Melting Point", zh: "改进型熔点"}
+  30403: {en: "Mass-Produced Melting Point", zh: "量产熔点"}
+  30501: {en: "Mass-Produced Rhino", zh: "量产犀牛"}
+  30502: {en: "Berserk Rhino", zh: "狂暴犀牛"}
+  30503: {en: "Elite Rhino", zh: "精英犀牛"}
+  30601: {en: "Mass-Produced Wasp", zh: "量产兵蜂"}
+  30602: {en: "Improved Wasp", zh: "改进型兵蜂"}
+  30604: {en: "Elite Wasp", zh: "精英兵蜂"}
+  30701: {en: "Subsidized Mustang", zh: "野马补贴"}
+  30702: {en: "Fortified Mustang", zh: "重装野马"}
+  30703: {en: "Elite Mustang", zh: "精英野马"}
+  30801: {en: "Subsidized Steel Ball", zh: "钢球补贴"}
+  30803: {en: "Improved Steel Ball", zh: "改进型钢球"}
+  30804: {en: "Elite Steel Ball", zh: "精英钢球"}
+  30901: {en: "Elite Fang", zh: "精英尖牙"}
+  30902: {en: "Assault Fang", zh: "突击尖牙"}
+  31001: {en: "Subsidized Crawler", zh: "爬虫补贴"}
+  31002: {en: "Elite Crawler", zh: "精英爬虫"}
+  31101: {en: "Fortified Overlord", zh: "重装霸主"}
+  31102: {en: "Mass-Produced Overlord", zh: "量产霸主"}
+  31104: {en: "Improved Overlord", zh: "改进型霸主"}
+  31201: {en: "Assault Stormcaller", zh: "突击暴雨"}
+  31202: {en: "Extended Range Stormcaller", zh: "增程暴雨"}
+  31203: {en: "Subsidized Stormcaller", zh: "暴雨补贴"}
+  31205: {en: "Elite Stormcaller", zh: "精英暴雨"}
+  31301: {en: "Mass-Produced Sledgehammer", zh: "量产铁锤"}
+  31302: {en: "Extended Range Sledgehammer", zh: "增程铁锤"}
+  31304: {en: "Improved Sledgehammer", zh: "改进型铁锤"}
+  31305: {en: "Elite Sledgehammer", zh: "精英铁锤"}
+  31402: {en: "Fortified Hacker", zh: "重装骇客"}
+  31403: {en: "Elite Hacker", zh: "精英骇客"}
+  31501: {en: "Subsidized Arclight", zh: "弧光补贴"}
+  31502: {en: "Smart Arclight", zh: "智能弧光"}
+  31503: {en: "Fortified Arclight", zh: "重装弧光"}
+  31504: {en: "Extended Range Arclight", zh: "增程弧光"}
+  31505: {en: "Elite Arclight", zh: "精英弧光"}
+  31601: {en: "Mass-Produced Phoenix", zh: "量产凤凰"}
+  31602: {en: "Extended Range Phoenix", zh: "增程凤凰"}
+  31603: {en: "Improved Phoenix", zh: "改进型凤凰"}
+  31604: {en: "Elite Phoenix", zh: "精英凤凰"}
+  31701: {en: "Extended Range War Factory", zh: "增程战争工厂"}
+  31702: {en: "Improved War Factory", zh: "改进型战争工厂"}
+  31801: {en: "Mass-Produced Wraith", zh: "量产恶灵"}
+  31802: {en: "Improved Wraith", zh: "改进型恶灵"}
+  31901: {en: "Assault Scorpion", zh: "突击狂蝎"}
+  31902: {en: "Mass-Produced Scorpion", zh: "量产狂蝎"}
+  31903: {en: "Improved Scorpion", zh: "改进型狂蝎"}
+  32101: {en: "Extended Range Sabertooth", zh: "增程剑齿虎"}
+  32102: {en: "Mass-Produced Sabertooth", zh: "量产剑齿虎"}
+  32103: {en: "Improved Sabertooth", zh: "改进型剑齿虎"}
+  32301: {en: "Improved Sandworm", zh: "改进型沙虫"}
+  32302: {en: "Mass-Produced Sandworm", zh: "量产沙虫"}
+  32401: {en: "Improved Tarantula", zh: "改进型狼蛛"}
+  32402: {en: "Elite Tarantula", zh: "精英狼蛛"}
+  32501: {en: "Extended Range Phantom Ray", zh: "增程鬼鳐"}
+  32601: {en: "Mass-Produced Farseer", zh: "量产先知"}
+  32602: {en: "Fortified Farseer", zh: "重装先知"}
+  32701: {en: "Assault Raiden", zh: "突击雷霆"}
+  32801: {en: "Strike Hound", zh: "强击猎犬"}
+  33001: {en: "Improved Void Eye", zh: "改进型魔眼"}
+
+commander_skills:
+  100002: {en: "Incendiary Bomb", zh: "燃烧弹"}
+  200001: {en: "Electromagnetic Impact", zh: "电磁冲击"}
+  200002: {en: "Electromagnetic Blast", zh: "巨型电磁冲击"}
+  200003: {en: "Photon Emission", zh: "光子投射"}
+  300001: {en: "Missile Strike", zh: "导弹打击"}
+  300003: {en: "Orbital Bombardment", zh: "轨道轰炸"}
+  300004: {en: "Nuke", zh: "核弹"}
+  300005: {en: "Lightning Storm", zh: "闪电风暴"}
+  300006: {en: "Ion Blast", zh: "离子轰炸"}
+  300007: {en: "Orbital Javelin", zh: "轨道标枪"}
+  300016: {en: "Heavy missile strike", zh: "重型导弹打击"}
+  400002: {en: "Sticky Oil Bomb", zh: "黏油弹"}
+  500002: {en: "Acid Blast", zh: "酸液弹"}
+  600002: {en: "Smoke Bomb", zh: "烟雾弹"}
+  800001: {en: "Shield Airdrop", zh: "空投护盾"}
+  900001: {en: "Field Recovery", zh: "战地回收"}
+  1000001: {en: "Redeployment", zh: "再部署"}
+  1100001: {en: "Intensive Training", zh: "强化训练"}
+  1200001: {en: "Underground Threat", zh: "地底威胁"}
+  1200002: {en: "Rhino Assault", zh: "犀牛来袭"}
+  1200003: {en: "Wasp Swarm", zh: "呼叫机群"}
+  1200004: {en: "Mobilize Battleship", zh: "呼叫战舰"}
+  1200005: {en: "Vulcan's Descent", zh: "天降火神"}
+  1500001: {en: "Mobile Beacon", zh: "移动信标"}
+  1500002: {en: "Mobile Beacon", zh: "移动信标"}
+
+equipment:
+  1305003: {en: "Photon Coating", zh: "光子涂层"}
+  1306001: {en: "Tank Production Line", zh: "坦克生产线"}
+  1306002: {en: "Mustang Production Line", zh: "野马生产线"}
+  1306003: {en: "Steel Ball Production Line", zh: "钢球生产线"}
+  1307001: {en: "Barrier", zh: "保护屏障"}
+  1308001: {en: "Anti-Interference Module", zh: "抗干扰模块"}
+  1309001: {en: "Absorption Module", zh: "汲取模块"}
+  13010001: {en: "Portable Shield", zh: "便携式护盾"}
+  13020001: {en: "Nano Repair Kit", zh: "纳米维修包"}
+  13030001: {en: "Laser Sights", zh: "激光瞄具"}
+  13030002: {en: "Heavy Armor", zh: "重型装甲"}
+  13030003: {en: "Improved Firepower Control System", zh: "改良火控系统"}
+  13030004: {en: "Enhancement Module", zh: "强化模块"}
+  13030005: {en: "Haste Module", zh: "速攻模块"}
+  13030006: {en: "Super Heavy Armor", zh: "超重型装甲"}
+  13030007: {en: "Amplifying Core", zh: "增幅核心"}
+  13030009: {en: "Small Amplifying Core", zh: "次级增幅核心"}
+  13030010: {en: "Dominion Core", zh: "统御核心"}
+  13030521: {en: "Secondary Laser Sight", zh: "次级激光瞄具"}
+  13030522: {en: "Secondary Fire Control System", zh: "次级火控系统"}
+  13030523: {en: "Secondary Heavy Armor", zh: "次级重型装甲"}
+  13040001: {en: "Deployment Module", zh: "部署模块"}
+  13150101: {en: "Explosive Ammo", zh: "爆裂弹药"}
+
+technologies:
+  206: {en: "Energy Shield", zh: "能量护盾"}
+  209: {en: "Portable Shield", zh: "随身护盾"}
+  216: {en: "Energy Shield", zh: "能量护盾"}
+  225: {en: "Energy Shield", zh: "能量护盾"}
+  227: {en: "Energy Shield", zh: "能量护盾"}
+  230: {en: "Energy Shield", zh: "能量护盾"}
+  304: {en: "Energy Absorption", zh: "能量汲取"}
+  308: {en: "Energy Absorption", zh: "能量汲取"}
+  330: {en: "Energy Absorption", zh: "能量汲取"}
+  406: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  407: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  411: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  412: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  417: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  418: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  424: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  425: {en: "High-Explosive Ammo", zh: "高爆弹药"}
+  506: {en: "Ground Specialization", zh: "对地专精"}
+  608: {en: "Damage Sharing", zh: "伤害分摊"}
+  613: {en: "Damage Sharing", zh: "伤害分摊"}
+  631: {en: "Grid Integration", zh: "并网"}
+  701: {en: "Doubleshot", zh: "双发"}
+  702: {en: "Doubleshot", zh: "双发"}
+  719: {en: "Doubleshot", zh: "双发"}
+  721: {en: "Doubleshot", zh: "双发"}
+  725: {en: "Burst Mode", zh: "全弹发射"}
+  726: {en: "Burst Mode", zh: "全弹发射"}
+  812: {en: "Incendiary Bomb", zh: "燃烧弹"}
+  820: {en: "Napalm", zh: "液态火"}
+  905: {en: "Field Maintenance", zh: "战地维修"}
+  911: {en: "Field Maintenance", zh: "战地维修"}
+  913: {en: "Field Maintenance", zh: "战地维修"}
+  918: {en: "Field Maintenance", zh: "战地维修"}
+  919: {en: "Field Maintenance", zh: "战地维修"}
+  920: {en: "Field Maintenance", zh: "战地维修"}
+  923: {en: "Burrow Maintenance", zh: "潜地维修"}
+  924: {en: "Field Maintenance", zh: "战地维修"}
+  931: {en: "Field Maintenance", zh: "战地维修"}
+  1001: {en: "Barrier", zh: "保护屏障"}
+  1014: {en: "Barrier", zh: "保护屏障"}
+  1103: {en: "Incendiary Bomb", zh: "燃烧弹"}
+  1105: {en: "Anti-Air Barrage", zh: "防空弹幕"}
+  1106: {en: "Electromagnetic Barrage", zh: "电磁弹幕"}
+  1107: {en: "Energy Diffraction", zh: "能量散射"}
+  1108: {en: "Overlord Artillery", zh: "舰炮"}
+  1109: {en: "Whirlwind", zh: "旋风斩"}
+  1201: {en: "Fang Production", zh: "尖牙制造"}
+  1202: {en: "Shooting Squad", zh: "射击小队"}
+  1203: {en: "Best Partner", zh: "最佳搭档"}
+  1204: {en: "Crawler Production", zh: "爬虫制造"}
+  1211: {en: "Mothership", zh: "母舰"}
+  1232: {en: "Summon Hounds", zh: "召唤猎犬"}
+  1308: {en: "Mechanical Division", zh: "机械分裂"}
+  1606: {en: "Jump Drive", zh: "高速引擎"}
+  1611: {en: "Jump Drive", zh: "高速引擎"}
+  1616: {en: "Jump Drive", zh: "高速引擎"}
+  1714: {en: "Enhanced Control", zh: "强化控制"}
+  1802: {en: "Electromagnetic Shot", zh: "电磁弹"}
+  1806: {en: "Electromagnetic Shot", zh: "电磁弹"}
+  1812: {en: "Electromagnetic Explosion", zh: "电磁爆炸"}
+  1813: {en: "Electromagnetic Shot", zh: "电磁弹"}
+  1814: {en: "Electromagnetic Interference", zh: "电磁干扰"}
+  1815: {en: "Electromagnetic Shot", zh: "电磁弹"}
+  1816: {en: "Electromagnetic Shot", zh: "电磁弹"}
+  1826: {en: "Electromagnetic Explosion", zh: "电磁爆炸"}
+  1827: {en: "Electromagnetic Shot", zh: "电磁弹"}
+  2305: {en: "Wreckage Recycling", zh: "残骸利用"}
+  2329: {en: "Wreckage Recycling", zh: "残骸利用"}
+  2408: {en: "Fortified Target Lock", zh: "重装锁定"}
+  2505: {en: "Power Armor", zh: "动力装甲"}
+  2610: {en: "Subterranean Blitz", zh: "潜地行动"}
+  2710: {en: "Acidic Explosion", zh: "酸性爆炸"}
+  2805: {en: "Final Blitz", zh: "最后一击"}
+  2916: {en: "Quantum Reassembly", zh: "量子重组"}
+  2922: {en: "Field Reassembly", zh: "战地重组"}
+  3001: {en: "Armor Enhancement", zh: "装甲强化"}
+  3003: {en: "Armor Enhancement", zh: "装甲强化"}
+  3004: {en: "Armor Enhancement", zh: "装甲强化"}
+  3005: {en: "Armor Enhancement", zh: "装甲强化"}
+  3008: {en: "Armor Enhancement", zh: "装甲强化"}
+  3011: {en: "Armor Enhancement", zh: "装甲强化"}
+  3013: {en: "Armor Enhancement", zh: "装甲强化"}
+  3015: {en: "Armor Enhancement", zh: "装甲强化"}
+  3017: {en: "Armor Enhancement", zh: "装甲强化"}
+  3018: {en: "Armor Enhancement", zh: "装甲强化"}
+  3019: {en: "Armor Enhancement", zh: "装甲强化"}
+  3023: {en: "Armor Enhancement", zh: "装甲强化"}
+  3024: {en: "Armor Enhancement", zh: "装甲强化"}
+  3025: {en: "Armor Enhancement", zh: "装甲强化"}
+  3028: {en: "Armor Enhancement", zh: "装甲强化"}
+  3109: {en: "Grenade Launcher", zh: "榴弹发射器"}
+  3115: {en: "Anti-Aircraft Ammunition", zh: "防空弹药"}
+  3123: {en: "Anti-Aerial", zh: "对空"}
+  3124: {en: "Anti-Aircraft Ammunition", zh: "防空弹药"}
+  3202: {en: "Aerial Specialization", zh: "防空专精"}
+  3206: {en: "Aerial Specialization", zh: "防空专精"}
+  3207: {en: "Aerial Specialization", zh: "防空专精"}
+  3225: {en: "Ground Targeting", zh: "对地锁定"}
+  3226: {en: "Aerial Specialization", zh: "防空专精"}
+  3307: {en: "Missile Interceptor", zh: "导弹拦截"}
+  3317: {en: "Missile Interceptor", zh: "导弹拦截"}
+  3321: {en: "Missile Interceptor", zh: "导弹拦截"}
+  3326: {en: "Missile Interceptor", zh: "导弹拦截"}
+  3510: {en: "Loose Formation", zh: "松散队列"}
+  3623: {en: "Replicate", zh: "复制"}
+  3723: {en: "Sandstorm", zh: "沙暴"}
+  3823: {en: "Strike", zh: "突袭"}
+  3925: {en: "Stealth Cloak", zh: "隐形"}
+  4027: {en: "Chain", zh: "连锁"}
+  4127: {en: "Ionization", zh: "电离"}
+  4228: {en: "Fire Extinguisher", zh: "消防装置"}
+  4329: {en: "Vertical Sweep", zh: "纵扫"}
+  4418: {en: "Land Cruiser", zh: "地面巡航"}
+  4430: {en: "Aerial Mode", zh: "飞行模式"}
+  4515: {en: "Shockwave", zh: "震荡波"}
+  4531: {en: "Electromagnetic Cloud", zh: "电磁云"}
+  4607: {en: "Culling Rounds", zh: "斩杀弹"}
+  4721: {en: "Field Entrenchment ", zh: "野战工事"}
+  4722: {en: "Field Entrenchment ", zh: "野战工事"}
+  5122: {en: "Reactive Armor", zh: "反应装甲"}
+  5132: {en: "Reactive Armor", zh: "反应装甲"}
+  5222: {en: "Maintenance Array", zh: "维修阵列"}
+  5322: {en: "Wreckage Detonation", zh: "残骸引爆"}
+  5532: {en: "Melee Mode", zh: "近战模式"}
+  10019: {en: "Siege Mode", zh: "攻城模式"}
+  10102: {en: "Assault Mode", zh: "突击模式"}
+  10131: {en: "Machine Learning", zh: "机器学习"}
+  10201: {en: "Range Enhancement", zh: "射程强化"}
+  10202: {en: "Range Enhancement", zh: "射程强化"}
+  10203: {en: "Range Enhancement", zh: "射程强化"}
+  10204: {en: "Range Enhancement", zh: "射程强化"}
+  10206: {en: "Range Enhancement", zh: "射程强化"}
+  10207: {en: "Range Enhancement", zh: "射程强化"}
+  10208: {en: "Range Enhancement", zh: "射程强化"}
+  10209: {en: "Range Enhancement", zh: "射程强化"}
+  10211: {en: "Range Enhancement", zh: "射程强化"}
+  10212: {en: "Range Enhancement", zh: "射程强化"}
+  10213: {en: "Range Enhancement", zh: "射程强化"}
+  10214: {en: "Range Enhancement", zh: "射程强化"}
+  10215: {en: "Range Enhancement", zh: "射程强化"}
+  10216: {en: "Range Enhancement", zh: "射程强化"}
+  10217: {en: "Range Enhancement", zh: "射程强化"}
+  10218: {en: "Range Enhancement", zh: "射程强化"}
+  10219: {en: "Range Enhancement", zh: "射程强化"}
+  10220: {en: "Range Enhancement", zh: "射程强化"}
+  10221: {en: "Range Enhancement", zh: "射程强化"}
+  10222: {en: "Range Enhancement", zh: "射程强化"}
+  10224: {en: "Range Enhancement", zh: "射程强化"}
+  10225: {en: "Range Enhancement", zh: "射程强化"}
+  10226: {en: "Range Enhancement", zh: "射程强化"}
+  10227: {en: "Range Enhancement", zh: "射程强化"}
+  10228: {en: "Range Enhancement", zh: "射程强化"}
+  10229: {en: "Range Enhancement", zh: "射程强化"}
+  10230: {en: "Range Enhancement", zh: "射程强化"}
+  10231: {en: "Range Enhancement", zh: "射程强化"}
+  10232: {en: "Range Enhancement", zh: "射程强化"}
+  10301: {en: "Launcher Overload", zh: "发射器过载"}
+  10311: {en: "Launcher Overload", zh: "发射器过载"}
+  10312: {en: "Launcher Overload", zh: "发射器过载"}
+  10316: {en: "Launcher Overload", zh: "发射器过载"}
+  10317: {en: "Launcher Overload", zh: "发射器过载"}
+  10321: {en: "Field Maintenance", zh: "战地维修"}
+  10401: {en: "Solid Shot", zh: "实心弹"}
+  10402: {en: "Quick Reload", zh: "快速弹夹"}
+  10419: {en: "Convergent Fire", zh: "收束射击"}
+  10505: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10509: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10510: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10513: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10523: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10524: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10528: {en: "Mechanical Rage", zh: "机械狂暴"}
+  10603: {en: "Scorching Fire", zh: "高温火焰"}
+  10606: {en: "Armor-Piercing Bullets", zh: "穿甲弹"}
+  10607: {en: "Armor-Piercing Bullets", zh: "穿甲弹"}
+  10609: {en: "Armor-Piercing Bullets", zh: "穿甲弹"}
+  10613: {en: "Armor-Piercing Bullets", zh: "穿甲弹"}
+  10620: {en: "Scorching Fire", zh: "高温火焰"}
+  10624: {en: "Armor-Piercing Bullets", zh: "穿甲弹"}
+  10710: {en: "Impact Drill", zh: "冲击钻头"}
+  10801: {en: "Elite Marksman", zh: "精英射手"}
+  10802: {en: "Elite Marksman", zh: "精英射手"}
+  10806: {en: "Elite Marksman", zh: "精英射手"}
+  10815: {en: "Elite Marksman", zh: "精英射手"}
+  10816: {en: "Elite Marksman", zh: "精英射手"}
+  10912: {en: "Heavy Missile", zh: "重型导弹"}
+  10915: {en: "Charged Shot", zh: "蓄能攻击"}
+  10916: {en: "Charged Shot", zh: "蓄能攻击"}
+  10930: {en: "Charged Shot", zh: "蓄能攻击"}
+  11010: {en: "Sticky Oil Bomb", zh: "黏油弹"}
+  11014: {en: "Multi Control", zh: "多重控制"}
+  11020: {en: "Scorching Charge", zh: "焦土冲击"}
+  11024: {en: "Spider Mine", zh: "蜘蛛雷"}
+  11025: {en: "Sticky Oil Bomb", zh: "黏油弹"}
+  11028: {en: "Incendiary Bomb", zh: "燃烧弹"}
+  11029: {en: "Disintegration", zh: "裂解"}
+  12017: {en: "Phoenix Production", zh: "凤凰制造"}
+  12029: {en: "Dark Companion", zh: "暗黑伙伴"}
+  12117: {en: "Steel Ball Production", zh: "钢球制造"}
+  12217: {en: "Sledgehammer Production", zh: "铁锤制造"}
+  13023: {en: "Mechanical Division", zh: "机械分裂"}
+  72002: {en: "Saturation Bombardment", zh: "饱和打击"}
+  110181: {en: "Floating Artillery Array", zh: "浮游炮阵"}
+  110201: {en: "Rocket Punch", zh: "火箭拳"}
+  110211: {en: "Secondary Armament", zh: "副炮"}
+  110212: {en: "Anti-Air Missile", zh: "防空导弹"}
+  110271: {en: "Fork", zh: "分叉"}
+  110291: {en: "Swarm Missiles", zh: "蜂群导弹"}
+  110321: {en: "Dual Wield", zh: "双持"}
+  110322: {en: "Homing Missile", zh: "追踪导弹"}
+  123101: {en: "Electromagnetic Twin", zh: "电磁双生"}
+  180110: {en: "Replicate", zh: "复制"}
+  180203: {en: "Ignite", zh: "引燃"}
+  180206: {en: "Ignite", zh: "引燃"}
+  180209: {en: "Ignite", zh: "引燃"}
+  180220: {en: "Ignite", zh: "引燃"}
+  180305: {en: "Photon Coating", zh: "光子涂层"}
+  180311: {en: "Photon Emission", zh: "光子投射"}
+  180317: {en: "Photon Coating", zh: "光子涂层"}
+  180326: {en: "Photon Emission", zh: "光子投射"}
+  180329: {en: "Photon Coating", zh: "光子涂层"}
+  180418: {en: "Degeneration Beam", zh: "退化光束"}
+  180430: {en: "Suppression Shots", zh: "压制射击"}
+  180519: {en: "Acid Attack", zh: "酸性攻击"}
+  180526: {en: "Scanning Radar", zh: "搜索雷达"}
+  180530: {en: "Electromagnetic Armor", zh: "电磁装甲"}
+  180620: {en: "Counter-Fire", zh: "逆火 "}
+  180805: {en: "Combat Evolvement", zh: "战斗进化"}
+  180808: {en: "Kinetic Charge", zh: "滚动充能"}
+  180828: {en: "Chamber Compression", zh: "枪膛增压"}
+  180931: {en: "Mobile Power Station", zh: "移动电站"}
+  302002: {en: "Mountain Plating", zh: "巨山装甲"}
+  312002: {en: "Anti-Aircraft Ammunition", zh: "防空弹药"}
+  493101: {en: "Accumulator Shield", zh: "储能护盾"}
+  503101: {en: "Emergency Armor", zh: "应急装甲"}
+  1022002: {en: "Range Enhancement", zh: "射程强化"}
+  1032002: {en: "Extended Range Ammo", zh: "增程炮弹"}
+  1102022: {en: "Air Defense Mark", zh: "防空标记"}
+  11020021: {en: "Gun-launched Missile", zh: "炮射火箭"}
+  11020022: {en: "Smoke Bomb", zh: "烟雾弹"}
+  18032002: {en: "Photon Loop", zh: "光子循环"}

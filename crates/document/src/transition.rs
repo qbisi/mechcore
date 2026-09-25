@@ -18,6 +18,7 @@ use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from
 use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
+use crate::opening::Stream;
 
 /// What one decision's application could not settle.
 ///
@@ -158,9 +159,14 @@ pub fn step_placing(
             // supply it hands over comes from the effects table.
             match economy.card_kind(*card) {
                 Some(CardKind::Officer) => {
-                    next.supply += economy
-                        .officer(*card)
-                        .map_or(0, |officer| officer.granted_supply);
+                    if let Some(officer) = economy.officer(*card) {
+                        next.supply += officer.granted_supply;
+                        // An officer with no round to hand out in hands out
+                        // as it is taken.
+                        if officer.active_round.is_empty() {
+                            hand_out_round(&mut next, officer, None)?;
+                        }
+                    }
                     if *card == EXTRA_DEPLOYMENT_CARD {
                         next.shop.buys_remaining += EXTRA_BUYS;
                     }
@@ -219,7 +225,7 @@ pub fn step_placing(
         } => {
             // The shop sells what it has unlocked, and a side unlocks a type
             // before it buys one.
-            if !state.shop.unlocked_units.contains(unit) {
+            if !state.unlocked_units.contains(unit) {
                 return Err(Unsettled::Refused(
                     "buying a unit the shop has not unlocked",
                 ));
@@ -243,15 +249,19 @@ pub fn step_placing(
             let formation = formation_mut(&mut next, *index)?;
             let unit =
                 unit_id_from_type(&formation.unit.type_name).ok_or(Unsettled::Unpriced("unit"))?;
-            let worn = formation.unit.equipment;
+            let worn = formation.unit.equipment.clone();
             formation.unit.level = Some(formation.unit.level.unwrap_or(1) + 1);
             // A formation starts the next rank with nothing carried over.
             formation.unit.exp = None;
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
-            let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
-            next.supply -=
-                (upgrade + worn.map_or(0, |id| economy.equipment_upgrade_supply(id))).max(0);
+            let worn: i32 = worn
+                .iter()
+                .map(|id| economy.equipment_upgrade_supply(*id))
+                .sum();
+            next.supply -= purse
+                .upgrade_wearing(unit, worn)
+                .ok_or(Unsettled::Unpriced("upgrade"))?;
         }
         Action::UnlockUnit { unit } => {
             next.supply -= purse.unlock(*unit).ok_or(Unsettled::Unpriced("unlock"))?;
@@ -314,15 +324,23 @@ pub fn step_placing(
                 .ok_or(Unsettled::Unpriced("tower level"))?;
             next.supply -= price;
         }
-        // Fitting is free; the card was paid for when it was taken.
+        // Fitting is free; the card was paid for when it was taken. A formation
+        // wears as many as its side's officers give it slots, one without any.
         Action::UseEquipment { equipment, index } => {
             let position = next
                 .equipment
                 .iter()
                 .position(|item| item.id == *equipment)
                 .ok_or(Unsettled::Missing("equipment"))?;
+            let slots = economy.equipment_slots(&next.officers);
+            let formation = formation_mut(&mut next, *index)?;
+            if formation.unit.equipment.len() >= slots {
+                return Err(Unsettled::Refused(
+                    "equipment on a formation with no free slot",
+                ));
+            }
+            formation.unit.equipment.push(*equipment);
             next.equipment.remove(position);
-            formation_mut(&mut next, *index)?.unit.equipment = Some(*equipment);
             // A Deployment Module frees the formation that wears it to move.
             free_to_move(&mut next);
         }
@@ -357,6 +375,7 @@ pub fn step_placing(
             next.supply -= economy
                 .contraption(*contraption)
                 .ok_or(Unsettled::Unpriced("contraption"))?;
+            next.shop.contraptions_remaining -= 1;
             let type_name =
                 contraption_type_from_id(*contraption).ok_or(Unsettled::Unpriced("contraption"))?;
             next.contraptions.push(ContraptionPlacement {
@@ -391,6 +410,11 @@ fn afford(next: &SideState) -> Result<(), Unsettled> {
     }
     if next.shop.unlocks_remaining < 0 {
         return Err(Unsettled::Refused("unlocking past the round's allowance"));
+    }
+    if next.shop.contraptions_remaining < 0 {
+        return Err(Unsettled::Refused(
+            "releasing contraptions past the round's allowance",
+        ));
     }
     Ok(())
 }
@@ -513,11 +537,12 @@ fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Res
     let purse = Purse::new(economy, &next.officers);
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
     next.supply += entry.value.unwrap_or(0) + (entry.unit.level.unwrap_or(1) - 1) * upgrade;
-    if let Some(worn) = entry.unit.equipment {
-        next.equipment.push(EquipmentItem {
-            id: worn,
-            durability: None,
-        });
+    if !entry.unit.equipment.is_empty() {
+        next.equipment
+            .extend(entry.unit.equipment.iter().map(|worn| EquipmentItem {
+                id: *worn,
+                durability: None,
+            }));
         next.equipment.sort();
     }
     Ok(())
@@ -578,7 +603,7 @@ fn place(
             level: Some(level).filter(|level| *level != 1),
             exp: None,
             rotated: None,
-            equipment: None,
+            equipment: Vec::new(),
             travelling: None,
         },
         value: Some(value),
@@ -612,9 +637,9 @@ fn panel_add(next: &mut SideState, id: i32) {
 }
 
 fn unlock(next: &mut SideState, unit: i32) {
-    if !next.shop.unlocked_units.contains(&unit) {
-        next.shop.unlocked_units.push(unit);
-        next.shop.unlocked_units.sort_unstable();
+    if !next.unlocked_units.contains(&unit) {
+        next.unlocked_units.push(unit);
+        next.unlocked_units.sort_unstable();
     }
 }
 
@@ -650,6 +675,11 @@ pub(crate) fn opening_position() -> SideState {
 pub(crate) const BUY_COUNT_PER_ROUND: i32 = 2;
 /// `Shop.UNLOCK_COUNT_PER_ROUND`.
 pub(crate) const UNLOCK_COUNT_PER_ROUND: i32 = 1;
+/// `ContraptionManager`'s `BuyCount`, which its constructor sets to 8 and
+/// only an officer's `contraptionBuyCount` raises; no standard officer does.
+/// `ContraptionSystem.OnEnterDeployment` restores `RemainCount` to it as each
+/// round opens, and releasing a contraption or a construction spends one.
+pub(crate) const CONTRAPTION_RELEASES_PER_ROUND: i32 = 8;
 
 /// The position a round's decisions reach, which is what the fight starts
 /// from.
@@ -684,21 +714,24 @@ pub fn deployed(
 /// shop's allowances refill, the income arrives less what an energy tower skill
 /// still owes, the energy tower skills lapse, and the board's formations are
 /// fixed again unless something frees them. Then the officers deliver: an officer's squad,
-/// its commander skills and its equipment arrive in its `active_round`, and its
+/// its commander skills and its equipment arrive in each of its `active_round`s, and its
 /// unit joins the shop in its `unlock_round`. The squad lands where the board
 /// puts it, which `placement` supplies; it arrived this round, so it may move,
 /// and a delivered skill starts after the count-down rather than inside it.
+/// An officer that draws what it hands out draws from `stream`, the side's
+/// own stream as the round opens.
 ///
 /// # Errors
 ///
 /// Returns [`Unsettled`] when a spent skill has no cooldown, an activated
-/// energy tower skill has no price, or a delivered unit has no price or no
-/// landing.
+/// energy tower skill has no price, a delivered unit has no price or no
+/// landing, or an officer draws and no `stream` is given.
 pub fn open_round(
     economy: &Economy,
     state: &SideState,
     round: i32,
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
+    mut stream: Option<Stream>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
     reset(economy, &mut next, round)?;
@@ -711,18 +744,10 @@ pub fn open_round(
         {
             unlock(&mut next, opening.unit);
         }
-        if row.active_round != round {
+        if !row.active_round.contains(&round) {
             continue;
         }
-        for skill in &row.commander_skills {
-            panel_add(&mut next, *skill);
-        }
-        next.equipment
-            .extend(row.equipment.iter().map(|id| EquipmentItem {
-                id: *id,
-                durability: None,
-            }));
-        next.equipment.sort();
+        hand_out_round(&mut next, row, stream.as_mut())?;
         if let Some(opening) = row.opening_unit {
             hand_out(
                 economy,
@@ -735,6 +760,63 @@ pub fn open_round(
         }
     }
     Ok(next)
+}
+
+/// `SystemOfficerController.PerformOfficerRoundEffect`: an officer's
+/// commander skills join the panel and its equipment joins the inventory, or
+/// one item of it drawn from the side's `stream` when the officer draws.
+fn hand_out_round(
+    next: &mut SideState,
+    officer: &crate::economy::Officer,
+    stream: Option<&mut Stream>,
+) -> Result<(), Unsettled> {
+    for skill in &officer.commander_skills {
+        panel_add(next, *skill);
+    }
+    let drawn;
+    let items = if officer.random_equipment && !officer.equipment.is_empty() {
+        let stream = stream.ok_or(Unsettled::Unpriced("player stream"))?;
+        drawn = [officer.equipment[stream.pick(0, officer.equipment.len())]];
+        &drawn[..]
+    } else {
+        &officer.equipment[..]
+    };
+    next.equipment.extend(items.iter().map(|id| EquipmentItem {
+        id: *id,
+        durability: None,
+    }));
+    next.equipment.sort();
+    Ok(())
+}
+
+/// How many values the side's own stream gives up as `round` opens on a
+/// side holding `officers`: one for each officer that draws what it hands
+/// out that round. Nothing else in a standard match draws from it.
+#[must_use]
+pub fn player_draws(economy: &Economy, officers: &[i32], round: i32) -> u32 {
+    let drawing = officers
+        .iter()
+        .filter_map(|officer| economy.officer(*officer))
+        .filter(|row| {
+            row.random_equipment && !row.equipment.is_empty() && row.active_round.contains(&round)
+        })
+        .count();
+    u32::try_from(drawing).unwrap_or(u32::MAX)
+}
+
+/// Sets the allowances a round opens with: two purchases and one more for
+/// every Additional Deployment Slot the side holds, one unlock, and eight
+/// contraption releases. They follow from the officers alone, which is why a
+/// battle does not write them and a reader sets them this way.
+pub fn open_allowances(next: &mut SideState) {
+    let extra = next
+        .officers
+        .iter()
+        .filter(|officer| **officer == EXTRA_DEPLOYMENT_CARD)
+        .count();
+    next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
+    next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
+    next.shop.contraptions_remaining = CONTRAPTION_RELEASES_PER_ROUND;
 }
 
 /// Resets what lasts one round, as `round` opens, and pays its income.
@@ -763,13 +845,7 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         slot.used = false;
         slot.release = None;
     }
-    let extra = next
-        .officers
-        .iter()
-        .filter(|officer| **officer == EXTRA_DEPLOYMENT_CARD)
-        .count();
-    next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
-    next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
+    open_allowances(next);
     // The round's income: the map's schedule and what the side's officers add
     // to it, what the equipment on the board pays, and less what an energy
     // tower skill the previous round activated still owes.
@@ -783,8 +859,8 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
     let worn: i32 = next
         .units
         .iter()
-        .filter_map(|entry| entry.unit.equipment)
-        .map(|equipment| economy.equipment_round_supply(equipment))
+        .flat_map(|entry| entry.unit.equipment.iter())
+        .map(|equipment| economy.equipment_round_supply(*equipment))
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
@@ -845,7 +921,7 @@ fn deliver_team(
 /// opening rule [`open_round`] does not hold yet; [`crate::coverage`] names
 /// those fields rather than reading them from the recorded next position.
 /// `red` names the side, because where the board lands a formation depends on
-/// it.
+/// it, and `stream` is the side's own stream as `round + 1` opens.
 ///
 /// # Errors
 ///
@@ -858,6 +934,7 @@ pub fn predict(
     actions: &[Action],
     red: bool,
     declined: Option<i32>,
+    stream: Option<Stream>,
 ) -> Result<SideState, Unsettled> {
     let mut placement = crate::landing::placement(red);
     let mut position = deployed(economy, state, actions, red, declined)?;
@@ -876,12 +953,12 @@ pub fn predict(
             }
         }
     }
-    open_round(economy, &position, round + 1, &mut placement)
+    open_round(economy, &position, round + 1, &mut placement, stream)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step_placing};
+    use super::{EXTRA_DEPLOYMENT_CARD, Stream, Unsettled, step_placing};
     use crate::battle::{
         Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
     };
@@ -905,10 +982,11 @@ mod tests {
     fn solvent() -> SideState {
         SideState {
             supply: 100_000,
-            shop: crate::battle::ShopState {
-                unlocked_units: (1..=31).chain([2002]).collect(),
+            unlocked_units: (1..=31).chain([2002]).collect(),
+            shop: crate::battle::Allowances {
                 buys_remaining: 99,
                 unlocks_remaining: 99,
+                contraptions_remaining: 99,
             },
             ..SideState::default()
         }
@@ -953,7 +1031,7 @@ mod tests {
                         level: None,
                         exp: None,
                         rotated: None,
-                        equipment: None,
+                        equipment: Vec::new(),
                         travelling: None,
                     },
                     value: None,
@@ -963,6 +1041,49 @@ mod tests {
                 .collect(),
             ..solvent()
         }
+    }
+
+    /// A round lets a side release eight contraptions, and refuses a ninth.
+    #[test]
+    fn a_round_releases_eight_contraptions() {
+        let economy = Economy::embedded().unwrap();
+        let opened = super::open_round(&economy, &solvent(), 3, &mut |_, _| None, None).unwrap();
+        assert_eq!(opened.shop.contraptions_remaining, 8);
+        let shield = |x| Action::ReleaseContraption {
+            contraption: 10_001,
+            position: Position { x, y: -100 },
+            extra_position: None,
+        };
+        let eight: Vec<_> = (0..8).map(|at| shield(at * 20)).collect();
+        let released = fold(&economy, &opened, &eight).unwrap();
+        assert_eq!(released.shop.contraptions_remaining, 0);
+        assert!(matches!(
+            step_placing(&economy, &released, &shield(200), None, &mut |_, _| None),
+            Err(Unsettled::Refused(_))
+        ));
+    }
+
+    /// Two Enhancement Modules on one formation both take their 100 off its
+    /// level price, and the price stops at zero rather than paying back.
+    #[test]
+    fn two_enhancement_modules_both_take_off_an_upgrade() {
+        let economy = Economy::embedded().unwrap();
+        let paid = |modules: usize| {
+            let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
+            state.units[0].unit.type_name = "fortress".into();
+            state.units[0].unit.equipment = vec![13_030_004; modules];
+            let before = state.supply;
+            let next = step_placing(
+                &economy,
+                &state,
+                &Action::UpgradeUnit { index: 0 },
+                None,
+                &mut |_, _| None,
+            )
+            .unwrap();
+            before - next.supply
+        };
+        assert_eq!([paid(0), paid(1), paid(2)], [200, 100, 0]);
     }
 
     /// A repeatable officer card stacks rather than replacing itself.
@@ -979,11 +1100,11 @@ mod tests {
         };
         let taken = [
             Action::ChooseReinforceItem {
-                offer: 0,
+                index: 0,
                 id: Some(20022),
             },
             Action::ChooseReinforceItem {
-                offer: 1,
+                index: 1,
                 id: Some(20022),
             },
         ];
@@ -997,10 +1118,7 @@ mod tests {
     fn a_decline_pays_the_round_figure() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = Action::ChooseReinforceItem {
-            offer: crate::battle::DECLINED_OFFER,
-            id: None,
-        };
+        let declined = Action::ChooseReinforceItem { index: 4, id: None };
         let ordinary = crate::reinforcement::decline_supply(&economy, 1, 3).unwrap();
         let unit = crate::reinforcement::decline_supply(&economy, 1, 8).unwrap();
         assert_eq!((ordinary, unit), (50, 400));
@@ -1023,10 +1141,7 @@ mod tests {
     fn a_declined_offer_hands_out_nothing() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = [Action::ChooseReinforceItem {
-            offer: crate::battle::DECLINED_OFFER,
-            id: None,
-        }];
+        let declined = [Action::ChooseReinforceItem { index: 4, id: None }];
         let next = fold(&economy, &state, &declined).unwrap();
         // A decline pays supply back, which is all it hands out.
         assert_eq!(
@@ -1043,7 +1158,7 @@ mod tests {
     fn an_unfitted_card_stays_in_stock() {
         let economy = Economy::embedded().unwrap();
         let taken = [Action::ChooseReinforceItem {
-            offer: 0,
+            index: 0,
             id: Some(13_030_001),
         }];
         let next = fold(&economy, &solvent(), &taken).unwrap();
@@ -1066,7 +1181,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let taken = [
             Action::ChooseReinforceItem {
-                offer: 0,
+                index: 0,
                 id: Some(13_030_001),
             },
             Action::UseEquipment {
@@ -1077,7 +1192,7 @@ mod tests {
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
         let next = fold(&economy, &state, &taken).unwrap();
         assert!(next.equipment.is_empty());
-        assert_eq!(next.units[0].unit.equipment, Some(13_030_001));
+        assert_eq!(next.units[0].unit.equipment, vec![13_030_001]);
     }
 
     fn slot(index: i32, id: i32, cooldown: i32) -> PanelSkill {
@@ -1110,7 +1225,7 @@ mod tests {
             battle_skills: vec![released, trained, slot(2, 300_004, 3), slot(3, 200_001, 0)],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None, None).unwrap();
         let restart = |id| economy.cooldown(id).unwrap().spent;
         assert_eq!(
             opened.battle_skills,
@@ -1129,16 +1244,17 @@ mod tests {
     fn an_opening_refills_the_shop_and_lapses_tower_skills() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            shop: crate::battle::ShopState {
-                unlocked_units: Vec::new(),
+            unlocked_units: Vec::new(),
+            shop: crate::battle::Allowances {
                 buys_remaining: 0,
                 unlocks_remaining: 0,
+                contraptions_remaining: 0,
             },
             energy_tower_skills: vec![1],
             officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None, None).unwrap();
         assert_eq!(
             (opened.shop.buys_remaining, opened.shop.unlocks_remaining),
             (4, 1)
@@ -1167,13 +1283,13 @@ mod tests {
         };
         let state = SideState {
             units: vec![
-                formation(0, None),
-                formation(1, Some(crate::mobility::DEPLOYMENT_MODULE)),
+                formation(0, Vec::new()),
+                formation(1, vec![crate::mobility::DEPLOYMENT_MODULE]),
             ],
             ..SideState::default()
         };
         let movable = |round| {
-            super::open_round(&economy, &state, round, &mut |_, _| None)
+            super::open_round(&economy, &state, round, &mut |_, _| None, None)
                 .unwrap()
                 .units
                 .iter()
@@ -1199,7 +1315,7 @@ mod tests {
                 exp: None,
                 rotated: None,
                 // Command Core pays 50 a round to the side wearing it.
-                equipment: Some(13_030_010),
+                equipment: vec![13_030_010],
                 travelling: None,
             },
             value: Some(100),
@@ -1214,7 +1330,7 @@ mod tests {
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 3, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 3, &mut |_, _| None, None).unwrap();
         // Round 3 of the shared schedule pays 200 + 2 × 200.
         assert_eq!(opened.supply, 10 + 600 + 50 + 2 * 50 - 300);
         assert!(opened.energy_tower_skills.is_empty());
@@ -1228,13 +1344,13 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let before = super::before_opening(4500, Vec::new());
         let choice = Action::ChooseAdvanceTeam {
-            offer: 2,
+            index: 2,
             id: 9891,
             specialist: 10002,
         };
-        let opened = super::predict(&economy, 0, &before, &[choice], true, None).unwrap();
+        let opened = super::predict(&economy, 0, &before, &[choice], true, None, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
-        assert_eq!(opened.shop.unlocked_units, [10, 24]);
+        assert_eq!(opened.unlocked_units, [10, 24]);
         assert_eq!(opened.next_index.unit, 5);
         assert_eq!(opened.officers, [10002]);
         let team: Vec<_> = opened
@@ -1274,20 +1390,19 @@ mod tests {
                 level: None,
                 exp: None,
                 rotated: None,
-                equipment: None,
+                equipment: Vec::new(),
                 travelling: Some(true),
             },
             value: Some(100),
             movable: false,
         });
-        let predicted = super::predict(&economy, 3, &state, &[], false, None).unwrap();
+        let predicted = super::predict(&economy, 3, &state, &[], false, None, None).unwrap();
         assert_eq!(predicted.units[0].unit.travelling, None);
     }
 
     /// An officer delivers its equipment in its own round, not when it arrives.
     ///
-    /// 增幅专家 `10013` is the one officer in this build that hands out
-    /// equipment, and it hands out three copies of `13030009` in round 1.
+    /// 增幅专家 `10013` hands out three copies of `13030009` in round 1.
     #[test]
     fn an_officer_delivers_its_equipment_on_its_own_schedule() {
         let economy = Economy::embedded().unwrap();
@@ -1297,7 +1412,7 @@ mod tests {
         };
         // Round 1 opens with the three items, and applying round 0 is what
         // reaches that position from the one before it.
-        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None, None).unwrap();
         assert_eq!(
             opened
                 .equipment
@@ -1307,11 +1422,69 @@ mod tests {
             vec![13_030_009; 3]
         );
         assert!(
-            super::open_round(&economy, &state, 2, &mut |_, _| None)
+            super::open_round(&economy, &state, 2, &mut |_, _| None, None)
                 .unwrap()
                 .equipment
                 .is_empty()
         );
+    }
+
+    /// An officer that lists no round hands out as it is taken, in time to
+    /// fit what it handed out in the same round.
+    #[test]
+    fn an_officer_with_no_round_hands_out_as_it_is_taken() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            supply: 1_000,
+            ..side_holding(&[(0, Position { x: 0, y: -160 })])
+        };
+        let taken = [
+            Action::ChooseReinforceItem {
+                index: 0,
+                id: Some(10_524),
+            },
+            Action::UseEquipment {
+                equipment: 13_030_521,
+                index: 0,
+            },
+        ];
+        let next = fold(&economy, &state, &taken).unwrap();
+        assert_eq!(next.officers, vec![10_524]);
+        assert_eq!(
+            next.equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![13_030_521; 2]
+        );
+        assert_eq!(next.units[0].unit.equipment, vec![13_030_521]);
+    }
+
+    /// Secondary Equipment Expert hands out one of its four items a round,
+    /// drawn from the side's own stream: `长期素食导致无法演奏`'s side, seed
+    /// 846184650, was handed Small Amplifying Core as round 1 opened and
+    /// Secondary Fire Control System as round 2 did.
+    #[test]
+    fn an_officer_that_draws_hands_out_one_item_from_the_side_stream() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            officers: vec![10_015],
+            ..SideState::default()
+        };
+        let mut stream = Stream::seeded(846_184_650);
+        let handed = |stream: Stream, round| {
+            super::open_round(&economy, &state, round, &mut |_, _| None, Some(stream))
+                .unwrap()
+                .equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(handed(stream, 1), vec![13_030_009]);
+        assert_eq!(super::player_draws(&economy, &state.officers, 1), 1);
+        stream.skip(1);
+        assert_eq!(handed(stream, 2), vec![13_030_522]);
+        assert!(super::open_round(&economy, &state, 1, &mut |_, _| None, None).is_err());
     }
 
     /// Fitting one of several copies takes exactly one out.
@@ -1322,7 +1495,7 @@ mod tests {
             officers: vec![10013],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
-        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None, None).unwrap();
         let fitted = [Action::UseEquipment {
             equipment: 13_030_009,
             index: 0,
@@ -1355,7 +1528,7 @@ mod tests {
                     level: None,
                     exp: None,
                     rotated: None,
-                    equipment: Some(13_030_004),
+                    equipment: vec![13_030_004],
                     travelling: None,
                 },
                 value: Some(100),
@@ -1395,7 +1568,7 @@ mod tests {
         let next = fold(&economy, &state, &refitted).unwrap();
         assert!(next.equipment.is_empty());
         assert_eq!(next.units[0].unit.index, 7);
-        assert_eq!(next.units[0].unit.equipment, Some(13_030_004));
+        assert_eq!(next.units[0].unit.equipment, vec![13_030_004]);
     }
 
     /// A fit with nothing to take is refused rather than clamped away.
@@ -1460,10 +1633,11 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             supply: 1000,
-            shop: crate::battle::ShopState {
-                unlocked_units: vec![9],
+            unlocked_units: vec![9],
+            shop: crate::battle::Allowances {
                 buys_remaining: 2,
                 unlocks_remaining: 1,
+                contraptions_remaining: 8,
             },
             next_index: crate::battle::NextIndex {
                 unit: 7,
@@ -1524,7 +1698,7 @@ mod tests {
         let card = 102_212;
         let reinforcement = economy.unit_reinforcement(card).expect("a squad card");
         let taken = Action::ChooseReinforceItem {
-            offer: 0,
+            index: 0,
             id: Some(card),
         };
         // Where a squad lands is the board's to decide, so the plain step
@@ -1540,7 +1714,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
-        assert_eq!(next.shop.unlocked_units, vec![reinforcement.unit]);
+        assert_eq!(next.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
         assert_eq!(next.units[0].unit.index, 4);
         assert_eq!(next.units[1].unit.index, 5);
@@ -1558,7 +1732,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let chosen = Action::ChooseAdvanceTeam {
-            offer: 2,
+            index: 2,
             id: 9890,
             specialist: 20005,
         };
@@ -1576,7 +1750,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         for (id, specialist) in [(20005, 9890), (9890, 9891), (20005, 20032)] {
             let chosen = Action::ChooseAdvanceTeam {
-                offer: 0,
+                index: 0,
                 id,
                 specialist,
             };
@@ -1595,7 +1769,7 @@ mod tests {
     fn both_halves_of_an_opening_price_the_core() {
         let economy = Economy::embedded().unwrap();
         let chosen = Action::ChooseAdvanceTeam {
-            offer: 0,
+            index: 0,
             id: 9890,
             specialist: 20032,
         };
@@ -1640,7 +1814,7 @@ mod tests {
             release: None,
         }];
         state.units[0].value = Some(400);
-        state.units[0].unit.equipment = Some(13_030_004);
+        state.units[0].unit.equipment = vec![13_030_004];
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,

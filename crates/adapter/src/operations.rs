@@ -368,7 +368,7 @@ struct WatchRuleFields {
 }
 
 /// Refresh the first page of match-made scenes through the same cache-resetting
-/// path as the native lobby UI. The filter value is build-2259
+/// path as the native lobby UI. The filter value is
 /// `ERoomListFilter.MatchFirst`; room/custom lists are deliberately excluded.
 fn refresh_watch_scenes(runtime: &Runtime) -> Result<Value, OperationError> {
     if !runtime.current_match().is_null() {
@@ -1412,7 +1412,7 @@ fn validate_side_layout_catalog(runtime: &Runtime, side: &SidePlan) -> Result<()
                 placement.type_name, placement.position.x, placement.position.y
             )));
         }
-        if let Some(equipment_id) = placement.equipment {
+        for &equipment_id in &placement.equipment {
             validate_equipment_catalog(runtime, config, placement, equipment_id)?;
         }
     }
@@ -1481,7 +1481,7 @@ fn validate_tech_catalog(
 
 #[cfg(test)]
 fn encoded_technology_owner(technology_id: i32) -> Result<i32, OperationError> {
-    // Build 2227 encodes the owning ordinary unit ID in the final two decimal
+    // The build encodes the owning ordinary unit ID in the final two decimal
     // digits of every unit TechnologyData.ID.
     let unit_id = technology_id % 100;
     if (1..=31).contains(&unit_id) {
@@ -1619,6 +1619,7 @@ fn apply_side_layout_stage(
         LayoutExecutionStage::Prepare => unreachable!("prepare returned before side application"),
         LayoutExecutionStage::Activation => json!({
             "techs": apply_techs(runtime, current, &side.techs)?,
+            "equipment": apply_equipment(runtime, &side.units)?,
             "energy_tower_skills": apply_energy_tower_skills(
                 runtime,
                 &side.energy_tower_skills,
@@ -1721,7 +1722,7 @@ fn restore_oil_terrain(
 ) -> Result<Value, OperationError> {
     if terrain.terrain_type != layout::TerrainType::Oil {
         return Err(OperationError::InvalidArguments(
-            "only oil terrain is supported by build-2259 native restoration".into(),
+            "only oil terrain is supported by native restoration".into(),
         ));
     }
     let current = require_training_deploying(runtime)?;
@@ -1806,7 +1807,7 @@ fn restore_oil_terrain(
         let mut round = RETAINED_OIL_ROUND;
         let mut use_grid = !local_rows.is_empty();
         let no_masks: *mut Object = std::ptr::null_mut();
-        // Build 2259 exposes exactly one eight-argument AddItem overload. Its
+        // The build exposes exactly one eight-argument AddItem overload. Its
         // closed generic Queue<ByteMask> parameter has no stable reflection
         // spelling through this IL2CPP runtime, so bind the unique arity.
         let method = api.method(
@@ -1897,7 +1898,7 @@ fn calculate_oil_terrain_positions(
         )));
     }
 
-    // CalculateAttackPositions is private and absent from build 2259's runtime
+    // CalculateAttackPositions is private and absent from the build's runtime
     // method table. Reproduce its line branch with the same public FixedMath
     // primitives, preserving their exact Q32.32 rounding behavior.
     let vector_class = api.class("GRUtility.dll", "FixedMath", "FVector3")?;
@@ -2576,6 +2577,45 @@ fn apply_formations(
     })
 }
 
+/// Fits every unit's equipment, in the order each unit lists it.
+///
+/// This runs after the side's officers are added, because an officer can give
+/// a formation a second slot and `CanUseEquipment` refuses an item for a unit
+/// whose slots are full.
+fn apply_equipment(
+    runtime: &Runtime,
+    placements: &[Placement],
+) -> Result<Vec<Value>, OperationError> {
+    let mut fitted = Vec::new();
+    for placement in placements {
+        if placement.equipment.is_empty() {
+            continue;
+        }
+        let unit_index = placement.index.ok_or_else(|| {
+            OperationError::InvalidState(format!(
+                "{} has no stable unit index",
+                describe_placement(placement)
+            ))
+        })?;
+        for &equipment_id in &placement.equipment {
+            add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
+                error.context(&format!(
+                    "add equipment for {}",
+                    describe_placement(placement)
+                ))
+            })?;
+            equip_unit(runtime, equipment_id, unit_index).map_err(|error| {
+                error.context(&format!("equip {}", describe_placement(placement)))
+            })?;
+        }
+        fitted.push(json!({
+            "unit_index": unit_index,
+            "equipment": placement.equipment,
+        }));
+    }
+    Ok(fitted)
+}
+
 fn apply_formation(
     runtime: &Runtime,
     placement: &Placement,
@@ -2659,16 +2699,6 @@ fn apply_unit_formation(
             .map_err(|error| error.context(&format!("read {}", describe_placement(placement))))?;
     }
     verify_unit_readback(placement, unit_id, level, world_position, &readback)?;
-    if let Some(equipment_id) = placement.equipment {
-        add_test_inventory(runtime, equipment_id, "MAD_AddEquipment").map_err(|error| {
-            error.context(&format!(
-                "add equipment for {}",
-                describe_placement(placement)
-            ))
-        })?;
-        equip_unit(runtime, equipment_id, unit_index)
-            .map_err(|error| error.context(&format!("equip {}", describe_placement(placement))))?;
-    }
     Ok(json!({
         "type": placement.type_name,
         "unit_index": unit_index,
@@ -2676,8 +2706,7 @@ fn apply_unit_formation(
         "exp": readback.exp,
         "position": {"x": placement.position.x, "y": placement.position.y},
         "rotated": placement.rotated,
-        "travelling": readback.travelling,
-        "equipment": placement.equipment
+        "travelling": readback.travelling
     }))
 }
 
@@ -3375,11 +3404,14 @@ fn equip_unit(
         .invoke_void(action, "set_UnitIndex", &mut [argument(&mut unit_index)])?;
     check_action(runtime.api, controller, action)?;
     perform_sync(runtime.api, controller, action)?;
-    let has = runtime
-        .api
-        .invoke_value::<bool>(unit, "HasEquipment", &mut [])?;
-    let after = runtime.api.invoke(unit, "GetEquipment", &mut [])?;
-    if !has || after != equipment {
+    let worn = runtime.api.invoke(unit, "GetEquipments", &mut [])?;
+    let count = list_count(runtime.api, worn)?;
+    let last = if count > 0 {
+        list_item(runtime.api, worn, count - 1)?
+    } else {
+        std::ptr::null_mut()
+    };
+    if last != equipment {
         return Err(OperationError::Rejected(
             "equipment ownership readback did not match".into(),
         ));
@@ -3615,14 +3647,7 @@ fn construction(
         .api
         .invoke_value::<i32>(before_elements, "get_Count", &mut [])?;
 
-    let config_class = runtime.api.class("GRCore.dll", "GameRiver", "Config")?;
-    let singleton = runtime
-        .api
-        .class_parent(config_class)
-        .ok_or_else(|| OperationError::InvalidState("Config singleton base is missing".into()))?;
-    let config = runtime
-        .api
-        .invoke_static(singleton, "get_Instance", &mut [])?;
+    let config = config_instance(runtime)?;
     let data = runtime
         .api
         .invoke(config, "GetConstructionData", &mut [argument(&mut id)])?;
@@ -3679,9 +3704,18 @@ fn construction(
             "construction action did not preserve its type and position".into(),
         ));
     }
-    // The release controller fills IDX from the manager's allocator. A layout
-    // carries the identity the object had in the recorded match instead, and
-    // ConstructionManager keys its elements by exactly this value.
+    // A layout carries the identity the object had in the recorded match, and
+    // ConstructionManager keys its elements by exactly this value. The action's
+    // IDX does not decide it: converting the action sets needIncreaseIndex,
+    // and AddConstruction then takes the manager's nextConstructionIndex. So
+    // the counter is set to the wanted index first, through the setter the
+    // build restores snapshots with, and the action names the same index.
+    let mut force = true;
+    runtime.api.invoke_void(
+        manager,
+        "TryRefreshConstructionIndex",
+        &mut [argument(&mut wanted_index), argument(&mut force)],
+    )?;
     runtime
         .api
         .invoke_void(action, "set_IDX", &mut [argument(&mut wanted_index)])?;
@@ -3706,6 +3740,39 @@ fn construction(
     Ok(construction_index)
 }
 
+/// Each construction the manager holds, as `index:id@(x,y)`, for a refusal
+/// that has to say what is there instead of what was asked for.
+fn describe_construction_elements(
+    runtime: &Runtime,
+    manager: *mut Object,
+) -> Result<String, OperationError> {
+    let elements = runtime
+        .api
+        .invoke(manager, "GetConstructionElements", &mut [])?;
+    let mut held = Vec::new();
+    for offset in 0..list_count(runtime.api, elements)? {
+        let element = list_item(runtime.api, elements, offset)?;
+        let index = runtime.api.invoke_value::<i32>(
+            manager,
+            "GetConstructionIndex",
+            &mut [object_argument(element)],
+        )?;
+        let data = runtime
+            .api
+            .invoke(element, "GetConstructionData", &mut [])?;
+        let id = runtime.api.invoke_value::<i32>(data, "GetID", &mut [])?;
+        let position = runtime
+            .api
+            .invoke_value::<MapVector>(element, "GetPosition", &mut [])?;
+        held.push(format!("{index}:{id}@({},{})", position.x, position.y));
+    }
+    Ok(if held.is_empty() {
+        "nothing".into()
+    } else {
+        held.join(", ")
+    })
+}
+
 fn verify_construction_readback(
     runtime: &Runtime,
     manager: *mut Object,
@@ -3726,9 +3793,11 @@ fn verify_construction_readback(
         &mut [argument(&mut construction_index), argument(&mut element)],
     )?;
     if !found || element.is_null() {
-        return Err(OperationError::Rejected(
-            "released construction was not found".into(),
-        ));
+        return Err(OperationError::Rejected(format!(
+            "released construction {construction_id} was not found at index \
+             {construction_index}; the manager holds {}",
+            describe_construction_elements(runtime, manager)?
+        )));
     }
     let data = runtime
         .api
@@ -4091,7 +4160,7 @@ mod tests {
             level: Some(1),
             exp: Some(0),
             rotated: false,
-            equipment: None,
+            equipment: Vec::new(),
             travelling: false,
         };
         let Err(error) = layout_world_position(&placement, true) else {

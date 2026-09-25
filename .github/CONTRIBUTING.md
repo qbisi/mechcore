@@ -166,7 +166,7 @@ repository's history.
 | Evidence | Where | Who reaches it |
 | --- | --- | --- |
 | the build's decompilation, one directory per build, and its symbol index as a release | [`qbisi/mechcore-decomp`](https://github.com/qbisi/mechcore-decomp), private, put under `work/decomp/<build>/` by `scripts/decomp.py sync`, which reuses what the machine already holds | a cloud session through GitHub: attached to the session or through the GitHub connector in Claude Code, through a read-only token in `MECHCORE_DECOMP_TOKEN` on that repository alone in Codex |
-| the native replays and the battle documents converted from them | [`qbisi/mechcore-replay`](https://github.com/qbisi/mechcore-replay), public, fetched by `scripts/replay.py sync` at the commit `replay/REPLAY_REV` pins | anyone |
+| the native replays, one directory per game version | [`qbisi/mechcore-replay`](https://github.com/qbisi/mechcore-replay), public, append-only, fetched at `master` by `scripts/replay.py sync` | anyone |
 | the recordings and sidecars a question is answered against | a release of this repository named `oracle/issue-<n>`, one per question, published by `scripts/oracle.py` | anyone |
 
 A recording is an unstable product: it is captured again when the build

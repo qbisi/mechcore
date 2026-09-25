@@ -16,113 +16,74 @@ neighbours are `List<FPoint>` rather than one value, and Elite Marksman's
 `+5` of range and `+0.25` of damage per rank arrive as nine ascending entries.
 A technology whose effect does not grow carries a single entry.
 
-The source is `TechnologyGroupData` at path id 184 of the build's `level0`, the
-object `scripts/extract_prices.py` already reads for a technology's price. No
-type tree is needed: a `MonoBehaviour`'s fields serialize base class first and
-in declaration order, and the declaration order is the decompiled one. This
-reads further into the same record, past `supply`:
+The source is every list of `TechnologyGroupData` in `level0`, as
+`scripts/build_data.py` reads the build's typed export; a subclass's row
+(`BuffTechnologyData`, `SplashTechnologyData` and the rest) carries the same
+fields. The technologies read are the ones `config/unit_techs.yaml` lists.
 
-    previousTechID, activeLevel, lifeChangeRate, damageChangeRate,
-    speedChangeValue, minAttackRangeChangeValue, attackRangeChangeValue,
-    attackRangeChangeRate, attackIntervalChangeValue, attackIntervalChangeRate,
-    splashRangeChangeValue, projectileSpeedChangeValue,
-    projectileLifeChangeRate, unlockCost
+Every number the table states has to be in the technology's own English
+description, as the build localizes it with its placeholders filled; and a
+list that grows with rank has to be its first entry times the rank.
 
-Every parse is checked against `docs/rules/unit_techs.md`, whose effect text was
-read out of build 2227 by other means, so a silent misparse would have to agree
-with an independent extraction of an earlier build to pass.
-
-    work/tools/asset-venv/bin/python scripts/extract-technology-effects.py \\
-        "<Mechabellum.app>/Contents/Resources/Data/level0"
+    python3 scripts/extract-technology-effects.py [--build BUILD]
 """
 
 import pathlib
 import re
-import struct
 import sys
+
+import build_data
 
 REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
 OUTPUT = REPOSITORY / "config/technology_effects.yaml"
 UNIT_TECHS = REPOSITORY / "config/unit_techs.yaml"
-DOC = REPOSITORY / "docs/rules/unit_techs.md"
-BUILD = "1.11.1.3.2259"
-TECHNOLOGY_GROUP_PATH_ID = 184
 ONE = 1 << 32
 
-# The effect lists, in declaration order, with the width of one entry. A
+# The effect lists this table carries, by the build's field. A
 # `speedChangeValue` is a plain integer for the same reason an officer's is:
 # the build keeps it in `DataSet.intDatas`.
 LISTS = (
-    ("life_rate", 8),
-    ("damage_rate", 8),
-    ("speed_value", 4),
-    ("min_attack_range_value", 4),
-    ("attack_range_value", 8),
-    ("attack_range_rate", 8),
-    ("attack_interval_value", 8),
-    ("attack_interval_rate", 8),
-    ("splash_range_value", 8),
-    ("projectile_speed_value", 8),
-    ("projectile_life_rate", 8),
+    ("life_rate", "lifeChangeRate"),
+    ("damage_rate", "damageChangeRate"),
+    ("speed_value", "speedChangeValue"),
+    ("min_attack_range_value", "minAttackRangeChangeValue"),
+    ("attack_range_value", "attackRangeChangeValue"),
+    ("attack_range_rate", "attackRangeChangeRate"),
+    ("attack_interval_value", "attackIntervalChangeValue"),
+    ("attack_interval_rate", "attackIntervalChangeRate"),
+    ("splash_range_value", "splashRangeChangeValue"),
+    ("projectile_speed_value", "projectileSpeedChangeValue"),
+    ("projectile_life_rate", "projectileLifeChangeRate"),
 )
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value"}
 
 
-def blob(level0: pathlib.Path) -> bytes:
-    import UnityPy
-
-    environment = UnityPy.load(str(level0))
-    for obj in environment.objects:
-        if obj.type.name == "MonoBehaviour" and obj.path_id == TECHNOLOGY_GROUP_PATH_ID:
-            return obj.get_raw_data()
-    raise SystemExit(f"{level0} has no MonoBehaviour {TECHNOLOGY_GROUP_PATH_ID}")
+def raw(value):
+    return value["m_rawValue"] if isinstance(value, dict) else value
 
 
-def read_string(data: bytes, offset: int):
-    (length,) = struct.unpack_from("<i", data, offset)
-    if length < 0 or length > 4096 or offset + 4 + length > len(data):
-        return None, offset
-    end = offset + 4 + length
-    return data[offset + 4 : end], end + (-end) % 4
+def rows_by_id() -> dict[int, dict]:
+    """Every technology row of every list, by id."""
+    rows = {}
+    for table in build_data.level0("TechnologyGroupData").values():
+        if isinstance(table, list):
+            for row in table:
+                effect = {"id": row["id"], "name": row["name"], "row": row}
+                for field, source in LISTS:
+                    effect[field] = [raw(value) for value in row.get(source) or []]
+                rows[row["id"]] = effect
+    return rows
 
 
-def parse(data: bytes, offset: int):
-    """Reads one `TechnologyData` whose ID starts at `offset`, effects and all."""
-    (identifier,) = struct.unpack_from("<i", data, offset)
-    name, cursor = read_string(data, offset + 4)
-    if not name:
-        return None
-    try:
-        name = name.decode("utf-8")
-    except UnicodeDecodeError:
-        return None
-    cursor += 4  # isTestData, one byte padded to four
-    icon, cursor = read_string(data, cursor)
-    if icon is None or not icon.isascii():
-        return None
-    for _ in range(3):  # description, descParams, story
-        text, cursor = read_string(data, cursor)
-        if text is None:
-            return None
-    cursor += 4  # targetSkillID
-    cursor += 12  # mainSkillEffect, extraSkillEffect, extraSkillNumericalEffect
-    supply, _previous, active_level = struct.unpack_from("<iii", data, cursor)
-    cursor += 12
-
-    row = {"id": identifier, "name": name, "supply": supply, "active_level": active_level}
-    for field, width in LISTS:
-        (count,) = struct.unpack_from("<i", data, cursor)
-        cursor += 4
-        if count < 0 or count > 64 or cursor + count * width > len(data):
-            return None
-        layout = "<q" if width == 8 else "<i"
-        row[field] = [
-            struct.unpack_from(layout, data, cursor + index * width)[0]
-            for index in range(count)
-        ]
-        cursor += count * width
-    return row
+def described(row: dict) -> str | None:
+    """A technology's English description, from whichever technology table localizes it."""
+    for term in build_data._terms():
+        match = re.fullmatch(r"ConfigData/(\w+)/description_(\d+)", term)
+        if match and int(match.group(2)) == row["id"] and (
+                "Tech" in match.group(1) or match.group(1) in ("SearchTargetSpecificData", "BurrowData")):
+            return build_data.description(match.group(1), row)
+    return None
 
 
 def technologies() -> dict[int, str]:
@@ -147,24 +108,12 @@ def reading(field: str, value: int) -> str:
     return f"{value / ONE:+.6g}"
 
 
-def documented() -> dict[int, str]:
-    """Each technology's effect text, as `docs/rules/unit_techs.md` states it."""
-    stated = {}
-    for line in DOC.read_text().splitlines():
-        row = re.match(r"^\| `(\d+)` \|[^|]*\|[^|]*\|[^|]*\|[^|]*\|([^|]*)\|", line)
-        if row:
-            stated[int(row.group(1))] = row.group(2)
-    return stated
-
-
 def crosscheck(rows: dict[int, dict]) -> tuple[int, int, list[str]]:
     """Two ways a misparse would have to survive to reach the table.
 
-    **Every number this table states has to be in the index's text.** The text
-    is build 2227's, read by another route and in the game's own words, so a
-    misparse would have to agree with an independent extraction of an earlier
-    build to pass. The check runs in this direction rather than the officers'
-    because a technology's text states effects this table does not carry: a
+    **Every number this table states has to be in the technology's description.**
+    The check runs in this direction rather than the officers' because a
+    technology's text states effects this table does not carry: a
     damage rate against aerial units, damage received, a bombardment it
     summons. Those are its skill's, not its unit's, and they live in the skill
     the technology points at with `targetSkillID`.
@@ -193,7 +142,6 @@ def crosscheck(rows: dict[int, dict]) -> tuple[int, int, list[str]]:
         return f"{round(value * 100)}" if field in RATES else f"{value:g}"
 
     checked, disagreed = 0, []
-    text_of = documented()
     for identifier, row in sorted(rows.items()):
         for field, _ in LISTS:
             values = row[field]
@@ -209,8 +157,8 @@ def crosscheck(rows: dict[int, dict]) -> tuple[int, int, list[str]]:
                     )
                     break
 
-        text = text_of.get(identifier)
-        if text is None:
+        text = described(row["row"])
+        if not text:
             continue
         numbers = set(re.findall(r"\d+(?:\.\d+)?", text))
         claims = {
@@ -230,34 +178,15 @@ def crosscheck(rows: dict[int, dict]) -> tuple[int, int, list[str]]:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print(__doc__.strip().splitlines()[-2].strip(), file=sys.stderr)
-        return 2
-    level0 = pathlib.Path(sys.argv[1])
-    if not level0.exists():
-        print(f"{level0} does not exist", file=sys.stderr)
-        return 2
-    data = blob(level0)
+    build_data.arguments(__doc__)
     owners = technologies()
-
+    every = rows_by_id()
     rows = {}
     for identifier, unit in sorted(owners.items()):
-        needle = struct.pack("<i", identifier)
-        start = 0
-        while True:
-            position = data.find(needle, start)
-            if position < 0:
-                print(f"error: technology {identifier} is not in the asset", file=sys.stderr)
-                return 1
-            try:
-                row = parse(data, position)
-            except struct.error:
-                row = None
-            if row and row["id"] == identifier and 0 <= row["supply"] <= 5000:
-                row["unit"] = unit
-                rows[identifier] = row
-                break
-            start = position + 1
+        if identifier not in every:
+            print(f"error: technology {identifier} is not in the build", file=sys.stderr)
+            return 1
+        rows[identifier] = dict(every[identifier], unit=unit)
 
     checked, _parsed, disagreed = crosscheck(rows)
     for problem in disagreed:
@@ -267,7 +196,6 @@ def main() -> int:
 
     lines = [
         "schema: mechcore.technology_effects",
-        f"game_build: {BUILD}",
         "",
         "# What a technology does to a fight, which is a correction it writes onto",
         "# the unit that researched it. `config/unit_techs.yaml` carries which",
@@ -307,8 +235,8 @@ def main() -> int:
     print(
         f"{written} of {len(rows)} technologies write onto a unit's numbers ->"
         f" {OUTPUT.relative_to(REPOSITORY)}; every number {checked} of them state"
-        f" is in the effect text docs/rules/unit_techs.md carries, and every rank"
-        f" list is its first entry times the rank"
+        f" is in their own description, and every rank list is its first entry"
+        f" times the rank"
     )
     return 0
 

@@ -98,6 +98,3 @@ Crawler, 1.5 metres of inner radius against gaps 4 metres wide. A wall does not
 obstruct one, and that says nothing about a unit the gaps could not admit even
 if the blocks were solid.
 
-**Who a Crawler locks at the end of `wall-passage.yaml`.** Its physics agrees
-with the game on all 341 ticks; its content parts for four ticks from 327, in
-the locks and motion of Crawlers retargeting as the last enemy dies.

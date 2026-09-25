@@ -315,15 +315,18 @@ impl Simulation {
         }
     }
 
-    /// Reads every unit with no enemy left at its interval as composed, with
-    /// no stagger.
+    /// Reads a unit with no enemy left at its interval as composed, with no
+    /// stagger.
     ///
-    /// The stagger rides on the cycle in progress, and once a unit's last
-    /// enemy is dead there is none: from the tick after, and on the fight's
-    /// final tick if that is the one, the game reads a Marksman at 62, an
-    /// Arclight at 18 and a Wraith at 32 — their descriptions — whatever
-    /// cycle they were on.
-    fn settle_intervals(&mut self) {
+    /// The stagger rides on the cycle in progress, and a unit's last enemy
+    /// dying ends it: from the tick after, the game reads a Marksman at 62, an
+    /// Arclight at 18 and a Wraith at 32 — their descriptions — whatever cycle
+    /// they were on. That reset is the lock being lost, so it reaches only a
+    /// unit that still held one: the Mustang of `m3-crawler.yaml` (seed
+    /// 1787720817) whose own target died the tick before the last enemy did
+    /// stands idle and lockless, and reads its drawn 6 until the fight's final
+    /// tick, where every unit reads its composed interval.
+    fn settle_intervals(&mut self, every_unit: bool) {
         let alive_teams = self
             .actors
             .values()
@@ -332,23 +335,26 @@ impl Simulation {
             .collect::<BTreeSet<_>>();
         for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
             let team = actor.placement.team;
-            if alive_teams.iter().all(|&other| other == team) {
+            if alive_teams.iter().all(|&other| other == team)
+                && (every_unit || actor.skill.lock_target.is_some())
+            {
                 actor.skill.current_attack_interval =
                     native_time_units_to_steps(actor.stats.attack_interval());
             }
         }
     }
 
-    /// The same, on the fight's last tick, before its snapshot is written.
+    /// The same for every unit, on the fight's last tick, before its snapshot
+    /// is written.
     fn settle_intervals_if_finishing(&mut self) {
         if self.ready_to_finish() {
-            self.settle_intervals();
+            self.settle_intervals(true);
         }
     }
 
     #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
-        self.settle_intervals();
+        self.settle_intervals(false);
         let publish_late_building_events = self.late_building_events_pending;
         self.late_building_events_pending = false;
         if self.terminal_drain_pending {

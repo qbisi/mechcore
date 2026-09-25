@@ -10,6 +10,7 @@ into `work/tools/`, and writes the same shape every reader here expects:
     work/decomp/<build>/cpp2il/IsilDump/          the instruction dump, one file per class
     work/decomp/<build>/cpp2il/DiffableCs/        the C# stubs, with call-graph attributes
     work/decomp/<build>/config-data-container.json    GameRiver.ConfigDataContainer from level0
+    work/decomp/<build>/<file>/<Class>.json       every other GameRiver data object, by the file it is in
     work/decomp/<build>/game-manifest.json        the game files and tools it came from
     work/decomp/<build>/index.sqlite              the symbol and call index
 
@@ -19,7 +20,7 @@ steps to redo: `dylib`, `isil`, `cs`, `config`, `manifest`, `index`, or `all`.
 Choices a rerun must not change:
 
 - **The x86_64 slice.** `GameAssembly.dylib` is universal. The dump is taken
-  from its x86_64 slice, as build 1.11.1.3.2259's was, so two builds' ISIL
+  from its x86_64 slice, as every build's has been, so two builds' ISIL
   compare line by line. Both slices come from the same IL and the same
   metadata; methods, fields and field offsets are identical, and the Adapter,
   which runs in the arm64 process, finds everything by name. An address in the
@@ -110,6 +111,24 @@ def game_identity(app):
     if not unity:
         fail(f"{app}: no Unity version in CFBundleGetInfoString")
     return build, unity.group(1)
+
+
+def steam_build(app):
+    """Steam's own identity for the installed game, when Steam installed it.
+
+    The version string does not always move when the game does: an update can
+    rebuild `GameAssembly.dylib` under the same `CFBundleShortVersionString`.
+    Steam's `buildid` always moves, and it is one number for every platform of
+    a branch, where each platform's files are a depot of their own.
+    """
+    steamapps = app.parent.parent.parent
+    for acf in sorted(steamapps.glob("appmanifest_*.acf")):
+        text = acf.read_text(errors="replace")
+        fields = dict(re.findall(r'^\s*"(\w+)"\s+"([^"]*)"', text, re.M))
+        if fields.get("installdir") == app.parent.name:
+            return {"appid": fields.get("appid"), "buildid": fields.get("buildid"),
+                    "branch": fields.get("BetaKey", "public")}
+    return None
 
 
 def artifacts(app):
@@ -270,55 +289,122 @@ class Ripper:
             return response.read()
 
 
+UNITYPY = "1.25.3"
+# Which data objects are exported, by the file they are in. Every MonoBehaviour
+# whose script is in the GameRiver namespace, except GameRiver.Client (the UI),
+# and the language source the configuration's names are localized in.
+EXPORT_FILES = ("level0", "resources.assets", "sharedassets0.assets")
+LANGUAGE_SOURCE = ("I2.Loc.LanguageSourceAsset", "I2LanguagesForConfigData")
+ENUMERATE = """
+import json, sys, UnityPy
+from pathlib import Path
+data = Path(sys.argv[1])
+found = []
+for name in sys.argv[2:]:
+    for obj in UnityPy.load(str(data / name)).objects:
+        if obj.type.name != "MonoBehaviour":
+            continue
+        behaviour = obj.read(check_read=False)
+        script = behaviour.m_Script.read()
+        owner = ""
+        if not behaviour.m_Name and behaviour.m_GameObject.path_id:
+            owner = behaviour.m_GameObject.read().m_Name
+        found.append({"file": name, "path_id": obj.path_id, "name": behaviour.m_Name or owner,
+                      "class": f"{script.m_Namespace}.{script.m_ClassName}".lstrip(".")})
+json.dump(found, sys.stdout)
+"""
+
+
+def unitypy():
+    """A Python that has UnityPy, in its own environment under work/tools."""
+    environment = TOOLS / f"unitypy-{UNITYPY}"
+    python = environment / "bin" / "python"
+    if not python.exists():
+        say(f"creating a Python environment with UnityPy {UNITYPY}")
+        if subprocess.run(["uv", "--version"], capture_output=True).returncode == 0:
+            subprocess.run(["uv", "venv", "--quiet", str(environment)], check=True)
+            subprocess.run(["uv", "pip", "install", "--quiet", "--python", str(python), f"UnityPy=={UNITYPY}"], check=True)
+        else:
+            subprocess.run([sys.executable, "-m", "venv", str(environment)], check=True)
+            subprocess.run([str(python), "-m", "pip", "install", "--quiet", f"UnityPy=={UNITYPY}"], check=True)
+    return python
+
+
+def exported_objects(app):
+    """The data objects to export: file, path id, name and script class of each."""
+    data = app / "Contents/Resources/Data"
+    result = subprocess.run([str(unitypy()), "-c", ENUMERATE, str(data), *EXPORT_FILES],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        fail(f"UnityPy could not list the game's objects:\n{result.stderr.strip()}")
+    return [
+        entry for entry in json.loads(result.stdout)
+        if (entry["class"].startswith("GameRiver.") and not entry["class"].startswith("GameRiver.Client."))
+        or (entry["class"], entry["name"]) == LANGUAGE_SOURCE
+    ]
+
+
+def export_path(entry, counts):
+    """`<file>/<Class>.json` for a class the file holds once, else `<file>/<Class>/<name>.json`.
+
+    A component's name is its GameObject's, so a prefab's RVOControllerFixed
+    is `sharedassets0/RVOControllerFixed/Mech_Default_2.json`.
+    """
+    if entry["class"] == "GameRiver.ConfigDataContainer":
+        return pathlib.Path("config-data-container.json")
+    directory = pathlib.Path(entry["file"].removesuffix(".assets"))
+    short = entry["class"].rsplit(".", 1)[-1]
+    if counts[(entry["file"], entry["class"])] == 1:
+        return directory / f"{short}.json"
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", entry["name"]) or str(entry["path_id"])
+    return directory / short / f"{stem}.json"
+
+
 def step_config(app, out):
+    """Every data object of the build, as AssetRipper types it from the build's assemblies.
+
+    UnityPy reads which script each MonoBehaviour runs, which needs no type
+    tree; AssetRipper, which reconstructs the types from the IL2CPP metadata,
+    exports the chosen ones by path id. `ConfigDataContainer` is
+    `config-data-container.json`; the rest go under a directory per file.
+    """
+    objects = exported_objects(app)
+    counts = {}
+    for entry in objects:
+        counts[(entry["file"], entry["class"])] = counts.get((entry["file"], entry["class"]), 0) + 1
+    paths = {}
+    for entry in objects:
+        path = export_path(entry, counts)
+        if path in paths.values():
+            path = path.with_name(f"{path.stem}_{entry['path_id']}.json")
+        paths[(entry["file"], entry["path_id"])] = path
+    for directory in ("level0", "resources", "sharedassets0"):
+        subprocess.run(["rm", "-rf", str(out / directory)], check=True)
     ripper = Ripper()
     try:
-        say("AssetRipper is loading the game; this takes about ten minutes")
+        say(f"AssetRipper is loading the game to export {len(objects)} objects; this takes a few minutes")
         ripper.load(app)
         collections = ripper.collections()
-        if "level0" not in collections:
-            fail("AssetRipper found no level0")
-        level0 = collections["level0"]
-        scripts = {}
-        misses = 0
-        path_id = 0
-        while misses < 200:
-            path_id += 1
-            raw = ripper.asset(level0, path_id)
+        exported = []
+        for entry in objects:
+            if entry["file"] not in collections:
+                fail(f"AssetRipper found no {entry['file']}")
+            raw = ripper.asset(collections[entry["file"]], entry["path_id"])
             if raw is None:
-                misses += 1
-                continue
-            misses = 0
-            head = raw[:2000].decode("utf-8", "replace")
-            script = re.search(r'"m_Script": \{ "m_FileID": (\d+), "m_PathID": (\d+) \}', head)
-            if not script or '"m_Structure"' not in head:
-                continue
-            key = (int(script.group(1)), int(script.group(2)))
-            if key not in scripts:
-                scripts[key] = monoscript(ripper, collections, key)
-            if scripts[key] == "GameRiver.ConfigDataContainer":
-                (out / "config-data-container.json").write_bytes(raw)
-                say(f"ConfigDataContainer is level0 path id {path_id}")
-                return path_id
-        fail("level0 holds no MonoBehaviour of GameRiver.ConfigDataContainer")
+                fail(f"AssetRipper cannot export {entry['file']} path id {entry['path_id']} ({entry['class']})")
+            target = out / paths[(entry["file"], entry["path_id"])]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+            exported.append({**entry, "export": str(paths[(entry["file"], entry["path_id"])])})
+        if not any(entry["class"] == "GameRiver.ConfigDataContainer" for entry in exported):
+            fail("the build holds no GameRiver.ConfigDataContainer")
+        say(f"exported {len(exported)} data objects")
+        return exported
     finally:
         ripper.close()
 
 
-def monoscript(ripper, collections, key):
-    """The class a MonoBehaviour's `m_Script` names, looked up by path id."""
-    _, path_id = key
-    for name in ("globalgamemanagers.assets", "globalgamemanagers"):
-        if name in collections:
-            raw = ripper.asset(collections[name], path_id)
-            if raw:
-                script = json.loads(raw)
-                if "m_ClassName" in script:
-                    return f"{script.get('m_Namespace', '')}.{script['m_ClassName']}".lstrip(".")
-    return None
-
-
-def step_manifest(app, build, unity, out, commands, container_path_id):
+def step_manifest(app, build, unity, out, commands, level0):
     root = app
     listed = []
     for role, path in artifacts(app).items():
@@ -332,6 +418,7 @@ def step_manifest(app, build, unity, out, commands, container_path_id):
         "".join(f"{a['path']}\t{a['sha256']}\n" for a in sorted(listed, key=lambda a: a["path"])).encode()
     ).hexdigest()
     manifest = {
+        "steam": steam_build(app),
         "artifacts": listed,
         "backend": "il2cpp",
         "build": build,
@@ -342,7 +429,7 @@ def step_manifest(app, build, unity, out, commands, container_path_id):
                        "processors": PROCESSORS, "slice": "x86_64"},
             "assetripper": {"version": ASSETRIPPER["version"], "sha256": ASSETRIPPER["sha256"]},
         },
-        "config_data_container": {"file": "level0", "path_id": container_path_id},
+        "exports": level0,
         "unity_version": unity,
         "warnings": [],
     }
@@ -511,9 +598,22 @@ def main():
     build, unity = game_identity(app)
     out = DECOMP / build
     work = ROOT / "work" / "inputs" / build
+    # One version is one set of rules, so a version has one directory. Steam
+    # can still ship new files under it; a directory made from other files is
+    # not reused step by step, which would keep the old dump, but replaced
+    # whole when asked to.
+    manifest_path = out / "game-manifest.json"
+    if manifest_path.exists() and force != set(STEPS):
+        made = json.loads(manifest_path.read_text())
+        made_from = {a["path"]: a["sha256"] for a in made["artifacts"]}
+        installed = {str(path.relative_to(app)): sha256(path) for path in artifacts(app).values()}
+        if made_from != installed:
+            fail(f"{out} was made from other files of {build} (Steam build "
+                 f"{(made.get('steam') or {}).get('buildid')}, installed "
+                 f"{(steam_build(app) or {}).get('buildid')}); --force all replaces it")
     out.mkdir(parents=True, exist_ok=True)
     work.mkdir(parents=True, exist_ok=True)
-    say(f"build {build}, Unity {unity}, into {out}")
+    say(f"build {build}, Steam build {(steam_build(app) or {}).get('buildid')}, Unity {unity}, into {out}")
 
     commands = {}
     if "dylib" in force or not (work / "GameAssembly-x86_64.dylib").exists():
@@ -525,15 +625,13 @@ def main():
     if "cs" in force or not (out / "cpp2il/DiffableCs").is_dir():
         commands["diffable-cs"] = step_cs(app, work, unity, out)
         say("DiffableCs written")
-    container = out / "config-data-container.json"
-    manifest_path = out / "game-manifest.json"
-    container_path_id = None
+    level0 = None
     if manifest_path.exists():
-        container_path_id = json.loads(manifest_path.read_text()).get("config_data_container", {}).get("path_id")
-    if "config" in force or not container.exists():
-        container_path_id = step_config(app, out)
+        level0 = json.loads(manifest_path.read_text()).get("exports")
+    if "config" in force or not (out / "config-data-container.json").exists() or not level0:
+        level0 = step_config(app, out)
     if "manifest" in force or not manifest_path.exists() or force & {"dylib", "isil", "cs", "config"}:
-        manifest = step_manifest(app, build, unity, out, commands, container_path_id)
+        manifest = step_manifest(app, build, unity, out, commands, level0)
         say("game-manifest.json written")
     else:
         manifest = json.loads(manifest_path.read_text())

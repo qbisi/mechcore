@@ -1,5 +1,4 @@
 schema: mechcore.unit_techs
-game_build: 1.11.1.3.2259
 
 units:
   - type: fortress
@@ -92,7 +91,7 @@ units:
   - type: fang
     unit_id: 9
     technologies:
-      - {id: 209, supply: 500}
+      - {id: 209, supply: 450}
       - {id: 3109, supply: 150}
       - {id: 10209, supply: 300}
       - {id: 10509, supply: 250}
@@ -217,7 +216,8 @@ units:
       - {id: 4721, supply: 200}
       - {id: 10221, supply: 300}
       - {id: 10321, supply: 200}
-      - {id: 110211, supply: 200}
+      - {id: 110211, supply: 300}
+      - {id: 110212, supply: 200}
   - type: typhoon
     unit_id: 22
     technologies:
@@ -258,7 +258,7 @@ units:
       - {id: 725, supply: 200}
       - {id: 3025, supply: 250}
       - {id: 3225, supply: 200}
-      - {id: 3925, supply: 100}
+      - {id: 3925, supply: 150}
       - {id: 10225, supply: 300}
       - {id: 11025, supply: 100}
   - type: farseer
@@ -312,14 +312,24 @@ units:
   - type: vortex
     unit_id: 31
     technologies:
-      - {id: 631, supply: 250}
+      - {id: 631, supply: 300}
       - {id: 931, supply: 150}
       - {id: 4531, supply: 400}
+      - {id: 10131, supply: 200}
       - {id: 10231, supply: 300}
       - {id: 123101, supply: 350}
       - {id: 180931, supply: 250}
       - {id: 493101, supply: 300}
       - {id: 503101, supply: 150}
+  - type: centurion
+    unit_id: 32
+    technologies:
+      - {id: 1232, supply: 200}
+      - {id: 5132, supply: 150}
+      - {id: 5532, supply: 100}
+      - {id: 10232, supply: 300}
+      - {id: 110321, supply: 300}
+      - {id: 110322, supply: 200}
   - type: mountain
     unit_id: 2002
     technologies:

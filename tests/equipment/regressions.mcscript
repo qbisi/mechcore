@@ -75,3 +75,12 @@ steps:
       steps: 140
       hashes.physics_result_hash: ccabdec5164eee74fd45df11200366f6a0fd03a2dc5505363d6be0faf392542d
       hashes.content_result_hash: e6dac8224c77eca75921133111846636fdebf2b095c5bf8ee2b46cea35186dfc
+  # Two items under Equipment Expansion: Heavy Armor's life and the Firepower
+  # Control System's damage both land, 2838 of life and shots of 3842.
+  - fight.run:
+      layout: tests/equipment/two-items.yaml
+      seed: 1787720817
+    expect:
+      steps: 83
+      hashes.physics_result_hash: a67208ffc2b0911672a3ebb2f2f90f1c9ae402b2068cf03d88db24d6ecac8047
+      hashes.content_result_hash: 4d0fe3501ecbcb5cca4bcc2cdac7f82a1dd7b6b4e843ebdafc925d1c4ef31123

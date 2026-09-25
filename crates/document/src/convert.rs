@@ -8,21 +8,25 @@
 //! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, DECLINED_OFFER, EquipmentItem, NextIndex, Opening, OpeningOffer,
-    PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
+    Action, Battle, BattleSide, EquipmentItem, NextIndex, Offers, Opening, OpeningOffer,
+    PanelSkill, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::layout::{
     ContraptionPlacement, Experience, Position, Region, StaticPlacement, UnitPlacement,
 };
-use crate::opening;
+use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
 
-/// The build these catalogues and conventions are pinned to.
-const BUILD: &str = "2259";
+/// The version a replay's header names: the last component of the game
+/// version `GAME_VERSION` pins, which is how a GRBR carries it (`2324`).
+fn replay_version() -> &'static str {
+    let build = crate::economy::game_build();
+    build.rsplit('.').next().unwrap_or(build)
+}
 /// Energy tower skill `1`, the only one carrying a next-round supply change.
 const RAPID_SUPPLY_SKILL: i32 = 1;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
@@ -64,7 +68,7 @@ impl Seat {
 ///
 /// # Errors
 ///
-/// Returns an error when the replay is not a build-2259 standard 1v1 recorded
+/// Returns an error when the replay is not a standard 1v1 of this version recorded
 /// by this machine, when its rounds are not the contiguous sequence both sides
 /// and the match share, or when it contains an object this build's catalogues
 /// or this format cannot name.
@@ -124,13 +128,23 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         .enumerate()
         .skip(OPENING_ROUNDS)
     {
+        // A round that deals offers also offers the decline, and what the
+        // decline pays depends on the pool the seed selects.
         let offers = record.match_rounds.entries[position]
             .reinforce_items
             .arrays
             .first()
-            .map(|array| array.values.clone());
-        let declined = pool
-            .map(|pool| crate::reinforcement::decline_supply(&economy, pool, round))
+            .map(|array| {
+                let pool = pool.ok_or_else(|| {
+                    format!(
+                        "round {round} offers a decline, and the opening does not deal its pool"
+                    )
+                })?;
+                Ok::<_, String>(Offers {
+                    dealt: array.values.clone(),
+                    refund: crate::reinforcement::decline_supply(&economy, pool, round)?,
+                })
+            })
             .transpose()?;
         turns.push(turn(
             grbr,
@@ -139,7 +153,6 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             position,
             round,
             offers,
-            declined,
         )?);
     }
 
@@ -169,10 +182,11 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
 /// which one failed is what tells a caller whether the file is the wrong build,
 /// the wrong provenance or the wrong kind of match.
 fn readable(record: &record::BattleRecord) -> Result<(), String> {
-    if record.version != BUILD {
+    if record.version != replay_version() {
         return Err(format!(
-            "replay is build {}, and this converter reads build {BUILD}",
-            record.version
+            "replay is build {}, and this converter reads build {}",
+            record.version,
+            replay_version()
         ));
     }
     if record.seat < 0 {
@@ -211,8 +225,7 @@ fn turn(
     [blue, red]: [&record::PlayerRecord; 2],
     position: usize,
     round: i32,
-    offers: Option<Vec<i32>>,
-    declined: Option<i32>,
+    offers: Option<Offers>,
 ) -> Result<Turn, String> {
     let opened = [
         side_state(grbr, economy, blue, position, Seat::Blue)?,
@@ -225,7 +238,7 @@ fn turn(
             &player.rounds.entries[position],
             seat,
             opened,
-            declined,
+            offers.as_ref(),
         )
         .map_err(|error| format!("round {round}: {error}"))
     };
@@ -415,6 +428,7 @@ fn battle_side(
         // it, so the first round's list is the one the side started with.
         constructions: constructions(&player.rounds.entries[OPENING_ROUNDS].data, seat)?,
         tech_loadout: loadout,
+        seed: Some(player.seed),
     })
 }
 
@@ -555,12 +569,9 @@ fn side_state(
         reactor_core: data.reactor_core,
         // The snapshot precedes the round's income, which the opening pays.
         supply: data.supply,
+        unlocked_units,
         // The allowances are the opening's to set.
-        shop: ShopState {
-            unlocked_units,
-            buys_remaining: 0,
-            unlocks_remaining: 0,
-        },
+        shop: crate::battle::Allowances::default(),
         blueprints,
         // What the previous round activated and still owes for, which the
         // opening charges against the income and then lapses.
@@ -590,8 +601,48 @@ fn side_state(
     // anything. Both belong to the position the round opens with, so the
     // opening is made here, and each delivery lands where the board puts it.
     let mut placement = crate::landing::placement(seat == Seat::Red);
-    crate::transition::open_round(economy, &snapshot, round, &mut placement)
+    let stream = player_stream(economy, player, position, seat)?;
+    crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
         .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
+}
+
+/// The side's own stream as round `position` opens, which is the snapshot's.
+///
+/// It is also where the seed the header states, advanced once for every
+/// hand-out an earlier round drew, puts it; a snapshot anywhere else would be
+/// a stream something else draws from, and is refused.
+fn player_stream(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    position: usize,
+    seat: Seat,
+) -> Result<Stream, String> {
+    let entry = &player.rounds.entries[position];
+    let recorded =
+        <[u64; 4]>::try_from(entry.data.random_state.states.values.as_slice()).map_err(|_| {
+            format!(
+                "round {} {} records no player stream",
+                entry.round,
+                seat.name()
+            )
+        })?;
+    let draws: u32 = player.rounds.entries[..position]
+        .iter()
+        .map(|earlier| {
+            crate::transition::player_draws(economy, &earlier.data.officers.values, earlier.round)
+        })
+        .sum();
+    let mut stream = Stream::seeded(player.seed);
+    stream.skip(draws);
+    if stream.state() != recorded {
+        return Err(format!(
+            "round {} {} player stream is not where seed {} and {draws} earlier hand-outs put it",
+            entry.round,
+            seat.name(),
+            player.seed
+        ));
+    }
+    Ok(stream)
 }
 
 /// Refuses a side whose map pays a round income other than the one every
@@ -624,8 +675,13 @@ fn shared_income(
 fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
     let mut formations = Vec::with_capacity(data.units.entries.len());
     for unit in &data.units.entries {
-        let (type_name, _) = unit_type_from_id(unit.id)
-            .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
+        let (type_name, _) = unit_type_from_id(unit.id).ok_or_else(|| {
+            format!(
+                "unit ID {} has no layout type in build {}",
+                unit.id,
+                replay_version()
+            )
+        })?;
         formations.push(StateUnit {
             value: Some(unit.sell_supply),
             // Settled by the opening, which knows the round.
@@ -639,7 +695,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 level: Some(unit.level + 1).filter(|level| *level != 1),
                 exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
                 rotated: Some(unit.rotated).filter(|rotated| *rotated),
-                equipment: Some(unit.equipment_id).filter(|id| *id != 0),
+                equipment: unit.equipments.entries.iter().map(|item| item.id).collect(),
                 // No recorded field states it; see docs/spec/document/battle.md.
                 travelling: None,
             },
@@ -654,8 +710,9 @@ fn constructions(data: &PlayerData, seat: Seat) -> Result<Vec<StaticPlacement>, 
     for construction in &data.constructions.entries {
         let (type_name, _) = construction_type_from_id(construction.id).ok_or_else(|| {
             format!(
-                "construction ID {} has no layout type in build {BUILD}",
-                construction.id
+                "construction ID {} has no layout type in build {}",
+                construction.id,
+                replay_version()
             )
         })?;
         constructions.push(StaticPlacement {
@@ -673,8 +730,9 @@ fn contraptions(data: &PlayerData, seat: Seat) -> Result<Vec<ContraptionPlacemen
     for contraption in &data.contraptions.entries {
         let type_name = contraption_type_from_id(contraption.id).ok_or_else(|| {
             format!(
-                "contraption ID {} has no layout type in build {BUILD}",
-                contraption.id
+                "contraption ID {} has no layout type in build {}",
+                contraption.id,
+                replay_version()
             )
         })?;
         contraptions.push(ContraptionPlacement {
@@ -693,8 +751,7 @@ fn unfitted_equipment(data: &PlayerData) -> Vec<EquipmentItem> {
         .units
         .entries
         .iter()
-        .map(|unit| unit.equipment_id)
-        .filter(|id| *id != 0)
+        .flat_map(|unit| unit.equipments.entries.iter().map(|item| item.id))
         .collect();
     let mut unfitted = Vec::new();
     for item in &data.equipment.entries {
@@ -771,43 +828,66 @@ fn energy_tower_debt(
 /// `Redo` pushes the newest undone entry back, and any other action clears what
 /// could be redone. `docs/spec/document/action.md` states the rule.
 fn net_actions(recorded: &[ActionRecord]) -> Vec<&ActionRecord> {
-    /// An entry that no longer stands for a decision but still absorbs an undo.
-    const SPENT: bool = false;
-    let mut taken: Vec<(&ActionRecord, bool)> = Vec::with_capacity(recorded.len());
-    let mut undone: Vec<(&ActionRecord, bool)> = Vec::new();
+    /// One recorded action on the undo stack: whether it still stands for a
+    /// decision, and for a cancel, where on the stack its release sits.
+    struct Entry<'a> {
+        action: &'a ActionRecord,
+        stands: bool,
+        cancels: Option<usize>,
+    }
+    let mut taken: Vec<Entry> = Vec::with_capacity(recorded.len());
+    let mut undone: Vec<Entry> = Vec::new();
     for action in recorded {
         match action.kind.as_str() {
+            // Undoing a cancel stands its release again, and redoing it spends
+            // the release once more: the release sits below the cancel, so it
+            // is on the stack whenever the cancel is.
             "PAD_Undo" => {
                 if let Some(last) = taken.pop() {
+                    if let Some(release) = last.cancels {
+                        taken[release].stands = true;
+                    }
                     undone.push(last);
                 }
             }
             "PAD_Redo" => {
                 if let Some(last) = undone.pop() {
+                    if let Some(release) = last.cancels {
+                        taken[release].stands = false;
+                    }
                     taken.push(last);
                 }
             }
             "PAD_CancelReleaseCommanderSkill" => {
                 undone.clear();
-                if let Some(entry) = taken.iter_mut().rev().find(|(candidate, stands)| {
-                    *stands
-                        && candidate.kind == "PAD_ReleaseCommanderSkill"
-                        && candidate.skill_index == action.skill_index
-                }) {
-                    entry.1 = SPENT;
+                let release = taken.iter().rposition(|entry| {
+                    entry.stands
+                        && entry.action.kind == "PAD_ReleaseCommanderSkill"
+                        && entry.action.skill_index == action.skill_index
+                });
+                if let Some(release) = release {
+                    taken[release].stands = false;
                 }
-                taken.push((action, SPENT));
+                taken.push(Entry {
+                    action,
+                    stands: false,
+                    cancels: release,
+                });
             }
             "PAD_FinishDeploy" => undone.clear(),
             _ => {
                 undone.clear();
-                taken.push((action, true));
+                taken.push(Entry {
+                    action,
+                    stands: true,
+                    cancels: None,
+                });
             }
         }
     }
     taken
         .into_iter()
-        .filter_map(|(action, stands)| stands.then_some(action))
+        .filter_map(|entry| entry.stands.then_some(entry.action))
         .collect()
 }
 
@@ -863,9 +943,10 @@ fn actions(
     round: &PlayerRoundRecord,
     seat: Seat,
     opened: &SideState,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
 ) -> Result<Vec<Action>, String> {
     let red = seat == Seat::Red;
+    let declined = offers.map(|offers| offers.refund);
     let step = |position: &SideState, action: &Action, at: usize| {
         crate::transition::step_placing(
             economy,
@@ -883,7 +964,10 @@ fn actions(
     };
     let mut position = opened.clone();
     let mut taken = Vec::new();
-    for (at, recorded) in recorded_actions(round, seat)?.into_iter().enumerate() {
+    for (at, recorded) in recorded_actions(round, seat, offers)?
+        .into_iter()
+        .enumerate()
+    {
         let action = match recorded {
             Recorded::Taken(action) => action,
             Recorded::Released { index, target } => {
@@ -1017,7 +1101,15 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
     kept.into_iter().flatten().collect()
 }
 
-fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorded>, String> {
+/// The `Index` the game records a decline at, which is no position in the
+/// round's offers.
+const RECORDED_DECLINE: i32 = -1;
+
+fn recorded_actions(
+    round: &PlayerRoundRecord,
+    seat: Seat,
+    offers: Option<&Offers>,
+) -> Result<Vec<Recorded>, String> {
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {
@@ -1031,16 +1123,22 @@ fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorde
         };
         converted.push(Recorded::Taken(match action.kind.as_str() {
             "PAD_ChooseReinforceItem" => {
-                // Declining is the same decision at the declined offer, and
-                // the game records its `ID` as zero rather than omitting it.
-                let offer = field("Index", action.index)?;
-                Action::ChooseReinforceItem {
-                    offer,
-                    id: if offer == DECLINED_OFFER {
-                        None
-                    } else {
-                        Some(field("ID", action.id)?)
-                    },
+                // The game records declining as the same decision at an index
+                // of -1, with an `ID` of zero; a document writes it at the
+                // decline's own position, after the cards dealt.
+                let index = field("Index", action.index)?;
+                if index == RECORDED_DECLINE {
+                    Action::ChooseReinforceItem {
+                        index: offers
+                            .map(Offers::decline_index)
+                            .ok_or("a decline in a round that deals no offers")?,
+                        id: None,
+                    }
+                } else {
+                    Action::ChooseReinforceItem {
+                        index,
+                        id: Some(field("ID", action.id)?),
+                    }
                 }
             }
             "PAD_BuyUnit" => Action::BuyUnit {
@@ -1144,6 +1242,42 @@ fn skill_target(action: &ActionRecord, seat: Seat) -> Result<SkillTarget, String
 mod tests {
     use crate::Position;
     use crate::battle::Action;
+
+    /// Undoing a cancel stands the release it cancelled again. A side
+    /// released Orbital Javelin, cancelled it, released it again and then
+    /// undid past the cancel; its next snapshots show the javelin spent,
+    /// which only the first release, standing again, accounts for.
+    #[test]
+    fn undoing_a_cancel_stands_its_release_again() {
+        let entry = |kind: &str, index: &str| {
+            format!(r#"<MatchActionData xsi:type="{kind}">{index}</MatchActionData>"#)
+        };
+        let skill = |at: i32| format!("<SkillIndex>{at}</SkillIndex>");
+        let recorded = [
+            entry("PAD_ChooseReinforceItem", "<ID>300007</ID><Index>3</Index>"),
+            entry("PAD_ReleaseCommanderSkill", &skill(2)),
+            entry("PAD_CancelReleaseCommanderSkill", &skill(2)),
+            entry("PAD_ReleaseCommanderSkill", &skill(2)),
+            entry("PAD_Undo", ""),
+            entry("PAD_Undo", ""),
+            entry("PAD_ReleaseCommanderSkill", &skill(0)),
+        ]
+        .concat();
+        let records: crate::record::ActionRecords =
+            quick_xml::de::from_str(&format!("<actionRecords>{recorded}</actionRecords>")).unwrap();
+        let kept: Vec<_> = super::net_actions(&records.entries)
+            .iter()
+            .map(|action| (action.kind.as_str(), action.skill_index))
+            .collect();
+        assert_eq!(
+            kept,
+            [
+                ("PAD_ChooseReinforceItem", None),
+                ("PAD_ReleaseCommanderSkill", Some(2)),
+                ("PAD_ReleaseCommanderSkill", Some(0)),
+            ]
+        );
+    }
 
     /// A formation that begins its moves in the main half keeps only its
     /// last, a purchase takes every move of its own formation, and one that

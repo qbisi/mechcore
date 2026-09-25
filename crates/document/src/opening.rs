@@ -7,7 +7,7 @@
 //! four combinations are a function of a number the document already holds.
 //!
 //! `docs/rules/opening.md` pins the deal parameters and their arithmetic to
-//! build 2259. Initialization advances the reinforcement stream explicitly;
+//! the build. Initialization advances the reinforcement stream explicitly;
 //! map constructions use a separate stream seeded with the same match seed.
 
 use crate::battle::{Action, OpeningOffer, Turn, TurnActions};
@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// How many combinations a side is dealt.
 ///
-/// Build 2259's `AdvanceTeamSetting.chooseCount` is 4 (`level0`, path ID 146).
+/// The build's `AdvanceTeamSetting.chooseCount` is 4.
 /// `CalculateChooseCount` caps it by the available teams and specialists per
 /// player; neither cap binds for the standard 1v1 pools.
 pub const CHOOSE_COUNT: usize = 4;
@@ -27,7 +27,7 @@ pub const CHOOSE_COUNT: usize = 4;
 ///
 /// It is a floor rather than a cap: a candidate team is refused unless every
 /// price tier it touches can still reach this many different units by the time
-/// the deal is over. Build 2259 passes `MatchSetting.advanceSameUnitMaximum`
+/// the deal is over. The build passes `MatchSetting.advanceSameUnitMaximum`
 /// (3 for standard versus maps) into this parameter. Despite that field's
 /// name, `RandAdvance` compares a minimum count of distinct units per tier.
 pub const DIFFERENT_UNIT_FLOOR: i32 = 3;
@@ -534,6 +534,9 @@ pub struct StatedSide {
     /// The opening this side took, absent while it has not taken one.
     #[serde(skip)]
     pub opening: Option<StatedOpening>,
+    /// The seed of the side's own stream, when the battle states one.
+    #[serde(default)]
+    pub seed: Option<i32>,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
     #[serde(with = "crate::names::loadout")]
@@ -543,7 +546,7 @@ pub struct StatedSide {
 /// The opening decision one side states in round zero.
 #[derive(Debug, Default)]
 pub struct StatedOpening {
-    /// The zero-based `offer` the decision names.
+    /// The zero-based `index` the decision names.
     pub choose: i32,
     /// The team and specialist the decision says that offer holds.
     pub taken: OpeningOffer,
@@ -583,7 +586,7 @@ impl StatedOpening {
             ));
         };
         let Action::ChooseAdvanceTeam {
-            offer,
+            index,
             id,
             specialist,
         } = choice
@@ -591,7 +594,7 @@ impl StatedOpening {
             return Err(format!("{side} opening is not choose_advance_team"));
         };
         Ok(Some(Self {
-            choose: *offer,
+            choose: *index,
             taken: OpeningOffer {
                 team: *id,
                 specialist: *specialist,
@@ -631,8 +634,12 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .rounds
         .into_iter()
         .map(|round| {
-            let state = crate::battle::payload(round.state)
+            let mut state: crate::battle::State = crate::battle::payload(round.state)
                 .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
+            // A state segment is the position a round opens with, so its
+            // allowances are the ones the round opens with.
+            crate::transition::open_allowances(&mut state.blue);
+            crate::transition::open_allowances(&mut state.red);
             let actions = match round.actions {
                 Some(actions) => crate::battle::payload(actions).map_err(|error| {
                     format!("round {} actions are not readable: {error}", round.round)

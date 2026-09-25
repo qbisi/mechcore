@@ -1,8 +1,7 @@
 schema: mechcore.equipment_effects
-game_build: 1.11.1.3.2259
 
 # What an ordinary EquipmentData row writes onto the unit that wears it,
-# read out of level0 path 188 by scripts/extract-equipment-effects.py.
+# read out of EquipmentGroupData by scripts/extract-equipment-effects.py.
 # docs/rules/equipment_effects.md states what each field means. A field
 # is written only when it is set; what an equipment costs is
 # config/reinforce_items.yaml's, and its other pool fields are not here.
@@ -66,8 +65,8 @@ equipment:
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
-    life_rate: 944892805  # +0.22
-    damage_rate: 944892805  # +0.22
+    life_rate: 644245094  # +0.15
+    damage_rate: 644245094  # +0.15
   - id: 13030010
     name: 统御核心
     mech_type: [0]
@@ -83,3 +82,20 @@ equipment:
     extra_skill_effect: true
     round_duration: 1
     attack_interval_rate: -2147483648  # -0.5
+  - id: 13030521
+    name: 次级激光瞄具
+    mech_type: [4]
+    main_skill_effect: true
+    attack_range_value: 34359738368  # +8
+  - id: 13030522
+    name: 次级火控系统
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    damage_rate: 1073741824  # +0.25
+  - id: 13030523
+    name: 次级重型装甲
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 1288490188  # +0.3

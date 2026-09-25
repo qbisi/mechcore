@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 /// Shield Airdrop, whose range item is one shield still standing on the board.
 pub(crate) const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 
-/// The retained commander-skill objects one build-2259 GRBR round snapshot holds.
+/// The retained commander-skill objects one GRBR round snapshot holds.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GrbrRoundRetained {
     pub blue: GrbrSideRetained,
@@ -20,7 +20,7 @@ pub struct GrbrSideRetained {
 }
 
 /// Read the retained Sticky Oil Bomb terrains and Shield Airdrops from the
-/// BinaryFormatter-embedded `BattleRecord` XML in a build-2259 GRBR.
+/// BinaryFormatter-embedded `BattleRecord` XML in a GRBR.
 ///
 /// Both live in the same place, a panel skill's `rangeItems`, and the snapshot
 /// is taken at the round's start, so an entry is an object that outlived the

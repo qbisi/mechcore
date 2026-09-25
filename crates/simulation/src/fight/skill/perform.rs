@@ -213,7 +213,7 @@ impl Simulation {
                             .saturating_add(offset_z)
                             .saturating_sub(source_z_q32),
                     );
-                    // Build 2259 passes Cross(up, targetDirection) first and the
+                    // The build passes Cross(up, targetDirection) first and the
                     // main-weapon world position second to FPlane(position, normal).
                     // The resulting plane normal is therefore the absolute source
                     // position, not the lateral target-direction normal.

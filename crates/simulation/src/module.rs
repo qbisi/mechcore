@@ -1,6 +1,6 @@
 //! The fight's modules, and what each one is responsible for understanding.
 //!
-//! `docs/spec/simulation/architecture.md` is the contract. Build 2259 runs its
+//! `docs/spec/simulation/architecture.md` is the contract. The build runs its
 //! fight as 35 modules with one lifecycle, and this carries a module for each,
 //! implemented or not. A module that is not implemented is still here: it
 //! claims the layout fields it would understand and refuses them, which is what
@@ -79,7 +79,7 @@ impl Field {
             Self::Contraptions => !side.contraptions.is_empty(),
             Self::AirdropShields => !side.airdrop_shields.is_empty(),
             Self::Terrains => !side.terrains.is_empty(),
-            Self::UnitEquipment => side.units.iter().any(|unit| unit.equipment.is_some()),
+            Self::UnitEquipment => side.units.iter().any(|unit| !unit.equipment.is_empty()),
             Self::Travelling => side.units.iter().any(|unit| unit.travelling),
         }
     }
@@ -103,7 +103,7 @@ pub(crate) struct Module {
     pub(crate) implemented: bool,
 }
 
-/// Build 2259's fight modules, and the one step that is not one of them.
+/// The build's fight modules, and the one step that is not one of them.
 ///
 /// Which module a field is claimed by is this simulator's arrangement; the
 /// names are the build's. Two of the arrangements are the build's too:

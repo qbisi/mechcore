@@ -12,9 +12,9 @@
 //! inventory with repeats are one leaf each. A leaf only one side has is still
 //! a leaf, so a formation missing from the prediction counts against it.
 
-use crate::battle::{Action, SideState, SkillTarget, Turn};
+use crate::battle::{Action, Offers, SideState, SkillTarget, Turn};
 use crate::economy::Economy;
-use crate::opening::Stated;
+use crate::opening::{Stated, Stream};
 use crate::reinforcement::Verified;
 use crate::transition::{Unsettled, before_opening};
 use serde::Serialize;
@@ -46,7 +46,7 @@ const DEALT_FROM: &[&str] = &[
     "units.index",
     "units.name",
     "next_index.unit",
-    "shop.unlocked_units",
+    "unlocked_units",
     "techs",
     "officers",
 ];
@@ -144,6 +144,20 @@ impl Coverage {
     }
 }
 
+/// A round's offers as a document writes them.
+fn render_offers(offers: &Offers) -> String {
+    render(&to_value(offers))
+}
+
+/// A side's own stream from `seed`, `draws` values on.
+fn player_stream(seed: Option<i32>, draws: u32) -> Option<Stream> {
+    seed.map(|seed| {
+        let mut stream = Stream::seeded(seed);
+        stream.skip(draws);
+        stream
+    })
+}
+
 /// Measures every transition a battle states.
 ///
 /// `deal` is the reinforcement check's result over the same battle. It is the
@@ -155,27 +169,29 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     if let Some(first) = stated.turns.first() {
         coverage.opening(economy, stated, first);
     }
+    // Each side's own stream, from the seed the header states, advanced once
+    // for every hand-out a recorded round drew.
+    let seeds = [stated.blue.seed, stated.red.seed];
+    let mut draws = [0_u32; 2];
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        // What a decline pays is the deal's to say; without the deal a
-        // decline cannot be settled.
-        let declined = deal.ok().and_then(|verified| {
-            verified
-                .rounds
-                .iter()
-                .find(|round| round.round == turn.round)
-                .map(|round| round.declined)
-        });
+        // What a decline pays is the round's own offer to state.
+        let declined = turn
+            .state
+            .reinforce_offers
+            .as_ref()
+            .map(|offers| offers.refund);
         let mut dealt_from = true;
-        for (side, red) in [("blue", false), ("red", true)] {
+        for (at, (side, red)) in [("blue", false), ("red", true)].into_iter().enumerate() {
             let (state, actions, recorded) = sides(turn, next, red);
+            draws[at] += crate::transition::player_draws(economy, &state.officers, turn.round);
             dealt_from &= coverage.side(
                 economy,
                 (turn.round, declined),
                 state,
                 actions,
                 recorded,
-                side,
+                (side, player_stream(seeds[at], draws[at])),
             );
         }
         coverage.deal(turn, next, deal.ok(), dealt_from);
@@ -204,7 +220,15 @@ impl Coverage {
             match crate::opening::reactor_core(stated.map_id, seat) {
                 Ok(core) => {
                     let before = before_opening(core, header.constructions.clone());
-                    self.side(economy, (0, None), &before, actions, recorded, side);
+                    let stream = player_stream(header.seed, 0);
+                    self.side(
+                        economy,
+                        (0, None),
+                        &before,
+                        actions,
+                        recorded,
+                        (side, stream),
+                    );
                 }
                 Err(reason) => {
                     let leaves: Vec<_> = side_leaves(recorded)
@@ -236,12 +260,13 @@ impl Coverage {
         state: &SideState,
         actions: &[Action],
         recorded: &SideState,
-        side: &'static str,
+        (side, stream): (&'static str, Option<Stream>),
     ) -> bool {
         let red = side == "red";
         // Round zero ends in round 1's opening without a fight.
         let fought = round > 0;
-        let predicted = crate::transition::predict(economy, round, state, actions, red, declined);
+        let predicted =
+            crate::transition::predict(economy, round, state, actions, red, declined, stream);
         let (leaves, unpredicted) = match &predicted {
             Ok(predicted) => {
                 let mut leaves = compare(predicted, recorded, fought);
@@ -317,9 +342,13 @@ impl Coverage {
                 .iter()
                 .find(|round| round.round == next.round)
         });
-        let class = match dealt {
-            Some(round) if round.offers == *recorded && dealt_from => Class::Equal,
-            Some(round) if round.offers == *recorded => Class::Unimplemented,
+        let predicted = dealt.map(|round| Offers {
+            dealt: round.offers.clone(),
+            refund: round.declined,
+        });
+        let class = match &predicted {
+            Some(offers) if offers == recorded && dealt_from => Class::Equal,
+            Some(offers) if offers == recorded => Class::Unimplemented,
             _ => Class::Unequal,
         };
         if class == Class::Unequal {
@@ -327,8 +356,8 @@ impl Coverage {
                 round: turn.round,
                 side: "match",
                 path: "reinforce_offers".into(),
-                predicted: dealt.map(|round| render(&to_value(&round.offers))),
-                recorded: Some(render(&to_value(recorded))),
+                predicted: predicted.as_ref().map(render_offers),
+                recorded: Some(render_offers(recorded)),
             });
         }
         let counts = self.record(&[("reinforce_offers".into(), class)]);

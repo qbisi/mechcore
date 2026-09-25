@@ -24,7 +24,7 @@ pub const JUMP_DRIVES: [(i32, &str); 3] = [(1606, "wasp"), (1611, "overlord"), (
 /// in, given the side's researched technologies.
 #[must_use]
 pub fn free(formation: &UnitPlacement, techs: &[i32]) -> bool {
-    formation.equipment == Some(DEPLOYMENT_MODULE)
+    formation.equipment.contains(&DEPLOYMENT_MODULE)
         || JUMP_DRIVES
             .iter()
             .any(|(tech, unit)| *unit == formation.type_name && techs.contains(tech))

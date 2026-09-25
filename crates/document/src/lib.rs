@@ -160,7 +160,7 @@ red:
     fn a_document_of_another_build_is_refused() {
         let foreign = br"
 kind: layout
-game_build: 1.11.1.3.0001
+game_build: 0.0.0.0.1
 round: 1
 blue:
   units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
@@ -171,7 +171,7 @@ red:
         assert_eq!(
             error,
             format!(
-                "document is written against game build 1.11.1.3.0001, and this binary carries {}",
+                "document is written against game build 0.0.0.0.1, and this binary carries {}",
                 game_build()
             )
         );
@@ -690,7 +690,7 @@ red:
         assert_eq!(plan.blue.units[0].index, Some(0));
         assert_eq!(plan.blue.units[0].exp, Some(0));
         assert!(!plan.blue.units[0].rotated);
-        assert_eq!(plan.blue.units[0].equipment, None);
+        assert_eq!(plan.blue.units[0].equipment, Vec::<i32>::new());
         assert_eq!(plan.blue.units[0].type_name, "marksman");
         assert_eq!(plan.blue.units[0].native, NativeFormation::Unit(2));
         assert_eq!(plan.red.units[0].position, Position { x: 20, y: -180 });
@@ -764,7 +764,7 @@ red:
             "round": 1,
             "blue": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50},
-                "equipment": "laser_sights"
+                "equipment": ["laser_sights"]
             }]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -772,8 +772,31 @@ red:
         }))
         .unwrap();
 
-        assert_eq!(plan.blue.units[0].equipment, Some(13_030_001));
-        assert_eq!(plan.red.units[0].equipment, None);
+        assert_eq!(plan.blue.units[0].equipment, vec![13_030_001]);
+        assert_eq!(plan.red.units[0].equipment, Vec::<i32>::new());
+    }
+
+    /// A formation wears one equipment, and one more for each slot its side's
+    /// officers add: Equipment Expansion adds one.
+    #[test]
+    fn a_second_equipment_needs_a_second_slot() {
+        let layout = |officers: Value| {
+            json!({
+                "kind": "layout",
+                "round": 1,
+                "blue": {"officers": officers, "units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -50},
+                    "equipment": ["laser_sights", "heavy_armor"]
+                }]},
+                "red": {"units": [{"index": 0,
+                    "name": "marksman", "position": {"x": 0, "y": -50}
+                }]}
+            })
+        };
+        let error = compile(&layout(json!([]))).unwrap_err();
+        assert!(error.contains("wears 2 equipment"), "{error}");
+        let plan = compile(&layout(json!(["equipment_expansion"]))).unwrap();
+        assert_eq!(plan.blue.units[0].equipment, vec![13_030_001, 13_030_002]);
     }
 
     #[test]
@@ -784,7 +807,7 @@ red:
             "blue": {
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
                 "constructions": [{"index": 0, "name": "defensive_wall", "position": {"x": 0, "y": -55},
-                 "equipment": "laser_sights"}]
+                 "equipment": ["laser_sights"]}]
             },
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -801,7 +824,7 @@ red:
             "kind": "layout",
             "round": 1,
             "blue": {"units": [{"index": 0,
-                "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": "not_an_item"
+                "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": ["not_an_item"]
             }]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -1139,6 +1162,7 @@ red:
                     "sabertooth",
                     "tarantula",
                     "farseer",
+                    "centurion",
                 ],
                 (30, 30),
             ),
@@ -1173,7 +1197,7 @@ red:
         }
         assert_eq!(
             groups.iter().map(|(names, _)| names.len()).sum::<usize>(),
-            32
+            33
         );
     }
 
@@ -1209,7 +1233,7 @@ red:
     fn battle_skill_reverse_catalog_matches_the_compiler_catalog() {
         for id in [
             100_002, 200_001, 200_002, 200_003, 300_001, 300_003, 300_004, 300_005, 300_006,
-            300_007, 400_002, 500_002, 600_002, 800_001, 1_200_001, 1_200_002, 1_200_003,
+            300_007, 300_016, 400_002, 500_002, 600_002, 800_001, 1_200_001, 1_200_002, 1_200_003,
             1_200_004, 1_200_005, 1_500_001, 1_500_002,
         ] {
             let type_name = battle_skill_type_from_id(id).unwrap();

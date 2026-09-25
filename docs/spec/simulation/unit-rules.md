@@ -12,8 +12,8 @@ technologies, statuses, equipment, or research-only diagnostics.
 The files under [`config/units`](../../../config/units) cover the 23 ordinary,
 non-Huge Formation Units in the current P0 build. Unknown fields are rejected;
 `type_name` and `unit_type_id` must each be unique within one configuration
-root. Unit files carry neither a schema version nor a game-build field. The
-top-level `config.yaml` carries `game_build`, without version matching.
+root. No table under `config/` names a game version: the repository's one pin,
+`GAME_VERSION`, does, and the binary embeds it.
 
 ## File shape
 
@@ -149,8 +149,8 @@ native state machine quantizes and consumes them separately.
 
 ## The configuration a simulation reads
 
-The configuration travels with the binary: `config.yaml`,
-`towers.yaml` and one file per unit under `units/` are compiled in. A
+The configuration travels with the binary: `towers.yaml` and one
+file per unit under `units/` are compiled in, with `GAME_VERSION`. A
 simulation reads no configuration from disk, so a binary simulates the build it
 carries and nothing else, wherever it runs.
 
@@ -191,8 +191,8 @@ that runs it.
 - **Jitter constants, member RNG, update order and identity allocation.** Kernel
   mechanisms, deliberately not duplicated per unit.
 - **Research-only diagnostics.**
-- **A schema version, and a per-unit game build.** `config.yaml` carries
-  `game_build` for the root, and no version matching is performed against it.
+- **A schema version, and a game version.** Neither a unit file nor the root
+  names a version; `GAME_VERSION` is the only place one is written.
 - **Combination-shaped path types.** `grouped_projectile` and its relatives are
   not schema types. Single versus multi-projectile comes from `path.count`,
   melee versus non-melee from `melee`, and Group or Fusillade from weapon
@@ -206,11 +206,6 @@ no mech body to compare an aim direction against, which is not the same claim as
 `false`. Every other absent field simply takes its default. Either this is a
 pattern the schema endorses and should name, or `independent_aim` wants an
 explicit third value.
-
-**Should `game_build` be matched rather than recorded?** A root states the build
-it was extracted from and nothing checks it, so a configuration from one build
-loads silently against a kernel bound to another. Enforcing it would make the
-mismatch loud at the cost of blocking deliberate cross-build experiments.
 
 **Should a unit file carry a schema version?** It carries `schema:
 mechcore.unit` as an identifier with no version. A field that gains a meaning

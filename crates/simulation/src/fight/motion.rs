@@ -509,7 +509,7 @@ impl Simulation {
                     .backswing_finish_step()
                     .is_some()
             {
-                // Build 2259 enters idle but retains the dead target through
+                // The build enters idle but retains the dead target through
                 // the remaining backswing even when an ally dealt the kill.
                 // MotionIdleState.Enter publishes StopMove once; its Update
                 // does not refresh that target on every remaining backswing
@@ -525,43 +525,14 @@ impl Simulation {
                 let holds_a_block = matches!(target, FightActorRef::Building(_))
                     && (self.actors[&actor_id].skill.lock_target != Some(target)
                         || self.actors[&actor_id].skill.lock_is_terminal_handoff);
-                // And keeps turning to it: the Crawlers of `wall-block.yaml`
-                // that fell block 5 face it a little more each tick of their
-                // swing, as they did while it stood.
-                // A tower the match's end tears down is not turned to.
-                let holds_a_wall = matches!(target, FightActorRef::Building(building)
-                    if self.actors[&actor_id].skill.in_the_way.is_some_and(|(wall, _)| wall == building));
-                let held_rotation = self
-                    .fight_actor(target)
-                    .filter(|_| holds_a_wall)
-                    .map(|view| {
-                        let actor = &self.actors[&actor_id];
-                        direction_degrees_q32_raw(
-                            view.x_q32.saturating_sub(actor.x_q32),
-                            view.z_q32.saturating_sub(actor.z_q32),
-                        )
-                    });
+                // And keeps turning through its swing, as it did while the
+                // block stood. A tower the match's end tears down is not
+                // turned to.
+                self.turn_past_fallen_wall(actor_id, target);
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                if let Some(rotation) = held_rotation {
-                    actor.rotate_weapons_towards(rotation);
-                    if actor.rules.has_body {
-                        actor.aim_rotation = degrees_q32_to_mdeg(
-                            actor
-                                .skill
-                                .weapon_rotations_q32
-                                .first()
-                                .copied()
-                                .unwrap_or(actor.body_rotation_q32),
-                        );
-                    } else {
-                        actor.rotate_body_towards(rotation);
-                        actor.aim_rotation = actor.body_rotation;
-                        actor.rotate_weapons_towards(rotation);
-                    }
-                }
                 let entered_idle = actor.motion.state != MotionState::Idle && !holds_a_block;
                 if !holds_a_block {
                     actor.motion.state = MotionState::Idle;
@@ -600,6 +571,84 @@ impl Simulation {
             }
         }
         Flow::Next
+    }
+
+    /// Where a unit turns once the wall block in its way has fallen.
+    ///
+    /// `MotionController.CalculateTargetDirection` faces the attack target
+    /// only while `FightSkill.TryGetValidAttackTarget` finds it alive, and the
+    /// lock otherwise, so a felled block leaves the unit turning to the unit
+    /// behind it. `wall-block.yaml` and
+    /// `wall-rhino.yaml` measure it for a bodyless root; a unit with a body
+    /// turns its weapons, and whether they follow the lock is not measured,
+    /// so they stay on the block.
+    fn turn_past_fallen_wall(&mut self, actor_id: u64, target: FightActorRef) {
+        let skill = &self.actors[&actor_id].skill;
+        let FightActorRef::Building(building) = target else {
+            return;
+        };
+        if skill.in_the_way.is_none_or(|(wall, _)| wall != building) {
+            return;
+        }
+        let has_body = self.actors[&actor_id].rules.has_body;
+        let facing = if has_body {
+            Some(target)
+        } else {
+            skill
+                .lock_target
+                .filter(|lock| self.fight_actor_is_alive(*lock))
+        };
+        let Some(rotation) = facing
+            .and_then(|facing| self.fight_actor(facing))
+            .map(|view| {
+                let actor = &self.actors[&actor_id];
+                direction_degrees_q32_raw(
+                    view.x_q32.saturating_sub(actor.x_q32),
+                    view.z_q32.saturating_sub(actor.z_q32),
+                )
+            })
+        else {
+            return;
+        };
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.rotate_weapons_towards(rotation);
+        if has_body {
+            actor.aim_rotation = degrees_q32_to_mdeg(
+                actor
+                    .skill
+                    .weapon_rotations_q32
+                    .first()
+                    .copied()
+                    .unwrap_or(actor.body_rotation_q32),
+            );
+        } else {
+            actor.rotate_body_towards(rotation);
+            actor.aim_rotation = actor.body_rotation;
+            actor.rotate_weapons_towards(rotation);
+        }
+    }
+
+    /// Where a bodyless unit's lock stands from it, if the lock is alive: what
+    /// `CalculateTargetDirection` faces once the attack target is not valid.
+    /// A unit with a body turns its weapons, and whether they follow the lock
+    /// is not recorded, so it answers `None`.
+    fn lock_rotation_for_bodyless(&self, actor_id: u64) -> Option<i64> {
+        let actor = &self.actors[&actor_id];
+        if actor.rules.has_body {
+            return None;
+        }
+        let lock = actor
+            .skill
+            .lock_target
+            .filter(|lock| self.fight_actor_is_alive(*lock))?;
+        let view = self.fight_actor(lock)?;
+        Some(direction_degrees_q32_raw(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        ))
     }
 
     /// `MotionAttackState` with a target in range, and the skill it starts:
@@ -724,6 +773,16 @@ impl Simulation {
             // therefore starts tracking the target on the next tick.
             return Ok(());
         }
+        // `MotionAttackState.AttackRotate` turns after the release, towards
+        // `CalculateTargetDirection`: the lock, once the blow just released
+        // has felled what it fired at. The Steel Ball of `wall-laser.yaml`
+        // turns onto the Marksman on the tick its beam fells block 4.
+        let target_rotation_q32 = if release_now && !self.fight_actor_is_alive(target) {
+            self.lock_rotation_for_bodyless(actor_id)
+                .unwrap_or(target_rotation_q32)
+        } else {
+            target_rotation_q32
+        };
         self.track_target_in_range(actor_id, target_rotation_q32, clear_hold_after_motion);
         Ok(())
     }

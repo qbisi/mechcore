@@ -150,7 +150,6 @@ struct Row {
 #[serde(deny_unknown_fields)]
 struct Table {
     schema: String,
-    game_build: String,
     constructions: Vec<Row>,
     #[serde(default)]
     skills: Vec<SkillRow>,
@@ -174,9 +173,6 @@ impl Constructions {
                 "construction table declares schema {:?}",
                 table.schema
             )));
-        }
-        if table.game_build.trim().is_empty() {
-            return Err(Error::new("construction table declares no game build"));
         }
         let mut rows = BTreeMap::new();
         for row in table.constructions {
@@ -364,7 +360,7 @@ mod tests {
             level: None,
             exp: None,
             rotated: false,
-            equipment: None,
+            equipment: Vec::new(),
             travelling: false,
         }
     }

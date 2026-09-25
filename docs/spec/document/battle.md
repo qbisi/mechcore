@@ -17,9 +17,9 @@ red: {offers: [...], constructions: [...], tech_loadout: {...}}
 kind: action
 round: 0
 blue:
-- {type: choose_advance_team, offer: 1, name: vortex-fire_badger, specialist: giant_specialist}
+- {type: choose_advance_team, index: 1, name: vortex-fire_badger, specialist: giant_specialist}
 red:
-- {type: choose_advance_team, offer: 0, name: crawler-tarantula, specialist: supply_specialist}
+- {type: choose_advance_team, index: 0, name: crawler-tarantula, specialist: supply_specialist}
 ---
 kind: state
 round: 1
@@ -144,9 +144,10 @@ side is identified by which side it is.
 
 ### What a side brings to the match
 
-Three per-side facts are properties of the match rather than of a round, and
-they are what the header holds under each side. Two of them are dealt before either
-player decides anything, and the third bounds every round.
+Four per-side facts are properties of the match rather than of a round, and
+they are what the header holds under each side. Two of them are dealt before
+either player decides anything, the third bounds every round, and the fourth
+seeds what the side's own officers draw.
 
 #### The opening offers
 
@@ -225,10 +226,35 @@ under one: here under its row, in a state under its unit type, and in an
 end of its ID for every row, and says nothing at all about Mountain, whose ID is
 above `2000`; it is resolved against the build's catalogue.
 
+#### The side's own seed
+
+```yaml
+  blue:
+    seed: 134917337
+```
+
+Each player comes into the match with a stream of its own, `Player.random`,
+seeded once from `PlayerRecord.seed` and never reseeded. The one thing a
+standard match draws from it is an officer that hands out one of its items
+rather than all of them: Secondary Equipment Expert draws one of its four as
+each round opens. [officers.md](../../rules/officers.md) states the rule.
+
+The seed belongs in the header rather than in a state for the reason the
+match seed does. A state already holds what the draw handed out, as it holds
+the round's `reinforce_offers`; the stream only decides what a later round is
+handed, and where it stands depends on how many rounds drew before, which is
+the battle's history rather than a position. A check that needs the stream
+starts it from this seed and advances it once for every hand-out the earlier
+rounds drew.
+
+`seed` is optional. A battle that states none cannot predict such a hand-out,
+and its prediction leaves that round unimplemented. A match this platform deals
+draws one for each side, as the game's server does.
+
 ## The opening is round zero
 
 The opening is the first action segment, and it holds one
-`choose_advance_team` per side and nothing else. `offer` is the zero-based
+`choose_advance_team` per side and nothing else. `index` is the zero-based
 position of the combination taken in that side's header `offers`, and `name` and
 `specialist` name the team and specialist that combination holds. A decision
 whose `name` and `specialist` are not what its offer holds is refused.
@@ -262,7 +288,8 @@ the team and specialist that offer holds. It does not prove that a player chose 
 deployment or combat.
 
 The reinforcement check advances the same stream through contiguous rounds from
-round 1 and compares every round's complete ordered `reinforce_offers`. Each draw
+round 1 and compares every round's complete ordered `reinforce_offers`, the
+decline's `refund` included. Each draw
 uses that round's stated units, shop unlocks, active technologies and
 officers, and the previous rounds' `choose_reinforce_item` decisions update the
 pool. Offers being checked do not choose the stream position or seed the next
@@ -270,8 +297,8 @@ draw.
 
 Round 1 carries no offers and no reinforcement choice. Every later round whose
 decisions are stated requires one choice per side; a round that ends the stream
-may omit it. An index and ID must name the predicted offer, or use the defined
-decline form. Missing or reordered offers, invalid choices, unsupported inputs
+may omit it. An index and a name must name the predicted offer, or the decline
+at its own position after the cards. Missing or reordered offers, invalid choices, unsupported inputs
 and discontinuous rounds are refusals, and the first failing round is reported.
 
 A successful report includes `reinforcement_rounds`,
@@ -426,7 +453,7 @@ hold across every seam of a well-formed battle.
 | researched technologies are kept |
 | researched technologies stay inside that side's `tech_loadout` |
 | the skill panel is extended, never reordered |
-| `shop.unlocked_units` are kept |
+| `unlocked_units` are kept |
 | `tower_strengthen_levels` rise or hold |
 | `blueprints` are kept, or replaced by their own next level |
 | `officers` are kept, or replaced by their own next level |
@@ -497,7 +524,10 @@ round's reinforcement deal on the state that round recorded before it and the
 state the next round recorded after it. Those states are not written into the
 document, so once it is written nothing else can compare them. A deal the rules
 cannot reproduce at all is reported rather than refused, and `doc verify`
-fails the document for it.
+fails the document for it. Each side's own stream is held to the same test:
+the stream every round's snapshot records has to be where the side's seed,
+advanced once for every hand-out an earlier round drew, puts it, and the
+round's hand-out is drawn from it.
 
 ### A converted battle ends on its last round's decisions
 
@@ -520,12 +550,12 @@ owns it:
 | Field | Why it is rebuilt |
 | --- | --- |
 | `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
-| `shop.buys_remaining`, `unlocks_remaining` | The recorded counters state the previous round's remainder. A round opens with two purchases, one more per Additional Deployment Slot held, and one unlock |
+| `reinforce_offers`' `decline_offer` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its `refund` is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |
 | `movable` | No recorded field states it. Every unit of round 1 arrived with the opening, and a delivery arrived as its round opened; any other unit moves only if a Deployment Module or a Jump Drive frees it |
-| Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
+| Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, an officer that draws its item draws it from the side's own stream, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
 Only `equipment` is rebuilt by conversion's own rule. The income, the
 allowances, the cooldowns, the energy tower skills, `movable` and the
@@ -570,7 +600,7 @@ because the conversion could not find it.
 | Collection | Order |
 | --- | --- |
 | segments | header, round zero's actions, then each round's state before its actions, ascending `round` |
-| `offers` | as dealt; an opening decision's `offer` names a zero-based position in it |
+| `offers` | as dealt; an opening decision's `index` names a zero-based position in it |
 | `constructions` | ascending `index` |
 | `tech_loadout` | ascending unit ID, each row ascending technology ID |
 
@@ -594,10 +624,7 @@ A [layout](layout.md#normal-form) is spelled by the same three:
 - every other value is written in block style.
 
 ```yaml
-    shop:
-      unlocked_units: [marksman, crawler, fire_badger, tarantula]
-      buys_remaining: 2
-      unlocks_remaining: 1
+    unlocked_units: [marksman, crawler, fire_badger, tarantula]
     next_index: {unit: 7, contraption: 0}
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
@@ -606,7 +633,7 @@ A [layout](layout.md#normal-form) is spelled by the same three:
 Actions, units and ID lists are what a battle holds by the thousand, and one
 line each keeps a round on a screen and makes a diff name the item that
 changed. A coordinate pair and an allocator are scalar mappings, so they fold
-by the same rule; a side, a shop and a technology list mix shapes and stay
+by the same rule; a side and a technology list mix shapes and stay
 blocks. The spelling is part of the normal form, so one battle has one byte
 sequence; a reader parses either style.
 

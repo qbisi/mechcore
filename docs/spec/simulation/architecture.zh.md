@@ -11,13 +11,13 @@
 [rvo.md](rvo.zh.md)、[quadtree.md](quadtree.zh.md)、[`docs/rules/`](../../rules)
 和每个机制自己的索引。
 
-这个形状不是设计出来的。build `1.11.1.3.2259` 本身有一套模块架构、对象模型和派生值
+这个形状不是设计出来的。游戏本身有一套模块架构、对象模型和派生值
 层，本文把三者都照着镜像过来——一个和被复现对象形状一致的模拟器，才能一块一块地对着
 它验收。当 build 的结构和"好写的结构"冲突时，以 build 为准，并写下理由。
 
 **证据覆盖到哪里。** 这里的结构读自本地反编译索引
-`work/unity-index/1.11.1.3.2259/index.sqlite`：Cpp2IL 产出的 36,361 个类型、
-301,615 个方法、662,014 条调用边。下面每一份清单和表格都由
+`scripts/decomp.py sync` 放到 `work/decomp/<version>/` 下的 `index.sqlite`：
+Cpp2IL 产出的类型、方法和调用边。下面每一份清单和表格都由
 [`scripts/fight-structure.py`](../../../scripts/fight-structure.py) 重新生成。
 该索引**不含方法体**，所以它能确立的是归属关系和调用边——哪个类型存在、它拥有什么、
 它调用了谁；它确立不了算术、分支条件，以及一个方法体内部的调用顺序。下面每一句都属于
@@ -151,7 +151,7 @@ TechnologySystem            WreckageRecoverySystem
 
 单位的等级既不是字段，也不是修正。`FightMech` 构造时就带着它的 `IMechLevelData`，
 `GetBaseLife` 和 `GetBaseDamage` 先用等级评级乘描述值，然后才轮到任何 `DataSet`；
-build 2259 的评级就是等级本身。所以等级随单位进入 `Stats`，是一个独立乘区，所有修正
+游戏的评级就是等级本身。所以等级随单位进入 `Stats`，是一个独立乘区，所有修正
 都作用在乘积上（[unit_levels.md](../../rules/unit_levels.md)）。
 
 有一个模块不是 build 的。军官、科技、装备是在**开打之前**施加到单位上的——
@@ -280,7 +280,7 @@ List<MultiplicativeDataFloat> floatRateDatas  ChangeDataFloatRate  —— 一条
 
 在 build 把结果转回 `Int32` 的地方向零截断一次，此前不截断。**削弱不是负的增强**：两条
 `0.11` 留下的是 `0.89 × 0.89`，不是 `1 − 0.22`。`tests/modifier/` 放着逐条子句
-对着游戏量出来的那些 fixture，[`officer_effects.md`](../../rules/officer_effects.zh.md)
+对着游戏量出来的那些 fixture，[`officer_effects.md`](../../rules/officer_effects.md)
 记录了它们的答案。
 
 这张表带出两件事。攻击间隔有下界钳制而射程没有，这是种类上的差别不是巧合。以及，一个
@@ -358,7 +358,7 @@ instrumentation profile），和 `tests/construction/` 下的录像一起。
 
 **成组搜索边界。** 组按槽位顺序搜索和检查，每次搜索确定锁定后将其发布给 mech。普通搜索
 排除兄弟锁定，是否允许共享由技能数据决定。子技能射程规则见
-[combat](../../rules/combat.zh.md#成组槽位避开兄弟槽位的锁定来搜索)。镜像拒绝将存活共享锁定
+[combat](../../rules/combat.md)。镜像拒绝将存活共享锁定
 再分配到新的可用目标，以及子槽位离开攻击范围；成组齐射不在支持的配置中。已有准备时间偏移
 和逐槽墙检查与这里的目标搜索契约分开。
 
@@ -413,7 +413,7 @@ build 只在 `Check` 的重搜分支里读快速切换标志。
 - **一个 value 怎么合成，以及两条通道按什么顺序作用。** 比率已经定了：
   `tests/modifier/composition.mcscript` 测出的是同一条通道内
   `base × (1 + Σ add − Σ reduce)`、向零截断，
-  [`officer_effects.md`](../../rules/officer_effects.zh.md) 记录了那次捕获。但那次捕获
+  [`officer_effects.md`](../../rules/officer_effects.md) 记录了那次捕获。但那次捕获
   把两条修正放在同一条通道里、而且两条都是比率，所以同一下标上 Float 与 FloatRate 并存
   时如何相互作用，仍然没有人测过。三条通道之间，伤害和移速已经读明：
   `DamageProperty.CalculateDamage` 与 `MoveSpeedProperty.Refresh` 把各通道的 value 与加成

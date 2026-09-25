@@ -1,5 +1,4 @@
 schema: mechcore.commander_skills
-game_build: 1.11.1.3.2259
 
 # Every commander skill and its two cooldowns, in rounds.
 # `initial_cooldown` is `initialCoolDown`, where a slot starts when
@@ -16,13 +15,14 @@ skills:
   - {id: 200004, name: 巨型电磁冲击, initial_cooldown: 0, cooldown: 8}
   - {id: 300001, name: 导弹打击, initial_cooldown: 0, cooldown: 2}
   - {id: 300003, name: 轨道轰炸, initial_cooldown: 0, cooldown: 4}
-  - {id: 300004, name: 核弹, initial_cooldown: 0, cooldown: 4}
-  - {id: 300005, name: 闪电风暴, initial_cooldown: 0, cooldown: 4}
-  - {id: 300006, name: 离子轰炸, initial_cooldown: 0, cooldown: 3}
+  - {id: 300004, name: 核弹, initial_cooldown: 1, cooldown: 4}
+  - {id: 300005, name: 闪电风暴, initial_cooldown: 1, cooldown: 4}
+  - {id: 300006, name: 离子轰炸, initial_cooldown: 1, cooldown: 3}
   - {id: 300007, name: 轨道标枪, initial_cooldown: 0, cooldown: 3}
   - {id: 300008, name: 核弹, initial_cooldown: 0, cooldown: 8}
   - {id: 300009, name: 闪电风暴, initial_cooldown: 0, cooldown: 8}
   - {id: 300010, name: 离子轰炸, initial_cooldown: 0, cooldown: 6}
+  - {id: 300016, name: 重型导弹打击, initial_cooldown: 0, cooldown: 2}
   - {id: 400002, name: 黏油弹, initial_cooldown: 0, cooldown: 3}
   - {id: 400003, name: 黏油弹, initial_cooldown: 0, cooldown: 3}
   - {id: 500002, name: 酸液弹, initial_cooldown: 0, cooldown: 3}
@@ -32,6 +32,7 @@ skills:
   - {id: 900002, name: 低效回收, initial_cooldown: 0, cooldown: 0}
   - {id: 900003, name: 低效回收, initial_cooldown: 0, cooldown: 0}
   - {id: 900004, name: 机械进化, initial_cooldown: 0, cooldown: 0}
+  - {id: 900010, name: 单位回收, initial_cooldown: 0, cooldown: -1}
   - {id: 1000001, name: 再部署, initial_cooldown: 0, cooldown: 0}
   - {id: 1000002, name: 再部署, initial_cooldown: 0, cooldown: 0}
   - {id: 1100001, name: 强化训练, initial_cooldown: 0, cooldown: 1}

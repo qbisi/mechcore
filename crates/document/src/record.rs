@@ -1,4 +1,4 @@
-//! Typed reader for the `BattleRecord` XML embedded in a build-2259 GRBR.
+//! Typed reader for the `BattleRecord` XML embedded in a GRBR.
 //!
 //! The file is a .NET `BinaryFormatter` graph wrapping one XML document. This
 //! module locates that document and deserializes the parts the battle, turn and
@@ -128,6 +128,10 @@ pub struct PlayerData {
     pub active_technologies: ActiveTechnologies,
     #[serde(default, rename = "equipmentDatas")]
     pub equipment: EquipmentDatas,
+    /// `Player.random` as the round's snapshot was taken, which only an
+    /// officer that draws its hand-out reads.
+    #[serde(default, rename = "randomStateData")]
+    pub random_state: RandomStateData,
     pub shop: ShopData,
     #[serde(default)]
     pub contraptions: ContraptionRecords,
@@ -161,13 +165,27 @@ pub struct UnitRecord {
     pub level: i32,
     #[serde(rename = "Position")]
     pub position: PositionRecord,
-    #[serde(rename = "EquipmentID")]
-    pub equipment_id: i32,
+    /// What the formation wears, in fitting order. The single `EquipmentID`
+    /// beside it is always 0.
+    #[serde(default)]
+    pub equipments: UnitEquipments,
     #[serde(rename = "IsRotate")]
     pub rotated: bool,
     /// What recovering the formation pays back, at the prices actually paid.
     #[serde(rename = "SellSupply")]
     pub sell_supply: i32,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct UnitEquipments {
+    #[serde(default, rename = "equipment")]
+    pub entries: Vec<UnitEquipment>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UnitEquipment {
+    #[serde(rename = "@data")]
+    pub id: i32,
 }
 
 #[derive(Debug, Default, Deserialize)]

@@ -34,7 +34,7 @@ pub struct Placement {
     pub level: Option<i32>,
     pub exp: Option<i32>,
     pub rotated: bool,
-    pub equipment: Option<i32>,
+    pub equipment: Vec<i32>,
     pub travelling: bool,
 }
 
@@ -172,12 +172,6 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         terrains,
         battle_skills,
     } = side;
-    let units = compile_units(side_name, units, round)?;
-    let constructions = compile_constructions(side_name, constructions)?;
-    let contraptions = compile_contraptions(side_name, contraptions)?;
-    let airdrop_shields = compile_airdrop_shields(side_name, airdrop_shields)?;
-    let terrains = compile_terrains(side_name, terrains)?;
-    let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     // A chain blueprint is applied as the officer it hands out, which is what
     // a fight reads.
     let mut officers = officers;
@@ -187,6 +181,13 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
             .filter_map(|blueprint| crate::catalog::chain_officer(*blueprint)),
     );
     officers.sort_unstable();
+    let slots = crate::economy::Economy::embedded()?.equipment_slots(&officers);
+    let units = compile_units(side_name, units, round, slots)?;
+    let constructions = compile_constructions(side_name, constructions)?;
+    let contraptions = compile_contraptions(side_name, contraptions)?;
+    let airdrop_shields = compile_airdrop_shields(side_name, airdrop_shields)?;
+    let terrains = compile_terrains(side_name, terrains)?;
+    let battle_skills = compile_battle_skills(side_name, battle_skills)?;
     Ok(SidePlan {
         techs: Techs {
             officers,
@@ -208,6 +209,7 @@ fn compile_units(
     side_name: &str,
     definitions: Vec<UnitPlacement>,
     round: i32,
+    slots: usize,
 ) -> Result<Vec<Placement>, String> {
     let placements = definitions
         .into_iter()
@@ -281,10 +283,19 @@ fn compile_units(
                     position.x, position.y
                 ));
             }
-            if equipment.is_some_and(|id| id <= 0) {
+            if equipment.iter().any(|id| *id <= 0) {
                 return Err(format!(
-                    "side {side_name} unit type {type_name:?} at ({}, {}) equipment must be a positive integer",
+                    "side {side_name} unit type {type_name:?} at ({}, {}) equipment must be positive integers",
                     position.x, position.y
+                ));
+            }
+            if equipment.len() > slots {
+                return Err(format!(
+                    "side {side_name} unit type {type_name:?} at ({}, {}) wears {} equipment, and its \
+                     side's officers give a formation {slots} slot(s)",
+                    position.x,
+                    position.y,
+                    equipment.len()
                 ));
             }
             validate_unit_placement(side_name, &type_name, position, travelling, round)?;
@@ -367,7 +378,7 @@ fn compile_constructions(
                 level: None,
                 exp: None,
                 rotated: false,
-                equipment: None,
+                equipment: Vec::new(),
                 travelling: false,
             })
         })
@@ -405,7 +416,7 @@ fn compile_contraptions(
                 level: None,
                 exp: None,
                 rotated: false,
-                equipment: None,
+                equipment: Vec::new(),
                 travelling: false,
             })
         })

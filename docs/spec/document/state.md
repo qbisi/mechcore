@@ -12,7 +12,7 @@ map_id: 1001
 seed: 2038621361
 round: 7
 
-reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2]
+reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2, {name: decline_offer, refund: 400}]
 
 blue: { ... }
 red: { ... }
@@ -21,6 +21,13 @@ red: { ... }
 `map_id` and `seed` carry the same meaning and the same optionality as in a
 layout. They belong to the document rather than to a side because both sides
 share them.
+
+`reinforce_offers` lists the cards the round dealt, in the order it dealt them,
+and then the decline, `{name: decline_offer, refund: 400}`, whose `refund` is
+what declining pays in this round. A round that deals offers always offers the
+decline after them. What the decline pays is the round's, not the position's,
+and it is not dealt: it is the map's figure, or in a unit round the schedule's.
+Writing it lets a position price its decline without replaying the deal.
 
 A state is defined after each action, not only at a round's ends. A
 [battle](battle.md) writes the position each round opens with as a state
@@ -43,7 +50,7 @@ Ground scene would install to reproduce the match at that moment, which gives a
 finer failure signal than comparing a round's endpoints alone.
 
 What the projection drops is everything the fight cannot observe: supply, the
-shop, the reinforcement offer, the allocators, and the parts of the skill panel
+unlocked units, the reinforcement offer, the allocators, and the parts of the skill panel
 that were not released this round.
 
 Eight side fields project unchanged: `officers`, `techs`, `units`,
@@ -104,9 +111,12 @@ No random stream is a state field. Four streams exist:
 | `FightTeam.random` | `(round + teamIndex) * 4444` | no |
 
 The two recorded streams are excluded on the argument the reinforcement pool
-follows: they decide what a later round is offered, and this round's offer is
-already stated by `reinforce_offers`. Neither is read by a fight, so neither
-changes anything a layout can express. The two derived streams are computed from
+follows: they decide what a later round is offered or handed, and this round's
+offer is already stated by `reinforce_offers`, as this round's hand-out is by
+the side's `equipment`. `Player.random` is what an officer that hands out one
+of its items draws from; a [battle](battle.md) states each side's seed in its
+header, and nothing else in a standard match draws from it. Neither is read by
+a fight, so neither changes anything a layout can express. The two derived streams are computed from
 the round, the team index and the match seed, all of which a document already
 carries, so nothing has to store them either.
 
@@ -118,7 +128,9 @@ as an input, which is what lets it drop the streams that would produce one.
 Because no state carries either recorded stream, an installer leaves both
 generators as the match's own initialisation left them. That is a legal
 position, merely not the recorded one, and it is safe exactly while every offer
-is supplied rather than rolled.
+is supplied rather than rolled and no side holds an officer that draws what it
+hands out, whose next item would then be the installed match's draw rather than
+the recorded one.
 
 Writing nothing must never be implemented as writing a zero state. The restore
 path dereferences the word list without a guard and refuses a length mismatch,
@@ -137,10 +149,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       reactor_core: 197
       supply: 50
 
-      shop:
-        unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
-        buys_remaining: 3
-        unlocks_remaining: 1
+      unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
 
       blueprints: [sticky_oil_bomb, field_recovery, attack_enhancement_ii]
       energy_tower_skills: [rapid_resupply]
@@ -252,6 +261,9 @@ item the list omits.
 
 `equipment` is a multiset: a side can own two copies of one item.
 
+A unit's items are its record's `equipments` list, in fitting order. The
+single `EquipmentID` beside it is always 0.
+
 That difference is what an installer has to undo. The game restores equipment in
 two steps, creating the inventory and then attaching items by replaying the fit,
 so an installer must add the fitted items back to the inventory before it
@@ -289,23 +301,25 @@ that, and an installer has to set it even though no state document carries it.
 
 ### The shop
 
-A state stores two shop numbers, and both differ from what the replay holds.
+`unlocked_units` names each unit type the shop sells, by the name a unit's
+`name` gives, in ascending unit ID. `locked_units` is dropped because it is the
+complement against the build's unit catalogue. `MaxUnlockCount` is dropped
+because it is the shipped constant plus a modifier no standard 1v1 source
+provides.
 
-`unlocked_units` names each unit type by the name a unit's `name` gives,
-and lists them in ascending unit ID.
-
-`locked_units` is dropped because it is the complement of `unlocked_units`
-against the build's unit catalogue. `MaxUnlockCount` is dropped because it is
-the shipped constant plus a modifier no standard 1v1 source provides.
-
-The two counters that remain are stored as what is left, not as what was used,
-because that is the number a legality check reads. The purchase allowance gates
-a purchase directly: a buy is refused when the counter has fallen to zero.
-
-A round opens with two purchases, one more for every Additional Deployment Slot
-(`10004`) the side holds, and one unlock. Neither can be copied from a replay,
-for the same reason `supply` cannot: the recorded counters describe the previous
-round, because the snapshot is taken before the round's own reset.
+**A round's allowances are not state fields.** A round allows two purchases,
+one more for every Additional Deployment Slot (`10004`) the side holds, one
+unlock, and eight contraption releases, which
+[contraptions.md](../../rules/contraptions.md) states. Each is what the
+round's own decisions spend, and each opens at a value the side's officers
+fix. A state is the position a round opens with, so all three follow from its
+`officers`, and a reader sets them there; they describe a position in the
+middle of a round, after some of its decisions, and never cross from one round
+into the next. What a decision does to them, and when one is refused for
+spending past it, is [action.md](action.md)'s. The recorded counters could not
+be copied in any case: the purchase and unlock counters describe the previous
+round, because the snapshot precedes the round's own reset, and the record keeps
+no contraption counter at all.
 
 ### Officers and technologies
 
@@ -324,7 +338,7 @@ something writes the key `name`. A unit type is the name a unit's `name`
 gives, and a contraption the name a layout gives it. An officer, a technology, a
 blueprint, an energy tower skill, a commander skill and an equipment item are
 the game's own English names in snake case, apostrophes dropped, which
-[`config/names.yaml`](../../../config/names.yaml) holds for build 2259: the
+[`config/names.yaml`](../../../config/names.yaml) holds: the
 officer `supply_specialist`, the technology `grenade_launcher`, the blueprint
 `field_recovery`, the energy tower skill `rapid_resupply`, the commander skill
 `intensive_training`, the equipment item `photon_coating`.
@@ -500,11 +514,11 @@ absent when its `current` is `0`.
 | `units`, `constructions`, `contraptions` | ascending `index` |
 | `officers` | ascending ID, a multiset |
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
-| `shop.unlocked_units` | ascending unit ID |
+| `unlocked_units` | ascending unit ID |
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
-| `reinforce_offers` | as dealt; a choice names a position in it |
+| `reinforce_offers` | as dealt, then the decline; a choice names a position in it |
 | `tower_strengthen_levels` | by building-manager position |
 
 The rule behind the first three rows is that a collection is ordered by the key
@@ -522,11 +536,10 @@ also have to admit.
 ## Rebuilding a state offline
 
 Most of a round's state can be read out of a replay without running the game.
-Five fields cannot be copied. Four are stale, because the snapshot precedes the
-round's own reset: `supply`, the two shop counters and each slot's `cooldown`
-state what stood before the round's income, allowances and count-down arrived.
-The fifth, `energy_tower_skills`, is not stale but a different quantity, and it
-is rebuilt from the round's actions.
+Three fields cannot be copied. Two are stale, because the snapshot precedes the
+round's own reset: `supply` and each slot's `cooldown` state what stood before
+the round's income and count-down arrived. The third, `energy_tower_skills`, is
+not stale but a different quantity, and it is rebuilt from the round's actions.
 
 The unit roster comes from the per-round player data rather than from the
 match-level fight report, because the first two rounds precede the first fight
@@ -552,6 +565,7 @@ skill panel; [the battle document](battle.md) states the rule.
 | `playerData.IsSpecialSupply` | A one-shot latch, always clear under 1v1 rules, see below |
 | `playerData.researchQueue` | Unreachable without game rule `999917`, above |
 | `matchDatas.deadCount` | Carries nothing a position needs |
+| `NewUnitData.EquipmentID` | Always 0; the unit's `equipments` list holds what it wears |
 | `NewUnitData.Durability` | Unused for units in this build |
 | `NewUnitData.RoundCount`, `SellSupply` | Both follow from when the unit was bought and what it cost |
 | `ConstructionSnapshotData.durability` | One entry per segment, and inert |
@@ -578,17 +592,14 @@ excluded item stays in the pool and is merely invisible for one named round.
 
 ## Unresolved
 
-**Whether a slot joining the panel reads its initial cooldown.** Every
-commander skill of build 2259 has an `initial_cooldown` of 0, and the
-transition adds a slot at 0 rather than reading the table. The two agree on
-this build, so the question is what a later build does: whether Lightning
-Storm and Nuclear Strike, which a specialist or a card can hand out, join the
-panel ready to release or already cooling down. Reading the table only
-answers it if the table is where a later build puts that difference, so this
-waits on how a later build handles those two skills.
+**Whether a slot joining the panel reads its initial cooldown.** The
+transition adds a slot at 0 rather than reading the table, and the table
+gives Nuke, Lightning Storm and Ion Bombardment an `initial_cooldown` of 1.
+Whether the game reads it, so that those skills join the panel already
+cooling down when a specialist or a card hands them out, is not recorded.
 
 **Where a fitted item's durability would live.** `durability` belongs to the
-side's inventory, and a unit's `equipment` names only an ID. Under the game
+side's inventory, and a unit's `equipment` names only IDs. Under the game
 rule that makes equipment expire, a fitted item has a durability and this format
 has nowhere to put it.
 

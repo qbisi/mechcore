@@ -127,7 +127,7 @@ impl Simulation {
     }
 
     /// Main child skills read their parent's range plus Q32 `0xA00000000`
-    /// (10 metres) in build 2259's `FightSkill.GetAttackRange`. The first
+    /// (10 metres) in the build's `FightSkill.GetAttackRange`. The first
     /// grouped skill has no parent and keeps the ordinary range.
     pub(in crate::fight) fn slot_attack_range(&self, actor_id: u64, slot: Option<usize>) -> i64 {
         self.actors[&actor_id].stats.attack_range().saturating_add(

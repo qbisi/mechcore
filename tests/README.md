@@ -7,6 +7,7 @@ says what was measured:
 
 | Directory | What it holds |
 | --- | --- |
+| [`adapter/`](adapter/README.md) | whether the Adapter still installs, reads back and records every part of a layout, and every instrumentation profile |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`interval/`](interval/README.md) | how an attack interval is staggered |

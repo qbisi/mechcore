@@ -16,7 +16,7 @@ blue:
     - name: sabertooth
       index: 0
       position: {x: -205, y: -295}
-      equipment: photon_coating
+      equipment: [photon_coating]
 
 red:
   techs:

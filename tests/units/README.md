@@ -77,9 +77,9 @@ agrees with its `config/units/` file.
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
 the same six layouts against the reference units: 84 recordings, of which
-75 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
-definition. A cell that parts gives the recording's ticks and the first tick
-the simulator differs on.
+76 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
+definition. A cell that parts gives the
+recording's ticks and the first tick the simulator differs on.
 
 | Unit | Layout | Seed 4242 | Seed 1787720817 |
 | --- | --- | ---: | ---: |
@@ -91,22 +91,22 @@ the simulator differs on.
 | arclight | `m6-formations` | 373 | 377 |
 | fang | `m1-mirror` | 340 | 399 |
 | fang | `m2-rhino` | 358 | 352 |
-| fang | `m3-crawler` | 326 | 331 |
+| fang | `m3-crawler` | 353 | 318 |
 | fang | `m4-wasp` | 251 | 247 |
 | fang | `m5-rotated` | 365 | 328 |
-| fang | `m6-formations` | 651 | 618, parts at 420 |
+| fang | `m6-formations` | 552 | 585 |
 | mustang | `m1-mirror` | 238 | 280 |
 | mustang | `m2-rhino` | 337 | 282 |
-| mustang | `m3-crawler` | 238 | 223 |
+| mustang | `m3-crawler` | 210 | 203 |
 | mustang | `m4-wasp` | 183 | 181 |
 | mustang | `m5-rotated` | 378 | 439 |
-| mustang | `m6-formations` | 260 | 261 |
+| mustang | `m6-formations` | 255 | 260 |
 | steel_ball | `m1-mirror` | 314 | 318 |
 | steel_ball | `m2-rhino` | 180 | 182 |
-| steel_ball | `m3-crawler` | 446 | 435 |
+| steel_ball | `m3-crawler` | 454 | 445 |
 | steel_ball | `m4-wasp` | 355 | 338 |
 | steel_ball | `m5-rotated` | 173 | 171 |
-| steel_ball | `m6-formations` | 530, parts at 1 | 511 |
+| steel_ball | `m6-formations` | 530, parts at 1 | 507 |
 | wraith | `m1-mirror` | 430 | 429 |
 | wraith | `m2-rhino` | 287, parts at 225 | 286, parts at 248 |
 | wraith | `m3-crawler` | 247, parts at 156 | 201, parts at 136 |
@@ -126,7 +126,7 @@ the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-Each fight that parts does so on one of three mechanisms, none of them the
+Each fight that parts does so on one of two mechanisms, none of them the
 unit's own damage or motion:
 
 - **Facing a target dead ahead.** A Stormcaller or Steel Ball whose
@@ -134,8 +134,6 @@ unit's own damage or motion:
   in the game, as it would with no offset, and −0.245° in the simulator,
   until it first moves. `AcosFastest(1)` is not zero, so the offset's sign
   picks the side. Steel Ball's and Stormcaller's M6 with seed 4242.
-- **A Fang's velocity.** One Fang's velocity differs by 0.0015 m/s at
-  tick 420 of its M6 with seed 1787720817. Not read yet.
 - **The Wraith's grouped search.** Each of the Wraith's weapons searches
   for its own target, and the simulator answers a different one: M2, M3 and
   M6 part on a weapon's target or a released projectile. M6 with seed 4242

@@ -1,5 +1,4 @@
 schema: mechcore.constructions
-game_build: 1.11.1.3.2259
 
 # What a construction is, read out of `ConfigDataContainer.constructionDatas`.
 # `docs/rules/constructions.md` states what each field means and which of
@@ -269,8 +268,8 @@ constructions:
 # What a construction's skill does, for the constructions that fire one.
 #
 # Each is the `ProjectileSkillData` row the construction's `skill_id` names,
-# read out of `level0` (the `MechSkillGroupData` object at path 173) by
-# `scripts/extract-skills.py`, in the shape `config/units/*.yaml` gives a
+# read out of `MechSkillGroupData` by `scripts/extract-skills.py`, in the
+# shape `config/units/*.yaml` gives a
 # unit's `attack`. Two numbers are the construction row's rather than the
 # skill's, and the loader refuses a table where they disagree: `base_damage`
 # is the row's `damage` (a skill row carries none), and `attack_half_angle`

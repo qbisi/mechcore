@@ -47,15 +47,15 @@ names no kind is refused as well, since a default would make the answer a guess.
 `kind` marks a document root, not a subtree. A future document that embeds part
 of a layout does not repeat it inside that part.
 
-`game_build` names the build whose tables the document is written against, as
-`config/` states it. Every writer writes it, and a reader refuses a document
+`game_build` names the game version whose tables the document is written
+against, the one the repository's `GAME_VERSION` pins and the binary embeds.
+Every writer writes it, and a reader refuses a document
 that names another build rather than reading it with the wrong tables
 underneath. A document that states no build is the reader's own, because a
 reader has no other build to read it as.
 
 ```yaml
 kind: layout
-game_build: 1.11.1.3.2259
 round: 3
 
 blue:
@@ -68,7 +68,7 @@ blue:
   tower_strengthen_levels: [1, 2]
 
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: laser_sights}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [laser_sights]}
   - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true}
 
   constructions:
@@ -197,7 +197,7 @@ map (not the game mode). Native replay export records `BattleInfo.MapID`;
 `apply_layout` selects that map before creating the Training Ground. Omission
 uses map 1021 (训练基地), the Mechcore Training Ground baseline. Unknown IDs are
 rejected by the native adapter.
-Build 2259 examples: `1001` is 铁道小镇 (`MainSceneDesert`), and `1021` is
+Examples: `1001` is 铁道小镇 (`MainSceneDesert`), and `1021` is
 训练基地 (`MainSceneMilitaryBase`). Map-owned neutral crystals are retained:
 the selected map, not a global deletion rule, determines the RVO environment.
 This field does not imply simulator support for map-specific obstacles.
@@ -346,7 +346,7 @@ when omitted:
 - A unit's `index` is required and has no default.
 - A unit's `level` defaults to `1`.
 - A unit's `rotated` defaults to `false`.
-- A unit's `equipment` defaults to no equipment.
+- A unit's `equipment` defaults to `[]`.
 - A unit's `travelling` defaults to `false`.
 
 Unknown fields must be rejected, and so is a document whose `kind` is absent or
@@ -359,17 +359,17 @@ A layout names what it holds rather than numbering it, as a battle's
 released skill. A unit, construction or contraption type is the catalog's name,
 and an officer, a technology, a blueprint, an Energy Tower skill, a commander
 skill and an equipment item are the game's English names in snake case, which
-[`config/names.yaml`](../../../config/names.yaml) holds for build 2259. A name
+[`config/names.yaml`](../../../config/names.yaml) holds. A name
 the build does not carry is refused, and so is a number where a name belongs.
 The compiler and the adapter work with the IDs the names stand for, and a
 collection is ordered by those IDs.
 
-Build `1.11.1.2.2227` ID, localization, and configured-effect indexes:
+The ID, localization, and configured-effect indexes:
 
 - Officers and unit modifications:
-  [English](../../rules/officers.md) / [简体中文](../../rules/officers.zh.md)
+  [officers.md](../../rules/officers.md)
 - Unit technologies:
-  [English](../../rules/unit_techs.md) / [简体中文](../../rules/unit_techs.zh.md)
+  [unit_techs.md](../../rules/unit_techs.md)
 
 ### `officers`
 
@@ -620,7 +620,7 @@ layout coordinates, its center must therefore lie in
 `x=[-230,230], y=[-240,-80]`.
 
 The footprint provider covers all 32 public ordinary units validated against
-the build `1.11.1.3.2259` card catalog, the four ordinary opening constructions,
+the build's card catalog, the four ordinary opening constructions,
 and the interceptor:
 
 - `arclight`, `marksman`, and `vortex`: `20 x 20`;
@@ -675,7 +675,7 @@ following values form the closed public `name` vocabulary for each field:
   index: 0
   position: {x: 0, y: -50}
   exp: 12
-  equipment: laser_sights
+  equipment: [laser_sights]
   travelling: false
 ```
 
@@ -688,9 +688,13 @@ boolean, defaults to `false`, and declares the native unit-orientation flag. It
 is region-relative rather than absolute, so the owning region's own orientation
 still contributes to the world footprint; see the footprint rules above for the
 exact transposition.
-`equipment` optionally names the item the unit wears, which the adapter
-resolves to its native `EquipmentData.ID`. A unit has at
-most one equipment slot, so this field is singular rather than an array.
+`equipment` lists the items the unit wears, in the order they were fitted;
+the adapter resolves each to its native `EquipmentData.ID`. A formation has
+one slot, and each officer its side holds adds that officer's
+`equipment_slots` from [`config/officers.yaml`](../../../config/officers.yaml),
+which is `CardElement.GetEquipmentSlotCount`: one plus the side's
+`EquipmentSlotCount`. A unit that lists more items than its side gives it
+slots is refused.
 `travelling` is an optional boolean and defaults to `false`. It has semantic
 effect only for an ambush-zone unit. `travelling: true` is invalid outside the
 ambush zones, and `travelling: false` is invalid for an ambush-zone unit in
@@ -698,12 +702,14 @@ round 2.
 
 The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
-rotation through authoritative unit readback. When `equipment` is present, it
-then adds one copy from the runtime catalog to the current side's Training
-Ground inventory through `MAD_AddEquipment`, uses the existing native
-`PAD_UseEquipment` action on that unit, and requires authoritative equipment
-ownership readback. Available IDs and effects are listed in the
-[Equipment index](../../rules/equipment.md) ([中文](../../rules/equipment.zh.md)).
+rotation through authoritative unit readback. Equipment is fitted later, once
+the side's officers are added, because an officer can add the slot a second
+item needs: for each item in `equipment`, in order, the executor adds one copy
+from the runtime catalog to the current side's Training Ground inventory
+through `MAD_AddEquipment`, uses the existing native `PAD_UseEquipment` action
+on that unit, and requires authoritative equipment ownership readback.
+Readback lists `CardElement.GetEquipments` in its order. Available IDs and effects are listed in the
+[Equipment index](../../rules/equipment.md).
 
 ### `constructions`
 
@@ -823,7 +829,7 @@ shields.
 An entry here always means a shield already present before this battle. A Shield
 Airdrop released during the requested round is a `battle_skills` entry instead,
 so one shield is never recorded in both places. The retained object uses
-build-2259 `CS_EnergyShield` (ID 800001), which is not short-lived and resets to
+`CS_EnergyShield` (ID 800001), which is not short-lived and resets to
 maximum energy between rounds.
 
 A replay records it, in the releasing skill's own `rangeItems` rather than in
@@ -887,7 +893,7 @@ terrains:
   side's local frame. The first is the skill start point and the second fixes the
   release direction. It is named apart from `positions` because `grid_rows` is
   keyed over a different sequence: the seven generated centers, not these two.
-  Build 2259's `CalculateAttackPositions` line branch expands them into seven oil
+  The build's `CalculateAttackPositions` line branch expands them into seven oil
   centers. Only these two endpoints are integers. The step length divides the
   path magnitude by six through a fixed-point square root, so the five
   intermediate centers land on fractional Q32.32 values and cannot be written as
@@ -913,7 +919,7 @@ keys already encode the active set, while remaining lifetime is not meaningful
 inside a single-fight layout.
 
 The Simulator rejects layouts with non-empty `terrains` before constructing a
-simulated battle. Adapter execution reproduces the build-2259 line branch with
+simulated battle. Adapter execution reproduces the build's line branch with
 native `FVector3`/`FPoint` operations, adds only the declared active indexes through
 `RangeItemSystem.AddItem`, then overwrites and reads back each optional
 `GridBlockInt` mask. Direct GRBR decoding is exposed as
@@ -927,7 +933,7 @@ the current round. “Battle skill” is the public layout term; native runtime
 objects and operations may continue to use `CommanderSkillData` and
 “commander skill”. The supported catalog is limited to position-targeted
 skills that affect combat and can occur in standard 1v1 matches:
-[English index](../../rules/battle_skill.md) / [简体中文索引](../../rules/battle_skill.zh.md).
+[battle_skill.md](../../rules/battle_skill.md).
 Skills requiring a unit or construction target and configurations absent from
 standard 1v1 are outside this layout contract.
 
@@ -1011,9 +1017,8 @@ or acquisition index would record something no outcome depends on.
 the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover.
 `tests/skill-order/release-order.mcscript` records three battles from them. Under
-build `1.11.1.3.2259` and seed `20260907`, the same order recorded twice gave
-byte-identical hashes at 415 ticks, while the swapped order diverged at tick 63
-and ended at 416. They are not in the regression manifest, because its offline
+seed `20260907` the two orders part at tick 63 and end at 416 and 415 ticks,
+and the same order recorded twice gave byte-identical hashes. They are not in the regression manifest, because its offline
 reader simulates every case and the Simulator has no battle-skill feature slice
 yet.
 

@@ -19,7 +19,7 @@ blue:
     - name: sabertooth
       index: 1
       position: {x: -205, y: -295}
-      equipment: photon_coating
+      equipment: [photon_coating]
 
     - name: crawler
       index: 2

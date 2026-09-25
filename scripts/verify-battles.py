@@ -6,15 +6,18 @@ report holds the opening and reinforcement checks and the transition coverage
 that ``docs/spec/document/battle.md`` defines: every leaf of each next opening
 is equal, unequal, unimplemented or decided by the fight. This script adds the
 reports up by field group and lists every unequal leaf.
+The documents are the ones `scripts/export-replay-corpus.py` converts from the
+corpus's replays of this checkout's version.
 
 The exit status is 0 only when every battle verifies, which needs no unequal
-and no unimplemented leaf anywhere. CI runs it on every push and pull request.
+and no unimplemented leaf anywhere.
 
 Run from anywhere inside the checkout, after a release build and a corpus
 fetch:
 
     cargo build --release -p mechcore
     python3 scripts/replay.py sync
+    python3 scripts/export-replay-corpus.py
     python3 scripts/verify-battles.py
     python3 scripts/verify-battles.py --json > coverage.json
 """
@@ -29,6 +32,8 @@ import sys
 from typing import Any
 import unicodedata
 
+import build_data
+
 
 CLASSES = ("equal", "unequal", "unimplemented", "fight")
 
@@ -41,8 +46,8 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     parser.add_argument(
         "--battle-dir",
         type=Path,
-        default=root / "work/replay/replays/1.11.1.3.2259/battle",
-        help="the corpus build's battle/, as scripts/replay.py sync fetches it",
+        help="the battle documents (default: work/battle/<version>, as "
+        "scripts/export-replay-corpus.py writes them)",
     )
     parser.add_argument(
         "--json",
@@ -185,9 +190,10 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    battles = sorted(args.battle_dir.resolve().glob("*.yaml"))
+    battle_dir = args.battle_dir or root / "work" / "battle" / build_data.build()
+    battles = sorted(battle_dir.resolve().glob("*.yaml"))
     if not battles:
-        print(f"no battle YAML in {args.battle_dir}", file=sys.stderr)
+        print(f"no battle YAML in {battle_dir}; run scripts/export-replay-corpus.py", file=sys.stderr)
         return 2
 
     summary = summarize(battles, verify(executable, battles))

@@ -5,8 +5,7 @@
 ## Scope
 
 This contract defines the agent neighbour index that sampled RVO queries, as
-`crates/simulation/src/fight/rvo.rs::NativeQuadtree` implements it for build
-`1.11.1.3.2259`. It serves [rvo.md](rvo.md).
+`crates/simulation/src/fight/rvo.rs::NativeQuadtree` implements it. It serves [rvo.md](rvo.md).
 
 It is not the target quadtree in `crates/simulation/src/fight/search.rs`, which
 selects attack targets. The two have different data structures, capacities and
@@ -244,7 +243,7 @@ Not established:
 
 **Should the constants be configuration or code?** Leaf capacity, maximum
 depth, neighbour count and time horizon are native values that happen to be
-correct for build 2259. They are compiled in, so a second build needs a rebuild
+correct for the build. They are compiled in, so another build needs a rebuild
 rather than a config, and a wrong value fails as a silent divergence rather
 than as a load error.
 

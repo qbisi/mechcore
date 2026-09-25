@@ -1,50 +1,119 @@
-# Equipment index
+# Equipment
 
-[中文](equipment.zh.md)
+An equipment is an item a formation wears, and an equipment ID is also the ID
+of the card that grants it: taking card `13030001` adds equipment `13030001`,
+and nothing has to be looked up in between. What an item writes onto its unit
+is [equipment_effects.md](equipment_effects.md)'s.
 
-This index is pinned to game build 2227. It contains the 18 ordinary
-reinforcement equipment items and the Lesser Amplifying Core embedded in the
-Amplify Specialist opening. Names and effects are taken from that build's
-`EquipmentGroupData`; percentages below are additive native modifiers unless
-the effect says otherwise.
+## Where the data is
 
-An equipment ID is also the ID of the card that grants it, so taking card
-`13030001` adds equipment `13030001` and nothing has to be looked up in
-between. The machine-readable table, pinned to build 2259, is
-[`config/reinforce_items.yaml`](../../config/reinforce_items.yaml), which states
-each item's `kind` and what taking it costs;
-[`docs/reinforce_items.md`](reinforce_items.md) explains the card system that
-deals it. The effect text below has no machine-readable counterpart yet.
+An equipment is a row of `EquipmentGroupData` in `level0`: the plain
+`ICommonMechDataChangeDataSource` corrections in `equipmentDatas`, and each
+other mechanism in its own list (buff, lifesteal, shield, production line and
+the rest). What taking one costs, and the two amounts an equipment can change
+rather than a stat (`roundSupply`, `upgradeSupplyChangeValue`), are
+[`config/reinforce_items.yaml`](../../config/reinforce_items.yaml), which
+`scripts/extract_prices.py` writes; what an ordinary one writes onto its unit
+is [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml),
+which `scripts/extract-equipment-effects.py` writes. The card system that deals
+one is [reinforce_items.md](reinforce_items.md).
 
-| Equipment ID | Name | Effect |
-| --- | --- | --- |
-| 1305003 | Photon Coating | For the first 30 seconds of combat, reduces damage taken by 30% and grants immunity to EMP, ignition, acid, and degeneration beam effects |
-| 1306001 | Tank Production Line | Giant units only; produces 2 Sledgehammers every 13 seconds, up to 7 times |
-| 1306002 | Mustang Production Line | Giant units only; produces 4 Mustangs every 11 seconds, up to 8 times |
-| 1306003 | Steel Ball Production Line | Giant units only; produces 2 Steel Balls every 16 seconds, up to 6 times |
-| 1307001 | Barrier | Ground giant units only; creates a defensive barrier with 60000 HP that protects nearby units |
-| 1308001 | Anti-Interference Module | Grants immunity to EMP, Hacker control, and paralysis caused by a core building explosion |
-| 1309001 | Absorption Module | Increases HP by 30% and converts 90% of damage dealt into the equipped unit's HP |
-| 13010001 | Portable Shield | Grants an energy shield with HP equal to the unit's HP; the shield blocks at least one instance of damage |
-| 13020001 | Nano Repair Kit | Restores 4.5% of maximum HP per second |
-| 13030001 | Laser Sight | Increases range by 20 m; restricted to units classified as ranged by the runtime |
-| 13030002 | Heavy Armor | Increases HP by 75% |
-| 13030003 | Improved Fire Control System | Increases attack by 65% |
-| 13030004 | Enhancement Module | Increases attack by 25% and HP by 25%; reduces each upgrade's supply cost by 100 |
-| 13030005 | Haste Module | Increases movement speed by 5 and attack by 35% |
-| 13030006 | Super Heavy Armor | Increases HP by 150% |
-| 13030007 | Amplifying Core | Increases attack by 50% and HP by 50% |
-| 13030009 | Lesser Amplifying Core | Increases attack by 22% and HP by 22% |
-| 13030010 | Dominion Core | Increases attack by 50% and HP by 100%, and grants 50 supply at the start of each round; if the equipped unit is destroyed in combat, all allied units are destroyed |
-| 13040001 | Deployment Module | Allows the equipped unit to move freely during every deployment phase |
+## Wearing one
 
-The layout schema stores the numeric Equipment ID in a unit's `equipment`
-field. This index does not introduce another schema. The executor does not
-charge the reinforcement-card acquisition cost: it creates one Training Ground
-inventory object through `MAD_AddEquipment`, then the native `CanUseEquipment`
-check enforces equipment capability, the single empty slot, ownership, and
-effect-target restrictions.
+A unit type can wear equipment when its `CardData.canAddEquipment` is set;
+War Factory, Abyss and Mountain's rows do not set it. The native
+`CanUseEquipment` check enforces that, a free slot, ownership, and the item's
+own target restrictions (`mechType`, `unitID`).
 
-In build 2227, War Factory, Abyss, and Mountain cannot equip any item. All 19
-indexed items have an unlimited configured round duration; only Dominion Core
-changes recurring supply.
+**A formation can wear more than one.** `CardElement` holds a list,
+`equipments`, and `CardElement.GetEquipmentSlotCount` is one plus the card's
+`UnitDataChangeInt.EquipmentSlotCount`. An officer writes that through
+`equipmentCountChangeValue`: Equipment Expansion (`10540`) adds one, so a side
+holding it fits two to each formation. Nothing else in a standard match sets
+it. The slot is there as soon as the officer is added, and two items write
+their corrections as an item and an officer do, each in its own channel. A
+layout's and a state's `equipment` is a list in fitting order, and the document
+compiler gives a formation the slot count above from the side's officers.
+
+**Two of one item may be worn, and both count.** `CanUseEquipment` asks that
+the item is in stock and worn by nobody, that the formation has a free slot, that
+the side holds the formation and that the item may target it; it never compares
+the item with what the formation already wears. The two are two modifiers of the
+formation's data set, which sums every integer it holds but its level.
+
+That is what an Enhancement Module's `upgradeSupplyChangeValue` of −100 does to
+the price of the formation's next level. `CardElement.GetUpgradeSupply` takes the
+level's price, scales it by the set's `UpGradeSupplyRate` and adds its
+`UpGradeSupplyChangeValue`, the officers' and every worn item's together, then
+floors the result at zero once. Two modules take 200 off a Fortress's 200, and
+the level is free; no level is ever paid back.
+
+The Training Ground executor does not charge a card's acquisition cost: it
+creates one inventory object through `MAD_AddEquipment` and lets
+`CanUseEquipment` decide.
+
+## Names
+
+<!-- names: equipment -->
+| ID | 中文 | English | Document name |
+| ---: | --- | --- | --- |
+| 1305003 | 光子涂层 | Photon Coating | `photon_coating` |
+| 1306001 | 坦克生产线 | Tank Production Line | `tank_production_line` |
+| 1306002 | 野马生产线 | Mustang Production Line | `mustang_production_line` |
+| 1306003 | 钢球生产线 | Steel Ball Production Line | `steel_ball_production_line` |
+| 1307001 | 保护屏障 | Barrier | `barrier` |
+| 1308001 | 抗干扰模块 | Anti-Interference Module | `anti_interference_module` |
+| 1309001 | 汲取模块 | Absorption Module | `absorption_module` |
+| 13010001 | 便携式护盾 | Portable Shield | `portable_shield` |
+| 13020001 | 纳米维修包 | Nano Repair Kit | `nano_repair_kit` |
+| 13030001 | 激光瞄具 | Laser Sights | `laser_sights` |
+| 13030002 | 重型装甲 | Heavy Armor | `heavy_armor` |
+| 13030003 | 改良火控系统 | Improved Firepower Control System | `improved_firepower_control_system` |
+| 13030004 | 强化模块 | Enhancement Module | `enhancement_module` |
+| 13030005 | 速攻模块 | Haste Module | `haste_module` |
+| 13030006 | 超重型装甲 | Super Heavy Armor | `super_heavy_armor` |
+| 13030007 | 增幅核心 | Amplifying Core | `amplifying_core` |
+| 13030009 | 次级增幅核心 | Small Amplifying Core | `small_amplifying_core` |
+| 13030010 | 统御核心 | Dominion Core | `dominion_core` |
+| 13030521 | 次级激光瞄具 | Secondary Laser Sight | `secondary_laser_sight` |
+| 13030522 | 次级火控系统 | Secondary Fire Control System | `secondary_fire_control_system` |
+| 13030523 | 次级重型装甲 | Secondary Heavy Armor | `secondary_heavy_armor` |
+| 13040001 | 部署模块 | Deployment Module | `deployment_module` |
+| 13150101 | 爆裂弹药 | Explosive Ammo | `explosive_ammo` |
+<!-- /names -->
+
+## Evidence
+
+### Recorded
+
+- Under Equipment Expansion a Marksman wears two items, and each writes its
+  correction in its own channel, as an item and an officer do:
+  `tests/equipment/regressions.mcscript`.
+
+### Read
+
+- A unit type wears equipment only if its card allows it:
+  `CardData.canAddEquipment`.
+- Fitting checks the card, a free slot, ownership and the item's own targets:
+  `EquipmentManager.CanUseEquipment`.
+- A formation holds a list of items, and its slots are one plus its
+  `EquipmentSlotCount`: `CardElement.equipments`,
+  `CardElement.GetEquipmentSlotCount`.
+- An officer adds slots: `OfficerData.equipmentCountChangeValue`.
+- Fitting never compares an item with what the formation already wears:
+  `EquipmentManager.CanUseEquipment`, `CardElement.CanAddEquipment`.
+- A formation's data set sums every integer but its level, which keeps the
+  largest: `CardElement.CardElement`, `DataIntGroup.Refresh`,
+  `DataIntSingleMax.Refresh`, `UnitDataChangeInt.Level`.
+- The next level's price is the level price, scaled by the rate and corrected
+  by the summed value, floored at zero: `CardElement.GetUpgradeSupply`,
+  `UnitDataChangeInt.UpGradeSupplyChangeValue`,
+  `UnitDataChangeInt.UpGradeSupplyRate`.
+
+### Not established
+
+- **Two items of the same kind on one formation in a recording.** That they may
+  be fitted and that two Enhancement Modules stack on the level price are read,
+  not recorded; no replay holds a formation wearing two items.
+- **An item that is not an ordinary correction** worn beside another: a
+  production line, a shield or a buff in a second slot is not recorded.

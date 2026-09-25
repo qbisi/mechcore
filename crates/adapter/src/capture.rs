@@ -1773,7 +1773,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .method(fight_actor, "ReduceLife", 1)
             .map_err(|error| error.to_string())?;
         let fight_controller_on_actor_hitted = api
-            .method(fight, "OnActorHitted", 1)
+            .method(fight, "OnActorHitted", 2)
             .map_err(|error| error.to_string())?;
         let advanced_shield_damage = api
             .method(damage_performer, "PerformHitAdvancedEndergyShieldEffect", 4)
@@ -1876,7 +1876,6 @@ fn initialize_checker_instrumentation(api: Api) -> Result<CheckerMetadata, Strin
     install_inline_hook(
         api,
         check,
-        &CHECKER_CHECK_PROLOGUE,
         checker_check_hook as *const c_void,
         &ORIGINAL_CHECKER_CHECK,
         "SkillAttackableChecker.Check",
@@ -2378,7 +2377,7 @@ type DamagePerformFn = unsafe extern "C" fn(
 type FightActorReduceLifeFn =
     unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, *const MethodInfo) -> i32;
 type FightControllerOnActorHittedFn =
-    unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, *const MethodInfo);
+    unsafe extern "C" fn(*mut Object, NativeHitDamageInfo, i32, *const MethodInfo);
 type AdvancedShieldDamageFn =
     unsafe extern "C" fn(*mut Object, *mut Object, i32, FixedVec3, bool, *const MethodInfo) -> i32;
 type ActorOnDeadFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
@@ -3092,7 +3091,7 @@ fn managed_array_length(array: *mut Object, label: &str, cap: usize) -> Result<u
         return Ok(0);
     }
     // The target IL2CPP array ABI stores max_length at 0x18. This is the same
-    // build-2259 ABI used below for the directly observed VO array.
+    // ABI used below for the directly observed VO array.
     // SAFETY: `array` is a non-null managed array read from a typed field.
     let length = unsafe {
         array
@@ -3674,7 +3673,7 @@ fn read_appended_vo_colliding(
             "native RVO VOBuffer capacity {capacity} does not contain index {index}"
         ));
     }
-    // DiffableCs for build 2259 gives VO stride 0xb8 and colliding offset 0x70.
+    // The build's DiffableCs gives VO stride 0xb8 and colliding offset 0x70.
     // SAFETY: capacity was validated above and the byte lies within that value entry.
     let raw = unsafe {
         buffer
@@ -4282,8 +4281,7 @@ fn resolve_damage_context(provider: *mut Object) -> DamageContext {
     } else {
         runtime
             .api
-            .invoke(owner, "GameRiver.Fight.ISkillOwner.GetFightActor", &mut [])
-            .or_else(|_| runtime.api.invoke(owner, "GetFightActor", &mut []))
+            .invoke(owner, "GetFightActor", &mut [])
             .unwrap_or(ptr::null_mut())
     };
     let team_controller = runtime
@@ -4329,16 +4327,7 @@ fn resolve_hit_damage_context(hit: NativeHitDamageInfo) -> DamageContext {
     } else {
         runtime
             .api
-            .invoke(
-                hit.source_skill_owner,
-                "GameRiver.Fight.ISkillOwner.GetFightActor",
-                &mut [],
-            )
-            .or_else(|_| {
-                runtime
-                    .api
-                    .invoke(hit.source_skill_owner, "GetFightActor", &mut [])
-            })
+            .invoke(hit.source_skill_owner, "GetFightActor", &mut [])
             .unwrap_or(ptr::null_mut())
     };
     let native_team_id = if hit.source_team.is_null() {
@@ -4385,6 +4374,7 @@ unsafe extern "C" fn fight_actor_reduce_life_hook(
 unsafe extern "C" fn fight_controller_on_actor_hitted_hook(
     controller: *mut Object,
     hit: NativeHitDamageInfo,
+    damage_taken: i32,
     method: *const MethodInfo,
 ) {
     let original = ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED.load(Ordering::Acquire);
@@ -4394,7 +4384,7 @@ unsafe extern "C" fn fight_controller_on_actor_hitted_hook(
     // SAFETY: hook installer stored the trampoline for this exact method ABI.
     let original: FightControllerOnActorHittedFn = unsafe { std::mem::transmute(original) };
     // SAFETY: IL2CPP arguments are forwarded unchanged.
-    unsafe { original(controller, hit, method) };
+    unsafe { original(controller, hit, damage_taken, method) };
     let _ = catch_unwind(AssertUnwindSafe(|| {
         record_damage(
             resolve_hit_damage_context(hit),
@@ -4982,7 +4972,7 @@ fn read_native_side(
         let unit = list_item(api, elements, index)?;
         let native_id = invoke_value::<i32>(api, unit, "GetID")?;
         let (type_name, _) = unit_type_from_id(native_id)
-            .ok_or_else(|| format!("unknown build-2259 unit type ID {native_id}"))?;
+            .ok_or_else(|| format!("unknown unit type ID {native_id}"))?;
         let native_level = invoke_value::<i32>(api, unit, "GetLevel")?;
         let displayed_level = native_level
             .checked_add(1)
@@ -4992,14 +4982,10 @@ fn read_native_side(
         let map_element = invoke_object(api, unit, "GetMapElement")?;
         let position = invoke_value::<MapVector>(api, map_element, "GetPosition")?;
         let rotated = invoke_value::<bool>(api, map_element, "IsRotate")?;
-        let equipment = api
-            .invoke(unit, "GetEquipment", &mut [])
-            .map_err(|error| error.to_string())?;
-        let equipment = if equipment.is_null() {
-            None
-        } else {
-            Some(invoke_value::<i32>(api, equipment, "GetID")?)
-        };
+        let worn = invoke_object(api, unit, "GetEquipments")?;
+        let equipment = (0..list_count(api, worn, 16)?)
+            .map(|slot| invoke_value::<i32>(api, list_item(api, worn, slot)?, "GetID"))
+            .collect::<Result<Vec<_>, _>>()?;
         let travelling = api
             .invoke_value::<bool>(
                 super_deployment,
@@ -5620,7 +5606,7 @@ fn read_native_constructions(
         let data = invoke_object(api, construction, "GetConstructionData")?;
         let native_id = invoke_value::<i32>(api, data, "GetID")?;
         let (type_name, _) = construction_type_from_id(native_id)
-            .ok_or_else(|| format!("unknown build-2259 construction type ID {native_id}"))?;
+            .ok_or_else(|| format!("unknown construction type ID {native_id}"))?;
         let position = invoke_value::<MapVector>(api, construction, "GetPosition")?;
         let (x, y) = side_local_position(position, team)?;
         let native_index = api
@@ -6068,7 +6054,7 @@ fn read_native_battle_skills(
             return Err(format!("duplicate released commander skill ID {id}"));
         }
         let type_name = battle_skill_type_from_id(id)
-            .ok_or_else(|| format!("unknown released build-2259 commander skill ID {id}"))?;
+            .ok_or_else(|| format!("unknown released commander skill ID {id}"))?;
         let release_skill = api
             .invoke(
                 release_data,
@@ -6924,7 +6910,7 @@ fn decode_terrain_type(value: i32) -> Result<TerrainType, String> {
         3 => Ok(TerrainType::Acid),
         4 => Ok(TerrainType::RecoveryZone),
         5 => Ok(TerrainType::FogSand),
-        _ => Err(format!("unknown build-2259 RangeItemType {value}")),
+        _ => Err(format!("unknown RangeItemType {value}")),
     }
 }
 
@@ -8555,34 +8541,6 @@ const RVO_PRE_CALCULATION_LABEL: &str = "RVO Simulator.PreCalculation";
 const RVO_CALCULATE_NEIGHBOURS_LABEL: &str = "RVO Agent.CalculateNeighbours";
 const RVO_GENERATE_NEIGHBOUR_VOS_LABEL: &str = "RVOAgentFixed.GenerateNeighbourAgentVOs";
 const RVO_GENERATE_OPPONENT_VOS_LABEL: &str = "RVOAgentFixed.GenerateOpponentVOs";
-const RVO_CONTROLLER_ACTIVE_PROLOGUE: [u8; 16] = [
-    0xff, 0xc3, 0x01, 0xd1, 0xf8, 0x5f, 0x03, 0xa9, 0xf6, 0x57, 0x04, 0xa9, 0xf4, 0x4f, 0x05, 0xa9,
-];
-const RVO_ADD_AGENT_FIXED_PROLOGUE: [u8; 16] = [
-    0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00, 0x91,
-];
-const RVO_FIXED_UPDATE_PROLOGUE: [u8; 16] = [
-    0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03, 0xa9,
-];
-const RVO_PRE_CALCULATION_PROLOGUE: [u8; 16] = RVO_ADD_AGENT_FIXED_PROLOGUE;
-const RVO_CALCULATE_NEIGHBOURS_PROLOGUE: [u8; 16] = [
-    0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00, 0xaa,
-];
-const RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE: [u8; 16] = [
-    0xed, 0x33, 0xb7, 0x6d, 0xeb, 0x2b, 0x01, 0x6d, 0xe9, 0x23, 0x02, 0x6d, 0xfc, 0x6f, 0x03, 0xa9,
-];
-const RVO_GENERATE_OPPONENT_VOS_PROLOGUE: [u8; 16] = [
-    0xff, 0xc3, 0x07, 0xd1, 0xfc, 0x6f, 0x19, 0xa9, 0xfa, 0x67, 0x1a, 0xa9, 0xf8, 0x5f, 0x1b, 0xa9,
-];
-/// `sub sp, sp, #0x40; stp x22, x21, [sp, #0x10]; stp x20, x19, [sp, #0x20];
-/// stp x29, x30, [sp, #0x30]`: four stack-only instructions, relocated to the
-/// trampoline as the other hooks' are.
-const CHECKER_CHECK_PROLOGUE: [u8; 16] = [
-    0xff, 0x03, 0x01, 0xd1, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03, 0xa9,
-];
-const SELECTOR_CALCULATE_SCORE_PROLOGUE: [u8; 16] = [
-    0xff, 0x03, 0x02, 0xd1, 0xfc, 0x6f, 0x02, 0xa9, 0xfa, 0x67, 0x03, 0xa9, 0xf8, 0x5f, 0x04, 0xa9,
-];
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_selector_calculate_score_hook(
@@ -8592,7 +8550,6 @@ fn install_selector_calculate_score_hook(
     install_inline_hook(
         api,
         method,
-        &SELECTOR_CALCULATE_SCORE_PROLOGUE,
         selector_calculate_score_hook as *const c_void,
         &ORIGINAL_SELECTOR_CALCULATE_SCORE,
         "ScoreRatingTargetSelector.CalculateScore",
@@ -8604,7 +8561,6 @@ fn install_rvo_controller_active_hook(api: Api, method: *const MethodInfo) -> Re
     install_inline_hook(
         api,
         method,
-        &RVO_CONTROLLER_ACTIVE_PROLOGUE,
         rvo_controller_active_hook as *const c_void,
         &ORIGINAL_RVO_CONTROLLER_ACTIVE,
         RVO_CONTROLLER_ACTIVE_LABEL,
@@ -8616,7 +8572,6 @@ fn install_rvo_add_agent_fixed_hook(api: Api, method: *const MethodInfo) -> Resu
     install_inline_hook(
         api,
         method,
-        &RVO_ADD_AGENT_FIXED_PROLOGUE,
         rvo_add_agent_fixed_hook as *const c_void,
         &ORIGINAL_RVO_ADD_AGENT_FIXED,
         RVO_ADD_AGENT_FIXED_LABEL,
@@ -8628,7 +8583,6 @@ fn install_rvo_fixed_update_hook(api: Api, method: *const MethodInfo) -> Result<
     install_inline_hook(
         api,
         method,
-        &RVO_FIXED_UPDATE_PROLOGUE,
         rvo_fixed_update_hook as *const c_void,
         &ORIGINAL_RVO_FIXED_UPDATE,
         RVO_FIXED_UPDATE_LABEL,
@@ -8640,7 +8594,6 @@ fn install_rvo_pre_calculation_hook(api: Api, method: *const MethodInfo) -> Resu
     install_inline_hook(
         api,
         method,
-        &RVO_PRE_CALCULATION_PROLOGUE,
         rvo_pre_calculation_hook as *const c_void,
         &ORIGINAL_RVO_PRE_CALCULATION,
         RVO_PRE_CALCULATION_LABEL,
@@ -8655,7 +8608,6 @@ fn install_rvo_calculate_neighbours_hook(
     install_inline_hook(
         api,
         method,
-        &RVO_CALCULATE_NEIGHBOURS_PROLOGUE,
         rvo_calculate_neighbours_hook as *const c_void,
         &ORIGINAL_RVO_CALCULATE_NEIGHBOURS,
         RVO_CALCULATE_NEIGHBOURS_LABEL,
@@ -8670,7 +8622,6 @@ fn install_rvo_generate_opponent_vos_hook(
     install_inline_hook(
         api,
         method,
-        &RVO_GENERATE_OPPONENT_VOS_PROLOGUE,
         rvo_generate_opponent_vos_hook as *const c_void,
         &ORIGINAL_RVO_GENERATE_OPPONENT_VOS,
         RVO_GENERATE_OPPONENT_VOS_LABEL,
@@ -8685,7 +8636,6 @@ fn install_rvo_generate_neighbour_vos_hook(
     install_inline_hook(
         api,
         method,
-        &RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE,
         rvo_generate_neighbour_vos_hook as *const c_void,
         &ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS,
         RVO_GENERATE_NEIGHBOUR_VOS_LABEL,
@@ -8694,14 +8644,9 @@ fn install_rvo_generate_neighbour_vos_hook(
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
-        0xaa,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         update_hook as *const c_void,
         &ORIGINAL_UPDATE,
         "FightController.Update",
@@ -8710,14 +8655,9 @@ fn install_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_match_update_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
-        0xaa,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         match_update_hook as *const c_void,
         &ORIGINAL_MATCH_UPDATE,
         "MatchClient.Update",
@@ -8726,14 +8666,9 @@ fn install_match_update_hook(api: Api, method: *const MethodInfo) -> Result<(), 
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_player_finish_deploy_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
-        0xaa,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         player_finish_deploy_hook as *const c_void,
         &ORIGINAL_PLAYER_FINISH_DEPLOY,
         "PlayerController.FinishDeploy",
@@ -8742,14 +8677,9 @@ fn install_player_finish_deploy_hook(api: Api, method: *const MethodInfo) -> Res
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_post_render_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00,
-        0x91,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         post_render_hook as *const c_void,
         &ORIGINAL_POST_RENDER,
         "Camera.FireOnPostRender",
@@ -8758,14 +8688,9 @@ fn install_post_render_hook(api: Api, method: *const MethodInfo) -> Result<(), S
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_projectile_create_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xff, 0x03, 0x05, 0xd1, 0xfc, 0x6f, 0x0e, 0xa9, 0xfa, 0x67, 0x0f, 0xa9, 0xf8, 0x5f, 0x10,
-        0xa9,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         projectile_create_hook as *const c_void,
         &ORIGINAL_PROJECTILE_CREATE,
         "ProjectileSystem.Create(FightProjectileSkill,...)",
@@ -8774,14 +8699,9 @@ fn install_projectile_create_hook(api: Api, method: *const MethodInfo) -> Result
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_projectile_add_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83, 0x00,
-        0x91,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         projectile_add_hook as *const c_void,
         &ORIGINAL_PROJECTILE_ADD,
         "ProjectileSystem.AddProjectile",
@@ -8790,14 +8710,9 @@ fn install_projectile_add_hook(api: Api, method: *const MethodInfo) -> Result<()
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_projectile_destroy_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xff, 0x43, 0x01, 0xd1, 0xf8, 0x5f, 0x01, 0xa9, 0xf6, 0x57, 0x02, 0xa9, 0xf4, 0x4f, 0x03,
-        0xa9,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         projectile_destroy_hook as *const c_void,
         &ORIGINAL_PROJECTILE_DESTROY,
         "ProjectileSystem.Destroy",
@@ -8806,14 +8721,9 @@ fn install_projectile_destroy_hook(api: Api, method: *const MethodInfo) -> Resul
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_damage_perform_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xff, 0xc3, 0x04, 0xd1, 0xfc, 0x6f, 0x0d, 0xa9, 0xfa, 0x67, 0x0e, 0xa9, 0xf8, 0x5f, 0x0f,
-        0xa9,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         damage_perform_hook as *const c_void,
         &ORIGINAL_DAMAGE_PERFORM,
         "DamagePerformer.Perform",
@@ -8822,14 +8732,9 @@ fn install_damage_perform_hook(api: Api, method: *const MethodInfo) -> Result<()
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_fight_actor_reduce_life_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xff, 0xc3, 0x02, 0xd1, 0xfc, 0x6f, 0x05, 0xa9, 0xfa, 0x67, 0x06, 0xa9, 0xf8, 0x5f, 0x07,
-        0xa9,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         fight_actor_reduce_life_hook as *const c_void,
         &ORIGINAL_FIGHT_ACTOR_REDUCE_LIFE,
         "FightActor.ReduceLife",
@@ -8841,14 +8746,9 @@ fn install_fight_controller_on_actor_hitted_hook(
     api: Api,
     method: *const MethodInfo,
 ) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03,
-        0xa9,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         fight_controller_on_actor_hitted_hook as *const c_void,
         &ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED,
         "FightController.OnActorHitted",
@@ -8857,14 +8757,9 @@ fn install_fight_controller_on_actor_hitted_hook(
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_advanced_shield_damage_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b, 0x03,
-        0xa9,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         advanced_shield_damage_hook as *const c_void,
         &ORIGINAL_ADVANCED_SHIELD_DAMAGE,
         "DamagePerformer.PerformHitAdvancedEndergyShieldEffect",
@@ -8873,14 +8768,9 @@ fn install_advanced_shield_damage_hook(api: Api, method: *const MethodInfo) -> R
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_fight_mech_on_dead_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
-        0xaa,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         fight_mech_on_dead_hook as *const c_void,
         &ORIGINAL_FIGHT_MECH_ON_DEAD,
         "FightMech.OnDead",
@@ -8889,14 +8779,9 @@ fn install_fight_mech_on_dead_hook(api: Api, method: *const MethodInfo) -> Resul
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn install_fight_crystal_on_dead_hook(api: Api, method: *const MethodInfo) -> Result<(), String> {
-    const EXPECTED: [u8; 16] = [
-        0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03, 0x00,
-        0xaa,
-    ];
     install_inline_hook(
         api,
         method,
-        &EXPECTED,
         fight_crystal_on_dead_hook as *const c_void,
         &ORIGINAL_FIGHT_CRYSTAL_ON_DEAD,
         "FightCrystal.OnDead",
@@ -8907,7 +8792,6 @@ fn install_fight_crystal_on_dead_hook(api: Api, method: *const MethodInfo) -> Re
 pub(crate) fn install_inline_hook(
     api: Api,
     method: *const MethodInfo,
-    expected: &[u8; 16],
     replacement: *const c_void,
     original_slot: &AtomicPtr<c_void>,
     label: &str,
@@ -8916,8 +8800,8 @@ pub(crate) fn install_inline_hook(
         .method_pointer(method)
         .map_err(|error| error.to_string())?;
     // SAFETY: target points to at least the generated method prologue.
-    let actual = unsafe { std::slice::from_raw_parts(target.cast::<u8>(), expected.len()) };
-    verify_rvo_hook_prologue(actual, expected, label)?;
+    let actual = unsafe { std::slice::from_raw_parts(target.cast::<u8>(), 16) };
+    verify_relocatable_prologue(actual, label)?;
     // SAFETY: anonymous mapping is checked before use.
     let trampoline = unsafe {
         libc::mmap(
@@ -8950,13 +8834,49 @@ pub(crate) fn install_inline_hook(
     Ok(())
 }
 
+/// Whether the four instructions a hook displaces can run from its trampoline.
+///
+/// The trampoline executes them at another address and then jumps back through
+/// x16, so each must be one of the forms a generated prologue opens with, none
+/// of which reads the PC, and none may leave a value in x16 or x17. Anything
+/// else is refused by name rather than relocated, whatever the build.
 #[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
-fn verify_rvo_hook_prologue(actual: &[u8], expected: &[u8; 16], label: &str) -> Result<(), String> {
-    if actual == expected {
+fn verify_relocatable_prologue(actual: &[u8], label: &str) -> Result<(), String> {
+    let relocatable = actual.len() == 16
+        && actual
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .all(|word| relocatable_instruction(u32::from_le_bytes(*word)));
+    if relocatable {
         Ok(())
     } else {
-        Err(format!("{label} prologue mismatch: {}", bytes_hex(actual)))
+        Err(format!(
+            "{label} prologue is not relocatable: {}",
+            bytes_hex(actual)
+        ))
     }
+}
+
+#[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
+const fn relocatable_instruction(instruction: u32) -> bool {
+    let writes_scratch = matches!(instruction & 0x1f, 16 | 17);
+    let base_is_scratch = matches!((instruction >> 5) & 0x1f, 16 | 17);
+    // STP of X or D registers, signed offset or pre-index.
+    if matches!(instruction >> 22, 0x2a4 | 0x2a6 | 0x1b4 | 0x1b6) {
+        return !base_is_scratch;
+    }
+    // STR of an X or D register, unsigned offset; STR of an X register, pre-index.
+    if matches!(instruction & 0xffc0_0000, 0xf900_0000 | 0xfd00_0000)
+        || instruction & 0xffe0_0c00 == 0xf800_0c00
+    {
+        return !base_is_scratch;
+    }
+    // ADD or SUB immediate on 64-bit registers, and MOV (ORR Xd, XZR, Xm).
+    if matches!(instruction >> 23, 0x122 | 0x1a2) || instruction & 0xffe0_ffe0 == 0xaa00_03e0 {
+        return !writes_scratch;
+    }
+    false
 }
 
 #[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
@@ -9045,6 +8965,71 @@ fn set_code_bytes(address: *mut c_void, bytes: &[u8]) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stack_only_prologues_relocate_and_pc_relative_ones_do_not() {
+        // Prologues the hooked methods have opened with.
+        let prologues: [[u8; 16]; 9] = [
+            [
+                0xff, 0xc3, 0x01, 0xd1, 0xf8, 0x5f, 0x03, 0xa9, 0xf6, 0x57, 0x04, 0xa9, 0xf4, 0x4f,
+                0x05, 0xa9,
+            ],
+            [
+                0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd, 0x83,
+                0x00, 0x91,
+            ],
+            [
+                0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b,
+                0x03, 0xa9,
+            ],
+            [
+                0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3, 0x03,
+                0x00, 0xaa,
+            ],
+            [
+                0xed, 0x33, 0xb7, 0x6d, 0xeb, 0x2b, 0x01, 0x6d, 0xe9, 0x23, 0x02, 0x6d, 0xfc, 0x6f,
+                0x03, 0xa9,
+            ],
+            [
+                0xff, 0xc3, 0x07, 0xd1, 0xfc, 0x6f, 0x19, 0xa9, 0xfa, 0x67, 0x1a, 0xa9, 0xf8, 0x5f,
+                0x1b, 0xa9,
+            ],
+            [
+                0xff, 0x03, 0x01, 0xd1, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b,
+                0x03, 0xa9,
+            ],
+            [
+                0xff, 0x03, 0x02, 0xd1, 0xfc, 0x6f, 0x02, 0xa9, 0xfa, 0x67, 0x03, 0xa9, 0xf8, 0x5f,
+                0x04, 0xa9,
+            ],
+            [
+                0xff, 0x03, 0x01, 0xd1, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd, 0x7b,
+                0x03, 0xa9,
+            ],
+        ];
+        for prologue in prologues {
+            verify_relocatable_prologue(&prologue, "fixture").unwrap();
+        }
+        let stack = 0xd101_03ff_u32.to_le_bytes();
+        let with = |word: u32| {
+            let mut bytes = [0_u8; 16];
+            for (slot, chunk) in bytes.as_chunks_mut::<4>().0.iter_mut().enumerate() {
+                *chunk = if slot == 2 { word.to_le_bytes() } else { stack };
+            }
+            bytes
+        };
+        // ADRP x8, BL, B.EQ, LDR literal, and a MOV into x16.
+        for word in [
+            0x9000_0008_u32,
+            0x9400_0010,
+            0x5400_0040,
+            0x5800_0048,
+            0xaa00_03f0,
+        ] {
+            let error = verify_relocatable_prologue(&with(word), "fixture").unwrap_err();
+            assert!(error.starts_with("fixture prologue is not relocatable: "));
+        }
+    }
 
     fn lifecycle_terrain(id: u64) -> TerrainState {
         TerrainState {
@@ -9237,7 +9222,7 @@ mod tests {
     }
 
     #[test]
-    fn native_hit_damage_info_layout_matches_build_2259() {
+    fn native_hit_damage_info_layout_matches_the_build() {
         assert_eq!(std::mem::size_of::<NativeHitDamageInfo>(), 0x50);
         assert_eq!(std::mem::align_of::<NativeHitDamageInfo>(), 8);
         assert_eq!(std::mem::offset_of!(NativeHitDamageInfo, source_team), 0x00);
@@ -10545,7 +10530,6 @@ mod tests {
             wrapper: &'static str,
             installer: &'static str,
             original_slot: &'static str,
-            prologue: [u8; 16],
         }
         let _guard = RVO_GLOBAL_TEST_LOCK.lock().unwrap();
         let contracts = [
@@ -10555,7 +10539,6 @@ mod tests {
                 wrapper: "rvo_controller_active_hook",
                 installer: "install_rvo_controller_active_hook",
                 original_slot: "ORIGINAL_RVO_CONTROLLER_ACTIVE",
-                prologue: RVO_CONTROLLER_ACTIVE_PROLOGUE,
             },
             Contract {
                 method: RVO_ADD_AGENT_FIXED_LABEL,
@@ -10563,7 +10546,6 @@ mod tests {
                 wrapper: "rvo_add_agent_fixed_hook",
                 installer: "install_rvo_add_agent_fixed_hook",
                 original_slot: "ORIGINAL_RVO_ADD_AGENT_FIXED",
-                prologue: RVO_ADD_AGENT_FIXED_PROLOGUE,
             },
             Contract {
                 method: RVO_FIXED_UPDATE_LABEL,
@@ -10571,7 +10553,6 @@ mod tests {
                 wrapper: "rvo_fixed_update_hook",
                 installer: "install_rvo_fixed_update_hook",
                 original_slot: "ORIGINAL_RVO_FIXED_UPDATE",
-                prologue: RVO_FIXED_UPDATE_PROLOGUE,
             },
             Contract {
                 method: RVO_PRE_CALCULATION_LABEL,
@@ -10579,7 +10560,6 @@ mod tests {
                 wrapper: "rvo_pre_calculation_hook",
                 installer: "install_rvo_pre_calculation_hook",
                 original_slot: "ORIGINAL_RVO_PRE_CALCULATION",
-                prologue: RVO_PRE_CALCULATION_PROLOGUE,
             },
             Contract {
                 method: RVO_CALCULATE_NEIGHBOURS_LABEL,
@@ -10587,7 +10567,6 @@ mod tests {
                 wrapper: "rvo_calculate_neighbours_hook",
                 installer: "install_rvo_calculate_neighbours_hook",
                 original_slot: "ORIGINAL_RVO_CALCULATE_NEIGHBOURS",
-                prologue: RVO_CALCULATE_NEIGHBOURS_PROLOGUE,
             },
             Contract {
                 method: RVO_GENERATE_NEIGHBOUR_VOS_LABEL,
@@ -10595,7 +10574,6 @@ mod tests {
                 wrapper: "rvo_generate_neighbour_vos_hook",
                 installer: "install_rvo_generate_neighbour_vos_hook",
                 original_slot: "ORIGINAL_RVO_GENERATE_NEIGHBOUR_VOS",
-                prologue: RVO_GENERATE_NEIGHBOUR_VOS_PROLOGUE,
             },
             Contract {
                 method: RVO_GENERATE_OPPONENT_VOS_LABEL,
@@ -10603,7 +10581,6 @@ mod tests {
                 wrapper: "rvo_generate_opponent_vos_hook",
                 installer: "install_rvo_generate_opponent_vos_hook",
                 original_slot: "ORIGINAL_RVO_GENERATE_OPPONENT_VOS",
-                prologue: RVO_GENERATE_OPPONENT_VOS_PROLOGUE,
             },
         ];
         assert_eq!(contracts.len(), RVO_HOOK_COUNT);
@@ -10679,51 +10656,6 @@ mod tests {
                 "unsafe extern C fn(agent, vo_buffer, other, method_info) -> ()",
             ]
         );
-        assert_eq!(
-            contracts
-                .iter()
-                .map(|entry| entry.prologue)
-                .collect::<Vec<_>>(),
-            [
-                [
-                    0xff, 0xc3, 0x01, 0xd1, 0xf8, 0x5f, 0x03, 0xa9, 0xf6, 0x57, 0x04, 0xa9, 0xf4,
-                    0x4f, 0x05, 0xa9
-                ],
-                [
-                    0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd,
-                    0x83, 0x00, 0x91
-                ],
-                [
-                    0xf8, 0x5f, 0xbc, 0xa9, 0xf6, 0x57, 0x01, 0xa9, 0xf4, 0x4f, 0x02, 0xa9, 0xfd,
-                    0x7b, 0x03, 0xa9
-                ],
-                [
-                    0xf6, 0x57, 0xbd, 0xa9, 0xf4, 0x4f, 0x01, 0xa9, 0xfd, 0x7b, 0x02, 0xa9, 0xfd,
-                    0x83, 0x00, 0x91
-                ],
-                [
-                    0xf4, 0x4f, 0xbe, 0xa9, 0xfd, 0x7b, 0x01, 0xa9, 0xfd, 0x43, 0x00, 0x91, 0xf3,
-                    0x03, 0x00, 0xaa
-                ],
-                [
-                    0xed, 0x33, 0xb7, 0x6d, 0xeb, 0x2b, 0x01, 0x6d, 0xe9, 0x23, 0x02, 0x6d, 0xfc,
-                    0x6f, 0x03, 0xa9
-                ],
-                [
-                    0xff, 0xc3, 0x07, 0xd1, 0xfc, 0x6f, 0x19, 0xa9, 0xfa, 0x67, 0x1a, 0xa9, 0xf8,
-                    0x5f, 0x1b, 0xa9
-                ],
-            ]
-        );
-
-        let mismatch = verify_rvo_hook_prologue(
-            &[0; 16],
-            &RVO_CONTROLLER_ACTIVE_PROLOGUE,
-            RVO_CONTROLLER_ACTIVE_LABEL,
-        )
-        .unwrap_err();
-        assert!(mismatch.contains("RVOControllerFixed.Active prologue mismatch"));
-        assert!(mismatch.ends_with("00000000000000000000000000000000"));
 
         let mut attempted = Vec::new();
         let install_error = run_rvo_hook_install_sequence(|index| {

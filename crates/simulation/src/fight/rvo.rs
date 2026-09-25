@@ -1,11 +1,10 @@
-//! Fixed-point sampled-RVO used by build 2259 units.
+//! Fixed-point sampled RVO, as the build's units use it.
 //!
 //! The implementation follows the target-build
 //! `GRPF.RVO.Sampled.Agent`/`RVOAgentFixed` path. Address-normalized ISIL for
-//! the sampled Agent, fixed Agent, Simulator, Quadtree and controller is
-//! byte-identical between builds 2227 and 2259, so this module is ported from
-//! the already tested 2227 implementation and must still pass build-2259
-//! native tick comparison before review. It consumes only ordinary simulation
+//! the sampled Agent, fixed Agent, Simulator, Quadtree and controller is what
+//! it mirrors, and native tick comparison is what holds it. It consumes only
+//! ordinary simulation
 //! state; private native RVO buffers are neither replay inputs nor capture
 //! requirements.
 
@@ -16,7 +15,7 @@ use super::{
     fpcs_sqrt_fastest,
 };
 
-// Build 2259's `RVOControllerFixed.Init` overwrites the base controller's
+// The build's `RVOControllerFixed.Init` overwrites the base controller's
 // constructor default of 10 with 20 before it creates either a movable member
 // or an immovable building agent. Native Crawler diagnostics independently
 // confirm 20 retained neighbours and 20 generated velocity obstacles.
@@ -24,7 +23,7 @@ const MAX_NEIGHBOURS: usize = 20;
 const TRACE_ITERATIONS: i64 = 50;
 const DESIRED_VELOCITY_WEIGHT: i64 = Q32_ONE / 10;
 const MAX_SPEED_WEIGHT: i64 = Q32_ONE * 3;
-// Native `Agent.Trace` reads `FPoint.C2` directly. Build 2259 initializes it
+// Native `Agent.Trace` reads `FPoint.C2` directly. The build initializes it
 // to raw 0x33333333; reconstructing it from two separately truncated C1em1
 // values makes the Crawler's first trace step 16 raw units too small.
 const TRACE_SPEED_WEIGHT: i64 = 0x3333_3333;
@@ -43,14 +42,14 @@ const NORMALIZE_EPSILON: i64 = Q32_ONE / 10_000;
 const VECTOR_NORMALIZE_EPSILON: i64 = Q32_ONE / 100_000;
 const DEFAULT_SYMMETRY_BIAS: i64 = Q32_ONE / 10;
 // `RVOController` constructs this field as 2 seconds, but every serialized
-// build-2259 Rhino and Crawler prefabs override it
+// Rhino and Crawler prefab overrides it
 // with the Q32.32 value 12. `UpdateAgentProperties` then copies that field to
 // the sampled RVO agent on every refresh.
 const DEFAULT_AGENT_TIME_HORIZON: i64 = Q32_ONE * 12;
 const QUADTREE_LEAF_SIZE: u8 = 15;
 const QUADTREE_MAX_DEPTH: u8 = 11;
 
-/// Native `GRPF.RVO.AgentSizeType` ordering used by build 2259.
+/// Native `GRPF.RVO.AgentSizeType` ordering.
 ///
 /// The ordering is behavioural: for two members in the same RVO group, the
 /// smaller observer uses both inner radii while an equal-or-larger observer
@@ -539,7 +538,7 @@ impl VelocityObstacle {
         let weight_factor = Q32_ONE
             .saturating_add(q32_mul(Q32_ONE * 4, q32_exp(exponent)))
             .max(Q32_ONE);
-        // Build 2227 calls `FPoint.op_LessThan(centerMagnitude, radius)` and
+        // The build calls `FPoint.op_LessThan(centerMagnitude, radius)` and
         // enters the collision branch only when that strict comparison holds.
         // Exact contact therefore takes the non-colliding tangent path.
         if center_magnitude < radius {
@@ -578,7 +577,7 @@ impl VelocityObstacle {
         let cutoff_line = cutoff_relative.add(offset);
         let cutoff_dir = cutoff_relative.counter_clockwise_tangent().normalized();
 
-        // `FPoint.Atan2` and `FPoint.Acos` tail-call the build-2227
+        // `FPoint.Atan2` and `FPoint.Acos` tail-call the build's
         // `FPCSMath.*Fastest` entry points. The separately named
         // `Atan2Precise` wrapper is not used by this constructor.
         let center_angle = fpcs_atan2_fastest(center.y.saturating_neg(), center.x.saturating_neg());
@@ -807,7 +806,7 @@ fn trace(
     // Starting from the raw integer maximum and routing that sentinel through
     // FPoint.op_LessThan is not equivalent: a negative first score wraps the
     // internal subtraction and can be rejected even though it is the only
-    // minimum (observed for a build-2227 Fang avoidance solve).
+    // minimum (observed for a Fang avoidance solve).
     let mut best_score = 0;
     let mut best_point = point;
     for step_index in 0..TRACE_ITERATIONS {
@@ -835,7 +834,7 @@ fn trace_score_replaces_incumbent(step_index: i64, score: i64, incumbent: i64) -
     step_index == 0 || fpoint_less_than(score, incumbent)
 }
 
-/// Build-2227 `FPoint.op_LessThan` is not a raw signed comparison. It treats
+/// The build's `FPoint.op_LessThan` is not a raw signed comparison. It treats
 /// differences of at most 43 raw Q32.32 units as equal and rejects the fixed
 /// sentinel. This matters in the late Trace iterations: a numerically lower
 /// score only replaces the incumbent when it is lower by at least 44 raw
@@ -844,7 +843,7 @@ fn trace_score_replaces_incumbent(step_index: i64, score: i64, incumbent: i64) -
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::cast_possible_wrap,
-    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+    reason = "the 32-bit truncation and sign reinterpretation reproduce the build's Q32.32 arithmetic"
 )]
 pub(crate) fn fpoint_less_than(left: i64, right: i64) -> bool {
     const SENTINEL: i64 = i64::MIN + 1;
@@ -903,7 +902,7 @@ fn evaluate_gradient(
     let speed_sq = point.sqr_magnitude();
     let desired_speed_sq = q32_mul(agent.desired_speed, agent.desired_speed);
     if fpoint_less_than(desired_speed_sq, speed_sq) {
-        // `FPoint.Sqrt` delegates to `FPCSMath.SqrtFastest` in build 2227.
+        // `FPoint.Sqrt` delegates to `FPCSMath.SqrtFastest` in the build.
         let speed = fpcs_sqrt_fastest(speed_sq);
         if speed > agent.max_speed {
             value = value.saturating_add(q32_mul(
@@ -938,7 +937,7 @@ fn lerp(left: FixedVec2, right: FixedVec2, amount: i64) -> FixedVec2 {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::cast_possible_wrap,
-    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+    reason = "the 32-bit truncation and sign reinterpretation reproduce the build's Q32.32 arithmetic"
 )]
 fn q32_mul(left: i64, right: i64) -> i64 {
     let low = ((u64::from(left as u32) * u64::from(right as u32)) >> 32) as i64;
@@ -952,7 +951,7 @@ fn q32_div(numerator: i64, denominator: i64) -> i64 {
     if denominator == 0 {
         return if numerator < 0 { i64::MIN } else { i64::MAX };
     }
-    // Build 2227 `FPoint.RawDiv` computes one extra quotient bit and ends in
+    // The build's `FPoint.RawDiv` computes one extra quotient bit and ends in
     // `(quotient + 1) >> 1`, so finite values round to nearest magnitude
     // rather than truncating toward zero. Restore the sign only after that
     // rounding step, matching the native routine.
@@ -976,12 +975,12 @@ fn q32_div(numerator: i64, denominator: i64) -> i64 {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::cast_possible_wrap,
-    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+    reason = "the 32-bit truncation and sign reinterpretation reproduce the build's Q32.32 arithmetic"
 )]
 fn q32_exp(value: i64) -> i64 {
     let low = u64::from(value as u32);
     let high = value >> 32;
-    // `FPoint.Exp` uses the inlined build-2227 approximation constant ending
+    // `FPoint.Exp` uses the build's inlined approximation constant ending
     // in `...7652`, not the adjacent private `RAW_RCP_LN2` declaration.
     let correction = ((u128::from(low) * u128::from(0x7154_7652_u64)) >> 32) as i64;
     let exp2_input = high
@@ -995,7 +994,7 @@ fn q32_exp(value: i64) -> i64 {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     clippy::cast_possible_wrap,
-    reason = "the 32-bit truncation and sign reinterpretation reproduce build-2227 Q32.32 arithmetic"
+    reason = "the 32-bit truncation and sign reinterpretation reproduce the build's Q32.32 arithmetic"
 )]
 fn q32_exp2_fastest(value: i64) -> i64 {
     const LIMIT: i64 = 0x1f_ffff_ffff;
@@ -1006,7 +1005,7 @@ fn q32_exp2_fastest(value: i64) -> i64 {
         return 0;
     }
     let fraction = ((value as u64) >> 2) & 0x3fff_ffff;
-    // FPoint.Exp tail-calls FPCSMath.Exp2Fastest in build 2227. Preserve its
+    // FPoint.Exp tail-calls FPCSMath.Exp2Fastest in the build. Preserve its
     // two-stage polynomial and the intermediate wrapping operation exactly.
     let first = 0x0E7B_D338_0000_0000_u64.wrapping_add(fraction.wrapping_mul(0x1409_5EA4)) >> 32;
     let second =
@@ -1116,7 +1115,7 @@ mod tests {
     }
 
     #[test]
-    fn build_2259_same_group_pair_matches_native_v7_solution() {
+    fn same_group_pair_matches_native_v7_solution() {
         let arclight = AgentInput {
             key: AgentKey::Unit(2),
             main_layer: 1,
@@ -1205,7 +1204,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::too_many_lines)]
-    fn build_2259_same_group_vo_matches_native_v8_construction() {
+    fn same_group_vo_matches_native_v8_construction() {
         let arclight = AgentInput {
             key: AgentKey::Unit(2),
             main_layer: 1,

@@ -405,7 +405,7 @@ pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_ang
 
 impl Simulation {
     pub(in crate::fight) fn refresh_target_query_snapshot(&mut self) {
-        // Build 2259 prepares selector inputs before FightCore updates actors
+        // The build prepares selector inputs before FightCore updates actors
         // sequentially. Red actors must therefore score the tick-start pose,
         // not positions already advanced by blue actors in the same tick.
         // FightSkill::GetMainTransform returns its first valid owned weapon transform;

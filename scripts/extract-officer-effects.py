@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
 """Extract what an officer does to a fight into `config/officer_effects.yaml`.
 
-`config/officers.yaml` carries what an officer does to a ledger — a discount, an
-income, a squad it hands out. This carries the other half: the corrections it
-writes onto a unit's numbers.
+    python3 scripts/extract-officer-effects.py [--build BUILD]
 
-They come from the same export `scripts/extract_prices.py` reads,
-`work/inputs/config-data-container-build2259.json`, which is
-`ConfigDataContainer` at path id 160 of the build's `level0`. The fields are the
-ones `GameRiver.OfficerData` answers `ICommonMechDataChangeDataSource` with —
-the interface `OfficerData`, `TechnologyData`, `EquipmentData` and
-`EnergyTowerSkillData` all implement, which is why one shape serves all four and
-why the other three join this table when their objects are parsed.
+`config/officers.yaml` carries what an officer does to a ledger: a discount, an
+income, a squad it hands out. This carries the other half, the corrections it
+writes onto a unit's numbers, from `ConfigDataContainer.officerDatas` as
+`scripts/build_data.py` reads it. The fields are the ones `GameRiver.OfficerData`
+answers `ICommonMechDataChangeDataSource` with, the interface `OfficerData`,
+`TechnologyData`, `EquipmentData` and `EnergyTowerSkillData` all implement,
+which is why one shape serves all four. Officers limited to Interstellar
+Expedition are left out.
 
-    python3 scripts/extract-officer-effects.py
-
-The export is a local research artifact under `work/`, which is not tracked, so
-this exits 2 when it is absent rather than failing a run that cannot have it.
+Every percentage an officer's own English description states ("by 17%") has to
+be one of the rates the table holds for it; a misparse would have to agree with
+the game's text to pass.
 """
 
-import json
 import pathlib
 import re
 import sys
 
+import build_data
+
 REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
-EXPORT = REPOSITORY / "work/inputs/config-data-container-build2259.json"
 OUTPUT = REPOSITORY / "config/officer_effects.yaml"
 UNIT_TECHS = REPOSITORY / "config/unit_techs.yaml"
-OFFICERS = REPOSITORY / "docs/rules/officers.md"
-BUILD = "1.11.1.3.2259"
 
 # A rate is an `FPoint`, which the export writes as its Q32.32 raw integer. A
 # value is a plain `int` in the runtime getter, and the export writes it as one.
@@ -45,6 +41,8 @@ RATES = (
     ("energy_shield_rate", "energyShieldChangeRate"),
     ("land_mine_rate", "landMineChangeRate"),
     ("super_deployment_time_rate", "superDeploymentTimeChangeRate"),
+    # An int percentage on 1.11 builds, an FPoint rate from 2.0 on.
+    ("exp_rate", "expChangeRate"),
 )
 # These are FPoint too, but they correct a number in its own units rather than
 # by a proportion: ten metres of range, two fifths of a second of interval.
@@ -59,7 +57,6 @@ VALUES = (
 INTEGERS = (
     ("speed_value", "speedChangeValue"),
     ("extra_life", "extraLife"),
-    ("exp_rate", "expChangeRate"),
 )
 ONE = 1 << 32
 
@@ -88,14 +85,8 @@ def percent(value: int) -> str:
     return f"{value / ONE:+.6g}"
 
 
-def crosscheck(written: str) -> tuple[int, list[str]]:
-    """Every percentage the officer index states has to be in the table.
-
-    `docs/rules/officers.md` lists each officer's effect in the game's own
-    localized words, read out of build 2227 by another route entirely. A
-    misparse here would have to agree with that text to pass, which is the same
-    standard `scripts/extract_prices.py` holds its own tables to.
-    """
+def crosscheck(written: str, officers: list[dict]) -> tuple[int, list[str]]:
+    """Every percentage an officer's description states has to be in the table."""
     rows = {}
     for block in written.split("  - id: ")[1:]:
         officer = int(block.split("\n")[0])
@@ -104,40 +95,29 @@ def crosscheck(written: str) -> tuple[int, list[str]]:
             for match in re.finditer(r"^    ([a-z_]+): (-?\d+)", block, re.M)
         }
     checked, disagreed = 0, []
-    for line in OFFICERS.read_text().splitlines():
-        stated = re.match(r"\| `(\d+)` \|.*\|([^|]*)\|\s*$", line)
-        if not stated:
-            continue
-        officer, text = int(stated.group(1)), stated.group(2)
+    for row in officers:
+        text = build_data.description("OfficerData", row)
         said = {abs(int(value)) for value in re.findall(r"by (\d+)%", text)}
-        if officer not in rows or not said:
+        if row["id"] not in rows or not said:
             continue
         held = {
             round(abs(value) / ONE * 100)
-            for name, value in rows[officer].items()
+            for name, value in rows[row["id"]].items()
             if "rate" in name
         }
-        held |= {abs(value) for name, value in rows[officer].items() if name == "exp_rate"}
         checked += 1
         if not said <= held:
-            disagreed.append(f"officer {officer} reads {sorted(said)}% and the table holds {sorted(held)}")
+            disagreed.append(f"officer {row['id']} reads {sorted(said)}% and the table holds {sorted(held)}")
     return checked, disagreed
 
 
 def main() -> int:
-    if not EXPORT.exists():
-        print(
-            f"{EXPORT} is missing; it is a local research artifact and is not"
-            " tracked",
-            file=sys.stderr,
-        )
-        return 2
-    structure = json.loads(EXPORT.read_text())["m_Structure"]
+    build_data.arguments(__doc__)
+    officers = [row for row in build_data.container()["officerDatas"] if build_data.in_standard(row)]
     names = unit_names()
 
     lines = [
         "schema: mechcore.officer_effects",
-        f"game_build: {BUILD}",
         "",
         "# What an officer does to a fight, which is a correction it writes onto",
         "# the units it targets. `config/officers.yaml` carries what it does to a",
@@ -150,7 +130,7 @@ def main() -> int:
         "officers:",
     ]
     written = 0
-    for row in sorted(structure["officerDatas"], key=lambda row: row["id"]):
+    for row in sorted(officers, key=lambda row: row["id"]):
         held = []
         for name, field in RATES:
             value = raw(row.get(field))
@@ -178,7 +158,7 @@ def main() -> int:
             lines.append(f"    {name}: {value}{comment}")
 
     table = "\n".join(lines) + "\n"
-    checked, disagreed = crosscheck(table)
+    checked, disagreed = crosscheck(table, officers)
     for problem in disagreed:
         print(f"error: {problem}", file=sys.stderr)
     if disagreed:
@@ -186,7 +166,7 @@ def main() -> int:
     OUTPUT.write_text(table)
     print(
         f"{written} officers with a combat effect -> {OUTPUT.relative_to(REPOSITORY)}"
-        f"; {checked} of them agree with the percentages docs/rules/officers.md states"
+        f"; {checked} of them agree with the percentages their descriptions state"
     )
     return 0
 

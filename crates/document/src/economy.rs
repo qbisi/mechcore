@@ -16,27 +16,13 @@ const ADVANCE_TEAMS: &str = include_str!("../../../config/advance_teams.yaml");
 const OFFICERS: &str = include_str!("../../../config/officers.yaml");
 const ECONOMY: &str = include_str!("../../../config/economy.yaml");
 
-/// The build every document this binary writes belongs to.
+/// The game version every document this binary writes belongs to.
 ///
-/// It is read from the embedded tables rather than written in the code, so a
-/// binary built against another build's configuration cannot claim this one.
-///
-/// # Panics
-///
-/// Panics when the embedded economy does not state a build, which is a
-/// configuration this binary could not have been built with.
+/// It is the repository's one pin, `GAME_VERSION`, embedded at build time: the tables
+/// under `config/` are that version's, and nothing else names a version.
 #[must_use]
 pub fn game_build() -> &'static str {
-    static BUILD: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    BUILD.get_or_init(|| {
-        #[derive(Deserialize)]
-        struct Stated {
-            game_build: String,
-        }
-        let stated: Stated =
-            serde_yaml::from_str(ECONOMY).expect("the embedded economy states its build");
-        stated.game_build
-    })
+    include_str!("../../../GAME_VERSION").trim()
 }
 
 /// The same, as a document's own field reads when it states nothing.
@@ -234,15 +220,25 @@ pub struct Officer {
     /// Equipment it hands out when it arrives.
     #[serde(default)]
     pub equipment: Vec<i32>,
-    /// The round the officer hands out what it hands out.
+    /// `OfficerData.randomEquipment`: it hands out one of `equipment` each
+    /// time rather than all of it, drawn from the side's own stream.
+    #[serde(default)]
+    pub random_equipment: bool,
+    /// The equipment slots it adds to every formation of its side,
+    /// `OfficerData.equipmentCountChangeValue`, which build 2.0 added: Equipment
+    /// Expansion adds one.
+    #[serde(default)]
+    pub equipment_slots: i32,
+    /// The rounds the officer hands out what it hands out.
     ///
-    /// It is an absolute round rather than one counted from the officer's
+    /// Each is an absolute round rather than one counted from the officer's
     /// arrival, and it is the round the officer's own description names:
     /// Longbow Specialist reads "在第2回合免费获得1个3级长弓" and states 2, while
-    /// Rhino Specialist states 4. Only an officer with something to hand out
-    /// states one.
+    /// Rhino Specialist states 4. `OfficerData.activeRound` is a list from
+    /// build 2.0 on, and an officer hands out in every round it lists. Only an
+    /// officer with something to hand out states any.
     #[serde(default)]
-    pub active_round: i32,
+    pub active_round: Vec<i32>,
     /// A unit it unlocks and hands out a squad of.
     #[serde(default)]
     pub opening_unit: Option<OpeningUnit>,
@@ -602,6 +598,18 @@ impl Economy {
     #[must_use]
     pub fn officer(&self, officer: i32) -> Option<&Officer> {
         self.officers.get(&officer)
+    }
+
+    /// How many equipment a formation of a side holding `officers` can wear:
+    /// `CardElement.GetEquipmentSlotCount`, one plus what the officers add.
+    #[must_use]
+    pub fn equipment_slots(&self, officers: &[i32]) -> usize {
+        let added: i32 = officers
+            .iter()
+            .filter_map(|officer| self.officer(*officer))
+            .map(|row| row.equipment_slots)
+            .sum();
+        usize::try_from(1 + added).unwrap_or(1)
     }
 
     /// What activating a blueprint costs.

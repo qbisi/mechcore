@@ -54,7 +54,7 @@ red:
   - {name: tarantula, index: 4, position: {x: 95, y: -95}, level: 3, exp: 4871/5343}
   - {name: fang, index: 5, position: {x: 140, y: -225}, exp: 600/600, rotated: true}
   - {name: crawler, index: 6, position: {x: 260, y: -285}, exp: 450/450, rotated: true}
-  - {name: tarantula, index: 7, position: {x: 285, y: -95}, level: 3, exp: 104/5343, equipment: heavy_armor}
+  - {name: tarantula, index: 7, position: {x: 285, y: -95}, level: 3, exp: 104/5343, equipment: [heavy_armor]}
   - {name: tarantula, index: 8, position: {x: -65, y: -95}, level: 2}
   - {name: fang, index: 9, position: {x: -160, y: -175}, exp: 275/600, rotated: true}
   - {name: fang, index: 10, position: {x: -30, y: -55}, exp: 508/600, rotated: true}

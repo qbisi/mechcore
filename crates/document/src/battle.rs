@@ -56,6 +56,10 @@ pub struct BattleSide {
     /// written keyed by type name, in ID order. Only units a standard 1v1
     /// match can field have a row.
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
+    /// The seed of the side's own stream, `PlayerRecord.seed`, which an
+    /// officer that draws its hand-out draws from. Absent, such a hand-out
+    /// cannot be predicted.
+    pub seed: Option<i32>,
 }
 
 /// The opening a side was dealt, and which of it the side took.
@@ -111,7 +115,7 @@ impl Opening {
             .and_then(|at| self.offers.get(at))
             .expect("opening choice must name a dealt combination");
         Some(Action::ChooseAdvanceTeam {
-            offer: choose,
+            index: choose,
             id: taken.team,
             specialist: taken.specialist,
         })
@@ -132,16 +136,55 @@ pub struct Turn {
 #[serde(deny_unknown_fields)]
 pub struct State {
     /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-    /// Written as card names, a unit card's read within this round.
+    /// Written as card names, a unit card's read within this round, and then
+    /// the decline.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "crate::names::card::offers"
     )]
-    #[schemars(with = "Option<Vec<String>>")]
-    pub reinforce_offers: Option<Vec<i32>>,
+    #[schemars(with = "Option<Vec<OfferEntry>>")]
+    pub reinforce_offers: Option<Offers>,
     pub blue: SideState,
     pub red: SideState,
+}
+
+/// What a round offers both sides: the cards it dealt, in order, and the
+/// decline, which it always offers after them.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Offers {
+    pub dealt: Vec<i32>,
+    /// What declining pays: the map's figure, or in a unit round the
+    /// schedule's for that round.
+    pub refund: i32,
+}
+
+impl Serialize for Offers {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        crate::names::card::offers::write(self, serializer)
+    }
+}
+
+impl Offers {
+    /// The decline's position, after every card dealt.
+    #[must_use]
+    pub fn decline_index(&self) -> i32 {
+        i32::try_from(self.dealt.len()).unwrap_or(i32::MAX)
+    }
+}
+
+/// The name the decline is written under, in `reinforce_offers` and in the
+/// `choose_reinforce_item` that takes it. No card is named this.
+pub const DECLINE_OFFER: &str = "decline_offer";
+
+/// One entry of a written `reinforce_offers`, for the schema: a card's name,
+/// or the decline and what it pays.
+#[derive(JsonSchema)]
+#[serde(untagged)]
+#[allow(dead_code)] // Describes the written shape; the list is read by hand.
+enum OfferEntry {
+    Card(String),
+    Decline { name: String, refund: i32 },
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -149,7 +192,15 @@ pub struct State {
 pub struct SideState {
     pub reactor_core: i32,
     pub supply: i32,
-    pub shop: ShopState,
+    /// Unit IDs, written as their type names in ID order.
+    #[serde(with = "unit_names::units")]
+    #[schemars(with = "Vec<String>")]
+    pub unlocked_units: Vec<i32>,
+    /// What the round still allows, which a battle does not write: each
+    /// opens at a value the round's opening fixes, and only the round's own
+    /// decisions spend it.
+    #[serde(skip)]
+    pub shop: Allowances,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
@@ -194,15 +245,15 @@ pub struct SideState {
     pub terrains: Vec<Terrain>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct ShopState {
-    /// Unit IDs, written as their type names in ID order.
-    #[serde(with = "unit_names::units")]
-    #[schemars(with = "Vec<String>")]
-    pub unlocked_units: Vec<i32>,
+/// A round's allowances, as [`crate::transition::open_round`] sets them and
+/// its decisions spend them.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Allowances {
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
+    /// What the round still lets the side release of contraptions and
+    /// constructions, which spend one allowance between them.
+    pub contraptions_remaining: i32,
 }
 
 /// A formation, and what recovering it pays back.
@@ -299,32 +350,21 @@ pub struct TurnActions {
 /// what this platform does is `docs/spec/mechcore/cli.md`'s own rule.
 pub const DEFAULT_DEPLOY_TIME: i32 = 100;
 
-/// The `offer` of a [`Action::ChooseReinforceItem`] that declined the round.
-///
-/// The game records declining as the same action at this offer, which is not a
-/// position in `reinforce_offers`, with an `ID` of zero.
-pub const DECLINED_OFFER: i32 = -1;
-
 /// One decision that took effect, in the order the side took it.
 #[derive(Clone, Debug, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
     /// The round's reinforcement answer, which declining is one of.
     ///
-    /// `offer` is the offer's position in `reinforce_offers`, or
-    /// [`DECLINED_OFFER`] for the decline, which the round always makes
-    /// available and never deals. `id` names the item taken and is present
-    /// exactly when the offer was not declined: what a decline hands back is
-    /// built from the match's progress rather than drawn from a catalogue, so
-    /// it has no ID to carry.
+    /// `index` is the position of what is taken in `reinforce_offers`: a
+    /// card dealt, or the decline after them, which the round always offers.
+    /// `id` is the card taken, and absent for the decline, which is written
+    /// by the name [`DECLINE_OFFER`]: what a decline hands back is built from the
+    /// match's progress rather than drawn from a catalogue, so it has no ID.
     ChooseReinforceItem {
-        offer: i32,
-        #[serde(
-            rename = "name",
-            skip_serializing_if = "Option::is_none",
-            with = "crate::names::card::option"
-        )]
-        #[schemars(with = "Option<String>")]
+        index: i32,
+        #[serde(rename = "name", with = "crate::names::card::choice")]
+        #[schemars(with = "String")]
         id: Option<i32>,
     },
     /// The opening, which is one decision with two halves: the team of
@@ -332,7 +372,7 @@ pub enum Action {
     ///
     /// It is the only decision of round zero, and no other round holds one.
     ChooseAdvanceTeam {
-        offer: i32,
+        index: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
         #[schemars(with = "String")]
         id: i32,
@@ -456,12 +496,12 @@ impl<'de> Deserialize<'de> for Action {
 )]
 enum ActionReader {
     ChooseReinforceItem {
-        offer: i32,
-        #[serde(rename = "name", default, with = "crate::names::card::option")]
+        index: i32,
+        #[serde(rename = "name", with = "crate::names::card::choice")]
         id: Option<i32>,
     },
     ChooseAdvanceTeam {
-        offer: i32,
+        index: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
         id: i32,
         #[serde(with = "crate::names::officer::one")]
@@ -690,6 +730,8 @@ struct Header<'a> {
 
 #[derive(Serialize)]
 struct HeaderSide<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<i32>,
     offers: &'a [OpeningOffer],
     constructions: &'a [StaticPlacement],
     #[serde(with = "crate::names::loadout")]
@@ -699,6 +741,7 @@ struct HeaderSide<'a> {
 impl<'a> HeaderSide<'a> {
     fn of(side: &'a BattleSide) -> Self {
         Self {
+            seed: side.seed,
             offers: &side.opening.offers,
             constructions: &side.constructions,
             tech_loadout: &side.tech_loadout,
@@ -709,11 +752,8 @@ impl<'a> HeaderSide<'a> {
 #[derive(Serialize)]
 struct StateSegment<'a> {
     round: i32,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::names::card::offers::serialize"
-    )]
-    reinforce_offers: Option<Cow<'a, [i32]>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reinforce_offers: Option<&'a Offers>,
     blue: &'a SideState,
     red: &'a SideState,
 }
@@ -779,6 +819,8 @@ pub mod schema {
     #[derive(Serialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
     pub struct Side {
+        /// The seed of the side's own stream.
+        pub seed: Option<i32>,
         /// The four openings this side was dealt.
         pub offers: Vec<OpeningOffer>,
         pub constructions: Vec<StaticPlacement>,
@@ -794,8 +836,8 @@ pub mod schema {
         pub kind: StateKind,
         pub round: i32,
         /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-        #[schemars(with = "Option<Vec<String>>")]
-        pub reinforce_offers: Option<Vec<i32>>,
+        #[schemars(with = "Option<Vec<super::OfferEntry>>")]
+        pub reinforce_offers: Option<super::Offers>,
         pub blue: SideState,
         pub red: SideState,
     }
@@ -872,6 +914,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
             },
             constructions: side.constructions,
             tech_loadout: side.tech_loadout,
+            seed: side.seed,
         })
     };
     Ok(Some(Battle {
@@ -905,7 +948,7 @@ fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
     for turn in &battle.turns {
         segments.push(Segment::State(StateSegment {
             round: turn.round,
-            reinforce_offers: turn.state.reinforce_offers.as_deref().map(Cow::Borrowed),
+            reinforce_offers: turn.state.reinforce_offers.as_ref(),
             blue: &turn.state.blue,
             red: &turn.state.red,
         }));
@@ -1110,7 +1153,7 @@ mod tests {
         }
         for yaml in [
             "{type: buy_unit, name: marksman}",
-            "{type: choose_advance_team, offer: 1, name: vortex-fire_badger}",
+            "{type: choose_advance_team, index: 1, name: vortex-fire_badger}",
             "{type: release_commander_skill, index: 0, target: {unit: 4}}",
             "{type: release_commander_skill, index: 0, name: missile_strike, target: !unit 4}",
             "{type: move_unit, index: 0, position: {x: 0, y: 0}, rotated: yes}",
@@ -1165,16 +1208,13 @@ mod tests {
         use crate::layout::Position;
         let at = Position { x: 10, y: -20 };
         let samples = [
+            Action::ChooseReinforceItem { index: 4, id: None },
             Action::ChooseReinforceItem {
-                offer: -1,
-                id: None,
-            },
-            Action::ChooseReinforceItem {
-                offer: 2,
+                index: 2,
                 id: Some(1_305_003),
             },
             Action::ChooseAdvanceTeam {
-                offer: 1,
+                index: 1,
                 id: 9910,
                 specialist: 20005,
             },
@@ -1243,6 +1283,46 @@ mod tests {
                 serde_yaml::from_str::<Action>(&spelled).unwrap(),
                 action,
                 "{spelled}"
+            );
+        }
+    }
+
+    /// A round's offers are its cards and then the decline with its refund,
+    /// and a list that does not end in the decline is not a round's offers.
+    #[test]
+    fn offers_end_in_the_decline_and_its_refund() {
+        use super::{Offers, State};
+        let state = |offers: &str| {
+            format!(
+                "reinforce_offers: {offers}\nblue: {{reactor_core: 0, supply: 0, unlocked_units: [], \
+                 tower_strengthen_levels: [], next_index: {{unit: 0, contraption: 0}}, units: []}}\n\
+                 red: {{reactor_core: 0, supply: 0, unlocked_units: [], tower_strengthen_levels: [], \
+                 next_index: {{unit: 0, contraption: 0}}, units: []}}\n"
+            )
+        };
+        let read: State = serde_yaml::from_str(&state(
+            "[photon_coating, missile_strike, {name: decline_offer, refund: 150}]",
+        ))
+        .unwrap();
+        let offers = read.reinforce_offers.clone().unwrap();
+        assert_eq!(
+            offers,
+            Offers {
+                dealt: vec![1_305_003, 300_001],
+                refund: 150
+            }
+        );
+        assert_eq!(offers.decline_index(), 2);
+        let written = serde_yaml::to_string(&read).unwrap();
+        assert_eq!(serde_yaml::from_str::<State>(&written).unwrap(), read);
+        for refused in [
+            "[photon_coating, missile_strike]",
+            "[{name: decline_offer, refund: 50}, photon_coating]",
+            "[photon_coating, {name: decline, refund: 50}]",
+        ] {
+            assert!(
+                serde_yaml::from_str::<State>(&state(refused)).is_err(),
+                "{refused}"
             );
         }
     }

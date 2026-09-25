@@ -202,19 +202,23 @@ def publish(build):
             fail(f"git push failed:\n{pushed.stderr.strip()}")
         time.sleep(5)
     print(f"{REPOSITORY}: {build} pushed")
+    # One version keeps one directory, which a later install of the same
+    # version replaces, so its release carries whatever index was pushed last.
     tag = f"index/{build}"
-    if subprocess.run(["gh", "release", "view", tag, "--repo", REPOSITORY], capture_output=True).returncode == 0:
-        print(f"{tag}: already released")
-        return
     packed = directory / f"{INDEX}.gz"
     with open(directory / INDEX, "rb") as source, gzip.open(packed, "wb") as out:
         shutil.copyfileobj(source, out)
     try:
-        run("gh", "release", "create", tag, str(packed), "--repo", REPOSITORY,
-            "--title", tag, "--notes", f"The symbol and call index of build {build}.")
+        if subprocess.run(["gh", "release", "view", tag, "--repo", REPOSITORY],
+                          capture_output=True).returncode == 0:
+            run("gh", "release", "upload", tag, str(packed), "--clobber", "--repo", REPOSITORY)
+            print(f"{tag}: index replaced")
+        else:
+            run("gh", "release", "create", tag, str(packed), "--repo", REPOSITORY,
+                "--title", tag, "--notes", f"The symbol and call index of build {build}.")
+            print(f"{tag}: released")
     finally:
         packed.unlink(missing_ok=True)
-    print(f"{tag}: released")
 
 
 def main(argv):

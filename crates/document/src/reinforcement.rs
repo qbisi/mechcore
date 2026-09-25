@@ -1,6 +1,6 @@
-//! Stateful build-2259 reinforcement prediction; see `docs/rules/reinforcements.md`.
+//! Stateful reinforcement prediction; see `docs/rules/reinforcements.md`.
 
-use crate::battle::{Action, SideState, Turn};
+use crate::battle::{Action, Offers, SideState, Turn};
 use crate::catalog::{NativeFormation, resolve_unit_type};
 use crate::economy::Economy;
 use crate::opening::{Prediction, Stated, Stream};
@@ -28,12 +28,62 @@ struct Card {
     repeated: bool,
     cooldown: bool,
     absent_units: Vec<i32>,
+    /// `EAppearCondition.SupplyPercent`: the card is offered only while its
+    /// units hold a share of every player's investment inside these bounds.
+    #[serde(default)]
+    supply_share: Option<SupplyShare>,
 }
 
 impl Card {
-    fn condition(&self, units: &BTreeSet<i32>) -> bool {
-        !self.absent_units.iter().any(|unit| units.contains(unit))
+    fn condition(&self, context: &Context) -> bool {
+        !self
+            .absent_units
+            .iter()
+            .any(|unit| context.units.contains(unit))
+            && self.supply_share.as_ref().is_none_or(|share| {
+                context
+                    .investments
+                    .iter()
+                    .all(|investment| share.admits(investment))
+            })
     }
+}
+
+/// `appearConditionParameter` in percent, and the officer's `unitID`.
+#[derive(Deserialize)]
+struct SupplyShare {
+    low: i64,
+    high: i64,
+    units: Vec<i32>,
+}
+
+impl SupplyShare {
+    /// `ReinforcePool.CheckReinforeCondition` on one player's economy.
+    ///
+    /// A player who has invested nothing passes only a share that may be
+    /// zero. The build reads a `low` above `high` as a band the share must
+    /// stay outside; no card of this build has one, and [`Dealer::new`]
+    /// refuses it.
+    fn admits(&self, investment: &Investment) -> bool {
+        if investment.total <= 0 {
+            return self.low <= 0;
+        }
+        let held: i64 = self
+            .units
+            .iter()
+            .filter_map(|unit| investment.values.get(unit))
+            .sum();
+        let share = 100 * held;
+        investment.total * self.low <= share && share <= investment.total * self.high
+    }
+}
+
+/// `PlayerUnitEconomy`: what one player has put into each unit type it
+/// fields, and the sum.
+#[derive(Default)]
+struct Investment {
+    values: BTreeMap<i32, i64>,
+    total: i64,
 }
 
 #[derive(Deserialize)]
@@ -56,6 +106,8 @@ struct UnitPool {
 struct UnitCost {
     supply: i32,
     unlock: i32,
+    /// What one level costs, the same for every level.
+    upgrade: i32,
     tech_step: i32,
     tech_cap: i32,
 }
@@ -88,7 +140,7 @@ fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i
                  not separate from an earlier unlock"
             ));
         }
-        if row.active_round == round {
+        if row.active_round.contains(&round) {
             squads += 1;
         }
     }
@@ -172,6 +224,16 @@ impl Dealer {
             if card.group > 0 {
                 groups.entry(card.group).or_default().push(id);
             }
+            if card
+                .supply_share
+                .as_ref()
+                .is_some_and(|share| share.low > share.high)
+            {
+                return Err(format!(
+                    "card {id} bounds a share of supply from above its floor, which the \
+                     reinforcement prediction does not model"
+                ));
+            }
             if card.group == 0 || opening.initialization.officers.get(&card.group) == Some(&id) {
                 pools.entry(card.level).or_default().push(id);
             }
@@ -187,14 +249,14 @@ impl Dealer {
         })
     }
 
-    fn refresh(&mut self, units: &BTreeSet<i32>) {
+    fn refresh(&mut self, context: &Context) {
         let mut additions: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
         // Native OnNewRound visits levels, then sorted IDs. Replacements are
         // appended only after the original pools have all been visited.
         for pool in self.pools.values_mut() {
             pool.retain(|id| {
                 let card = &self.config.cards[id];
-                if card.condition(units) {
+                if card.condition(context) {
                     return true;
                 }
                 let eligible: Vec<i32> = self
@@ -203,7 +265,7 @@ impl Dealer {
                     .into_iter()
                     .flatten()
                     .copied()
-                    .filter(|id| self.config.cards[id].condition(units))
+                    .filter(|id| self.config.cards[id].condition(context))
                     .collect();
                 if !eligible.is_empty() {
                     let replacement = eligible[self.stream.pick(0, eligible.len())];
@@ -223,8 +285,8 @@ impl Dealer {
         }
     }
 
-    fn ordinary(&mut self, round: i32, units: &BTreeSet<i32>) -> Result<Vec<i32>, String> {
-        self.refresh(units);
+    fn ordinary(&mut self, round: i32, context: &Context) -> Result<Vec<i32>, String> {
+        self.refresh(context);
         let weights = self
             .config
             .weights
@@ -404,7 +466,7 @@ impl Dealer {
             let choices: Vec<_> = actions
                 .iter()
                 .filter_map(|action| match action {
-                    Action::ChooseReinforceItem { offer, id } => Some((*offer, *id)),
+                    Action::ChooseReinforceItem { index, id } => Some((*index, *id)),
                     _ => None,
                 })
                 .collect();
@@ -421,7 +483,15 @@ impl Dealer {
                 ));
             }
             for (offer, id) in choices {
-                if offer == crate::battle::DECLINED_OFFER && id.is_none() {
+                // The decline sits after the cards dealt.
+                if id.is_none() {
+                    if usize::try_from(offer).ok() != Some(offers.len()) {
+                        return Err(format!(
+                            "round {} {name} declines at {offer}, and the decline is offer {}",
+                            turn.round,
+                            offers.len()
+                        ));
+                    }
                     continue;
                 }
                 let predicted = usize::try_from(offer)
@@ -449,9 +519,15 @@ impl Dealer {
 
     fn context(&self, economy: &Economy, stated: &Stated, turn: &Turn) -> Result<Context, String> {
         let mut context = Context::default();
-        for side in [&turn.state.blue, &turn.state.red] {
+        let sides = [
+            (&turn.state.blue, &stated.blue.tech_loadout),
+            (&turn.state.red, &stated.red.tech_loadout),
+        ];
+        let mut investments = Vec::with_capacity(sides.len());
+        for (side, _) in sides {
             context.officers.extend(side.officers.iter());
             let delivered = delivered_before(economy, side, turn.round)?;
+            let mut investment = Investment::default();
             for formation in side
                 .units
                 .iter()
@@ -466,16 +542,20 @@ impl Dealer {
                     return Err("formation is not a unit".into());
                 };
                 context.units.insert(unit);
-                *context.scores.entry(unit).or_default() += self.unit_cost(unit)?.supply;
+                let cost = self.unit_cost(unit)?;
+                *context.scores.entry(unit).or_default() += cost.supply;
+                // UnitUtility.CalculateUpgradeLevelCost: the card's price and
+                // every level the formation has risen through.
+                let levels = formation.unit.level.unwrap_or(1) - 1;
+                *investment.values.entry(unit).or_default() +=
+                    i64::from(cost.supply + levels * cost.upgrade);
             }
-            for &unit in &side.shop.unlocked_units {
+            for &unit in &side.unlocked_units {
                 *context.scores.entry(unit).or_default() += self.unit_cost(unit)?.unlock;
             }
+            investments.push(investment);
         }
-        for (side, loadout) in [
-            (&turn.state.blue, &stated.blue.tech_loadout),
-            (&turn.state.red, &stated.red.tech_loadout),
-        ] {
+        for ((side, loadout), investment) in sides.into_iter().zip(&mut investments) {
             for technology in &side.techs {
                 let owner = economy
                     .technology_owner(*technology)
@@ -489,38 +569,57 @@ impl Dealer {
                     ));
                 }
             }
-            // CalculateUpgradeCost sums base technology costs with each unit's
-            // configured step/cap, ignoring officer discounts and paid prices.
             for (&unit, technologies) in loadout {
-                let Some(score) = context.scores.get_mut(&unit) else {
-                    continue;
-                };
-                let cost = self.unit_cost(unit)?;
-                let step = if cost.tech_step > 0 {
-                    cost.tech_step
-                } else {
-                    economy.technology_repeat_step()
-                };
-                for (count, technology) in technologies
-                    .iter()
-                    .filter(|id| side.techs.contains(id))
-                    .enumerate()
-                {
-                    let base = economy.technology(*technology).ok_or_else(|| {
-                        format!("technology {technology} has no reinforcement investment cost")
-                    })?;
-                    let count = i32::try_from(count).map_err(|error| error.to_string())?;
-                    let total = base + count * step;
-                    let total = if cost.tech_cap > 0 {
-                        total.min(cost.tech_cap)
-                    } else {
-                        total
-                    };
-                    *score += total;
+                let researched = self.technology_investment(economy, side, unit, technologies)?;
+                if let Some(score) = context.scores.get_mut(&unit) {
+                    *score += researched;
+                }
+                // A player's economy adds a type's unlock price and its
+                // technologies once, for each type it fields.
+                if let Some(value) = investment.values.get_mut(&unit) {
+                    *value += i64::from(self.unit_cost(unit)?.unlock + researched);
                 }
             }
+            investment.total = investment.values.values().sum();
         }
+        context.investments = investments;
         Ok(context)
+    }
+
+    /// `UnitTechnologyManager.CalculateUpgradeCost`: the base price of each
+    /// technology `side` holds for `unit`, with the unit's step and cap and no
+    /// officer discount or paid price.
+    fn technology_investment(
+        &self,
+        economy: &Economy,
+        side: &SideState,
+        unit: i32,
+        technologies: &[i32],
+    ) -> Result<i32, String> {
+        let cost = self.unit_cost(unit)?;
+        let step = if cost.tech_step > 0 {
+            cost.tech_step
+        } else {
+            economy.technology_repeat_step()
+        };
+        let mut total = 0;
+        for (count, technology) in technologies
+            .iter()
+            .filter(|id| side.techs.contains(id))
+            .enumerate()
+        {
+            let base = economy.technology(*technology).ok_or_else(|| {
+                format!("technology {technology} has no reinforcement investment cost")
+            })?;
+            let count = i32::try_from(count).map_err(|error| error.to_string())?;
+            let price = base + count * step;
+            total += if cost.tech_cap > 0 {
+                price.min(cost.tech_cap)
+            } else {
+                price
+            };
+        }
+        Ok(total)
     }
 }
 
@@ -529,6 +628,8 @@ struct Context {
     units: BTreeSet<i32>,
     officers: BTreeSet<i32>,
     scores: BTreeMap<i32, i32>,
+    /// One per real player, blue then red.
+    investments: Vec<Investment>,
 }
 
 /// Verifies every reinforcement draw, advancing one stream from the opening.
@@ -560,7 +661,7 @@ pub fn deal_last_round(
     economy: &Economy,
     stated: &Stated,
     opening: &Prediction,
-) -> Result<Option<Vec<i32>>, String> {
+) -> Result<Option<Offers>, String> {
     walk(economy, stated, opening, true).map(|walked| walked.dealt)
 }
 
@@ -568,7 +669,7 @@ pub fn deal_last_round(
 struct Walked {
     verified: Verified,
     /// The last round's offers, when they were dealt rather than checked.
-    dealt: Option<Vec<i32>>,
+    dealt: Option<Offers>,
 }
 
 /// Replays every stated round through one stream.
@@ -623,14 +724,20 @@ fn walk(
                 &context.scores,
             )
         } else {
-            dealer.ordinary(turn.round, &context.units)
+            dealer.ordinary(turn.round, &context)
         }
         .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
         let last = at + 1 == stated.turns.len();
-        let expected_offers = if turn.round == 1 { None } else { Some(&offers) };
+        let declined = dealer
+            .config
+            .decline_supply(economy, dealer.pool_id, turn.round)?;
+        let expected_offers = (turn.round > 1).then(|| Offers {
+            dealt: offers.clone(),
+            refund: declined,
+        });
         if deal_last && last {
-            dealt = expected_offers.cloned();
-        } else if turn.state.reinforce_offers.as_ref() != expected_offers {
+            dealt = expected_offers;
+        } else if turn.state.reinforce_offers != expected_offers {
             return Err(format!(
                 "round {} reinforcement offers disagree: predicted {expected_offers:?}, stated {:?}",
                 turn.round, turn.state.reinforce_offers
@@ -643,9 +750,7 @@ fn walk(
                 round: turn.round,
                 unit_reinforcement,
                 offers,
-                declined: dealer
-                    .config
-                    .decline_supply(economy, dealer.pool_id, turn.round)?,
+                declined,
                 before_offset,
                 after_offset: dealer.offset + dealer.stream.draws(),
                 before_state,
@@ -665,6 +770,28 @@ fn walk(
 #[cfg(all(test, feature = "convert"))]
 mod tests {
     use super::*;
+
+    /// A unit-modification officer is dealt while its unit holds at most its
+    /// ceiling of every player's investment, and a player who has invested
+    /// nothing never stops it.
+    #[test]
+    fn a_share_of_investment_bounds_every_player() {
+        let share = SupplyShare {
+            low: 0,
+            high: 15,
+            units: vec![1],
+        };
+        let investment = |fortress: i64, marksman: i64| Investment {
+            values: BTreeMap::from([(1, fortress), (2, marksman)]),
+            total: fortress + marksman,
+        };
+        assert!(share.admits(&investment(150, 850)));
+        assert!(!share.admits(&investment(151, 849)));
+        assert!(share.admits(&investment(0, 400)));
+        assert!(share.admits(&Investment::default()));
+        let floored = SupplyShare { low: 1, ..share };
+        assert!(!floored.admits(&Investment::default()));
+    }
 
     /// A unit round's decline pays its pool's figure for that round, and any
     /// other round the ordinary one.

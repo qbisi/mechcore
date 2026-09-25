@@ -12,15 +12,16 @@ the per-mechanism contracts hang from, and it says nothing about what any one
 mechanism does — [rvo.md](rvo.md), [quadtree.md](quadtree.md),
 [`docs/rules/`](../../rules) and each mechanism's own index own that.
 
-The shape is not invented. Build `1.11.1.3.2259` has a module architecture, an
+The shape is not invented. The build has a module architecture, an
 object model and a derived-value layer, and this mirrors all three, because a
 simulator shaped like the thing it reproduces can be checked against it a piece
 at a time. Where the build's structure and a convenient structure disagree, the
 build wins and the reason is written down.
 
 **What the evidence covers.** The structure here is read from the local
-decompilation index, `work/unity-index/1.11.1.3.2259/index.sqlite`: 36,361
-types, 301,615 methods and 662,014 call edges produced by Cpp2IL.
+decompilation index, the `index.sqlite` that `scripts/decomp.py sync` puts
+under `work/decomp/<version>/`: the types, methods and call edges Cpp2IL
+produces.
 [`scripts/fight-structure.py`](../../../scripts/fight-structure.py) regenerates
 every list and table below from it. The index carries **no method bodies**, so
 what it establishes is membership and call edges — which type exists, what it
@@ -175,8 +176,8 @@ by name and by field, rather than being half applied.
 
 A unit's level is not a field, and not a correction. `FightMech` is built
 with its `IMechLevelData`, and its `GetBaseLife` and `GetBaseDamage` multiply
-the description by the level's rating before any `DataSet` applies; build
-2259's ratings are the levels themselves. So the level travels with the unit
+the description by the level's rating before any `DataSet` applies; the
+build's ratings are the levels themselves. So the level travels with the unit
 into `Stats` as its own multiplier, and every overlay applies to the product
 ([unit_levels.md](../../rules/unit_levels.md)).
 

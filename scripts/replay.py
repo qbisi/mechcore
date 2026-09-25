@@ -1,30 +1,46 @@
 #!/usr/bin/env python3
-"""Fetch the replay corpus this checkout is held to.
+r"""Fetch the replay corpus, and add to it.
 
-    scripts/replay.py sync            fetch qbisi/mechcore-replay at replay/REPLAY_REV into work/replay
-    scripts/replay.py sync --rev REV  fetch another commit instead, to try a corpus before pinning it
-    scripts/replay.py path [BUILD]    print the corpus directory for a build (default: the only one)
+    scripts/replay.py sync             fetch qbisi/mechcore-replay's master into work/replay
+    scripts/replay.py path [VERSION]   print a version's replay directory (default: this checkout's)
+    scripts/replay.py publish          add this machine's new replays of the installed version, and push
 
-The native replays and the battle documents converted from them live in
-https://github.com/qbisi/mechcore-replay, one directory per game build, and
-this repository names the commit it reads them at in `replay/REPLAY_REV`.
-`scripts/verify-battles.py`, `scripts/fight-coverage.py` and CI read
-`work/replay/replays/<build>/{grbr,battle}`, which this script fills; `work/`
-is not tracked, so a checkout runs `sync` once, and again after the pin moves.
-The test suite reads no replay. Nothing here writes to the corpus: a replay is added there, and a
-battle document is what its workflow converts.
+The native replays live in https://github.com/qbisi/mechcore-replay, one
+directory per game version, `replays/<version>/<name>.grbr`. The repository
+only grows, so it is read at `master` and a newer fetch never takes away what
+an older one had. `work/` is not tracked, so a checkout runs `sync` once, and
+again to pick up replays added since. The version this checkout describes is
+the one `scripts/build_data.py` reads. Nothing is generated in the corpus: `scripts/export-replay-corpus.py` converts a
+version's replays into `work/battle/<version>/`.
 
-The fetch is shallow and by commit, so it is the pinned tree and nothing else.
+`publish` is the one writer. It files the replays the installed game recorded
+itself under the installed game's version: a locally recorded replay is named
+`<last version component>_<date>--<scene>_[<player>]VS[<player>].grbr`, and a
+downloaded one, `<version>\<id>.rep.grbr`, is a server-side reconstruction
+and never admitted. A replay whose prefix is not the installed version's was
+recorded by another version and is left alone, as is one written in the last
+minute, which may still be growing. A name already in the corpus must hold the
+same bytes; the corpus is never rewritten.
 """
 
+import filecmp
+import os
+import plistlib
+import re
+import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
+
+import build_data
 
 REPOSITORY = "https://github.com/qbisi/mechcore-replay"
 ROOT = Path(__file__).resolve().parents[1]
-PIN = ROOT / "replay" / "REPLAY_REV"
 DESTINATION = ROOT / "work" / "replay"
+APP = Path(os.environ.get(
+    "MECHABELLUM_APP",
+    Path.home() / "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app"))
 
 
 def fail(message):
@@ -39,45 +55,62 @@ def git(*arguments, cwd=DESTINATION):
     return result.stdout.strip()
 
 
-def pinned():
-    if not PIN.exists():
-        fail(f"{PIN.relative_to(ROOT)} is missing")
-    return PIN.read_text().strip()
-
-
-def sync(rev):
-    if (DESTINATION / ".git").exists():
-        if git("rev-parse", "HEAD") == rev:
-            print(f"work/replay is at {rev}")
-            return
-    else:
+def sync():
+    if not (DESTINATION / ".git").exists():
         DESTINATION.mkdir(parents=True, exist_ok=True)
         git("init", "-q")
         git("remote", "add", "origin", REPOSITORY)
-    git("fetch", "-q", "--depth", "1", "origin", rev)
+    git("fetch", "-q", "--depth", "1", "origin", "master")
     git("checkout", "-q", "--detach", "FETCH_HEAD")
-    print(f"work/replay is at {rev}")
+    print(f"work/replay is at {git('rev-parse', '--short', 'HEAD')}")
 
 
-def path(build):
-    builds = sorted(p.name for p in (DESTINATION / "replays").glob("*") if p.is_dir())
-    if not builds:
-        fail("no corpus under work/replay; run scripts/replay.py sync")
-    if build is None:
-        if len(builds) != 1:
-            fail(f"several builds under work/replay, name one: {', '.join(builds)}")
-        build = builds[0]
-    elif build not in builds:
-        fail(f"no build {build} under work/replay; it holds {', '.join(builds)}")
-    print(DESTINATION / "replays" / build)
+def path(version):
+    version = version or build_data.build()
+    directory = DESTINATION / "replays" / version
+    if not directory.is_dir():
+        fail(f"no replays of {version} under work/replay; run scripts/replay.py sync")
+    print(directory)
+
+
+def publish():
+    info = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
+    version = info["CFBundleShortVersionString"]
+    prefix = version.rsplit(".", 1)[-1]
+    local = re.compile(rf"^{re.escape(prefix)}_\d{{8}}--\d+_\[.*\]VS\[.*\]\.grbr$")
+    source = APP / "ProjectDatas" / "Replay"
+    fresh = time.time() - 60
+    replays = sorted(p for p in source.iterdir()
+                     if local.match(p.name) and p.stat().st_mtime < fresh)
+    if not (DESTINATION / ".git").exists():
+        sync()
+    git("fetch", "-q", "--depth", "1", "origin", "master")
+    git("checkout", "-q", "-B", "master", "FETCH_HEAD")
+    target = DESTINATION / "replays" / version
+    target.mkdir(parents=True, exist_ok=True)
+    added = []
+    for replay in replays:
+        kept = target / replay.name
+        if kept.exists():
+            if not filecmp.cmp(replay, kept, shallow=False):
+                fail(f"{kept.name} is already in the corpus with other bytes")
+            continue
+        shutil.copy2(replay, kept)
+        added.append(kept)
+    if not added:
+        print(f"nothing new of {version} to publish")
+        return
+    git("add", "--", *(str(p.relative_to(DESTINATION)) for p in added))
+    git("commit", "-q", "-m", f"replay: {len(added)} of {version}")
+    git("push", "-q", "origin", "HEAD:master")
+    print(f"{len(added)} replays of {version} published at {git('rev-parse', '--short', 'HEAD')}")
 
 
 def main(argv):
-    if len(argv) >= 2 and argv[1] == "sync":
-        rev = argv[3] if len(argv) == 4 and argv[2] == "--rev" else (pinned() if len(argv) == 2 else None)
-        if rev is None:
-            fail("usage: sync [--rev REV]")
-        sync(rev)
+    if argv[1:] == ["sync"]:
+        sync()
+    elif argv[1:] == ["publish"]:
+        publish()
     elif len(argv) in (2, 3) and argv[1] == "path":
         path(argv[2] if len(argv) == 3 else None)
     else:

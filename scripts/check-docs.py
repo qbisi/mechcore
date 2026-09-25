@@ -2,7 +2,8 @@
 """Check what a machine can check about the documents.
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
-and every spec follows the convention in docs/README.md. Nothing here judges
+every spec follows the convention in docs/README.md, and the name tables of
+docs/rules/ are the ones config/localization.yaml gives. Nothing here judges
 whether a sentence is true; that still needs a reader.
 
 Run from the repository root: python3 scripts/check-docs.py
@@ -188,6 +189,113 @@ def check_spec_structure(fail):
                  f"remove it from PENDING in scripts/check-docs.py")
 
 
+# What a rules document may not cite, by docs/README.md's "Evidence a rule may
+# cite": an untracked path, an asset path id or an ISIL line, all of which
+# move between builds or machines.
+UNREPRODUCIBLE = (
+    (re.compile(r"(?<![\w/.-])work/"), "a path under work/, which is not tracked"),
+    (re.compile(r"\bpath[ _]id\b", re.I), "an asset path id, which moves between builds"),
+    (re.compile(r"\bISIL (line )?\d+|@isil:\d+", re.I), "an ISIL line, which moves between builds"),
+)
+
+
+def check_rules_evidence(fail):
+    for path in sorted((REPO / "docs" / "rules").glob("*.md")):
+        for number, line in outside_fences(path.read_text()):
+            for pattern, why in UNREPRODUCIBLE:
+                if pattern.search(line):
+                    fail(f"{path.relative_to(REPO)}:{number}: cites {why}")
+
+
+# A rules document ends in `## Evidence`: what a recording pinned under tests/
+# shows, what was read from the build and the members it rests on, and what is
+# not established. docs/README.md says why.
+EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
+ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
+TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
+
+
+def evidence_items(text):
+    """{part: [item text]} for the `## Evidence` section, or None without one
+    or when another section follows it."""
+    parts, section, part = {}, None, None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if section == "Evidence":
+                return None
+            section = line[3:].strip()
+            part = None
+        elif section == "Evidence" and line.startswith("### "):
+            part = line[4:].strip()
+            parts.setdefault(part, [])
+        elif section == "Evidence" and part and line.startswith("- "):
+            parts[part].append(line[2:])
+        elif section == "Evidence" and part and line.startswith("  ") and parts[part]:
+            parts[part][-1] += " " + line.strip()
+    return parts if any(line.strip() == "## Evidence" for line in text.splitlines()) else None
+
+
+def check_rules_evidence_sections(fail):
+    for path in sorted((REPO / "docs" / "rules").glob("*.md")):
+        name = path.relative_to(REPO)
+        parts = evidence_items(path.read_text())
+        order = [part for part in EVIDENCE_PARTS if part in (parts or {})]
+        if not parts or list(parts) != order or any(not items for items in parts.values()):
+            fail(f"{name}: ends in ## Evidence, its parts among ### {', ### '.join(EVIDENCE_PARTS)}, "
+                 "in that order, none of them empty")
+            continue
+        for item in parts.get("Replayed", []):
+            if "`scripts/verify-battles.py`" not in item:
+                fail(f"{name}: a replayed claim cites scripts/verify-battles.py: {item[:80]}")
+        for item in parts.get("Recorded", []):
+            cited = TESTS_PATH.findall(item)
+            if not cited:
+                fail(f"{name}: a recorded claim cites no pin under tests/: {item[:80]}")
+            for cite in cited:
+                target = REPO / cite
+                if not target.exists():
+                    fail(f"{name}: cites {cite}, which does not exist")
+                elif target.suffix == ".mcscript" and re.search(r"^game:", target.read_text(), re.M):
+                    fail(f"{name}: cites {cite}, which needs the game; a recorded claim cites what CI replays")
+        for item in parts.get("Read", []):
+            if not ANCHOR.search(item):
+                fail(f"{name}: a read claim names no `Class.member` it rests on: {item[:80]}")
+
+
+# The game version is written once, in GAME_VERSION; everything else reads it.
+# A five-part version string, or a build named by number, anywhere else is a
+# second pin that nothing keeps in step. plan.md is the migration's own record.
+VERSION_PIN = re.compile(r"\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b|\b[Bb]uild[- ][0-9]{3,}\b")
+VERSION_WRITERS = {"GAME_VERSION", "plan.md"}
+
+
+def check_version_pins(fail):
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
+                            capture_output=True).stdout.decode().split("\0")
+    for name in filter(None, listed):
+        if name in VERSION_WRITERS:
+            continue
+        try:
+            text = (REPO / name).read_text()
+        except (UnicodeDecodeError, FileNotFoundError, IsADirectoryError):
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            match = VERSION_PIN.search(line)
+            if match and not match.group(0).startswith("0.0.0.0."):
+                fail(f"{name}:{number}: names a game version ({match.group(0)}); GAME_VERSION is the only place")
+
+
+def check_name_tables(fail):
+    """The name tables of docs/rules/ are what config/localization.yaml gives."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("name_tables", REPO / "scripts" / "name-tables.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    for path in module.stale():
+        fail(f"{path.relative_to(REPO)}: a name table is stale; run scripts/name-tables.py")
+
+
 def main():
     problems = []
     paths = tracked_markdown()
@@ -196,6 +304,10 @@ def main():
     check_spec_classification(paths, problems.append)
     check_spec_structure(problems.append)
     check_repeated_paragraphs(paths, problems.append)
+    check_name_tables(problems.append)
+    check_rules_evidence(problems.append)
+    check_version_pins(problems.append)
+    check_rules_evidence_sections(problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)

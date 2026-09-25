@@ -100,8 +100,16 @@ impl<'a> Purse<'a> {
     }
 
     pub(crate) fn upgrade(&self, unit: i32) -> Option<i32> {
+        self.upgrade_wearing(unit, 0)
+    }
+
+    /// `CardElement.GetUpgradeSupply`: the level's price plus every
+    /// `UpGradeSupplyChangeValue` the formation's data set holds, the side's
+    /// officers' and each item it wears, `worn`. The set sums them, two of
+    /// one item included, and the price is floored at zero once.
+    pub(crate) fn upgrade_wearing(&self, unit: i32, worn: i32) -> Option<i32> {
         let price = self.economy.unit(unit)?.upgrade_supply;
-        Some((price + self.modifier(|officer| officer.upgrade_supply, Some(unit))).max(0))
+        Some((price + self.modifier(|officer| officer.upgrade_supply, Some(unit)) + worn).max(0))
     }
 
     /// What researching a technology costs, given how many the unit already has.
