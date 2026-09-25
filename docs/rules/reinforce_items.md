@@ -5,9 +5,6 @@ each side takes one. This document says what the five kinds of card are, what
 taking one changes, and what it costs. The catalogues themselves are machine
 readable and live in `config/`.
 
-The evidence is the build 1.11.1.3.2259 replay corpus in mechcore-replay,
-which `replay/README.md` describes.
-
 ## The five kinds
 
 | Kind | What taking it changes | Catalogue |
@@ -20,10 +17,7 @@ which `replay/README.md` describes.
 
 The first three grant the thing their own ID names. There is no second mapping
 to look up: taking card `13030001` adds equipment `13030001`, and taking card
-`1100001` puts commander skill `1100001` on the panel. In the corpus every
-equipment and commander skill card taken puts its own ID into the side's next
-snapshot, and every officer card does too unless the side already held that
-officer.
+`1100001` puts commander skill `1100001` on the panel.
 
 That is why `config/reinforce_items.yaml` carries a `kind`: the ID alone says
 what the thing is, but not which of the three fields it belongs in.
@@ -35,9 +29,8 @@ unit; `scripts/extract_prices.py` refuses one that does.
 
 ## The opening
 
-An advance team is the same shape of thing, chosen once in round 0. In the
-corpus every side takes exactly one, and its round 1 roster is exactly the unit
-list of the team it took.
+An advance team is the same shape of thing, chosen once in round 0: a side
+takes one, and its round 1 roster is the unit list of the team it took.
 
 Two kinds share that one choice, and
 [`config/advance_teams.yaml`](../../config/advance_teams.yaml) holds both. A team
@@ -49,9 +42,9 @@ commander skills on the panel.
 Both move the reactor core by their row's `reactorCore`, and that is how the
 stronger openings are paid for: no opening costs supply.
 
-`BattleInfo.EnableAdvanceTeam` is true in every ranked match of the corpus and
-false in the Training Ground ones, so the opening is part of standard play
-rather than of a mode this format does not describe.
+`BattleInfo.EnableAdvanceTeam` says whether a match has the opening; a ranked
+match does and a Training Ground one does not, so the opening is part of
+standard play rather than of a mode this format does not describe.
 
 ## What a card costs
 
@@ -73,8 +66,7 @@ than everything: that is how Field Recovery is listed, and reading it the other
 way dropped the one skill supply most needs to price.
 
 `scope` says whether the reinforcement pool can deal the card. Only one value
-means it can: every card chosen in the corpus carries it, and no card carrying
-another was ever chosen. Two familiar groups carry another:
+means it can. Two familiar groups carry another:
 
 - a commander skill a blueprint researches. Every blueprint-granted skill is
   excluded, among them Sticky Oil Bomb, Field Recovery, Mobile Beacon and
@@ -110,6 +102,33 @@ that do, and the shapes are these:
 `scripts/extract_prices.py` writes all of them from one build's typed export:
 the officers, unit cards and openings of `ConfigDataContainer`, and the
 commander skill and equipment cards of `CommanderSkillGroupData` and
-`EquipmentGroupData` in `level0`. Build 2.0 adds an appear condition that
-depends on both sides' investment, which [reinforcements.md](reinforcements.md)
-states.
+`EquipmentGroupData` in `level0`. A card's appear condition can depend on both
+sides' investment, which [reinforcements.md](reinforcements.md) states.
+
+## Evidence
+
+### Read
+
+- A card is priced by its own `supply` or, at `-1`, by its level's:
+  `ReinforceItemData.supply`, `ReinforceItemPrice.price`.
+- Whether the pool can deal a card is its `scope`: `ReinforceItemData.scope`.
+- A card names the modes it belongs to, an empty list restricting nothing:
+  `ItemData.limitedScene`.
+- An opening moves the reactor core by its row's amount:
+  `AdvanceTeamData.reactorCore`.
+- Whether a match has the opening is its battle info's:
+  `BattleInfo.EnableAdvanceTeam`.
+
+### Not established
+
+- **That a card grants its own ID.** Every equipment and commander skill card
+  taken put its own ID into the side's next snapshot in another version's
+  corpus, and every officer card did too unless the side already held that
+  officer. This version's corpus is not replayed yet:
+  `scripts/verify-battles.py`.
+- **That each side takes exactly one opening, whose units are its round 1
+  roster**, and that a ranked match has one and a Training Ground match does
+  not. Seen in the same corpus, not yet in this version's.
+- **That `scope` alone decides the pool.** No card of another value was chosen
+  in that corpus; unit cards and advance teams, which carry another and are
+  dealt all the same, show the filter is not universal.

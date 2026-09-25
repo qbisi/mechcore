@@ -213,7 +213,7 @@ def check_rules_evidence(fail):
 # way are listed here, and leave the list as they are.
 RULES_PENDING = {
     "battle_skill.md", "combat.md", "constructions.md",
-    "officer_effects.md", "officers.md", "opening.md", "reinforce_items.md",
+    "officer_effects.md", "officers.md", "opening.md",
     "reinforcements.md", "terrain.md",
     "unit_techs.md",
 }
