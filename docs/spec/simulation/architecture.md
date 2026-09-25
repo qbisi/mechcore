@@ -210,6 +210,12 @@ side blue: officer 20006 (先进瞄准系统) writes attack_range_value, and how
 value composes with a description is not measured
 ```
 
+Both kinds are named together, and every member at once: compiling goes on past
+a refusal, so one refusal carries every field the registry owes and every unit,
+officer, technology, equipment and construction the fields it lets through
+cannot take, each as a clause of its own after a `; `. A refusal that reaches
+several formations, such as an officer of the side, is named once.
+
 ## Objects
 
 | Native | What it is |

@@ -178,6 +178,10 @@ side blue: officer 20006 (先进瞄准系统) writes attack_range_value, and how
 value composes with a description is not measured
 ```
 
+两种拒绝一起报，其中每一项也一起报：编译遇到拒绝不停，所以一次拒绝同时带着登记表欠的每个
+字段，以及放行的字段里每一个接不住的单位、军官、科技、装备和建造，各占一句，用 `; ` 隔开。
+一个会落到好几个编队上的拒绝（比如一方的军官）只报一次。
+
 ## 对象
 
 | 原生 | 是什么 |
