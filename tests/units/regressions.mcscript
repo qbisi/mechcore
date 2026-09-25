@@ -533,6 +533,7 @@ steps:
     expect:
       steps: 203
       hashes.physics_result_hash: bb94f2ab670c9e7cd17af2047b5b7b0b78270cf394c783248687c49d2e18bef1
+      hashes.content_result_hash: e859d1f97d0b229868764d52aa393473927a034d0257fede522cbeb03c566b3a
   - fight.run:
       layout: tests/units/mustang/m4-wasp.yaml
       seed: 4242

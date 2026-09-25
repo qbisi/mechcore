@@ -125,9 +125,13 @@ interval each cycle was scheduled with, so the two backends carry the same
 series. Two readings complete it. A unit with a group of weapons reads its
 **core**'s interval, not whichever slot drew last: a Wraith's children draw on
 their own cycles and never show. And a unit with **no enemy left** reads its
-interval as composed, with no stagger, from the tick after its last enemy dies
-— and on that tick if it is the fight's last — because there is no cycle in
-progress: a Marksman reads 62, an Arclight 18, a Wraith 32. With those, every
+interval as composed, with no stagger, because there is no cycle in progress:
+a Marksman reads 62, an Arclight 18, a Wraith 32. A unit whose lock was alive
+reads it from the tick after its last enemy dies, which is when it loses the
+lock; a unit already idle and lockless when the last enemy dies keeps its drawn
+interval, as the Mustang of `tests/units/mustang/m3-crawler.yaml` (seed
+1787720817) keeps 6 for two ticks. Every unit reads the composed interval on
+the fight's last tick. With those, every
 recording the simulator can run carries the same numbers in this field as the
 game's, on every tick.
 
