@@ -27,6 +27,9 @@ pub(in crate::fight) struct Projectile {
     /// Where a projectile that follows its target lands relative to it.
     pub(in crate::fight) offset_x_q32: i64,
     pub(in crate::fight) offset_z_q32: i64,
+    /// The height a projectile still climbs to before it flies at its
+    /// target, if it has not reached it.
+    pub(in crate::fight) climb_to_q32: Option<i64>,
 }
 
 impl Projectile {
@@ -62,6 +65,15 @@ impl Projectile {
     }
 }
 
+/// How far a projectile travels in one update.
+fn projectile_step_q32(projectile: &Projectile) -> i64 {
+    q32_mul(
+        space_to_q32(projectile.speed),
+        Q32_ONE.saturating_mul(LOGIC_TICK_TIME_UNITS.cast_signed())
+            / TIME_UNITS_PER_SECOND.cast_signed(),
+    )
+}
+
 impl Simulation {
     #[allow(clippy::similar_names)] // Paired fixed-point x/z components are intentionally parallel.
     pub(in crate::fight) fn step_projectiles(&mut self, events: &mut Vec<Event>) -> Result<()> {
@@ -71,6 +83,27 @@ impl Simulation {
         // list order after this reverse update pass so later ticks use the
         // same stable registration sequence.
         for mut projectile in std::mem::take(&mut self.projectiles).into_iter().rev() {
+            // A projectile that climbs first rises straight up at its speed,
+            // neither following its target nor landing, until it stands at
+            // its height or above: a Farseer's shot climbs 7 metres a tick to
+            // 63 for its 60, and flies at the Rhino from the tick after.
+            if let Some(height_q32) = projectile.climb_to_q32 {
+                let dy_q32 = height_q32.saturating_sub(projectile.y_q32);
+                let distance_q32 = native_q32_magnitude_3d(0, dy_q32, 0);
+                let move_q32 = projectile_step_q32(&projectile);
+                if distance_q32 > 0 {
+                    let reciprocal = q32_div(Q32_ONE, distance_q32);
+                    projectile.y_q32 = projectile
+                        .y_q32
+                        .saturating_add(q32_mul(q32_mul(dy_q32, reciprocal), move_q32));
+                }
+                projectile.y = q32_to_space_rounded(projectile.y_q32);
+                if projectile.y_q32 >= height_q32 {
+                    projectile.climb_to_q32 = None;
+                }
+                retained.push(projectile);
+                continue;
+            }
             if projectile.target_kind == ObjectKind::Unit
                 && projectile.lock_target
                 && let Some(target) = self
@@ -101,11 +134,7 @@ impl Simulation {
             if distance_q32 < space_to_q32(projectile.cached_target_radius) {
                 self.impact(&projectile, events)?;
             } else {
-                let step_q32 = q32_mul(
-                    space_to_q32(projectile.speed),
-                    Q32_ONE.saturating_mul(LOGIC_TICK_TIME_UNITS.cast_signed())
-                        / TIME_UNITS_PER_SECOND.cast_signed(),
-                );
+                let step_q32 = projectile_step_q32(&projectile);
                 if distance_q32 > 0 {
                     let move_q32 = step_q32.min(distance_q32);
                     let reciprocal = q32_div(Q32_ONE, distance_q32);

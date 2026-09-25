@@ -27,6 +27,8 @@ pub(in crate::fight) struct PendingProjectileRelease {
     /// 0.3 seconds on.
     pub(in crate::fight) offset_x_q32: i64,
     pub(in crate::fight) offset_z_q32: i64,
+    /// How high the burst's projectiles climb before they fly.
+    pub(in crate::fight) climb_q32: Option<i64>,
     pub(in crate::fight) weapon_index: usize,
 }
 

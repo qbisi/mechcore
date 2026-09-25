@@ -129,6 +129,8 @@ impl Attacker<'_> {
             speed: self.attack.projectile_speed(),
             life: self.attack.projectile_life(),
             lock_target: self.attack.lock_target,
+            climb: self.attack.projectile_pre_flight_height(),
+            range: self.attack_range,
         }
     }
 }

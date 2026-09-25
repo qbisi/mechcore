@@ -14,6 +14,10 @@ pub(in crate::fight) struct Launch {
     pub(in crate::fight) speed: i64,
     pub(in crate::fight) life: i64,
     pub(in crate::fight) lock_target: bool,
+    /// How high the projectile climbs before it flies, in space units.
+    pub(in crate::fight) climb: i64,
+    /// `IAttacker.GetAttackRange`, which a climb is measured against.
+    pub(in crate::fight) range: i64,
 }
 
 impl Simulation {
@@ -138,6 +142,7 @@ impl Simulation {
             .expect("u32 weapon count fits the supported host");
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
+        let climb_q32 = self.burst_climb_q32(owner, target)?;
         let offsets =
             self.projectile_target_offsets(owner, target_x_q32, target_z_q32, count, radius)?;
         let mut releases =
@@ -152,6 +157,7 @@ impl Simulation {
                     target_z_q32: target_z_q32.saturating_add(z),
                     offset_x_q32: x,
                     offset_z_q32: z,
+                    climb_q32,
                     weapon_index: index % weapon_count,
                 });
         let first = releases
@@ -161,6 +167,46 @@ impl Simulation {
             .projectile_pending_releases
             .extend(releases);
         self.release_pending_projectile(owner, first, events)
+    }
+
+    /// How high a burst's projectiles climb before they fly, above where
+    /// they leave: `ProjectileSystem.Create` scales the pre-flight height by
+    /// the distance to the target over the attack range, to the whole height
+    /// at the range and beyond. The distance is to where the target stood
+    /// when the tick began, once for the burst: a Farseer's two projectiles
+    /// climb the same 52.4 metres to a Rhino 109 metres off.
+    fn burst_climb_q32(&self, owner: FightActorRef, target: FightActorRef) -> Result<Option<i64>> {
+        let source = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .launch();
+        if source.climb <= 0 {
+            return Ok(None);
+        }
+        let (target_x_q32, target_z_q32, target_y) = match target {
+            FightActorRef::Unit(id) => {
+                let unit = &self.actors[&id];
+                (
+                    unit.target_query_x_q32,
+                    unit.target_query_z_q32,
+                    unit_height(unit.rules.domain),
+                )
+            }
+            FightActorRef::Building(_) => {
+                let view = self
+                    .fight_actor(target)
+                    .ok_or_else(|| Error::new("projectile target is absent"))?;
+                (view.x_q32, view.z_q32, 0)
+            }
+        };
+        let distance_q32 = native_q32_magnitude_3d(
+            target_x_q32.saturating_sub(source.x_q32),
+            space_to_q32(target_y).saturating_sub(space_to_q32(source.y)),
+            target_z_q32.saturating_sub(source.z_q32),
+        );
+        let climb_q32 = space_to_q32(source.climb);
+        let ratio_q32 = q32_div(distance_q32, space_to_q32(source.range));
+        Ok(Some(q32_mul(ratio_q32, climb_q32).min(climb_q32)))
     }
 
     pub(in crate::fight) fn projectile_target_offsets(
@@ -307,23 +353,13 @@ impl Simulation {
     ) -> Result<()> {
         match pending.target_kind {
             ObjectKind::Unit => {
-                let follows = self
-                    .attacker(owner)
-                    .ok_or_else(|| Error::new("projectile owner is absent"))?
-                    .attack
-                    .lock_target;
-                // A dead target is not followed: the projectile goes where the
-                // burst aimed it, as a Phantom Ray's second projectile does at
-                // a Crawler another shot killed in between.
-                let target = &self.actors[&pending.target];
-                let (target_x_q32, target_z_q32) = if follows && target.alive() {
-                    (
-                        target.x_q32.saturating_add(pending.offset_x_q32),
-                        target.z_q32.saturating_add(pending.offset_z_q32),
-                    )
-                } else {
-                    (pending.target_x_q32, pending.target_z_q32)
-                };
+                // A projectile leaves for where its burst aimed it, the
+                // target's position when the burst began plus its offset,
+                // and one that follows its target takes the target's position
+                // up again from its first update: a Farseer's second shot,
+                // which climbs first, still names the point the burst aimed
+                // at when it levels off.
+                let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
                 self.release_projectile_at(
                     owner,
                     pending.target,
@@ -332,7 +368,19 @@ impl Simulation {
                     0,
                     pending.weapon_index,
                     events,
-                )
+                )?;
+                let projectile = self
+                    .projectiles
+                    .last_mut()
+                    .expect("a projectile was just released");
+                if projectile.lock_target {
+                    projectile.offset_x_q32 = pending.offset_x_q32;
+                    projectile.offset_z_q32 = pending.offset_z_q32;
+                }
+                projectile.climb_to_q32 = pending
+                    .climb_q32
+                    .map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
+                Ok(())
             }
             ObjectKind::Building => {
                 let building = self
@@ -452,15 +500,6 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
-        // A projectile that follows a unit keeps where it lands relative to
-        // that unit, and lands there however the unit moves.
-        let (offset_x_q32, offset_z_q32) = match self.actors.get(&target_id) {
-            Some(unit) if target_kind == ObjectKind::Unit && source.lock_target => (
-                target_x_q32.saturating_sub(unit.x_q32),
-                target_z_q32.saturating_sub(unit.z_q32),
-            ),
-            _ => (0, 0),
-        };
         let projectile = Projectile {
             id: projectile_id,
             team: source.team,
@@ -483,8 +522,9 @@ impl Simulation {
             speed: source.speed,
             life: source.life,
             lock_target: source.lock_target,
-            offset_x_q32,
-            offset_z_q32,
+            offset_x_q32: 0,
+            offset_z_q32: 0,
+            climb_to_q32: None,
         };
         let projectile_ref = projectile.object_ref();
         events.push(event(

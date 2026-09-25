@@ -501,12 +501,6 @@ impl UnitConfig {
         let weapons = &self.attack.weapons;
         let why = match (&self.attack.path, weapons.mode) {
             (AttackPath::ControlBeam { .. }, _) => "fires a control beam",
-            (
-                AttackPath::Projectile {
-                    pre_flight_height, ..
-                },
-                _,
-            ) if *pre_flight_height != 0.0 => "fires projectiles that climb before they fly",
             // A group of one weapon fires one blow whatever its topology
             // says: a Vortex's is a single direct weapon.
             (_, WeaponMode::Group) if weapons.count() == 1 => return Ok(()),
@@ -740,6 +734,18 @@ impl AttackConfig {
             unreachable!("the current kernel validates the projectile path")
         };
         quantize_i64(speed, SPACE_UNITS_PER_METER)
+    }
+
+    /// How high a projectile climbs straight up before it flies at its
+    /// target, in space units; zero for one that flies at once.
+    pub(crate) fn projectile_pre_flight_height(&self) -> i64 {
+        let AttackPath::Projectile {
+            pre_flight_height, ..
+        } = self.path
+        else {
+            unreachable!("pre-flight height requires the projectile attack path")
+        };
+        quantize_i64(pre_flight_height, SPACE_UNITS_PER_METER)
     }
 
     pub(crate) fn projectile_life(&self) -> i64 {
@@ -1036,9 +1042,8 @@ mod tests {
     }
 
     /// The kernel fires projectiles, blows and lasers, and groups several
-    /// weapons only for projectiles; a control beam, a fusillade of several
-    /// grouped weapons and a projectile that climbs before it flies are
-    /// refused by the unit that fires them.
+    /// weapons only for projectiles; a control beam and a fusillade of several
+    /// grouped weapons are refused by the unit that fires them.
     #[test]
     fn a_main_skill_the_kernel_cannot_fire_is_refused_by_unit() {
         let config = SimulationConfig::load().unwrap();
@@ -1052,11 +1057,7 @@ mod tests {
         ] {
             assert!(config.units.get(fired).unwrap().fired().is_ok(), "{fired}");
         }
-        for (refused, why) in [
-            ("hacker", "a control beam"),
-            ("raiden", "as a fusillade"),
-            ("farseer", "climb before they fly"),
-        ] {
+        for (refused, why) in [("hacker", "a control beam"), ("raiden", "as a fusillade")] {
             let error = config.units.get(refused).unwrap().fired().unwrap_err();
             assert!(error.to_string().contains(why), "{error}");
         }
