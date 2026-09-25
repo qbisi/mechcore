@@ -143,8 +143,23 @@ impl Simulation {
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
         let climb_q32 = self.burst_climb_q32(owner, target)?;
-        let offsets =
-            self.projectile_target_offsets(owner, target_x_q32, target_z_q32, count, radius)?;
+        let source_y = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .y;
+        let target_y = match target {
+            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
+            FightActorRef::Building(_) => 0,
+        };
+        let height_q32 = space_to_q32(target_y).saturating_sub(space_to_q32(source_y));
+        let offsets = self.projectile_target_offsets(
+            owner,
+            target_x_q32,
+            target_z_q32,
+            height_q32,
+            count,
+            radius,
+        )?;
         let mut releases =
             offsets
                 .into_iter()
@@ -214,6 +229,7 @@ impl Simulation {
         owner: FightActorRef,
         target_x_q32: i64,
         target_z_q32: i64,
+        height_q32: i64,
         count: usize,
         radius: i64,
     ) -> Result<Vec<(i64, i64)>> {
@@ -282,10 +298,16 @@ impl Simulation {
                         .expect("projectile offset direction remains in Q32 range");
                     let value_z = i64::try_from(value_z)
                         .expect("projectile offset direction remains in Q32 range");
+                    // The directions are three-dimensional, from the weapon to a
+                    // point on the target's height: an Overlord shooting down
+                    // at a Crawler orders its offsets by the angles it sees.
+                    let height_squared = q32_mul(height_q32, height_q32);
                     let direction_squared = q32_mul(direction_x, direction_x)
+                        .saturating_add(height_squared)
                         .saturating_add(q32_mul(direction_z, direction_z));
-                    let value_squared =
-                        q32_mul(value_x, value_x).saturating_add(q32_mul(value_z, value_z));
+                    let value_squared = q32_mul(value_x, value_x)
+                        .saturating_add(height_squared)
+                        .saturating_add(q32_mul(value_z, value_z));
                     let magnitude_product =
                         if direction_squared.saturating_add(value_squared) < 0x1_6A09_0000_0001 {
                             fpcs_sqrt_fastest(q32_mul(direction_squared, value_squared))
@@ -295,8 +317,9 @@ impl Simulation {
                                 fpcs_sqrt_fastest(value_squared),
                             )
                         };
-                    let dot =
-                        q32_mul(direction_x, value_x).saturating_add(q32_mul(direction_z, value_z));
+                    let dot = q32_mul(direction_x, value_x)
+                        .saturating_add(height_squared)
+                        .saturating_add(q32_mul(direction_z, value_z));
                     let cosine_q32 = q32_div(dot, magnitude_product).clamp(-Q32_ONE, Q32_ONE);
                     let angle = fpcs_acos_fastest(cosine_q32);
                     if plane_side > 0 { angle } else { -angle }
