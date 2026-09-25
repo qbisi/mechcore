@@ -542,7 +542,7 @@ impl Dealer {
                 *investment.values.entry(unit).or_default() +=
                     i64::from(cost.supply + levels * cost.upgrade);
             }
-            for &unit in &side.shop.unlocked_units {
+            for &unit in &side.unlocked_units {
                 *context.scores.entry(unit).or_default() += self.unit_cost(unit)?.unlock;
             }
             investments.push(investment);

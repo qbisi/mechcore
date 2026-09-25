@@ -153,7 +153,15 @@ pub struct State {
 pub struct SideState {
     pub reactor_core: i32,
     pub supply: i32,
-    pub shop: ShopState,
+    /// Unit IDs, written as their type names in ID order.
+    #[serde(with = "unit_names::units")]
+    #[schemars(with = "Vec<String>")]
+    pub unlocked_units: Vec<i32>,
+    /// What the round still allows, which a battle does not write: each
+    /// opens at a value the round's opening fixes, and only the round's own
+    /// decisions spend it.
+    #[serde(skip)]
+    pub shop: Allowances,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
@@ -198,13 +206,10 @@ pub struct SideState {
     pub terrains: Vec<Terrain>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct ShopState {
-    /// Unit IDs, written as their type names in ID order.
-    #[serde(with = "unit_names::units")]
-    #[schemars(with = "Vec<String>")]
-    pub unlocked_units: Vec<i32>,
+/// A round's allowances, as [`crate::transition::open_round`] sets them and
+/// its decisions spend them.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Allowances {
     pub buys_remaining: i32,
     pub unlocks_remaining: i32,
     /// What the round still lets the side release of contraptions and

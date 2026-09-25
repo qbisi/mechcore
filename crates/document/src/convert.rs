@@ -9,7 +9,7 @@
 
 use crate::battle::{
     Action, Battle, BattleSide, DECLINED_OFFER, EquipmentItem, NextIndex, Opening, OpeningOffer,
-    PanelSkill, ShopState, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
+    PanelSkill, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
@@ -561,13 +561,9 @@ fn side_state(
         reactor_core: data.reactor_core,
         // The snapshot precedes the round's income, which the opening pays.
         supply: data.supply,
+        unlocked_units,
         // The allowances are the opening's to set.
-        shop: ShopState {
-            unlocked_units,
-            buys_remaining: 0,
-            unlocks_remaining: 0,
-            contraptions_remaining: 0,
-        },
+        shop: crate::battle::Allowances::default(),
         blueprints,
         // What the previous round activated and still owes for, which the
         // opening charges against the income and then lapses.

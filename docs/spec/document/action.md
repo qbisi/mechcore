@@ -67,7 +67,7 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `shop.unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
+| Settled | `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
 | Supply | `supply` |
 | Board | `units`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
 
@@ -95,16 +95,17 @@ destroyed by the fight and a unit can be, but neither index is handed out
 again, so the two counters only ever rise and rise only by a decision.
 
 `reinforce_offers` is granted by the round and written by no action. The rest of
-that reading needs qualifying, because a decision can reach three fields that a
+that reading needs qualifying, because a decision can reach three things that a
 round otherwise owns.
 
 - `reactor_core` is moved by the opening and by nothing else. Both halves of
   that one choice move it, so a team and its specialist are added together.
-- `buys_remaining` counts down as purchases are made, and two decisions add to
-  it: energy tower skill `3` and reinforcement card `10004` each grant one more.
-  The card is an officer the side keeps, so every later round opens with the
-  extra purchase too. `unlocks_remaining` and `contraptions_remaining` only
-  ever count down.
+- The round's allowances, which a state does not write, count down as they are
+  spent, and a purchase, an unlock or a contraption release past its own is
+  refused. Two decisions add a purchase: energy tower skill `3` and
+  reinforcement card `10004` each grant one more. The card is an officer the side
+  keeps, so every later round opens with the extra purchase too. The unlock and
+  the contraption releases only ever count down.
 - A unit's `exp` is the fight's to grant, except that upgrading a unit
   discards it and Intensive Training fills it. A rank starts at zero however much
   the rank below it earned.
@@ -136,7 +137,7 @@ A taken item grants the thing it names, and which thing that is decides
 the effect: an officer joins `officers`, a commander skill joins
 `battle_skills`, an equipment joins `equipment`, and a unit card hands out
 squads. Squads advance `next_index.unit` and their unit type joins
-`shop.unlocked_units`. The decline writes none of those.
+`unlocked_units`. The decline writes none of those.
 
 A taken item costs its price, less what an officer taken this way grants back at
 once. The decline is the one reinforcement choice that pays the side instead:
@@ -202,7 +203,7 @@ type, less what the unit's equipment discounts, floored at zero.
 - {type: unlock_unit, name: void_eye}
 ```
 
-Adds the unit type `name` to `shop.unlocked_units`. Costs the unit's unlock price.
+Adds the unit type `name` to `unlocked_units`. Costs the unit's unlock price.
 
 ### `upgrade_technology`
 

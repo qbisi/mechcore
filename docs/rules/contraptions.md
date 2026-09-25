@@ -14,8 +14,9 @@ its `BuyCount`. Releasing a contraption spends one, and undoing the release
 gives it back.
 
 `IsReadyToRelease` refuses a release once `RemainCount` is spent, after it has
-checked that the side holds the contraption and can pay for it. A state keeps
-what is left as `shop.contraptions_remaining`, as it keeps its purchases.
+checked that the side holds the contraption and can pay for it. A state does not
+write what is left: every round opens with eight, as it opens with its
+purchases.
 
 **A construction spends the same count.** Releasing a construction spends one
 of the eight as a contraption does, and undoing it gives it back. No standard

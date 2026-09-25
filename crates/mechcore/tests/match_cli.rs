@@ -180,7 +180,7 @@ fn a_side_sees_its_own_plans_and_the_other_side_only_on_the_board() {
     assert!(own["position"]["supply"].is_number(), "{own}");
     assert!(own["offers"].is_array());
     assert!(other["position"]["supply"].is_null(), "{other}");
-    assert!(other["position"]["shop"].is_null(), "{other}");
+    assert!(other["position"]["unlocked_units"].is_null(), "{other}");
     assert!(other["offers"].is_null(), "{other}");
     assert!(other["decisions"].is_null(), "{other}");
     // The seed deals both openings and every offer, so neither player is told
@@ -259,7 +259,7 @@ fn a_purchase_answers_the_index_the_board_gave_it() {
         .as_array()
         .unwrap()
         .len();
-    let bought = view["sides"]["blue"]["position"]["shop"]["unlocked_units"][0]
+    let bought = view["sides"]["blue"]["position"]["unlocked_units"][0]
         .as_str()
         .unwrap()
         .to_owned();

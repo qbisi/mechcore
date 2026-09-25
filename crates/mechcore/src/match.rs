@@ -939,7 +939,7 @@ impl Game {
     ///
     /// A side sees its own in full. Of the other it sees the position the
     /// round opened with, less what `docs/spec/mechcore/cli.md` hides: the
-    /// supply it holds, the shop it has unlocked, and the technologies it
+    /// supply it holds, the units it has unlocked, and the technologies it
     /// could research but has never fielded. Its round in progress is not
     /// there at all.
     fn side_view(&self, side: Side, own: bool) -> Result<SideView, Failure> {
@@ -956,7 +956,7 @@ impl Game {
             let fielded = self.fielded(side);
             if let Some(fields) = position.as_object_mut() {
                 fields.remove("supply");
-                fields.remove("shop");
+                fields.remove("unlocked_units");
             }
             self.battle_side(side)
                 .tech_loadout

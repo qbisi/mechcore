@@ -225,7 +225,7 @@ pub fn step_placing(
         } => {
             // The shop sells what it has unlocked, and a side unlocks a type
             // before it buys one.
-            if !state.shop.unlocked_units.contains(unit) {
+            if !state.unlocked_units.contains(unit) {
                 return Err(Unsettled::Refused(
                     "buying a unit the shop has not unlocked",
                 ));
@@ -637,9 +637,9 @@ fn panel_add(next: &mut SideState, id: i32) {
 }
 
 fn unlock(next: &mut SideState, unit: i32) {
-    if !next.shop.unlocked_units.contains(&unit) {
-        next.shop.unlocked_units.push(unit);
-        next.shop.unlocked_units.sort_unstable();
+    if !next.unlocked_units.contains(&unit) {
+        next.unlocked_units.push(unit);
+        next.unlocked_units.sort_unstable();
     }
 }
 
@@ -804,6 +804,21 @@ pub fn player_draws(economy: &Economy, officers: &[i32], round: i32) -> u32 {
     u32::try_from(drawing).unwrap_or(u32::MAX)
 }
 
+/// Sets the allowances a round opens with: two purchases and one more for
+/// every Additional Deployment Slot the side holds, one unlock, and eight
+/// contraption releases. They follow from the officers alone, which is why a
+/// battle does not write them and a reader sets them this way.
+pub fn open_allowances(next: &mut SideState) {
+    let extra = next
+        .officers
+        .iter()
+        .filter(|officer| **officer == EXTRA_DEPLOYMENT_CARD)
+        .count();
+    next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
+    next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
+    next.shop.contraptions_remaining = CONTRAPTION_RELEASES_PER_ROUND;
+}
+
 /// Resets what lasts one round, as `round` opens, and pays its income.
 ///
 /// A panel slot spent in the previous round, by a release or as a deployment
@@ -830,14 +845,7 @@ fn reset(economy: &Economy, next: &mut SideState, round: i32) -> Result<(), Unse
         slot.used = false;
         slot.release = None;
     }
-    let extra = next
-        .officers
-        .iter()
-        .filter(|officer| **officer == EXTRA_DEPLOYMENT_CARD)
-        .count();
-    next.shop.buys_remaining = BUY_COUNT_PER_ROUND + i32::try_from(extra).unwrap_or(0);
-    next.shop.unlocks_remaining = UNLOCK_COUNT_PER_ROUND;
-    next.shop.contraptions_remaining = CONTRAPTION_RELEASES_PER_ROUND;
+    open_allowances(next);
     // The round's income: the map's schedule and what the side's officers add
     // to it, what the equipment on the board pays, and less what an energy
     // tower skill the previous round activated still owes.
@@ -974,8 +982,8 @@ mod tests {
     fn solvent() -> SideState {
         SideState {
             supply: 100_000,
-            shop: crate::battle::ShopState {
-                unlocked_units: (1..=31).chain([2002]).collect(),
+            unlocked_units: (1..=31).chain([2002]).collect(),
+            shop: crate::battle::Allowances {
                 buys_remaining: 99,
                 unlocks_remaining: 99,
                 contraptions_remaining: 99,
@@ -1242,8 +1250,8 @@ mod tests {
     fn an_opening_refills_the_shop_and_lapses_tower_skills() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            shop: crate::battle::ShopState {
-                unlocked_units: Vec::new(),
+            unlocked_units: Vec::new(),
+            shop: crate::battle::Allowances {
                 buys_remaining: 0,
                 unlocks_remaining: 0,
                 contraptions_remaining: 0,
@@ -1348,7 +1356,7 @@ mod tests {
         };
         let opened = super::predict(&economy, 0, &before, &[choice], true, None, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
-        assert_eq!(opened.shop.unlocked_units, [10, 24]);
+        assert_eq!(opened.unlocked_units, [10, 24]);
         assert_eq!(opened.next_index.unit, 5);
         assert_eq!(opened.officers, [10002]);
         let team: Vec<_> = opened
@@ -1631,8 +1639,8 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             supply: 1000,
-            shop: crate::battle::ShopState {
-                unlocked_units: vec![9],
+            unlocked_units: vec![9],
+            shop: crate::battle::Allowances {
                 buys_remaining: 2,
                 unlocks_remaining: 1,
                 contraptions_remaining: 8,
@@ -1712,7 +1720,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(next.next_index.unit, 4 + reinforcement.squads);
-        assert_eq!(next.shop.unlocked_units, vec![reinforcement.unit]);
+        assert_eq!(next.unlocked_units, vec![reinforcement.unit]);
         assert_eq!(next.units.len(), 2);
         assert_eq!(next.units[0].unit.index, 4);
         assert_eq!(next.units[1].unit.index, 5);

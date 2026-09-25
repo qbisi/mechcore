@@ -452,7 +452,7 @@ hold across every seam of a well-formed battle.
 | researched technologies are kept |
 | researched technologies stay inside that side's `tech_loadout` |
 | the skill panel is extended, never reordered |
-| `shop.unlocked_units` are kept |
+| `unlocked_units` are kept |
 | `tower_strengthen_levels` rise or hold |
 | `blueprints` are kept, or replaced by their own next level |
 | `officers` are kept, or replaced by their own next level |
@@ -543,13 +543,12 @@ after conceding, a round follows a concession, or both sides concede is refused.
 
 ### What conversion rebuilds
 
-Most fields are copied. Seven are not, and each is argued in the document that
+Most fields are copied. Six are not, and each is argued in the document that
 owns it:
 
 | Field | Why it is rebuilt |
 | --- | --- |
 | `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
-| `shop.buys_remaining`, `unlocks_remaining`, `contraptions_remaining` | The recorded counters state the previous round's remainder, and the record keeps no contraption counter. A round opens with two purchases, one more per Additional Deployment Slot held, one unlock and eight contraption releases |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |
@@ -623,11 +622,7 @@ A [layout](layout.md#normal-form) is spelled by the same three:
 - every other value is written in block style.
 
 ```yaml
-    shop:
-      unlocked_units: [marksman, crawler, fire_badger, tarantula]
-      buys_remaining: 2
-      unlocks_remaining: 1
-      contraptions_remaining: 8
+    unlocked_units: [marksman, crawler, fire_badger, tarantula]
     next_index: {unit: 7, contraption: 0}
     units:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
@@ -636,7 +631,7 @@ A [layout](layout.md#normal-form) is spelled by the same three:
 Actions, units and ID lists are what a battle holds by the thousand, and one
 line each keeps a round on a screen and makes a diff name the item that
 changed. A coordinate pair and an allocator are scalar mappings, so they fold
-by the same rule; a side, a shop and a technology list mix shapes and stay
+by the same rule; a side and a technology list mix shapes and stay
 blocks. The spelling is part of the normal form, so one battle has one byte
 sequence; a reader parses either style.
 

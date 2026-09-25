@@ -43,7 +43,7 @@ Ground scene would install to reproduce the match at that moment, which gives a
 finer failure signal than comparing a round's endpoints alone.
 
 What the projection drops is everything the fight cannot observe: supply, the
-shop, the reinforcement offer, the allocators, and the parts of the skill panel
+unlocked units, the reinforcement offer, the allocators, and the parts of the skill panel
 that were not released this round.
 
 Eight side fields project unchanged: `officers`, `techs`, `units`,
@@ -142,11 +142,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       reactor_core: 197
       supply: 50
 
-      shop:
-        unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
-        buys_remaining: 3
-        unlocks_remaining: 1
-        contraptions_remaining: 8
+      unlocked_units: [marksman, fang, crawler, arclight, wraith, sabertooth, typhoon, phantom_ray, hound, void_eye, vortex]
 
       blueprints: [sticky_oil_bomb, field_recovery, attack_enhancement_ii]
       energy_tower_skills: [rapid_resupply]
@@ -298,26 +294,25 @@ that, and an installer has to set it even though no state document carries it.
 
 ### The shop
 
-A state stores the shop's unlocked units and three counters, and they differ
-from what the replay holds.
+`unlocked_units` names each unit type the shop sells, by the name a unit's
+`name` gives, in ascending unit ID. `locked_units` is dropped because it is the
+complement against the build's unit catalogue. `MaxUnlockCount` is dropped
+because it is the shipped constant plus a modifier no standard 1v1 source
+provides.
 
-`unlocked_units` names each unit type by the name a unit's `name` gives,
-and lists them in ascending unit ID.
-
-`locked_units` is dropped because it is the complement of `unlocked_units`
-against the build's unit catalogue. `MaxUnlockCount` is dropped because it is
-the shipped constant plus a modifier no standard 1v1 source provides.
-
-The counters are stored as what is left, not as what was used, because that is
-the number a legality check reads. Each gates its decision directly: a buy, an
-unlock or a contraption release is refused when its counter has fallen to zero.
-
-A round opens with two purchases, one more for every Additional Deployment Slot
-(`10004`) the side holds, one unlock, and eight contraption releases, which
-[contraptions.md](../../rules/contraptions.md) states. None can be copied from a
-replay, for the same reason `supply` cannot: the recorded purchase and unlock
-counters describe the previous round, because the snapshot is taken before the
-round's own reset, and the record keeps no contraption counter at all.
+**A round's allowances are not state fields.** A round allows two purchases,
+one more for every Additional Deployment Slot (`10004`) the side holds, one
+unlock, and eight contraption releases, which
+[contraptions.md](../../rules/contraptions.md) states. Each is what the
+round's own decisions spend, and each opens at a value the side's officers
+fix. A state is the position a round opens with, so all three follow from its
+`officers`, and a reader sets them there; they describe a position in the
+middle of a round, after some of its decisions, and never cross from one round
+into the next. What a decision does to them, and when one is refused for
+spending past it, is [action.md](action.md)'s. The recorded counters could not
+be copied in any case: the purchase and unlock counters describe the previous
+round, because the snapshot precedes the round's own reset, and the record keeps
+no contraption counter at all.
 
 ### Officers and technologies
 
@@ -512,7 +507,7 @@ absent when its `current` is `0`.
 | `units`, `constructions`, `contraptions` | ascending `index` |
 | `officers` | ascending ID, a multiset |
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
-| `shop.unlocked_units` | ascending unit ID |
+| `unlocked_units` | ascending unit ID |
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
@@ -534,11 +529,10 @@ also have to admit.
 ## Rebuilding a state offline
 
 Most of a round's state can be read out of a replay without running the game.
-Five fields cannot be copied. Four are stale, because the snapshot precedes the
-round's own reset: `supply`, the two shop counters and each slot's `cooldown`
-state what stood before the round's income, allowances and count-down arrived.
-The fifth, `energy_tower_skills`, is not stale but a different quantity, and it
-is rebuilt from the round's actions.
+Three fields cannot be copied. Two are stale, because the snapshot precedes the
+round's own reset: `supply` and each slot's `cooldown` state what stood before
+the round's income and count-down arrived. The third, `energy_tower_skills`, is
+not stale but a different quantity, and it is rebuilt from the round's actions.
 
 The unit roster comes from the per-round player data rather than from the
 match-level fight report, because the first two rounds precede the first fight

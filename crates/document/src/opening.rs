@@ -634,8 +634,12 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .rounds
         .into_iter()
         .map(|round| {
-            let state = crate::battle::payload(round.state)
+            let mut state: crate::battle::State = crate::battle::payload(round.state)
                 .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
+            // A state segment is the position a round opens with, so its
+            // allowances are the ones the round opens with.
+            crate::transition::open_allowances(&mut state.blue);
+            crate::transition::open_allowances(&mut state.red);
             let actions = match round.actions {
                 Some(actions) => crate::battle::payload(actions).map_err(|error| {
                     format!("round {} actions are not readable: {error}", round.round)

@@ -250,14 +250,14 @@ things below.
 Those five stay hidden for good, not until the next round, because none of them
 reaches a board. A side that unlocks Fang in round 1 and buys none has shown
 nothing: the unlock is not in its decisions, the unlocked type is not in its
-shop, and in round 2 its Fangs arrive beside whatever else it deployed, with no
+`unlocked_units`, and in round 2 its Fangs arrive beside whatever else it deployed, with no
 warning that they could. That is the difference between a decision whose
 consequence stands on the board and one whose consequence is only an option:
 
 | Hidden | Why |
 | --- | --- |
 | the other side's `supply` | what a player can afford is what a player plans, and no board shows it |
-| the other side's `shop` | a unit type unlocked and never bought leaves nothing to see |
+| the other side's `unlocked_units` | a unit type unlocked and never bought leaves nothing to see |
 | its `unlock_unit` decisions, in every round | the same fact, said as a decision |
 | the header's `seed` | it deals this match: every opening and every round's offers follow from it |
 | each side's own header `seed`, the caller's included | it decides what an officer that draws hands out in every later round |

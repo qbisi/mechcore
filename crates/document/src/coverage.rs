@@ -46,7 +46,7 @@ const DEALT_FROM: &[&str] = &[
     "units.index",
     "units.name",
     "next_index.unit",
-    "shop.unlocked_units",
+    "unlocked_units",
     "techs",
     "officers",
 ];
