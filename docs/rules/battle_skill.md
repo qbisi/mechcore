@@ -5,8 +5,7 @@ can occur in standard 1v1 matches. Skills that require a unit or construction
 target, and configurations absent from standard 1v1, are outside the layout
 contract. A skill is a row of `CommanderSkillGroupData` in `level0`, whose
 list says what kind of skill it is (`damageCommanderSkills`,
-`supportUnitCommanderSkills`, `oilCommanderSkills` and the rest). The geometry
-and map rules below were measured on build 1.11.1.3.2259.
+`supportUnitCommanderSkills`, `oilCommanderSkills` and the rest).
 
 ## ID and type
 
@@ -57,9 +56,9 @@ may coexist. A document names them apart, as
 [`config/names.yaml`](../../config/names.yaml) does, and the compiler maps each
 name to its own ID. The two share one path and one cooldown.
 
-Build 2.0 adds Heavy Missile Strike (`300016`), a circle an officer hands out
-in place of two Missile Strikes, and Unit Recycle (`900010`), which targets a
-friendly unit. Neither is a layout type yet.
+Heavy Missile Strike (`300016`), a circle an officer hands out in place of two
+Missile Strikes, and Unit Recycle (`900010`), which targets a friendly unit,
+are not layout types yet.
 
 ## Effect geometry and target regions
 
@@ -97,7 +96,7 @@ that fight-time branch and always read the effective, preprocessed value.
 The native point-release check rejects a support skill when the Euclidean
 distance from its requested release center to either enemy tower's map-bound
 center is at most the tower's protection range
-(`towerDefaultDatas.protectionRange` on build 2.0) plus the skill's effective
+(`towerDefaultDatas.protectionRange`) plus the skill's effective
 `subEffectRange`. Shield Airdrop uses the native `AreaExtendExcludeCrystal`
 target type and the same threshold. These thresholds are derived from the
 check, not measured against coordinate boundaries in the Training Ground.
@@ -153,3 +152,42 @@ synthesize coordinates.
 | 1500001 | 移动信标 | Mobile Beacon | `mobile_beacon` |
 | 1500002 | 移动信标 | Mobile Beacon | `mobile_beacon_card` |
 <!-- /names -->
+
+## Evidence
+
+### Read
+
+- A skill's kind is the list of `CommanderSkillGroupData` holding its row:
+  `CommanderSkillGroupData.damageCommanderSkills`,
+  `CommanderSkillGroupData.supportUnitCommanderSkills`,
+  `CommanderSkillGroupData.wayPointCommanderSkills`.
+- A side's skills are a list the manager appends to without looking for one of
+  the same ID: `CommanderSkillManager.AddCommanderSkill`.
+- A `CircleSingle` row has its sub-effect radius set to its effect radius and
+  its sub-effect count to one before use: `CommanderSkillData.PreProcess`,
+  `CommanderSkillEffectRangeType.CircleSingle`.
+- A line's width is the row's `subEffectRange`, split evenly either side:
+  `ReleaseCommanderSkillController.CanRelease`, `LineRange.width`.
+- A support skill spawns within its `subEffectRange` only when it summons two
+  or more: `CS_SupportUnit.CreateSubEffectController`,
+  `CSD_SupportUnit.maxCount`.
+- A support skill or Shield Airdrop is refused within the enemy tower's
+  protection range plus its `subEffectRange`:
+  `CommanderSkillManager.CanReleaseCommanderSkill`,
+  `TowerDefaultData.protectionRange`, `CommanderSkillData.subEffectRange`,
+  `CommanderSkillTargetType.AreaExtendExcludeCrystal`.
+- A skill states how many positions it takes:
+  `CommanderSkillBase.GetEffectPositionCount`,
+  `CS_WayPoint.GetEffectPositionCount`.
+
+### Not established
+
+- **The `contained`, `center` and `overlap` map rules.** They were measured
+  against the Training Ground's refusals in another version, and no test pins
+  them; the region check they come from is not read.
+- **The tower threshold's boundary.** It is derived from the check, not
+  measured against coordinates in the Training Ground.
+- **Which skills a match can deal.** The table is the layout contract's, and
+  which of its skills a standard match reaches is
+  [reinforce_items.md](reinforce_items.md)'s and
+  [`config/economy.yaml`](../../config/economy.yaml)'s.

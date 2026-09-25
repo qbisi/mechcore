@@ -212,7 +212,7 @@ def check_rules_evidence(fail):
 # not established. docs/README.md says why. The documents not yet written that
 # way are listed here, and leave the list as they are.
 RULES_PENDING = {
-    "battle_skill.md", "combat.md", "constructions.md",
+    "combat.md", "constructions.md",
     "officer_effects.md", "officers.md",
     "reinforcements.md",
     "unit_techs.md",
@@ -223,10 +223,13 @@ TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
 
 
 def evidence_items(text):
-    """{part: [item text]} for the `## Evidence` section, or None without one."""
+    """{part: [item text]} for the `## Evidence` section, or None without one
+    or when another section follows it."""
     parts, section, part = {}, None, None
     for line in text.splitlines():
         if line.startswith("## "):
+            if section == "Evidence":
+                return None
             section = line[3:].strip()
             part = None
         elif section == "Evidence" and line.startswith("### "):
