@@ -5,8 +5,8 @@
 #   mechcore run tests/units/skill-state.mcscript           record
 #
 # Re-records four standard fights with the `target_refs_v1` instrumentation,
-# whose sidecar holds, per unit and tick, the main skill's state and the
-# rotation of the mech's body, which the MCFR does not carry. They are the
+# whose sidecar holds, per unit and tick, the main skill's state, beside the
+# turret's rotation the recording itself carries. They are the
 # fights that showed that leaving `SkillIdleState` waits a tick before the
 # blow, and that an idle skill keeps its lock only while it can fire at it:
 # the Fortress's weapons turning onto a Crawler, a Sledgehammer and a Typhoon

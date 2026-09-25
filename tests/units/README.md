@@ -179,8 +179,8 @@ unit does nothing, a beam with a splash strikes everything in it, leaving the
 idle state waits a tick before the blow, and an idle skill keeps its lock only
 while it can fire at it. The last two were read off
 [`skill-state.mcscript`](skill-state.mcscript), which records four of the
-fights with each skill's state and the rotation of its mech body, which the
-MCFR does not carry: the attack angle is measured from that rotation, and it
+fights with each skill's state beside the turret's rotation, which the MCFR
+now carries as `turret_rotation`: the attack angle is measured from it, and it
 showed the game turning exactly as the simulator did and parting only on the
 state change.
 

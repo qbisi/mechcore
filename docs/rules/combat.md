@@ -276,7 +276,8 @@ new target and re-enters Move only afterwards.
 In the ordinary main-skill attack turn branch with `isHaveBody=true`, a Marksman
 or Arclight passes the same direction local, from a single
 `CalculateTargetDirection`, to both the mech body and the main weapon. So
-`independent_aim=false`, and the mech body is not an MCFR unit root.
+`independent_aim=false`, and the mech body is not an MCFR unit root: a
+recording carries it as the unit's `turret_rotation`.
 
 ## Endgame ordering of a 1v1 direct kill
 
