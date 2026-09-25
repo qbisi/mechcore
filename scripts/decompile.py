@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Decompile the installed game into work/decomp/<build>, whatever its build.
 
-    scripts/decompile.py [--game APP] [--build NAME] [--force STEP[,STEP...]]
+    scripts/decompile.py [--game APP] [--force STEP[,STEP...]]
 
 `scripts/decomp.py sync` fetches a build someone already decompiled; this makes
 one. It reads the build number from the game itself, fetches any tool it lacks
@@ -587,7 +587,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--game", type=pathlib.Path, default=pathlib.Path(os.environ.get("MECHABELLUM_APP", DEFAULT_GAME)))
     parser.add_argument("--force", default="", help="steps to redo, comma separated, or all")
-    parser.add_argument("--build", help="the directory under work/decomp; the game's version string by default")
     arguments = parser.parse_args()
     app = arguments.game
     if not (app / "Contents/Info.plist").exists():
@@ -597,19 +596,21 @@ def main():
         fail(f"unknown steps {', '.join(sorted(force - set(STEPS)))}; the steps are {', '.join(STEPS)}")
 
     build, unity = game_identity(app)
-    name = arguments.build or build
-    out = DECOMP / name
-    work = ROOT / "work" / "inputs" / name
-    # A directory made from other game files is not this game's, whatever
-    # version string both carry; reusing it would skip every step.
+    out = DECOMP / build
+    work = ROOT / "work" / "inputs" / build
+    # One version is one set of rules, so a version has one directory. Steam
+    # can still ship new files under it; a directory made from other files is
+    # not reused step by step, which would keep the old dump, but replaced
+    # whole when asked to.
     manifest_path = out / "game-manifest.json"
-    if manifest_path.exists():
-        made_from = {a["path"]: a["sha256"] for a in json.loads(manifest_path.read_text())["artifacts"]}
+    if manifest_path.exists() and force != set(STEPS):
+        made = json.loads(manifest_path.read_text())
+        made_from = {a["path"]: a["sha256"] for a in made["artifacts"]}
         installed = {str(path.relative_to(app)): sha256(path) for path in artifacts(app).values()}
         if made_from != installed:
-            steam = steam_build(app) or {}
-            fail(f"{out} was made from other game files than {app} (Steam build "
-                 f"{steam.get('buildid')}); pass --build to decompile this one elsewhere")
+            fail(f"{out} was made from other files of {build} (Steam build "
+                 f"{(made.get('steam') or {}).get('buildid')}, installed "
+                 f"{(steam_build(app) or {}).get('buildid')}); --force all replaces it")
     out.mkdir(parents=True, exist_ok=True)
     work.mkdir(parents=True, exist_ok=True)
     say(f"build {build}, Steam build {(steam_build(app) or {}).get('buildid')}, Unity {unity}, into {out}")
