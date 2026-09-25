@@ -212,7 +212,7 @@ def check_rules_evidence(fail):
 # not established. docs/README.md says why. The documents not yet written that
 # way are listed here, and leave the list as they are.
 RULES_PENDING = {
-    "combat.md", "constructions.md",
+    "combat.md",
 }
 EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
 ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
