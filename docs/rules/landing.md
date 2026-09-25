@@ -1,11 +1,10 @@
 # Landing
 
-Where the board puts a
-unit that no decision places: a purchase, a reinforcement card's squads,
-an opening's force, and an officer's delivery. A battle states where a
-purchase's moves end, so it reads this rule only for the other three. [`action.md`](../spec/document/action.md) and
-the round-opening deliveries of [`battle.md`](../spec/document/battle.md) rest
-on it. The replays behind it are build 1.11.1.3.2259's.
+Where the board puts a unit that no decision places: a purchase, a
+reinforcement card's squads, an opening's force, and an officer's delivery. A
+battle states where a purchase's moves end, so it reads this rule only for the
+other three. [`action.md`](../spec/document/action.md) and the round-opening
+deliveries of [`battle.md`](../spec/document/battle.md) rest on it.
 
 ## The rule
 
@@ -30,9 +29,9 @@ unit, construction or contraption already on it, and neither of the side's
 towers, with positive area; edges may touch, and a shield or missile takes no
 part. A tower occupies the square of its `MapData` radius around its centre,
 both of which [`config/towers.yaml`](../../config/towers.yaml) states: a
-placement on it is refused as `RegionLimit`. A unit's footprint
-exchanges width and height when it is rotated. Squads handed out together land
-one at a time, each clear of the ones before it.
+placement on it is refused as `RegionLimit`. A unit's footprint exchanges width
+and height when it is rotated. Squads handed out together land one at a time,
+each clear of the ones before it.
 
 ## What the game does
 
@@ -46,17 +45,26 @@ position, preferring that one. That method walks every grid position of the
 region in steps of ten, `x` outer and `y` inner, keeps those
 `MapRegion.IsAvailible` accepts, and returns the one whose distance to the
 preferred position is strictly least. `MapRect.Overlaps` compares strictly, so
-touching rectangles do not overlap. All of this is read from the build's
-IsilDump.
+touching rectangles do not overlap.
 
 ## Evidence
 
-The rule was checked against the 2259 replay corpus in mechcore-replay:
-it places every unit that arrived without a purchase (card squads, opening
-forces and officer deliveries, some landing clear of units already at the
-centre) exactly where the game did, and every purchase where the round had
-reached when it was bought. With the rule in place of the recorded landings,
-`scripts/verify-battles.py` still closes every decision and deployment it
-checks.
+### Read
 
-The rule has not been observed on a full region, where no free position exists.
+- A new unit's preferred position is the region's centre with its corner
+  aligned to the grid: `TerritoryManager.GetAvailiblePositionForNewActor`,
+  `MapUtility.WorldToGrid`.
+- Alignment rounds half to even: `FPoint.RoundToInt`, `FPoint.Round`.
+- The free position is the nearest one, walking `x` outer and `y` inner, the
+  first found winning a tie: `MapRegion.GetAvailiblePositionForElement`,
+  `MapRegion.IsAvailible`.
+- Touching rectangles do not overlap: `MapRect.Overlaps`.
+
+### Not established
+
+- **That every arrival lands where the rule says.** Card squads, opening forces
+  and officer deliveries, some of them landing clear of units already at the
+  centre, were placed exactly where the game placed them in another version's
+  corpus, and every purchase where the round had reached when it was bought.
+  This version's corpus is not replayed yet: `scripts/verify-battles.py`.
+- **A full region.** No recording has shown a region with no free position.

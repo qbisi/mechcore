@@ -1,7 +1,6 @@
 # Commander skill cooldowns
 
-How a commander skill's cooldown counts, per skill and per round. The replays
-behind this rule are build 1.11.1.3.2259's.
+How a commander skill's cooldown counts, per skill and per round.
 
 [`config/commander_skills.yaml`](../../config/commander_skills.yaml) holds each
 skill's two cooldowns in rounds, which `scripts/extract_prices.py` reads out of
@@ -20,16 +19,30 @@ Mobile Beacon, can be spent every round.
 A replay's snapshot of a round is taken before that round's count-down, so the
 cooldowns it records are the previous round's.
 
-Build 2.0 starts some skills on a cooldown when they join (Nuke, Lightning
-Storm and Ion Bombardment at 1, where 2259 started every skill at 0), and gives
-Unit Recycle a `releaseInterval` of -1. The getter is inlined wherever it is
-read, so what -1 does is not read; the rule above is not stated for it.
+Some skills join the panel already cooling down, with an `initial_cooldown`
+above 0, and one, Unit Recycle, has a `cooldown` of -1. The getter is inlined
+wherever it is read, so what -1 does is not read, and the rule above is not
+stated for it.
 
 ## Evidence
 
-The rule was checked against the 2259 replay corpus in mechcore-replay:
-a spent skill shows its `cooldown` as the next round opens, an unspent slot
-drops by one, and a slot joins at its `initial_cooldown`. With the round-opening
-shop allowance and equipment income, it reproduces the native opening of every
-side-round `scripts/verify-battles.py` replays. A skill the corpus never spends
-has its cooldowns read, not observed.
+### Read
+
+- A skill's two cooldowns are its row's `initialCoolDown` and
+  `releaseInterval`: `CommanderSkillData.initialCoolDown`,
+  `CommanderSkillData.releaseInterval`.
+- A skill is in its initial cooldown while its `initialCoolDown` is above 0
+  and fewer rounds than that have passed since the round it joined the panel:
+  `CommanderSkillBase.IsInInitialCoolDown`.
+
+### Not established
+
+- **The count-down and the restart.** A spent skill showing its `cooldown` as
+  the next round opens, an unspent slot dropping by one, and a slot joining at
+  its `initial_cooldown` were replayed on another version's corpus, together
+  with the round-opening shop allowance and equipment income. This version's
+  corpus is not replayed yet: `scripts/verify-battles.py`.
+- **A skill with an `initial_cooldown` above 0 in a replay.** The build reads
+  it, as above; no replay has shown one join the panel yet.
+- **A `cooldown` of -1.** What it does is not read.
+- **A skill the corpus never spends.** Its cooldowns are read, not observed.

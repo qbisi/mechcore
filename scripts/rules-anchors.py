@@ -34,7 +34,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 RULES = ROOT / "docs" / "rules"
 ANCHOR = re.compile(r"`([A-Z][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)`")
 # What moves between two builds without the logic moving: addresses, jump
-# targets, and field offsets, which shift whenever a class gains a field.
+# targets, field offsets, which shift whenever a class gains a field, and the
+# padding (`Nop`) between methods.
 ADDRESS = (re.compile(r"0x[0-9A-Fa-f]{4,}"), re.compile(r"\b[0-9A-Fa-f]{6,}h\b"), re.compile(r"\{\d+\}"),
            re.compile(r"(?<=\[)(r\w+|stack)\+\d+(?=[\]+])"))
 DECLARATION = re.compile(r"^\s*(?:public|private|protected|internal)\b")
@@ -100,7 +101,8 @@ class Dump:
                 body = []
                 for line in section.splitlines():
                     matched = re.match(r"\s*\d{3} (.*)", line)
-                    if matched and "initialize_runtime_metadata" not in line:
+                    if matched and "initialize_runtime_metadata" not in line \
+                            and matched.group(1).strip() != "Nop":
                         text = matched.group(1)
                         for pattern in ADDRESS:
                             text = pattern.sub("A", text)

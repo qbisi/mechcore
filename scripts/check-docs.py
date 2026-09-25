@@ -212,8 +212,8 @@ def check_rules_evidence(fail):
 # not established. docs/README.md says why. The documents not yet written that
 # way are listed here, and leave the list as they are.
 RULES_PENDING = {
-    "battle_skill.md", "combat.md", "commander_skills.md", "constructions.md",
-    "equipment.md", "equipment_effects.md", "landing.md", "map.md", "mobility.md",
+    "battle_skill.md", "combat.md", "constructions.md",
+    "equipment.md", "equipment_effects.md", "map.md",
     "officer_effects.md", "officers.md", "opening.md", "reinforce_items.md",
     "reinforcements.md", "technology_effects.md", "terrain.md", "towers.md",
     "unit_experience.md", "unit_levels.md", "unit_techs.md", "visibility.md",
