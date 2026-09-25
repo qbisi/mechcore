@@ -209,11 +209,7 @@ def check_rules_evidence(fail):
 
 # A rules document ends in `## Evidence`: what a recording pinned under tests/
 # shows, what was read from the build and the members it rests on, and what is
-# not established. docs/README.md says why. The documents not yet written that
-# way are listed here, and leave the list as they are.
-RULES_PENDING = {
-    "combat.md",
-}
+# not established. docs/README.md says why.
 EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
 ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
 TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
@@ -241,8 +237,6 @@ def evidence_items(text):
 
 def check_rules_evidence_sections(fail):
     for path in sorted((REPO / "docs" / "rules").glob("*.md")):
-        if path.name in RULES_PENDING:
-            continue
         name = path.relative_to(REPO)
         parts = evidence_items(path.read_text())
         order = [part for part in EVIDENCE_PARTS if part in (parts or {})]
@@ -271,18 +265,15 @@ def check_rules_evidence_sections(fail):
 # The game version is written once, in GAME_VERSION; everything else reads it.
 # A five-part version string, or a build named by number, anywhere else is a
 # second pin that nothing keeps in step. plan.md is the migration's own record.
-# A rules document still pending its evidence section is exempt, as it may
-# still say which version its evidence came from.
 VERSION_PIN = re.compile(r"\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b|\b[Bb]uild[- ][0-9]{3,}\b")
 VERSION_WRITERS = {"GAME_VERSION", "plan.md"}
-VERSION_PENDING = tuple(f"docs/rules/{name}" for name in RULES_PENDING)
 
 
 def check_version_pins(fail):
     listed = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
                             capture_output=True).stdout.decode().split("\0")
     for name in filter(None, listed):
-        if name in VERSION_WRITERS or name.startswith(VERSION_PENDING):
+        if name in VERSION_WRITERS:
             continue
         try:
             text = (REPO / name).read_text()
