@@ -133,8 +133,65 @@ unit's own damage or motion:
   presearched Crawler stands 6 Q32 units (1.4 nm) to its left faces +0.245°
   in the game, as it would with no offset, and −0.245° in the simulator,
   until it first moves. `AcosFastest(1)` is not zero, so the offset's sign
-  picks the side. Steel Ball's and Stormcaller's M6 with seed 4242.
+  picks the side. Steel Ball's and Stormcaller's M6 with seed 4242. The
+  build's `FightUtility.ConvertToAngle` takes `360 - angle` for a direction
+  whose x is negative, as the simulator does, so the game's direction at
+  presearch has an x of zero or more where the simulator's is −6: the
+  positions it is taken between are what differ, and they are not read.
 - **The Wraith's grouped search.** Each of the Wraith's weapons searches
   for its own target, and the simulator answers a different one: M2, M3 and
   M6 part on a weapon's target or a released projectile. M6 with seed 4242
   redistributes a live lock by attack count, which the simulator refuses.
+
+## The eighteen released together
+
+Every other unit but the three that cost 800 (War Factory, Abyss, Mountain)
+was released to the simulator at once, and recorded in its six layouts with
+both seeds before any of it was fixed: 216 recordings. Sandworm is not among
+them, as its configuration cannot state a unit that burrows. Five units are
+refused by name, for a main skill the kernel has no way to fire: Hacker's
+control beam, Raiden's and Vortex's grouped fusillade, and the Farseer's and
+Overlord's projectiles, which climb before they fly.
+
+Of the other 156 fights, 146 play back exactly and are pinned:
+
+| Unit | Pinned of 12 |
+| --- | ---: |
+| centurion | 12 |
+| sabertooth | 12 |
+| scorpion | 12 |
+| tarantula | 12 |
+| void_eye | 12 |
+| vulcan | 12 |
+| fire_badger | 11 |
+| fortress | 11 |
+| melting_point | 11 |
+| sledgehammer | 11 |
+| hound | 10 |
+| phantom_ray | 10 |
+| typhoon | 10 |
+
+Five mechanisms the recordings exposed were fixed on the way, each named in
+[`combat.md`](../../docs/rules/combat.md): a weapon is named by its index, a
+projectile that follows its target keeps its offset, a single weapon lands its
+offsets last drawn first, a projectile in simulated motion that lands on a dead
+unit does nothing, and a beam with a splash strikes everything in it.
+
+The ten that part:
+
+| Unit | Layout | Seed | Parts at | On |
+| --- | --- | ---: | ---: | --- |
+| hound | `m3-crawler` | 4242 | 9 | facing a target dead ahead |
+| hound | `m6-formations` | 4242 | 9 | facing a target dead ahead |
+| fire_badger | `m6-formations` | 1787720817 | 9 | facing a target dead ahead |
+| phantom_ray | `m3-crawler` | 1787720817 | 1 | facing a target dead ahead |
+| phantom_ray | `m3-crawler` | 4242 | 176, content only | a weapon's attack target, not read |
+| sledgehammer | `m3-crawler` | 1787720817 | 177 | an attack begun from idle after a kill fires a tick early |
+| typhoon | `m6-formations` | 4242 | 111 | an attack begun from idle after a kill fires a tick early |
+| typhoon | `m3-crawler` | 1787720817 | 148 | a released projectile, not read |
+| fortress | `m3-crawler` | 1787720817 | 382 | a released projectile, not read |
+| melting_point | `m6-formations` | 1787720817 | 184 | a lock target at 177, not read |
+
+A Sledgehammer or Typhoon whose target is killed goes idle for a tick, locks
+another, and in the game fires three ticks after the lock, where the simulator
+fires two.

@@ -190,6 +190,30 @@ A Marksman or Arclight single ordinary projectile refreshes the target root Q32
 position every tick where `isLockTarget=true`, the target is alive and moving,
 and `randomTargetRange=0` with zero offset.
 
+**A projectile that follows its target keeps its offset.** A burst draws every
+projectile's offset within `randomTargetRange` when it begins. A projectile of
+a skill with `isLockTarget=true` lands its offset from wherever the live target
+stands: it is released at the target's position then plus its offset, and its
+target point follows the target with the offset kept. The second of a Phantom
+Ray's two projectiles, released 0.3 seconds after the first, lands its offset
+from where a charging Rhino stands by then. A target already dead when the
+projectile is released is not followed: the projectile goes to the point the
+burst aimed it at when it began.
+
+**A single weapon lands its offsets last drawn first.** A Phantom Ray's first
+projectile lands the second offset its burst drew, and its second the first.
+
+**A projectile in simulated motion that lands on a dead unit does nothing.** A
+skill with `isSimulateMode=true` whose projectile arrives after its target died
+deals no damage, splash included: a Fire Badger's or a Typhoon's shot at a
+Crawler another shot killed while it flew leaves the Crawlers beside it
+untouched. Any other projectile still strikes where it lands, as an Arclight's
+does.
+
+**A weapon is named by its index.** A skill's weapons carry their own index in
+the build, and a recording names a weapon aim and a projectile release by it: a
+Hound's one weapon is index 2, a Sabertooth's two are 0 and 2.
+
 ## Damage and death
 
 `ReduceLife` clamps the life actually lost to `min(currentLife, incomingDamage)`.
@@ -198,6 +222,10 @@ With no technology, equipment, dynamic buff or shield involved, a level-1
 Arclight centres target selection on the projectile transform, takes everything
 inside the radius, and records the sum of life actually lost across those
 targets as one Damage event on the primary target.
+
+A beam with a splash strikes as any other hit does: a Melting Point's beam at
+one Crawler takes the Crawlers around it too, in the order the target trees
+hold them. A Steel Ball's beam has no splash and strikes its target alone.
 
 A Rhino's main skill, under those same baseline constraints and as a
 single-target direct effect, reaches its description's damage through
@@ -291,6 +319,11 @@ not the game's native attack-type enum.
   ordinary fights: `tests/regression/simulate.mcscript`.
 - A unit's personal shield enabled with no shield of its own:
   `tests/units/regressions.mcscript`.
+- A following projectile's offset, the order a single weapon lands its
+  offsets, a simulated-motion shot at a dead unit, a weapon's index, and a
+  splashing beam, in the standard fights of the Phantom Ray, Fire Badger,
+  Typhoon, Hound, Sabertooth and Melting Point:
+  `tests/units/regressions.mcscript`.
 
 ### Read
 
@@ -344,8 +377,13 @@ not the game's native attack-type enum.
   of wall blockers, and the derivation of the group's prepare offset.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
-- **Projectiles**: non-locking projectiles, a dead target, a non-zero random
-  offset, interception, and every other projectile type.
+- **Projectiles**: why a projectile in simulated motion spares a dead unit's
+  neighbours, which is recorded and not read; a projectile that climbs before
+  it flies (`preFlyHeight`), which the simulator refuses; interception; and
+  every other projectile type.
+- **An attack begun from idle after a kill.** A Sledgehammer or Typhoon whose
+  target is killed, which goes idle for a tick and locks a new one, fires a
+  tick later in the game than in the simulator.
 - **Damage**: building splash, area boundary and ordering, modifier chains,
   shields, and other providers or target domains.
 - **A personal shield's** activation, absorption and destruction.

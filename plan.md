@@ -10,11 +10,11 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 ## 离真实对局还有多远
 
 `scripts/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `fight run`，
-模拟器一次报出这份 layout 被拒的全部理由。2.0 语料 287 回合，接受 0 回合：**每一回合都有
-内核没有行为的单位**，其次才是模块（物件 `InterceptSystem` 142 回合、战场技能
-`CommanderSkillSystem` 116、能量塔技能 `BuildingSystem` 84、空投中的单位 43）、装备过了
-第 1 回合的耐久、炮塔技能与军官科技的关系，以及几个单独的军官、科技、装备字段。所以先
-做单位。
+模拟器一次报出这份 layout 被拒的全部理由。2.0 语料 287 回合，接受 12 回合。挡得最多的是
+模块（物件 `InterceptSystem` 142 回合、战场技能 `CommanderSkillSystem` 116、能量塔技能
+`BuildingSystem` 84、空投中的单位 43）、vortex 的分组齐射（112）、炮塔技能与军官科技的关系、
+装备过了第 1 回合的耐久，以及几个单独的军官、科技、装备字段。按清除后放行最多的顺序，第一个
+是 vortex 的分组齐射。
 
 ## 主线：单位的无科技模拟
 
@@ -40,28 +40,38 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 达标的单位把全套布阵落在 [`tests/units/`](tests/units/README.md)。
 
-### 现状
-
-2.0 上 11 个单位有全套布阵：四个参照单位 44 场全部钉住；arclight、fang、mustang、
-steel_ball、wraith、stormcaller、phoenix 84 场钉住 76 场，没对上的挂在两处机制上
-（正前方目标的朝向正负号、wraith 的分组搜索）。
-
 ### 做法：一起放行，批量录，看缺口
 
-不再一个一个加。除了三个 800 费用的单位（war_factory、abyss、mountain），所有单位同时
-放行：内核不再按白名单挑单位，有配置就进战斗；配置表达不了的主技能形状（控制光束、
-分组齐射、不走地面网格的移动）按名拒绝。新放行的 18 个单位各有六个标准布阵，两个种子
-批量录制，再逐场与模拟器逐字段比较，按第一处分叉归到机制上。一个机制修好，所有卡在它上面
-的单位一起前进。
+不再一个一个加：所有单位同时放行，内核不再按白名单挑单位，有配置就进战斗；配置表达不了的主
+技能形状按名拒绝。批量录制，逐场与模拟器逐字段比较，按第一处分叉归到机制上。一个机制修好，
+所有卡在它上面的单位一起前进；每修一个，重跑全部录像，对上的钉进
+`tests/units/regressions.mcscript`，已有的钉子一直要过。
 
-1. **放行并录制。** 12 个已有配置的单位（hound、vortex、sabertooth、void_eye、tarantula、
-   sledgehammer、fire_badger、phantom_ray、scorpion、typhoon、farseer、hacker）和 6 个新
-   抽取配置的单位（fortress、vulcan、melting_point、overlord、raiden、centurion）；
-   sandworm 会钻地，配置先不收。216 场。
-2. **归类缺口。** 每场一行：被拒的理由，或第一处分叉的字段和 tick。同一机制的分叉合并，
-   按卡住的单位数排序。
-3. **逐个机制修。** 每修一个，重跑全部 216 场，对上的钉进 `tests/units/regressions.mcscript`。
-   参照单位与已有 11 个单位的钉子一直要过。
+### 现状
+
+2.0 上 29 个单位有全套布阵，266 场钉住（`tests/units/regressions.mcscript`）：
+
+- 四个参照单位 44 场全部钉住；arclight、fang、mustang、steel_ball、wraith、stormcaller、
+  phoenix 84 场钉住 76 场。
+- 其余单位除三个 800 费用的（war_factory、abyss、mountain）一起放行，216 场批量录制：
+  hacker（控制光束）、raiden 和 vortex（分组齐射）、farseer 和 overlord（先爬升再飞的弹丸）
+  按名拒绝；其余 156 场钉住 146 场。centurion、sabertooth、scorpion、tarantula、void_eye、
+  vulcan 12 场全对。sandworm 会钻地，配置表达不了，没录。
+- 批量录像顺带修好五条机制（写在 `docs/rules/combat.md`）：武器按原生下标命名；跟随目标的
+  弹丸保留随机偏移，目标已死时落向齐射开始时瞄的点；单武器的偏移后抽先落；模拟运动的弹丸
+  落在已死单位上什么也不做；带溅射的光束打溅射范围内所有目标。
+
+没对上的按机制归类，按卡住的单位数排：
+
+1. **正前方目标的朝向正负号。** steel_ball、stormcaller、hound、fire_badger、phantom_ray
+   都卡在这里。`FightUtility.ConvertToAngle` 的符号规则与模拟器相同，差在预搜索时取方向的
+   两个位置；要一段带技能状态的录制读出来。
+2. **击杀后从空闲重新开火的时机。** sledgehammer、typhoon：目标被杀、空闲一 tick、锁定下一个
+   之后，游戏在锁定后第 3 tick 开火，模拟器第 2 tick。
+3. **wraith 的分组搜索。**
+4. 未读的零散分叉：typhoon、fortress 各一场的弹丸释放，melting_point 一场的锁定目标，
+   phantom_ray 一场的武器攻击目标（只差内容层）。
+5. **被拒的主技能形状**：控制光束、分组齐射、先爬升的弹丸，各自一个机制。
 
 ### 换版本留下的尾巴
 
