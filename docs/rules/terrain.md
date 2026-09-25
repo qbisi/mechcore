@@ -1,8 +1,7 @@
 # Dynamic terrain
 
 How the build creates, shapes and ends the in-battle area effects that
-`RangeItemSystem` manages. The recordings behind it are build 1.11.1.3.2259's;
-the call chains named below are the same in build 2.0.0.1.2324's dump.
+`RangeItemSystem` manages.
 
 Map decoration, deployment footprints and unit movement collision are not area
 effects and are not here. Neither are the specific radii, effect clocks and
@@ -16,8 +15,8 @@ The authoritative object is a `RangeItem`. `RangeItemSystem` provides one
 `RangeItemController.GetItems()` returns the set that currently exists. That set
 is authoritative: an object is in play exactly while it is a member.
 
-Six native types exist: `fire`, `oil`, `fog`, `acid`, `recovery_zone` and
-`fog_sand`. Four are the deployable battle skills, the incendiary bomb being
+`RangeItemType` has six values, which a recording spells `fire`, `oil`, `fog`,
+`acid`, `recovery_zone` and `fog_sand`. Four are the deployable battle skills, the incendiary bomb being
 `fire`, the sticky oil bomb `oil`, the smoke bomb `fog` and the acid bomb
 `acid`. What `recovery_zone` and `fog_sand` do is not established.
 
@@ -51,7 +50,7 @@ graph.
 
 An affected relation may carry a periodic clock, `{elapsed, duration}`, which a
 repeating effect needs and a continuous correction such as a sustained slow does
-not. In the recorded fire and acid controllers, `elapsed` advances once per
+not. In fire and acid controllers as recorded, `elapsed` advances once per
 logic advance and wraps to zero after `duration`. These counters therefore use
 the recording's `DurableContext.logic_step`, not its separate
 `time_units_per_second` scale; [mcfr.md](../spec/mcfr/mcfr.md) defines the file
@@ -73,7 +72,7 @@ happens at the read boundary, so a consumer never sees the native layout.
 `RangeItemEffectLayerGrid.GenerateGrid` calls
 `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
 `FightEnergyShield.GetFightTransform` and `FightEnergyShield.GetRadius`, then
-`GridBlockInt.TryDisableGrid`, `GenerateMask` and `Sync`. Grid generation
+`GridBlockInt.TryDisableGrid`, `RefreshMask` and `Sync`. Grid generation
 therefore reads the live battlefield shields and subtracts the cells that fall
 inside one.
 
@@ -125,12 +124,42 @@ order. A non-empty grid must overwrite both the native `Queue<ByteMask>` and
 deserialise a final state: it only subtracts further cells from a grid that
 already exists.
 
-## What is not established here
+## Evidence
 
-- The effect any type has on a unit, beyond that an affected set exists.
-- Any radius, effect clock or lifetime. They vary by source, and two sources of
-  one type can differ, so no value derives from a type.
-- `recovery_zone` and `fog_sand` behaviour.
-- Whether a native producer for a type conversion within one identity exists.
-- Whether a technology projectile is the cause of the terrain it coincides with,
-  as opposed to a reliable correlate of it.
+### Read
+
+- A terrain is in play exactly while its controller's set holds it:
+  `RangeItemController.GetItems`.
+- There are six terrain types: `RangeItemType.Fire`, `RangeItemType.Oil`,
+  `RangeItemType.Fog`, `RangeItemType.Acid`, `RangeItemType.RecoveryZone`,
+  `RangeItemType.FogSand`.
+- A battle skill's ground impact adds its terrain directly:
+  `RangeItemEffectController.PerformEffect`, `RangeItemSystem.AddItem`.
+- The affected set is refreshed each update from target validity and a
+  two-dimensional range: `RangeItemController.Update`,
+  `RangeItemController.UpdateAffectedActorChange`, `FightActor.IsValidTarget`.
+- A grid subtracts the live battlefield shields:
+  `RangeItemEffectLayerGrid.GenerateGrid`,
+  `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
+  `FightEnergyShield.GetRadius`, `GridBlockInt.TryDisableGrid`,
+  `GridBlockInt.RefreshMask`, `GridBlockInt.Sync`.
+- A line of centres is generated from its stored endpoints:
+  `CommanderSkillManager.CalculateAttackPositions`.
+
+### Not established
+
+- **What a type does to a unit**, beyond that an affected set exists; which
+  effect runs is a virtual dispatch the static call graph does not decide.
+- **Any radius, effect clock or lifetime.** They vary by source, and two sources
+  of one type can differ, so no value derives from a type.
+- **The periodic clock.** That fire's and acid's `elapsed` advances once per
+  logic advance and wraps after `duration` was seen in another version's
+  recordings, which no test pins.
+- **The native grid's orientation.** That `GridBlockInt.grids` holds x as
+  columns with y in the high bits is what the Adapter's read assumes and what
+  recorded grids agreed with; the grid methods were not read for it.
+- **`recovery_zone` and `fog_sand` behaviour.**
+- **A type conversion within one identity**: whether a native producer for one
+  exists.
+- **A technology projectile's terrain.** Whether the projectile causes the
+  terrain it coincides with, as opposed to being a reliable correlate of it.

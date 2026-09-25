@@ -82,9 +82,13 @@ class Dump:
     def declarations(self, cls, member):
         found = []
         for stub in self.stubs.get(cls, []):
-            for line in stub.read_text(errors="replace").splitlines():
+            text = stub.read_text(errors="replace")
+            # An enum's values are declared bare, as `Name = 0,`.
+            enum = re.search(rf"\benum {re.escape(cls)}\b", text)
+            for line in text.splitlines():
                 code = line.split("//")[0]
-                if DECLARATION.match(line) and re.search(rf"\b(get_|set_)?{re.escape(member)}\b\s*[(;{{=]", code):
+                if DECLARATION.match(line) and re.search(rf"\b(get_|set_)?{re.escape(member)}\b\s*[(;{{=]", code) \
+                        or enum and re.match(rf"\s*{re.escape(member)}\s*=", code):
                     found.append(" ".join(code.split()))
         return found
 

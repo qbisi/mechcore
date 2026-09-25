@@ -214,7 +214,7 @@ def check_rules_evidence(fail):
 RULES_PENDING = {
     "battle_skill.md", "combat.md", "constructions.md",
     "officer_effects.md", "officers.md",
-    "reinforcements.md", "terrain.md",
+    "reinforcements.md",
     "unit_techs.md",
 }
 EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
