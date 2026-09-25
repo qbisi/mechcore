@@ -414,7 +414,14 @@ impl Simulation {
             actor.target_query_x_q32 = actor.x_q32;
             actor.target_query_z_q32 = actor.z_q32;
             actor.target_query_source_rotation_q32 =
-                if actor.rules.has_body || actor.rules.attack.weapons.mode == WeaponMode::Group {
+                // A grouped unit's weapons turn on their own only at a speed
+                // of their own: a Wraith's at 90° a second against its body's
+                // 120°. A Vortex's single weapon has none and scores from the
+                // root, as its periodic search in `m6-formations` reads.
+                if actor.rules.has_body
+                    || (actor.rules.attack.weapons.mode == WeaponMode::Group
+                        && actor.rules.attack.weapons.rotation_speed.is_some())
+                {
                     actor
                         .skill
                         .weapon_rotations_q32

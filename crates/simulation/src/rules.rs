@@ -507,6 +507,9 @@ impl UnitConfig {
                 },
                 _,
             ) if *pre_flight_height != 0.0 => "fires projectiles that climb before they fly",
+            // A group of one weapon fires one blow whatever its topology
+            // says: a Vortex's is a single direct weapon.
+            (_, WeaponMode::Group) if weapons.count() == 1 => return Ok(()),
             (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
                 "fires its grouped weapons as a fusillade"
             }
@@ -1032,19 +1035,26 @@ mod tests {
         assert_eq!(stats.laser_damage(rules, usize::MAX), 2_604);
     }
 
-    /// The kernel fires projectiles, blows and lasers, and groups only
-    /// projectiles; a control beam, a grouped fusillade and a projectile that
-    /// climbs before it flies are refused by the unit that fires them.
+    /// The kernel fires projectiles, blows and lasers, and groups several
+    /// weapons only for projectiles; a control beam, a fusillade of several
+    /// grouped weapons and a projectile that climbs before it flies are
+    /// refused by the unit that fires them.
     #[test]
     fn a_main_skill_the_kernel_cannot_fire_is_refused_by_unit() {
         let config = SimulationConfig::load().unwrap();
-        for fired in ["marksman", "rhino", "steel_ball", "wraith", "melting_point"] {
+        for fired in [
+            "marksman",
+            "rhino",
+            "steel_ball",
+            "wraith",
+            "melting_point",
+            "vortex",
+        ] {
             assert!(config.units.get(fired).unwrap().fired().is_ok(), "{fired}");
         }
         for (refused, why) in [
             ("hacker", "a control beam"),
             ("raiden", "as a fusillade"),
-            ("vortex", "as a fusillade"),
             ("farseer", "climb before they fly"),
         ] {
             let error = config.units.get(refused).unwrap().fired().unwrap_err();
