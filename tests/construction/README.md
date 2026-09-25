@@ -39,15 +39,14 @@ on one ends.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
 simulator to the physics hash build 2.0.0.1.2324 produced for `wall-aside.yaml`,
 `wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
-`wall-rhino.yaml`, `wall-passage.yaml`, `wall-block.yaml` and the three
-`wall-splash*.yaml`, each over every one of its ticks. `wall-laser.yaml` is
-the wall fight left out: on 2.0 the Steel Ball whose beam fells block 4 turns
-onto the Marksman that tick, and the simulator parts from it at tick 82.
+`wall-rhino.yaml`, `wall-laser.yaml`, `wall-passage.yaml`, `wall-block.yaml`
+and the three `wall-splash*.yaml` — every wall fight here the simulator can
+run, each over every one of its ticks.
 
 A physics hash does not cover a unit's lock, its weapons' targets or its motion
 state, which are content-layer fields, so every fight above is pinned by its
 content hash as well, the game's too: the simulator carries the same content
-as the game on every tick of all ten. The measurement scripts also compare
+as the game on every tick of all eleven. The measurement scripts also compare
 each fight they record with the simulator after recording it.
 
 The three `wall-line-*` layouts are read by which block ends up destroyed,

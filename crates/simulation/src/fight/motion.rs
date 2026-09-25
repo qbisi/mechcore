@@ -631,6 +631,26 @@ impl Simulation {
         }
     }
 
+    /// Where a bodyless unit's lock stands from it, if the lock is alive: what
+    /// `CalculateTargetDirection` faces once the attack target is not valid.
+    /// A unit with a body turns its weapons, and whether they follow the lock
+    /// is not recorded, so it answers `None`.
+    fn lock_rotation_for_bodyless(&self, actor_id: u64) -> Option<i64> {
+        let actor = &self.actors[&actor_id];
+        if actor.rules.has_body {
+            return None;
+        }
+        let lock = actor
+            .skill
+            .lock_target
+            .filter(|lock| self.fight_actor_is_alive(*lock))?;
+        let view = self.fight_actor(lock)?;
+        Some(direction_degrees_q32_raw(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        ))
+    }
+
     /// `MotionAttackState` with a target in range, and the skill it starts:
     /// `TryStartAttack` from idle, and the next blow's wait once the interval
     /// is up.
@@ -753,6 +773,16 @@ impl Simulation {
             // therefore starts tracking the target on the next tick.
             return Ok(());
         }
+        // `MotionAttackState.AttackRotate` turns after the release, towards
+        // `CalculateTargetDirection`: the lock, once the blow just released
+        // has felled what it fired at. The Steel Ball of `wall-laser.yaml`
+        // turns onto the Marksman on the tick its beam fells block 4.
+        let target_rotation_q32 = if release_now && !self.fight_actor_is_alive(target) {
+            self.lock_rotation_for_bodyless(actor_id)
+                .unwrap_or(target_rotation_q32)
+        } else {
+            target_rotation_q32
+        };
         self.track_target_in_range(actor_id, target_rotation_q32, clear_hold_after_motion);
         Ok(())
     }

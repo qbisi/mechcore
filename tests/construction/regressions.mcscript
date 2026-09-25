@@ -84,9 +84,19 @@ steps:
       hashes.physics_result_hash: 8edb89ea8e69bcb14637f55e9bc38f846d3909fc0a82f3d3e051f7d7337d6148
       hashes.content_result_hash: c21bb07a88a80adc65ce8449dfbcd0fec4ca3eec3dcb41d76923d2f538f82350
 
-  # `wall-laser.yaml` is not pinned. On 2.0 the Steel Ball whose beam fells
-  # block 4 turns onto the Marksman that tick and the simulator does not, so
-  # the fight parts at tick 82 of 242.
+  # A beam, and a block in the way of a unit's movement. Four Steel Balls take
+  # three blocks with the beam's ramp, and one of them, overlapping block 3, is
+  # pushed off it: to the other side a block is an immovable obstacle on the
+  # wall's own collider layer. The Steel Ball whose beam fells block 4 turns
+  # onto the Marksman behind it on that tick. 242 ticks, the game's hashes.
+  - fight.run:
+      layout: tests/construction/wall-laser.yaml
+      seed: 4242
+    expect:
+      steps: 242
+      winner: red
+      hashes.physics_result_hash: 45502fe78a66e35aa6245ad0aa08baf732e42d69ca6392bcb7e68837f333122a
+      hashes.content_result_hash: 49484131deb91f7870953540a8d1d11b3f28d3d1c1c27a3f57b177af085123ef
 
   # The side that placed the wall, crossing it. Twenty-four Crawlers walk
   # through their own blocks, which still take places among their twenty
