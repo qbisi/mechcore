@@ -36,10 +36,13 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
    列表，layout、battle 文档、MCFR 都要跟着改。其余由第 2 步的清单决定。
    `game_build` 改成 2.0。*做完*：schema、转换器、读写器改完，版本号更新，旧格式不再
    接受。
-   *现状*：`equipment` 已是列表（layout、state、编译器按军官给槽数、模拟器逐件施加、
-   adapter 读 `GetEquipments` 并逐件 `PAD_UseEquipment`）；MCFR 不带装备，不用改。
-   录像读取器仍按 2259 的 GRBR 每个单位读一个 `EquipmentID`，2.0 录像格式在第 5 步
-   对着真录像核。
+   ~~做完~~。版本只写在根目录的 `GAME_VERSION`（`2.0.0.1.2324`），crate 和脚本都读它。
+   `equipment` 是列表（layout、state、编译器按军官给槽数、模拟器逐件施加、adapter 读
+   `GetEquipments` 并逐件 `PAD_UseEquipment`）；MCFR 不带装备，不用改。GRBR 读单位的
+   `equipments` 列表，旧的 `EquipmentID` 在 2.0 恒为 0。battle 格式随之改了四处：
+   header 的每一方带 `seed`（`PlayerRecord.seed`，次级装备专家从它的流里抽）；state
+   不再写回合内的额度，`unlocked_units` 上移一层；两个选择动作的位置叫 `index`；每回合
+   增援在牌后列出 `{name: decline_offer, refund: N}`，放弃写在它自己的 index 上。
 4. **Adapter。** 对着 2.0 的 DiffableCs 重核 adapter 写死的东西：原生内存布局（VO 步长、
    `HitDamageInfo`）、单位／工事／指挥官技能的 ID 表、`RangeItemType`、按签名找的重载。
    支持第 3 步的新字段（两件装备）。*做完*：一份不需要人看的冒烟脚本，逐项证明原有能力
@@ -60,7 +63,26 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
    目标；空闲无锁的单位在最后一个敌人死后保留已抽的攻击间隔。剩下的分叉都是 2259 就有的
    （Wraith 分组搜索、Steel Ball/Stormcaller M6 正前方朝向），外加冒烟里 rapid-fire 用
    种子 1787720817 时第 242 tick 的分叉，还没读。
-   回放格式还没查：2.0 的 GRBR 转换器直接拒绝。
+   语料：`mechcore-replay` 的 `replays/2.0.0.1.2324/` 已有 35 场本地录制的对局（采集
+   暂停）。转换器全部读得了，`verify-battles.py` 逐叶核对全部一致，没有未实现的叶子。
+   为此补上的机制：增援按投资占比（`SupplyPercent`）发军官；不列回合的军官在被选时
+   发放（量产装备）；次级装备专家每回合从本方玩家流里抽一件；重型导弹打击成为 layout
+   技能；撤销一次取消会恢复它取消的释放；两个强化模块叠加在升级价上；每回合最多放
+   8 个物件。这些和其余规则的证据按新约定写在 `docs/rules/` 里，被语料核对过的记为
+   Replayed。
+
+## 合并回主线之前
+
+1. **推送并过 CI。** 分支还没推过，三个 job（含 macOS 的 `adapter`）都没跑过。之后由
+   committer 合并；主线只收 squash，整条迁移落成一个提交。
+2. **只读、未录的规则。** 各自需要一段训练场录制：重型导弹打击的一次释放、一个编队
+   戴两个强化模块升级、第 9 个物件被拒、训练场里次级装备专家用的玩家种子。
+3. **语料的自动核对。** 现在只在本地跑（`replay.py sync`、`export-replay-corpus.py`、
+   `verify-battles.py`）。语料独立增长，不宜挡 PR；待定的做法是 mechcore 里一个
+   master 推送和每日触发的 workflow，只核 `replays/<GAME_VERSION>/`。
+4. **随迁移发现、合并后再做的。** 模拟器让核弹、闪电风暴、离子轰炸按 `initial_cooldown`
+   1 入列；新的 `SkillDataChangeInt.AttackValue` 谁写；adapter 按枚举下标读技能整数，
+   2.0 新增了 6 到 11；`UpgradeExp` 取代经验条，谁写它。
 
 ## 换完之后回到的主线
 
