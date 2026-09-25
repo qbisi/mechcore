@@ -1,7 +1,6 @@
 - name: marksman-vs-arclight
   smoke: true
   layout: tests/regression/marksman-vs-arclight.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787720817
   tick_count: 91
@@ -10,7 +9,6 @@
 - name: rhino-vs-arclight
   smoke: true
   layout: tests/regression/rhino-vs-arclight.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787720897
   tick_count: 235
@@ -19,7 +17,6 @@
 - name: rhino-retarget
   smoke: true
   layout: tests/regression/rhino-retarget-vs-arclights.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787720956
   tick_count: 336
@@ -28,7 +25,6 @@
 - name: rhino-vs-crawlers-01
   smoke: true
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748319
   tick_count: 377
@@ -37,7 +33,6 @@
 - name: rhino-vs-crawlers-02
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748346
   tick_count: 312
@@ -46,7 +41,6 @@
 - name: rhino-vs-crawlers-03
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748375
   tick_count: 278
@@ -55,7 +49,6 @@
 - name: rhino-vs-crawlers-04
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748402
   tick_count: 360
@@ -64,7 +57,6 @@
 - name: rhino-vs-crawlers-05
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748432
   tick_count: 325
@@ -73,7 +65,6 @@
 - name: rhino-vs-crawlers-06
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748486
   tick_count: 382
@@ -82,7 +73,6 @@
 - name: rhino-vs-crawlers-07
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748526
   tick_count: 317
@@ -91,7 +81,6 @@
 - name: rhino-vs-crawlers-08
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748558
   tick_count: 325
@@ -100,7 +89,6 @@
 - name: rhino-vs-crawlers-09
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748599
   tick_count: 360
@@ -109,7 +97,6 @@
 - name: rhino-vs-crawlers-10
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748638
   tick_count: 236
@@ -118,7 +105,6 @@
 - name: crawlers-vs-rhino-01
   smoke: true
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787757964
   tick_count: 280
@@ -127,7 +113,6 @@
 - name: crawlers-vs-rhino-02
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758008
   tick_count: 301
@@ -136,7 +121,6 @@
 - name: crawlers-vs-rhino-03
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758042
   tick_count: 308
@@ -145,7 +129,6 @@
 - name: crawlers-vs-rhino-04
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758104
   tick_count: 364
@@ -154,7 +137,6 @@
 - name: crawlers-vs-rhino-05
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758157
   tick_count: 321
@@ -163,7 +145,6 @@
 - name: crawlers-vs-rhino-06
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758202
   tick_count: 264
@@ -172,7 +153,6 @@
 - name: crawlers-vs-rhino-07
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758244
   tick_count: 298
@@ -181,7 +161,6 @@
 - name: crawlers-vs-rhino-08
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758281
   tick_count: 279
@@ -190,7 +169,6 @@
 - name: crawlers-vs-rhino-09
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758328
   tick_count: 295
@@ -199,7 +177,6 @@
 - name: crawlers-vs-rhino-10
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758384
   tick_count: 307
@@ -208,7 +185,6 @@
 - name: crawlers-vs-crawlers-01
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787778788
   tick_count: 351
@@ -217,7 +193,6 @@
 - name: crawlers-vs-crawlers-05
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787778960
   tick_count: 371
@@ -226,7 +201,6 @@
 - name: crawlers-vs-crawlers-09
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787791755
   tick_count: 403
@@ -235,7 +209,6 @@
 - name: crawlers-vs-crawlers-13
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787799499
   tick_count: 379
@@ -244,7 +217,6 @@
 - name: crawlers-vs-crawlers-17
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787799748
   tick_count: 381
@@ -253,7 +225,6 @@
 - name: crawlers-vs-crawlers-21
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787800633
   tick_count: 377
@@ -262,7 +233,6 @@
 - name: crawlers-vs-crawlers-25
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787800781
   tick_count: 366
@@ -271,7 +241,6 @@
 - name: crawlers-vs-crawlers-29
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787801010
   tick_count: 317
@@ -280,7 +249,6 @@
 - name: crawlers-vs-crawlers-33
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787802518
   tick_count: 439
@@ -289,7 +257,6 @@
 - name: crawlers-vs-crawlers-37
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787803517
   tick_count: 356
@@ -298,7 +265,6 @@
 - name: crawlers-vs-crawlers-41
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787803732
   tick_count: 351
@@ -307,7 +273,6 @@
 - name: crawlers-vs-crawlers-45
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787803881
   tick_count: 300
@@ -316,7 +281,6 @@
 - name: crawlers-vs-crawlers-49
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787804531
   tick_count: 389
@@ -325,7 +289,6 @@
 - name: crawlers-vs-crawlers-53
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805016
   tick_count: 350
@@ -334,7 +297,6 @@
 - name: crawlers-vs-crawlers-54
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805051
   tick_count: 349
@@ -343,7 +305,6 @@
 - name: crawlers-vs-crawlers-55
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805107
   tick_count: 368
@@ -352,7 +313,6 @@
 - name: crawlers-vs-crawlers-60
   smoke: true
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805959
   tick_count: 342
@@ -361,7 +321,6 @@
 - name: crawlers-vs-crawlers-65
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787806536
   tick_count: 334
@@ -370,7 +329,6 @@
 - name: crawlers-vs-crawlers-68
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787806713
   tick_count: 404
@@ -379,7 +337,6 @@
 - name: crawlers-vs-crawlers-70
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787806795
   tick_count: 295
@@ -388,7 +345,6 @@
 - name: fangs-vs-fangs-01
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808873
   tick_count: 344
@@ -397,7 +353,6 @@
 - name: fangs-vs-fangs-02
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808906
   tick_count: 392
@@ -406,7 +361,6 @@
 - name: fangs-vs-fangs-03
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808949
   tick_count: 350
@@ -415,7 +369,6 @@
 - name: fangs-vs-fangs-04
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808985
   tick_count: 337
@@ -424,7 +377,6 @@
 - name: fangs-vs-fangs-05
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787809018
   tick_count: 366
@@ -433,7 +385,6 @@
 - name: fangs-vs-fangs-06
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787816186
   tick_count: 363
@@ -442,7 +393,6 @@
 - name: fangs-vs-fangs-07
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787816925
   tick_count: 347
@@ -451,7 +401,6 @@
 - name: fangs-vs-fangs-08
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787817059
   tick_count: 348
@@ -460,7 +409,6 @@
 - name: fangs-vs-fangs-09
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787818397
   tick_count: 343
@@ -469,7 +417,6 @@
 - name: fangs-vs-fangs-10
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787818488
   tick_count: 337
@@ -478,7 +425,6 @@
 - name: fangs-vs-fangs-11
   smoke: true
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787819220
   tick_count: 329
@@ -487,7 +433,6 @@
 - name: mustangs-vs-mustangs-01
   smoke: true
   layout: tests/regression/mustangs-vs-mustangs.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787823221
   tick_count: 254
@@ -496,7 +441,6 @@
 - name: wasps-vs-wasps-01
   smoke: true
   layout: tests/regression/wasps-vs-wasps.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787829131
   tick_count: 196
@@ -505,7 +449,6 @@
 - name: steel-balls-vs-steel-balls-01
   smoke: true
   layout: tests/regression/steel-balls-vs-steel-balls.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787831322
   tick_count: 300
@@ -514,7 +457,6 @@
 - name: crawler-vs-rotated-01
   smoke: true
   layout: tests/regression/crawler-vs-rotated.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787833929
   tick_count: 271
@@ -523,7 +465,6 @@
 - name: arclight-splash-01
   smoke: true
   layout: tests/regression/arclight-splash.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787837829
   tick_count: 497
@@ -532,7 +473,6 @@
 - name: wraith-group-attack-01
   smoke: true
   layout: tests/regression/wraith-group-attack.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787857041
   tick_count: 647
@@ -541,7 +481,6 @@
 - name: stormcaller-vs-self-01
   smoke: true
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887280
   tick_count: 763
@@ -550,7 +489,6 @@
 - name: stormcaller-vs-self-02
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863348
   tick_count: 498
@@ -559,7 +497,6 @@
 - name: stormcaller-vs-self-03
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863396
   tick_count: 502
@@ -568,7 +505,6 @@
 - name: stormcaller-vs-self-04
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863436
   tick_count: 514
@@ -577,7 +513,6 @@
 - name: stormcaller-vs-self-05
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863478
   tick_count: 595
@@ -586,7 +521,6 @@
 - name: stormcaller-vs-self-06
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863515
   tick_count: 630
@@ -595,7 +529,6 @@
 - name: stormcaller-vs-self-07
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887111
   tick_count: 609
@@ -604,7 +537,6 @@
 - name: stormcaller-vs-self-08
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887134
   tick_count: 503
@@ -613,7 +545,6 @@
 - name: stormcaller-vs-self-09
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887155
   tick_count: 596
@@ -622,7 +553,6 @@
 - name: stormcaller-vs-self-10
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887178
   tick_count: 614
@@ -631,7 +561,6 @@
 - name: stormcaller-vs-self-11
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887201
   tick_count: 634
@@ -640,7 +569,6 @@
 - name: stormcaller-vs-self-12
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887304
   tick_count: 430
@@ -649,7 +577,6 @@
 - name: stormcaller-vs-self-13
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887323
   tick_count: 547
@@ -658,7 +585,6 @@
 - name: stormcaller-vs-self-14
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887345
   tick_count: 627
@@ -667,7 +593,6 @@
 - name: stormcaller-vs-self-15
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887368
   tick_count: 503
@@ -676,7 +601,6 @@
 - name: stormcaller-vs-self-16
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787884975
   tick_count: 518
@@ -685,7 +609,6 @@
 - name: stormcaller-vs-self-17
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787882500
   tick_count: 637
@@ -694,7 +617,6 @@
 - name: stormcaller-vs-self-18
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787881295
   tick_count: 992
@@ -703,7 +625,6 @@
 - name: stormcaller-vs-self-19
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787880738
   tick_count: 571
@@ -712,7 +633,6 @@
 - name: stormcaller-vs-self-20
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787869558
   tick_count: 599
@@ -721,7 +641,6 @@
 - name: phoenix-vs-phoenix
   smoke: true
   layout: tests/regression/phoenix-vs-phoenix.yaml
-  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1788397284
   tick_count: 146
@@ -730,7 +649,6 @@
 - name: crawlers-vs-marksman
   smoke: true
   layout: tests/regression/crawlers-vs-marksman.yaml
-  game_build: 2.0.0.1.2324
   format: 0.6.0
   seed: 4242
   tick_count: 161

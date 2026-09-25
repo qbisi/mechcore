@@ -32,9 +32,9 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 `.github/workflows/ci.yml` 先由 `changes` 算改动范围，再分三个并行的 job，各答一个问题。
 只动 `docs/` 的 PR 三个 job 都跳过（跳过算绿，automerge 照合）；动了 `scripts/`、`tests/`、
-`replay/`、`layouts/` 或任何 `.mcscript` 跑 `scripts`；动了 `crates/`、`config/`、Cargo 文件
-跑 `test` 和 `scripts`；动了 `crates/adapter/`、`crates/mechcore/`、`crates/protocol/` 或 Cargo
-文件再跑 `adapter`；动了 workflow 文件全跑。要跑什么由改动决定，不由人决定：想让一个检查
+`replay/`、`layouts/` 或任何 `.mcscript` 跑 `scripts`；动了 `crates/`、`config/`、`GAME_VERSION`、Cargo 文件
+跑 `test` 和 `scripts`；动了 `crates/adapter/`、`crates/mechcore/`、`crates/protocol/`、`GAME_VERSION` 或
+Cargo 文件再跑 `adapter`；动了 workflow 文件全跑。要跑什么由改动决定，不由人决定：想让一个检查
 跑，就改它读的东西。三个 job 是：
 
 - `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
@@ -118,6 +118,13 @@ oracle，再把问题交给自己起的子代理去做，子代理各用一个�
 录像和 sidecar 在它自己的 release（`scripts/oracle.py fetch <n>` 回到 `/tmp/mechcore/`），
 issue 关闭后 release 仍保留，因为它是钉住的哈希的证据。仓库里固定下来的只有
 `tests/<topic>/` 的布阵、脚本和它钉住的哈希。
+
+**仓库描述哪一版游戏，只写在根目录的 `GAME_VERSION` 里**，一行游戏自己的版本字符串
+（`Application.version`）。服务器按它匹配对局、放行观战，同一局所有客户端跑同一套模拟，
+所以一个版本就是一套规则；Steam 可以在版本不变时更新文件（buildid 变），那不算换版本。
+crate 编译时嵌入它，抽取脚本经 `scripts/build_data.py` 读它，语料目录、反编译目录都以它
+命名；`config/` 的表、测试、文档都不另写版本号。换版本就是在分支上改这一行，然后把反编译、
+抽取、`tests/` 的录像和钉子、语料都迁到新版本，全绿再合回主线。
 
 游戏换了版本，持有游戏的会话用 `scripts/decompile.py` 反编译本机装的那一版：它从游戏
 本身读出 build 号，缺的工具（Cpp2IL、AssetRipper，版本和 SHA-256 钉在脚本里）自己下到

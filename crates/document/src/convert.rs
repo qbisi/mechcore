@@ -21,8 +21,12 @@ use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
 
-/// The build these catalogues and conventions are pinned to.
-const BUILD: &str = "2259";
+/// The version a replay's header names: the last component of the game
+/// version `GAME_VERSION` pins, which is how a GRBR carries it (`2324`).
+fn replay_version() -> &'static str {
+    let build = crate::economy::game_build();
+    build.rsplit('.').next().unwrap_or(build)
+}
 /// Energy tower skill `1`, the only one carrying a next-round supply change.
 const RAPID_SUPPLY_SKILL: i32 = 1;
 /// Officers a research centre blueprint grants; `blueprints` owns them instead.
@@ -169,10 +173,11 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
 /// which one failed is what tells a caller whether the file is the wrong build,
 /// the wrong provenance or the wrong kind of match.
 fn readable(record: &record::BattleRecord) -> Result<(), String> {
-    if record.version != BUILD {
+    if record.version != replay_version() {
         return Err(format!(
-            "replay is build {}, and this converter reads build {BUILD}",
-            record.version
+            "replay is build {}, and this converter reads build {}",
+            record.version,
+            replay_version()
         ));
     }
     if record.seat < 0 {
@@ -624,8 +629,13 @@ fn shared_income(
 fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
     let mut formations = Vec::with_capacity(data.units.entries.len());
     for unit in &data.units.entries {
-        let (type_name, _) = unit_type_from_id(unit.id)
-            .ok_or_else(|| format!("unit ID {} has no layout type in build {BUILD}", unit.id))?;
+        let (type_name, _) = unit_type_from_id(unit.id).ok_or_else(|| {
+            format!(
+                "unit ID {} has no layout type in build {}",
+                unit.id,
+                replay_version()
+            )
+        })?;
         formations.push(StateUnit {
             value: Some(unit.sell_supply),
             // Settled by the opening, which knows the round.
@@ -657,8 +667,9 @@ fn constructions(data: &PlayerData, seat: Seat) -> Result<Vec<StaticPlacement>, 
     for construction in &data.constructions.entries {
         let (type_name, _) = construction_type_from_id(construction.id).ok_or_else(|| {
             format!(
-                "construction ID {} has no layout type in build {BUILD}",
-                construction.id
+                "construction ID {} has no layout type in build {}",
+                construction.id,
+                replay_version()
             )
         })?;
         constructions.push(StaticPlacement {
@@ -676,8 +687,9 @@ fn contraptions(data: &PlayerData, seat: Seat) -> Result<Vec<ContraptionPlacemen
     for contraption in &data.contraptions.entries {
         let type_name = contraption_type_from_id(contraption.id).ok_or_else(|| {
             format!(
-                "contraption ID {} has no layout type in build {BUILD}",
-                contraption.id
+                "contraption ID {} has no layout type in build {}",
+                contraption.id,
+                replay_version()
             )
         })?;
         contraptions.push(ContraptionPlacement {

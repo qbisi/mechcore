@@ -246,7 +246,6 @@ def scalar(value):
 def render(entries, skills):
     lines = [
         "schema: mechcore.constructions",
-        f"game_build: {build_data.build()}",
         "",
         "# What a construction is, read out of `ConfigDataContainer.constructionDatas`.",
         "# `docs/rules/constructions.md` states what each field means and which of",

@@ -1,5 +1,4 @@
 schema: mechcore.economy
-game_build: 2.0.0.1.2324
 
 # Prices a round can pay that belong to no unit.
 

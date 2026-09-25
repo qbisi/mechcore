@@ -29,7 +29,6 @@ const DEFAULT_UNITS: [&str; 23] = [
     include_str!("../../../config/units/void_eye.yaml"),
     include_str!("../../../config/units/vortex.yaml"),
 ];
-const DEFAULT_CONFIG: &str = include_str!("../../../config/config.yaml");
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 11] = [
     include_str!("../../../config/units/marksman.yaml"),
@@ -246,19 +245,12 @@ pub(crate) struct SimulationConfig {
     pub(crate) towers: TowersConfig,
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct TopLevelConfig {
-    game_build: String,
-}
-
 /// `config/towers.yaml`: the map's towers, what strengthening one adds and
 /// what losing one writes on its side.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct TowersConfig {
     schema: String,
-    game_build: String,
     /// The Training Ground's four towers, measured on a capture.
     pub(crate) buildings: Vec<BuildingConfig>,
     /// `buffDatas` 1 to 5, one buff that differs only in duration.
@@ -329,14 +321,10 @@ pub(crate) struct BuildingPosition {
 
 impl SimulationConfig {
     pub(crate) fn load() -> Result<Self> {
-        let top_level = parse_top_level(DEFAULT_CONFIG.as_bytes(), "embedded config")?;
         let towers = parse_towers(DEFAULT_TOWERS.as_bytes(), "embedded tower config")?;
-        if top_level.game_build.trim().is_empty() {
-            return Err(Error::new("top-level config game_build must not be empty"));
-        }
         towers.validate()?;
         Ok(Self {
-            game_build: top_level.game_build,
+            game_build: mechcore_document::game_build().to_owned(),
             units: UnitConfigs::load()?,
             towers,
         })
@@ -345,7 +333,7 @@ impl SimulationConfig {
 
 impl TowersConfig {
     fn validate(&self) -> Result<()> {
-        if self.schema != "mechcore.towers" || self.game_build.trim().is_empty() {
+        if self.schema != "mechcore.towers" {
             return Err(Error::new("unsupported tower config type"));
         }
         if self.buildings.is_empty() {
@@ -860,11 +848,6 @@ fn parse(bytes: &[u8], source: &str) -> Result<UnitConfig> {
         .map_err(|error| Error::new(format!("invalid unit config {source}: {error}")))
 }
 
-fn parse_top_level(bytes: &[u8], source: &str) -> Result<TopLevelConfig> {
-    serde_yaml::from_slice(bytes)
-        .map_err(|error| Error::new(format!("invalid top-level config {source}: {error}")))
-}
-
 fn parse_towers(bytes: &[u8], source: &str) -> Result<TowersConfig> {
     serde_yaml::from_slice(bytes)
         .map_err(|error| Error::new(format!("invalid tower config {source}: {error}")))
@@ -877,7 +860,7 @@ mod tests {
     #[test]
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
-        assert_eq!(config.game_build, "2.0.0.1.2324");
+        assert_eq!(config.game_build, mechcore_document::game_build());
         assert_eq!(config.units.units.len(), 23);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);

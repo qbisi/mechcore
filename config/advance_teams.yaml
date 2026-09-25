@@ -1,5 +1,4 @@
 schema: mechcore.advance_teams
-game_build: 2.0.0.1.2324
 
 # The round 0 opening. A `units` row hands out that force, and the
 # round 1 roster of every side in the local set is exactly one of

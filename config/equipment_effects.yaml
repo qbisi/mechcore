@@ -1,5 +1,4 @@
 schema: mechcore.equipment_effects
-game_build: 2.0.0.1.2324
 
 # What an ordinary EquipmentData row writes onto the unit that wears it,
 # read out of EquipmentGroupData by scripts/extract-equipment-effects.py.

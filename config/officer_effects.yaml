@@ -1,5 +1,4 @@
 schema: mechcore.officer_effects
-game_build: 2.0.0.1.2324
 
 # What an officer does to a fight, which is a correction it writes onto
 # the units it targets. `config/officers.yaml` carries what it does to a

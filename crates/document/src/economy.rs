@@ -16,27 +16,13 @@ const ADVANCE_TEAMS: &str = include_str!("../../../config/advance_teams.yaml");
 const OFFICERS: &str = include_str!("../../../config/officers.yaml");
 const ECONOMY: &str = include_str!("../../../config/economy.yaml");
 
-/// The build every document this binary writes belongs to.
+/// The game version every document this binary writes belongs to.
 ///
-/// It is read from the embedded tables rather than written in the code, so a
-/// binary built against another build's configuration cannot claim this one.
-///
-/// # Panics
-///
-/// Panics when the embedded economy does not state a build, which is a
-/// configuration this binary could not have been built with.
+/// It is the repository's one pin, `GAME_VERSION`, embedded at build time: the tables
+/// under `config/` are that version's, and nothing else names a version.
 #[must_use]
 pub fn game_build() -> &'static str {
-    static BUILD: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    BUILD.get_or_init(|| {
-        #[derive(Deserialize)]
-        struct Stated {
-            game_build: String,
-        }
-        let stated: Stated =
-            serde_yaml::from_str(ECONOMY).expect("the embedded economy states its build");
-        stated.game_build
-    })
+    include_str!("../../../GAME_VERSION").trim()
 }
 
 /// The same, as a document's own field reads when it states nothing.

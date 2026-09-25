@@ -1,5 +1,4 @@
 schema: mechcore.unit_techs
-game_build: 2.0.0.1.2324
 
 units:
   - type: fortress

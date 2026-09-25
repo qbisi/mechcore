@@ -1,5 +1,4 @@
 schema: mechcore.reinforce_items
-game_build: 2.0.0.1.2324
 
 # Every card a standard match can offer, and what taking it costs.
 # A card whose limitedScene names other modes only is left out; an

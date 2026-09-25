@@ -38,7 +38,7 @@ import build_data
 REPOSITORY = "https://github.com/qbisi/mechcore-replay"
 ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = ROOT / "work" / "replay"
-GAME = Path(os.environ.get(
+APP = Path(os.environ.get(
     "MECHABELLUM_APP",
     Path.home() / "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app"))
 
@@ -74,11 +74,11 @@ def path(version):
 
 
 def publish():
-    info = plistlib.loads((GAME / "Contents/Info.plist").read_bytes())
+    info = plistlib.loads((APP / "Contents/Info.plist").read_bytes())
     version = info["CFBundleShortVersionString"]
     prefix = version.rsplit(".", 1)[-1]
     local = re.compile(rf"^{re.escape(prefix)}_\d{{8}}--\d+_\[.*\]VS\[.*\]\.grbr$")
-    source = GAME / "ProjectDatas" / "Replay"
+    source = APP / "ProjectDatas" / "Replay"
     fresh = time.time() - 60
     replays = sorted(p for p in source.iterdir()
                      if local.match(p.name) and p.stat().st_mtime < fresh)

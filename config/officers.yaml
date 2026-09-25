@@ -1,5 +1,4 @@
 schema: mechcore.officers
-game_build: 2.0.0.1.2324
 
 # An officer that changes a price or an income, and the units its
 # discount applies to. An empty scope applies to every unit.

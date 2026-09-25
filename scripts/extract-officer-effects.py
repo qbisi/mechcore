@@ -118,7 +118,6 @@ def main() -> int:
 
     lines = [
         "schema: mechcore.officer_effects",
-        f"game_build: {build_data.build()}",
         "",
         "# What an officer does to a fight, which is a correction it writes onto",
         "# the units it targets. `config/officers.yaml` carries what it does to a",

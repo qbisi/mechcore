@@ -1,5 +1,4 @@
 schema: mechcore.unit_reinforcements
-game_build: 2.0.0.1.2324
 
 # A card that hands out units: which unit, how many squads of it,
 # the level they arrive at, and the first round it can be offered.

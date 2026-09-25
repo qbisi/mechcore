@@ -121,7 +121,7 @@ def commander_skill_cooldowns():
 
 def write_commander_skills():
     rows = commander_skill_cooldowns()
-    lines = ["schema: mechcore.commander_skills", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.commander_skills", "",
              "# Every commander skill and its two cooldowns, in rounds.",
              "# `initial_cooldown` is `initialCoolDown`, where a slot starts when",
              "# the skill joins the panel. `cooldown` is `releaseInterval`, where it",
@@ -162,7 +162,7 @@ def yaml_scalar(text):
 
 
 def yaml_units(rows, body):
-    lines = [f"schema: {rows}", f"game_build: {build_data.build()}", "", "units:"]
+    lines = [f"schema: {rows}", "", "units:"]
     lines.extend(body)
     return "\n".join(lines) + "\n"
 
@@ -210,7 +210,7 @@ def write_unit_experience(names, levels):
     from decimal import Decimal, ROUND_HALF_UP
 
     factors = [Decimal(factor) for factor in EXPERIENCE_FACTORS]
-    lines = ["schema: mechcore.unit_experience", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.unit_experience", "",
              "# `upgrade_exp` is `mechExpDatas.upgradeLv2` through `upgradeLv9`. Its",
              "# n-th entry fills the bar of a formation at level n; level 9 fills",
              "# at the last entry. docs/rules/unit_experience.md states why, and the",
@@ -239,7 +239,7 @@ def write_unit_reinforcements(structure, by_level):
     `unitID` names one unit per squad, and no card in this build mixes two, so
     a row states the unit, how many squads of it, and the level they arrive at.
     """
-    lines = ["schema: mechcore.unit_reinforcements", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.unit_reinforcements", "",
              "# A card that hands out units: which unit, how many squads of it,",
              "# the level they arrive at, and the first round it can be offered.",
              "", "cards:"]
@@ -268,7 +268,7 @@ def write_advance_teams(structure):
     Two kinds share the choice: a team of units, and a specialist officer. Both
     move the reactor core, which is the price of the stronger openings.
     """
-    lines = ["schema: mechcore.advance_teams", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.advance_teams", "",
              "# The round 0 opening. A `units` row hands out that force, and the",
              "# round 1 roster of every side in the local set is exactly one of",
              "# them. An `officer` row grants the officer its own ID names, whose",
@@ -302,7 +302,7 @@ def write_advance_teams(structure):
 
 def write_officers(structure):
     """The officers that change what a side pays or earns."""
-    lines = ["schema: mechcore.officers", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.officers", "",
              "# An officer that changes a price or an income, and the units its",
              "# discount applies to. An empty scope applies to every unit.",
              "", "officers:"]
@@ -347,7 +347,7 @@ def write_officers(structure):
 
 def write_economy(structure, contraptions, config):
     """What the towers, the blueprints and the energy tower charge."""
-    lines = ["schema: mechcore.economy", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.economy", "",
              "# Prices a round can pay that belong to no unit.",
              "",
              "# The blueprints a standard match can reach. A map lists what its",
@@ -523,7 +523,7 @@ def main():
             "supply": by_level.get(row.get("level"), 0) if supply < 0 else supply,
             "kind": "officer",
         })
-    lines = ["schema: mechcore.reinforce_items", f"game_build: {build_data.build()}", "",
+    lines = ["schema: mechcore.reinforce_items", "",
              "# Every card a standard match can offer, and what taking it costs.",
              "# A card whose limitedScene names other modes only is left out; an",
              "# empty list restricts nothing. A card with no price of its own is",

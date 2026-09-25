@@ -69,7 +69,6 @@ def reading(value):
 def render(rows):
     lines = [
         "schema: mechcore.equipment_effects",
-        f"game_build: {build_data.build()}",
         "",
         "# What an ordinary EquipmentData row writes onto the unit that wears it,",
         "# read out of EquipmentGroupData by scripts/extract-equipment-effects.py.",

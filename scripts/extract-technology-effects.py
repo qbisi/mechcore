@@ -196,7 +196,6 @@ def main() -> int:
 
     lines = [
         "schema: mechcore.technology_effects",
-        f"game_build: {build_data.build()}",
         "",
         "# What a technology does to a fight, which is a correction it writes onto",
         "# the unit that researched it. `config/unit_techs.yaml` carries which",

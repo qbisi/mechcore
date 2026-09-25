@@ -59,9 +59,9 @@ jobs:
           printf '%s\n' "$changed"
           moved() { grep -qE "$1" <<<"$changed" && echo true || echo false; }
           workflows=$(moved '^\.github/workflows/')
-          code=$(moved '^(crates/|config/|Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|\.cargo/)')
+          code=$(moved '^(crates/|config/|GAME_VERSION$|Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|\.cargo/)')
           scripts=$(moved '^(scripts/|tests/|replay/|layouts/)|\.mcscript$')
-          adapter=$(moved '^(crates/adapter/|crates/mechcore/|crates/protocol/|Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|\.cargo/)')
+          adapter=$(moved '^(crates/adapter/|crates/mechcore/|crates/protocol/|GAME_VERSION$|Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|\.cargo/)')
           if [ "$workflows" = true ]; then code=true; scripts=true; adapter=true; fi
           if [ "$code" = true ]; then scripts=true; fi
           {

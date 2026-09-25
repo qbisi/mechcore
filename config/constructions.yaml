@@ -1,5 +1,4 @@
 schema: mechcore.constructions
-game_build: 2.0.0.1.2324
 
 # What a construction is, read out of `ConfigDataContainer.constructionDatas`.
 # `docs/rules/constructions.md` states what each field means and which of

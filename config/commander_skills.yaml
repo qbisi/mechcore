@@ -1,5 +1,4 @@
 schema: mechcore.commander_skills
-game_build: 2.0.0.1.2324
 
 # Every commander skill and its two cooldowns, in rounds.
 # `initial_cooldown` is `initialCoolDown`, where a slot starts when
