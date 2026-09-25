@@ -64,8 +64,10 @@ jobs:
           fi
 
           # Every check on the commit: ci's jobs, docs, and whatever is added
-          # later without touching this file. A check still running means the
-          # answer is not in yet, and no check at all is not every check green.
+          # later without touching this file. A check still queued or running
+          # means the answer is not in yet, and no check at all is not every
+          # check green. Only a completed check has a conclusion: one still
+          # queued reads null, which is not a failure.
           checks=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
             --jq '[.check_runs[] | select(.name != "gate")]')
           if [ "$(jq length <<<"$checks")" = 0 ]; then
@@ -73,7 +75,8 @@ jobs:
           fi
           pending=$(jq -r '[.[] | select(.status != "completed")] | length' <<<"$checks")
           failed=$(jq -r \
-            '[.[] | select(.conclusion | IN("success", "skipped", "neutral") | not)] | length' \
+            '[.[] | select(.status == "completed")
+                  | select(.conclusion | IN("success", "skipped", "neutral") | not)] | length' \
             <<<"$checks")
           if [ "$failed" != 0 ]; then
             answer failure "$failed check(s) failed on this commit"
