@@ -207,14 +207,71 @@ def check_rules_evidence(fail):
                     fail(f"{path.relative_to(REPO)}:{number}: cites {why}")
 
 
+# A rules document ends in `## Evidence`: what a recording pinned under tests/
+# shows, what was read from the build and the members it rests on, and what is
+# not established. docs/README.md says why. The documents not yet written that
+# way are listed here, and leave the list as they are.
+RULES_PENDING = {
+    "battle_skill.md", "combat.md", "commander_skills.md", "constructions.md",
+    "equipment.md", "equipment_effects.md", "landing.md", "map.md", "mobility.md",
+    "officer_effects.md", "officers.md", "opening.md", "reinforce_items.md",
+    "reinforcements.md", "technology_effects.md", "terrain.md", "towers.md",
+    "unit_experience.md", "unit_levels.md", "unit_techs.md", "visibility.md",
+}
+EVIDENCE_PARTS = ("Recorded", "Read", "Not established")
+ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
+TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
+
+
+def evidence_items(text):
+    """{part: [item text]} for the `## Evidence` section, or None without one."""
+    parts, section, part = {}, None, None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            section = line[3:].strip()
+            part = None
+        elif section == "Evidence" and line.startswith("### "):
+            part = line[4:].strip()
+            parts.setdefault(part, [])
+        elif section == "Evidence" and part and line.startswith("- "):
+            parts[part].append(line[2:])
+        elif section == "Evidence" and part and line.startswith("  ") and parts[part]:
+            parts[part][-1] += " " + line.strip()
+    return parts if any(line.strip() == "## Evidence" for line in text.splitlines()) else None
+
+
+def check_rules_evidence_sections(fail):
+    for path in sorted((REPO / "docs" / "rules").glob("*.md")):
+        if path.name in RULES_PENDING:
+            continue
+        name = path.relative_to(REPO)
+        parts = evidence_items(path.read_text())
+        if parts is None or list(parts) != list(EVIDENCE_PARTS):
+            fail(f"{name}: ends in ## Evidence with ### {', ### '.join(EVIDENCE_PARTS)}, in that order")
+            continue
+        for item in parts["Recorded"]:
+            cited = TESTS_PATH.findall(item)
+            if not cited:
+                fail(f"{name}: a recorded claim cites no pin under tests/: {item[:80]}")
+            for cite in cited:
+                target = REPO / cite
+                if not target.exists():
+                    fail(f"{name}: cites {cite}, which does not exist")
+                elif target.suffix == ".mcscript" and re.search(r"^game:", target.read_text(), re.M):
+                    fail(f"{name}: cites {cite}, which needs the game; a recorded claim cites what CI replays")
+        for item in parts["Read"]:
+            if not ANCHOR.search(item):
+                fail(f"{name}: a read claim names no `Class.member` it rests on: {item[:80]}")
+
+
 # The game version is written once, in GAME_VERSION; everything else reads it.
 # A five-part version string, or a build named by number, anywhere else is a
 # second pin that nothing keeps in step. plan.md is the migration's own record.
-# docs/rules/ still states which version its evidence came from; the rewrite
-# that gives each claim its evidence type takes it off this list.
+# A rules document still pending its evidence section is exempt, as it may
+# still say which version its evidence came from.
 VERSION_PIN = re.compile(r"\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b|\b[Bb]uild[- ][0-9]{3,}\b")
 VERSION_WRITERS = {"GAME_VERSION", "plan.md"}
-VERSION_PENDING = ("docs/rules/",)
+VERSION_PENDING = tuple(f"docs/rules/{name}" for name in RULES_PENDING)
 
 
 def check_version_pins(fail):
@@ -255,6 +312,7 @@ def main():
     check_name_tables(problems.append)
     check_rules_evidence(problems.append)
     check_version_pins(problems.append)
+    check_rules_evidence_sections(problems.append)
 
     for problem in problems:
         print(f"error: {problem}", file=sys.stderr)

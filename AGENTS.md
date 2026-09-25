@@ -124,7 +124,9 @@ issue 关闭后 release 仍保留，因为它是钉住的哈希的证据。仓�
 所以一个版本就是一套规则；Steam 可以在版本不变时更新文件（buildid 变），那不算换版本。
 crate 编译时嵌入它，抽取脚本经 `scripts/build_data.py` 读它，语料目录、反编译目录都以它
 命名；`config/` 的表、测试、文档都不另写版本号。换版本就是在分支上改这一行，然后把反编译、
-抽取、`tests/` 的录像和钉子、语料都迁到新版本，全绿再合回主线。
+抽取、`tests/` 的录像和钉子、语料都迁到新版本，全绿再合回主线。rules 文档里读出来的结论靠
+锚点跟版本：`scripts/rules-anchors.py --since <旧版本>` 列出锚点变了的结论，逐条在新版本上
+重读再合（见 `docs/README.md`）。
 
 游戏换了版本，持有游戏的会话用 `scripts/decompile.py` 反编译本机装的那一版：它从游戏
 本身读出 build 号，缺的工具（Cpp2IL、AssetRipper，版本和 SHA-256 钉在脚本里）自己下到

@@ -97,9 +97,29 @@ Four things are not evidence and stay out:
 - a single run's numbers standing in for the rule they illustrate.
 
 A worked example that needs numbers says which units and levels it uses, so a
-reader can recompute it from `config/`. Each document names the build its
-recordings were made on. A claim read from one build's dump but recorded on
-another says so, and stays unverified until the pin is re-recorded.
+reader can recompute it from `config/`. A number a single recording happened to
+show, such as the tick a shot left on, stays with the fixture: it moves
+silently when the pin is re-recorded, where the rule it illustrates does not.
+
+**A rules document names no game version and ends in `## Evidence`**, in three
+parts, so that a reader can tell what holds on the version `GAME_VERSION` pins
+from what may have moved:
+
+- `### Recorded`: each claim a fight shows, citing the offline script under
+  `tests/` that pins it. CI replays it on every change, and the pin is
+  re-recorded whenever the version moves, so these claims move with it.
+- `### Read`: each claim read from the build, naming in backticks the members
+  it rests on, `Class.member`, as the class declares them. They are the
+  document's anchors.
+- `### Not established`: what the document does not claim, and why.
+
+`scripts/rules-anchors.py` resolves every anchor in the pinned version's dump.
+When the version moves, `scripts/rules-anchors.py --since <old version>` lists
+the read claims whose anchors changed, a method's instructions or a member's
+declaration; each is read again on the new version before the move is merged.
+A claim whose anchors stand still carries over. `scripts/check-docs.py` holds
+the section's shape: a recorded claim that cites no offline pin, or a read
+claim that names no anchor, fails.
 
 ## A spec's shared spine
 
