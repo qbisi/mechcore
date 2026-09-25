@@ -30,8 +30,9 @@ def extract(structure):
         if row['scope'] != 1 or not eligible(row):
             continue
         # EAppearCondition: 0 none, 1 NonexistUnit (offered only while the
-        # side holds none of `unitID`), 2 SupplyPercent (build 2.0's unit
-        # modifications, written through and refused by the predictor).
+        # side holds none of `unitID`), 2 SupplyPercent (offered only while
+        # `unitID` holds a share of every player's investment inside
+        # `appearConditionParameter`, in percent).
         condition = row.get('appearCondition', 0)
         assert condition in (0, 1, 2)
         card = dict(level=row['level'], group=row.get('typeID', 0),
@@ -40,7 +41,8 @@ def extract(structure):
                     cooldown=row['kind'] == 'skill' and row['level'] == 4,
                     absent_units=row.get('unitID', []) if condition == 1 else [])
         if condition == 2:
-            card['supply_percent'] = row['appearConditionParameter']
+            low, high = row['appearConditionParameter']
+            card['supply_share'] = dict(low=low, high=high, units=row['unitID'])
         cards[row['id']] = card
     units = {}
     for row in structure['unitReinforceDatas']:
@@ -57,10 +59,20 @@ def extract(structure):
                for row in structure['reinforceItemProbabilityDatas']}
     prevented = {row['id']: row['unitID'] for row in structure['officerDatas']
                  if row['preventUnitReinforcements'] and eligible(row)}
-    unit_costs = {row['id']: dict(supply=row['baseMoney'], unlock=row['unlockPrice'],
-                                 tech_step=row['techUpgradeIncreaseSupplyPerCount'],
-                                 tech_cap=row['techUpgradeMaxSupplyLimit'])
-                  for row in structure['cardDatas'] if build_data.in_standard(row)}
+    # A level costs its unit's mechExpDatas row, looked up by mechID; every
+    # standard row charges one price for all eight levels.
+    levels = {row['id']: row for row in structure['mechExpDatas']}
+    unit_costs = {}
+    for row in structure['cardDatas']:
+        if not build_data.in_standard(row):
+            continue
+        level = levels[row['mechID']]
+        upgrades = {level[f'upgradeSupplyLv{at}'] for at in range(2, 10)}
+        assert len(upgrades) == 1, f"unit {row['id']} upgrades at {sorted(upgrades)}"
+        unit_costs[row['id']] = dict(supply=row['baseMoney'], unlock=row['unlockPrice'],
+                                     upgrade=upgrades.pop(),
+                                     tech_step=row['techUpgradeIncreaseSupplyPerCount'],
+                                     tech_cap=row['techUpgradeMaxSupplyLimit'])
     quantity = int(next(row['value'] for row in structure['commonParms']
                         if row['key'] == 'unit_reinforcement_quantity'))
     return dict(ordinary_count=config_numbers(structure)['reinforce_item_count'],

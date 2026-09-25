@@ -68,25 +68,29 @@ real player of the match (`Match.playerManager.realPlayerControllers`, both
 sides) with `CollectPlayerUnitEconomies`, and hands the list to
 `ReinforcePool.OnNewRound`, which passes it to `CheckReinforeCondition`.
 
-A player's economy values each unit type it holds:
+A player's economy values each unit type it fields, reading the formations
+the round opened with before its officers deliver, the same ones the unit
+passes below read:
 
 - each of its formations of the type adds
-  `UnitUtility.CalculateUpgradeLevelCost`, the card's `GetMoney` plus
-  `GetLevelUpSupplyCost` of every level up to the formation's own;
+  `UnitUtility.CalculateUpgradeLevelCost`, the card's `GetMoney` at the first
+  level plus `GetLevelUpSupplyCost` of every level the formation has risen
+  through. A level-`n` formation is `CardLevel` `n − 1`, and every standard
+  unit's `mechExpDatas` row charges one price for all eight levels, so the
+  formation is worth its purchase price plus `n − 1` level prices;
 - the type adds its `CardData.unlockPrice` once;
 - the type adds `UnitTechnologyManager.CalculateUpgradeCost`, its active
   technologies;
 
 and `TotalValue` is the sum over its types.
 
-For every economy with `TotalValue > 0`, `CheckReinforeCondition` sums the
-values of the officer's `unitID` types and requires, when `p0 ≤ p1`,
-`TotalValue × p0 ≤ 100 × sum ≤ TotalValue × p1`. One economy outside fails the
-card. So an officer that modifies a unit is dealt only while neither player
-has more than `p1` percent of its investment in that unit.
-
-The reinforcement prediction refuses a pool that holds a card with this
-condition, rather than dealing it as if unconditioned.
+`CheckReinforeCondition` sums the values of the officer's `unitID` types in
+each economy. An economy with `TotalValue > 0` requires, when `p0 ≤ p1`,
+`TotalValue × p0 ≤ 100 × sum ≤ TotalValue × p1`; one with nothing invested
+passes only when `p0 ≤ 0`. One economy outside fails the card. So an officer
+that modifies a unit is dealt only while neither player has more than `p1`
+percent of its investment in that unit: every standard card states `[0, 15]`
+over a single unit.
 
 ## Unit reinforcement
 
@@ -154,10 +158,22 @@ unit card, round pool, probability and card rows of `ConfigDataContainer`, the
 commander skill and equipment cards of `CommanderSkillGroupData` and
 `EquipmentGroupData`, and `Config.reinforceItemCount`. Every value is an
 integer or a flag of the build; there are no fitted weights, stream offsets or
-score coefficients. A card's `supply_percent` is its `appearConditionParameter`
-when its condition is `SupplyPercent`.
+score coefficients. A card's `supply_share` is its `appearConditionParameter`
+and its `unitID` when its condition is `SupplyPercent`, and a unit's `upgrade`
+is its one level price, which the extraction refuses to write when a row's
+levels differ.
 
 ## Evidence
+
+### Replayed
+
+- Every ordinary and unit round of this version's corpus is dealt as recorded,
+  offer by offer and in order, from the stream the opening leaves:
+  `scripts/verify-battles.py`.
+- Every officer with the investment share is dealt, or replaced from its group,
+  as the corpus recorded: `scripts/verify-battles.py`.
+- A decline in an ordinary round and in each of the first three unit rounds
+  pays what the next round's supply records: `scripts/verify-battles.py`.
 
 ### Read
 
@@ -201,20 +217,17 @@ when its condition is `SupplyPercent`.
 
 ### Not established
 
-- **That the rules reproduce a recorded deal.** They were checked against the
-  offer arrays and successive native random states of another version's corpus,
-  which `scripts/verify-battles.py` replays. This version's corpus is not
-  replayed yet. A last recorded round has no following snapshot to check its
-  outgoing state.
-- **The investment share against any recording.** No replay or capture has
-  been checked against it, and the prediction refuses a pool that holds a card
-  with it. Which of a player's formations the economy walks, standing ones
-  only or also sold or lost ones, and the `CardLevel` a level-1 formation
-  passes, are not read. Neither is the branch for `p0 > p1`, which reads as
-  passing outside the interval, nor a loop flag set when `p0 > 0`; no standard
-  officer uses either.
-- **The supply substitution.** No replay covers it.
-- **A unit-round decline.** No replay shows one together with the round after
-  it, so its figure is the configuration's.
+- **A last recorded round's outgoing stream.** It has no following snapshot to
+  check it against.
+- **Which formations the investment walks.** The enumeration goes through an
+  interface the dump does not name; the formations the round opened with are
+  what the corpus agrees with, and no recorded round separates them from sold
+  or lost ones.
+- **A share bounded from above its floor.** The build reads `p0 > p1` as a band
+  the share must stay outside; no standard card has one, and the prediction
+  refuses it.
+- **The supply substitution.** No replay reaches its round.
+- **The last unit round's decline.** No replay reaches it, and it is where the
+  schedules' figures differ.
 - **Modified pools, other modes, negative seeds and nonstandard capped unit
   types.** Outside the supported scope.
