@@ -51,9 +51,9 @@ touching rectangles do not overlap.
 
 ### Replayed
 
-- Every arrival of this version's corpus lands where the rule puts it: the
-  squads of 160 unit cards, the opening forces of all 68 sides, and the squads
-  17 sides' specialists delivered as a round opened: `scripts/verify-battles.py`.
+- Every arrival of this version's corpus lands where the rule puts it: a unit
+  card's squads, a side's opening force, and the squads a specialist delivers as
+  a round opens: `scripts/verify-battles.py`.
 
 ### Read
 

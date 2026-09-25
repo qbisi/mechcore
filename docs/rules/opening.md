@@ -113,8 +113,8 @@ the alternatives offered, not which alternative either player chooses.
 ### Replayed
 
 - The flow reproduces every recorded opening: the four offers each side was
-  dealt and the construction layouts of all 34 replays of this version's
-  corpus: `scripts/verify-battles.py`.
+  dealt and the construction layouts, in every replay of this version's corpus:
+  `scripts/verify-battles.py`.
 
 ### Read
 

@@ -53,9 +53,9 @@ as a round opens can already read 1.
 
 - A unit that arrived this round, a unit wearing the Deployment Module and a
   unit whose type's Jump Drive is researched may move, and every other one from
-  an earlier round may not: each of the corpus's 585 recorded moves is of a unit
-  the rule lets move, and every formation's `movable` agrees, across 4 battles
-  that fit the Module and 21 that research a Jump Drive:
+  an earlier round may not: every recorded move of this version's corpus is of a
+  unit the rule lets move, and every formation's `movable` agrees, in battles
+  that fit the Module and battles that research a Jump Drive:
   `scripts/verify-battles.py`.
 
 ### Read

@@ -67,9 +67,9 @@ and the difference is the platform's to decide rather than the game's.
 
 ### Replayed
 
-- Every locally recorded replay carries both sides whole: all 34 replays of
-  this version's corpus convert with both sides' snapshots in every round,
-  whether a spectator recorded them or either player: `scripts/verify-battles.py`.
+- Every locally recorded replay carries both sides whole: every replay of this
+  version's corpus converts with both sides' snapshots in every round, whether a
+  spectator recorded it or either player: `scripts/verify-battles.py`.
 
 ### Read
 

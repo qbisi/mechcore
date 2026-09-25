@@ -120,7 +120,7 @@ fight and are not established here.
   test pins it.
 - **Intensive Training reaching exactly the table's value.** Every release of
   it in another version's corpus did, at levels 1 through 4. This version's
-  corpus holds 63 releases, but its replay leaves a unit's experience to the
+  corpus holds releases of it, but its replay leaves a unit's experience to the
   fight and compares none: `scripts/verify-battles.py`. Levels 5 through 8
   are unobserved.
 - **When a full bar becomes a level**, and what a fight does with experience
