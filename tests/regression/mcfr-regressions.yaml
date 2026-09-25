@@ -1,7 +1,7 @@
 - name: marksman-vs-arclight
   smoke: true
   layout: tests/regression/marksman-vs-arclight.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787720817
   tick_count: 91
@@ -10,7 +10,7 @@
 - name: rhino-vs-arclight
   smoke: true
   layout: tests/regression/rhino-vs-arclight.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787720897
   tick_count: 235
@@ -19,7 +19,7 @@
 - name: rhino-retarget
   smoke: true
   layout: tests/regression/rhino-retarget-vs-arclights.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787720956
   tick_count: 336
@@ -28,367 +28,367 @@
 - name: rhino-vs-crawlers-01
   smoke: true
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748319
   tick_count: 377
-  physics_result_hash: 1b8910631f3a583471462b8370cbf1ce23fe845d43e326147e8765e77062478f
+  physics_result_hash: 641142c7518582a6602221e72beb6864608382148c976b09cabbb1c934668d64
 
 - name: rhino-vs-crawlers-02
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748346
   tick_count: 312
-  physics_result_hash: 0091b0b9f813070bddb940a6a4882791a7f8ef677c9dd6387a2a12be65cf830c
+  physics_result_hash: 426281502328c30d4c840192e4e6bb79258a07ad9381b4f65060ec740cb2333f
 
 - name: rhino-vs-crawlers-03
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748375
   tick_count: 278
-  physics_result_hash: a08a2dc0dfc8bd6611bc381683ec74f49e42207870b6453dc8aeadc3e3d204e1
+  physics_result_hash: 09774aed3560557acb91f0b897042b9ce5e82eb559a7c49f64d1dd092bce227a
 
 - name: rhino-vs-crawlers-04
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748402
   tick_count: 360
-  physics_result_hash: 53821a3e7311d74ac7680a3ad2e7a5b9273bb9f82521a3921c9944c0f0b5be9d
+  physics_result_hash: a5b8b045bc3585b7b65fa21b4fdf57020b0d826ec7728d61360f3520ff0619a3
 
 - name: rhino-vs-crawlers-05
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748432
   tick_count: 325
-  physics_result_hash: a0d6966e263e6487f0ac476c735e2878e9cb9330cc02026bd192910659fbdaa1
+  physics_result_hash: c4034e0c68b2e6d13194a179785fed7f7b898a1600c889198835bb1a3db47eed
 
 - name: rhino-vs-crawlers-06
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748486
   tick_count: 382
-  physics_result_hash: 3ed5d752d3e3f518c598c5c371fa053c7ec59c9c7e41d999165bd85cf1f66bbc
+  physics_result_hash: f4223d0b063c60bb6ac0f6b8fd712846732af97ef5e84f41ced4c717a9a251d7
 
 - name: rhino-vs-crawlers-07
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748526
   tick_count: 317
-  physics_result_hash: 68ece30a29c8f7bbbb3c24fe62bbc7a8a7d131fa8c9752e67bf7bede0e688358
+  physics_result_hash: 7daff757f5672f9a9b77cbd05144d8bf99e18f25f180ff2d44a37cd885d88270
 
 - name: rhino-vs-crawlers-08
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748558
   tick_count: 325
-  physics_result_hash: ec629690de5c8d3b619c6281abb961666aeb247709d72ea3a6f2365f21a75f3e
+  physics_result_hash: 64d36d92b41111dc43ced96e62a3523303f12733fcc14f8e99f7b48535d0bbb3
 
 - name: rhino-vs-crawlers-09
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748599
   tick_count: 360
-  physics_result_hash: ab2c8ac88c597ee0545809686d08f01dc4b538770cbf7d792a3d4ddd437c70ae
+  physics_result_hash: edf8a5630b96efe3fab30a2d1b45fe257103351a82ea675f3861cb2ec0b295f2
 
 - name: rhino-vs-crawlers-10
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787748638
   tick_count: 236
-  physics_result_hash: 43b80158f97adb1af4aeb3fedaa24ee0e69914163b8b14a5c779ebd4cf6d4098
+  physics_result_hash: 7b08cc8da5dd9ba5a047796506975dfee7b98a92b5995300620e3755605be341
 
 - name: crawlers-vs-rhino-01
   smoke: true
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787757964
   tick_count: 280
-  physics_result_hash: 10cccb0014d346c4bd9c8a33cae6a39a73158bbea72dd9686bb6aaa655136a3b
+  physics_result_hash: c8696b043631dd0193484aba55b6885ca0b47f1c202965a00ac3eb091bceb769
 
 - name: crawlers-vs-rhino-02
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758008
   tick_count: 301
-  physics_result_hash: a7c6443ca34ec2835023c0195782c24d18c3c91482cde9d04850101c5e68f672
+  physics_result_hash: 056f093029d1eacee8df972b22883d15df372363dd77ee20ef11480d70a7da78
 
 - name: crawlers-vs-rhino-03
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758042
   tick_count: 308
-  physics_result_hash: 15703fd7fc557a65820b4e9a4fbbb1f17d50f03287892b7d2137dd81525ffbf8
+  physics_result_hash: 29b788b3dd7dc2bc0da088abd2ae9c902527a47cfef3d622f2be4a7366349769
 
 - name: crawlers-vs-rhino-04
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758104
   tick_count: 364
-  physics_result_hash: af327619530b7c1816294e2e83d73f2255f7878b42cb799b42d218412d0a5d85
+  physics_result_hash: 9de091c6e356105ba8def332880f01b6eb9053ec871117bd18aac5a570f7c5ff
 
 - name: crawlers-vs-rhino-05
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758157
   tick_count: 321
-  physics_result_hash: 9cbccc27adc89182f9af90a56b5e0bd865af4a9ba79b6cbdea65713febb31e5c
+  physics_result_hash: 8efbf7cc5e50b55384e6b3ff2577a512ee3914d8da082cc86809e0b8167540ba
 
 - name: crawlers-vs-rhino-06
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758202
   tick_count: 264
-  physics_result_hash: a658c451c4cb66b38577144f79d9cd82d9dd7732d7714cc017ab8a2a0cded576
+  physics_result_hash: 5d8635ccc3215b5bb76eaed4173e837668e90c48020ad479ba9e90d4792acbdd
 
 - name: crawlers-vs-rhino-07
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758244
   tick_count: 298
-  physics_result_hash: b821c152fcbe83b260e10f55a6b6faade160a636126d1a5c7ac4d7eece372fc2
+  physics_result_hash: 35e650cb0ff4114c2a04e87dd89446f5dbcb2618324e3e23cf85215798c8c8f7
 
 - name: crawlers-vs-rhino-08
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758281
   tick_count: 279
-  physics_result_hash: 69faba7a191ebd776cd3c10ebe287037ef8e93a438e4e26c74cffa334e1e2c18
+  physics_result_hash: da9a762c8be97ba0ca0ef4c0518f58f26277df13be0f53cfddb910fb5c787ad0
 
 - name: crawlers-vs-rhino-09
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758328
   tick_count: 295
-  physics_result_hash: 85df8badd09c37e20583aa3251ba6a3a91c1547c60ffe2f579976cc4f1264df6
+  physics_result_hash: 306464bfdba59791fb37c59cdff4303a238d5933da05ef4b425933fd32bd7698
 
 - name: crawlers-vs-rhino-10
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787758384
   tick_count: 307
-  physics_result_hash: 226a5fdebfcadfdd522cd260ab9397cca8bb2c7ddbd3e45beb0500c95503beba
+  physics_result_hash: 82c751b657dcf212b215c092323765d495f30886fc8bc7eae3504a89acb34481
 
 - name: crawlers-vs-crawlers-01
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787778788
   tick_count: 351
-  physics_result_hash: 170584578238606f566a70d875466851380ec0f87b79e5081abc1b771abcb5bc
+  physics_result_hash: b184a71ac4e0fc25045da68903a3f5e21118e70c1cf16c01df652130ce0a6fac
 
 - name: crawlers-vs-crawlers-05
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787778960
   tick_count: 371
-  physics_result_hash: 1a36a80e0f42c95283f7018747acddd8fad516d7e13af54ac87155958738abc8
+  physics_result_hash: 056879ae9d8f0bc41272dd8f044d8c41008a12a782b88cf2644100de9c94eb11
 
 - name: crawlers-vs-crawlers-09
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787791755
   tick_count: 403
-  physics_result_hash: d8a23ee2b182a7d3f0f2ff0fc99073ed0f8f4ddd75c969ec9950aa7580ca479b
+  physics_result_hash: 2a7ec86f67ee00b4d3693b12ea556a69f86d276520edff07ce2920d18dc4e908
 
 - name: crawlers-vs-crawlers-13
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787799499
   tick_count: 379
-  physics_result_hash: ac3b65a1930378c931bdc65856145a5d74959523aee1b1030223b3d6e8d38b23
+  physics_result_hash: 0d66037222a6b2644eb93f3838b068cbd4c7c962af551f9d8d73ff45fa37c718
 
 - name: crawlers-vs-crawlers-17
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787799748
   tick_count: 381
-  physics_result_hash: 9b757363c2b04606340055602b26718f437793dce6edf28829c0e350d6dc2c40
+  physics_result_hash: 3b8ce3dbde68cdab83233887fd5603bcafbfa462c2b6ab9f5e455e3489463591
 
 - name: crawlers-vs-crawlers-21
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787800633
   tick_count: 377
-  physics_result_hash: 66ad27ff0b6878e6c478253dc18044982c64892b92b0407090f3cc5a7b8fad67
+  physics_result_hash: 2918baacfa22064ac26cff0c4af605de26037db5b542d34072be6a5fa7b7a503
 
 - name: crawlers-vs-crawlers-25
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787800781
   tick_count: 366
-  physics_result_hash: 006490dabb34d94966e84699678ae80893e95fc35a4f82bb045722614a884487
+  physics_result_hash: 30a566bb19cf6d63653c1b94d79e53a8ffbf8e6c61d1ed87185d8079212691cd
 
 - name: crawlers-vs-crawlers-29
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787801010
   tick_count: 317
-  physics_result_hash: f2d9b3206505b5c451e4fb8b00bedeac4938648fb606e136dc4a199b6b2d0477
+  physics_result_hash: 850c818daf120936b4f9f529b46485bcb7957aec44921fd8241b00ddfef027e1
 
 - name: crawlers-vs-crawlers-33
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787802518
   tick_count: 439
-  physics_result_hash: 13320d6cf88b526ff3ff6d81ea84f0dcd9c65100f6062e83b640c39ea0ae3612
+  physics_result_hash: e2316be52c5b0ada2113ad717b1bf0057b9bbf20b43617244e17c2bb33ad174f
 
 - name: crawlers-vs-crawlers-37
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787803517
   tick_count: 356
-  physics_result_hash: 4c55c8bdbf927b4b3aa8a675cb5f932f3e8536a808b5ab6a2cad725ce1afca36
+  physics_result_hash: 52d19fb9c08923cfa126b17b646ed10e3d0b02f485fb096785292096164c0e46
 
 - name: crawlers-vs-crawlers-41
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787803732
   tick_count: 351
-  physics_result_hash: 160ea665811efdf5869df7fee94e0d2be6a2b62b208dd9e42fc5aadb217de2c7
+  physics_result_hash: c908f6d346e2ebe01d8809d48498f203c21b579902fcb432ba8d9113e138844d
 
 - name: crawlers-vs-crawlers-45
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787803881
   tick_count: 300
-  physics_result_hash: 2671ff2481aa0647469ee31e940edb358c8813f11dda82ada6ce95a4b7c04e0a
+  physics_result_hash: 3c2fe2b27a51674c05dd9e0941347e0f88609aa655e1f9e16ab4482bb62ef744
 
 - name: crawlers-vs-crawlers-49
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787804531
   tick_count: 389
-  physics_result_hash: 913edef0d23cb92802d66e0a91c8a0a72cf1953ad89c49ff81e1225db5125526
+  physics_result_hash: 05fb9cb8e93ce1dcf6956fd66c3ff6917aa0f04ef7dbf235838e214fa9721150
 
 - name: crawlers-vs-crawlers-53
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805016
   tick_count: 350
-  physics_result_hash: 6807823d105c2287d0ad847ea694f3b1b753e234a33997170ac0e2dba8fb6960
+  physics_result_hash: 2c247b461cf7bb5a4777fc3ae6b8a5f4fed30e08e21c05fca293ad8567205762
 
 - name: crawlers-vs-crawlers-54
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805051
   tick_count: 349
-  physics_result_hash: 4f888961f529804d911fdb5b9a707effbfffd214cd2c494f8c2f3044869690f1
+  physics_result_hash: 742b793521a847a05980b7f8fe167840116cac76b4542cf81d2bf99661ed7fdc
 
 - name: crawlers-vs-crawlers-55
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805107
   tick_count: 368
-  physics_result_hash: 9d3f1f6def5ad3dbd3c15b0a21214ec06f31f0ef474a8a388fa0be5e0d3c3145
+  physics_result_hash: 2a96cabe545fb3a8f79383966645a84cf792eb79b7c19bd81a06bcbfc25de461
 
 - name: crawlers-vs-crawlers-60
   smoke: true
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787805959
   tick_count: 342
-  physics_result_hash: ebaec77d0af726720bddf5e494dd27fe0536b933674fbc84f6169cee7fdc1289
+  physics_result_hash: db3e61a1b98f57c5fbcd678b52d90944a5b22e3dfb2b89b89e89d6d4510a3ae3
 
 - name: crawlers-vs-crawlers-65
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787806536
   tick_count: 334
-  physics_result_hash: 6edb61894cf36314a6a4442e5c87e34e88e141632982c7b7155275d6c196cbd2
+  physics_result_hash: 2910e91b96d83890e811eb19f4a9b8aff3de7f6067af3da3068d66020910bc46
 
 - name: crawlers-vs-crawlers-68
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787806713
   tick_count: 404
-  physics_result_hash: 9718d7ec47b6a94732cfe9b6e66989219529f9e55ef1377c6f0486133ecbfc08
+  physics_result_hash: df6eeab654e487d56f27331f561685ded0c5fdb1cd198726dc3bdd6091ef2916
 
 - name: crawlers-vs-crawlers-70
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787806795
   tick_count: 295
-  physics_result_hash: 9777613536571cdc0e624e42d11e96c5eb8d4daade9b03f0462604ec2ed9033c
+  physics_result_hash: 6dee82f2b0ce646d6a1d8dc90892e6b96140ca955c2cac7db28337669d497c63
 
 - name: fangs-vs-fangs-01
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808873
   tick_count: 344
@@ -397,7 +397,7 @@
 - name: fangs-vs-fangs-02
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808906
   tick_count: 392
@@ -406,7 +406,7 @@
 - name: fangs-vs-fangs-03
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808949
   tick_count: 350
@@ -415,7 +415,7 @@
 - name: fangs-vs-fangs-04
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787808985
   tick_count: 337
@@ -424,7 +424,7 @@
 - name: fangs-vs-fangs-05
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787809018
   tick_count: 366
@@ -433,7 +433,7 @@
 - name: fangs-vs-fangs-06
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787816186
   tick_count: 363
@@ -442,7 +442,7 @@
 - name: fangs-vs-fangs-07
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787816925
   tick_count: 347
@@ -451,7 +451,7 @@
 - name: fangs-vs-fangs-08
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787817059
   tick_count: 348
@@ -460,7 +460,7 @@
 - name: fangs-vs-fangs-09
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787818397
   tick_count: 343
@@ -469,7 +469,7 @@
 - name: fangs-vs-fangs-10
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787818488
   tick_count: 337
@@ -478,7 +478,7 @@
 - name: fangs-vs-fangs-11
   smoke: true
   layout: tests/regression/fangs-vs-fangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787819220
   tick_count: 329
@@ -487,7 +487,7 @@
 - name: mustangs-vs-mustangs-01
   smoke: true
   layout: tests/regression/mustangs-vs-mustangs.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787823221
   tick_count: 254
@@ -496,7 +496,7 @@
 - name: wasps-vs-wasps-01
   smoke: true
   layout: tests/regression/wasps-vs-wasps.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787829131
   tick_count: 196
@@ -505,7 +505,7 @@
 - name: steel-balls-vs-steel-balls-01
   smoke: true
   layout: tests/regression/steel-balls-vs-steel-balls.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787831322
   tick_count: 300
@@ -514,214 +514,214 @@
 - name: crawler-vs-rotated-01
   smoke: true
   layout: tests/regression/crawler-vs-rotated.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787833929
   tick_count: 271
-  physics_result_hash: f3b9070838f76b6da63afcac8bd0253737d10dfd28ae429e9455608e176ac959
+  physics_result_hash: 89a84a7117cb1943fe7dc4d6c46d1e59bd328c1e8de2d66319bd3b5e8e344224
 
 - name: arclight-splash-01
   smoke: true
   layout: tests/regression/arclight-splash.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787837829
   tick_count: 497
-  physics_result_hash: 90efaebab48b5e99d794b31ed4efb4934c9006b66f1a59c0c5da9f47643e3523
+  physics_result_hash: e20cd749e8f426edb277c1a36a75abed2277b817feea850168ff2566b277d71f
 
 - name: wraith-group-attack-01
   smoke: true
   layout: tests/regression/wraith-group-attack.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787857041
   tick_count: 647
-  physics_result_hash: 7dbc9b1f09d984ab6883befe5a294f435471dcf40e019991b8f9eb44ef51b4dd
+  physics_result_hash: 70def724b5df0a84e516be7ace3517c50dc72fcc142b2fa385b44e6b13463081
 
 - name: stormcaller-vs-self-01
   smoke: true
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887280
   tick_count: 763
-  physics_result_hash: dd30e3dfe3b9af90735b5c512863b8c3491eb7b73172f0f7d1bf3f02a48b02f5
+  physics_result_hash: ee40fa490ee1198619570a28dc502b894f7feee0e5310bf7399a36847a709ea8
 
 - name: stormcaller-vs-self-02
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863348
   tick_count: 498
-  physics_result_hash: f0846615bb4e01b0024281bc78443cd883a7fe78c270220d130672c31f8415da
+  physics_result_hash: efbf249a9118b0b6790d33b547d9d5163a56285426a4b5c84dd27a8a1dd27e68
 
 - name: stormcaller-vs-self-03
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863396
   tick_count: 502
-  physics_result_hash: 6078273322037f0cb3991a36aa20232c968c1fcf908bec9585e578ee81128928
+  physics_result_hash: 3e7468bf03b5b0f1bb51ca416d84e30afaf8febb1c638d383771fc25ccae98aa
 
 - name: stormcaller-vs-self-04
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863436
   tick_count: 514
-  physics_result_hash: 8391fa0c83f1f24caafe11c74f82eea08f32e37da979f525df885238ca1fe115
+  physics_result_hash: 43868c1a9a33bcb5088597dcf4c0cc6f4a2bf4128fd31e30ebac53cde6f9226c
 
 - name: stormcaller-vs-self-05
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863478
   tick_count: 595
-  physics_result_hash: 5d8efbb9b6e2ddf20ec7c4409929a560a558de8136e584fc49252247319c3770
+  physics_result_hash: e01958c7c6d12a78f52a39b7935a741899251209249662fd879070ffad018359
 
 - name: stormcaller-vs-self-06
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787863515
   tick_count: 630
-  physics_result_hash: f3b5d45c712fdb81f6c87b88300e916cf4cdbfbd18c727945a9b52a283644bc0
+  physics_result_hash: 05081e31e8fc9189897c6f514bca5cf760319610abf1f7a6eae826ab291b0caa
 
 - name: stormcaller-vs-self-07
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887111
   tick_count: 609
-  physics_result_hash: 76b402571d6328228de2b441b3949311ea02d83eddfdc52e11d47e0ac3381cdb
+  physics_result_hash: 7acf54dc70575efe7b7ffba2586a89ba443c40aa0627ff6c151cfceb39a63dad
 
 - name: stormcaller-vs-self-08
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887134
   tick_count: 503
-  physics_result_hash: b2f98979b91eac57005321cabd173533c4ae234a63a6e0e61d5ff70eece91fe3
+  physics_result_hash: 6d00df6d7bdb1ea0b2a175ada09d3a892c5b35aecc860f69bb752409013ac027
 
 - name: stormcaller-vs-self-09
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887155
   tick_count: 596
-  physics_result_hash: 73a21d9f8c2e7aa90d4968366ab61c44da95f619a21da9c84add4bd5cb5bcce8
+  physics_result_hash: 013db7b458d90cebb73c5c5c0235c2288da2cd4c18f2b50f80a3679b53fe252c
 
 - name: stormcaller-vs-self-10
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887178
   tick_count: 614
-  physics_result_hash: 4cebf8b702b6e56e323792a438c120053c76ec45a5a1b53ce38bad3aa0058bd4
+  physics_result_hash: 36bfd6ffca30a90886f56b83591cb97e8574457a35aaa92304af513b07d49efe
 
 - name: stormcaller-vs-self-11
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887201
   tick_count: 634
-  physics_result_hash: c4d480b167ccc5d9d2449631181c62eec0ef42fb9e507546bf9bf84013110df9
+  physics_result_hash: 0255533f799ba90df5669c5619b5eb2fa4a9e4d6e6f90daddf1c1002f7b28c3b
 
 - name: stormcaller-vs-self-12
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887304
   tick_count: 430
-  physics_result_hash: 040324d3e84d57dc1fc125505d43cca0d42d7f1814467a0c0881992b7984dea0
+  physics_result_hash: e49d9593b20648f6506f81c354b0ca47be44f86fe881fa6a2f71de7a57985090
 
 - name: stormcaller-vs-self-13
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887323
   tick_count: 547
-  physics_result_hash: 723327acb25b8631d504609e79e5735a961cb00c69f8ba3719e7169ddf6ce78e
+  physics_result_hash: 0d15a0ac0d332a599afddb3069ecc8de5d6f7a0a57b2438ddeb2242745de30de
 
 - name: stormcaller-vs-self-14
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887345
   tick_count: 627
-  physics_result_hash: 4f4e66df262b818607f68983d664952f2fdebf38e789eaa83108222f9174d6f7
+  physics_result_hash: 7d226c823e7768c945205551deeb5864e45796907a3e0bfcba60b718a9d9b159
 
 - name: stormcaller-vs-self-15
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787887368
   tick_count: 503
-  physics_result_hash: d90a4408cf88205e56d66511d5111b5929b1227aa8cccb0f6b73dd6be4160283
+  physics_result_hash: 726b1cf382fdc976af22fdb911c429c8e96ad1413ad8177281c850dda3381e96
 
 - name: stormcaller-vs-self-16
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787884975
   tick_count: 518
-  physics_result_hash: 925be09e70c55630194ff8e9bea06a61dee2d2534d60eee5ccdecee1cf218912
+  physics_result_hash: 9638a7ea6728bb25e6f74c770c2c72da2441e740271600667cd6bc86cd863eb5
 
 - name: stormcaller-vs-self-17
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787882500
   tick_count: 637
-  physics_result_hash: 8ff55644b1365dae1db061625490a0ccea8a7e6321542d7557aae50cb9f754d2
+  physics_result_hash: 8fd27b2b12fe8b4b3504484bbb5b57c3c903fc7ccf161c8178227c0c591aded7
 
 - name: stormcaller-vs-self-18
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787881295
   tick_count: 992
-  physics_result_hash: 92196100686c705da3e40343e8d4db194d62e762194805c995c5b75f8e06a2ed
+  physics_result_hash: abee5001196b939b871bec03f39132f7bf2f9b3e5595d6034cefa9c65f3e032d
 
 - name: stormcaller-vs-self-19
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787880738
   tick_count: 571
-  physics_result_hash: 729f6a7d761c6b2951edfa90ee0806535fa9fa2f1f86625a7bf809929df991cb
+  physics_result_hash: e05afa9715499b68a0c147bc4b3742016ebf40420a8d2fad19004ad13dd3f1ef
 
 - name: stormcaller-vs-self-20
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1787869558
   tick_count: 599
-  physics_result_hash: cbe0c96d44022e238b887d4db0c2f8a9488087a1054f73c8de1259428017af76
+  physics_result_hash: c2bfa3585569bcf2292ffd4ae07554aac8d4c4fd7472d5c42af2971fae9b7329
 
 - name: phoenix-vs-phoenix
   smoke: true
   layout: tests/regression/phoenix-vs-phoenix.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.3.0
   seed: 1788397284
   tick_count: 146
@@ -730,8 +730,8 @@
 - name: crawlers-vs-marksman
   smoke: true
   layout: tests/regression/crawlers-vs-marksman.yaml
-  game_build: 1.11.1.3.2259
+  game_build: 2.0.0.1.2324
   format: 0.6.0
   seed: 4242
   tick_count: 161
-  physics_result_hash: da5cb9284575d25d8fd9281987185c66b1e51080b06508ec4feed7a8de09a044
+  physics_result_hash: bbb03a2f52a78b60af5112689437cf8731ff6529d31f021b344c3d099209ed4e

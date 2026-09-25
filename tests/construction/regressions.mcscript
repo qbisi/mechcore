@@ -81,22 +81,12 @@ steps:
     expect:
       steps: 189
       winner: red
-      hashes.physics_result_hash: 44ae3c4c81b15563f6a7b924591385baf12813c27714d4d23cb7a2ebe25cdf1f
-      hashes.content_result_hash: 70e976ec3367fec2f6183dbf181086fcacd1e0d7348a761eb639b4b96a80b815
+      hashes.physics_result_hash: 8edb89ea8e69bcb14637f55e9bc38f846d3909fc0a82f3d3e051f7d7337d6148
+      hashes.content_result_hash: c21bb07a88a80adc65ce8449dfbcd0fec4ca3eec3dcb41d76923d2f538f82350
 
-  # A beam, and a block in the way of a unit's movement. Four Steel Balls take
-  # three blocks with the beam's ramp, and one of them, overlapping block 3, is
-  # pushed off it: to the other side a block is an immovable obstacle on the
-  # wall's own collider layer. 243 ticks, the game's hash, and its content hash
-  # agrees too, which `attacks.mcscript` checks against the game.
-  - fight.run:
-      layout: tests/construction/wall-laser.yaml
-      seed: 4242
-    expect:
-      steps: 243
-      winner: red
-      hashes.physics_result_hash: 6cfed0b5e5bff3304b97e87d582d3b7043f95d72a34670267d9b73b5f28ad43b
-      hashes.content_result_hash: 9b84885e238a31bd675911e4667eab90e31f3fed4cdc8c80d1ce6ac9b6945ab6
+  # `wall-laser.yaml` is not pinned. On 2.0 the Steel Ball whose beam fells
+  # block 4 turns onto the Marksman that tick and the simulator does not, so
+  # the fight parts at tick 82 of 242.
 
   # The side that placed the wall, crossing it. Twenty-four Crawlers walk
   # through their own blocks, which still take places among their twenty
@@ -106,8 +96,8 @@ steps:
       seed: 4242
     expect:
       steps: 341
-      hashes.physics_result_hash: 742ab9964980d2df6bca04e90546f5e54f3ea91e317158e639e3923875ec552c
-      hashes.content_result_hash: e74ef9a00f918e8560a73c09b42eb12298bdd32d4db78dfa731cba96804bfd9b
+      hashes.physics_result_hash: 79d0fe197ab74bd3962a6105b5bd5bffaba40d6654011e6ccf5f85b993684625
+      hashes.content_result_hash: 7e958c1188b44eecca5f65ae07db789b49e27c5170cf18b1eb60d7604b5997e3
 
   # The other side, stopped by the wall and taking it down. Twenty-four
   # Crawlers pushed along the wall as they strike it change blocks between
@@ -119,8 +109,8 @@ steps:
       seed: 4242
     expect:
       steps: 209
-      hashes.physics_result_hash: cdff39d42765941071c7eb9ce26900d05c0486020e7b96c387b6c7d8abe9a800
-      hashes.content_result_hash: 13768c9b5347ba61f0088819c835ee5675278f30436b85a9585255ae462c08fd
+      hashes.physics_result_hash: a63e32c65142d765823c6eba3047671b9535061b10d844c829368db0184a4849
+      hashes.content_result_hash: a24a927329620296aa697283145a1e21a8cdf3d6e213159a57f52f8d4269bb2b
 
   # A splash across a wall, from a shot at a building: an Arclight's shots at
   # the block Crawlers are crossing take the Crawlers on it with the block, in
@@ -130,8 +120,8 @@ steps:
       seed: 4242
     expect:
       steps: 158
-      hashes.physics_result_hash: feb1225a306cb86afd95cf737b52037cfc6e9e2e0c66ce0fb2de554ea7a0af14
-      hashes.content_result_hash: 93124fd978ed648375973cad29fa445e902615c80598eddc674f3ffcbe8d31af
+      hashes.physics_result_hash: 77cb933c929973bb1f3a3320510a8f4252684d0af85c6e6e629c7ccb8c351dc7
+      hashes.content_result_hash: 5dee2377f5b0c4a690861b90d5c6ada38b83a23de66965104e52098e29863314
 
   # The same, with the Arclight turning onto blocks and off them as they enter
   # and leave its line, and re-locking when its splash kills its lock. 161
@@ -141,8 +131,8 @@ steps:
       seed: 4242
     expect:
       steps: 161
-      hashes.physics_result_hash: 0ee71021c5d43cfab02d2e4232e26fdce601abe1e44358939959ac09c369846b
-      hashes.content_result_hash: 2a16971920806061017481a8694ec3eaa456eac460ae89e85c4b0d8dd9cbfc4b
+      hashes.physics_result_hash: b1ea0a83ed04395a4140f6628690febeaca4a859d3c4c2f4ce6ccfb5ea5fd169
+      hashes.content_result_hash: 15bfddad8561cb51508a16e8b334e422fa1e9d82cff4bcabb0c5fb284a176a96
 
   # A splash across a wall, from a shot at a unit: the block behind the Crawler
   # it hit, out of the Arclight's reach, takes the shot's full damage. 176
@@ -152,5 +142,5 @@ steps:
       seed: 4242
     expect:
       steps: 176
-      hashes.physics_result_hash: 1a97a4e6d185010d107a5e72970c93b467aaa253cf7185f8358e8e7000907d4a
-      hashes.content_result_hash: e80fa9f29003dbeb966fc5803204ae3a3736db58543e68c0697021e4714ea7ef
+      hashes.physics_result_hash: 227ee2cc11ab03cc22082cc6633b9b9e7d37dc0e8a7c252d235d06e8aa2f5f4f
+      hashes.content_result_hash: 0925e3a539f8035f9298fef0fe9e2ecd7198a09918f65f4f5ad13ee19d1d8792

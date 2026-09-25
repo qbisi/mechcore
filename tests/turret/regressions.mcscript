@@ -35,8 +35,8 @@ steps:
       steps: 237
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 7c4055e225a1433fece8506330c6016b47392067655ff3dfd5bd711fcc2c3fe0
-      hashes.content_result_hash: e2f58aeb9e3e05e7b78bda344afc104f3547ac8283ce3303d8b4071a90868beb
+      hashes.physics_result_hash: 7dc65094f4336cb543090dbe3c956f2580772447aaf1ad3b82fa6869c4c7486f
+      hashes.content_result_hash: 9d7e20aa0923e453193bb2a8b6e9408f6771f17f61bb5a0451cab999f0440b12
 
   # The same Crawlers 36.6 degrees off the turret's column. The weapon has
   # turned onto its lock before the lock is in reach, so the first shot is as
@@ -48,8 +48,8 @@ steps:
       steps: 234
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: cd1298cd5148d083243c872accc593a2dc4ed55779f37aabd3bd73ac49525f66
-      hashes.content_result_hash: ca6bd5d45f103943bb190daee8434c4decc1c76ed52225e906458f447382b486
+      hashes.physics_result_hash: 97629e0d83fb47a8b3c13c0de56bb0d6e32f62f784143bc692ad47685d132db1
+      hashes.content_result_hash: b917034f1f9494a043d8ef7a08400f5fe64534b11a180985cfad71fc3fa14808
 
   # Four Arclights down the Anti-Armor Turret's column, two shots each. The
   # sixth shot empties the magazine at 574, the reload runs to 776, and the
@@ -72,5 +72,5 @@ steps:
       seed: 4242
     expect:
       steps: 1397
-      hashes.physics_result_hash: 9c8ead2a754a4f4a8d73d880f00765de84f13a2c2ec1c4a86bc2b6e5b9ccb711
-      hashes.content_result_hash: 5409aef11cf21ed57a88bf36c5990f834a9aa8644dc517d9e5f840783d15794d
+      hashes.physics_result_hash: 892cceedf56e76c9bf0fadb2f3fcc3223074e250cb5b4ac31782a154f2de3dbf
+      hashes.content_result_hash: 5b4b0fde057cbbfa3939fbba48576eebc284404ba7ed46e848955e582e0a2136

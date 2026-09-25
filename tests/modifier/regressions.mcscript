@@ -162,12 +162,12 @@ steps:
       seed: 4242
     expect:
       steps: 144
-      hashes.physics_result_hash: 15d19c998b71dca307a43e60f84f9e747897433f6d66f3561ae6ec4f84e348d9
-      hashes.content_result_hash: 8ce00e182ddcd4c27650701e3d2779f896165a36b1dab6c16fd9ad161c480b65
+      hashes.physics_result_hash: 005fc0461fe355a02cf21e15ca14df44511cdb9480644e343f11b37ee8260b17
+      hashes.content_result_hash: bc1a11f7ac2a3dd65beb1075390985e4d28ef0eb22feaad1969bfa57a06ccdb4
   - fight.run:
       layout: tests/modifier/targeting-ranged.yaml
       seed: 4242
     expect:
       steps: 138
-      hashes.physics_result_hash: f6fc46b5d828f5e910ae4967e3b7938ed1927aa9bddc24724b7e2ad74ddac6b9
-      hashes.content_result_hash: 4c612918567d12f78efadb3ad7fa8cad61f5d68034cfcb0db42a016e871c19b3
+      hashes.physics_result_hash: 42c43c196678c6e60dc4246afd47a32cec472b214c993a54d03d08b1276107c6
+      hashes.content_result_hash: 303ee8df927b92ea7e8a424984ec49bf81da0e024e6f23d084e24c5736425872

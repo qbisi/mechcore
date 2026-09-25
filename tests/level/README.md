@@ -1,6 +1,6 @@
 # Unit levels
 
-Build 1.11.1.3.2259, seed 1787720817. `stats.mcscript` records the control
+Build 2.0.0.1.2324, seed 1787720817. `stats.mcscript` records the control
 and the three layouts here. It needs the game; `regressions.mcscript` runs
 all four offline and pins both native hash layers.
 
