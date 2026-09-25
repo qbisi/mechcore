@@ -244,6 +244,20 @@ prepare ticks plus its attack-point ticks, each truncated on its own. This is
 not a formula that adds the two fields first, and must not be generalised into
 one.
 
+**Leaving the idle state is entering one.** `SkillIdleState.TryStartAttack`
+enters `SkillAttackState` on the tick the attack target comes into the attack
+angle, and the state is not updated until the tick after, so the blow is
+released then. A Fortress whose weapons turn onto a Crawler while its motion
+already attacks reads `SkillAttackState` on the tick they come within the
+angle and releases on the next; so does a Sledgehammer or Typhoon that locks a
+new target after a kill. A skill leaving its cooling does not wait.
+
+**An idle skill keeps its lock only while it can fire at it.** The idle
+skill's periodic search answers a new lock when the one it holds is outside
+its attack area, even while its motion attacks: a Melting Point whose weapons
+are still turning onto one Crawler takes the Crawler they already face and
+prepares against it.
+
 ## Ordinary synchronous direct-attack backswing
 
 A Rhino's ordinary direct attack enters its backswing on the effect tick. The
@@ -324,6 +338,9 @@ not the game's native attack-type enum.
   splashing beam, in the standard fights of the Phantom Ray, Fire Badger,
   Typhoon, Hound, Sabertooth and Melting Point:
   `tests/units/regressions.mcscript`.
+- The blow waiting a tick after the idle state is left, and an idle skill
+  giving up a lock it cannot fire at, in the standard fights of the Fortress,
+  Sledgehammer, Typhoon and Melting Point: `tests/units/regressions.mcscript`.
 
 ### Read
 
@@ -381,9 +398,6 @@ not the game's native attack-type enum.
   neighbours, which is recorded and not read; a projectile that climbs before
   it flies (`preFlyHeight`), which the simulator refuses; interception; and
   every other projectile type.
-- **An attack begun from idle after a kill.** A Sledgehammer or Typhoon whose
-  target is killed, which goes idle for a tick and locks a new one, fires a
-  tick later in the game than in the simulator.
 - **Damage**: building splash, area boundary and ordering, modifier chains,
   shields, and other providers or target domains.
 - **A personal shield's** activation, absorption and destruction.

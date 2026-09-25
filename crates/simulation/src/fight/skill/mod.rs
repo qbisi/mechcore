@@ -576,10 +576,17 @@ impl Simulation {
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
             && selected != skill.lock_target
+            && skill
+                .lock_target
+                .is_some_and(|lock| self.target_in_attack_area(owner, lock))
         {
-            // An attacking unit keeps the lock it has. What its weapons fire
-            // at is asked again below, so a construction still in the way is
-            // handed back to them rather than written into the lock.
+            // An attacking unit keeps the lock it has while it can fire at
+            // it. What its weapons fire at is asked again below, so a
+            // construction still in the way is handed back to them rather
+            // than written into the lock. One whose weapons are still turning
+            // onto its lock takes what the search answers: a Melting Point
+            // turning onto one Crawler takes the one its weapons already
+            // face, and prepares against it.
             skill.lock_target
         } else {
             selected
@@ -834,6 +841,7 @@ impl Simulation {
             // not a `FightSkill`, and prepares from the tick after its
             // motion starts attacking; nothing has captured its states
             // yet to say why.
+            let from_idle_state = matches!(skill.state, SkillState::Idle { ready_step: None });
             let from = if entered_attack && !skill.group_skill_targets.is_empty() {
                 step + 1
             } else {
@@ -846,7 +854,14 @@ impl Simulation {
                     finish_step: from.saturating_add(prepare_steps),
                 }
             });
-            entered_skill_phase = prepare_steps > 0 || entered_attack;
+            // Leaving `SkillIdleState` is entering a state too, and the blow
+            // waits for the tick after it just the same: a Fortress whose
+            // weapons turn onto a Crawler while its motion already attacks
+            // reads `SkillAttackState` on the tick they come into its angle
+            // and releases on the next, as a Sledgehammer or Typhoon that
+            // locks a new target does. A skill leaving its cooling does not
+            // wait.
+            entered_skill_phase = prepare_steps > 0 || entered_attack || from_idle_state;
         }
         // A skill already in its attack state starts its next blow's wait on
         // the tick its interval is up, whatever its motion did: a Crawler

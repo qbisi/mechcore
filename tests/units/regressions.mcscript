@@ -1264,6 +1264,13 @@ steps:
       steps: 293
       hashes.physics_result_hash: dd8516567bb7afc1f70e5c325bbdd242142368079137e20f4b12d39a7ffc86bb
       hashes.content_result_hash: f8b4076db9add6da85503ef22f311d07f3dc16139d1149c3c2febacceb7107f6
+  - fight.run:
+      layout: tests/units/sledgehammer/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 211
+      hashes.physics_result_hash: 352981e59b0f9963d1d40884239f0d4f64417b841e97506a39ec0fed3a138679
+      hashes.content_result_hash: 861a346fc6d91715903e80635aee864a339fda1543b638f6a1752f892b3b5d79
   # fire_badger
   - fight.run:
       layout: tests/units/fire_badger/m1-mirror.yaml
@@ -1569,6 +1576,20 @@ steps:
       steps: 239
       hashes.physics_result_hash: ae6bcddc16c02e9bfc1c0cc1ec937e18559bc4db554917ab7ce03db4be97bab3
       hashes.content_result_hash: e1130147c79e790bd60cd3feb753cc6f0c797f60bb2df9ceb7b53f12abe51752
+  - fight.run:
+      layout: tests/units/typhoon/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 155
+      hashes.physics_result_hash: 572af4d50fa629aa051bf7de0992fe3dd6d2cf4d8ad7f3a316b56a4ffc707381
+      hashes.content_result_hash: 842be8e605a8c1cc4fcbd8cb3090efb662ed9cb07139d209f343db69700ba15a
+  - fight.run:
+      layout: tests/units/typhoon/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 252
+      hashes.physics_result_hash: ff2187282f255a272f0eb8c77b331e605e283b299b851d4cb69a2ece07b4b668
+      hashes.content_result_hash: ca986bd2ff36f2d08706efd9121ac94b6cc036f0c3608d99893bc6e69dbb375e
   # fortress
   - fight.run:
       layout: tests/units/fortress/m1-mirror.yaml
@@ -1647,6 +1668,13 @@ steps:
       steps: 407
       hashes.physics_result_hash: 09bd9eaeaa1fd058300c2f327169bdb7e5a1c77e18e1bcd1c0773bb9941ec8f9
       hashes.content_result_hash: 9be96d298208673c7b051a0242c51665baff0545f65ec188e6df762da5430aec
+  - fight.run:
+      layout: tests/units/fortress/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 463
+      hashes.physics_result_hash: dd871948e71eb8757a3388f896a2a1cf67621b91e48605bc473b3baea7a7e8ed
+      hashes.content_result_hash: 8c079c0885c65084f450082cefa08698a52df8eba8826848bfd96937f8e91f9b
   # vulcan
   - fight.run:
       layout: tests/units/vulcan/m1-mirror.yaml
@@ -1810,6 +1838,13 @@ steps:
       steps: 454
       hashes.physics_result_hash: 9c275381dac74d29d57b570727437b1f53a862df9924683532e9e0d24236c70e
       hashes.content_result_hash: 2cd663ff73f89c8767edf00a440d1ee2c3d564e0774a70f6497c817a4105b0d3
+  - fight.run:
+      layout: tests/units/melting_point/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 467
+      hashes.physics_result_hash: 83ad41f22fe0f1427ecae6bde586b5d5990936a4686ba7e1c80f2b8ca42023ee
+      hashes.content_result_hash: 82d8417f49b7ccad5c26ae102d7608dd85868ec9465af975053079919cc71140
   # centurion
   - fight.run:
       layout: tests/units/centurion/m1-mirror.yaml

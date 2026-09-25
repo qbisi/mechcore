@@ -49,29 +49,31 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 ### 现状
 
-2.0 上 29 个单位有全套布阵，266 场钉住（`tests/units/regressions.mcscript`）：
+分支目标：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外，
+所有单位达到无科技基本支持。
+
+2.0 上 29 个单位有全套布阵，271 场钉住（`tests/units/regressions.mcscript`）：
 
 - 四个参照单位 44 场全部钉住；arclight、fang、mustang、steel_ball、wraith、stormcaller、
   phoenix 84 场钉住 76 场。
-- 其余单位除三个 800 费用的（war_factory、abyss、mountain）一起放行，216 场批量录制：
-  hacker（控制光束）、raiden 和 vortex（分组齐射）、farseer 和 overlord（先爬升再飞的弹丸）
-  按名拒绝；其余 156 场钉住 146 场。centurion、sabertooth、scorpion、tarantula、void_eye、
-  vulcan 12 场全对。sandworm 会钻地，配置表达不了，没录。
-- 批量录像顺带修好五条机制（写在 `docs/rules/combat.md`）：武器按原生下标命名；跟随目标的
-  弹丸保留随机偏移，目标已死时落向齐射开始时瞄的点；单武器的偏移后抽先落；模拟运动的弹丸
-  落在已死单位上什么也不做；带溅射的光束打溅射范围内所有目标。
+- 批量放行的 18 个单位 216 场：hacker（控制光束）、raiden 和 vortex（分组齐射）、farseer
+  和 overlord（先爬升再飞的弹丸）按名拒绝；其余 156 场钉住 151 场。centurion、fortress、
+  melting_point、sabertooth、scorpion、sledgehammer、tarantula、typhoon、void_eye、vulcan
+  12 场全对。
+- 修好的七条机制写在 `docs/rules/combat.md`：武器按原生下标命名；跟随目标的弹丸保留随机
+  偏移；单武器的偏移后抽先落；模拟运动的弹丸落在已死单位上什么也不做；带溅射的光束打溅射
+  范围内所有目标；离开空闲状态的出手等一 tick；空闲技能只在能打到时保留锁定。后两条靠
+  adapter 新增的 `mech_body_rotation`（`target_refs` sidecar 里机甲本体的朝向）读出。
 
-没对上的按机制归类，按卡住的单位数排：
+剩下的，由易到难：
 
-1. **正前方目标的朝向正负号。** steel_ball、stormcaller、hound、fire_badger、phantom_ray
-   都卡在这里。`FightUtility.ConvertToAngle` 的符号规则与模拟器相同，差在预搜索时取方向的
-   两个位置；要一段带技能状态的录制读出来。
-2. **击杀后从空闲重新开火的时机。** sledgehammer、typhoon：目标被杀、空闲一 tick、锁定下一个
-   之后，游戏在锁定后第 3 tick 开火，模拟器第 2 tick。
-3. **wraith 的分组搜索。**
-4. 未读的零散分叉：typhoon、fortress 各一场的弹丸释放，melting_point 一场的锁定目标，
-   phantom_ray 一场的武器攻击目标（只差内容层）。
-5. **被拒的主技能形状**：控制光束、分组齐射、先爬升的弹丸，各自一个机制。
+1. **phantom_ray m3 一场**只差内容层（第 176 tick 一件武器的攻击目标），未读。
+2. **正前方目标的朝向正负号。** hound 两场、fire_badger 一场、phantom_ray 一场，加上
+   steel_ball、stormcaller 各一场。`FightUtility.ConvertToAngle` 的符号规则与模拟器相同，
+   差在预搜索时取方向的两个位置。
+3. **wraith 的分组搜索**（6 场）。2.0 录像不在本机，要重录。
+4. **被拒的主技能形状**：分组齐射（raiden、vortex）、先爬升的弹丸（farseer、overlord）。
+   hacker 的控制光束不在本分支目标内。
 
 ### 换版本留下的尾巴
 

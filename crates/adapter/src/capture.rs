@@ -143,6 +143,11 @@ pub(crate) struct UnitTargetRefsObservation {
     pub(crate) skill_attack_phase: Option<&'static str>,
     /// `FightSkillBase.IsIdle`.
     pub(crate) skill_is_idle: Option<bool>,
+    /// The rotation of the mech's body, `FightMech.mechBody`'s
+    /// `FightTransform`: what a unit with a body turns toward its attack
+    /// target and measures its attack angle from. Absent for a unit whose
+    /// body has no transform.
+    pub(crate) mech_body_rotation: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -553,6 +558,7 @@ struct Metadata {
     motion_attack_state_class: usize,
     motion_stop_state_class: usize,
     fight_mech_lock_target: usize,
+    fight_mech_body: usize,
     fight_skill_class: Option<usize>,
     fight_skill_lock_target: Option<usize>,
     fight_skill_attack_target: Option<usize>,
@@ -1714,6 +1720,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .class("GRFight.dll", "GameRiver.Fight", "FightMech")
             .and_then(|class| api.field(class, "lockTarget"))
             .map_err(|error| error.to_string())? as usize;
+        let fight_mech_body = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightMech")
+            .and_then(|class| api.field(class, "mechBody"))
+            .map_err(|error| error.to_string())? as usize;
         let fight_skill = api
             .class("GRFight.dll", "GameRiver.Fight", "FightSkill")
             .ok();
@@ -1842,6 +1852,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             motion_attack_state_class: motion_attack_state as usize,
             motion_stop_state_class: motion_stop_state as usize,
             fight_mech_lock_target,
+            fight_mech_body,
             fight_skill_class: fight_skill.map(|class| class as usize),
             fight_skill_lock_target,
             fight_skill_attack_target,
@@ -4800,6 +4811,7 @@ struct RawTargetRefs {
     skill_state: Option<String>,
     skill_attack_phase: Option<&'static str>,
     skill_is_idle: Option<bool>,
+    mech_body_rotation: Option<i64>,
 }
 
 /// The fields that name a skill's state machine state, resolved once.
@@ -6448,6 +6460,7 @@ fn snapshot(
                     skill_state: refs.skill_state,
                     skill_attack_phase: refs.skill_attack_phase,
                     skill_is_idle: refs.skill_is_idle,
+                    mech_body_rotation: refs.mech_body_rotation,
                 });
             }
             let target_refs = TargetRefsObservation {
@@ -7005,6 +7018,20 @@ fn read_unit(
                 }
                 _ => (None, None, None),
             };
+            let body = api
+                .field_value::<*mut Object>(unit, metadata.fight_mech_body as *mut FieldInfo)
+                .map_err(|error| error.to_string())?;
+            let body_transform = if body.is_null() {
+                ptr::null_mut()
+            } else {
+                api.invoke(body, "GetFightTransform", &mut [])
+                    .map_err(|error| error.to_string())?
+            };
+            let mech_body_rotation = if body_transform.is_null() {
+                None
+            } else {
+                Some(invoke_value::<FixedPoint>(api, body_transform, "GetRotationInt")?.raw)
+            };
             Some(RawTargetRefs {
                 mech_lock_target,
                 normal_skill_fields_available,
@@ -7013,6 +7040,7 @@ fn read_unit(
                 skill_state,
                 skill_attack_phase,
                 skill_is_idle,
+                mech_body_rotation,
             })
         }
         _ => None,

@@ -153,31 +153,38 @@ refused by name, for a main skill the kernel has no way to fire: Hacker's
 control beam, Raiden's and Vortex's grouped fusillade, and the Farseer's and
 Overlord's projectiles, which climb before they fly.
 
-Of the other 156 fights, 146 play back exactly and are pinned:
+Of the other 156 fights, 151 play back exactly and are pinned:
 
 | Unit | Pinned of 12 |
 | --- | ---: |
 | centurion | 12 |
+| fortress | 12 |
+| melting_point | 12 |
 | sabertooth | 12 |
 | scorpion | 12 |
+| sledgehammer | 12 |
 | tarantula | 12 |
+| typhoon | 12 |
 | void_eye | 12 |
 | vulcan | 12 |
 | fire_badger | 11 |
-| fortress | 11 |
-| melting_point | 11 |
-| sledgehammer | 11 |
 | hound | 10 |
 | phantom_ray | 10 |
-| typhoon | 10 |
 
-Five mechanisms the recordings exposed were fixed on the way, each named in
+Seven mechanisms the recordings exposed were fixed on the way, each named in
 [`combat.md`](../../docs/rules/combat.md): a weapon is named by its index, a
 projectile that follows its target keeps its offset, a single weapon lands its
 offsets last drawn first, a projectile in simulated motion that lands on a dead
-unit does nothing, and a beam with a splash strikes everything in it.
+unit does nothing, a beam with a splash strikes everything in it, leaving the
+idle state waits a tick before the blow, and an idle skill keeps its lock only
+while it can fire at it. The last two were read off
+[`skill-state.mcscript`](skill-state.mcscript), which records four of the
+fights with each skill's state and the rotation of its mech body, which the
+MCFR does not carry: the attack angle is measured from that rotation, and it
+showed the game turning exactly as the simulator did and parting only on the
+state change.
 
-The ten that part:
+The five that part:
 
 | Unit | Layout | Seed | Parts at | On |
 | --- | --- | ---: | ---: | --- |
@@ -186,12 +193,3 @@ The ten that part:
 | fire_badger | `m6-formations` | 1787720817 | 9 | facing a target dead ahead |
 | phantom_ray | `m3-crawler` | 1787720817 | 1 | facing a target dead ahead |
 | phantom_ray | `m3-crawler` | 4242 | 176, content only | a weapon's attack target, not read |
-| sledgehammer | `m3-crawler` | 1787720817 | 177 | an attack begun from idle after a kill fires a tick early |
-| typhoon | `m6-formations` | 4242 | 111 | an attack begun from idle after a kill fires a tick early |
-| typhoon | `m3-crawler` | 1787720817 | 148 | a released projectile, not read |
-| fortress | `m3-crawler` | 1787720817 | 382 | a released projectile, not read |
-| melting_point | `m6-formations` | 1787720817 | 184 | a lock target at 177, not read |
-
-A Sledgehammer or Typhoon whose target is killed goes idle for a tick, locks
-another, and in the game fires three ticks after the lock, where the simulator
-fires two.
