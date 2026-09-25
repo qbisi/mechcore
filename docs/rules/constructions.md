@@ -127,6 +127,18 @@ for the Rhino, the Crawlers and the Steel Balls, whose cooling is 0, and four
 ticks for a Marksman's 0.2 seconds — the four `wall-line-width.yaml` read. A
 group of weapons drops every slot with the lock (below).
 
+**A unit turns past a felled block to its lock.** What a unit's body turns to
+is `MotionController.CalculateTargetDirection`: the lock, replaced by the
+attack target only while `FightSkill.TryGetValidAttackTarget` finds it alive.
+So a Crawler or a Rhino still swinging at a block that has fallen turns
+through that swing towards the unit behind it, not towards the block: the
+Crawlers of `wall-block.yaml` and the Rhino of `wall-rhino.yaml` on build 2.0.
+Build 2259 had no such check and went on facing the block. A unit with a body
+turns its weapons, not its root, and whether they follow the lock is not
+recorded. The Steel Ball of `wall-laser.yaml`, whose beam ends its attack on
+the tick it fells block 4, turns onto the Marksman that same tick on 2.0; the
+simulator does not, and the attack state that decides it is not read yet.
+
 Only a unit whose skill is attacking has an attack to finish. Two Crawlers of
 `wall-block.yaml` closing on block 4, attacking by their motion but with their
 skill still idle, go straight on to the Marksman behind the wall the tick after
