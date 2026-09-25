@@ -912,6 +912,7 @@ impl Simulation {
             && !actor.rules.has_body
             && !actor.motion.attack_hold_fire
             && actor.skill.pending().is_none()
+            && actor.skill.projectile_pending_releases.is_empty()
             && actor.skill.backswing_finish_step().is_none()
             && (actor.rules.attack.melee || actor.skill.phase() == FightSkillPhase::Attack)
         {
@@ -919,6 +920,10 @@ impl Simulation {
             // attack rejects an out-of-range retained target and enters
             // SkillIdleState before MotionAttackState can fall through to
             // movement. Both state machines expose one targetless Idle tick.
+            // A burst still releasing is not checked between its shots, so
+            // the unit moves after its target and fires the rest: an
+            // Overlord whose Crawler walks out of reach after its third shot
+            // follows it and fires the fourth.
             actor.motion.state = MotionState::Idle;
             actor.skill.drop_lock();
             actor.skill.set_phase(FightSkillPhase::Idle);
