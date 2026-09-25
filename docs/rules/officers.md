@@ -2,9 +2,7 @@
 
 An officer is what a layout or a state lists under `officers`, named by the
 snake case of its English name in [`config/names.yaml`](../../config/names.yaml).
-It is a row of `ConfigDataContainer.officerDatas`. The rules below are read
-from build 2.0.0.1.2324's dump; the replays behind them were recorded on
-1.11.1.3.2259.
+It is a row of `ConfigDataContainer.officerDatas`.
 
 ## What an officer is
 
@@ -16,8 +14,8 @@ An officer may grant a commander skill, equipment, or a squad of units, but
 those are not additional `officers` entries. The skills are `CommanderSkillData`
 IDs, a separate ID space that `battle_skills` uses. An officer hands out what
 it hands out in each round its `activeRound` lists: an absolute round, not one
-counted from its arrival. `activeRound` is a list from build 2.0 on, and one
-officer (Secondary Equipment Specialist, `10015`) lists every round.
+counted from its arrival. One officer (Secondary Equipment Specialist,
+`10015`) lists every round.
 
 Where its effects live:
 
@@ -41,8 +39,8 @@ Where its effects live:
 - **Reinforcement officers** have `scope` 1 and are dealt by the pool.
 - **Unit modifications** are reinforcement officers with a positive `typeID`,
   one group per unit: the pool holds one representative per group and swaps it
-  for another of the group when its appear condition fails. Build 2.0 gives
-  them the `SupplyPercent` condition.
+  for another of the group when its appear condition fails, which for them is
+  `SupplyPercent`.
 - **Research Center levels** `20300`, `20301`, `20310` and `20311` are owned by
   the `blueprints` field; a document states them there and never in
   `officers`.
@@ -54,15 +52,13 @@ these and are not named.
 
 Additional Deployment Slot, `10004`, raises the purchases a round allows by
 one, in the round it is taken and in every round after, since the side keeps
-the officer. A round opens with two purchases plus one per copy held. That is
-measured on the 2259 replay corpus in mechcore-replay, whose every round
-opening holds exactly that many.
+the officer. A round opens with two purchases plus one per copy held.
 
 ## Equipment Expansion
 
-Equipment Expansion, `10540`, new in build 2.0, sets `equipmentCountChangeValue`
-to 1, which raises every formation's equipment slots from one to two
-([equipment.md](equipment.md)); `tests/equipment/two-items.yaml` records it.
+Equipment Expansion, `10540`, sets `equipmentCountChangeValue` to 1, which
+raises every formation's equipment slots from one to two
+([equipment.md](equipment.md)).
 
 ## Names
 
@@ -174,3 +170,31 @@ to 1, which raises every formation's equipment slots from one to two
 | 32801 | 强击猎犬 | Strike Hound | `strike_hound` |
 | 33001 | 改进型魔眼 | Improved Void Eye | `improved_void_eye` |
 <!-- /names -->
+
+## Evidence
+
+### Recorded
+
+- Equipment Expansion gives a formation a second slot, and each of its two items
+  writes: `tests/equipment/regressions.mcscript`.
+
+### Read
+
+- An officer hands out what it hands out in a round its `activeRound` lists,
+  the match's round and not one counted from its arrival:
+  `OfficerSystem.ActiveOfficerEffect`, `OfficerData.IsActiveRound`,
+  `OfficerData.activeRound`.
+- A unit modification's group is its `typeID`: `OfficerData.typeID`.
+- Equipment Expansion writes a slot: `OfficerData.equipmentCountChangeValue`.
+
+### Not established
+
+- **That an officer card grants its own ID.** Seen in another version's corpus,
+  as [reinforce_items.md](reinforce_items.md) sets out, and not yet in this
+  version's: `scripts/verify-battles.py`.
+- **Additional Deployment Slot's purchase.** Every round opening in another
+  version's corpus held two purchases plus one per copy held. This version's
+  corpus is not replayed yet, and the code that counts a round's purchases is
+  not read.
+- **Which rounds Secondary Equipment Specialist hands out in** beyond its row,
+  and what it hands out: no recording of it is pinned.
