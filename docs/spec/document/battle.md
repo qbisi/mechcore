@@ -144,9 +144,10 @@ side is identified by which side it is.
 
 ### What a side brings to the match
 
-Three per-side facts are properties of the match rather than of a round, and
-they are what the header holds under each side. Two of them are dealt before either
-player decides anything, and the third bounds every round.
+Four per-side facts are properties of the match rather than of a round, and
+they are what the header holds under each side. Two of them are dealt before
+either player decides anything, the third bounds every round, and the fourth
+seeds what the side's own officers draw.
 
 #### The opening offers
 
@@ -224,6 +225,31 @@ under one: here under its row, in a state under its unit type, and in an
 `upgrade_technology` beside the `unit` it names. Its owner cannot be read off the
 end of its ID for every row, and says nothing at all about Mountain, whose ID is
 above `2000`; it is resolved against the build's catalogue.
+
+#### The side's own seed
+
+```yaml
+  blue:
+    seed: 134917337
+```
+
+Each player comes into the match with a stream of its own, `Player.random`,
+seeded once from `PlayerRecord.seed` and never reseeded. The one thing a
+standard match draws from it is an officer that hands out one of its items
+rather than all of them: Secondary Equipment Expert draws one of its four as
+each round opens. [officers.md](../../rules/officers.md) states the rule.
+
+The seed belongs in the header rather than in a state for the reason the
+match seed does. A state already holds what the draw handed out, as it holds
+the round's `reinforce_offers`; the stream only decides what a later round is
+handed, and where it stands depends on how many rounds drew before, which is
+the battle's history rather than a position. A check that needs the stream
+starts it from this seed and advances it once for every hand-out the earlier
+rounds drew.
+
+`seed` is optional. A battle that states none cannot predict such a hand-out,
+and its prediction leaves that round unimplemented. A match this platform deals
+draws one for each side, as the game's server does.
 
 ## The opening is round zero
 
@@ -497,7 +523,10 @@ round's reinforcement deal on the state that round recorded before it and the
 state the next round recorded after it. Those states are not written into the
 document, so once it is written nothing else can compare them. A deal the rules
 cannot reproduce at all is reported rather than refused, and `doc verify`
-fails the document for it.
+fails the document for it. Each side's own stream is held to the same test:
+the stream every round's snapshot records has to be where the side's seed,
+advanced once for every hand-out an earlier round drew, puts it, and the
+round's hand-out is drawn from it.
 
 ### A converted battle ends on its last round's decisions
 
@@ -525,7 +554,7 @@ owns it:
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |
 | `movable` | No recorded field states it. Every unit of round 1 arrived with the opening, and a delivery arrived as its round opened; any other unit moves only if a Deployment Module or a Jump Drive frees it |
-| Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
+| Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, an officer that draws its item draws it from the side's own stream, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
 Only `equipment` is rebuilt by conversion's own rule. The income, the
 allowances, the cooldowns, the energy tower skills, `movable` and the

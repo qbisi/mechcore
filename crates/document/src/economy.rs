@@ -220,6 +220,10 @@ pub struct Officer {
     /// Equipment it hands out when it arrives.
     #[serde(default)]
     pub equipment: Vec<i32>,
+    /// `OfficerData.randomEquipment`: it hands out one of `equipment` each
+    /// time rather than all of it, drawn from the side's own stream.
+    #[serde(default)]
+    pub random_equipment: bool,
     /// The equipment slots it adds to every formation of its side,
     /// `OfficerData.equipmentCountChangeValue`, which build 2.0 added: Equipment
     /// Expansion adds one.

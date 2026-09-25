@@ -18,6 +18,7 @@ use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from
 use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
+use crate::opening::Stream;
 
 /// What one decision's application could not settle.
 ///
@@ -163,7 +164,7 @@ pub fn step_placing(
                         // An officer with no round to hand out in hands out
                         // as it is taken.
                         if officer.active_round.is_empty() {
-                            hand_out_round(&mut next, officer);
+                            hand_out_round(&mut next, officer, None)?;
                         }
                     }
                     if *card == EXTRA_DEPLOYMENT_CARD {
@@ -705,17 +706,20 @@ pub fn deployed(
 /// unit joins the shop in its `unlock_round`. The squad lands where the board
 /// puts it, which `placement` supplies; it arrived this round, so it may move,
 /// and a delivered skill starts after the count-down rather than inside it.
+/// An officer that draws what it hands out draws from `stream`, the side's
+/// own stream as the round opens.
 ///
 /// # Errors
 ///
 /// Returns [`Unsettled`] when a spent skill has no cooldown, an activated
-/// energy tower skill has no price, or a delivered unit has no price or no
-/// landing.
+/// energy tower skill has no price, a delivered unit has no price or no
+/// landing, or an officer draws and no `stream` is given.
 pub fn open_round(
     economy: &Economy,
     state: &SideState,
     round: i32,
     placement: &mut dyn FnMut(&SideState, &str) -> Option<Position>,
+    mut stream: Option<Stream>,
 ) -> Result<SideState, Unsettled> {
     let mut next = state.clone();
     reset(economy, &mut next, round)?;
@@ -731,7 +735,7 @@ pub fn open_round(
         if !row.active_round.contains(&round) {
             continue;
         }
-        hand_out_round(&mut next, row);
+        hand_out_round(&mut next, row, stream.as_mut())?;
         if let Some(opening) = row.opening_unit {
             hand_out(
                 economy,
@@ -747,17 +751,45 @@ pub fn open_round(
 }
 
 /// `SystemOfficerController.PerformOfficerRoundEffect`: an officer's
-/// commander skills join the panel and its equipment joins the inventory.
-fn hand_out_round(next: &mut SideState, officer: &crate::economy::Officer) {
+/// commander skills join the panel and its equipment joins the inventory, or
+/// one item of it drawn from the side's `stream` when the officer draws.
+fn hand_out_round(
+    next: &mut SideState,
+    officer: &crate::economy::Officer,
+    stream: Option<&mut Stream>,
+) -> Result<(), Unsettled> {
     for skill in &officer.commander_skills {
         panel_add(next, *skill);
     }
-    next.equipment
-        .extend(officer.equipment.iter().map(|id| EquipmentItem {
-            id: *id,
-            durability: None,
-        }));
+    let drawn;
+    let items = if officer.random_equipment && !officer.equipment.is_empty() {
+        let stream = stream.ok_or(Unsettled::Unpriced("player stream"))?;
+        drawn = [officer.equipment[stream.pick(0, officer.equipment.len())]];
+        &drawn[..]
+    } else {
+        &officer.equipment[..]
+    };
+    next.equipment.extend(items.iter().map(|id| EquipmentItem {
+        id: *id,
+        durability: None,
+    }));
     next.equipment.sort();
+    Ok(())
+}
+
+/// How many values the side's own stream gives up as `round` opens on a
+/// side holding `officers`: one for each officer that draws what it hands
+/// out that round. Nothing else in a standard match draws from it.
+#[must_use]
+pub fn player_draws(economy: &Economy, officers: &[i32], round: i32) -> u32 {
+    let drawing = officers
+        .iter()
+        .filter_map(|officer| economy.officer(*officer))
+        .filter(|row| {
+            row.random_equipment && !row.equipment.is_empty() && row.active_round.contains(&round)
+        })
+        .count();
+    u32::try_from(drawing).unwrap_or(u32::MAX)
 }
 
 /// Resets what lasts one round, as `round` opens, and pays its income.
@@ -868,7 +900,7 @@ fn deliver_team(
 /// opening rule [`open_round`] does not hold yet; [`crate::coverage`] names
 /// those fields rather than reading them from the recorded next position.
 /// `red` names the side, because where the board lands a formation depends on
-/// it.
+/// it, and `stream` is the side's own stream as `round + 1` opens.
 ///
 /// # Errors
 ///
@@ -881,6 +913,7 @@ pub fn predict(
     actions: &[Action],
     red: bool,
     declined: Option<i32>,
+    stream: Option<Stream>,
 ) -> Result<SideState, Unsettled> {
     let mut placement = crate::landing::placement(red);
     let mut position = deployed(economy, state, actions, red, declined)?;
@@ -899,12 +932,12 @@ pub fn predict(
             }
         }
     }
-    open_round(economy, &position, round + 1, &mut placement)
+    open_round(economy, &position, round + 1, &mut placement, stream)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{EXTRA_DEPLOYMENT_CARD, Unsettled, step_placing};
+    use super::{EXTRA_DEPLOYMENT_CARD, Stream, Unsettled, step_placing};
     use crate::battle::{
         Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
     };
@@ -1133,7 +1166,7 @@ mod tests {
             battle_skills: vec![released, trained, slot(2, 300_004, 3), slot(3, 200_001, 0)],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None, None).unwrap();
         let restart = |id| economy.cooldown(id).unwrap().spent;
         assert_eq!(
             opened.battle_skills,
@@ -1161,7 +1194,7 @@ mod tests {
             officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None, None).unwrap();
         assert_eq!(
             (opened.shop.buys_remaining, opened.shop.unlocks_remaining),
             (4, 1)
@@ -1196,7 +1229,7 @@ mod tests {
             ..SideState::default()
         };
         let movable = |round| {
-            super::open_round(&economy, &state, round, &mut |_, _| None)
+            super::open_round(&economy, &state, round, &mut |_, _| None, None)
                 .unwrap()
                 .units
                 .iter()
@@ -1237,7 +1270,7 @@ mod tests {
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 3, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 3, &mut |_, _| None, None).unwrap();
         // Round 3 of the shared schedule pays 200 + 2 × 200.
         assert_eq!(opened.supply, 10 + 600 + 50 + 2 * 50 - 300);
         assert!(opened.energy_tower_skills.is_empty());
@@ -1255,7 +1288,7 @@ mod tests {
             id: 9891,
             specialist: 10002,
         };
-        let opened = super::predict(&economy, 0, &before, &[choice], true, None).unwrap();
+        let opened = super::predict(&economy, 0, &before, &[choice], true, None, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
         assert_eq!(opened.shop.unlocked_units, [10, 24]);
         assert_eq!(opened.next_index.unit, 5);
@@ -1303,7 +1336,7 @@ mod tests {
             value: Some(100),
             movable: false,
         });
-        let predicted = super::predict(&economy, 3, &state, &[], false, None).unwrap();
+        let predicted = super::predict(&economy, 3, &state, &[], false, None, None).unwrap();
         assert_eq!(predicted.units[0].unit.travelling, None);
     }
 
@@ -1319,7 +1352,7 @@ mod tests {
         };
         // Round 1 opens with the three items, and applying round 0 is what
         // reaches that position from the one before it.
-        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None, None).unwrap();
         assert_eq!(
             opened
                 .equipment
@@ -1329,7 +1362,7 @@ mod tests {
             vec![13_030_009; 3]
         );
         assert!(
-            super::open_round(&economy, &state, 2, &mut |_, _| None)
+            super::open_round(&economy, &state, 2, &mut |_, _| None, None)
                 .unwrap()
                 .equipment
                 .is_empty()
@@ -1367,6 +1400,33 @@ mod tests {
         assert_eq!(next.units[0].unit.equipment, vec![13_030_521]);
     }
 
+    /// Secondary Equipment Expert hands out one of its four items a round,
+    /// drawn from the side's own stream: `长期素食导致无法演奏`'s side, seed
+    /// 846184650, was handed Small Amplifying Core as round 1 opened and
+    /// Secondary Fire Control System as round 2 did.
+    #[test]
+    fn an_officer_that_draws_hands_out_one_item_from_the_side_stream() {
+        let economy = Economy::embedded().unwrap();
+        let state = SideState {
+            officers: vec![10_015],
+            ..SideState::default()
+        };
+        let mut stream = Stream::seeded(846_184_650);
+        let handed = |stream: Stream, round| {
+            super::open_round(&economy, &state, round, &mut |_, _| None, Some(stream))
+                .unwrap()
+                .equipment
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(handed(stream, 1), vec![13_030_009]);
+        assert_eq!(super::player_draws(&economy, &state.officers, 1), 1);
+        stream.skip(1);
+        assert_eq!(handed(stream, 2), vec![13_030_522]);
+        assert!(super::open_round(&economy, &state, 1, &mut |_, _| None, None).is_err());
+    }
+
     /// Fitting one of several copies takes exactly one out.
     #[test]
     fn fitting_takes_one_copy_out_of_a_stack() {
@@ -1375,7 +1435,7 @@ mod tests {
             officers: vec![10013],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
-        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None).unwrap();
+        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None, None).unwrap();
         let fitted = [Action::UseEquipment {
             equipment: 13_030_009,
             index: 0,

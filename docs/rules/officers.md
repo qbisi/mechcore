@@ -14,10 +14,16 @@ An officer may grant a commander skill, equipment, or a squad of units, but
 those are not additional `officers` entries. The skills are `CommanderSkillData`
 IDs, a separate ID space that `battle_skills` uses. An officer hands out what
 it hands out in each round its `activeRound` lists: an absolute round, not one
-counted from its arrival. One officer (Secondary Equipment Specialist,
-`10015`) lists every round. An officer that lists no round hands out as it is
+counted from its arrival. An officer that lists no round hands out as it is
 taken: the Mass-produced equipment officers (`10524` to `10526`) put their
 three items into the inventory the moment the card is chosen.
+
+Secondary Equipment Expert (`10015`), an opening specialist, lists every round
+and hands out **one** of its four items each time, not all four. The item is
+drawn from the side's own stream, `Player.random`, which the player's seed
+starts and nothing else in a standard match draws from, so the stream stands
+one value further on for every round the side has held the officer. An item
+the side does not fit stays in its inventory.
 
 Where its effects live:
 
@@ -185,6 +191,13 @@ raises every formation's equipment slots from one to two
 - A Mass-produced equipment officer's three items are in the inventory from the
   decision that took it, and can be fitted in the same round:
   `scripts/verify-battles.py`.
+- Secondary Equipment Expert hands out one item a round, the one its side's
+  stream draws: `scripts/verify-battles.py`.
+- A side's own stream is where its seed puts it, advanced once for every
+  hand-out an earlier round drew, on every round of every replay; conversion
+  refuses a replay where it is not: `scripts/verify-battles.py`.
+- An officer card taken puts its own ID into the side's officers:
+  `scripts/verify-battles.py`.
 
 ### Read
 
@@ -197,17 +210,24 @@ raises every formation's equipment slots from one to two
   `SystemOfficerController.PerformOfficerEffect`,
   `OfficerData.IsActiveRoundEmpty`, `ReinforcementSystem.AddReinforceItem`,
   `OfficerEffectMask.All`.
+- An officer that draws hands out one of its items, drawn from the player's
+  stream: `SystemOfficerController.PerformOfficerRoundEffect`,
+  `OfficerData.randomEquipment`, `Player.random`.
+- The player's stream is seeded once, from the seed the player was created
+  with: `Player.Init`, `Player.RefreshRandom`, `RanState.math_randomseed`.
 - A unit modification's group is its `typeID`: `OfficerData.typeID`.
 - Equipment Expansion writes a slot: `OfficerData.equipmentCountChangeValue`.
 
 ### Not established
 
-- **That an officer card grants its own ID.** Seen in another version's corpus,
-  as [reinforce_items.md](reinforce_items.md) sets out, and not yet in this
-  version's: `scripts/verify-battles.py`.
 - **Additional Deployment Slot's purchase.** Every round opening in another
-  version's corpus held two purchases plus one per copy held. This version's
-  corpus is not replayed yet, and the code that counts a round's purchases is
+  version's corpus held two purchases plus one per copy held. No match of this
+  version's corpus takes it, and the code that counts a round's purchases is
   not read.
-- **Which rounds Secondary Equipment Specialist hands out in** beyond its row,
-  and what it hands out: no recording of it is pinned.
+- **How a draw picks among the items.** `RandomElementSync` is generic and its
+  body is not readable in the dump; the pick is written as the stream's range
+  draw over the list, and with four items every masked projection agrees, so
+  the corpus cannot separate them.
+- **The player seed a Training Ground match runs under.** An installed match
+  with the officer draws from whatever stream the Training Ground starts, not
+  the recorded one.

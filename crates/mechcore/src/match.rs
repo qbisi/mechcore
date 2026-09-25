@@ -18,7 +18,8 @@ use mechcore_document::{
     },
     economy::Economy,
     layout::StaticPlacement,
-    opening, transition,
+    opening::{self, Stream},
+    transition,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -132,13 +133,16 @@ fn deal(
         Some(path) => read_loadout(path)?,
         None => economy.unit_technologies(),
     };
-    let side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| BattleSide {
+    // Each player brings a seed of its own, as the game's server hands one
+    // out, which an officer that draws its hand-out draws from.
+    let mut side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| BattleSide {
         opening: Opening {
             choose: None,
             offers: offers.to_vec(),
         },
         constructions: constructions.to_vec(),
         tech_loadout: loadout.clone(),
+        seed: Some(draw.seed()),
     };
     let battle = Battle {
         game_build: mechcore_document::game_build().to_owned(),
@@ -546,12 +550,22 @@ impl Game {
                 .opened(side)
                 .map_err(|failure| failure.reason().to_owned())?;
             let actions = self.committed_actions(side);
-            // Nothing is declined in round zero, which deals no reinforcement.
+            // Nothing is declined in round zero, which deals no reinforcement,
+            // and nothing has drawn from the side's own stream before it.
+            let stream = self.battle_side(side).seed.map(Stream::seeded);
             states.push(
-                transition::predict(&self.economy, round, &opened, &actions, side.red(), None)
-                    .map_err(|unsettled| {
-                        format!("round {round} {} is not settled: {unsettled}", side.name())
-                    })?,
+                transition::predict(
+                    &self.economy,
+                    round,
+                    &opened,
+                    &actions,
+                    side.red(),
+                    None,
+                    stream,
+                )
+                .map_err(|unsettled| {
+                    format!("round {round} {} is not settled: {unsettled}", side.name())
+                })?,
             );
         }
         let [blue, red] = [states.remove(0), states.remove(0)];

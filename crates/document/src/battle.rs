@@ -56,6 +56,10 @@ pub struct BattleSide {
     /// written keyed by type name, in ID order. Only units a standard 1v1
     /// match can field have a row.
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
+    /// The seed of the side's own stream, `PlayerRecord.seed`, which an
+    /// officer that draws its hand-out draws from. Absent, such a hand-out
+    /// cannot be predicted.
+    pub seed: Option<i32>,
 }
 
 /// The opening a side was dealt, and which of it the side took.
@@ -690,6 +694,8 @@ struct Header<'a> {
 
 #[derive(Serialize)]
 struct HeaderSide<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<i32>,
     offers: &'a [OpeningOffer],
     constructions: &'a [StaticPlacement],
     #[serde(with = "crate::names::loadout")]
@@ -699,6 +705,7 @@ struct HeaderSide<'a> {
 impl<'a> HeaderSide<'a> {
     fn of(side: &'a BattleSide) -> Self {
         Self {
+            seed: side.seed,
             offers: &side.opening.offers,
             constructions: &side.constructions,
             tech_loadout: &side.tech_loadout,
@@ -779,6 +786,8 @@ pub mod schema {
     #[derive(Serialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
     pub struct Side {
+        /// The seed of the side's own stream.
+        pub seed: Option<i32>,
         /// The four openings this side was dealt.
         pub offers: Vec<OpeningOffer>,
         pub constructions: Vec<StaticPlacement>,
@@ -872,6 +881,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
             },
             constructions: side.constructions,
             tech_loadout: side.tech_loadout,
+            seed: side.seed,
         })
     };
     Ok(Some(Battle {

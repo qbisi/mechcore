@@ -128,6 +128,10 @@ pub struct PlayerData {
     pub active_technologies: ActiveTechnologies,
     #[serde(default, rename = "equipmentDatas")]
     pub equipment: EquipmentDatas,
+    /// `Player.random` as the round's snapshot was taken, which only an
+    /// officer that draws its hand-out reads.
+    #[serde(default, rename = "randomStateData")]
+    pub random_state: RandomStateData,
     pub shop: ShopData,
     #[serde(default)]
     pub contraptions: ContraptionRecords,

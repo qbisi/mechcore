@@ -322,6 +322,12 @@ def write_officers(structure):
             lines.append(f"    {name}: {value}")
         for name, value in granted:
             lines.append(f"    {name}: [{', '.join(str(item) for item in value)}]")
+        # `randomEquipment` hands out one of the items per round, drawn from
+        # the side's own stream, rather than all of them. No standard officer
+        # draws its commander skill or its squad.
+        assert not row.get("randomCommanderSkill") and not row.get("randomExtraUnit"), row["id"]
+        if row.get("randomEquipment"):
+            lines.append("    random_equipment: true")
         # An officer that hands something out names the round it does so, and
         # the round is absolute rather than counted from its arrival. Longbow
         # Specialist reads "在第2回合免费获得1个3级长弓" and carries

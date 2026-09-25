@@ -14,7 +14,7 @@
 
 use crate::battle::{Action, SideState, SkillTarget, Turn};
 use crate::economy::Economy;
-use crate::opening::Stated;
+use crate::opening::{Stated, Stream};
 use crate::reinforcement::Verified;
 use crate::transition::{Unsettled, before_opening};
 use serde::Serialize;
@@ -144,6 +144,15 @@ impl Coverage {
     }
 }
 
+/// A side's own stream from `seed`, `draws` values on.
+fn player_stream(seed: Option<i32>, draws: u32) -> Option<Stream> {
+    seed.map(|seed| {
+        let mut stream = Stream::seeded(seed);
+        stream.skip(draws);
+        stream
+    })
+}
+
 /// Measures every transition a battle states.
 ///
 /// `deal` is the reinforcement check's result over the same battle. It is the
@@ -155,6 +164,10 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     if let Some(first) = stated.turns.first() {
         coverage.opening(economy, stated, first);
     }
+    // Each side's own stream, from the seed the header states, advanced once
+    // for every hand-out a recorded round drew.
+    let seeds = [stated.blue.seed, stated.red.seed];
+    let mut draws = [0_u32; 2];
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
         // What a decline pays is the deal's to say; without the deal a
@@ -167,15 +180,16 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
                 .map(|round| round.declined)
         });
         let mut dealt_from = true;
-        for (side, red) in [("blue", false), ("red", true)] {
+        for (at, (side, red)) in [("blue", false), ("red", true)].into_iter().enumerate() {
             let (state, actions, recorded) = sides(turn, next, red);
+            draws[at] += crate::transition::player_draws(economy, &state.officers, turn.round);
             dealt_from &= coverage.side(
                 economy,
                 (turn.round, declined),
                 state,
                 actions,
                 recorded,
-                side,
+                (side, player_stream(seeds[at], draws[at])),
             );
         }
         coverage.deal(turn, next, deal.ok(), dealt_from);
@@ -204,7 +218,15 @@ impl Coverage {
             match crate::opening::reactor_core(stated.map_id, seat) {
                 Ok(core) => {
                     let before = before_opening(core, header.constructions.clone());
-                    self.side(economy, (0, None), &before, actions, recorded, side);
+                    let stream = player_stream(header.seed, 0);
+                    self.side(
+                        economy,
+                        (0, None),
+                        &before,
+                        actions,
+                        recorded,
+                        (side, stream),
+                    );
                 }
                 Err(reason) => {
                     let leaves: Vec<_> = side_leaves(recorded)
@@ -236,12 +258,13 @@ impl Coverage {
         state: &SideState,
         actions: &[Action],
         recorded: &SideState,
-        side: &'static str,
+        (side, stream): (&'static str, Option<Stream>),
     ) -> bool {
         let red = side == "red";
         // Round zero ends in round 1's opening without a fight.
         let fought = round > 0;
-        let predicted = crate::transition::predict(economy, round, state, actions, red, declined);
+        let predicted =
+            crate::transition::predict(economy, round, state, actions, red, declined, stream);
         let (leaves, unpredicted) = match &predicted {
             Ok(predicted) => {
                 let mut leaves = compare(predicted, recorded, fought);

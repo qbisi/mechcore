@@ -16,7 +16,7 @@ use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::layout::{
     ContraptionPlacement, Experience, Position, Region, StaticPlacement, UnitPlacement,
 };
-use crate::opening;
+use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::retained_from_grbr_round;
 use std::collections::BTreeMap;
@@ -420,6 +420,7 @@ fn battle_side(
         // it, so the first round's list is the one the side started with.
         constructions: constructions(&player.rounds.entries[OPENING_ROUNDS].data, seat)?,
         tech_loadout: loadout,
+        seed: Some(player.seed),
     })
 }
 
@@ -595,8 +596,48 @@ fn side_state(
     // anything. Both belong to the position the round opens with, so the
     // opening is made here, and each delivery lands where the board puts it.
     let mut placement = crate::landing::placement(seat == Seat::Red);
-    crate::transition::open_round(economy, &snapshot, round, &mut placement)
+    let stream = player_stream(economy, player, position, seat)?;
+    crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
         .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
+}
+
+/// The side's own stream as round `position` opens, which is the snapshot's.
+///
+/// It is also where the seed the header states, advanced once for every
+/// hand-out an earlier round drew, puts it; a snapshot anywhere else would be
+/// a stream something else draws from, and is refused.
+fn player_stream(
+    economy: &Economy,
+    player: &record::PlayerRecord,
+    position: usize,
+    seat: Seat,
+) -> Result<Stream, String> {
+    let entry = &player.rounds.entries[position];
+    let recorded =
+        <[u64; 4]>::try_from(entry.data.random_state.states.values.as_slice()).map_err(|_| {
+            format!(
+                "round {} {} records no player stream",
+                entry.round,
+                seat.name()
+            )
+        })?;
+    let draws: u32 = player.rounds.entries[..position]
+        .iter()
+        .map(|earlier| {
+            crate::transition::player_draws(economy, &earlier.data.officers.values, earlier.round)
+        })
+        .sum();
+    let mut stream = Stream::seeded(player.seed);
+    stream.skip(draws);
+    if stream.state() != recorded {
+        return Err(format!(
+            "round {} {} player stream is not where seed {} and {draws} earlier hand-outs put it",
+            entry.round,
+            seat.name(),
+            player.seed
+        ));
+    }
+    Ok(stream)
 }
 
 /// Refuses a side whose map pays a round income other than the one every

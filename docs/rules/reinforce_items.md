@@ -107,6 +107,11 @@ sides' investment, which [reinforcements.md](reinforcements.md) states.
 
 ## Evidence
 
+### Replayed
+
+- A card taken puts its own ID into the side's equipment, panel or officers:
+  `scripts/verify-battles.py`.
+
 ### Read
 
 - A card is priced by its own `supply` or, at `-1`, by its level's:
@@ -121,11 +126,6 @@ sides' investment, which [reinforcements.md](reinforcements.md) states.
 
 ### Not established
 
-- **That a card grants its own ID.** Every equipment and commander skill card
-  taken put its own ID into the side's next snapshot in another version's
-  corpus, and every officer card did too unless the side already held that
-  officer. This version's corpus is not replayed yet:
-  `scripts/verify-battles.py`.
 - **That each side takes exactly one opening, whose units are its round 1
   roster**, and that a ranked match has one and a Training Ground match does
   not. Seen in the same corpus, not yet in this version's.

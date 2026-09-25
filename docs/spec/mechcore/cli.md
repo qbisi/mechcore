@@ -219,7 +219,8 @@ the document does not carry is refused rather than silently adopting the
 document's, and so is a document that is not a battle.
 
 Answers the side the caller was given, the header, and that side's opening
-offers and initial constructions.
+offers and initial constructions. Each side is also given a seed of its own,
+drawn as the match seed is, which the header keeps and no answer shows.
 
 The deal follows from the seed, which [battle.md](../document/battle.md)
 defines. What else that seed decides, the streams and pools a match is dealt
@@ -259,6 +260,7 @@ consequence stands on the board and one whose consequence is only an option:
 | the other side's `shop` | a unit type unlocked and never bought leaves nothing to see |
 | its `unlock_unit` decisions, in every round | the same fact, said as a decision |
 | the header's `seed` | it deals this match: every opening and every round's offers follow from it |
+| each side's own header `seed`, the caller's included | it decides what an officer that draws hands out in every later round |
 | the other side's opening `offers` | the four combinations are dealt to a side privately, as [battle.md](../document/battle.md) says |
 
 Everything else a committed round reached is visible: the units with their

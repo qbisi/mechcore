@@ -534,6 +534,9 @@ pub struct StatedSide {
     /// The opening this side took, absent while it has not taken one.
     #[serde(skip)]
     pub opening: Option<StatedOpening>,
+    /// The seed of the side's own stream, when the battle states one.
+    #[serde(default)]
+    pub seed: Option<i32>,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
     #[serde(with = "crate::names::loadout")]

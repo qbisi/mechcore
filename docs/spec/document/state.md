@@ -104,9 +104,12 @@ No random stream is a state field. Four streams exist:
 | `FightTeam.random` | `(round + teamIndex) * 4444` | no |
 
 The two recorded streams are excluded on the argument the reinforcement pool
-follows: they decide what a later round is offered, and this round's offer is
-already stated by `reinforce_offers`. Neither is read by a fight, so neither
-changes anything a layout can express. The two derived streams are computed from
+follows: they decide what a later round is offered or handed, and this round's
+offer is already stated by `reinforce_offers`, as this round's hand-out is by
+the side's `equipment`. `Player.random` is what an officer that hands out one
+of its items draws from; a [battle](battle.md) states each side's seed in its
+header, and nothing else in a standard match draws from it. Neither is read by
+a fight, so neither changes anything a layout can express. The two derived streams are computed from
 the round, the team index and the match seed, all of which a document already
 carries, so nothing has to store them either.
 
@@ -118,7 +121,9 @@ as an input, which is what lets it drop the streams that would produce one.
 Because no state carries either recorded stream, an installer leaves both
 generators as the match's own initialisation left them. That is a legal
 position, merely not the recorded one, and it is safe exactly while every offer
-is supplied rather than rolled.
+is supplied rather than rolled and no side holds an officer that draws what it
+hands out, whose next item would then be the installed match's draw rather than
+the recorded one.
 
 Writing nothing must never be implemented as writing a zero state. The restore
 path dereferences the word list without a guard and refuses a length mismatch,
