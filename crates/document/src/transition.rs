@@ -1118,10 +1118,7 @@ mod tests {
     fn a_decline_pays_the_round_figure() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = Action::ChooseReinforceItem {
-            index: crate::battle::DECLINED_OFFER,
-            id: None,
-        };
+        let declined = Action::ChooseReinforceItem { index: 4, id: None };
         let ordinary = crate::reinforcement::decline_supply(&economy, 1, 3).unwrap();
         let unit = crate::reinforcement::decline_supply(&economy, 1, 8).unwrap();
         assert_eq!((ordinary, unit), (50, 400));
@@ -1144,10 +1141,7 @@ mod tests {
     fn a_declined_offer_hands_out_nothing() {
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
-        let declined = [Action::ChooseReinforceItem {
-            index: crate::battle::DECLINED_OFFER,
-            id: None,
-        }];
+        let declined = [Action::ChooseReinforceItem { index: 4, id: None }];
         let next = fold(&economy, &state, &declined).unwrap();
         // A decline pays supply back, which is all it hands out.
         assert_eq!(

@@ -12,7 +12,7 @@ map_id: 1001
 seed: 2038621361
 round: 7
 
-reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2]
+reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2, {name: decline_offer, refund: 400}]
 
 blue: { ... }
 red: { ... }
@@ -21,6 +21,13 @@ red: { ... }
 `map_id` and `seed` carry the same meaning and the same optionality as in a
 layout. They belong to the document rather than to a side because both sides
 share them.
+
+`reinforce_offers` lists the cards the round dealt, in the order it dealt them,
+and then the decline, `{name: decline_offer, refund: 400}`, whose `refund` is
+what declining pays in this round. A round that deals offers always offers the
+decline after them. What the decline pays is the round's, not the position's,
+and it is not dealt: it is the map's figure, or in a unit round the schedule's.
+Writing it lets a position price its decline without replaying the deal.
 
 A state is defined after each action, not only at a round's ends. A
 [battle](battle.md) writes the position each round opens with as a state
@@ -511,7 +518,7 @@ absent when its `current` is `0`.
 | `blueprints`, `energy_tower_skills` | ascending ID |
 | `airdrop_shields` | ascending `(x, y)` |
 | `terrains` | ascending `type`, then control points |
-| `reinforce_offers` | as dealt; a choice names a position in it |
+| `reinforce_offers` | as dealt, then the decline; a choice names a position in it |
 | `tower_strengthen_levels` | by building-manager position |
 
 The rule behind the first three rows is that a collection is ordered by the key

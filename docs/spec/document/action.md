@@ -52,9 +52,9 @@ two named things, and says `unit` and `tech`. Every other operand is a 32-bit
 integer or a position, except `release_commander_skill`'s target, which is a
 one-key mapping, and `rotated`, which is a boolean defaulting to false.
 
-Three keys are not always present. `choose_reinforce_item` omits `name` when the
-offer was declined, `release_contraption` omits `extra_position` unless the
-contraption spans two points, and `move_unit` omits `rotated` when it is false.
+Two keys are not always present. `release_contraption` omits `extra_position`
+unless the contraption spans two points, and `move_unit` omits `rotated` when it
+is false.
 
 `index` is a unit's deployment index, or a panel slot in
 `release_commander_skill`. `tower` is a position in `BuildingManager.buildings`,
@@ -119,14 +119,14 @@ choices, so both are this one action.
 
 ```yaml
 - {type: choose_reinforce_item, index: 3, name: photon_coating}
-- {type: choose_reinforce_item, index: -1}
+- {type: choose_reinforce_item, index: 4, name: decline_offer}
 ```
 
-`index` is the offer's position in `reinforce_offers`, or `-1` for the decline,
-which is a choice the round always makes available and never one of the items it
-dealt. `name` names the item taken and is present exactly when `index` is not
-`-1`: what the decline hands back is built from the match's progress rather than
-drawn from a catalogue, so it has nothing a document could name.
+`index` is the position of what is taken in the round's `reinforce_offers`, and
+`name` names it: a card dealt, or `decline_offer`, the decline the round always
+offers after its cards. The two have to agree, so a decision that names a card
+at another card's position, or the decline anywhere but after the cards, is
+refused.
 
 A card is named by what it grants, and a card of units as its unit, squads and
 level, `sledgehammer_2x_lv2`. Two unit cards can share those and differ only in
@@ -141,11 +141,11 @@ squads. Squads advance `next_index.unit` and their unit type joins
 
 A taken item costs its price, less what an officer taken this way grants back at
 once. The decline is the one reinforcement choice that pays the side instead:
-declining is an item of its own rather than the absence of one. What it pays is
-the round's, not the position's: 50 in an ordinary round, and in a unit round the
-figure the match's unit reinforcement schedule states for that round, which
-grows through the match. [The reinforcement rules](../../rules/reinforcements.md#declining)
-give both.
+declining is an item of its own rather than the absence of one. It pays the
+`refund` the round's `decline_offer` states: 50 in an ordinary round, and in a
+unit round the figure the match's unit reinforcement schedule states for that
+round, which grows through the match.
+[The reinforcement rules](../../rules/reinforcements.md#declining) give both.
 
 ### `choose_advance_team`
 

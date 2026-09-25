@@ -1,6 +1,6 @@
 //! Stateful reinforcement prediction; see `docs/rules/reinforcements.md`.
 
-use crate::battle::{Action, SideState, Turn};
+use crate::battle::{Action, Offers, SideState, Turn};
 use crate::catalog::{NativeFormation, resolve_unit_type};
 use crate::economy::Economy;
 use crate::opening::{Prediction, Stated, Stream};
@@ -483,7 +483,15 @@ impl Dealer {
                 ));
             }
             for (offer, id) in choices {
-                if offer == crate::battle::DECLINED_OFFER && id.is_none() {
+                // The decline sits after the cards dealt.
+                if id.is_none() {
+                    if usize::try_from(offer).ok() != Some(offers.len()) {
+                        return Err(format!(
+                            "round {} {name} declines at {offer}, and the decline is offer {}",
+                            turn.round,
+                            offers.len()
+                        ));
+                    }
                     continue;
                 }
                 let predicted = usize::try_from(offer)
@@ -653,7 +661,7 @@ pub fn deal_last_round(
     economy: &Economy,
     stated: &Stated,
     opening: &Prediction,
-) -> Result<Option<Vec<i32>>, String> {
+) -> Result<Option<Offers>, String> {
     walk(economy, stated, opening, true).map(|walked| walked.dealt)
 }
 
@@ -661,7 +669,7 @@ pub fn deal_last_round(
 struct Walked {
     verified: Verified,
     /// The last round's offers, when they were dealt rather than checked.
-    dealt: Option<Vec<i32>>,
+    dealt: Option<Offers>,
 }
 
 /// Replays every stated round through one stream.
@@ -720,10 +728,16 @@ fn walk(
         }
         .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
         let last = at + 1 == stated.turns.len();
-        let expected_offers = if turn.round == 1 { None } else { Some(&offers) };
+        let declined = dealer
+            .config
+            .decline_supply(economy, dealer.pool_id, turn.round)?;
+        let expected_offers = (turn.round > 1).then(|| Offers {
+            dealt: offers.clone(),
+            refund: declined,
+        });
         if deal_last && last {
-            dealt = expected_offers.cloned();
-        } else if turn.state.reinforce_offers.as_ref() != expected_offers {
+            dealt = expected_offers;
+        } else if turn.state.reinforce_offers != expected_offers {
             return Err(format!(
                 "round {} reinforcement offers disagree: predicted {expected_offers:?}, stated {:?}",
                 turn.round, turn.state.reinforce_offers
@@ -736,9 +750,7 @@ fn walk(
                 round: turn.round,
                 unit_reinforcement,
                 offers,
-                declined: dealer
-                    .config
-                    .decline_supply(economy, dealer.pool_id, turn.round)?,
+                declined,
                 before_offset,
                 after_offset: dealer.offset + dealer.stream.draws(),
                 before_state,

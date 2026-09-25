@@ -8,7 +8,7 @@
 //! `docs/spec/document/battle.md` says what the conversion refuses.
 
 use crate::battle::{
-    Action, Battle, BattleSide, DECLINED_OFFER, EquipmentItem, NextIndex, Opening, OpeningOffer,
+    Action, Battle, BattleSide, EquipmentItem, NextIndex, Offers, Opening, OpeningOffer,
     PanelSkill, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
 };
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
@@ -128,13 +128,23 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
         .enumerate()
         .skip(OPENING_ROUNDS)
     {
+        // A round that deals offers also offers the decline, and what the
+        // decline pays depends on the pool the seed selects.
         let offers = record.match_rounds.entries[position]
             .reinforce_items
             .arrays
             .first()
-            .map(|array| array.values.clone());
-        let declined = pool
-            .map(|pool| crate::reinforcement::decline_supply(&economy, pool, round))
+            .map(|array| {
+                let pool = pool.ok_or_else(|| {
+                    format!(
+                        "round {round} offers a decline, and the opening does not deal its pool"
+                    )
+                })?;
+                Ok::<_, String>(Offers {
+                    dealt: array.values.clone(),
+                    refund: crate::reinforcement::decline_supply(&economy, pool, round)?,
+                })
+            })
             .transpose()?;
         turns.push(turn(
             grbr,
@@ -143,7 +153,6 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
             position,
             round,
             offers,
-            declined,
         )?);
     }
 
@@ -216,8 +225,7 @@ fn turn(
     [blue, red]: [&record::PlayerRecord; 2],
     position: usize,
     round: i32,
-    offers: Option<Vec<i32>>,
-    declined: Option<i32>,
+    offers: Option<Offers>,
 ) -> Result<Turn, String> {
     let opened = [
         side_state(grbr, economy, blue, position, Seat::Blue)?,
@@ -230,7 +238,7 @@ fn turn(
             &player.rounds.entries[position],
             seat,
             opened,
-            declined,
+            offers.as_ref(),
         )
         .map_err(|error| format!("round {round}: {error}"))
     };
@@ -935,9 +943,10 @@ fn actions(
     round: &PlayerRoundRecord,
     seat: Seat,
     opened: &SideState,
-    declined: Option<i32>,
+    offers: Option<&Offers>,
 ) -> Result<Vec<Action>, String> {
     let red = seat == Seat::Red;
+    let declined = offers.map(|offers| offers.refund);
     let step = |position: &SideState, action: &Action, at: usize| {
         crate::transition::step_placing(
             economy,
@@ -955,7 +964,10 @@ fn actions(
     };
     let mut position = opened.clone();
     let mut taken = Vec::new();
-    for (at, recorded) in recorded_actions(round, seat)?.into_iter().enumerate() {
+    for (at, recorded) in recorded_actions(round, seat, offers)?
+        .into_iter()
+        .enumerate()
+    {
         let action = match recorded {
             Recorded::Taken(action) => action,
             Recorded::Released { index, target } => {
@@ -1089,7 +1101,15 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
     kept.into_iter().flatten().collect()
 }
 
-fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorded>, String> {
+/// The `Index` the game records a decline at, which is no position in the
+/// round's offers.
+const RECORDED_DECLINE: i32 = -1;
+
+fn recorded_actions(
+    round: &PlayerRoundRecord,
+    seat: Seat,
+    offers: Option<&Offers>,
+) -> Result<Vec<Recorded>, String> {
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {
@@ -1103,16 +1123,22 @@ fn recorded_actions(round: &PlayerRoundRecord, seat: Seat) -> Result<Vec<Recorde
         };
         converted.push(Recorded::Taken(match action.kind.as_str() {
             "PAD_ChooseReinforceItem" => {
-                // Declining is the same decision at the declined offer, and
-                // the game records its `ID` as zero rather than omitting it.
+                // The game records declining as the same decision at an index
+                // of -1, with an `ID` of zero; a document writes it at the
+                // decline's own position, after the cards dealt.
                 let index = field("Index", action.index)?;
-                Action::ChooseReinforceItem {
-                    index,
-                    id: if index == DECLINED_OFFER {
-                        None
-                    } else {
-                        Some(field("ID", action.id)?)
-                    },
+                if index == RECORDED_DECLINE {
+                    Action::ChooseReinforceItem {
+                        index: offers
+                            .map(Offers::decline_index)
+                            .ok_or("a decline in a round that deals no offers")?,
+                        id: None,
+                    }
+                } else {
+                    Action::ChooseReinforceItem {
+                        index,
+                        id: Some(field("ID", action.id)?),
+                    }
                 }
             }
             "PAD_BuyUnit" => Action::BuyUnit {

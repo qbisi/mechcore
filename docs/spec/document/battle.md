@@ -288,7 +288,8 @@ the team and specialist that offer holds. It does not prove that a player chose 
 deployment or combat.
 
 The reinforcement check advances the same stream through contiguous rounds from
-round 1 and compares every round's complete ordered `reinforce_offers`. Each draw
+round 1 and compares every round's complete ordered `reinforce_offers`, the
+decline's `refund` included. Each draw
 uses that round's stated units, shop unlocks, active technologies and
 officers, and the previous rounds' `choose_reinforce_item` decisions update the
 pool. Offers being checked do not choose the stream position or seed the next
@@ -296,8 +297,8 @@ draw.
 
 Round 1 carries no offers and no reinforcement choice. Every later round whose
 decisions are stated requires one choice per side; a round that ends the stream
-may omit it. An index and ID must name the predicted offer, or use the defined
-decline form. Missing or reordered offers, invalid choices, unsupported inputs
+may omit it. An index and a name must name the predicted offer, or the decline
+at its own position after the cards. Missing or reordered offers, invalid choices, unsupported inputs
 and discontinuous rounds are refusals, and the first failing round is reported.
 
 A successful report includes `reinforcement_rounds`,
@@ -543,12 +544,13 @@ after conceding, a round follows a concession, or both sides concede is refused.
 
 ### What conversion rebuilds
 
-Most fields are copied. Six are not, and each is argued in the document that
+Most fields are copied. Seven are not, and each is argued in the document that
 owns it:
 
 | Field | Why it is rebuilt |
 | --- | --- |
 | `supply` | The snapshot precedes the round's income, which is added back from the map settings the record itself carries, plus what the equipment on the board the round opens with pays, less the energy tower debt |
+| `reinforce_offers`' `decline_offer` | The record lists the cards alone. The decline is offered after them in every round that deals any, and its `refund` is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
 | `equipment` | The recorded inventory includes fitted items, which the units already name |

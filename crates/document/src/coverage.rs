@@ -12,7 +12,7 @@
 //! inventory with repeats are one leaf each. A leaf only one side has is still
 //! a leaf, so a formation missing from the prediction counts against it.
 
-use crate::battle::{Action, SideState, SkillTarget, Turn};
+use crate::battle::{Action, Offers, SideState, SkillTarget, Turn};
 use crate::economy::Economy;
 use crate::opening::{Stated, Stream};
 use crate::reinforcement::Verified;
@@ -144,6 +144,11 @@ impl Coverage {
     }
 }
 
+/// A round's offers as a document writes them.
+fn render_offers(offers: &Offers) -> String {
+    render(&to_value(offers))
+}
+
 /// A side's own stream from `seed`, `draws` values on.
 fn player_stream(seed: Option<i32>, draws: u32) -> Option<Stream> {
     seed.map(|seed| {
@@ -170,15 +175,12 @@ pub fn measure(economy: &Economy, stated: &Stated, deal: Result<&Verified, &str>
     let mut draws = [0_u32; 2];
     for pair in stated.turns.windows(2) {
         let [turn, next] = pair else { continue };
-        // What a decline pays is the deal's to say; without the deal a
-        // decline cannot be settled.
-        let declined = deal.ok().and_then(|verified| {
-            verified
-                .rounds
-                .iter()
-                .find(|round| round.round == turn.round)
-                .map(|round| round.declined)
-        });
+        // What a decline pays is the round's own offer to state.
+        let declined = turn
+            .state
+            .reinforce_offers
+            .as_ref()
+            .map(|offers| offers.refund);
         let mut dealt_from = true;
         for (at, (side, red)) in [("blue", false), ("red", true)].into_iter().enumerate() {
             let (state, actions, recorded) = sides(turn, next, red);
@@ -340,9 +342,13 @@ impl Coverage {
                 .iter()
                 .find(|round| round.round == next.round)
         });
-        let class = match dealt {
-            Some(round) if round.offers == *recorded && dealt_from => Class::Equal,
-            Some(round) if round.offers == *recorded => Class::Unimplemented,
+        let predicted = dealt.map(|round| Offers {
+            dealt: round.offers.clone(),
+            refund: round.declined,
+        });
+        let class = match &predicted {
+            Some(offers) if offers == recorded && dealt_from => Class::Equal,
+            Some(offers) if offers == recorded => Class::Unimplemented,
             _ => Class::Unequal,
         };
         if class == Class::Unequal {
@@ -350,8 +356,8 @@ impl Coverage {
                 round: turn.round,
                 side: "match",
                 path: "reinforce_offers".into(),
-                predicted: dealt.map(|round| render(&to_value(&round.offers))),
-                recorded: Some(render(&to_value(recorded))),
+                predicted: predicted.as_ref().map(render_offers),
+                recorded: Some(render_offers(recorded)),
             });
         }
         let counts = self.record(&[("reinforce_offers".into(), class)]);
