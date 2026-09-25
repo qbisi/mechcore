@@ -988,7 +988,12 @@ impl Simulation {
         let entered_move = actor.motion.state != MotionState::Moving;
         let entered_move_below_min_range =
             entered_move && edge_distance_q32 < space_to_q32(actor.rules.attack.min_range());
-        if !entered_move_from_idle && !entered_move_below_min_range {
+        // A target the skill's own search answered this tick, because the one
+        // it attacked died during it, was not the target its update tracked:
+        // the Melting Point whose Crawler an ally kills keeps its turret still
+        // on the tick it sets off for the next one.
+        let retargeted_this_tick = entered_move && actor.skill.searched_this_tick;
+        if !entered_move_from_idle && !entered_move_below_min_range && !retargeted_this_tick {
             // FightSkill.Update tracks an existing target before MotionController updates movement.
             // A target acquired by MotionIdleState is not visible to FightSkill until the next tick.
             actor.rotate_weapons_towards(target_rotation_q32);
