@@ -101,13 +101,19 @@ reader can recompute it from `config/`. A number a single recording happened to
 show, such as the tick a shot left on, stays with the fixture: it moves
 silently when the pin is re-recorded, where the rule it illustrates does not.
 
-**A rules document names no game version and ends in `## Evidence`**, in three
-parts, so that a reader can tell what holds on the version `GAME_VERSION` pins
-from what may have moved:
+**A rules document names no game version and ends in `## Evidence`**, so that a
+reader can tell what holds on the version `GAME_VERSION` pins from what may have
+moved. It has up to four parts, in this order, and leaves out one it has
+nothing for:
 
 - `### Recorded`: each claim a fight shows, citing the offline script under
   `tests/` that pins it. CI replays it on every change, and the pin is
   re-recorded whenever the version moves, so these claims move with it.
+- `### Replayed`: each claim the replay corpus of the pinned version shows,
+  citing `scripts/verify-battles.py`, which replays every round of the battle
+  documents `scripts/export-replay-corpus.py` converts from that corpus. It
+  needs the corpus fetched, so it runs where the corpus is, not in CI. A claim the corpus of another version showed is not established here
+  until this version's corpus shows it too.
 - `### Read`: each claim read from the build, naming in backticks the members
   it rests on, `Class.member`, as the class declares them. They are the
   document's anchors.

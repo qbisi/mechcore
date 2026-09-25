@@ -218,7 +218,7 @@ RULES_PENDING = {
     "reinforcements.md", "technology_effects.md", "terrain.md", "towers.md",
     "unit_experience.md", "unit_levels.md", "unit_techs.md", "visibility.md",
 }
-EVIDENCE_PARTS = ("Recorded", "Read", "Not established")
+EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
 ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
 TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
 
@@ -246,10 +246,15 @@ def check_rules_evidence_sections(fail):
             continue
         name = path.relative_to(REPO)
         parts = evidence_items(path.read_text())
-        if parts is None or list(parts) != list(EVIDENCE_PARTS):
-            fail(f"{name}: ends in ## Evidence with ### {', ### '.join(EVIDENCE_PARTS)}, in that order")
+        order = [part for part in EVIDENCE_PARTS if part in (parts or {})]
+        if not parts or list(parts) != order or any(not items for items in parts.values()):
+            fail(f"{name}: ends in ## Evidence, its parts among ### {', ### '.join(EVIDENCE_PARTS)}, "
+                 "in that order, none of them empty")
             continue
-        for item in parts["Recorded"]:
+        for item in parts.get("Replayed", []):
+            if "`scripts/verify-battles.py`" not in item:
+                fail(f"{name}: a replayed claim cites scripts/verify-battles.py: {item[:80]}")
+        for item in parts.get("Recorded", []):
             cited = TESTS_PATH.findall(item)
             if not cited:
                 fail(f"{name}: a recorded claim cites no pin under tests/: {item[:80]}")
@@ -259,7 +264,7 @@ def check_rules_evidence_sections(fail):
                     fail(f"{name}: cites {cite}, which does not exist")
                 elif target.suffix == ".mcscript" and re.search(r"^game:", target.read_text(), re.M):
                     fail(f"{name}: cites {cite}, which needs the game; a recorded claim cites what CI replays")
-        for item in parts["Read"]:
+        for item in parts.get("Read", []):
             if not ANCHOR.search(item):
                 fail(f"{name}: a read claim names no `Class.member` it rests on: {item[:80]}")
 

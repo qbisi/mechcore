@@ -147,12 +147,28 @@ place firing at ground units, every timing the rows carry at zero.
 
 ### Recorded
 
-- Everything above that a fight shows — the lock taken through the search and
-  kept across a reload, the first shot on the tick after reach, the weapon's
-  turn, the interval draws and their order after the side's units, the reload's
-  gap, the projectile and its damage, and the Crawlers held on a fallen turret —
-  holds in both Rapid-Fire fights and both Anti-Armor fights, physics and
-  content: `tests/turret/regressions.mcscript`.
+Each holds in both Rapid-Fire fights and both Anti-Armor fights, physics and
+content, as `tests/turret/regressions.mcscript` replays them.
+
+- A turret locks through its skill's search before anything is in reach, and
+  turns its weapon onto the lock: `tests/turret/regressions.mcscript`.
+- A dead target is replaced by the one the selector scores from the weapon's
+  rotation, not the nearest: `tests/turret/regressions.mcscript`.
+- A reload keeps the lock, and the next shot goes to it: `tests/turret/regressions.mcscript`.
+- The first shot leaves on the tick after a target starts within reach, reach
+  measured edge to edge: `tests/turret/regressions.mcscript`.
+- The weapon turns at the construction's rotate speed after the state has
+  updated: `tests/turret/regressions.mcscript`.
+- Each shot draws its interval from the owning side's stream, after every unit
+  of the side, including the top bit of a power-of-two range:
+  `tests/turret/regressions.mcscript`.
+- The gap across a reload is the reload's ticks plus three:
+  `tests/turret/regressions.mcscript`.
+- The shot is a projectile from the turret's centre, at the bullet speed, with
+  the construction's damage and the skill's splash, and the building is its
+  source: `tests/turret/regressions.mcscript`.
+- A unit whose lock was the fallen turret stays on it through its swing and
+  then looks for the next target: `tests/turret/regressions.mcscript`.
 
 ### Read
 
