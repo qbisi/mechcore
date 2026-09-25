@@ -34,7 +34,7 @@ attack:
   splash_radius: 0
   weapons:
     mode: normal
-    count: 1
+    indices: [0]
     per_skill: 1
   melee: true
   path:

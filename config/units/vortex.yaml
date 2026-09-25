@@ -34,7 +34,7 @@ attack:
   splash_radius: 0
   weapons:
     mode: group
-    count: 1
+    indices: [0]
     per_skill: 1
     fusillade: true
     allow_same_target: false

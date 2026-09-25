@@ -194,11 +194,14 @@ pub(crate) enum WeaponMode {
     Standalone,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct WeaponTopology {
     pub(crate) mode: WeaponMode,
-    pub(crate) count: u32,
+    /// Each weapon's own index in the build, in the order the skill lists
+    /// them. A weapon is fired by its position in this list and named by
+    /// its index: a Hound's one weapon is index 2.
+    pub(crate) indices: Vec<i32>,
     pub(crate) per_skill: u32,
     pub(crate) fusillade: Option<bool>,
     pub(crate) allow_same_target: Option<bool>,
@@ -774,9 +777,28 @@ impl AttackConfig {
 }
 
 impl WeaponTopology {
+    /// How many weapons the skill fires.
+    pub(crate) fn count(&self) -> u32 {
+        u32::try_from(self.indices.len()).expect("a weapon list fits u32")
+    }
+
+    /// The build's index of the weapon at this position.
+    pub(crate) fn index(&self, position: usize) -> i32 {
+        self.indices[position]
+    }
+
     fn validate(&self) -> Result<()> {
-        if self.count == 0 || self.per_skill == 0 || self.per_skill > self.count {
+        let count = self.count();
+        if count == 0 || self.per_skill == 0 || self.per_skill > count {
             return Err(Error::new("weapon topology contains invalid counts"));
+        }
+        let mut distinct = self.indices.clone();
+        distinct.sort_unstable();
+        distinct.dedup();
+        if distinct.len() != self.indices.len() || distinct[0] < 0 {
+            return Err(Error::new(
+                "weapon indices must be distinct and non-negative",
+            ));
         }
         let group_fields_are_complete =
             self.fusillade.is_some() && self.allow_same_target.is_some();
@@ -953,7 +975,7 @@ mod tests {
 
         let wraith = config.units.get("wraith").unwrap();
         assert_eq!(wraith.attack.weapons.mode, WeaponMode::Group);
-        assert_eq!(wraith.attack.weapons.count, 4);
+        assert_eq!(wraith.attack.weapons.indices, [0, 1, 2, 3]);
         assert_eq!(wraith.attack.weapons.fusillade, Some(false));
         assert_eq!(wraith.attack.weapons.allow_same_target, Some(true));
         assert_eq!(wraith.attack.weapons.rotation_speed, Some(90.0));

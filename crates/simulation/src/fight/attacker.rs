@@ -365,7 +365,7 @@ impl Simulation {
                 .expect("skill owner identity is stable");
             let team = attacker.team;
             let skills = if attacker.attack.weapons.mode == WeaponMode::Group {
-                attacker.attack.weapons.count
+                attacker.attack.weapons.count()
             } else {
                 1
             };

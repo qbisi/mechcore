@@ -114,8 +114,11 @@ create a default for future units or weapon modes.
 Weapon scheduling is orthogonal to the effect path:
 
 - `weapons.mode` is `normal`, `group`, or `standalone`.
-- `count` is the completed native weapon count and `per_skill` controls how
-  many weapons build one `FightSkill`.
+- `indices` lists each weapon's own index in the build, in the order the
+  skill lists them; how many there are is the weapon count. A weapon is
+  fired by its position in the list and named by its index, which is what a
+  recording's weapon aims and projectile releases carry: a Hound's one weapon
+  is index 2. `per_skill` controls how many weapons build one `FightSkill`.
 - `fusillade` and `allow_same_target` are required only for `group`; no default
   may substitute for missing native data.
 - `rotation_speed` is present only when the native skill supplies a weapon

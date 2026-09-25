@@ -108,7 +108,9 @@ body 方向，因此必须省略该字段。当前 P0 数据中所有适用值�
 武器调度与效果路径是正交关系：
 
 - `weapons.mode` 为 `normal`、`group` 或 `standalone`；
-- `count` 是完成配置后的原生武器数量，`per_skill` 决定多少武器组成一个 `FightSkill`；
+- `indices` 按技能列出的顺序写每件武器在 build 里的下标，个数就是武器数量。武器按它在列表里
+  的位置开火，按下标命名，录像的武器瞄准和弹丸释放带的都是下标：Hound 唯一的武器是 2 号。
+  `per_skill` 决定多少武器组成一个 `FightSkill`；
 - `fusillade` 和 `allow_same_target` 仅在 `group` 时必填，不允许用默认值代替缺失原生数据。
 - 仅当原生技能提供独立于主体的武器转速时填写 `rotation_speed`；Wraith 的该值为
   `90`，而主体层 `rotate_speed` 为 `120`。

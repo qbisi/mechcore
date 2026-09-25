@@ -134,7 +134,7 @@ impl Simulation {
             .attack;
         let count = usize::try_from(attack.projectile_count())
             .expect("u32 projectile count fits the supported host");
-        let weapon_count = usize::try_from(attack.weapons.count)
+        let weapon_count = usize::try_from(attack.weapons.count())
             .expect("u32 weapon count fits the supported host");
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
@@ -178,7 +178,7 @@ impl Simulation {
         let team = source.team;
         let source_x_q32 = source.x_q32;
         let source_z_q32 = source.z_q32;
-        let weapon_count = source.attack.weapons.count;
+        let weapon_count = source.attack.weapons.count();
         let radius_centimeters = i32::try_from(radius / 10)
             .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
         let random = self
@@ -387,10 +387,12 @@ impl Simulation {
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let source = self
+        let attacker = self
             .attacker(owner)
-            .ok_or_else(|| Error::new("projectile owner is absent"))?
-            .launch();
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        // The weapon is fired by its position and named by the build's index.
+        let weapon = attacker.attack.weapons.index(weapon_index);
+        let source = attacker.launch();
         self.launch_projectile(
             source,
             target_kind,
@@ -399,7 +401,7 @@ impl Simulation {
             (target_x_q32, target_z_q32),
             target_radius,
             skill_slot,
-            weapon_index,
+            weapon,
             events,
         )
     }
@@ -420,7 +422,7 @@ impl Simulation {
         (target_x_q32, target_z_q32): (i64, i64),
         target_radius: i64,
         skill_slot: usize,
-        weapon_index: usize,
+        weapon: i32,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
@@ -455,7 +457,7 @@ impl Simulation {
             Some(ObjectRef::new(target_kind, target_id)),
             EventPayload::ProjectileReleased {
                 skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
-                weapon_index: Some(i32::try_from(weapon_index).expect("weapon index fits i32")),
+                weapon_index: Some(weapon),
             },
         ));
         self.projectiles.push(projectile);

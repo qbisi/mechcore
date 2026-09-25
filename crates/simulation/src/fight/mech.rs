@@ -37,11 +37,11 @@ impl Actor {
         let max_speed_q32 = stats.move_speed_q32();
         let weapon_rotations_q32 = vec![
             mdeg_to_degrees_q32(placement.rotation);
-            usize::try_from(rules.attack.weapons.count)
+            usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         ];
         let group_skill_count = if rules.attack.weapons.mode == WeaponMode::Group {
-            usize::try_from(rules.attack.weapons.count)
+            usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         } else {
             0
@@ -206,7 +206,7 @@ impl Actor {
                     } else {
                         0
                     },
-                    weapon_index: i32::try_from(weapon_index).expect("weapon index fits i32"),
+                    weapon_index: self.rules.attack.weapons.index(weapon_index),
                     attack_target: attack_target.map(FightActorRef::object_ref),
                     pose: None,
                 }
