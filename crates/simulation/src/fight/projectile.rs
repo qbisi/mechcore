@@ -178,7 +178,28 @@ impl Simulation {
             splash_radius,
             reach,
         };
-        let struck = self.perform_damage(hit, events)?;
+        // A projectile in simulated motion (`isSimulateMode`) that lands on a
+        // unit already dead does nothing, splash included: a Fire Badger's or
+        // a Typhoon's shot at a Crawler another shot killed while it flew
+        // leaves the Crawlers around it untouched. Any other projectile still
+        // strikes where it lands, as an Arclight's does.
+        let simulated = self.attacker(projectile.owner).is_some_and(|attacker| {
+            matches!(
+                attacker.attack.path,
+                crate::rules::AttackPath::Projectile {
+                    simulated_motion: true,
+                    ..
+                }
+            )
+        });
+        let lands_on_nothing = simulated
+            && projectile.target_kind == ObjectKind::Unit
+            && !self.actors[&projectile.target].alive();
+        let struck = if lands_on_nothing {
+            super::damage::Struck::default()
+        } else {
+            self.perform_damage(hit, events)?
+        };
         events.push(event(
             Some(projectile.object_ref()),
             Some(hit.source),

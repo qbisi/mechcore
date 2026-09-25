@@ -501,6 +501,12 @@ impl UnitConfig {
         let weapons = &self.attack.weapons;
         let why = match (&self.attack.path, weapons.mode) {
             (AttackPath::ControlBeam { .. }, _) => "fires a control beam",
+            (
+                AttackPath::Projectile {
+                    pre_flight_height, ..
+                },
+                _,
+            ) if *pre_flight_height != 0.0 => "fires projectiles that climb before they fly",
             (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
                 "fires its grouped weapons as a fusillade"
             }
@@ -1027,8 +1033,8 @@ mod tests {
     }
 
     /// The kernel fires projectiles, blows and lasers, and groups only
-    /// projectiles; a control beam and a grouped fusillade are refused by
-    /// the unit that fires them.
+    /// projectiles; a control beam, a grouped fusillade and a projectile that
+    /// climbs before it flies are refused by the unit that fires them.
     #[test]
     fn a_main_skill_the_kernel_cannot_fire_is_refused_by_unit() {
         let config = SimulationConfig::load().unwrap();
@@ -1039,6 +1045,7 @@ mod tests {
             ("hacker", "a control beam"),
             ("raiden", "as a fusillade"),
             ("vortex", "as a fusillade"),
+            ("farseer", "climb before they fly"),
         ] {
             let error = config.units.get(refused).unwrap().fired().unwrap_err();
             assert!(error.to_string().contains(why), "{error}");
