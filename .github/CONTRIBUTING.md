@@ -380,9 +380,10 @@ The committer approves on GitHub, or tells the keeper in so many words to
 approve that one pull request, and the keeper runs `gh pr review <n>
 --approve`. An approval covers the pull request it was given for and the
 commit it was given on: a push after it needs a new one, and an approval for
-one pull request is not one for the next. `automerge.yml` merges once the
-approval and every check are in; `review.yml` exists only so that submitting a
-review wakes it.
+one pull request is not one for the next. `gate.yml` turns the pull request's
+`gate` status green once the approval and every check are in, and nothing
+merges before it; `review.yml` exists only so that submitting a review wakes
+it. The merge itself is asked for by whoever merges, as any other.
 
 GitHub refuses an approval from a pull request's own author, so an approval
 needs the agents to open pull requests under an account that is not the

@@ -1,8 +1,8 @@
 name: review
 
 # Does nothing but finish. A submitted review runs no CI, so without this an
-# approval would wait for the next push to be read; `automerge.yml` runs on
-# this workflow's completion, as master holds it, and decides there.
+# approval would wait for the next push to be read; `gate.yml` runs on
+# this workflow's completion, as master holds it, and answers there.
 on:
   pull_request_review:
     types: [submitted]

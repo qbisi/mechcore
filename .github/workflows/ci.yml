@@ -20,8 +20,8 @@ jobs:
   # What changed decides what runs. A change under `docs/` cannot break the
   # test suite, and one under `tests/` cannot break the Adapter, so each job
   # below asks this one whether its inputs moved. A job that does not run is
-  # skipped, which automerge counts as green; this job itself always runs, so
-  # the run has a conclusion for automerge to act on. A workflow change runs
+  # skipped, which the gate counts as green; this job itself always runs, so
+  # the run has a conclusion for the gate to answer on. A workflow change runs
   # everything, because it is the jobs themselves that changed.
   changes:
     runs-on: ubuntu-latest

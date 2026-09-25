@@ -28,10 +28,10 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 反过来同样成立：改动让最近那份 readme 不再成立时，同一次提交里把 readme 一
 起改。它描述的是当前状态，不是历史。
 
-# CI 与自动合并
+# CI 与合并
 
 `.github/workflows/ci.yml` 先由 `changes` 算改动范围，再分三个并行的 job，各答一个问题。
-只动 `docs/` 的 PR 三个 job 都跳过（跳过算绿，automerge 照合）；动了 `scripts/`、`tests/`、
+只动 `docs/` 的 PR 三个 job 都跳过（跳过算绿，gate 照样放行）；动了 `scripts/`、`tests/`、
 `replay/`、`layouts/` 或任何 `.mcscript` 跑 `scripts`；动了 `crates/`、`config/`、`GAME_VERSION`、Cargo 文件
 跑 `test` 和 `scripts`；动了 `crates/adapter/`、`crates/mechcore/`、`crates/protocol/`、`GAME_VERSION` 或
 Cargo 文件再跑 `adapter`；动了 workflow 文件全跑。要跑什么由改动决定，不由人决定：想让一个检查
@@ -69,18 +69,24 @@ git config core.hooksPath .githooks
 用仓库级设置，是因为全局 `core.hooksPath`（Nix 或 home-manager 常设）会盖过
 `.git/hooks`。
 
-`.github/workflows/automerge.yml` 在 ci 通过或有人提交 review（`review.yml`）后运行。当一个 PR 的每一条提交和它的
-正文都带 GPT 或 Claude 的 `Co-Authored-By` 落款（允许附带具体型号，忽略大小写）、
-来自本仓库的分支、不是草稿、且该 commit 上的其它检查也全绿时，它以 **squash**
-合并并删除分支。GPT 与 Claude 的提交可以混合；任何一条提交或正文没有上述署名，
-就留给人来合并。解决 issue 的 PR（分支名以 `research/` 开头，或正文带
-`Closes #n`）还要有 committer 在当前 head 上的 approve 才合并，见下一节。
+`.github/workflows/gate.yml` 只回答能不能合并，自己不合并。它在 ci、docs 跑完或有人
+提交 review（`review.yml`）后运行，在 PR 的 head 上写一个名为 `gate` 的 commit status：
+该 commit 上的检查全绿时是 success，还有检查在跑时是 pending，有检查失败时是 failure。
+解决 issue 的 PR（分支名以 `research/` 开头，或正文带 `Closes #n`）还要有 committer 在
+当前 head 上的 approve，没有之前 `gate` 停在 pending，见下一节。master 的 ruleset 要求
+`gate` 绿才能合并。
+
+合并由 agent 或人来发起，不由 workflow 发起：`gh pr merge <n> --auto --squash`，GitHub
+在 `gate` 变绿时合并并删除分支。草稿不能设自动合并；一个 PR 还会再推提交时先别设，
+推完再设。
 
 **主线上一个 PR 就是一个 commit。** 仓库只允许 squash 合并：落到 master 的
-commit 标题是 PR 标题加 `(#N)`，正文是 PR 正文，和 openai/codex 一样。所以下面
+commit 标题是 PR 标题加 `(#N)`，正文是 PR 正文，和 openai/codex 一样。仓库的 squash
+默认只取标题，所以合并时把正文一并交给 GitHub：
+`gh pr merge <n> --auto --squash --subject "<标题> (#<n>)" --body-file <正文>`。所以下面
 "提交规范"约束的对象是 PR：PR 标题按标题规则写，PR 正文按正文规则写，落款是
-正文的最后一段。分支上的提交是工作记录，会被压掉，但每一条仍要带落款，因为
-automerge 逐条检查。不要在别的 PR 的分支上再开 PR：父 PR 压成一个 commit 后子
+正文的最后一段。分支上的提交是工作记录，会被压掉，但每一条仍要带落款：署名说的是谁写了它，
+和能不能合并无关。不要在别的 PR 的分支上再开 PR：父 PR 压成一个 commit 后子
 分支的提交对不上，要 `git rebase --onto origin/master <父分支>` 才能合。
 
 # 研究管线
