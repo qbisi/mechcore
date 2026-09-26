@@ -704,7 +704,9 @@ fn write_actions(
     let offers = turn.state.reinforce_offers.as_ref();
     let declined = offers.map(|offers| offers.refund);
     // Each decision is stepped as conversion steps it, which is what names
-    // the formation a purchase creates and the type a move carries.
+    // the formation a purchase creates and the type a move carries. A battle
+    // holds only decisions the board allows in its order, so each is recorded
+    // where it stands.
     let mut position = opened.clone();
     for action in actions {
         let moved = match action {
@@ -722,6 +724,12 @@ fn write_actions(
             offers,
             sign,
         };
+        crate::transition::check_place(&position, action).map_err(|reason| {
+            format!(
+                "round {} decision {action:?} is not one the board allows: {reason:?}",
+                turn.round
+            )
+        })?;
         records.extend(
             action_records(action, &context)
                 .map_err(|error| format!("round {}: {error}", turn.round))?,

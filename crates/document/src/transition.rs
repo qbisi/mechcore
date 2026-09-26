@@ -701,9 +701,70 @@ pub fn deployed(
     let mut placement = crate::landing::placement(red);
     let mut position = state.clone();
     for action in actions {
+        check_place(&position, action)?;
         position = step_placing(economy, &position, action, declined, &mut placement)?;
     }
     Ok(position)
+}
+
+/// Refuses a decision that puts something where the board already has
+/// something, as the game does.
+///
+/// A move, and a purchase's move to where it ends up, is refused unless the
+/// unit's footprint lies inside the region it goes to and overlaps nothing
+/// standing there but itself: `PAP_MoveUnit.Check` returns `RegionLimit`. A
+/// contraption is placed under the same test. A purchase itself always lands,
+/// wherever the main region is free, so its place is the one it moves to.
+/// [`crate::landing`] holds the board.
+///
+/// # Errors
+///
+/// [`Unsettled::Refused`] for a taken place, and [`Unsettled::Missing`] or
+/// [`Unsettled::Unpriced`] for a formation or type the position cannot name.
+pub fn check_place(state: &SideState, action: &Action) -> Result<(), Unsettled> {
+    let free = match action {
+        Action::BuyUnit {
+            unit,
+            position,
+            rotated,
+        } => {
+            let (type_name, _) = unit_type_from_id(*unit).ok_or(Unsettled::Unpriced("unit"))?;
+            crate::landing::unit_fits(state, state.next_index.unit, type_name, *position, *rotated)
+        }
+        Action::MoveUnit {
+            index,
+            position,
+            rotated,
+        } => {
+            let formation = state
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == *index)
+                .ok_or(Unsettled::Missing("formation"))?;
+            crate::landing::unit_fits(
+                state,
+                *index,
+                &formation.unit.type_name,
+                *position,
+                *rotated,
+            )
+        }
+        Action::ReleaseContraption {
+            contraption,
+            position,
+            ..
+        } => {
+            let type_name =
+                contraption_type_from_id(*contraption).ok_or(Unsettled::Unpriced("contraption"))?;
+            crate::landing::contraption_fits(state, type_name, *position)
+        }
+        _ => true,
+    };
+    if free {
+        Ok(())
+    } else {
+        Err(Unsettled::Refused("placing where something already stands"))
+    }
 }
 
 /// Opens `round` on the position the previous round left.
