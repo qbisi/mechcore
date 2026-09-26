@@ -301,7 +301,7 @@ mod oracle {
     }
 
     #[test]
-    #[ignore = "requires scripts/oracle.py fetch 81"]
+    #[ignore = "requires the recordings tests/wraith/slots.mcscript makes where the game runs"]
     fn grouped_checker_matches_every_captured_call() {
         let config = SimulationConfig::load().unwrap();
         for (name, expected_count) in [("group-attack", 4188), ("two-targets", 344)] {

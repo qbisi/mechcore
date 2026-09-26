@@ -141,58 +141,6 @@ jobs:
         run: scripts/check-scripts.sh
 
 
-  # A pull request that claims a research issue is held to that issue's
-  # oracle: every recording the keeper published as oracle/issue-<n> has to
-  # play back tick for tick, physics and content, through this branch's
-  # simulator. The claim is the branch name, research/<n>-<slug>. A pull
-  # request that claims nothing has no oracle and skips this in one step.
-  oracle:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'research/')
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
-            target
-          key: cargo-scripts-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: cargo-scripts-${{ runner.os }}-
-
-      - name: Release build, without the Adapter
-        run: cargo build --release -p mechcore --no-default-features
-
-      - name: The issue's oracle, fetched to where its script wrote it
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          issue=$(sed -E 's#^research/([0-9]+)-.*#\1#' <<<"${{ github.head_ref }}")
-          echo "issue=$issue" >> "$GITHUB_ENV"
-          python3 scripts/oracle.py fetch "$issue"
-
-      # `fight verify` simulates each recording's own layout and compares it
-      # with the recording; the verdict is the physics layer, and the content
-      # layer is read beside it, because a lock or a weapon's target can
-      # differ where the physics does not.
-      - name: Every oracle recording plays back, physics and content
-        run: |
-          set -eu
-          recordings=$(find /tmp/mechcore -name '*.mcfr' | sort)
-          test -n "$recordings"
-          ./target/release/mechcore fight verify $recordings > /tmp/verify.json || true
-          python3 - <<'PY'
-          import json, sys
-          report = json.load(open("/tmp/verify.json"))
-          bad = [c for c in report["comparisons"] if not (c["equal"] and c["content_equal"])]
-          for c in report["comparisons"]:
-              print(("ok  " if c["equal"] and c["content_equal"] else "DIFF"), c["recording_path"],
-                    c["recording"]["tick_count"], "ticks", "first divergence", c["first_divergence"])
-          sys.exit(1 if bad or not report["equal"] else 0)
-          PY
-
   # The Adapter is a macOS `cdylib` that patches code through `vm_protect`, and
   # `mechcore` packages it beside its executable by default. This is the one
   # job that needs the platform, so it checks only what the others cannot: the

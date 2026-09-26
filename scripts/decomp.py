@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Fetch the build's decompilation and its symbol index to where every tool reads them.
 
-    scripts/decomp.py sync [--build BUILD]   clone qbisi/mechcore-decomp into work/decomp, one build, and its index
+    scripts/decomp.py sync [--build BUILD]   clone qbisi/mechcore-decomp into work/decomp, one build, and index it
     scripts/decomp.py path [BUILD]           print work/decomp/<build>
-    scripts/decomp.py publish BUILD          commit a build scripts/decompile.py made, and release its index
+    scripts/decomp.py publish BUILD          commit a build scripts/decompile.py made
 
 The decompilation lives in the private repository
-https://github.com/qbisi/mechcore-decomp, one directory per game build, with
-the symbol index `index.sqlite` as the release `index/<build>` because it is
-449 MB of binary. This script puts both under one path, which is the
-convention every reader here follows:
+https://github.com/qbisi/mechcore-decomp, one directory per game build. The
+symbol index `index.sqlite`, 449 MB of binary, is not stored anywhere: `sync`
+builds it from the dump, as `scripts/decompile.py` does, which needs neither
+the game nor the network. Both land under one path, which is the convention
+every reader here follows:
 
     work/decomp/<build>/cpp2il/IsilDump/     the instruction dump, one file per class
     work/decomp/<build>/cpp2il/DiffableCs/   the C# stubs
@@ -18,7 +19,7 @@ convention every reader here follows:
 
 `sync` looks before it fetches. A build already under `work/decomp` is left
 alone, an index already there is left alone, and an index in the older
-`work/unity-index/<build>/` is linked across rather than downloaded again. A
+`work/unity-index/<build>/` is linked across rather than built again. A
 machine that has run it once needs the network only for a build it lacks.
 
 `work/decomp` is a sparse, blob-less clone, so a second build adds only its
@@ -29,20 +30,19 @@ alone, which is what a Codex container gets.
 
 A new build comes from `scripts/decompile.py`, which decompiles the installed
 game into `work/decomp/<build>`. `publish` is the only verb here that writes:
-it commits that directory to the repository and pushes it, and uploads the
-index as the release `index/<build>`. Only the session that holds the game has
-anything to publish.
+it commits that directory to the repository and pushes it. Only a machine with
+the game has anything to publish.
 """
 
-import gzip
 import json
 import os
 import shutil
 import subprocess
 import sys
 import time
-import urllib.request
 from pathlib import Path
+
+import decompile
 
 REPOSITORY = "qbisi/mechcore-decomp"
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,10 +68,6 @@ def clone_url():
     if TOKEN:
         return f"https://x-access-token:{TOKEN}@github.com/{REPOSITORY}"
     return f"https://github.com/{REPOSITORY}"
-
-
-def gh_signed_in():
-    return shutil.which("gh") is not None and subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0
 
 
 def builds_available():
@@ -120,37 +116,12 @@ def sync_index(build):
             shutil.copyfile(legacy, target)
         print(f"{target}: linked from {legacy}")
         return
-    tag = f"index/{build}"
-    partial = target.with_suffix(".sqlite.part")
-    if gh_signed_in():
-        with open(partial, "wb") as out:
-            gh = subprocess.Popen(
-                ["gh", "release", "download", tag, "--repo", REPOSITORY, "--pattern", f"{INDEX}.gz", "--output", "-"],
-                stdout=subprocess.PIPE,
-            )
-            with gzip.GzipFile(fileobj=gh.stdout) as unzipped:
-                shutil.copyfileobj(unzipped, out)
-            if gh.wait() != 0:
-                partial.unlink(missing_ok=True)
-                fail(f"gh release download {tag} failed")
-    elif TOKEN:
-        headers = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"}
-        request = urllib.request.Request(
-            f"https://api.github.com/repos/{REPOSITORY}/releases/tags/{tag.replace('/', '%2F')}", headers=headers
-        )
-        with urllib.request.urlopen(request) as response:
-            assets = json.load(response)["assets"]
-        asset = next((a for a in assets if a["name"] == f"{INDEX}.gz"), None)
-        if asset is None:
-            fail(f"release {tag} carries no {INDEX}.gz")
-        request = urllib.request.Request(asset["url"], headers={**headers, "Accept": "application/octet-stream"})
-        with urllib.request.urlopen(request) as response, open(partial, "wb") as out:
-            with gzip.GzipFile(fileobj=response) as unzipped:
-                shutil.copyfileobj(unzipped, out)
-    else:
-        fail(f"no signed-in gh and no MECHCORE_DECOMP_TOKEN; cannot download the index release {tag}")
-    os.replace(partial, target)
-    print(f"{target}: downloaded")
+    # The index is the dump's, so it is built from the dump rather than
+    # fetched: the same step `scripts/decompile.py` ends with.
+    manifest = json.loads((DESTINATION / build / "game-manifest.json").read_text())
+    print(f"{target}: building from the dump")
+    decompile.step_index(DESTINATION / build, manifest, manifest.get("commands", {}))
+    print(f"{target}: built")
 
 
 def sync(build):
@@ -202,23 +173,6 @@ def publish(build):
             fail(f"git push failed:\n{pushed.stderr.strip()}")
         time.sleep(5)
     print(f"{REPOSITORY}: {build} pushed")
-    # One version keeps one directory, which a later install of the same
-    # version replaces, so its release carries whatever index was pushed last.
-    tag = f"index/{build}"
-    packed = directory / f"{INDEX}.gz"
-    with open(directory / INDEX, "rb") as source, gzip.open(packed, "wb") as out:
-        shutil.copyfileobj(source, out)
-    try:
-        if subprocess.run(["gh", "release", "view", tag, "--repo", REPOSITORY],
-                          capture_output=True).returncode == 0:
-            run("gh", "release", "upload", tag, str(packed), "--clobber", "--repo", REPOSITORY)
-            print(f"{tag}: index replaced")
-        else:
-            run("gh", "release", "create", tag, str(packed), "--repo", REPOSITORY,
-                "--title", tag, "--notes", f"The symbol and call index of build {build}.")
-            print(f"{tag}: released")
-    finally:
-        packed.unlink(missing_ok=True)
 
 
 def main(argv):
