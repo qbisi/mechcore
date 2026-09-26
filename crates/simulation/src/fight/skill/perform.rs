@@ -14,6 +14,10 @@ pub(in crate::fight) struct Launch {
     pub(in crate::fight) speed: i64,
     pub(in crate::fight) life: i64,
     pub(in crate::fight) lock_target: bool,
+    /// How high the projectile climbs before it flies, in space units.
+    pub(in crate::fight) climb: i64,
+    /// `IAttacker.GetAttackRange`, which a climb is measured against.
+    pub(in crate::fight) range: i64,
 }
 
 impl Simulation {
@@ -134,12 +138,27 @@ impl Simulation {
             .attack;
         let count = usize::try_from(attack.projectile_count())
             .expect("u32 projectile count fits the supported host");
-        let weapon_count = usize::try_from(attack.weapons.count)
+        let weapon_count = usize::try_from(attack.weapons.count())
             .expect("u32 weapon count fits the supported host");
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
-        let offsets =
-            self.projectile_target_offsets(owner, target_x_q32, target_z_q32, count, radius)?;
+        let climb_q32 = self.burst_climb_q32(owner, target)?;
+        let source_y = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .y;
+        let target_y = match target {
+            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
+            FightActorRef::Building(_) => 0,
+        };
+        let offsets = self.projectile_target_offsets(
+            owner,
+            target_x_q32,
+            target_z_q32,
+            (space_to_q32(source_y), space_to_q32(target_y)),
+            count,
+            radius,
+        )?;
         let mut releases =
             offsets
                 .into_iter()
@@ -150,6 +169,9 @@ impl Simulation {
                     target: target.id(),
                     target_x_q32: target_x_q32.saturating_add(x),
                     target_z_q32: target_z_q32.saturating_add(z),
+                    offset_x_q32: x,
+                    offset_z_q32: z,
+                    climb_q32,
                     weapon_index: index % weapon_count,
                 });
         let first = releases
@@ -161,11 +183,52 @@ impl Simulation {
         self.release_pending_projectile(owner, first, events)
     }
 
+    /// How high a burst's projectiles climb before they fly, above where
+    /// they leave: `ProjectileSystem.Create` scales the pre-flight height by
+    /// the distance to the target over the attack range, to the whole height
+    /// at the range and beyond. The distance is to where the target stood
+    /// when the tick began, once for the burst: a Farseer's two projectiles
+    /// climb the same 52.4 metres to a Rhino 109 metres off.
+    fn burst_climb_q32(&self, owner: FightActorRef, target: FightActorRef) -> Result<Option<i64>> {
+        let source = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .launch();
+        if source.climb <= 0 {
+            return Ok(None);
+        }
+        let (target_x_q32, target_z_q32, target_y) = match target {
+            FightActorRef::Unit(id) => {
+                let unit = &self.actors[&id];
+                (
+                    unit.target_query_x_q32,
+                    unit.target_query_z_q32,
+                    unit_height(unit.rules.domain),
+                )
+            }
+            FightActorRef::Building(_) => {
+                let view = self
+                    .fight_actor(target)
+                    .ok_or_else(|| Error::new("projectile target is absent"))?;
+                (view.x_q32, view.z_q32, 0)
+            }
+        };
+        let distance_q32 = native_q32_magnitude_3d(
+            target_x_q32.saturating_sub(source.x_q32),
+            space_to_q32(target_y).saturating_sub(space_to_q32(source.y)),
+            target_z_q32.saturating_sub(source.z_q32),
+        );
+        let climb_q32 = space_to_q32(source.climb);
+        let ratio_q32 = q32_div(distance_q32, space_to_q32(source.range));
+        Ok(Some(q32_mul(ratio_q32, climb_q32).min(climb_q32)))
+    }
+
     pub(in crate::fight) fn projectile_target_offsets(
         &mut self,
         owner: FightActorRef,
         target_x_q32: i64,
         target_z_q32: i64,
+        (source_y_q32, target_y_q32): (i64, i64),
         count: usize,
         radius: i64,
     ) -> Result<Vec<(i64, i64)>> {
@@ -178,7 +241,7 @@ impl Simulation {
         let team = source.team;
         let source_x_q32 = source.x_q32;
         let source_z_q32 = source.z_q32;
-        let weapon_count = source.attack.weapons.count;
+        let weapon_count = source.attack.weapons.count();
         let radius_centimeters = i32::try_from(radius / 10)
             .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
         let random = self
@@ -199,74 +262,16 @@ impl Simulation {
             offsets.push((x_q32, z_q32));
         }
         if weapon_count == 2 && offsets.len() >= 2 {
-            let direction_x = i128::from(target_x_q32.saturating_sub(source_x_q32));
-            let direction_z = i128::from(target_z_q32.saturating_sub(source_z_q32));
-            offsets.sort_by(|&(left_x, left_z), &(right_x, right_z)| {
-                let angle_parts = |offset_x: i64, offset_z: i64| {
-                    let value_x = i128::from(
-                        target_x_q32
-                            .saturating_add(offset_x)
-                            .saturating_sub(source_x_q32),
-                    );
-                    let value_z = i128::from(
-                        target_z_q32
-                            .saturating_add(offset_z)
-                            .saturating_sub(source_z_q32),
-                    );
-                    // The build passes Cross(up, targetDirection) first and the
-                    // main-weapon world position second to FPlane(position, normal).
-                    // The resulting plane normal is therefore the absolute source
-                    // position, not the lateral target-direction normal.
-                    let direction_x = i64::try_from(direction_x)
-                        .expect("projectile target direction remains in Q32 range");
-                    let direction_z = i64::try_from(direction_z)
-                        .expect("projectile target direction remains in Q32 range");
-                    let plane_position_x = direction_z;
-                    let plane_position_z = direction_x.saturating_neg();
-                    let absolute_value_x = target_x_q32.saturating_add(offset_x);
-                    let absolute_value_z = target_z_q32.saturating_add(offset_z);
-                    let plane_distance = q32_mul(plane_position_x, source_x_q32)
-                        .saturating_add(q32_mul(plane_position_z, source_z_q32));
-                    let plane_side = q32_mul(source_x_q32, absolute_value_x)
-                        .saturating_add(q32_mul(source_z_q32, absolute_value_z))
-                        .saturating_sub(plane_distance);
-                    let value_x = i64::try_from(value_x)
-                        .expect("projectile offset direction remains in Q32 range");
-                    let value_z = i64::try_from(value_z)
-                        .expect("projectile offset direction remains in Q32 range");
-                    let direction_squared = q32_mul(direction_x, direction_x)
-                        .saturating_add(q32_mul(direction_z, direction_z));
-                    let value_squared =
-                        q32_mul(value_x, value_x).saturating_add(q32_mul(value_z, value_z));
-                    let magnitude_product =
-                        if direction_squared.saturating_add(value_squared) < 0x1_6A09_0000_0001 {
-                            fpcs_sqrt_fastest(q32_mul(direction_squared, value_squared))
-                        } else {
-                            q32_mul(
-                                fpcs_sqrt_fastest(direction_squared),
-                                fpcs_sqrt_fastest(value_squared),
-                            )
-                        };
-                    let dot =
-                        q32_mul(direction_x, value_x).saturating_add(q32_mul(direction_z, value_z));
-                    let cosine_q32 = q32_div(dot, magnitude_product).clamp(-Q32_ONE, Q32_ONE);
-                    let angle = fpcs_acos_fastest(cosine_q32);
-                    if plane_side > 0 { angle } else { -angle }
-                };
-                angle_parts(left_x, left_z).cmp(&angle_parts(right_x, right_z))
-            });
-            let half = offsets.len() / 2;
-            let mut weapons = [offsets[half..].to_vec(), offsets[..half].to_vec()];
-            let mut weapon_index = 0;
-            offsets.clear();
-            while offsets.len() < count {
-                offsets.push(
-                    weapons[weapon_index]
-                        .pop()
-                        .ok_or_else(|| Error::new("projectile weapon offset list is empty"))?,
-                );
-                weapon_index = usize::from(weapon_index == 0);
-            }
+            offsets = split_between_two_weapons(
+                offsets,
+                (source_x_q32, source_y_q32, source_z_q32),
+                (target_x_q32, target_y_q32, target_z_q32),
+                count,
+            )?;
+        } else {
+            // One weapon takes the offsets last drawn first: a Phantom Ray's
+            // first projectile lands the second offset its burst drew.
+            offsets.reverse();
         }
         Ok(offsets)
     }
@@ -300,30 +305,52 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         match pending.target_kind {
-            ObjectKind::Unit => self.release_projectile_at(
-                owner,
-                pending.target,
-                pending.target_x_q32,
-                pending.target_z_q32,
-                0,
-                pending.weapon_index,
-                events,
-            ),
+            ObjectKind::Unit => {
+                // A projectile leaves for where its burst aimed it, the
+                // target's position when the burst began plus its offset,
+                // and one that follows its target takes the target's position
+                // up again from its first update: a Farseer's second shot,
+                // which climbs first, still names the point the burst aimed
+                // at when it levels off.
+                let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
+                self.release_projectile_at(
+                    owner,
+                    pending.target,
+                    target_x_q32,
+                    target_z_q32,
+                    0,
+                    pending.weapon_index,
+                    events,
+                )?;
+                let projectile = self
+                    .projectiles
+                    .last_mut()
+                    .expect("a projectile was just released");
+                if projectile.lock_target {
+                    projectile.offset_x_q32 = pending.offset_x_q32;
+                    projectile.offset_z_q32 = pending.offset_z_q32;
+                }
+                projectile.climb_to_q32 = pending
+                    .climb_q32
+                    .map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
+                Ok(())
+            }
             ObjectKind::Building => {
                 let building = self
                     .buildings
                     .iter()
                     .find(|building| building.building_id == pending.target)
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
+                let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
                 self.release_projectile_to(
                     owner,
                     ObjectKind::Building,
                     pending.target,
-                    q32_to_space_rounded(pending.target_x_q32),
+                    q32_to_space_rounded(target_x_q32),
                     0,
-                    q32_to_space_rounded(pending.target_z_q32),
-                    pending.target_x_q32,
-                    pending.target_z_q32,
+                    q32_to_space_rounded(target_z_q32),
+                    target_x_q32,
+                    target_z_q32,
                     building_radius(building),
                     0,
                     pending.weapon_index,
@@ -387,10 +414,12 @@ impl Simulation {
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let source = self
+        let attacker = self
             .attacker(owner)
-            .ok_or_else(|| Error::new("projectile owner is absent"))?
-            .launch();
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        // The weapon is fired by its position and named by the build's index.
+        let weapon = attacker.attack.weapons.index(weapon_index);
+        let source = attacker.launch();
         self.launch_projectile(
             source,
             target_kind,
@@ -399,7 +428,7 @@ impl Simulation {
             (target_x_q32, target_z_q32),
             target_radius,
             skill_slot,
-            weapon_index,
+            weapon,
             events,
         )
     }
@@ -420,7 +449,7 @@ impl Simulation {
         (target_x_q32, target_z_q32): (i64, i64),
         target_radius: i64,
         skill_slot: usize,
-        weapon_index: usize,
+        weapon: i32,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
@@ -446,6 +475,9 @@ impl Simulation {
             speed: source.speed,
             life: source.life,
             lock_target: source.lock_target,
+            offset_x_q32: 0,
+            offset_z_q32: 0,
+            climb_to_q32: None,
         };
         let projectile_ref = projectile.object_ref();
         events.push(event(
@@ -455,10 +487,102 @@ impl Simulation {
             Some(ObjectRef::new(target_kind, target_id)),
             EventPayload::ProjectileReleased {
                 skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
-                weapon_index: Some(i32::try_from(weapon_index).expect("weapon index fits i32")),
+                weapon_index: Some(weapon),
             },
         ));
         self.projectiles.push(projectile);
         Ok(())
     }
+}
+
+/// How two weapons share a burst's offsets: each weapon takes the half on its
+/// side of the line from the weapon to the target, ordered by the angle it
+/// sees, and they take turns from the ends of their halves.
+fn split_between_two_weapons(
+    mut offsets: Vec<(i64, i64)>,
+    (source_x_q32, source_y_q32, source_z_q32): (i64, i64, i64),
+    (target_x_q32, target_y_q32, target_z_q32): (i64, i64, i64),
+    count: usize,
+) -> Result<Vec<(i64, i64)>> {
+    let height_q32 = target_y_q32.saturating_sub(source_y_q32);
+    let direction_x = i128::from(target_x_q32.saturating_sub(source_x_q32));
+    let direction_z = i128::from(target_z_q32.saturating_sub(source_z_q32));
+    offsets.sort_by(|&(left_x, left_z), &(right_x, right_z)| {
+        let angle_parts = |offset_x: i64, offset_z: i64| {
+            let value_x = i128::from(
+                target_x_q32
+                    .saturating_add(offset_x)
+                    .saturating_sub(source_x_q32),
+            );
+            let value_z = i128::from(
+                target_z_q32
+                    .saturating_add(offset_z)
+                    .saturating_sub(source_z_q32),
+            );
+            // The build passes Cross(up, targetDirection) first and the
+            // main-weapon world position second to FPlane(position, normal).
+            // The resulting plane normal is therefore the absolute source
+            // position, not the lateral target-direction normal.
+            let direction_x = i64::try_from(direction_x)
+                .expect("projectile target direction remains in Q32 range");
+            let direction_z = i64::try_from(direction_z)
+                .expect("projectile target direction remains in Q32 range");
+            let plane_position_x = direction_z;
+            let plane_position_z = direction_x.saturating_neg();
+            let absolute_value_x = target_x_q32.saturating_add(offset_x);
+            let absolute_value_z = target_z_q32.saturating_add(offset_z);
+            let plane_distance = q32_mul(plane_position_x, source_x_q32)
+                .saturating_add(q32_mul(plane_position_z, source_z_q32));
+            // In three dimensions, which is where a flier's weapon and a
+            // flying target meet: two Overlords shooting at each other
+            // split their offsets by it.
+            let plane_side = q32_mul(source_x_q32, absolute_value_x)
+                .saturating_add(q32_mul(source_y_q32, target_y_q32))
+                .saturating_add(q32_mul(source_z_q32, absolute_value_z))
+                .saturating_sub(plane_distance);
+            let value_x =
+                i64::try_from(value_x).expect("projectile offset direction remains in Q32 range");
+            let value_z =
+                i64::try_from(value_z).expect("projectile offset direction remains in Q32 range");
+            // The directions are three-dimensional, from the weapon to a
+            // point on the target's height: an Overlord shooting down
+            // at a Crawler orders its offsets by the angles it sees.
+            let height_squared = q32_mul(height_q32, height_q32);
+            let direction_squared = q32_mul(direction_x, direction_x)
+                .saturating_add(height_squared)
+                .saturating_add(q32_mul(direction_z, direction_z));
+            let value_squared = q32_mul(value_x, value_x)
+                .saturating_add(height_squared)
+                .saturating_add(q32_mul(value_z, value_z));
+            let magnitude_product =
+                if direction_squared.saturating_add(value_squared) < 0x1_6A09_0000_0001 {
+                    fpcs_sqrt_fastest(q32_mul(direction_squared, value_squared))
+                } else {
+                    q32_mul(
+                        fpcs_sqrt_fastest(direction_squared),
+                        fpcs_sqrt_fastest(value_squared),
+                    )
+                };
+            let dot = q32_mul(direction_x, value_x)
+                .saturating_add(height_squared)
+                .saturating_add(q32_mul(direction_z, value_z));
+            let cosine_q32 = q32_div(dot, magnitude_product).clamp(-Q32_ONE, Q32_ONE);
+            let angle = fpcs_acos_fastest(cosine_q32);
+            if plane_side > 0 { angle } else { -angle }
+        };
+        angle_parts(left_x, left_z).cmp(&angle_parts(right_x, right_z))
+    });
+    let half = offsets.len() / 2;
+    let mut weapons = [offsets[half..].to_vec(), offsets[..half].to_vec()];
+    let mut weapon_index = 0;
+    offsets.clear();
+    while offsets.len() < count {
+        offsets.push(
+            weapons[weapon_index]
+                .pop()
+                .ok_or_else(|| Error::new("projectile weapon offset list is empty"))?,
+        );
+        weapon_index = usize::from(weapon_index == 0);
+    }
+    Ok(offsets)
 }

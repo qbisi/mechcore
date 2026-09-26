@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 23] = [
+const DEFAULT_UNITS: [&str; 29] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -28,21 +28,14 @@ const DEFAULT_UNITS: [&str; 23] = [
     include_str!("../../../config/units/hound.yaml"),
     include_str!("../../../config/units/void_eye.yaml"),
     include_str!("../../../config/units/vortex.yaml"),
+    include_str!("../../../config/units/fortress.yaml"),
+    include_str!("../../../config/units/vulcan.yaml"),
+    include_str!("../../../config/units/melting_point.yaml"),
+    include_str!("../../../config/units/overlord.yaml"),
+    include_str!("../../../config/units/raiden.yaml"),
+    include_str!("../../../config/units/centurion.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
-const CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS: [&str; 11] = [
-    include_str!("../../../config/units/marksman.yaml"),
-    include_str!("../../../config/units/arclight.yaml"),
-    include_str!("../../../config/units/rhino.yaml"),
-    include_str!("../../../config/units/crawler.yaml"),
-    include_str!("../../../config/units/fang.yaml"),
-    include_str!("../../../config/units/mustang.yaml"),
-    include_str!("../../../config/units/wasp.yaml"),
-    include_str!("../../../config/units/steel_ball.yaml"),
-    include_str!("../../../config/units/wraith.yaml"),
-    include_str!("../../../config/units/stormcaller.yaml"),
-    include_str!("../../../config/units/phoenix.yaml"),
-];
 
 /// The integer form of [`SPACE_UNITS_PER_METER`], for whole-meter checks on
 /// values that have already been quantized.
@@ -109,6 +102,8 @@ pub(crate) enum RvoSize {
     S,
     M,
     L,
+    Xl,
+    Xxl,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -199,11 +194,14 @@ pub(crate) enum WeaponMode {
     Standalone,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct WeaponTopology {
     pub(crate) mode: WeaponMode,
-    pub(crate) count: u32,
+    /// Each weapon's own index in the build, in the order the skill lists
+    /// them. A weapon is fired by its position in this list and named by
+    /// its index: a Hound's one weapon is index 2.
+    pub(crate) indices: Vec<i32>,
     pub(crate) per_skill: u32,
     pub(crate) fusillade: Option<bool>,
     pub(crate) allow_same_target: Option<bool>,
@@ -494,28 +492,31 @@ impl UnitConfig {
         self.attack.validate()
     }
 
-    pub(crate) fn ensure_current_kernel_support(&self) -> Result<()> {
-        let reference = CURRENT_KERNEL_SUPPORTED_UNIT_CONFIGS
-            .iter()
-            .map(|text| parse(text.as_bytes(), "embedded closed unit config"))
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .find(|config| config.unit_type_id == self.unit_type_id)
-            .ok_or_else(|| {
-                Error::new(format!(
-                    "unit {:?} is not in the current kernel's supported behavior set",
-                    self.type_name
-                ))
-            })?;
-        let mut normalized = self.clone();
-        normalized.type_name.clone_from(&reference.type_name);
-        if normalized != reference {
-            return Err(Error::new(format!(
-                "unit {:?} differs from the behavior config supported by the current kernel",
-                self.type_name
-            )));
-        }
-        Ok(())
+    /// Whether the kernel has a way to fire this unit's main skill.
+    ///
+    /// A configuration states every shape the build's main skills take; the
+    /// kernel fires some of them. A shape it has no code for is refused here,
+    /// naming the unit, rather than reaching a path written for another shape.
+    pub(crate) fn fired(&self) -> Result<()> {
+        let weapons = &self.attack.weapons;
+        let why = match (&self.attack.path, weapons.mode) {
+            (AttackPath::ControlBeam { .. }, _) => "fires a control beam",
+            // A group of one weapon fires one blow whatever its topology
+            // says: a Vortex's is a single direct weapon.
+            (_, WeaponMode::Group) if weapons.count() == 1 => return Ok(()),
+            (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
+                "fires its grouped weapons as a fusillade"
+            }
+            (AttackPath::Projectile { .. }, WeaponMode::Group) | (_, WeaponMode::Normal) => {
+                return Ok(());
+            }
+            (_, WeaponMode::Group) => "groups weapons that fire no projectile",
+            (_, WeaponMode::Standalone) => "fires standalone weapons",
+        };
+        Err(Error::new(format!(
+            "unit {:?} {why}, which the kernel does not",
+            self.type_name
+        )))
     }
 
     pub(crate) fn collision_radius(&self) -> i64 {
@@ -735,6 +736,18 @@ impl AttackConfig {
         quantize_i64(speed, SPACE_UNITS_PER_METER)
     }
 
+    /// How high a projectile climbs straight up before it flies at its
+    /// target, in space units; zero for one that flies at once.
+    pub(crate) fn projectile_pre_flight_height(&self) -> i64 {
+        let AttackPath::Projectile {
+            pre_flight_height, ..
+        } = self.path
+        else {
+            unreachable!("pre-flight height requires the projectile attack path")
+        };
+        quantize_i64(pre_flight_height, SPACE_UNITS_PER_METER)
+    }
+
     pub(crate) fn projectile_life(&self) -> i64 {
         let AttackPath::Projectile { max_life, .. } = self.path else {
             unreachable!("projectile life requires the projectile attack path")
@@ -779,9 +792,28 @@ impl AttackConfig {
 }
 
 impl WeaponTopology {
+    /// How many weapons the skill fires.
+    pub(crate) fn count(&self) -> u32 {
+        u32::try_from(self.indices.len()).expect("a weapon list fits u32")
+    }
+
+    /// The build's index of the weapon at this position.
+    pub(crate) fn index(&self, position: usize) -> i32 {
+        self.indices[position]
+    }
+
     fn validate(&self) -> Result<()> {
-        if self.count == 0 || self.per_skill == 0 || self.per_skill > self.count {
+        let count = self.count();
+        if count == 0 || self.per_skill == 0 || self.per_skill > count {
             return Err(Error::new("weapon topology contains invalid counts"));
+        }
+        let mut distinct = self.indices.clone();
+        distinct.sort_unstable();
+        distinct.dedup();
+        if distinct.len() != self.indices.len() || distinct[0] < 0 {
+            return Err(Error::new(
+                "weapon indices must be distinct and non-negative",
+            ));
         }
         let group_fields_are_complete =
             self.fusillade.is_some() && self.allow_same_target.is_some();
@@ -861,7 +893,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 23);
+        assert_eq!(config.units.units.len(), 29);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);
@@ -958,7 +990,7 @@ mod tests {
 
         let wraith = config.units.get("wraith").unwrap();
         assert_eq!(wraith.attack.weapons.mode, WeaponMode::Group);
-        assert_eq!(wraith.attack.weapons.count, 4);
+        assert_eq!(wraith.attack.weapons.indices, [0, 1, 2, 3]);
         assert_eq!(wraith.attack.weapons.fusillade, Some(false));
         assert_eq!(wraith.attack.weapons.allow_same_target, Some(true));
         assert_eq!(wraith.attack.weapons.rotation_speed, Some(90.0));
@@ -1009,34 +1041,26 @@ mod tests {
         assert_eq!(stats.laser_damage(rules, usize::MAX), 2_604);
     }
 
+    /// The kernel fires projectiles, blows and lasers, and groups several
+    /// weapons only for projectiles; a control beam and a fusillade of several
+    /// grouped weapons are refused by the unit that fires them.
     #[test]
-    fn current_kernel_support_follows_the_explicit_config_set() {
+    fn a_main_skill_the_kernel_cannot_fire_is_refused_by_unit() {
         let config = SimulationConfig::load().unwrap();
-        for (type_name, rules) in &config.units.units {
-            let is_supported = matches!(
-                type_name.as_str(),
-                "marksman"
-                    | "arclight"
-                    | "rhino"
-                    | "crawler"
-                    | "fang"
-                    | "mustang"
-                    | "wasp"
-                    | "steel_ball"
-                    | "wraith"
-                    | "stormcaller"
-                    | "phoenix"
-            );
-            assert_eq!(
-                rules.ensure_current_kernel_support().is_ok(),
-                is_supported,
-                "{type_name} support must follow the explicit behavior set"
-            );
+        for fired in [
+            "marksman",
+            "rhino",
+            "steel_ball",
+            "wraith",
+            "melting_point",
+            "vortex",
+        ] {
+            assert!(config.units.get(fired).unwrap().fired().is_ok(), "{fired}");
         }
-
-        let mut changed_marksman = config.units.get("marksman").unwrap().clone();
-        changed_marksman.attack.splash_radius = 1.0;
-        assert!(changed_marksman.ensure_current_kernel_support().is_err());
+        for (refused, why) in [("hacker", "a control beam"), ("raiden", "as a fusillade")] {
+            let error = config.units.get(refused).unwrap().fired().unwrap_err();
+            assert!(error.to_string().contains(why), "{error}");
+        }
     }
 
     #[test]

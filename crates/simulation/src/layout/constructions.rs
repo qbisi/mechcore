@@ -295,7 +295,7 @@ impl Constructions {
             && timing.attack_point == 0.0
             && timing.backswing == 0.0
             && timing.cooling == 0.0
-            && attack.weapons.count == 1
+            && attack.weapons.count() == 1
             && attack.weapons.mode != crate::rules::WeaponMode::Group
             && matches!(
                 attack.path,

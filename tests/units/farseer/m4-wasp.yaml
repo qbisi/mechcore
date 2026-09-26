@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M4: a ground unit that shoots air, against wasps.
+
+blue:
+  units:
+    - {name: farseer, index: 0, position: {x: -5, y: -105}}
+
+red:
+  units:
+    - {name: wasp, index: 0, position: {x: 5, y: -100}}

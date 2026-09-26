@@ -44,6 +44,8 @@ pub(in crate::fight) fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
             RvoSize::S => AgentSizeType::S,
             RvoSize::M => AgentSizeType::M,
             RvoSize::L => AgentSizeType::L,
+            RvoSize::Xl => AgentSizeType::Xl,
+            RvoSize::Xxl => AgentSizeType::Xxl,
         },
         collider_priority: profile.collider_priority,
         priority_q32: profile.priority_q32(),
@@ -562,6 +564,31 @@ impl Simulation {
                 actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
                 return Flow::Done;
             }
+            let died_this_tick = self
+                .fight_actor(target)
+                .is_some_and(|view| view.query_alive && !view.alive);
+            // A blow that kills its own target holds it through the tick
+            // even with no backswing to wait out: a Vortex reads idle on its
+            // kill, still on the dead unit, and attacks the next one the tick
+            // after, as a Rhino does once its backswing is over.
+            if !target_alive
+                && died_this_tick
+                && self.actors[&actor_id].skill.retarget_after_own_direct_kill
+            {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.motion.state = MotionState::Idle;
+                if entered_idle {
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                }
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                return Flow::Done;
+            }
             if !target_alive {
                 self.actors
                     .get_mut(&actor_id)
@@ -885,6 +912,7 @@ impl Simulation {
             && !actor.rules.has_body
             && !actor.motion.attack_hold_fire
             && actor.skill.pending().is_none()
+            && actor.skill.projectile_pending_releases.is_empty()
             && actor.skill.backswing_finish_step().is_none()
             && (actor.rules.attack.melee || actor.skill.phase() == FightSkillPhase::Attack)
         {
@@ -892,6 +920,10 @@ impl Simulation {
             // attack rejects an out-of-range retained target and enters
             // SkillIdleState before MotionAttackState can fall through to
             // movement. Both state machines expose one targetless Idle tick.
+            // A burst still releasing is not checked between its shots, so
+            // the unit moves after its target and fires the rest: an
+            // Overlord whose Crawler walks out of reach after its third shot
+            // follows it and fires the fourth.
             actor.motion.state = MotionState::Idle;
             actor.skill.drop_lock();
             actor.skill.set_phase(FightSkillPhase::Idle);
@@ -956,7 +988,12 @@ impl Simulation {
         let entered_move = actor.motion.state != MotionState::Moving;
         let entered_move_below_min_range =
             entered_move && edge_distance_q32 < space_to_q32(actor.rules.attack.min_range());
-        if !entered_move_from_idle && !entered_move_below_min_range {
+        // A target the skill's own search answered this tick, because the one
+        // it attacked died during it, was not the target its update tracked:
+        // the Melting Point whose Crawler an ally kills keeps its turret still
+        // on the tick it sets off for the next one.
+        let retargeted_this_tick = entered_move && actor.skill.searched_this_tick;
+        if !entered_move_from_idle && !entered_move_below_min_range && !retargeted_this_tick {
             // FightSkill.Update tracks an existing target before MotionController updates movement.
             // A target acquired by MotionIdleState is not visible to FightSkill until the next tick.
             actor.rotate_weapons_towards(target_rotation_q32);

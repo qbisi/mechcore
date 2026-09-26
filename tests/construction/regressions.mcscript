@@ -28,8 +28,8 @@ steps:
       steps: 91
       winner: red
       teams.1.remaining_life: 155
-      hashes.physics_result_hash: 4523d7309ed89aa0fd1fb43a067f4d914af4d655b8da94b43cec9ac8878f0927
-      hashes.content_result_hash: b72c1106879bd4c574991bd0347b965b5d540ada7c943ad5dcf96d08a5413aa7
+      hashes.physics_result_hash: b94727753faa1bd5cb7355da073c2b60d62495794a739c94e0b07ed2fbdd3a76
+      hashes.content_result_hash: c3156eff82f7e49ed7be98dd23bd1af8446a46207a2d6cde28c343175aa3c913
 
   # A wall in the way. One Marksman shoots past the wall at the unit behind
   # it, and the block it destroys is neither the nearest block nor the one its
@@ -42,8 +42,8 @@ steps:
     expect:
       steps: 20
       winner: blue
-      hashes.physics_result_hash: b67ee482c84b78665455f585b37b8fd33aecf84024f74366d4b908ee3fbbecd8
-      hashes.content_result_hash: 333055f39699733161f04f7e4711dc68a47f4c0ede0f3a3dcbedf1eb99a6098f
+      hashes.physics_result_hash: b9a873677fceaa0a6f008c7418806ea3c8788dbba9726eb9ecb957337a2760a5
+      hashes.content_result_hash: a2e245825a51cae167807d00850491f92154e2838c958e301a8574d88192d35e
 
   # The same question four times at once, which is what bracketed the width,
   # and the fight where a tick that lands two shots reports the fallen block
@@ -54,8 +54,8 @@ steps:
     expect:
       steps: 19
       winner: red
-      hashes.physics_result_hash: dc9a77c75eab511539a7b0556bd9f0efcf495aa484e026157e1e19ddc7a46099
-      hashes.content_result_hash: 3ccefd54721612f7c31336ec8673e2c6b6cbd2e7e47535936f7b02862a279cd5
+      hashes.physics_result_hash: be3f0778839145c6b7f1c1400a087ffd8116361d60799aa122b01d499a92651d
+      hashes.content_result_hash: 70731c3e16225bc2ff7709729f35ea538aa27628ca0c5654ab22aa7258c07ae4
 
   # A flying unit with four weapon slots against a wall, from its approach to
   # the end: the core and then every slot take the block in the way, a shot at
@@ -68,8 +68,8 @@ steps:
     expect:
       steps: 242
       winner: red
-      hashes.physics_result_hash: 71bdc736cefec8f464e50775dfacff94f24cb2540109223c270a40f3968e19bf
-      hashes.content_result_hash: aeec79ba1c8db0006897981fbdd32b398f818a9aaed109cbd7b67f20aa8a7239
+      hashes.physics_result_hash: 9262ec3bccfa3ca617f4eec05ae812de561077b3c2c2236908d483febdf11d31
+      hashes.content_result_hash: cf0382166098eb889d49f766695044de9423d7bc73a875e30f59400293d5cf0c
 
   # A blow, and not a shot. The Rhino takes the block in its line one hit at a
   # time, stays on each until its swing is over, reads idle for a tick, and
@@ -81,8 +81,8 @@ steps:
     expect:
       steps: 189
       winner: red
-      hashes.physics_result_hash: 8edb89ea8e69bcb14637f55e9bc38f846d3909fc0a82f3d3e051f7d7337d6148
-      hashes.content_result_hash: c21bb07a88a80adc65ce8449dfbcd0fec4ca3eec3dcb41d76923d2f538f82350
+      hashes.physics_result_hash: 7f879acf6c3264757a35a4885059864cc932f2e2be7df577a7fcdcf9956c5dd0
+      hashes.content_result_hash: e0d26f1b34512f91e60f1844705a4130aaa9c7ee692a16c7af2299a8ac8fa250
 
   # A beam, and a block in the way of a unit's movement. Four Steel Balls take
   # three blocks with the beam's ramp, and one of them, overlapping block 3, is
@@ -95,8 +95,8 @@ steps:
     expect:
       steps: 242
       winner: red
-      hashes.physics_result_hash: 45502fe78a66e35aa6245ad0aa08baf732e42d69ca6392bcb7e68837f333122a
-      hashes.content_result_hash: 49484131deb91f7870953540a8d1d11b3f28d3d1c1c27a3f57b177af085123ef
+      hashes.physics_result_hash: 2b5ca8fd81c539cec5916cb8775aeb2d1b4fbde45e5eb719570d5b64f6b0423d
+      hashes.content_result_hash: 548c2fa647a028fd0f9762b0840368d5e923041fcb631788303b6d392b0e8779
 
   # The side that placed the wall, crossing it. Twenty-four Crawlers walk
   # through their own blocks, which still take places among their twenty
@@ -106,8 +106,8 @@ steps:
       seed: 4242
     expect:
       steps: 341
-      hashes.physics_result_hash: 79d0fe197ab74bd3962a6105b5bd5bffaba40d6654011e6ccf5f85b993684625
-      hashes.content_result_hash: 7e958c1188b44eecca5f65ae07db789b49e27c5170cf18b1eb60d7604b5997e3
+      hashes.physics_result_hash: 613aaeb0d5bc7dd9f4dab93eb0b6e3917a7b9334467f471b3c68cd307781c843
+      hashes.content_result_hash: 31977c58160294b1d8da3291e587d01dec8c4b314545e64eed2aed31540ebd49
 
   # The other side, stopped by the wall and taking it down. Twenty-four
   # Crawlers pushed along the wall as they strike it change blocks between
@@ -119,8 +119,8 @@ steps:
       seed: 4242
     expect:
       steps: 209
-      hashes.physics_result_hash: a63e32c65142d765823c6eba3047671b9535061b10d844c829368db0184a4849
-      hashes.content_result_hash: a24a927329620296aa697283145a1e21a8cdf3d6e213159a57f52f8d4269bb2b
+      hashes.physics_result_hash: 5c1bfb2b1c15681f0e74ac3743fcb864dd53ea4865e1461b148a56b513458345
+      hashes.content_result_hash: 0be7bd9d52590b84e5dbecbcf94e176954ff295899e7e7671c47fd9cd9859a8b
 
   # A splash across a wall, from a shot at a building: an Arclight's shots at
   # the block Crawlers are crossing take the Crawlers on it with the block, in
@@ -130,8 +130,8 @@ steps:
       seed: 4242
     expect:
       steps: 158
-      hashes.physics_result_hash: 77cb933c929973bb1f3a3320510a8f4252684d0af85c6e6e629c7ccb8c351dc7
-      hashes.content_result_hash: 5dee2377f5b0c4a690861b90d5c6ada38b83a23de66965104e52098e29863314
+      hashes.physics_result_hash: 05a4b63af56ad8f59a6a06788519117309593249ec55c1b61b13c2c5d78a7e09
+      hashes.content_result_hash: bd28d5a39e94fe7acfbc6a3c4ad15ec0639d997a1d714434b528a81b874e56c8
 
   # The same, with the Arclight turning onto blocks and off them as they enter
   # and leave its line, and re-locking when its splash kills its lock. 161
@@ -141,8 +141,8 @@ steps:
       seed: 4242
     expect:
       steps: 161
-      hashes.physics_result_hash: b1ea0a83ed04395a4140f6628690febeaca4a859d3c4c2f4ce6ccfb5ea5fd169
-      hashes.content_result_hash: 15bfddad8561cb51508a16e8b334e422fa1e9d82cff4bcabb0c5fb284a176a96
+      hashes.physics_result_hash: 4d2af53b4e204ce48629e252b36924090541eb942f0875bd4b344aeab63a53b0
+      hashes.content_result_hash: 89b491bfa5982a1ab28866feb4de63481405457597e52d45859a224414082b63
 
   # A splash across a wall, from a shot at a unit: the block behind the Crawler
   # it hit, out of the Arclight's reach, takes the shot's full damage. 176
@@ -152,5 +152,5 @@ steps:
       seed: 4242
     expect:
       steps: 176
-      hashes.physics_result_hash: 227ee2cc11ab03cc22082cc6633b9b9e7d37dc0e8a7c252d235d06e8aa2f5f4f
-      hashes.content_result_hash: 0925e3a539f8035f9298fef0fe9e2ecd7198a09918f65f4f5ad13ee19d1d8792
+      hashes.physics_result_hash: a1052bbef308fac5a0651996ad13e41f6f35d3e6f56ede52fd865f428f6dd84a
+      hashes.content_result_hash: 53183af8a508a5458147ec9ab65d654177c7da7378747565ff122ba585279b1a

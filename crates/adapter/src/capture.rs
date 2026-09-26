@@ -553,6 +553,7 @@ struct Metadata {
     motion_attack_state_class: usize,
     motion_stop_state_class: usize,
     fight_mech_lock_target: usize,
+    fight_mech_body: usize,
     fight_skill_class: Option<usize>,
     fight_skill_lock_target: Option<usize>,
     fight_skill_attack_target: Option<usize>,
@@ -1714,6 +1715,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .class("GRFight.dll", "GameRiver.Fight", "FightMech")
             .and_then(|class| api.field(class, "lockTarget"))
             .map_err(|error| error.to_string())? as usize;
+        let fight_mech_body = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightMech")
+            .and_then(|class| api.field(class, "mechBody"))
+            .map_err(|error| error.to_string())? as usize;
         let fight_skill = api
             .class("GRFight.dll", "GameRiver.Fight", "FightSkill")
             .ok();
@@ -1842,6 +1847,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             motion_attack_state_class: motion_attack_state as usize,
             motion_stop_state_class: motion_stop_state as usize,
             fight_mech_lock_target,
+            fight_mech_body,
             fight_skill_class: fight_skill.map(|class| class as usize),
             fight_skill_lock_target,
             fight_skill_attack_target,
@@ -6964,6 +6970,22 @@ fn read_unit(
     };
     let position = vec3(fixed_position);
     let body_rotation = fixed_rotation.raw;
+    // The turret: `FightMech.mechBody`'s `FightTransform`, which a unit
+    // without a body does not have.
+    let turret = api
+        .field_value::<*mut Object>(unit, metadata.fight_mech_body as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    let turret_transform = if turret.is_null() {
+        ptr::null_mut()
+    } else {
+        api.invoke(turret, "GetFightTransform", &mut [])
+            .map_err(|error| error.to_string())?
+    };
+    let turret_rotation = if turret_transform.is_null() {
+        None
+    } else {
+        Some(invoke_value::<FixedPoint>(api, turret_transform, "GetRotationInt")?.raw)
+    };
     let main_skill = invoke_object(api, unit, "GetMainSkill")?;
     let mech_lock_target = api
         .field_value::<*mut Object>(unit, metadata.fight_mech_lock_target as *mut FieldInfo)
@@ -7075,6 +7097,7 @@ fn read_unit(
             },
             position,
             body_rotation,
+            turret_rotation,
             velocity: vec3(velocity),
             motion_state,
             mech_lock_target: None,
@@ -9391,6 +9414,7 @@ mod tests {
                 z: 0,
             },
             body_rotation: 0,
+            turret_rotation: None,
             velocity: QVec3 { x: 0, y: 0, z: 0 },
             motion_state: MotionState::Idle,
             mech_lock_target: None,

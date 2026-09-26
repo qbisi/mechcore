@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M2: a single large ground target that closes in.
+
+blue:
+  units:
+    - {name: farseer, index: 0, position: {x: -5, y: -105}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: 5, y: -95}}

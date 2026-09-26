@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M3: a swarm of ground targets: retargeting, splash, being surrounded.
+
+blue:
+  units:
+    - {name: sabertooth, index: 0, position: {x: -5, y: -105}}
+
+red:
+  units:
+    - {name: crawler, index: 0, position: {x: 5, y: -100}}

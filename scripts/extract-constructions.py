@@ -162,7 +162,7 @@ def attack(row, body):
             "splash_radius": number(row["splashRange"]),
             "weapons": {
                 "mode": WEAPON_MODES[row["weaponMode"]],
-                "count": len(row["weapons"]),
+                "indices": [weapon["index"] for weapon in row["weapons"]],
                 "per_skill": row["weaponCountPerSkill"],
             },
             "melee": row["isMeleeAttack"],

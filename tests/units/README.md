@@ -133,8 +133,66 @@ unit's own damage or motion:
   presearched Crawler stands 6 Q32 units (1.4 nm) to its left faces +0.245°
   in the game, as it would with no offset, and −0.245° in the simulator,
   until it first moves. `AcosFastest(1)` is not zero, so the offset's sign
-  picks the side. Steel Ball's and Stormcaller's M6 with seed 4242.
+  picks the side. Steel Ball's and Stormcaller's M6 with seed 4242. The
+  build's `FightUtility.ConvertToAngle` takes `360 - angle` for a direction
+  whose x is negative, as the simulator does, so the game's direction at
+  presearch has an x of zero or more where the simulator's is −6: the
+  positions it is taken between are what differ, and they are not read.
 - **The Wraith's grouped search.** Each of the Wraith's weapons searches
   for its own target, and the simulator answers a different one: M2, M3 and
   M6 part on a weapon's target or a released projectile. M6 with seed 4242
   redistributes a live lock by attack count, which the simulator refuses.
+
+## The eighteen released together
+
+Every other unit but the three that cost 800 (War Factory, Abyss, Mountain)
+was released to the simulator at once, and recorded in its six layouts with
+both seeds before any of it was fixed: 216 recordings. Sandworm is not among
+them, as its configuration cannot state a unit that burrows. Two units are
+still refused by name, for a main skill the kernel has no way to fire:
+Hacker's control beam, and Raiden's fusillade of three grouped weapons.
+
+Of the other 192 fights, 185 play back exactly and are pinned:
+
+| Unit | Pinned of 12 |
+| --- | ---: |
+| centurion | 12 |
+| farseer | 12 |
+| fortress | 12 |
+| melting_point | 12 |
+| sabertooth | 12 |
+| scorpion | 12 |
+| sledgehammer | 12 |
+| tarantula | 12 |
+| typhoon | 12 |
+| void_eye | 12 |
+| vortex | 12 |
+| vulcan | 12 |
+| fire_badger | 11 |
+| hound | 10 |
+| overlord | 10 |
+| phantom_ray | 10 |
+
+Each mechanism the recordings exposed is named in
+[`combat.md`](../../docs/rules/combat.md). Two of them were read off
+[`skill-state.mcscript`](skill-state.mcscript), which records four of the
+fights with each skill's state beside the turret's rotation, which the MCFR
+carries as `turret_rotation`: the attack angle is measured from it, and it
+showed the game turning exactly as the simulator did and parting only on the
+state change.
+
+The Overlord's M3 fields five formations in a row and its M6 two side by side:
+with three in a column, or two one behind the other, the Crawlers felled a
+tower before the Overlords could stop them.
+
+The seven that part:
+
+| Unit | Layout | Seed | Parts at | On |
+| --- | --- | ---: | ---: | --- |
+| hound | `m3-crawler` | 4242 | 9 | facing a target dead ahead |
+| hound | `m6-formations` | 4242 | 9 | facing a target dead ahead |
+| fire_badger | `m6-formations` | 1787720817 | 9 | facing a target dead ahead |
+| phantom_ray | `m3-crawler` | 1787720817 | 1 | facing a target dead ahead |
+| phantom_ray | `m3-crawler` | 4242 | 176, content only | the dead last enemy named through a cooling, not read |
+| overlord | `m3-crawler` | 1787720817 | 256 | a climbing projectile's height by a few raw units, not read |
+| overlord | `m6-formations` | 1787720817 | 344 | a unit that stops in the game and moves on in the simulator, not read |

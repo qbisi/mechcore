@@ -1,0 +1,13 @@
+kind: layout
+round: 1
+
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. The target stands nearer than either enemy tower.
+
+blue:
+  units:
+    - {name: melting_point, index: 0, rotated: true, position: {x: -60, y: -60}}
+
+red:
+  units:
+    - {name: rhino, index: 0, position: {x: -35, y: -95}}

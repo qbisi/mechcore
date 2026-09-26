@@ -1,0 +1,13 @@
+kind: layout
+round: 1
+
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. An air unit's target is a Marksman, which shoots back.
+
+blue:
+  units:
+    - {name: phantom_ray, index: 0, rotated: true, position: {x: -60, y: -65}}
+
+red:
+  units:
+    - {name: marksman, index: 0, position: {x: -40, y: -100}}

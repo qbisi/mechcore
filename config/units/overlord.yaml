@@ -1,0 +1,51 @@
+schema: mechcore.unit
+type_name: overlord
+unit_type_id: 11
+
+formation:
+  members: 1
+  slot_size: 50
+  footprint: {width: 50, depth: 50}
+
+domain: air
+max_life: 21339
+collision_radius: 15
+move_speed: 10
+rotate_speed: 20
+has_body: false
+rvo: {outer_radius: 14, inner_radius: 10, size: l, collider_priority: 9, priority: 0.009}
+
+attack:
+  base_damage: 4742
+  min_range: 0
+  range: 120
+  attack_half_angle: 360
+  targets: {ground: true, air: true}
+  lock_target: false
+  quick_switch_target: true
+  timing:
+    interval: 4.6
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 7
+  weapons:
+    mode: normal
+    indices: [2, 3]
+    per_skill: 2
+  melee: false
+  path:
+    type: projectile
+    count: 4
+    release_interval: 0.25
+    speed: 192
+    target_offset_radius: 15
+    evenly_allocate_targets: false
+    extra_search_range: 0
+    pre_flight_height: 20
+    simulated_motion: false
+    interceptible: true
+    max_life: 152895

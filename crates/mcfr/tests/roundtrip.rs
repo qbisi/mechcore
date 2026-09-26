@@ -32,7 +32,7 @@ fn stated(layout: &str) -> String {
 
 #[test]
 #[allow(clippy::too_many_lines)]
-fn writes_and_reads_v6_tracks() {
+fn writes_and_reads_v7_tracks() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
     let initial = state(100);
@@ -48,7 +48,7 @@ fn writes_and_reads_v6_tracks() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.6.0");
+    assert_eq!(MCFR_FORMAT, "0.7.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -255,12 +255,23 @@ fn physics_hash_ignores_nonphysical_details_while_content_hash_detects_them() {
 }
 
 #[test]
-fn battle_physics_v1_has_a_golden_result_hash() {
+fn battle_physics_v2_has_a_golden_result_hash() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.physics_result_hash,
-        "40efd7bd0c03b9430a9d2f3b868260e123ee67003c63c24cc6044fe837e348b4"
+        "264eb2cb64f7d0db2873861ef0eb65af1d2d820310b8325b565af20f4ac2b6f6"
     );
+}
+
+/// A turret is kinematics: where it points decides when the unit fires.
+#[test]
+fn physics_hash_reads_the_turret() {
+    let events = damage_events();
+    let baseline = hash_tick(&context(), state(75), &events);
+    let mut turned = state(75);
+    turned.live_units[0].turret_rotation = Some(8 << 32);
+    let turned = hash_tick(&context(), turned, &events);
+    assert_ne!(baseline.physics_result_hash, turned.physics_result_hash);
 }
 
 #[test]
@@ -784,6 +795,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
         domain: Domain::Ground,
         position: QVec3 { x, y: 0, z: 0 },
         body_rotation: 0,
+        turret_rotation: Some(7 << 32),
         velocity: QVec3 { x: 0, y: 0, z: 0 },
         motion_state: MotionState::Idle,
         mech_lock_target: None,

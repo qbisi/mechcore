@@ -1,0 +1,12 @@
+kind: layout
+round: 1
+
+# M1: the mirror. One formation each, 200 m apart.
+
+blue:
+  units:
+    - {name: typhoon, index: 0, position: {x: 0, y: -100}}
+
+red:
+  units:
+    - {name: typhoon, index: 0, position: {x: 0, y: -100}}

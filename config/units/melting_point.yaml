@@ -1,0 +1,43 @@
+schema: mechcore.unit
+type_name: melting_point
+unit_type_id: 4
+
+formation:
+  members: 1
+  slot_size: 40
+  footprint: {width: 40, depth: 40}
+
+domain: ground
+max_life: 30907
+collision_radius: 13
+move_speed: 6
+rotate_speed: 60
+has_body: true
+independent_aim: false
+rvo: {outer_radius: 16, inner_radius: 8, size: xl, collider_priority: 9, priority: 0.009}
+
+attack:
+  base_damage: 168
+  min_range: 0
+  range: 115
+  attack_half_angle: 20
+  targets: {ground: true, air: true}
+  lock_target: true
+  quick_switch_target: false
+  timing:
+    interval: 0.2
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0.3
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 3
+  weapons:
+    mode: normal
+    indices: [0]
+    per_skill: 1
+  melee: false
+  path:
+    type: laser
+    damage_multipliers: [0.00999999978, 0.03221321898, 0.11939072213, 0.2879651729, 0.54870310589, 0.90999999992, 1.37886107899, 1.96135817189, 2.6628852773, 3.48831789545, 4.44211988803, 5.52841903828, 6.7510626805, 8.11365997093, 9.61961484724, 11.2721522795, 13.07433955371, 15.02910379437, 17.13924658019, 19.4074562788, 21.83631855762, 24.428325427, 27.18588307826, 30.11131872865, 33.20688663726, 36.47477342538, 39.91710280394, 43.53593979753, 47.33329453459]

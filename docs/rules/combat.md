@@ -190,6 +190,54 @@ A Marksman or Arclight single ordinary projectile refreshes the target root Q32
 position every tick where `isLockTarget=true`, the target is alive and moving,
 and `randomTargetRange=0` with zero offset.
 
+**A projectile that follows its target keeps its offset.** A burst draws every
+projectile's offset within `randomTargetRange` when it begins. A projectile of
+a skill with `isLockTarget=true` lands its offset from wherever the live target
+stands: it is released at the target's position then plus its offset, and its
+target point follows the target with the offset kept. The second of a Phantom
+Ray's two projectiles, released 0.3 seconds after the first, lands its offset
+from where a charging Rhino stands by then. A target already dead when the
+projectile is released is not followed: the projectile goes to the point the
+burst aimed it at when it began.
+
+**A projectile leaves for where its burst aimed it.** Every projectile of a
+burst is released toward the target's position when the burst began plus its
+offset; one that follows its target takes the target's position up again from
+its first update, which is why the rule above reads as the live position.
+
+**Two weapons split a burst's offsets in three dimensions.** Each weapon takes
+the half of the offsets on its side of the line from the weapon to the target,
+ordered by the angle it sees, and the angle and the side are measured from the
+weapon's height to the target's: an Overlord shooting down at a Crawler, and
+two Overlords shooting at each other at the same height, order them so.
+
+**A projectile may climb before it flies.** A skill with a pre-flight height
+sends its projectiles straight up at their speed, neither following the target
+nor landing, until they stand at or above the height, the last step taken whole:
+a Farseer's shot climbs 7 metres a tick to 63 for its 60. The height is the
+pre-flight height times the distance to the target over the attack range, at
+the range and beyond the whole of it, measured once for the burst to where the
+target stood when the tick began (`ProjectileSystem.Create`).
+
+**A burst goes on after its target leaves reach.** A skill is not checked
+between the projectiles of a burst, so a bodyless unit whose target walks out
+of reach mid-burst moves after it and fires the rest: an Overlord follows its
+Crawler and fires its fourth shot before it goes idle.
+
+**A single weapon lands its offsets last drawn first.** A Phantom Ray's first
+projectile lands the second offset its burst drew, and its second the first.
+
+**A projectile in simulated motion that lands on a dead unit does nothing.** A
+skill with `isSimulateMode=true` whose projectile arrives after its target died
+deals no damage, splash included: a Fire Badger's or a Typhoon's shot at a
+Crawler another shot killed while it flew leaves the Crawlers beside it
+untouched. Any other projectile still strikes where it lands, as an Arclight's
+does.
+
+**A weapon is named by its index.** A skill's weapons carry their own index in
+the build, and a recording names a weapon aim and a projectile release by it: a
+Hound's one weapon is index 2, a Sabertooth's two are 0 and 2.
+
 ## Damage and death
 
 `ReduceLife` clamps the life actually lost to `min(currentLife, incomingDamage)`.
@@ -198,6 +246,10 @@ With no technology, equipment, dynamic buff or shield involved, a level-1
 Arclight centres target selection on the projectile transform, takes everything
 inside the radius, and records the sum of life actually lost across those
 targets as one Damage event on the primary target.
+
+A beam with a splash strikes as any other hit does: a Melting Point's beam at
+one Crawler takes the Crawlers around it too, in the order the target trees
+hold them. A Steel Ball's beam has no splash and strikes its target alone.
 
 A Rhino's main skill, under those same baseline constraints and as a
 single-target direct effect, reaches its description's damage through
@@ -216,6 +268,31 @@ prepare ticks plus its attack-point ticks, each truncated on its own. This is
 not a formula that adds the two fields first, and must not be generalised into
 one.
 
+**Leaving the idle state is entering one.** `SkillIdleState.TryStartAttack`
+enters `SkillAttackState` on the tick the attack target comes into the attack
+angle, and the state is not updated until the tick after, so the blow is
+released then. A Fortress whose weapons turn onto a Crawler while its motion
+already attacks reads `SkillAttackState` on the tick they come within the
+angle and releases on the next; so does a Sledgehammer or Typhoon that locks a
+new target after a kill. A skill leaving its cooling does not wait.
+
+**An idle skill keeps its lock only while it can fire at it.** The idle
+skill's periodic search answers a new lock when the one it holds is outside
+its attack area, even while its motion attacks: a Melting Point whose weapons
+are still turning onto one Crawler takes the Crawler they already face and
+prepares against it.
+
+**A turret does not turn on the tick its skill retargets after a kill.** When
+the target a skill attacked dies during a tick and the skill's own search
+answers a new one, the skill's update that tick tracked the dead target: a
+Melting Point whose Crawler an ally kills sets off for the next one with its
+turret still.
+
+**A group of one weapon is fired as one weapon.** A Vortex's grouped skill has
+a single direct weapon, so its fusillade is one blow; its target scoring reads
+the root's rotation, because a grouped weapon turns on its own only at a speed
+of its own, as a Wraith's does.
+
 ## Ordinary synchronous direct-attack backswing
 
 A Rhino's ordinary direct attack enters its backswing on the effect tick. The
@@ -229,12 +306,17 @@ A Rhino that kills its current target with its own synchronous direct attack
 keeps the dead target and stays Idle until that after-wait ends. It acquires a
 new target and re-enters Move only afterwards.
 
+**A direct kill holds its target through the tick even with no backswing.** A
+Vortex reads idle on the tick its blow kills its target, still on the dead
+unit, and attacks the next one the tick after.
+
 ## Main-skill aim command
 
 In the ordinary main-skill attack turn branch with `isHaveBody=true`, a Marksman
 or Arclight passes the same direction local, from a single
 `CalculateTargetDirection`, to both the mech body and the main weapon. So
-`independent_aim=false`, and the mech body is not an MCFR unit root.
+`independent_aim=false`, and the mech body is not an MCFR unit root: a
+recording carries it as the unit's `turret_rotation`.
 
 ## Endgame ordering of a 1v1 direct kill
 
@@ -291,6 +373,19 @@ not the game's native attack-type enum.
   ordinary fights: `tests/regression/simulate.mcscript`.
 - A unit's personal shield enabled with no shield of its own:
   `tests/units/regressions.mcscript`.
+- A following projectile's offset, the order a single weapon lands its
+  offsets, a simulated-motion shot at a dead unit, a weapon's index, and a
+  splashing beam, in the standard fights of the Phantom Ray, Fire Badger,
+  Typhoon, Hound, Sabertooth and Melting Point:
+  `tests/units/regressions.mcscript`.
+- A burst's aim, a climbing projectile, two weapons' offsets in three
+  dimensions, a burst that goes on after its target leaves reach, a turret on a
+  retarget, and a Vortex's single grouped weapon and its kill, in the standard
+  fights of the Farseer, Overlord, Melting Point and Vortex:
+  `tests/units/regressions.mcscript`.
+- The blow waiting a tick after the idle state is left, and an idle skill
+  giving up a lock it cannot fire at, in the standard fights of the Fortress,
+  Sledgehammer, Typhoon and Melting Point: `tests/units/regressions.mcscript`.
 
 ### Read
 
@@ -344,8 +439,13 @@ not the game's native attack-type enum.
   of wall blockers, and the derivation of the group's prepare offset.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
-- **Projectiles**: non-locking projectiles, a dead target, a non-zero random
-  offset, interception, and every other projectile type.
+- **Projectiles**: why a projectile in simulated motion spares a dead unit's
+  neighbours, which is recorded and not read; interception; and every other
+  projectile type.
+- **Raiden.** `FightWeapon`'s constructor gives each weapon of the unit whose
+  data is 27 a transform of its own, fixed to the body, and its three grouped
+  weapons fire as a fusillade; which slots fire, what they hold and how their
+  transforms turn is recorded and not reproduced, so the unit is refused.
 - **Damage**: building splash, area boundary and ordering, modifier chains,
   shields, and other providers or target domains.
 - **A personal shield's** activation, absorption and destruction.

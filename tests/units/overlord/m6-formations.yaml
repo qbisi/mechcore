@@ -1,0 +1,18 @@
+kind: layout
+round: 1
+
+# M6: two formations against a Crawler swarm and a Marksman:
+# target distribution and avoidance between allies.
+# The Crawlers cannot hit an Overlord and walk to the towers; two formations
+# one behind the other let them fell one, side by side they are stopped
+# before any falls.
+
+blue:
+  units:
+    - {name: overlord, index: 0, position: {x: -75, y: -105}}
+    - {name: overlord, index: 1, position: {x: 65, y: -105}}
+
+red:
+  units:
+    - {name: crawler, index: 0, position: {x: 5, y: -70}}
+    - {name: marksman, index: 1, position: {x: 0, y: -110}}

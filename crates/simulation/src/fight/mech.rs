@@ -37,11 +37,11 @@ impl Actor {
         let max_speed_q32 = stats.move_speed_q32();
         let weapon_rotations_q32 = vec![
             mdeg_to_degrees_q32(placement.rotation);
-            usize::try_from(rules.attack.weapons.count)
+            usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         ];
         let group_skill_count = if rules.attack.weapons.mode == WeaponMode::Group {
-            usize::try_from(rules.attack.weapons.count)
+            usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         } else {
             0
@@ -176,6 +176,15 @@ impl Actor {
         self.skill.turn_weapons_towards(target_q32, turn_q32);
     }
 
+    /// A unit with a body turns its turret, whose rotation every weapon of
+    /// it shares; one without a body has none.
+    fn turret_rotation(&self) -> Option<i64> {
+        self.rules
+            .has_body
+            .then(|| self.skill.weapon_rotations_q32.first().copied())
+            .flatten()
+    }
+
     pub(in crate::fight) fn snapshot(&self) -> LiveUnitState {
         let height = unit_height(self.rules.domain);
         let position = QVec3 {
@@ -206,7 +215,7 @@ impl Actor {
                     } else {
                         0
                     },
-                    weapon_index: i32::try_from(weapon_index).expect("weapon index fits i32"),
+                    weapon_index: self.rules.attack.weapons.index(weapon_index),
                     attack_target: attack_target.map(FightActorRef::object_ref),
                     pose: None,
                 }
@@ -224,6 +233,7 @@ impl Actor {
             },
             position,
             body_rotation: self.body_rotation_q32,
+            turret_rotation: self.turret_rotation(),
             velocity: QVec3 {
                 x: self.motion.current_velocity_x_q32,
                 y: 0,

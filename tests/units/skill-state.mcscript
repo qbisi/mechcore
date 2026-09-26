@@ -1,0 +1,43 @@
+# Which state is a unit's skill in, and where does its body face, while its
+# weapons turn onto a new target?
+#
+#   mechcore run tests/units/skill-state.mcscript --check   parse without the game
+#   mechcore run tests/units/skill-state.mcscript           record
+#
+# Re-records four standard fights with the `target_refs_v1` instrumentation,
+# whose sidecar holds, per unit and tick, the main skill's state, beside the
+# turret's rotation the recording itself carries. They are the
+# fights that showed that leaving `SkillIdleState` waits a tick before the
+# blow, and that an idle skill keeps its lock only while it can fire at it:
+# the Fortress's weapons turning onto a Crawler, a Sledgehammer and a Typhoon
+# locking a new target after a kill, and a Melting Point switching to the
+# Crawler its weapons already face. The fights are pinned in
+# `regressions.mcscript`; the sidecar is research evidence and is not hashed.
+#
+# `out` must not already exist: record_battle refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/units/skill-state
+
+steps:
+  - let:
+      fights:
+        - {unit: fortress, name: m3-crawler, seed: 1787720817}
+        - {unit: sledgehammer, name: m3-crawler, seed: 1787720817}
+        - {unit: typhoon, name: m6-formations, seed: 4242}
+        - {unit: melting_point, name: m6-formations, seed: 1787720817}
+
+  - foreach: {fight: $fights}
+    steps:
+      - let:
+          layout: read_yaml(tests/units/${fight.unit}/${fight.name}.yaml)
+      - game.apply_layout:
+          layout: $layout
+          seed: ${fight.seed}
+      - game.record_battle:
+          output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.mcfr
+          instrumentation:
+            output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.h5
+            profile: target_refs_v1

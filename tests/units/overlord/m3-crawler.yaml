@@ -1,0 +1,21 @@
+kind: layout
+round: 1
+
+# M3: a swarm of ground targets, which cannot hit back.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields enough formations to win first. An
+# Overlord fires once every 4.6 seconds: three formations in a column let
+# the Crawlers fell a tower, five in a row stop them before any falls.
+
+blue:
+  units:
+    - {name: overlord, index: 0, position: {x: -105, y: -105}}
+    - {name: overlord, index: 1, position: {x: -55, y: -105}}
+    - {name: overlord, index: 2, position: {x: -5, y: -105}}
+    - {name: overlord, index: 3, position: {x: 45, y: -105}}
+    - {name: overlord, index: 4, position: {x: 95, y: -105}}
+
+red:
+  units:
+    - {name: crawler, index: 0, position: {x: 5, y: -100}}

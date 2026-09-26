@@ -4,89 +4,39 @@
 state。一局比赛就是一份 battle 文档，平台一边下一边把它写出来。平台那一半已经能跑，
 卡在模拟器打不了真实对局的仗；这条主线没有变。
 
-**现在先做的是换版本。** 游戏进入 2.0（build `2.0.0.1.2324`），仓库整体切到 2.0，
-不保留对 1.11（build `1.11.1.3.2259`）的兼容。2259 的证据不删：它的反编译留在
-`mechcore-decomp/1.11.1.3.2259/`，录像留在各自的 `oracle/issue-<n>` release 和
-`mechcore-replay` 的历史里。切换之前的计划全文在提交 `36c83cc` 的 `plan.md`。
+仓库已经整体换到 2.0（build `2.0.0.1.2324`，提交 `0e3891d`），不再兼容 1.11。换版本的
+计划全文和做完的状态在那个提交的 `plan.md`。
 
-## 换到 2.0
+## 离真实对局还有多远
 
-五步，前一步是后一步的输入。每一步写明做完是什么样子。
+`scripts/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `fight run`，
+模拟器一次报出这份 layout 被拒的全部理由。2.0 语料 287 回合，接受 16 回合。单位已不再是挡得
+最多的：前面是模块（物件 `InterceptSystem` 142 回合、战场技能 `CommanderSkillSystem` 116、
+能量塔技能 `BuildingSystem` 84、空投中的单位 43）、炮塔技能与军官科技的关系、装备过了第 1
+回合的耐久，以及几个单独的军官、科技、装备字段。
 
-1. **反编译可复现。** ~~做完~~：`scripts/decompile.py` 从本机装的游戏读出 build 号，缺的
-   工具（Cpp2IL、AssetRipper，版本和 SHA-256 钉在脚本里）自己下，产出和 2259 同一种
-   形状：`cpp2il/IsilDump`、`cpp2il/DiffableCs`（带调用分析）、`config-data-container.json`、
-   `game-manifest.json`、`index.sqlite`；同一个 build 跑两遍，dump 逐字节相同。ISIL 取
-   x86_64 切片，和 2259 的 dump 同一种指令集，两个 build 才能逐行对比；逻辑和字段偏移在
-   两个切片里相同。2.0 已经由 `scripts/decomp.py publish` 推进 `mechcore-decomp`，
-   `decomp.py sync --build 2.0.0.1.2324` 取得回来。
-2. **读差异，定条目。** ~~做完~~。两个 build 的 DiffableCs 对比（类、方法、字段的增删改）和两份
-   配置对比，逐条对到 `docs/rules/` 上：哪条规则不再成立、哪条要新增、哪个单位或物件是新的。
-   `scripts/decomp-diff.py` 出清单（加 `--config` 比配置表）。
-   *已做*：`scripts/extract*.py` 全部改读类型化导出（`scripts/build_data.py`），不写死
-   build、path id 和 `work/` 路径，`config/` 全部由 2.0 重新生成，差异写在各自的提交里；
-   22 份规则文档按新的证据约定重写（`docs/README.md`），名称表由
-   `config/localization.yaml` 生成；远征模式（`limitedScene` 只含 8、9）不纳入。
-   *占位*：代码层差异里的新机制主要随新单位而来——近战模式（`MeleeModeEffectSystem`）、
-   副武器（`SideArmSearchTargetController`）、弹药池（`AmmoSkillPool`）、
-   `IgnoreBuffEffectSystem`、出售单位（`PAD_SellUnit`、单位回收）、塔成为 buff 目标。
-   模拟器实现到对应单位时各开专题研究，这里不逐条定性。只读未录的规则（`SupplyPercent`、
-   两件装备）等第 5 步录像验证。
-3. **文档与 MCFR 的升级。** 已知一条：单位可以带两件装备，`equipment` 从一个值变成
-   列表，layout、battle 文档、MCFR 都要跟着改。其余由第 2 步的清单决定。
-   `game_build` 改成 2.0。*做完*：schema、转换器、读写器改完，版本号更新，旧格式不再
-   接受。
-   ~~做完~~。版本只写在根目录的 `GAME_VERSION`（`2.0.0.1.2324`），crate 和脚本都读它。
-   `equipment` 是列表（layout、state、编译器按军官给槽数、模拟器逐件施加、adapter 读
-   `GetEquipments` 并逐件 `PAD_UseEquipment`）；MCFR 不带装备，不用改。GRBR 读单位的
-   `equipments` 列表，旧的 `EquipmentID` 在 2.0 恒为 0。battle 格式随之改了四处：
-   header 的每一方带 `seed`（`PlayerRecord.seed`，次级装备专家从它的流里抽）；state
-   不再写回合内的额度，`unlocked_units` 上移一层；两个选择动作的位置叫 `index`；每回合
-   增援在牌后列出 `{name: decline_offer, refund: N}`，放弃写在它自己的 index 上。
-4. **Adapter。** 对着 2.0 的 DiffableCs 重核 adapter 写死的东西：原生内存布局（VO 步长、
-   `HitDamageInfo`）、单位／工事／指挥官技能的 ID 表、`RangeItemType`、按签名找的重载。
-   支持第 3 步的新字段（两件装备）。*做完*：一份不需要人看的冒烟脚本，逐项证明原有能力
-   在 2.0 上还在——下发 layout、录制、各个 instrumentation profile、读回状态。
-   *已完成*：`tests/adapter/smoke.mcscript` 在 2.0 上 17 段全录成。改了三处：
-   `OnActorHitted` 多一个参数；hook 不再钉 2259 的序言字节，改为解码判定可搬迁；
-   工事下标经 `TryRefreshConstructionIndex` 设定（`AddConstruction` 只认计数器）。
-   装备在军官之后逐件装上，两件装备录成 `tests/equipment/two-items.yaml`。
-   留给第 5 步：`tests/turret/rapid-fire-head-on.yaml` 在 2.0 上从第 242 tick 起
-   模拟器与录像分叉；各主题 2259 的内容钉（如 `tests/construction/`）因 2.0 数值
-   变化不再成立，需重录重钉。
-5. **录一批。** 先把 `tests/*/` 的录制脚本在 2.0 上重录一遍，钉住的哈希换成 2.0 的；
-   模拟器对不上的那些就是 2.0 改了的机制，按第一处分叉切问题。然后检查回放格式
-   （GRBR、`BattleRecord`）有没有变，录一批 2.0 的对局补进语料。
-   *做完*：每个离线回归都钉着 2.0 的录像；对不上的每一场都有一个问题或一条发现。
-   *现状*：`tests/*/` 的 271 个（布阵, 种子）都在 2.0 上录过；离线回归全部换成 2.0 的
-   钉子并通过，内容层也全部一致。已修：墙块倒下后（含被激光打倒的那一 tick）转向锁定
-   目标；空闲无锁的单位在最后一个敌人死后保留已抽的攻击间隔。剩下的分叉都是 2259 就有的
-   （Wraith 分组搜索、Steel Ball/Stormcaller M6 正前方朝向），外加冒烟里 rapid-fire 用
-   种子 1787720817 时第 242 tick 的分叉，还没读。
-   语料：`mechcore-replay` 的 `replays/2.0.0.1.2324/` 已有 35 场本地录制的对局（采集
-   暂停）。转换器全部读得了，`verify-battles.py` 逐叶核对全部一致，没有未实现的叶子。
-   为此补上的机制：增援按投资占比（`SupplyPercent`）发军官；不列回合的军官在被选时
-   发放（量产装备）；次级装备专家每回合从本方玩家流里抽一件；重型导弹打击成为 layout
-   技能；撤销一次取消会恢复它取消的释放；两个强化模块叠加在升级价上；每回合最多放
-   8 个物件。这些和其余规则的证据按新约定写在 `docs/rules/` 里，被语料核对过的记为
-   Replayed。
+## 下一步：从游戏更快地取得回归
 
-## 合并回主线之前
+录像成了瓶颈：MCFR 格式一升级、游戏一换版本、`tests/` 一增长，全部钉子就要重录；401 场
+重录一遍要两个多小时。一场的中位数是摆阵 8.9 秒加录制 10.3 秒（约 253 tick）。反编译里有
+两条更快的路（只读分析，未试）：
 
-1. **推送并过 CI。** 分支还没推过，三个 job（含 macOS 的 `adapter`）都没跑过。之后由
-   committer 合并；主线只收 squash，整条迁移落成一个提交。
-2. **只读、未录的规则。** 各自需要一段训练场录制：重型导弹打击的一次释放、一个编队
-   戴两个强化模块升级、第 9 个物件被拒、训练场里次级装备专家用的玩家种子。
-3. **语料的自动核对。** 现在只在本地跑（`replay.py sync`、`export-replay-corpus.py`、
-   `verify-battles.py`）。语料独立增长，不宜挡 PR；待定的做法是 mechcore 里一个
-   master 推送和每日触发的 workflow，只核 `replays/<GAME_VERSION>/`。
-4. **随迁移发现、合并后再做的。** 模拟器让核弹、闪电风暴、离子轰炸按 `initial_cooldown`
-   1 入列；新的 `SkillDataChangeInt.AttackValue` 谁写；adapter 按枚举下标读技能整数，
-   2.0 新增了 6 到 11；`UpgradeExp` 取代经验条，谁写它。
+1. **时间倍率。** 游戏自己的加速是 `TimeSystem.ChangePlaySpeed`，即 Unity 的
+   `Time.timeScale`；`Match.Update` 每调一次走一个逻辑步，adapter 的采集挂在
+   `FightController.Update` 上、按逻辑 tick 而不是按帧，所以倍率调大仍然得到完整的 MCFR。
+   战斗段可望从 10 秒降到 1 秒左右，每帧能追的步数受 `Time.maximumDeltaTime` 限制。验收：同一
+   布阵同一种子，常速与高倍速录出的两层哈希相同。
+2. **游戏自带的无头模拟。** `MatchUtility.StartFastBattleSimulation(BattleSetting)` →
+   `SimpleSimulator.Run`：`FastSimulationMatch` 不建场景，由 `ReplayAIController` 按
+   `PlayerRecord` 逐回合重放，`GRWhile` 同步跑完，`GetFightResult()` 出结果；服务器端的
+   `FightAuth.Main.SimpleAuth` 也调它，应当就是官方结算。要解决的：由 layout 构造
+   `BattleSetting`，让 adapter 的逐 tick 采集指向这个对局，以及 `Config.SetFastBattleSimulationData`
+   打开的 `IFightSetting.IsFastBattleSimulation` 是否改动战斗逻辑。它能同时给出语料每一回合的
+   游戏结果。
 
-## 换完之后回到的主线
+先做 1（改动小，立刻减半），再把 2 作为一个研究问题。
 
-### 单位：无科技基本支持
+## 主线：单位的无科技模拟
 
 一个单位 U 在 1 级、第 1 回合、没有军官、科技和装备时算有**基本支持**，当且仅当：
 
@@ -108,11 +58,58 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 2. 反编译里 U 不带科技就有的每个技能，要么被某个布阵复现，要么按名拒绝。
 3. 对手的单位——rhino、crawler、wasp、marksman——先满足这个定义。
 
-达标的单位把全套布阵落在 [`tests/units/`](tests/units/README.md)。在 2259 上，四个参照
-单位 44 场全部对上；其余 7 个 84 场对上 75 场，没对上的挂在三个问题上（出生朝向的正负号、
-fang 的一处速度差、wraith 的分组搜索）。换到 2.0 之后这些全部重录重判，数字从零开始记。
+达标的单位把全套布阵落在 [`tests/units/`](tests/units/README.md)。
 
-### 一个机制怎么研究：循环
+### 做法：一起放行，批量录，看缺口
+
+不再一个一个加：所有单位同时放行，内核不再按白名单挑单位，有配置就进战斗；配置表达不了的主
+技能形状按名拒绝。批量录制，逐场与模拟器逐字段比较，按第一处分叉归到机制上。一个机制修好，
+所有卡在它上面的单位一起前进；每修一个，重跑全部录像，对上的钉进
+`tests/units/regressions.mcscript`，已有的钉子一直要过。
+
+### 现状
+
+分支目标：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外，
+所有单位达到无科技基本支持。第一轮已合并；Raiden 未完成。
+
+2.0 上 29 个单位有全套布阵，305 场钉住（`tests/units/regressions.mcscript`），MCFR 格式
+0.7.0：单位带 `turret_rotation`（有身体单位的炮塔朝向，进物理层），全部钉子随之重录重钉。
+
+- 四个参照单位 44 场全部钉住；arclight、fang、mustang、steel_ball、wraith、stormcaller、
+  phoenix 84 场钉住 76 场。
+- 批量放行的 18 个单位 216 场：hacker（控制光束）、raiden（三件分组武器齐射）按名拒绝；其余
+  192 场钉住 185 场。centurion、farseer、fortress、melting_point、sabertooth、scorpion、
+  sledgehammer、tarantula、typhoon、void_eye、vortex、vulcan 12 场全对。
+- 修好的机制写在 `docs/rules/combat.md`。
+
+剩下的，由易到难：
+
+1. **overlord 两场**（新布阵、种子 1787720817）：m3 一发爬升弹丸的高度差几个 raw 单位，
+   m6 一个单位游戏里停下、模拟器里继续走。未读。
+2. **phantom_ray m3 一场**只差内容层：战斗结束后冷却里仍点名已死的最后一个敌人。
+3. **正前方目标的朝向正负号。** hound 两场、fire_badger 一场、phantom_ray 一场，加上
+   steel_ball、stormcaller 各一场。`FightUtility.ConvertToAngle` 的符号规则与模拟器相同，
+   差在预搜索时取方向的两个位置，要一段采到预搜索时位置的录制。
+4. **wraith 的分组搜索**（6 场）。
+5. **Raiden。** 构建按单位数据 27 给它的每件武器一个固定在机身上的变换
+   （`FightWeapon` 构造器），三件分组武器齐射；子槽位在没有别的单位可选时锁敌方的塔、
+   不在射程就不开火，子武器的朝向在交战时滞后机身一 tick、否则冻结。要单独研究。
+
+### 换版本留下的尾巴
+
+- **只读、未录的规则。** 各需一段训练场录制：重型导弹打击的一次释放、一个编队戴两个强化
+  模块升级、第 9 个物件被拒、训练场里次级装备专家用的玩家种子。
+- **语料的自动核对。** 现在只在本地跑（`replay.py sync`、`export-replay-corpus.py`、
+  `verify-battles.py`）。语料独立增长，不宜挡 PR；待定的做法是一个 master 推送和每日触发
+  的 workflow，只核 `replays/<GAME_VERSION>/`。
+- **随迁移发现的。** 模拟器让核弹、闪电风暴、离子轰炸按 `initial_cooldown` 1 入列；新的
+  `SkillDataChangeInt.AttackValue` 谁写；adapter 按枚举下标读技能整数，2.0 新增了 6 到 11；
+  `UpgradeExp` 取代经验条，谁写它；rapid-fire 用种子 1787720817 时第 242 tick 的分叉。
+- **新机制随新单位而来。** 近战模式（`MeleeModeEffectSystem`）、副武器
+  （`SideArmSearchTargetController`）、弹药池（`AmmoSkillPool`）、`IgnoreBuffEffectSystem`、
+  出售单位（`PAD_SellUnit`）、塔成为 buff 目标。批量录像会指到其中哪些先要做。
+
+## 一个机制怎么研究：循环
 
 [`tests/modifier/composition.mcscript`](tests/modifier/composition.mcscript) 是范本：
 
@@ -124,8 +121,9 @@ fang 的一处速度差、wraith 的分组搜索）。换到 2.0 之后这些全
 6. **规则落成表和代码，拒绝先于猜。** 数落进 `config/`，出处落进 `docs/rules/`，
    没够着的情况模拟器按名拒绝。
 
-### 之后的顺序
+## 之后的顺序
 
 模块广度（`Modifier` 的等级与装备、`CommanderSkillSystem`、`InterceptSystem`、
 `BuildingSystem`），效果表（装备、能量塔技能），语料层稀疏验收与反应堆伤害、经验两条
-规则，最后 `arena`、`shell --json` 和 `game` 后端。每一项在 2.0 上重新评估之后再排。
+规则，最后 `arena`、`shell --json` 和 `game` 后端。单位基本支持之后按 fight-coverage 的
+顺序重排。

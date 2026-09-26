@@ -147,7 +147,7 @@ def render(mech, card, kind, skill, rvo, type_name):
         f"  splash_radius: {grid(skill['splashRange'], 1000)}",
         "  weapons:",
         f"    mode: {'group' if skill['weaponMode'] == 1 else 'normal'}",
-        f"    count: {len(skill['weapons'])}",
+        f"    indices: [{', '.join(str(weapon['index']) for weapon in skill['weapons'])}]",
         f"    per_skill: {skill['weaponCountPerSkill']}",
     ]
     if skill["weaponMode"] == 1:

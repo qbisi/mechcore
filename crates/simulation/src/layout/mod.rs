@@ -280,9 +280,9 @@ fn compile_formation(
         ));
         return None;
     };
-    let behaves = refused.hold(
+    let fired = refused.hold(
         rules
-            .ensure_current_kernel_support()
+            .fired()
             .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
     );
     let fits = refused.hold(validate_formation_footprint(side_name, formation, rules));
@@ -302,7 +302,7 @@ fn compile_formation(
             .map_err(|_| Error::new("formation index exceeds the native integer range")),
     );
     let (Some(()), Some(()), Some(corrections), Some(formation_index)) =
-        (behaves, fits, corrections, formation_index)
+        (fired, fits, corrections, formation_index)
     else {
         return None;
     };
@@ -594,7 +594,7 @@ red:
             )
             .replace(
                 "units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]",
-                "units:\n  - {name: hound, index: 0, position: {x: 0, y: -160}}\n  - {name: centurion, index: 1, position: {x: 45, y: -165}}",
+                "units:\n  - {name: sandworm, index: 0, position: {x: 0, y: -160}}\n  - {name: war_factory, index: 1, position: {x: 75, y: -165}}",
             );
         let refused = compile_default(&value).unwrap_err().to_string();
         let clauses: Vec<&str> = refused.split("; ").collect();
@@ -604,9 +604,12 @@ red:
             "{refused}"
         );
         assert!(clauses[1].contains("30502"), "{refused}");
-        assert!(clauses[2].contains("\"hound\""), "{refused}");
         assert!(
-            clauses[3].contains("\"centurion\" has no unit configuration"),
+            clauses[2].contains("\"sandworm\" has no unit configuration"),
+            "{refused}"
+        );
+        assert!(
+            clauses[3].contains("\"war_factory\" has no unit configuration"),
             "{refused}"
         );
     }
