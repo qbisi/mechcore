@@ -71,7 +71,7 @@ impl std::fmt::Display for Unsettled {
 pub(crate) const TRAINING_SKILLS: [i32; 1] = [1_100_001];
 
 /// Energy tower skill `3` 批量征召, which adds a purchase to this round.
-const MASS_RECRUIT_SKILL: i32 = 3;
+pub(crate) const MASS_RECRUIT_SKILL: i32 = 3;
 /// Reinforcement card `10004` 额外部署位, which adds one too. It is an officer
 /// the side keeps, so every later round opens with the extra purchase as well.
 pub(crate) const EXTRA_DEPLOYMENT_CARD: i32 = 10_004;
@@ -82,7 +82,7 @@ pub(crate) const EXTRA_DEPLOYMENT_CARD: i32 = 10_004;
 /// a shipped boolean rather than a number. Every activation of skill `3` and
 /// every take of card `10004` in the local observation set raises the round's
 /// remaining purchases by exactly this, and nothing else in that set raises it.
-const EXTRA_BUYS: i32 = 1;
+pub(crate) const EXTRA_BUYS: i32 = 1;
 
 /// Applies one decision to the position it was taken from.
 ///

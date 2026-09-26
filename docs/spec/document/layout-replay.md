@@ -95,17 +95,26 @@ The layout round's `actionRecords` hold, in this order:
 
 1. each delivered squad upgraded to its layout level, fitted, and moved to its
    layout position and facing;
-2. each bought unit bought where the deployment area is free, at its layout
-   index, upgraded, fitted, and moved to its layout position and facing;
-3. each Energy Tower skill activated;
-4. each battle skill released from its slot, at its positions, in the layout's
+2. Mass Recruitment activated, when the purchases need its extra one;
+3. each bought unit bought where the deployment area is free, upgraded,
+   fitted, and moved to its layout position and facing;
+4. each Energy Tower skill activated;
+5. each battle skill released from its slot, at its positions, in the layout's
    order, which is the order its side's skills draw their scatter in;
-5. `PAD_FinishDeploy`, when any decision precedes it.
+6. `PAD_FinishDeploy`, when any decision precedes it.
 
 A unit the round opens with does not move from round 2 on, so a unit that
 travels, which is a unit a move took onto a flank from another region this
-round, is bought during the round rather than held by the snapshot. Every
-other unit opens the round in the snapshot, a settled flank unit among them.
+round, is bought during the round rather than held by the snapshot. A
+purchase takes the unit allocator's next index, whatever the record asks for,
+so every unit from the first index the round creates after its deliveries
+through the last travelling one is bought, in index order: those units were all
+created this round. The allocator opens at the first index the round creates.
+Every other unit opens the round in the snapshot, a settled flank unit among
+them. A round allows two purchases, one more for each Additional Deployment
+Slot the side holds, and one more when Mass Recruitment is activated, which
+the round does only when its purchases need it; it changes nothing a fight
+sees.
 
 A squad an officer's schedule hands out as the round opens arrives on top of
 the snapshot, so the snapshot does not hold it again. It becomes the layout's
@@ -123,7 +132,10 @@ and the refusal names each part:
 - no seed;
 - a squad an officer delivers as the round opens with no unit of the side to
   become, at consecutive indices;
-- a travelling unit with experience, since a round's decisions hand out none;
+- a unit the round buys with experience, since a round's decisions hand out
+  none;
+- an index among the units the round buys that no such unit holds;
+- more purchases than the round allows;
 - a travelling unit the deployment area has no free place to be bought at;
 - a terrain no skill leaves, or a technology no unit owns.
 

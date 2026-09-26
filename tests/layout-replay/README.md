@@ -27,6 +27,7 @@ with one seed and compares the two recordings field by field:
 | `energy-tower.yaml` | Energy Tower skills |
 | `travelling.yaml` | a travelling unit |
 | `travelling-fitted.yaml` | travelling units upgraded, fitted and turned |
+| `travelling-behind.yaml` | a travelling unit bought before another unit of the round |
 | `delivered-squad.yaml` | a squad an officer hands out as the round opens |
 | `airdrop-shields.yaml` | Shield Airdrops left standing |
 | `oil.yaml` | an oil area left standing |
@@ -37,7 +38,13 @@ Each pair is equal. Two parts are equal only as far as these layouts go.
 from round 2 on, and moving onto a flank from another region is what makes a
 unit travel, so the replay buys it during the round, where the deployment
 area is free, and moves it. `travelling.yaml` failed until it did: the game
-refused the move of a unit the snapshot held.
+refused the move of a unit the snapshot held. A purchase takes the
+allocator's next index, whatever the record asks for, so the round buys every
+unit from its first new index through the last travelling one, in order;
+`travelling.yaml` passed only because its travelling unit's index was the
+allocator's next, and three rounds of a corpus battle projected to layouts
+fought a different unit until the round bought in that order, activating Mass
+Recruitment for a third purchase as the match itself did.
 
 **A delivered squad is the layout's unit.** The snapshot is the side before
 its round opens, so an officer whose schedule hands out a squad that round
