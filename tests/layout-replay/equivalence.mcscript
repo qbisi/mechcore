@@ -1,0 +1,54 @@
+# Does a layout fought without a scene fight as the Training Ground fights it?
+#
+#   mechcore run tests/layout-replay/equivalence.mcscript --check   parse without the game
+#   mechcore run tests/layout-replay/equivalence.mcscript           record and compare
+#
+# Each layout holds one field no pinned fight of another directory holds.
+# It is fought twice with one seed: staged in the Training Ground and
+# recorded there, and written as a layout replay and recorded headlessly.
+# The two recordings must be equal in every field, physics and content.
+#
+# `out` must not already exist: a recording refuses to overwrite.
+
+game: launch
+
+vars:
+  out: /tmp/mechcore/layout-replay/equivalence
+  seed: 4242
+
+steps:
+  - let:
+      cases:
+        - {name: experience, layout: tests/layout-replay/experience.yaml}
+        - {name: contraptions, layout: tests/layout-replay/contraptions.yaml}
+        - {name: blueprints, layout: tests/layout-replay/blueprints.yaml}
+        - {name: magnetic-barrier, layout: tests/layout-replay/magnetic-barrier.yaml}
+        - {name: round-3, layout: tests/layout-replay/round-3.yaml}
+        - {name: battle-skills, layout: tests/skill-order/orbital-first.yaml}
+        - {name: energy-tower, layout: tests/layout-replay/energy-tower.yaml}
+        - {name: travelling, layout: tests/layout-replay/travelling.yaml}
+        - {name: travelling-fitted, layout: tests/layout-replay/travelling-fitted.yaml}
+        - {name: delivered-squad, layout: tests/layout-replay/delivered-squad.yaml}
+        - {name: airdrop-shields, layout: tests/layout-replay/airdrop-shields.yaml}
+        - {name: oil, layout: tests/layout-replay/oil.yaml}
+
+  - foreach: {case: $cases}
+    steps:
+      - let:
+          layout: read_yaml(${case.layout})
+      - game.apply_layout:
+          layout: $layout
+          seed: $seed
+      - game.record_battle:
+          output: ${out}/${case.name}-training-ground.mcfr
+      - game.record_layout:
+          layout: $layout
+          seed: $seed
+          output: ${out}/${case.name}-headless.mcfr
+      - fight.compare:
+          left: ${out}/${case.name}-training-ground.mcfr
+          right: ${out}/${case.name}-headless.mcfr
+        expect:
+          equal: true
+          content_equal: true
+          fields_equal: true

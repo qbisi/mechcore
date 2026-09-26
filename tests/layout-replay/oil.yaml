@@ -1,0 +1,18 @@
+# An oil area an earlier round left, at the control points a real release
+# produced: the Training Ground rebuilds the line only from points the game
+# made.
+
+kind: layout
+round: 2
+blue:
+  units:
+    - {name: crawler, index: 0, position: {x: 5, y: -50}}
+    - {name: marksman, index: 1, position: {x: 0, y: -150}}
+red:
+  terrains:
+    - name: oil
+      control_points:
+        - {x: 8, y: -11}
+        - {x: 112, y: -10}
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -100}}

@@ -1,0 +1,11 @@
+# A round past the first, with a unit on the flank that has settled there.
+
+kind: layout
+round: 3
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: marksman, index: 1, position: {x: -260, y: -20}}
+red:
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}

@@ -1,0 +1,12 @@
+# The one construction the corpus holds no snapshot of.
+
+kind: layout
+round: 1
+blue:
+  constructions:
+    - {name: magnetic_barrier, index: 0, position: {x: 5, y: -75}}
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -120}}
+red:
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}

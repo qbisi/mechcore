@@ -1,0 +1,14 @@
+# Shield Airdrops an earlier round left standing, one per side.
+
+kind: layout
+round: 2
+blue:
+  airdrop_shields:
+    - {x: 0, y: -60}
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+red:
+  airdrop_shields:
+    - {x: 60, y: 20}
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}

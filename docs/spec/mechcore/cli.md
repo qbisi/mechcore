@@ -551,10 +551,9 @@ transition the rules predict.
 game fights: one deployment round, the layout's, opened from a snapshot that
 holds the layout and carries no action. `--seed` overrides the layout's seed,
 and one of the two has to name it. The layout is compiled first, so a layout
-`apply_layout` would refuse is refused here too, and so is one holding anything
-the replay does not state: [layout-replay.md](../document/layout-replay.md)
-says which fields it states. It answers the replay's path, map, seed and
-round.
+`apply_layout` would refuse is refused here too, and so is one a replay cannot
+open or play: [layout-replay.md](../document/layout-replay.md) says what it
+states and what it refuses. It answers the replay's path, map, seed and round.
 
 A replay this converter does not read is refused rather than partly converted,
 and the refusal names which of the replay's properties it stands on.

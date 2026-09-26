@@ -1710,6 +1710,17 @@ fn execute_recording_series(
             Some(CaptureMessage::Failure(error)) => {
                 return recording_failure(runtime, request.id, "capture_failed", error);
             }
+            // A replay is fought to its end before the queue is read, so an
+            // empty queue before the terminal tick means the round never
+            // reached the fight.
+            None if matches!(mode, capture::CaptureStartMode::Replay(_)) => {
+                return recording_failure(
+                    runtime,
+                    request.id,
+                    "capture_failed",
+                    "the replay ended without fighting the requested round".into(),
+                );
+            }
             None => thread::sleep(RECORDING_POLL_INTERVAL),
         }
     }

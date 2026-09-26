@@ -556,7 +556,9 @@ non-release abilities are outside that layout field.
 
 The operation reopens and verifies the MCFR and returns at the main menu it
 started from. It never quits the game process. Invalid input, an unavailable
-round and a capture failure publish nothing.
+round and a capture failure publish nothing. A replay whose match runs out
+before the requested round's fight ends is a `capture_failed` refusal as soon as
+the headless call returns, since nothing more can arrive.
 
 ### record_watch_replay
 

@@ -1,0 +1,10 @@
+# Experience within a level, on a unit above level 1 and on one at level 1.
+
+kind: layout
+round: 1
+blue:
+  units:
+    - {name: marksman, index: 0, level: 2, exp: 700/1465, position: {x: 0, y: -50}}
+red:
+  units:
+    - {name: arclight, index: 0, exp: 300/750, position: {x: 0, y: -50}}

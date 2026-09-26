@@ -38,7 +38,7 @@ pub struct Placement {
     pub travelling: bool,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct SidePlan {
     pub techs: Techs,
     pub energy_tower_skills: Vec<i32>,

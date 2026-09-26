@@ -11,6 +11,7 @@ says what was measured:
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`interval/`](interval/README.md) | how an attack interval is staggered |
+| [`layout-replay/`](layout-replay/README.md) | whether a layout fought without a scene fights as the Training Ground fights it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | `skill-order/` | whether the release order of two battle skills changes the fight |
