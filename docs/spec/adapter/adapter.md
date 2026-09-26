@@ -365,8 +365,9 @@ dimensions so a renderer can reconstruct the same world-to-screen calibration.
 The operation is valid only after layout completion in Training Ground deployment. It arms native
 capture, starts combat, and records from `S(1)` after the first combat update through every subsequent
 `FightController.Update` boundary through the unique fighting-to-over transition. When video capture
-is disabled, time is scaled as `speed_up` describes. It calls `mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file
-structurally, and returns the state/transition counts and all formal hashes.
+is disabled, time is scaled as `speed_up` describes. It calls `mechcore-mcfr::McfrWriter` directly, whose `finish` reads the
+packaged file back and checks its hashes before publishing it atomically, and returns the
+state/transition counts and all formal hashes.
 
 Projectile release/removal and damage use narrow native hooks so objects created and removed inside
 one logic step remain in `E`. The release hook records the native projectile, owner and target; the
@@ -375,7 +376,11 @@ removal hook additionally records position and the native `intercepted` argument
 `FightController.OnActorHitted(HitDamageInfo)` then records one actor target and its positive
 `damageReal`; `FightActor.ReduceLife(HitDamageInfo)` scopes that same attribution around synchronous
 death processing. Battlefield Shield damage is recorded per actual Shield result. The same native
-chain attaches the Shield reference to the subsequent projectile removal as `absorbed_by`.
+chain attaches the Shield reference to the subsequent projectile removal as `absorbed_by`. A target
+no snapshot has numbered yet, a unit or shield that joined the fight within the tick, such as a
+Rhino Assault's rhinos, is held by its native object and resolved once the tick's snapshot has
+numbered it; a target that snapshot does not hold fails the recording. A unit that stands alive
+again after its death, as a Phoenix does, may die again.
 
 The native snapshot closure directly reads units, projectiles, the alive `FightCrystal` union
 from every FightTeam's towers, buildings, and constructions, battlefield shields from
@@ -392,8 +397,11 @@ component of its Unit row. The Adapter obtains each Training Ground side's `IFig
 `FightTeam.GetFightGroup()` and reads both the full shield list and the active list. It persists
 `active` and the nullable active-list index `active_order`, because runtime
 reactivation appends an object and can change the interception order independently of Shield ID.
-Unknown shield data-source classes, inconsistent active-list membership, dangling projectile birth
-containment references, and reused retired shield pointers fail the recording. Shield lifecycle
+Unknown shield data-source classes, inconsistent active-list membership and dangling projectile birth
+containment references fail the recording. A destroyed shield's address can be handed to a later
+object, so a pointer that has left the full list and appears again is a new shield with a new
+Shield ID, as a terrain's is. Whether the game pools the objects or the collector reuses the
+memory was not read. Shield lifecycle
 events are generated from authoritative changes in full-list membership at consecutive native
 snapshot boundaries; the removal source proves destruction but not a narrower cause, so
 `shield_destroyed.reason` is `unknown`.
@@ -411,6 +419,10 @@ The same shield collection also holds retained Shield Airdrops. Those are
 commander-skill objects, so export splits them out of `contraptions` into the
 side's `airdrop_shields`, keeping their native full-list order.
 
+Units are numbered afresh by every snapshot before S(1), because units can join as the fight
+starts and the initial numbering is S(1)'s scene; the numbering S(1) writes is final, references the
+first combat tick cached are carried over to it, and later units append IDs.
+
 Native hooks use temporary Shield IDs before S(1). At the first advancing combat
 snapshot, initial IDs are assigned once in `(team_id, active_order)` order, with
 inactive shields following each team's active shields. First-tick-removed
@@ -425,7 +437,9 @@ The layout still uses only `type`, `x`, `y` and ordinary placement bounds.
 
 Dynamic terrain is enumerated by the six native `RangeItemType` controllers. A controller or item
 list that has not been instantiated contributes an empty collection; each member returned by
-`RangeItemController.GetItems()` is active and receives a stable Terrain ID. The Adapter reads its
+`RangeItemController.GetItems()` is active and receives a stable Terrain ID. A pointer that has
+left the lists and appears again is a new terrain with a new Terrain ID, since a released item's
+address can be handed to a later object. The Adapter reads its
 team, type, position, radius, optional grid mask, optional cross-round remainder, optional logic
 lifetime, and the controller's direct unit applications. `affectedUnits` is joined to Unit IDs;
 `affectedUnitTimes` and positive `effectTimeDuration` provide an optional periodic clock.
@@ -541,8 +555,14 @@ final player's `PlayerController.FinishDeploy()`, before the native transition
 can initialize fighting, but does not persist that pre-update state. `S(1)` is
 the first state row. Earlier players are rejected unless every other player has
 already completed deployment, so a partially replayed deployment cannot be
-published. The existing fighting-to-over edge terminates MCFR recording; the
-queue is drained into the writer once the match has run out.
+published. The existing fighting-to-over edge terminates MCFR recording. The
+headless call runs on the main thread from a thread of its own, and the queue is
+drained into the writer while it runs, so writing overlaps the fight; the
+operation waits for the call to return before it answers or stops the capture.
+The call returns once the fight is over. A fight that runs out of time ends
+outside `FightController.Update`, so the capture never sees its fighting-to-over
+edge; the tick last captured before the call returns is then the terminal one.
+Two corpus rounds that ran out of time both end at tick 2360.
 
 Replay formations remain ordered by and export their stable native unit index,
 but those indices may contain gaps left by units removed in earlier rounds.
@@ -554,11 +574,11 @@ abilities enter `battle_skills` only when native
 `TryGetReleaseCommanderSkillData` supplies positional release data; active
 non-release abilities are outside that layout field.
 
-The operation reopens and verifies the MCFR and returns at the main menu it
-started from. It never quits the game process. Invalid input, an unavailable
-round and a capture failure publish nothing. A replay whose match runs out
-before the requested round's fight ends is a `capture_failed` refusal as soon as
-the headless call returns, since nothing more can arrive.
+The writer verifies the MCFR before publishing it, and the operation returns at
+the main menu it started from. It never quits the game process. Invalid input, an unavailable
+round and a capture failure publish nothing. A replay whose match ends before
+the requested round's fight, so that the call returns with no tick captured, is
+a `capture_failed` refusal as soon as it does, since nothing more can arrive.
 
 ### record_watch_replay
 
@@ -748,7 +768,7 @@ cause is addressed.
 | `deployment_capture_failed`, `deployment_capture_timeout` | a named round's readback failed or did not reach its opening/finish boundaries |
 | `battle_capture_failed` | round/source coverage, state continuity or battle writing failed, or the whole-battle resource budget expired |
 | `battle_publication_failed` | destination creation, source identity recheck, syncing or no-clobber publication failed |
-| `mcfr_error`, `mcfr_reopen_failed` | the recording could not be written, or could not be read back |
+| `mcfr_error` | the recording could not be written, or did not read back as written |
 | `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
 | `instrumentation_error`, `instrumentation_verification_failed` | the optional sidecar could not be written or did not verify |
 | `native_replay_directory` | the native replay directory could not be resolved |
