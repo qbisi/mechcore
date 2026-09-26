@@ -72,8 +72,8 @@ been fought.
 
 Two segments end a match, and nothing may follow either of them:
 
-- an action segment in which a side concedes, since the match ends after that
-  round's fight;
+- an action segment in which a side concedes, since the round is then not
+  fought;
 - a state segment in which a side's `reactor_core` is zero or below, since the
   fight that produced it destroyed that side.
 
@@ -543,11 +543,10 @@ last round's decisions, and a converted battle's last segment is that round's
 action segment. Its fight is not stated, because the source does not state it
 and conversion does not simulate one.
 
-A concession is the exception that needs no next state. The side's decision list
-ends with `concede`, the round is fought, and the match ends with that segment.
-At most one concession exists, because the first one ends the match. A replay
-in which a side decides after conceding, concedes before finishing its
-deployment, a round follows a concession, or both sides concede is refused.
+A concession is the exception that needs no fight. The side's decision list ends
+with `concede`, and the match ends with that segment. At most one concession
+exists, because the first one ends the match. A replay in which a side decides
+after conceding, a round follows a concession, or both sides concede is refused.
 
 ### What conversion rebuilds
 

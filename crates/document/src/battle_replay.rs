@@ -748,12 +748,8 @@ fn write_actions(
             )
         })?;
     }
-    // A side concedes after finishing its deployment: the round is fought,
-    // and the match ends after it.
-    let finish = ("PAD_FinishDeploy", String::new());
-    match records.iter().position(|(kind, _)| *kind == "PAD_GiveUp") {
-        Some(at) => records.insert(at, finish),
-        None => records.push(finish),
+    if !matches!(actions.last(), Some(Action::Concede)) {
+        records.push(("PAD_FinishDeploy", String::new()));
     }
     xml.push_str("<actionRecords>");
     for (time, (kind, fields)) in records.iter().enumerate() {
