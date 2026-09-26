@@ -1,5 +1,4 @@
 use serde::{Serialize, de::DeserializeOwned};
-use serde_json::Value;
 
 use crate::{
     Domain, DurableContext, Error, EventPayload, ObjectKind, ObjectRef, QPose, QVec3, Result,
@@ -8,10 +7,12 @@ use crate::{
 
 pub(crate) const HASH_BYTES: usize = 32;
 
+/// The canonical bytes of `value`: its JSON with every object's keys in byte
+/// order. `serde_json` keeps a `Value`'s object as a `BTreeMap` unless its
+/// `preserve_order` feature is on, so the keys come out sorted as they are
+/// serialized; the test below holds that.
 pub(crate) fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>> {
-    let mut value = serde_json::to_value(value)?;
-    normalize(&mut value);
-    Ok(serde_json::to_vec(&value)?)
+    Ok(serde_json::to_vec(&serde_json::to_value(value)?)?)
 }
 
 pub(crate) fn decode<T: DeserializeOwned + Serialize>(bytes: &[u8], label: &str) -> Result<T> {
@@ -22,26 +23,6 @@ pub(crate) fn decode<T: DeserializeOwned + Serialize>(bytes: &[u8], label: &str)
         )));
     }
     Ok(value)
-}
-
-pub(crate) fn normalize(value: &mut Value) {
-    match value {
-        Value::Array(values) => {
-            for value in values {
-                normalize(value);
-            }
-        }
-        Value::Object(values) => {
-            let old = std::mem::take(values);
-            let mut entries = old.into_iter().collect::<Vec<_>>();
-            entries.sort_by(|left, right| left.0.cmp(&right.0));
-            for (key, mut value) in entries {
-                normalize(&mut value);
-                values.insert(key, value);
-            }
-        }
-        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {}
-    }
 }
 
 pub(crate) struct CanonicalHasher(blake3::Hasher);
@@ -512,5 +493,31 @@ fn nibble(value: u8, label: &str) -> Result<u8> {
         _ => Err(Error::invalid(format!(
             "{label} contains a non-canonical hexadecimal digit"
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// A struct's fields come out in byte order, whatever order it declares
+    /// them in, which is what makes [`super::encode`] canonical without
+    /// sorting anything itself.
+    #[test]
+    fn a_struct_encodes_its_keys_in_byte_order() {
+        #[derive(serde::Serialize)]
+        struct Declared {
+            zeta: u8,
+            alpha: u8,
+            #[serde(rename = "Beta")]
+            beta: u8,
+        }
+        let declared = Declared {
+            zeta: 1,
+            alpha: 2,
+            beta: 3,
+        };
+        assert_eq!(
+            super::encode(&declared).unwrap(),
+            br#"{"Beta":3,"alpha":2,"zeta":1}"#
+        );
     }
 }
