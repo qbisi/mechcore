@@ -17,24 +17,19 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 
 ## 下一步：从游戏更快地取得回归
 
-录像成了瓶颈：MCFR 格式一升级、游戏一换版本、`tests/` 一增长，全部钉子就要重录；401 场
-重录一遍要两个多小时。一场的中位数是摆阵 8.9 秒加录制 10.3 秒（约 253 tick）。反编译里有
-两条更快的路（只读分析，未试）：
+录像是瓶颈：MCFR 格式一升级、游戏一换版本、`tests/` 一增长，全部钉子就要重录。
 
-1. **时间倍率。** 游戏自己的加速是 `TimeSystem.ChangePlaySpeed`，即 Unity 的
-   `Time.timeScale`；`Match.Update` 每调一次走一个逻辑步，adapter 的采集挂在
-   `FightController.Update` 上、按逻辑 tick 而不是按帧，所以倍率调大仍然得到完整的 MCFR。
-   战斗段可望从 10 秒降到 1 秒左右，每帧能追的步数受 `Time.maximumDeltaTime` 限制。验收：同一
-   布阵同一种子，常速与高倍速录出的两层哈希相同。
+1. **时间倍率（已做）。** 不带视频的录制从布防起到终止 tick 把 `Time.timeScale` 定在 50，结束时放回
+   原值；逐 tick 采集不变，两层哈希与常速相同。`record_battle` 从约 10 秒降到 1.3–2.5 秒，一个
+   2289 tick 的回放回合从 130 秒降到 21 秒。一场现在的大头是 `apply_layout` 的 5–8 秒，其中
+   `start_test` 建对局约 5 秒是真实加载，倍率管不到；反编译里没找到原地重开对局的方法。
 2. **游戏自带的无头模拟。** `MatchUtility.StartFastBattleSimulation(BattleSetting)` →
    `SimpleSimulator.Run`：`FastSimulationMatch` 不建场景，由 `ReplayAIController` 按
    `PlayerRecord` 逐回合重放，`GRWhile` 同步跑完，`GetFightResult()` 出结果；服务器端的
-   `FightAuth.Main.SimpleAuth` 也调它，应当就是官方结算。要解决的：由 layout 构造
-   `BattleSetting`，让 adapter 的逐 tick 采集指向这个对局，以及 `Config.SetFastBattleSimulationData`
-   打开的 `IFightSetting.IsFastBattleSimulation` 是否改动战斗逻辑。它能同时给出语料每一回合的
-   游戏结果。
-
-先做 1（改动小，立刻减半），再把 2 作为一个研究问题。
+   `FightAuth.Main.SimpleAuth` 也调它，应当就是官方结算。它正好省掉建对局那 5 秒。要解决的：由
+   layout 构造 `BattleSetting`，让 adapter 的逐 tick 采集指向这个对局，以及
+   `Config.SetFastBattleSimulationData` 打开的 `IFightSetting.IsFastBattleSimulation` 是否改动战斗
+   逻辑。它能同时给出语料每一回合的游戏结果。
 
 ## 主线：单位的无科技模拟
 

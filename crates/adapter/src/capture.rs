@@ -34,6 +34,12 @@ use std::{
 };
 
 const QUEUE_CAPACITY: usize = 4096;
+/// The `Time.timeScale` a recording without video runs at. The fight advances
+/// in logic ticks whatever the frame rate, and the capture hooks
+/// `FightController.Update` once per tick, so the scale changes how long a
+/// recording takes and nothing it records. Above it the fight is bound by the
+/// game's own work per tick, not by scaled time.
+const RECORDING_TIME_SCALE: f32 = 50.0;
 const TIME_UNITS_PER_SECOND: u32 = 2_000;
 const CAPTURE_WIDTH: u16 = 1_920;
 const CAPTURE_HEIGHT: u16 = 1_080;
@@ -720,9 +726,9 @@ struct CaptureState {
     armed: bool,
     initialized: bool,
     entered_fighting: bool,
-    /// Whether the caller asked for native combat speed-up.
-    speed_up_allowed: bool,
-    speed_up_requested: bool,
+    /// The `Time.timeScale` found when a sped-up recording was armed, put
+    /// back when it ends; `None` when this recording does not scale time.
+    restore_time_scale: Option<f32>,
     await_replay_deployment: bool,
     replay_playback: bool,
     last_native_tick: Option<u64>,
@@ -784,8 +790,7 @@ impl CaptureState {
         self.armed = false;
         self.initialized = false;
         self.entered_fighting = false;
-        self.speed_up_allowed = false;
-        self.speed_up_requested = false;
+        self.restore_time_scale = None;
         self.await_replay_deployment = false;
         self.replay_playback = false;
         self.last_native_tick = None;
@@ -2193,7 +2198,9 @@ pub(crate) fn start(
     };
     state.reset_session();
     state.deployment_layout_yaml = layout_yaml;
-    state.speed_up_allowed = speed_up;
+    if speed_up && !visual {
+        state.restore_time_scale = Some(time_scale(runtime.api)?);
+    }
     state.await_replay_deployment = mode == CaptureStartMode::Replay;
     state.replay_playback = mode == CaptureStartMode::Replay;
     RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
@@ -2213,7 +2220,17 @@ pub(crate) fn start(
         state.visual = Some(VisualCapture::new(runtime)?);
     }
     state.armed = true;
+    let scaled = state.restore_time_scale.is_some();
     drop(state);
+    // Scaled from arming, not from the first fighting tick: the transition
+    // into fighting runs on scaled time too, and took two seconds unscaled.
+    if scaled && let Err(error) = set_time_scale(runtime.api, RECORDING_TIME_SCALE) {
+        abort(&error);
+        if let Err(restore_error) = stop(runtime.api) {
+            return Err(format!("{error}; cannot restore capture: {restore_error}"));
+        }
+        return Err(error);
+    }
 
     if mode == CaptureStartMode::TrainingGround
         && let Err(error) = runtime
@@ -2222,7 +2239,7 @@ pub(crate) fn start(
     {
         let message = format!("cannot start fight: {error}");
         abort(&message);
-        if let Err(restore_error) = stop() {
+        if let Err(restore_error) = stop(runtime.api) {
             return Err(format!("{message}; cannot restore camera: {restore_error}"));
         }
         return Err(message);
@@ -2290,11 +2307,33 @@ fn validate_selector_score_profile_availability(
     }
 }
 
-pub(crate) fn stop() -> Result<(), String> {
+fn time_scale(api: Api) -> Result<f32, String> {
+    let time = api
+        .class("UnityEngine.CoreModule.dll", "UnityEngine", "Time")
+        .map_err(|error| error.to_string())?;
+    api.invoke_static(time, "get_timeScale", &mut [])
+        .and_then(|boxed| api.unbox::<f32>(boxed, "Time.get_timeScale"))
+        .map_err(|error| format!("cannot read Time.timeScale: {error}"))
+}
+
+/// Sets Unity's `Time.timeScale`, which the game's own `TimeSystem` sets for
+/// its speed-up.
+fn set_time_scale(api: Api, scale: f32) -> Result<(), String> {
+    let time = api
+        .class("UnityEngine.CoreModule.dll", "UnityEngine", "Time")
+        .map_err(|error| error.to_string())?;
+    let mut scale = scale;
+    api.invoke_static(time, "set_timeScale", &mut [argument(&mut scale)])
+        .map(|_| ())
+        .map_err(|error| format!("cannot set Time.timeScale: {error}"))
+}
+
+pub(crate) fn stop(api: Api) -> Result<(), String> {
     let mut state = capture_state()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     state.armed = false;
+    let restore_time_scale = state.restore_time_scale.take();
     RVO_INSTRUMENTATION_ACTIVE.store(false, Ordering::Release);
     state.pending_visual = None;
     state.traces.clear();
@@ -2305,6 +2344,9 @@ pub(crate) fn stop() -> Result<(), String> {
     drop(state);
     if let Some(visual) = visual {
         visual.restore(true)?;
+    }
+    if let Some(scale) = restore_time_scale {
+        set_time_scale(api, scale)?;
     }
     checker_error.map_or(Ok(()), Err)
 }
@@ -3852,26 +3894,10 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                     return Ok(());
                 }
             }
-            if fighting
-                && state.speed_up_allowed
-                && state.visual.is_none()
-                && !state.speed_up_requested
-            {
-                let current_match = runtime.current_match();
-                if current_match.is_null() {
-                    return Err("active match disappeared before recording speed-up".into());
-                }
-                if state.replay_playback {
-                    request_replay_speed_up(runtime, current_match)?;
-                } else {
-                    let action_controller =
-                        invoke_object(runtime.api, current_match, "GetMatchActionController")?;
-                    runtime
-                        .api
-                        .invoke_void(action_controller, "RequestSpeedUp", &mut [])
-                        .map_err(|error| format!("cannot request recording speed-up: {error}"))?;
-                }
-                state.speed_up_requested = true;
+            // The game's `FightSpeedUpController` sets its own play speed
+            // while it fights, so the scale is held on every update.
+            if state.restore_time_scale.is_some() {
+                set_time_scale(runtime.api, RECORDING_TIME_SCALE)?;
             }
             let next = snapshot(runtime, &mut state, false)?;
             let previous_native_tick = state
@@ -3955,6 +3981,9 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 })?;
                 if terminal {
                     state.armed = false;
+                    if let Some(scale) = state.restore_time_scale.take() {
+                        set_time_scale(runtime.api, scale)?;
+                    }
                 }
             }
             Ok::<(), String>(())
@@ -5246,34 +5275,6 @@ fn validate_native_indices(kind: &str, indices: &[i32]) -> Result<(), String> {
             return Err(format!("duplicate native {kind} index {native_index}"));
         }
         previous = Some(native_index);
-    }
-    Ok(())
-}
-
-/// A replay ignores the match speed-up vote: playback rate lives on `TimeSystem`.
-///
-/// Two multiplies real time without letting the game outrun the capture queue,
-/// which is bounded and fails the recording when it overflows. The readback is
-/// fail-closed so a clamp reports the value the game will actually accept
-/// instead of silently recording at a different rate than requested.
-const REPLAY_PLAYBACK_SPEED: f32 = 2.0;
-
-fn request_replay_speed_up(runtime: &Runtime, current_match: *mut Object) -> Result<(), String> {
-    let time_system =
-        find_match_module(runtime.api, current_match, "GameRiver.Client", "TimeSystem")?;
-    let mut speed = REPLAY_PLAYBACK_SPEED;
-    runtime
-        .api
-        .invoke_void(time_system, "ChangePlaySpeed", &mut [argument(&mut speed)])
-        .map_err(|error| format!("cannot set replay playback speed: {error}"))?;
-    let observed = runtime
-        .api
-        .invoke_value::<f32>(time_system, "GetSpeed", &mut [])
-        .map_err(|error| format!("cannot read replay playback speed: {error}"))?;
-    if (observed - REPLAY_PLAYBACK_SPEED).abs() > f32::EPSILON {
-        return Err(format!(
-            "replay playback speed {REPLAY_PLAYBACK_SPEED} was not accepted; the game reports {observed}"
-        ));
     }
     Ok(())
 }

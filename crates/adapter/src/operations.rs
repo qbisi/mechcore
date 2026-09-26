@@ -178,7 +178,7 @@ pub(crate) fn execute_internal(
         )
         .map(|()| json!({"started": true}))
         .map_err(OperationError::InvalidState),
-        InternalOperation::StopCapture => crate::capture::stop()
+        InternalOperation::StopCapture => crate::capture::stop(runtime.api)
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
         InternalOperation::ReplayFastDeployment => replay_fast_deployment(runtime),

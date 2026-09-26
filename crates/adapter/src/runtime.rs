@@ -1445,11 +1445,8 @@ fn execute_recording_series(
         return Response::failure(request.id, "invalid_arguments", error);
     }
     let visual = arguments.video_output.is_some();
-    // Speed-up and video coexist. The render barrier holds the logic update
-    // until the frame is captured, so a sped-up game cannot outrun the encoder
-    // and cannot drop a frame; measured runs produce the same frame count and a
-    // bit-identical MCFR. Its benefit is small under video because the barrier,
-    // not the simulation rate, sets the pace.
+    // A recording with video is paced by its render barrier, not by scaled
+    // time, so capture scales time only without it.
     let speed_up = arguments.speed_up.unwrap_or(true);
     if let Err(response) = successful_result(execute_internal_on_main(
         runtime,
