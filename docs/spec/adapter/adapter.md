@@ -316,7 +316,7 @@ Input contains one absolute, non-existing destination with a `.mcfr` suffix:
 ```
 
 An optional `video_output` enables the logic-frame visual sidecar, and an optional `speed_up`
-selects native combat speed-up:
+selects whether the recording runs on scaled time:
 
 ```json
 {
@@ -326,11 +326,18 @@ selects native combat speed-up:
 }
 ```
 
-`speed_up` defaults to `true` and applies with or without `video_output`. It is a boolean because
-the native path is a per-user vote (`RequestSpeedUp` -> `MH_SpeedUp` -> `MiscManager.ActiveSpeedUp`)
-carrying no rate; the only numeric multiplier in the game belongs to the separate automatic
-`FightSpeedUpController`, which this operation does not drive. `record_replay_round` accepts the
-same field.
+`speed_up` defaults to `true` and applies only without `video_output`. From arming until the
+terminal tick the adapter holds Unity's `Time.timeScale` at 50, setting it again on every
+`FightController.Update` because the game's `FightSpeedUpController` sets its own play speed while it
+fights, and then puts back the value it found when it armed; a failed or stopped recording puts it back
+too. The fight advances in logic ticks whatever the frame rate and the capture samples every tick, so
+the scale changes how long a recording takes and nothing it records: a Rhino mirror of 210 ticks, a
+Crawler against Wasps of 417 and a replay round of 2289 hash the same at 1x and 50x. It is set at
+arming, not at the first fighting tick, because the transition into fighting runs on scaled time too
+and took two of a recording's seconds unscaled. Above 50 a recording is bound by the game's own work
+per tick: the Crawler swarm takes about 4 ms a tick at 50x and at 100x alike. The recording
+does not vote for the game's speed-up (`RequestSpeedUp`), which the separate `speed_up` operation
+still does. `record_replay_round` accepts the same field.
 
 The optional path must be absolute, non-existing, distinct from `output`, and use `.mov`. With no
 `video_output`, no screenshot metadata is resolved, the camera is untouched, and no visual encoding
@@ -343,9 +350,8 @@ earlier 2560x1600 render while horizontal coverage is wider, so frames from the 
 not pixel-comparable. Native perspective rendering is used so tower shadow decals do not become
 opaque black quads. A renderer reproduces the calibration from the reported camera position,
 rotation, field of view and media dimensions rather than from a fixed scale factor. A visual
-recording temporarily sets `Application.targetFrameRate` to 20. It may still request native
-speed-up: the render barrier below paces the logic update, so a sped-up game produces the same frame
-count and a bit-identical MCFR, and the gain is small. A main-camera post-render hook releases the next `FightController.Update`; pixel readback at
+recording temporarily sets `Application.targetFrameRate` to 20 and runs on unscaled time: the render
+barrier below paces the logic update. A main-camera post-render hook releases the next `FightController.Update`; pixel readback at
 that following update therefore captures a completed render of the pending MCFR snapshot rather than
 the state being advanced.
 The normal screen-space UI is included. The terminal snapshot is not returned until its completed
@@ -359,9 +365,7 @@ dimensions so a renderer can reconstruct the same world-to-screen calibration.
 The operation is valid only after layout completion in Training Ground deployment. It arms native
 capture, starts combat, and records from `S(1)` after the first combat update through every subsequent
 `FightController.Update` boundary through the unique fighting-to-over transition. When video capture
-is disabled, the adapter calls native `RequestSpeedUp` once on the first update that reports
-`IsFighting=true`; requesting it during the preceding process-state transition is too early and has no
-lasting effect. It calls `mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file
+is disabled, time is scaled as `speed_up` describes. It calls `mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file
 structurally, and returns the state/transition counts and all formal hashes.
 
 Projectile release/removal and damage use narrow native hooks so objects created and removed inside
@@ -515,9 +519,9 @@ delays. The capture hook reads the embedded layout at entry to the
 final player's `PlayerController.FinishDeploy()`, before the native transition
 can initialize fighting, but does not persist that pre-update state. `S(1)` is the first state row. Earlier players are rejected unless every other
 player has already completed deployment, so a partially replayed deployment
-cannot be published. Once fighting begins, the normal native
-`RequestSpeedUp()` path accelerates combat; the existing fighting-to-over edge
-terminates MCFR recording.
+cannot be published. Time is scaled as for
+`record_battle`, from arming through the replayed deployment; the existing
+fighting-to-over edge terminates MCFR recording.
 
 Replay formations remain ordered by and export their stable native unit index,
 but those indices may contain gaps left by units removed in earlier rounds.
